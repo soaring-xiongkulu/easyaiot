@@ -20,6 +20,18 @@ algorithm_task_bp = Blueprint('algorithm_task', __name__)
 logger = logging.getLogger(__name__)
 
 
+@algorithm_task_bp.route('/runtime/info', methods=['GET'])
+def runtime_info():
+    """本机 RUNTIME 版本与就绪状态（供 WEB / 运维对照）。"""
+    try:
+        from app.services.runtime_config_service import read_runtime_version_info
+        info = read_runtime_version_info()
+        return jsonify({'code': 0, 'msg': 'success', 'data': info})
+    except Exception as e:
+        logger.error('读取 RUNTIME 信息失败: %s', e, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(e), 'data': None}), 500
+
+
 # ====================== 算法任务管理接口 ======================
 @algorithm_task_bp.route('/task/list', methods=['GET'])
 def list_tasks():

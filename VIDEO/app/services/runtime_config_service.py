@@ -3,12 +3,19 @@ RUNTIME (C++) 配置生成与二进制路径解析。
 
 VIDEO 仍负责编排；本模块在 executor=cpp 时写出 ini 并供 Daemon / 远程 Agent 拉起 RUNTIME。
 支持 realtime / snap / patrol（本机与集群节点）。
+
+本地 IDEA / run.py 启动时：若本机尚无 RUNTIME 二进制，默认自动触发
+`RUNTIME/install_linux.sh install`（与 export 包一致，可用 RUNTIME_AUTO_INSTALL=0 或
+EASYAIOT_RUNTIME_SKIP=1 关闭）。容器内不自动编译（期望宿主机挂载）。
 """
 from __future__ import annotations
 
 import json
 import logging
 import os
+import subprocess
+import sys
+import threading
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -16,6 +23,9 @@ from models import AlgorithmTask, Device, DeviceDetectionRegion
 from app.utils.service_urls import resolve_alert_hook_url, resolve_video_service_base_url
 
 logger = logging.getLogger(__name__)
+
+_AUTO_BUILD_LOCK = threading.Lock()
+_AUTO_BUILD_DONE = False
 
 
 def _repo_root() -> Path:
@@ -31,7 +41,44 @@ def _repo_root() -> Path:
     return video_root.parent
 
 
+def _running_in_docker() -> bool:
+    raw = (os.getenv('RUNNING_IN_DOCKER') or os.getenv('VIDEO_IN_DOCKER') or '').strip().lower()
+    if raw in ('1', 'true', 'yes', 'on'):
+        return True
+    return Path('/.dockerenv').is_file()
+
+
+def _runtime_auto_install_enabled() -> bool:
+    if (os.getenv('EASYAIOT_RUNTIME_SKIP') or '').strip() == '1':
+        return False
+    raw = (os.getenv('RUNTIME_AUTO_INSTALL') or '1').strip().lower()
+    return raw in ('1', 'true', 'yes', 'on')
+
+
+def apply_runtime_deploy_env() -> None:
+    """把 RUNTIME/deploy.env 合并进当前进程（不覆盖已显式设置的变量）。"""
+    deploy_env = _repo_root() / 'RUNTIME' / 'deploy.env'
+    if not deploy_env.is_file():
+        return
+    try:
+        for line in deploy_env.read_text(encoding='utf-8', errors='ignore').splitlines():
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if not key:
+                continue
+            if key in os.environ and str(os.environ.get(key) or '').strip():
+                continue
+            os.environ[key] = value
+    except Exception as e:
+        logger.warning('读取 RUNTIME/deploy.env 失败: %s', e)
+
+
 def resolve_runtime_bin(task: Optional[AlgorithmTask] = None) -> str:
+    apply_runtime_deploy_env()
     if task is not None:
         custom = (getattr(task, 'runtime_bin_path', None) or '').strip()
         if custom and os.path.isfile(custom) and os.access(custom, os.X_OK):
@@ -53,16 +100,205 @@ def resolve_runtime_bin(task: Optional[AlgorithmTask] = None) -> str:
     return str(candidates[1] if (root / 'RUNTIME').is_dir() else candidates[0])
 
 
+def _runtime_bin_exists(task: Optional[AlgorithmTask] = None) -> Optional[str]:
+    path = resolve_runtime_bin(task)
+    if path and os.path.isfile(path) and os.access(path, os.X_OK):
+        return path
+    return None
+
+
+def try_auto_build_runtime(*, reason: str = '') -> bool:
+    """本机缺失 RUNTIME 时自动执行 install_linux.sh install。成功返回 True。"""
+    global _AUTO_BUILD_DONE
+    existing = _runtime_bin_exists(None)
+    if existing:
+        os.environ.setdefault('RUNTIME_BIN', existing)
+        return True
+
+    if not _runtime_auto_install_enabled():
+        logger.info(
+            'RUNTIME 二进制不存在，且已关闭自动编译（RUNTIME_AUTO_INSTALL=0 / EASYAIOT_RUNTIME_SKIP=1）'
+        )
+        return False
+
+    if sys.platform != 'linux':
+        logger.warning(
+            '当前系统 %s 非 Linux：跳过 RUNTIME 自动编译。可用 executor=python，或自行交叉编译。',
+            sys.platform,
+        )
+        return False
+
+    if _running_in_docker():
+        logger.warning(
+            '容器内未找到 RUNTIME 二进制，跳过自动编译（请在宿主机执行 '
+            'VIDEO/scripts/ensure_runtime_cpp.sh 或 RUNTIME/install_linux.sh）'
+        )
+        return False
+
+    # Flask debug reloader：父进程不编译
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'false':
+        return False
+
+    root = _repo_root()
+    install_sh = root / 'RUNTIME' / 'install_linux.sh'
+    if not install_sh.is_file():
+        logger.warning('未找到 %s，无法自动编译 RUNTIME', install_sh)
+        return False
+
+    with _AUTO_BUILD_LOCK:
+        if _AUTO_BUILD_DONE:
+            return bool(_runtime_bin_exists(None))
+        existing = _runtime_bin_exists(None)
+        if existing:
+            os.environ.setdefault('RUNTIME_BIN', existing)
+            _AUTO_BUILD_DONE = True
+            return True
+
+        why = f'（{reason}）' if reason else ''
+        logger.info('未检测到 RUNTIME 二进制%s，自动执行: bash %s install …', why, install_sh)
+        print(
+            f'[VIDEO] 未检测到 RUNTIME，开始自动编译（可能需数分钟）…\n'
+            f'        bash {install_sh} install\n'
+            f'        关闭: RUNTIME_AUTO_INSTALL=0 或 EASYAIOT_RUNTIME_SKIP=1',
+            flush=True,
+        )
+        try:
+            completed = subprocess.run(
+                ['bash', str(install_sh), 'install'],
+                cwd=str(install_sh.parent),
+                check=False,
+            )
+        except Exception as e:
+            logger.error('自动编译 RUNTIME 启动失败: %s', e, exc_info=True)
+            _AUTO_BUILD_DONE = True
+            return False
+
+        apply_runtime_deploy_env()
+        ready = _runtime_bin_exists(None)
+        _AUTO_BUILD_DONE = True
+        if completed.returncode != 0 or not ready:
+            logger.warning(
+                'RUNTIME 自动编译失败（exit=%s）。executor=cpp 任务将不可用，'
+                '可改用 executor=python，或手工执行: bash %s install',
+                completed.returncode,
+                install_sh,
+            )
+            return False
+
+        os.environ.setdefault('RUNTIME_BIN', ready)
+        lib = runtime_library_path_env()
+        if lib:
+            os.environ['LD_LIBRARY_PATH'] = lib
+        logger.info('RUNTIME 自动编译完成: %s', ready)
+        print(f'[VIDEO] RUNTIME 就绪: {ready}', flush=True)
+        return True
+
+
+def ensure_runtime_on_video_startup() -> None:
+    """VIDEO 启动时软检查：已有则加载 env；缺失则尝试自动编译（失败只告警）。"""
+    apply_runtime_deploy_env()
+    existing = _runtime_bin_exists(None)
+    if existing:
+        os.environ.setdefault('RUNTIME_BIN', existing)
+        lib = runtime_library_path_env()
+        if lib and not (os.getenv('LD_LIBRARY_PATH') or '').strip():
+            os.environ['LD_LIBRARY_PATH'] = lib
+        logger.info('RUNTIME 已就绪: %s', existing)
+        return
+
+    if not _runtime_auto_install_enabled():
+        logger.info('本机未找到 RUNTIME，自动编译已关闭，executor=cpp 任务需先手工编译')
+        return
+
+    ok = try_auto_build_runtime(reason='VIDEO 本地启动')
+    if not ok and (os.getenv('EASYAIOT_RUNTIME_REQUIRED') or '').strip() == '1':
+        raise RuntimeError(
+            'EASYAIOT_RUNTIME_REQUIRED=1 且 RUNTIME 不可用，终止启动。'
+            '请编译 RUNTIME 或关闭该开关。'
+        )
+
+
 def ensure_runtime_bin_ready(task: Optional[AlgorithmTask] = None) -> str:
     """Resolve and validate RUNTIME binary; raise ValueError if missing."""
-    path = resolve_runtime_bin(task)
-    if not path or not os.path.isfile(path):
+    path = _runtime_bin_exists(task)
+    if not path:
+        if try_auto_build_runtime(reason='算法任务启动'):
+            path = _runtime_bin_exists(task)
+    if not path:
+        expected = resolve_runtime_bin(task)
         raise ValueError(
-            f'RUNTIME 二进制不存在: {path}。请先编译（source RUNTIME/scripts/env.sh && ./RUNTIME/scripts/build_linux.sh）'
+            f'RUNTIME 二进制不存在: {expected}。'
+            f'请先编译（bash RUNTIME/install_linux.sh install），'
+            f'或确认未设置 RUNTIME_AUTO_INSTALL=0 / EASYAIOT_RUNTIME_SKIP=1'
         )
     if not os.access(path, os.X_OK):
         raise ValueError(f'RUNTIME 二进制不可执行: {path}')
     return path
+
+
+def _parse_version_file(path: Path) -> dict:
+    data = {}
+    if not path.is_file():
+        return data
+    try:
+        for line in path.read_text(encoding='utf-8', errors='ignore').splitlines():
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key:
+                data[key] = value
+    except Exception as e:
+        logger.warning('解析 VERSION 失败 %s: %s', path, e)
+    return data
+
+
+def read_runtime_version_info(task: Optional[AlgorithmTask] = None) -> dict:
+    """读取本机 RUNTIME 版本信息（VERSION 文件 / deploy.env / 二进制旁）。"""
+    apply_runtime_deploy_env()
+    bin_path = _runtime_bin_exists(task)
+    root = _repo_root()
+    candidates = []
+    if bin_path:
+        bin_p = Path(bin_path)
+        candidates.append(bin_p.parent / 'VERSION')
+        # /opt/easyaiot/RUNTIME/bin/RUNTIME → /opt/easyaiot/RUNTIME/VERSION
+        if bin_p.parent.name == 'bin':
+            candidates.append(bin_p.parent.parent / 'VERSION')
+    candidates.extend([
+        root / 'RUNTIME' / 'build' / 'VERSION',
+        root / 'RUNTIME' / 'VERSION',
+        Path('/opt/easyaiot/RUNTIME/VERSION'),
+        Path('/opt/easyaiot/RUNTIME/build/VERSION'),
+    ])
+
+    parsed = {}
+    version_file = None
+    for cand in candidates:
+        parsed = _parse_version_file(cand)
+        if parsed.get('version'):
+            version_file = str(cand)
+            break
+
+    version = (
+        parsed.get('version')
+        or (os.getenv('RUNTIME_VERSION') or '').strip()
+        or None
+    )
+    return {
+        'ready': bool(bin_path),
+        'binPath': bin_path,
+        'version': version,
+        'git': parsed.get('git') or (os.getenv('RUNTIME_GIT') or '').strip() or None,
+        'builtAt': parsed.get('built_at') or (os.getenv('RUNTIME_BUILT_AT') or '').strip() or None,
+        'arch': parsed.get('arch'),
+        'buildMode': parsed.get('build_mode'),
+        'ort': parsed.get('ort'),
+        'source': parsed.get('source'),
+        'versionFile': version_file,
+    }
 
 
 def _task_devices(task: AlgorithmTask) -> List[Device]:

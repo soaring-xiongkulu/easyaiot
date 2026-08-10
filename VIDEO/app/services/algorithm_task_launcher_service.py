@@ -339,6 +339,29 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                     f'bash .scripts/docker/install_linux.sh runtime',
                     False,
                 )
+            # 版本不一致仅告警，不阻断启动（便于运维窗口内手工升级）
+            try:
+                from app.services.runtime_config_service import read_runtime_version_info
+                local_info = read_runtime_version_info()
+                local_ver = (local_info.get('version') or '').strip()
+                node_ver = (
+                    (rt_check.get('version') or '').strip()
+                    or (rt_check.get('runtimeVersion') or '').strip()
+                )
+                version_match = rt_check.get('versionMatch')
+                if local_ver and node_ver and local_ver != node_ver:
+                    logger.warning(
+                        '节点 RUNTIME 版本与控制面不一致 node_id=%s host=%s local=%s node=%s；'
+                        '建议在「业务运行时分发」重新分发升级（本次仍继续启动）',
+                        node_id, host, local_ver, node_ver,
+                    )
+                elif version_match is False:
+                    logger.warning(
+                        '节点 RUNTIME 版本与控制面标记不一致 node_id=%s host=%s check=%s',
+                        node_id, host, rt_check.get('message'),
+                    )
+            except Exception as ver_e:
+                logger.debug('RUNTIME 版本对照跳过: %s', ver_e)
         except Exception as e:
             logger.warning('检测节点 RUNTIME 失败 node_id=%s host=%s: %s', node_id, host, e)
             return (

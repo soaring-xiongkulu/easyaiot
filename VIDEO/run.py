@@ -1011,6 +1011,13 @@ def create_app(start_background_tasks=None):
         except Exception as e:
             logger.warning('SRS 启动自检失败（可忽略）: %s', e)
 
+        # 本地 IDEA / run.py：缺失 RUNTIME 时默认自动编译（容器内跳过）
+        try:
+            from app.services.runtime_config_service import ensure_runtime_on_video_startup
+            ensure_runtime_on_video_startup()
+        except Exception as e:
+            logger.warning('RUNTIME 启动自检失败（可忽略，executor=python 仍可用）: %s', e)
+
     if not start_background_tasks:
         return app
 
