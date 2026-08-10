@@ -317,8 +317,105 @@ SCENARIO_POSE_LIBRARY_KEYS: Set[str] = {
     "updated_at",
 }
 
-ARTIFACT_PREFIX = "fr-b20"
-MATRIX_ARTIFACT_PREFIX = "fr-b21"
+# Python: alert_service.py get_dashboard_statistics L861-932
+ALERT_STATISTICS_KEYS: Set[str] = {
+    "alarm_count",
+    "today_alarm_count",
+    "camera_count",
+    "algorithm_count",
+    "model_count",
+}
+
+# Python: models.py FaceLibrary.to_dict L1251-1273
+FACE_LIBRARY_ITEM_KEYS: Set[str] = {
+    "id",
+    "name",
+    "code",
+    "business_tags",
+    "description",
+    "similarity_threshold",
+    "is_enabled",
+    "face_count",
+    "created_at",
+    "updated_at",
+}
+
+# Python: models.py PlateLibrary.to_dict L1476-1497
+PLATE_LIBRARY_ITEM_KEYS: Set[str] = {
+    "id",
+    "name",
+    "code",
+    "business_tags",
+    "description",
+    "is_enabled",
+    "plate_count",
+    "created_at",
+    "updated_at",
+}
+
+# Python: models.py SnapTask.to_dict L561-608
+SNAP_TASK_ITEM_KEYS: Set[str] = {
+    "id",
+    "task_name",
+    "task_code",
+    "space_id",
+    "space_name",
+    "device_id",
+    "device_name",
+    "capture_type",
+    "cron_expression",
+    "frame_skip",
+    "algorithm_enabled",
+    "algorithm_type",
+    "algorithm_model_id",
+    "algorithm_threshold",
+    "algorithm_night_mode",
+    "alarm_enabled",
+    "alarm_type",
+    "phone_number",
+    "email",
+    "notify_users",
+    "notify_methods",
+    "alarm_suppress_time",
+    "last_notify_time",
+    "auto_filename",
+    "custom_filename_prefix",
+    "status",
+    "is_enabled",
+    "run_status",
+    "exception_reason",
+    "total_captures",
+    "last_capture_time",
+    "last_success_time",
+    "pusher_id",
+    "pusher_name",
+    "created_at",
+    "updated_at",
+}
+
+# Python: models.py RecordFile.to_list_item L421-443
+RECORD_VIDEO_ITEM_KEYS: Set[str] = {
+    "id",
+    "object_name",
+    "filename",
+    "size",
+    "last_modified",
+    "etag",
+    "content_type",
+    "url",
+    "duration",
+    "thumbnail_url",
+}
+
+# Python: playback.py get_playback_statistics L292-300
+PLAYBACK_STATISTICS_KEYS: Set[str] = {
+    "total_count",
+    "total_duration",
+    "total_size",
+}
+
+ARTIFACT_PREFIX = "fr-b22"
+MATRIX_ARTIFACT_PREFIX = "fr-b22"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -498,6 +595,126 @@ SAMPLE_CASES: List[Dict[str, Any]] = [
             "python_source": "scenario_pose.py create_library POST body name",
         },
     },
+    {
+        "id": "algorithm_task_get",
+        "path": "/video/algorithm/task/1",
+        "path_template": "/video/algorithm/task/{id}",
+        "python_source": "VIDEO/_retired_python_video/models.py AlgorithmTask.to_dict + algorithm_task.py get_task",
+        "data_keys": ALGORITHM_TASK_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/algorithm/task",
+            "body": {
+                "task_name": "field-contract-algo-probe",
+                "task_type": "realtime",
+                "device_ids": ["vj_p2_device"],
+                "is_enabled": False,
+            },
+            "python_source": "algorithm_task.py create_task POST task_name required",
+        },
+    },
+    {
+        "id": "stream_forward_task_get",
+        "path": "/video/stream-forward/task/1",
+        "path_template": "/video/stream-forward/task/{id}",
+        "python_source": "VIDEO/_retired_python_video/models.py StreamForwardTask.to_dict + stream_forward.py get_task",
+        "data_keys": STREAM_FORWARD_TASK_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/stream-forward/task",
+            "body": {
+                "task_name": "field-contract-sf-probe",
+                "device_ids": ["vj_p2_device"],
+                "is_enabled": False,
+            },
+            "python_source": "stream_forward.py create_task POST task_name + device_ids",
+        },
+    },
+    {
+        "id": "face_libraries",
+        "path": "/video/face/libraries",
+        "python_source": "VIDEO/_retired_python_video/models.py FaceLibrary.to_dict + face.py list_face_libraries",
+        "data_list": True,
+        "top_keys": {"total"},
+        "list_item_keys": FACE_LIBRARY_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/face/libraries",
+            "body": {"name": "field-contract-face-lib"},
+            "python_source": "face.py create_face_library POST name",
+        },
+    },
+    {
+        "id": "plate_libraries",
+        "path": "/video/plate/libraries",
+        "python_source": "VIDEO/_retired_python_video/models.py PlateLibrary.to_dict + plate.py list_plate_libraries",
+        "data_list": True,
+        "top_keys": {"total"},
+        "list_item_keys": PLATE_LIBRARY_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/plate/libraries",
+            "body": {"name": "field-contract-plate-lib"},
+            "python_source": "plate.py create_plate_library POST name",
+        },
+    },
+    {
+        "id": "alert_statistics",
+        "path": "/video/alert/statistics",
+        "python_source": "VIDEO/_retired_python_video/app/services/alert_service.py get_dashboard_statistics",
+        "data_keys": ALERT_STATISTICS_KEYS,
+    },
+    {
+        "id": "snap_task_list",
+        "path": "/video/snap/task/list?pageNo=1&pageSize=1",
+        "python_source": "VIDEO/_retired_python_video/models.py SnapTask.to_dict + snap.py list_tasks",
+        "data_list": True,
+        "top_keys": {"total"},
+        "list_item_keys": SNAP_TASK_ITEM_KEYS,
+        "setup": {
+            "method": "POST",
+            "path": "/video/snap/task",
+            "body": {
+                "task_name": "field-contract-snap-probe",
+                "space_id": 1,
+                "device_id": "vj_p2_device",
+            },
+            "python_source": "snap.py create_task POST task_name + space_id + device_id",
+            "prerequisite": {
+                "method": "GET",
+                "path": "/video/snap/space/device/vj_p2_device",
+                "body_key": "space_id",
+                "data_key": "id",
+                "python_source": "snap.py get_space_by_device resolves space_id for vj_p2_device",
+            },
+        },
+    },
+    {
+        "id": "record_space_by_device",
+        "path": "/video/record/space/device/vj_p2_device",
+        "python_source": "VIDEO/_retired_python_video/models.py RecordSpace.to_dict + record.py get_space_by_device",
+        "data_keys": RECORD_SPACE_ITEM_KEYS,
+    },
+    {
+        "id": "record_videos_list",
+        "path": "/video/record/space/1/videos?pageNo=1&pageSize=1",
+        "path_template": "/video/record/space/{id}/videos?pageNo=1&pageSize=1",
+        "python_source": "VIDEO/_retired_python_video/models.py RecordFile.to_list_item + record.py list_videos",
+        "data_list": True,
+        "top_keys": {"total"},
+        "list_item_keys": RECORD_VIDEO_ITEM_KEYS,
+        "setup": {
+            "method": "GET",
+            "path": "/video/record/space/device/vj_p2_device",
+            "python_source": "record.py get_space_by_device → extract data.id for path_template",
+        },
+    },
+    {
+        "id": "playback_statistics",
+        "path": "/video/playback/statistics",
+        "python_source": "VIDEO/_retired_python_video/app/blueprints/playback.py get_playback_statistics",
+        "data_keys": PLAYBACK_STATISTICS_KEYS,
+    },
 ]
 
 ENVELOPE_KEYS: Set[str] = {"code", "msg", "data"}
@@ -636,7 +853,7 @@ def write_matrix_artifacts(
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        f"# FR-B21 GET Envelope Matrix — inventoried safe GET routes",
+        f"# FR-B22 GET Envelope Matrix — inventoried safe GET routes",
         "",
         f"**Generated:** {payload['generated_at']}",
         f"**Base URL:** {base_url}",
@@ -738,15 +955,58 @@ def run_setup(base_url: str, setup: Dict[str, Any], timeout: float) -> Dict[str,
         "python_source": setup.get("python_source"),
         "ok": False,
     }
-    if method != "POST":
+
+    prerequisite = setup.get("prerequisite")
+    body = dict(setup.get("body") or {})
+    if prerequisite:
+        pre_method = str(prerequisite.get("method", "GET")).upper()
+        pre_path = str(prerequisite["path"])
+        if pre_method == "GET":
+            pre_status, pre_body, _ = http_get_json(base_url, pre_path, timeout=timeout)
+        else:
+            pre_status, pre_body, _ = http_post_json(
+                base_url, pre_path, prerequisite.get("body") or {}, timeout=timeout
+            )
+        result["prerequisite"] = {
+            "method": pre_method,
+            "path": pre_path,
+            "http_status": pre_status,
+            "code": pre_body.get("code") if isinstance(pre_body, dict) else None,
+            "ok": pre_status < 500 and isinstance(pre_body, dict) and pre_body.get("code") == 0,
+        }
+        if not result["prerequisite"]["ok"]:
+            result["detail"] = "prerequisite failed"
+            return result
+        pre_data = pre_body.get("data") if isinstance(pre_body, dict) else None
+        body_key = prerequisite.get("body_key")
+        data_key = prerequisite.get("data_key", "id")
+        if body_key and isinstance(pre_data, dict) and pre_data.get(data_key) is not None:
+            body[body_key] = pre_data[data_key]
+
+    if method == "GET":
+        status, body_resp, _ = http_get_json(base_url, str(setup["path"]), timeout=timeout)
+    elif method == "POST":
+        status, body_resp, _ = http_post_json(base_url, str(setup["path"]), body, timeout=timeout)
+    else:
         result["detail"] = f"unsupported setup method {method}"
         return result
-    status, body, _ = http_post_json(base_url, str(setup["path"]), setup.get("body") or {}, timeout=timeout)
+
     result["http_status"] = status
-    result["code"] = body.get("code")
-    result["ok"] = status < 500 and body.get("code") == 0
-    result["detail"] = body.get("msg") or body.get("message") or ""
+    result["code"] = body_resp.get("code") if isinstance(body_resp, dict) else None
+    result["data"] = body_resp.get("data") if isinstance(body_resp, dict) else None
+    result["ok"] = status < 500 and body_resp.get("code") == 0
+    result["detail"] = body_resp.get("msg") or body_resp.get("message") or ""
     return result
+
+
+def resolve_case_path(case: Dict[str, Any]) -> str:
+    template = case.get("path_template")
+    setup_result = case.get("setup_result") or {}
+    if template and setup_result.get("ok"):
+        data = setup_result.get("data")
+        if isinstance(data, dict) and data.get("id") is not None:
+            return template.format(id=data["id"])
+    return str(case["path"])
 
 
 def missing_keys(actual: Any, expected: Set[str]) -> List[str]:
@@ -866,7 +1126,7 @@ def write_artifacts(rows: List[Dict[str, Any]], summary: Dict[str, int], base_ur
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        f"# FR-B20 Field Contract — 14-prefix P0/P1 Python-first sampling",
+        f"# FR-B22 Field Contract — 14-prefix P0/P1 Python-first sampling",
         "",
         f"**Generated:** {payload['generated_at']}",
         f"**Base URL:** {base_url}",
@@ -921,7 +1181,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(
         "--deep",
         action="store_true",
-        help="run FR-B20 hand-curated deep field samples (default when no mode flag)",
+        help="run FR-B22 hand-curated deep field samples (default when no mode flag)",
     )
     args = parser.parse_args(argv)
 
@@ -934,6 +1194,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             case_copy = dict(case)
             if case_copy.get("setup"):
                 case_copy["setup_result"] = run_setup(args.base_url, case_copy["setup"], args.timeout)
+            case_copy["path"] = resolve_case_path(case_copy)
             rows.append(assert_case(args.base_url, case_copy, args.timeout))
         summary = summarize(rows)
         print(

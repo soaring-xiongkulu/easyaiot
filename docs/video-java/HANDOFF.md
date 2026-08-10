@@ -68,26 +68,30 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-10 FR-W4）
+## 8. 现状摘要（2026-08-11 FR-B22）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
+- **契约硬化：** **FR-B18 ✅** 265 路由薄探针 0 fail；**FR-B20 ✅** 16 端点深字段抽样；**FR-B21 ✅** 98 GET 信封矩阵（95 JSON 探针 / 0 fail）；**FR-B22 ✅** 扩至 **25** 深采样端点 / **130** pass assert（`logs/fr-b22-field-contract-latest.json`）。
 - **行为：** MinIO/ONVIF/YOLO/InsightFace/Milvus/SSE 真流等仍为 **mini 桩**；见 `FULL_REPLACEMENT_GAP.md` §2–§4。
 - **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成。
 - **EVID：** 真 RUNTIME / alert success 等证据已抬升；**EVID 轮次结束**。
 - **Phase 3/CLOSE：** 改名、归档、网关指向 = 运维动作，**≠ 功能完整替换**。
-- **项目状态：** **FR HTTP 面已齐 / 行为桩仍存 — 禁止 COMPLETE**。
+- **项目状态：** **FR HTTP 面已齐 / 信封+深采样已绿 / 行为桩仍存 — 禁止 COMPLETE**。
 - **网关：** 现已指向 Java 名；行为桩未清前，**不得**认为生产功能已安全切完。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（全部 ⬜ 待 ops 证据；禁止假绿）。
 
 ## 9. 你的下一步
 
-按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog：
+按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
 
-1. MinIO 真同步/清理（snap/record/media）
-2. ONVIF/NVR/扫描真连接（camera、audio_talk）
-3. InsightFace/Paddle/Milvus 推理或产品旁路决策
-4. snap_task 调度 `init_all_tasks`
-5. post-process 真 sink；远程 node（EX-REMOTE-NODE）
-6. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
+1. **prod 联调 soak**（Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟）— 逐项勾选 checklist 并附证据
+2. **全量 259 路由字段键矩阵** — FR-B22 深采样 25 端点 ≠ 全量矩阵
+3. MinIO 真同步/清理（snap/record/media）
+4. ONVIF/NVR/扫描真连接（camera、audio_talk）
+5. InsightFace/Paddle/Milvus 推理或产品旁路决策
+6. snap_task 调度 `init_all_tasks` prod 验证
+7. post-process 真 sink；远程 node（EX-REMOTE-NODE）prod 联调
+8. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
 
 ## 10. 历史审查决议（切片期，仍有效的工程约束）
 
