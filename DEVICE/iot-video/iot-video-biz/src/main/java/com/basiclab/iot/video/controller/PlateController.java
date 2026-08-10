@@ -7,6 +7,7 @@ import com.basiclab.iot.video.service.plate.PlateModelService;
 import com.basiclab.iot.video.service.plate.PlateRecognitionService;
 import com.basiclab.iot.video.support.RequestParams;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -98,8 +99,24 @@ public class PlateController {
         return response;
     }
 
-    @PostMapping("/libraries/{libraryId}/entries")
-    public VideoApiResponse<Map<String, Object>> addEntry(
+    @PostMapping(value = "/libraries/{libraryId}/entries", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public VideoApiResponse<Map<String, Object>> addEntryJson(
+            @PathVariable int libraryId,
+            @RequestBody Map<String, Object> body) throws Exception {
+        boolean enabled = RequestParams.bool(body, "is_enabled", true);
+        return VideoApiResponse.success("success", plateLibraryService.addEntry(
+                libraryId,
+                RequestParams.str(body, "plate_no"),
+                RequestParams.strOrNull(body, "plate_color"),
+                RequestParams.strOrNull(body, "owner_name"),
+                RequestParams.strOrNull(body, "owner_phone"),
+                RequestParams.strOrNull(body, "remark"),
+                null,
+                enabled));
+    }
+
+    @PostMapping(value = "/libraries/{libraryId}/entries", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public VideoApiResponse<Map<String, Object>> addEntryMultipart(
             @PathVariable int libraryId,
             @RequestParam(required = false) String plate_no,
             @RequestParam(required = false) String plate_color,
@@ -107,21 +124,18 @@ public class PlateController {
             @RequestParam(required = false) String owner_phone,
             @RequestParam(required = false) String remark,
             @RequestParam(required = false) String is_enabled,
-            @RequestParam(required = false) MultipartFile file,
-            @RequestBody(required = false) Map<String, Object> body) throws Exception {
-        Map<String, Object> data = body != null ? body : Map.of();
-        String plateNo = plate_no != null ? plate_no : RequestParams.str(data, "plate_no");
-        boolean enabled = is_enabled != null
-                ? RequestParams.matchedFilter(is_enabled) == null || RequestParams.matchedFilter(is_enabled)
-                : RequestParams.bool(data, "is_enabled", true);
+            @RequestParam(required = false) MultipartFile file) throws Exception {
+        boolean enabled = is_enabled == null
+                || RequestParams.matchedFilter(is_enabled) == null
+                || RequestParams.matchedFilter(is_enabled);
         byte[] bytes = file != null && !file.isEmpty() ? file.getBytes() : null;
         return VideoApiResponse.success("success", plateLibraryService.addEntry(
                 libraryId,
-                plateNo,
-                plate_color != null ? plate_color : RequestParams.strOrNull(data, "plate_color"),
-                owner_name != null ? owner_name : RequestParams.strOrNull(data, "owner_name"),
-                owner_phone != null ? owner_phone : RequestParams.strOrNull(data, "owner_phone"),
-                remark != null ? remark : RequestParams.strOrNull(data, "remark"),
+                plate_no,
+                plate_color,
+                owner_name,
+                owner_phone,
+                remark,
                 bytes,
                 enabled));
     }

@@ -8,6 +8,8 @@ import os
 import uuid
 from pathlib import Path
 
+from bucket_naming import certify_bucket_name
+
 try:
     import psycopg2
     import psycopg2.extras
@@ -157,10 +159,18 @@ def _ensure_task(
 
 
 def _ensure_space(cur, table: str, code: str, name: str, device_id: str) -> int:
-    cur.execute(f"SELECT id FROM {table} WHERE space_code = %s", (code,))
+    bucket = certify_bucket_name(code)
+    cur.execute(f"SELECT id, bucket_name FROM {table} WHERE space_code = %s", (code,))
     row = cur.fetchone()
     if row:
-        return int(row["id"])
+        space_id = int(row["id"])
+        if row.get("bucket_name") != bucket:
+            cur.execute(
+                f"UPDATE {table} SET bucket_name = %s WHERE id = %s",
+                (bucket, space_id),
+            )
+            print(f"OK  migrated {table} id={space_id} bucket_name -> {bucket}")
+        return space_id
     cur.execute(
         f"""
         INSERT INTO {table} (
@@ -169,7 +179,7 @@ def _ensure_space(cur, table: str, code: str, name: str, device_id: str) -> int:
         ) VALUES (%s, %s, %s, 0, 24, false, %s, %s)
         RETURNING id
         """,
-        (name, code, f"certify-{code}", "vj_p2 certify space", device_id),
+        (name, code, bucket, "vj_p2 certify space", device_id),
     )
     return int(cur.fetchone()["id"])
 

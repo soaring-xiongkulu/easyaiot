@@ -286,11 +286,28 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B34 POST keys-matrix**（`:48096` local） | **42** curated POST 样本 → **42/42 pass** / **0 fail**；**25** success-key + **17** envelope/envelope_success；**13/14** 前缀覆盖；**169** assert pass；artifact `logs/fr-b34-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | **FR-B35 POST keys-matrix**（`:48096` local） | **63** curated POST 样本 → **63/63 pass** / **0 fail**；**32** success-key + **31** envelope/envelope_success；**14/14** 前缀（含 `audio_talk` POST start/stop/send）；**242** assert pass；artifact `logs/fr-b35-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | **FR-B36 POST keys-matrix**（`:48096` local） | **131** curated POST 样本 → **131/131 pass** / **0 fail**；**40** success-key + **91** envelope/envelope_success；**inventoried POST 112 = 109 sampled + 3 destructive skip**；**457** assert pass；coverage 表见 artifact `logs/fr-b36-post-keys-matrix-latest.json`；**≠ 逐字段 POST 全量 parity** |
+| **FR-B37 multipart 成功探针**（`:48096` local） | **2/3** multipart core pass（plate entry + scenario-pose extract）；face entry **EX** InsightFace worker；fixture `testdata/fr-b37/tiny.jpg`；artifact `logs/fr-b37-multipart-latest.json` |
+| **FR-B37 bucket 命名**（vj_p2 fixture） | `certify-vj_p2_*` → `certify-vj-p2-*`；`snap/record` metadata sync **0** not **500**；`S3BucketNameSupport` 4xx on illegal bucket |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B36
+## 9. 最终判定 — FR-B37
+
+| 问题 | 答案 |
+|------|------|
+| Multipart 成功证据？ | **部分（local）** — plate entry + pose extract **pass**；face entry **EX**（推理引擎）；artifact `logs/fr-b37-multipart-latest.json` |
+| Fixture bucket S3 非法名？ | **已修复** — `seed_p2_fixture` migrate + `certify_bucket_name()`；sync **200 code=0** |
+| Java multipart / MinIO 修复？ | **是** — `PlateController` consumes 拆分；`PlateLibraryService` 去 OCR gate；`S3BucketNameSupport` |
+| phase0？ | **PASS 5/5** — `logs/certify-frb37-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — face multipart 成功路径待 InsightFace worker；plate 图片 MinIO 上传 parity 未齐 |
+
+## 10. 历史判定归档（只读）
+
+<details>
+<summary>FR-B36 / FR-B35 / FR-B33 … 历史判定（点击展开）</summary>
+
+### FR-B36
 
 | 问题 | 答案 |
 |------|------|
@@ -299,11 +316,6 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Java 缺键/5xx 修复？ | **是** — face/plate multipart 缺文件 → 400；`persons/batch-delete` 空列表 → 400；scenario-pose re-extract 不存在 → 400 |
 | phase0？ | **PASS 5/5** — `logs/certify-frb36-phase0.log` |
 | 能否称 COMPLETE？ | **禁止** — prod soak open；multipart 成功路径 / 真机 ONVIF 未绿；fixture bucket 名 S3 非法致 sync 诚实 500 |
-
-## 10. 历史判定归档（只读）
-
-<details>
-<summary>FR-B35 / FR-B33 / FR-B31 / FR-B30 / FR-B29 … 历史判定（点击展开）</summary>
 
 ### FR-B35
 

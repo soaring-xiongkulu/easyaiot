@@ -91,6 +91,8 @@
 8. post-process 真 sink；远程 node（EX-REMOTE-NODE）prod 联调
 9. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
 
+**FR-B37（local）：** multipart 探针 `python tools/video_java/fr_b37_multipart.py` → `logs/fr-b37-multipart-latest.*`；vj_p2 bucket `certify-vj-p2-*`（非 `certify-vj_p2_*`）。
+
 ## 10. 历史审查决议（切片期，仍有效的工程约束）
 
 栈、`{code,msg,data}`、共用 DB、不升 Boot 3、独立门禁目录等约束仍有效。  

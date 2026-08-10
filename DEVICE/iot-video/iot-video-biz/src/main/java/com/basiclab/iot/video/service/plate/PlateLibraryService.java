@@ -96,9 +96,7 @@ public class PlateLibraryService {
         }
         String imagePath = null;
         String imageUrl = null;
-        if (imageBytes != null && imageBytes.length > 0) {
-            recognitionService.ensurePlateEngine();
-        }
+        // Python plate_library_service.add_entry uploads image without requiring OCR engine (plate.py L172-182).
         int id = entryRepository.insert(libraryId, plateNo.trim(), plateColor, ownerName, ownerPhone,
                 imagePath, imageUrl, remark, isEnabled);
         libraryRepository.refreshPlateCount(libraryId);

@@ -5,6 +5,7 @@ import com.basiclab.iot.video.dal.RecordFileRepository;
 import com.basiclab.iot.video.dal.SnapImageRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.support.MediaDvrPathSupport;
+import com.basiclab.iot.video.support.S3BucketNameSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -80,6 +81,7 @@ public class SpaceFileMetadataService {
         }
         int spaceId = ((Number) space.get("id")).intValue();
         String bucketName = bucketName(space, videoMinioService.recordBucket());
+        S3BucketNameSupport.requireValid(bucketName);
         String deviceId = stringField(space.get("device_id"));
         String prefix = deviceId.isBlank() ? "" : deviceId + "/";
 
@@ -134,6 +136,7 @@ public class SpaceFileMetadataService {
         }
         int spaceId = ((Number) space.get("id")).intValue();
         String bucketName = bucketName(space, videoMinioService.snapBucket());
+        S3BucketNameSupport.requireValid(bucketName);
         String deviceId = stringField(space.get("device_id"));
         String prefix = deviceId.isBlank() ? "" : deviceId + "/";
 

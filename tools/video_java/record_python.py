@@ -683,10 +683,12 @@ def _record_snap_list_or_create(
     list_status, list_body, _ = http_json("GET", f"{base}/video/snap/space/list?pageNo=1&pageSize=20")
     list_data = list_body.get("data") if isinstance(list_body.get("data"), list) else []
     create_code = fixture["snap_space_code"] + f"_{uuid.uuid4().hex[:6]}"
+    from bucket_naming import certify_bucket_name
+
     create_payload = {
         "space_name": f"vj_p2 snap {uuid.uuid4().hex[:6]}",
         "space_code": create_code,
-        "bucket_name": f"certify-{create_code}",
+        "bucket_name": certify_bucket_name(create_code),
         "save_mode": 0,
         "save_time": 24,
         "description": "vj_p2 certify create",

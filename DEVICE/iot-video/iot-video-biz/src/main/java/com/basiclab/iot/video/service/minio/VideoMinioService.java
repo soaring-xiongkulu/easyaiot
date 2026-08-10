@@ -2,6 +2,7 @@ package com.basiclab.iot.video.service.minio;
 
 import com.basiclab.iot.video.config.VideoProperties;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.support.S3BucketNameSupport;
 import com.basiclab.iot.video.support.VideoMinioBucketPolicy;
 import io.minio.BucketExistsArgs;
 import io.minio.ListObjectsArgs;
@@ -344,6 +345,7 @@ public class VideoMinioService {
     }
 
     private void ensureBucket(MinioClient client, String bucketName, boolean publicReadWrite) {
+        S3BucketNameSupport.requireValid(bucketName);
         try {
             boolean exists = client.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
             if (!exists) {
