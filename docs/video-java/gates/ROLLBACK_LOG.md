@@ -1,32 +1,56 @@
 # VIDEO Java — rollback log
 
-Record each production or staged rollback after gateway cutover to Java.
+Record each production or staged rollback after gateway cutover to Java (`video-server`).
+
+## Naming reference (post CLOSE-S2)
+
+| Role | Nacos name | Port | Notes |
+|------|------------|------|-------|
+| **Production (Java)** | `video-server` | `48096` | Gateway `video-admin-api` → `lb://video-server` |
+| **Rollback (Python)** | `video-server` | `6000` | Archived at `VIDEO/_retired_python_video/` or external `F:/acme/VIDEO` |
+
+Gateway URI **does not change** on rollback — stop Java, restore/start Python as `video-server`, Nacos resolves to Python.
+
+## Log
 
 | Date | Trigger | Steps | Duration | Outcome | Author |
 |------|---------|-------|----------|---------|--------|
-| 2026-08-10 | P3-S2 staged rollback drill (no prod incident) | 1) `video-admin-api` uri `lb://video-server-java` → `lb://video-server` in `DEVICE/iot-gateway/.../application.yaml`; 2) verify YAML; 3) restore uri → `lb://video-server-java`; 4) verify restore | **<1 min** (40 ms config edit; gateway restart not run locally) | restored to Java URI | P3-S2 agent |
+| 2026-08-10 | P3-S2 staged rollback drill (pre-CLOSE-S2 naming) | Config flip `video-server-java` ↔ `video-server` | **<1 min** (40 ms YAML edit) | Historical — superseded by CLOSE-S2 | P3-S2 agent |
+| 2026-08-10 | EVID-S5 narrative fix (doc-only; no live drill) | Documented post-rename rollback: stop Java → restore Python archive → start `:6000` as `video-server` | — | docs updated | EVID-S5 |
 
-### P3-S2 drill detail
+### EVID-S5 rollback runbook (current)
 
-**Environment:** `F:/acme/.worktrees/video-java`, branch `feat/video-java`. No live `iot-gateway` on `:48080` — drill exercised config revert/restore only.
+**Environment:** `F:/acme/.worktrees/video-java`, branch `feat/video-java`. Production gateway `uri: lb://video-server` (Java).
 
-**Rollback steps (prod adds gateway restart + Java scale-down):**
+**When Java fails — fast rollback:**
 
-1. Edit `DEVICE/iot-gateway/src/main/resources/application.yaml` — `video-admin-api` `uri: lb://video-server`.
-2. Restart or Nacos-push gateway route config.
-3. (Prod) Stop or scale `video-server-java` to 0; clear `VIDEO_SKIP_BACKGROUND_TASKS` on Python oracle; `auto_start_all_tasks` if needed.
-4. Smoke via gateway with token + `tenant-id` — expect Python `video-server` responses.
+1. **Stop Java** — scale `video-server` (Java) to 0; confirm Nacos deregister.
+2. **Restore Python serving surface** (pick one):
+   - **In-repo:** move/copy from `VIDEO/_retired_python_video/` → `VIDEO/` (`app/`, `run.py`, `models.py`, `services/`, `start_prod.sh`, `docker-entrypoint.sh`).
+   - **External:** checkout/run `F:/acme/VIDEO` (tag `video-java-oracle-baseline`).
+3. **Start Python** on `:6000`, register Nacos as `video-server`.
+4. **Gateway** — **no URI change** (`lb://video-server`); reload only if stale route cache.
+5. **Background** — clear `VIDEO_SKIP_BACKGROUND_TASKS`; `auto_start_all_tasks` if needed.
+6. **Smoke** — gateway `/admin-api/video/**` with token + `tenant-id`.
 
-**Restore steps (this drill):**
+**Restore to Java (after incident):**
 
-1. Revert `uri` to `lb://video-server-java`.
-2. Restart gateway (prod).
-3. Re-enable Java instances; keep Python `auto_start` off until Java owns enabled local tasks.
+1. Stop Python; re-archive serving surface per P3-S3 `safe_fsops` if restoring in-repo layout.
+2. Start Java `video-server` on `:48096`.
+3. Gateway unchanged (`lb://video-server`).
 
-**Measured:** YAML rollback + restore elapsed **40 ms** (2026-08-10). Prod rollback budget: config + gateway reload typically **2–5 min** depending on deploy model.
+**Prod rollback budget:** stop Java + restore Python + Nacos register + smoke typically **5–15 min** (archive restore adds time).
+
+### P3-S2 drill detail (historical — pre-CLOSE-S2)
+
+> **Superseded:** drill used `video-server-java` ↔ `video-server` YAML flip. After CLOSE-S2, Java production name is `video-server`; rollback is process swap, not URI revert.
+
+**Environment:** `F:/acme/.worktrees/video-java`, branch `feat/video-java`. No live `iot-gateway` on `:48080` at drill time — config edit only.
+
+**Measured:** YAML edit elapsed **40 ms** (2026-08-10).
 
 Template row:
 
 ```text
-YYYY-MM-DD | symptom (e.g. hook 5xx spike) | gateway→video-server, stop Java, Python auto_start | N min | restored | name
+YYYY-MM-DD | symptom (e.g. hook 5xx spike) | stop Java, restore Python archive, start :6000 as video-server | N min | restored | name
 ```

@@ -13,8 +13,8 @@ Phase 3 completes when gateway default traffic is on Java, rollback is drilled, 
 | 2 | Gateway `video-admin-api` → `lb://video-server` | ✅ **done (CLOSE-S2)** — renamed from `video-server-java` | — |
 | 3 | `CUTOVER.md` runbook (precheck, steps, observe, auth) | ✅ **done (P3-S1)** | — |
 | 4 | Gateway smoke with production token + `tenant-id` | ✅ **done (CLOSE-S3)** — [GATEWAY_AUTH_SMOKE.md](./GATEWAY_AUTH_SMOKE.md); mini gateway `:48080` → `:48096`; `EX-GATEWAY-AUTH-LOCAL` | — |
-| 5 | Observe 15–30 min (heartbeat, hook, tasks) post-cutover | ✅ **done (CLOSE-S3)** — [OBSERVE_LOG.md](./OBSERVE_LOG.md) 16m38s, 22/22 OK | — |
-| 6 | Rollback drill: gateway → `lb://video-server`, document in `ROLLBACK_LOG.md` | ✅ **done (P3-S2)** | — |
+| 5 | Observe 15–30 min (heartbeat, hook, tasks) post-cutover | ✅ **done (CLOSE-S3 + EVID-S5)** — [OBSERVE_LOG.md](./OBSERVE_LOG.md) 16m38s; [OBSERVE_EVID-S5.md](./OBSERVE_EVID-S5.md) heartbeat + hook probes | — |
+| 6 | Rollback drill + post-rename narrative in `ROLLBACK_LOG.md` | ✅ **done (P3-S2 + EVID-S5)** — stop Java, restore archived Python, gateway `lb://video-server` unchanged | — |
 | 7 | Java `spring.application.name` → `video-server` + Python deregister | ✅ **done (CLOSE-S2)** — Python archived (P3-S3); Java renamed to `video-server` | — |
 | 8 | Python `VIDEO/` retire wave (safe_fsops dry-run → execute) | ✅ **done (P3-S3)** | — |
 | 9 | `CERTIFY_STATUS.md` Phase 3 PASS | ✅ **done (P3-S3)** | — |
@@ -67,13 +67,22 @@ curl -s -w "\nHTTP:%{http_code}\n" \
 
 **Exemption:** `EX-GATEWAY-AUTH-LOCAL` (signed) — full OAuth success requires live `system-server`.
 
-## Observe (CLOSE-S3)
+## Observe (CLOSE-S3 + EVID-S5)
 
 **Status:** ✅ **done** — [OBSERVE_LOG.md](./OBSERVE_LOG.md): **16m 38s**, 22 polls @ 45s, **OK=22 FAIL=0**, verdict **PASS**.
 
-## Rollback drill (P3-S2)
+**EVID-S5 extension:** [OBSERVE_EVID-S5.md](./OBSERVE_EVID-S5.md) — heartbeat (`code=0`, direct + gateway) and alert-hook (`code=0`) probes beyond health/camera.
 
-Recorded in `gates/ROLLBACK_LOG.md`. Config revert `lb://video-server` → archived Python → restore **40 ms** locally; production gateway uri **`lb://video-server`** (Java).
+## Rollback drill (P3-S2 + EVID-S5)
+
+Recorded in `gates/ROLLBACK_LOG.md`.
+
+**Post CLOSE-S2 / P3-S3 reality:**
+
+- Gateway `video-admin-api` → **`lb://video-server`** (Java, `:48096`) — **unchanged on rollback**.
+- Python serving surface archived to `VIDEO/_retired_python_video/`; rollback = stop Java → restore Python (`_retired_python_video` or `F:/acme/VIDEO`) → start `:6000` as Nacos `video-server`.
+- P3-S2 measured YAML-only drill **40 ms** (pre-rename `video-server-java` flip — historical).
+- EVID-S5 (2026-08-10) rewrote rollback narrative; no live prod drill required for doc fix.
 
 ## Gate PASS criteria
 

@@ -6,7 +6,7 @@
 
 1. **Phase 2 gate PASS** — all `vj_p2_*` cases green (`python tools/video_java/certify.py --phase 2` exit 0).
 2. **Java candidate healthy** — `video-server` registered in Nacos (or local profile reachable at `:48096`); `/actuator/health` UP.
-3. **Python oracle still available** — `video-server` on `:6000` for rollback; **do not** delete `VIDEO/` in this stage.
+3. **Python rollback source available** — serving surface archived under `VIDEO/_retired_python_video/` (P3-S3) or external oracle `F:/acme/VIDEO` (tag `video-java-oracle-baseline`). Java owns Nacos name `video-server`; Python is **not** running during normal cutover.
 4. **Background tasks** — stop Python `auto_start` / set `VIDEO_SKIP_BACKGROUND_TASKS=1` on oracle before cutover so enabled tasks are not dual-owned. Java should own `schedule_policy=local` enabled tasks.
 5. **DB** — shared `iot-video20`; certify uses isolated `task_id` fixtures; production cutover must not run parallel auto_start on both stacks for the same task.
 
@@ -49,13 +49,23 @@
 
 ## Rollback (fast path)
 
-See [PLAN.md §3.3](./PLAN.md) and `gates/ROLLBACK_LOG.md` (created on first rollback).
+See [PLAN.md §3.3](./PLAN.md) and `gates/ROLLBACK_LOG.md`.
 
-1. Revert gateway `video-admin-api` `uri` to `lb://video-server`.
-2. Restart gateway.
-3. Stop Java `video-server` instances (or scale to 0).
-4. Clear `VIDEO_SKIP_BACKGROUND_TASKS` on Python; run `auto_start_all_tasks` if required.
-5. Record incident in `gates/ROLLBACK_LOG.md` with timestamps and symptom.
+**Naming reality (CLOSE-S2 + P3-S3):** Gateway `video-admin-api` is **`lb://video-server`** (Java). Python serving surface is archived; rollback **does not** flip gateway URI — it swaps which process owns the Nacos name `video-server`.
+
+| Step | Action |
+|------|--------|
+| 1 | **Stop Java** — scale `video-server` (Java, `:48096`) to 0; confirm Nacos deregister |
+| 2 | **Restore Python serving surface** — choose one: |
+| | **A (in-repo):** copy/move from `VIDEO/_retired_python_video/` back to `VIDEO/` (`app/`, `run.py`, `models.py`, `services/`, `start_prod.sh`, `docker-entrypoint.sh`) |
+| | **B (external):** use `F:/acme/VIDEO` oracle checkout (tag `video-java-oracle-baseline`) |
+| 3 | **Start Python** — `python VIDEO/run.py` (or external path) on `:6000`; register Nacos as `video-server` |
+| 4 | **Gateway** — keep `uri: lb://video-server` (unchanged); Nacos now resolves to Python `:6000` |
+| 5 | **Background tasks** — unset `VIDEO_SKIP_BACKGROUND_TASKS`; run `auto_start_all_tasks` if required |
+| 6 | **Smoke** — gateway `GET /admin-api/video/camera/list` + token/`tenant-id`; expect Python responses |
+| 7 | **Record** — incident in `gates/ROLLBACK_LOG.md` with timestamps and symptom |
+
+**Restore to Java (post-incident):** stop Python → re-archive serving surface if needed → start Java `video-server` on `:48096` → gateway unchanged.
 
 ## What this stage does **not** do
 

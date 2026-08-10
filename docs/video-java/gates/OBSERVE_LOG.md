@@ -33,3 +33,12 @@
 **Elapsed:** 16m 38s
 **Polls:** OK=22 FAIL=0
 **Verdict:** PASS
+
+## EVID-S5 extension (heartbeat + alert-hook)
+
+CLOSE-S3 polls covered health/camera only. EVID-S5 adds lifecycle/alarm probes — see [OBSERVE_EVID-S5.md](./OBSERVE_EVID-S5.md):
+
+| Probe | Result |
+|-------|--------|
+| `POST /video/algorithm/heartbeat/realtime` (direct + gateway) | ✅ `code=0`, task_id=35 |
+| `POST /video/alert/hook` (direct) | ✅ `code=0` |

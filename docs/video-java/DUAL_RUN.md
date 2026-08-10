@@ -41,7 +41,7 @@ Recovery scans **enabled** tasks with `schedule_policy=local` and calls start wh
     - Path=/admin-api/video/**
 ```
 
-Python oracle (`video-server` / `:6000`) remains available for rollback — revert `uri` to archived Python per [CUTOVER.md](./CUTOVER.md) rollback runbook.
+Python oracle (`:6000`) is archived — rollback restores from `VIDEO/_retired_python_video/` or external `F:/acme/VIDEO`; see [CUTOVER.md](./CUTOVER.md) rollback runbook. Gateway stays `lb://video-server`.
 
 Optional **side-by-side** probe route for direct Java testing without stealing `/admin-api/video/**` (see `docs/video-java/gateway-optional-route.yaml`). Prefix `/admin-api/video-java/**`.
 
