@@ -6,15 +6,15 @@
   "body": {
     "hostname": "LAPTOP-IMH06J0F",
     "status": "success",
-    "timestamp": 1786373332.706198,
+    "timestamp": 1786374469.9119587,
     "results": [
       {
         "checker": "database_available",
         "output": "Database OK",
         "passed": true,
-        "timestamp": 1786373332.7051342,
-        "expires": 1786373359.7051342,
-        "response_time": 0.283581
+        "timestamp": 1786374469.9114213,
+        "expires": 1786374496.9114213,
+        "response_time": 0.064583
       }
     ]
   },
@@ -23,15 +23,15 @@
     "results": [
       {
         "checker": "database_available",
-        "expires": 1786373359.7051342,
+        "expires": 1786374496.9114213,
         "output": "Database OK",
         "passed": true,
-        "response_time": 0.283581,
-        "timestamp": 1786373332.7051342
+        "response_time": 0.064583,
+        "timestamp": 1786374469.9114213
       }
     ],
     "status": "success",
-    "timestamp": 1786373332.706198
+    "timestamp": 1786374469.9119587
   },
-  "raw": "{\"hostname\": \"LAPTOP-IMH06J0F\", \"status\": \"success\", \"timestamp\": 1786373332.706198, \"results\": [{\"checker\": \"database_available\", \"output\": \"Database OK\", \"passed\": true, \"timestamp\": 1786373332.7051342, \"expires\": 1786373359.7051342, \"response_time\": 0.283581}]}"
+  "raw": "{\"hostname\": \"LAPTOP-IMH06J0F\", \"status\": \"success\", \"timestamp\": 1786374469.9119587, \"results\": [{\"checker\": \"database_available\", \"output\": \"Database OK\", \"passed\": true, \"timestamp\": 1786374469.9114213, \"expires\": 1786374496.9114213, \"response_time\": 0.064583}]}"
 }

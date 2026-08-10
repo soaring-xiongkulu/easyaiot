@@ -59,14 +59,20 @@ public class VideoProperties {
     public static class PostProcess {
         /**
          * mini / local: stub sink HTTP enqueue (certify-safe when iot-sink unavailable).
-         * Mirrors Python post_process_sink_client mini path in P2-S5.
+         * When false, POST to iot-sink /post-process/enqueue (mirrors Python publish_post_process_request).
          */
         private boolean useStubEnqueue = true;
         private String workspaceRoot = System.getProperty("user.home") + "/.video-java/post-process-workspaces";
         private String sinkHost = "127.0.0.1";
         private String sinkPort = "48092";
-        /** When set, overrides host/port (e.g. http://127.0.0.1:48092). */
+        /** When set, overrides host/port (e.g. http://127.0.0.1:48092). Env IOT_SINK_API_URL wins. */
         private String sinkApiUrl = "";
+        /** Route via gateway admin-api instead of direct sink-server (env IOT_SINK_USE_GATEWAY). */
+        private boolean sinkUseGateway = false;
+        /** Gateway base URL when sinkUseGateway=true (env JAVA_BACKEND_URL / GATEWAY_URL). */
+        private String gatewayUrl = "http://localhost:48080";
+        /** HTTP timeout for sink enqueue (Python requests timeout=5). */
+        private int enqueueTimeoutMs = 5_000;
     }
 
     @Data

@@ -54,6 +54,16 @@ video:
     retries: 3
     max-block-ms: 60000
     send-timeout-ms: 10000
+  matching:
+    use-direct-process: true
+  post-process:
+    use-stub-enqueue: true
+    workspace-root: ${user.home}/.video-java/post-process-workspaces
+    sink-host: 127.0.0.1
+    sink-port: "48092"
+    sink-use-gateway: false
+    gateway-url: http://localhost:48080
+    enqueue-timeout-ms: 5000
   runtime:
     config-dir: ${user.home}/.video-java/runtime-config
     logs-dir: ${user.home}/.video-java/logs

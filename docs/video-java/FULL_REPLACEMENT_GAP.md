@@ -23,7 +23,7 @@
 
 **结论一句话（FR-W4）：**  
 **14 个 inventoried 前缀 HTTP 路由已与 Python diff=0**；Java VIDEO **HTTP 契约面已齐**。  
-距离 **完整替换** 仍缺：**MinIO/ONVIF/YOLO/InsightFace/Milvus 真行为**、远程 node、snap 任务调度、post-process 真 sink、部分集群健康迁移等。  
+距离 **完整替换** 仍缺：**MinIO/ONVIF/YOLO/InsightFace/Milvus 真行为**、远程 node、snap 任务调度、部分集群健康迁移等。  
 **禁止称 COMPLETE**——行为桩与后台缺口见 §2/§3/§4。
 
 ---
@@ -183,7 +183,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 项 | Python | Java | 完整替换要求 |
 |----|--------|------|--------------|
 | Alert → Kafka | 可走 Kafka | `use-direct-persist=false` → Kafka produce（minimal 驼峰消息，deviceId key）；失败 fallback direct_persist；local/mini 默认仍 direct | **resolved by FR-W1-KAFKA**（prod 需 broker + iot-sink 联调） |
-| Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | 关闭 stub，接真 sink |
+| Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | **resolved by FR-B1**（`use-stub-enqueue=false` → HTTP POST iot-sink；不可达时 `enqueue_ok=false` + warn 日志；local/mini 默认仍 stub） |
 | Face/Plate matching | Kafka + 模型 | publish/process 切片；mini mock | 真 Kafka + 推理/旁路 |
 | 远程 node / RUNTIME 分发 | node_client | EX-REMOTE-NODE 本地拒绝 | 对齐 iot-node API |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **无** | 随 camera 域补齐 |
@@ -233,7 +233,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **P1** | Stream-forward CRUD + auto_start | 推流台 | 视产品 |
 | **P1** | Media hooks SRS/ZLM 全套 | 录制闭环 | 视部署 |
 | **P1** | Patrol session API | 去掉 EX-PATROL-SESSION-API | 视产品 |
-| **P1** | Post-process 真 sink；face/plate 库+识别或旁路 | 去掉 stub/mock | 视产品 |
+| **P1** | Post-process 真 sink；face/plate 库+识别或旁路 | **✅ FR-B1** post-process sink 代码路径；face/plate 仍 mock | 视产品 |
 | **P2** | NVR/扫描/FlightHub/GB28181 目录同步 | camera 长尾 | 视现场 |
 | **P2** | audio_talk | 去掉 EX-AUDIO-TALK | 视产品 |
 | **P2** | scenario_pose | 去掉 EX-SCENARIO-POSE | 视产品 |
@@ -264,7 +264,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — 行为桩（MinIO/ONVIF/YOLO/推理/Milvus/SSE 真流等）仍大量存在 |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog |
-| 距完整替换还缺什么？ | **真设备/库/空间栈行为**、snap 调度、远程 node、post-process 真 sink、全量契约回归 + 回滚演练 |
+| 距完整替换还缺什么？ | **真设备/库/空间栈行为**、snap 调度、远程 node、全量契约回归 + 回滚演练 |
 
 **维护约定：** 每完成一个 FR 工作包，在本文件对应行改为 ✅，更新该域 Py vs Java 路由数，并保留短契约测；**不要**再开 Phase 门禁剧或 EVID/CLOSE 轮次。在全部 P0/P1（及产品未豁免的 P2）勾完前，禁止对外宣称「VIDEO Java 完整替换完成」。
 

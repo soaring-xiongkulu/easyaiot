@@ -1,12 +1,14 @@
 package com.basiclab.iot.video.service;
 
 import com.basiclab.iot.video.config.VideoProperties;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -25,7 +27,12 @@ import java.util.UUID;
 public class PostProcessSinkClient {
 
     private final VideoProperties videoProperties;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private RestTemplate restTemplate;
+
+    @PostConstruct
+    void initRestTemplate() {
+        this.restTemplate = createRestTemplate();
+    }
 
     public boolean publishPostProcessRequest(Map<String, Object> ctx, String alertImagePath) {
         Map<String, Object> message = buildPostProcessRequestMessage(ctx, alertImagePath);
@@ -46,11 +53,23 @@ public class PostProcessSinkClient {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(message, headers);
             ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
             boolean ok = response.getStatusCode().is2xxSuccessful();
-            if (ok && response.getBody() != null) {
-                Object code = response.getBody().get("code");
+            Map<?, ?> body = response.getBody();
+            if (!ok) {
+                log.warn(
+                        "post-process enqueue HTTP status={} url={} body={}",
+                        response.getStatusCode().value(),
+                        url,
+                        truncateBody(body != null ? String.valueOf(body) : response.toString())
+                );
+            } else if (body != null) {
+                Object code = body.get("code");
                 if (code instanceof Number number && number.intValue() != 0) {
                     ok = false;
+                    log.warn("post-process enqueue business failure url={} resp={}", url, truncateBody(String.valueOf(body)));
                 }
+            } else {
+                ok = false;
+                log.warn("post-process enqueue empty response body url={}", url);
             }
             PostProcessEnqueueAudit.record(normalizeEnqueueUrl(url), ok);
             return ok;
@@ -81,16 +100,68 @@ public class PostProcessSinkClient {
         return "post-process/enqueue";
     }
 
-    private String sinkEnqueueUrl() {
-        VideoProperties.PostProcess cfg = videoProperties.getPostProcess();
-        String explicit = cfg.getSinkApiUrl() != null ? cfg.getSinkApiUrl().trim() : "";
-        if (!explicit.isEmpty()) {
-            String base = explicit.replaceAll("/+$", "");
-            return base + "/post-process/enqueue";
+    String sinkEnqueueUrl() {
+        String envApiUrl = trimToNull(System.getenv("IOT_SINK_API_URL"));
+        if (envApiUrl != null) {
+            return envApiUrl.replaceAll("/+$", "") + "/post-process/enqueue";
         }
-        String host = cfg.getSinkHost() != null ? cfg.getSinkHost().trim() : "127.0.0.1";
-        String port = cfg.getSinkPort() != null ? cfg.getSinkPort().trim() : "48092";
-        return "http://" + host + ":" + port + "/post-process/enqueue";
+
+        VideoProperties.PostProcess cfg = videoProperties.getPostProcess();
+        String explicit = trimToNull(cfg.getSinkApiUrl());
+        if (explicit != null) {
+            return explicit.replaceAll("/+$", "") + "/post-process/enqueue";
+        }
+
+        if (!resolveSinkUseGateway(cfg)) {
+            String host = trimToNull(System.getenv("IOT_SINK_HOST"));
+            if (host == null) {
+                host = trimToNull(cfg.getSinkHost());
+            }
+            if (host == null) {
+                host = "127.0.0.1";
+            }
+            String port = trimToNull(System.getenv("IOT_SINK_PORT"));
+            if (port == null) {
+                port = trimToNull(cfg.getSinkPort());
+            }
+            if (port == null) {
+                port = "48092";
+            }
+            return "http://" + host + ":" + port + "/post-process/enqueue";
+        }
+
+        String gateway = trimToNull(System.getenv("JAVA_BACKEND_URL"));
+        if (gateway == null) {
+            gateway = trimToNull(System.getenv("GATEWAY_URL"));
+        }
+        if (gateway == null) {
+            gateway = trimToNull(cfg.getGatewayUrl());
+        }
+        if (gateway == null) {
+            gateway = "http://localhost:48080";
+        }
+        return gateway.replaceAll("/+$", "") + "/admin-api/sink/post-process/enqueue";
+    }
+
+    private static boolean resolveSinkUseGateway(VideoProperties.PostProcess cfg) {
+        String env = trimToNull(System.getenv("IOT_SINK_USE_GATEWAY"));
+        if (env != null) {
+            return isTruthy(env);
+        }
+        return cfg.isSinkUseGateway();
+    }
+
+    private static boolean isTruthy(String value) {
+        String normalized = value.trim().toLowerCase();
+        return normalized.equals("1") || normalized.equals("true") || normalized.equals("yes");
+    }
+
+    private RestTemplate createRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        int timeoutMs = videoProperties.getPostProcess().getEnqueueTimeoutMs();
+        factory.setConnectTimeout(timeoutMs);
+        factory.setReadTimeout(timeoutMs);
+        return new RestTemplate(factory);
     }
 
     private Map<String, Object> buildPostProcessRequestMessage(Map<String, Object> ctx, String alertImagePath) {
@@ -134,6 +205,21 @@ public class PostProcessSinkClient {
         }
         message.put("correlationId", correlationId);
         return message;
+    }
+
+    private static String truncateBody(String body) {
+        if (body == null) {
+            return "";
+        }
+        return body.length() <= 200 ? body : body.substring(0, 200);
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private static String stringOrNull(Object value) {

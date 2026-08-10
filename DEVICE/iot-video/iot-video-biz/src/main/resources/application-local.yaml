@@ -26,8 +26,14 @@ video:
   matching:
     use-direct-process: true
   post-process:
+    # certify-safe stub; set false + reachable iot-sink for real enqueue (FR-B1)
     use-stub-enqueue: true
     workspace-root: ${user.home}/.video-java/post-process-workspaces
+    sink-host: 127.0.0.1
+    sink-port: "48092"
+    sink-use-gateway: false
+    gateway-url: http://localhost:48080
+    enqueue-timeout-ms: 5000
   ffmpeg-path: F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd
   runtime:
     repo-root: F:/acme
