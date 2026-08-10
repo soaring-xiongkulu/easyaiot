@@ -98,6 +98,7 @@ def create_task():
             schedule_policy=data.get('schedule_policy', 'local'),
             prefer_gpu=data.get('prefer_gpu', True),
             target_node_id=data.get('target_node_id'),
+            executor=data.get('executor', 'cpp'),
         )
         
         return jsonify({
