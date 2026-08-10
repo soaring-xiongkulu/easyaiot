@@ -24,7 +24,7 @@
 | 文档 / 门禁 | `docs/video-java/` | 不与 `docs/runtime-parity/gates` 混用 |
 | 工具 | `tools/video_java/`（待建） | 对标 `tools/runtime_parity/` 思想，代码独立 |
 
-**当前 oracle tip（写稿时）：** `4f93baf` — 以 Phase 0 打 tag 时的 SHA 为准并写回本文件。
+**当前 oracle tip（Phase -1 tag）：** `bfbe7457ac65c90eb49d59247a1a2706d55c677d` — tag `video-java-oracle-baseline`。
 
 ## 4. 强制工作方式
 

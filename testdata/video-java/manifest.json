@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "description": "VIDEO Java certify manifest — Phase -1 skeleton; golden populated in Phase 0",
+  "cases": [
+    {
+      "case_id": "vj_p0_health",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P0",
+      "notes": "GET /actuator/health — candidate UP without DB in Phase -1"
+    },
+    {
+      "case_id": "vj_p0_task_start_stop",
+      "layers": ["lifecycle", "ini"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": true,
+      "priority": "P0",
+      "notes": "POST task start/stop + ini keys — Phase 0"
+    },
+    {
+      "case_id": "vj_p0_heartbeat",
+      "layers": ["lifecycle"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": true,
+      "priority": "P0",
+      "notes": "POST /video/algorithm/heartbeat/realtime — Phase 0"
+    },
+    {
+      "case_id": "vj_p0_alert_hook",
+      "layers": ["alarm"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "priority": "P0",
+      "notes": "POST /video/alert/hook — Phase 0; alarm recording must be serial across oracle/candidate"
+    }
+  ]
+}

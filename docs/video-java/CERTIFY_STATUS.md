@@ -5,7 +5,7 @@
 | Phase | 状态 | 证据 |
 |-------|------|------|
 | 计划审查 | **CONDITIONAL PASS**（2026-08-10） | HANDOFF §9；STACK/PLAN 已吸 §9.1 |
-| -1 基线 | **APPROVED — WAITING START** | 等开工指令；PASS 前不开 Phase 0 |
+| -1 基线 | **PASS**（2026-08-10） | `gates/PHASE_-1_GATE.md`；`iot-video` 空壳 + doctor |
 
 | 0 最小闭环 | NOT STARTED | — |
 | 1 设备/转推 | NOT STARTED | — |
