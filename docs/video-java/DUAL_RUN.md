@@ -27,21 +27,23 @@ When skip is **off**, Java runs an algorithm-task health recovery timer aligned 
 
 Recovery scans **enabled** tasks with `schedule_policy=local` and calls start when the RUNTIME supervisor is down and heartbeat/run_status indicate unhealthy (mirrors `recover_unhealthy_algorithm_tasks`).
 
-## Gateway (optional probe route)
+## Gateway (default route — Phase 3-S1)
 
-Production default remains Python:
+**Production default now points to Java** (P3-S1 cutover):
 
 ```yaml
-# DEVICE/iot-gateway/.../application.yaml (unchanged in Phase 1)
+# DEVICE/iot-gateway/.../application.yaml
 - id: video-admin-api
-  uri: lb://video-server
+  uri: lb://video-server-java
   predicates:
     - Path=/admin-api/video/**
 ```
 
-Optional **side-by-side** route for manual Java probing (see `docs/video-java/gateway-optional-route.yaml`). Prefix `/admin-api/video-java/**` avoids stealing `/admin-api/video/**`.
+Python oracle (`video-server` / `:6000`) remains available for rollback — revert `uri` to `lb://video-server` per [CUTOVER.md](./CUTOVER.md).
 
-**Phase 3 cutover:** prefer changing `video-admin-api` `uri` from `lb://video-server` to `lb://video-server-java` (or weighted routing) after Phase 2+ gates — not in Phase 1.
+Optional **side-by-side** probe route for direct Java testing without stealing `/admin-api/video/**` (see `docs/video-java/gateway-optional-route.yaml`). Prefix `/admin-api/video-java/**`.
+
+**Not done in P3-S1:** Java `spring.application.name` rename to `video-server`; Python `VIDEO/` deletion.
 
 ## Certify commands
 
