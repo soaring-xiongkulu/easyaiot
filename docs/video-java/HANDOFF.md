@@ -68,44 +68,24 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B45）
+## 8. 现状摘要（2026-08-11 — 纠偏后）
 
-- **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
-- **契约硬化：** **FR-B40 ✅** contract_regression **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json`。
-- **Face entry：** **FR-B41 ✅** local multipart **code=0** + 12 keys + `image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json`。
-- **Face entry update：** **FR-B42 ✅** local `PUT` multipart **code=0** + 12 keys + `image_url`/`milvus_id` 更新；artifact `logs/fr-b42-face-update-latest.json`。
-- **Face/plate health：** **FR-B43 ✅** `/video/face/health` + `/video/plate/health` 真探测对齐 Python 键；artifact `logs/fr-b43-health-latest.json`。
-- **Pose extract + face matching alert：** **FR-B44 ✅** YOLO pose extract/match-test **2/2** + face matching hit→`face_library_match` alert **1/1**；artifacts `logs/fr-b44-pose-latest.json`, `logs/fr-b44-matching-alert-latest.json`。
-- **Plate matching + Kafka consume + reExtract：** **FR-B45 ✅** plate `plate_library_match` direct **1/1** + Kafka publish→consumer→alert **1/1**；reExtract MinIO 代码接线（runtime honest_ex YOLO）；artifacts `logs/fr-b45-*`。
-- **行为：** face no-model → **HTTP 400**（`face.py` L282-283）；业务 404 → HTTP 404 envelope（`patrol.py` L45）。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb45-phase0.log`）。
-- **项目状态：** **FR HTTP 面已齐 — 禁止 COMPLETE**。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（§6.4 plate+Kafka local ✅；其余仍 ⬜）。
+- **话术：** **HTTP 契约面已齐；行为/prod 联调进行中。**
+- **HTTP 路由：** 14 前缀 `route_inventory` **diff=0**（≈259）。
+- **本地契约/行为取证：** 已停写入进度；历史 local artifact 见 `PROD_SOAK_CHECKLIST.md`（**≠ prod 绿**）。
+- **项目状态：** **禁止 COMPLETE**；**禁止继续 FR-B46+ / 矩阵刷绿本地流水线**。
+- **切流阻塞（现行主入口）：** [`CUTOVER_BLOCKERS.md`](./CUTOVER_BLOCKERS.md)。
 
 ## 9. 你的下一步
 
-按 [`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md) §5 行为/后台 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
+**只看** [`CUTOVER_BLOCKERS.md`](./CUTOVER_BLOCKERS.md) + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
 
-1. **prod 联调 soak** — Kafka DVR/snap、MinIO、WVP、FlightHub、iot-node/Ceph、post_process worker、Nacos 切换、网关冒烟；逐项勾选 checklist 并附证据
-2. **face entry prod 取证** — Milvus/InsightFace prod 环境复现 FR-B41/B42 成功路径（local 已取证）
-3. **prod cleanup threshold** — MinIO enabled + 超阈值真删除 prod 取证（local 已取证 `logs/fr-b32-cleanup-e2e-latest.json`）
-4. ONVIF/NVR/扫描真连接（camera、audio_talk）prod 真机联调
-5. InsightFace/Paddle/Milvus 推理或产品旁路决策
-6. snap_task 调度 `init_all_tasks` prod 验证
-7. post-process 真 sink；远程 node（EX-REMOTE-NODE）prod 联调
-8. 全量契约回归 + 回滚演练 → 才允许 COMPLETE
+1. **优先（须确认后动手）：** checklist **0.1 / 0.2 / 0.3** — Nacos `video-server` 注册 → 网关 `lb://video-server` → 共享库只读冒烟。无环境则标 ⛔，停止。
+2. **产品拍板：** InsightFace/Milvus/Paddle 真推理 vs 永久旁路；Kafka direct 是否永久；P2 现场项豁免。
+3. **⛔ 环境项：** WVP / 真机 ONVIF / iot-node / Ceph / Nacos 真切换 — 不在 mini 里假装完成。
+4. **phase0：** 仅防回归可选，**不算切流进度**。
 
-**FR-B39（local）：** `python tools/video_java/fr_b39_multipart.py` → `logs/fr-b39-multipart-latest.*`；face HTTP 400 + plate update `image_url`。
-
-**FR-B40（local）：** `python tools/video_java/contract_regression.py --probe-all --artifact-stem fr-b40-contract` → `logs/fr-b40-contract-latest.*`；**265 pass / 0 fail**。
-
-**FR-B41（local）：** `python tools/video_java/fr_b41_face_entry_success.py` → `logs/fr-b41-face-entry-success-latest.*`；face multipart **code=0** + 12 keys + MinIO `image_url` + Milvus `milvus_id`。
-
-**FR-B42（local）：** `python tools/video_java/fr_b42_face_update_success.py` → `logs/fr-b42-face-update-latest.*`；face `PUT` update multipart **code=0** + 12 keys + `image_url`/`milvus_id` 更新。
-
-**FR-B43（local）：** `python tools/video_java/fr_b43_health_probe.py` → `logs/fr-b43-health-latest.*`；face/plate `/health` 真探测 **2/2 pass**；`collection_exists=true` + `exists=true`。
-
-**FR-B44（local）：** `python tools/video_java/fr_b44_pose_probe.py` → `logs/fr-b44-pose-latest.*`（extract **2/2**）；`fr_b44_matching_alert_probe.py` → `logs/fr-b44-matching-alert-latest.*`（face hit→alert **1/1**）；profile `local,fr-b44-soak`。
+**禁止：** 新开 FR-B46、FR-B47…；扩 keys-matrix / field-matrix / POST 样本数刷绿；用 local soak 冒充 prod。
 
 ## 10. 历史审查决议（切片期，仍有效的工程约束）
 
