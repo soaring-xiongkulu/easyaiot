@@ -344,6 +344,8 @@ WEB / API 创建算法任务，`executor=cpp` 时由 VIDEO 生成 ini 并拉起�
 | `EASYAIOT_RUNTIME_REQUIRED` | `1` 失败则中止上层 VIDEO 安装 |
 | `RUNTIME_PREFER_GPU` / `RUNTIME_FORCE_CPU` | 推理设备策略 |
 | `RUNTIME_GPU_DEVICE_ID` / `CUDA_VISIBLE_DEVICES` | GPU 选择 |
+| `RUNTIME_PREFER_HWACCEL` / `RUNTIME_FORCE_SOFT_AV` | FFmpeg NVDEC/NVENC 策略 |
+| `RUNTIME_NVENC_PRESET` | NVENC preset（默认 `p3`） |
 | `RUNTIME_AUTO_INSTALL` | `0` 时跳过自动编译（export/分发、以及 VIDEO 本地启动 / 任务拉起） |
 
 ### 健康与控制
@@ -351,7 +353,7 @@ WEB / API 创建算法任务，`executor=cpp` 时由 VIDEO 生成 ini 并拉起�
 ini 中 `[task].control_port`（示例 `8123`）：
 
 ```bash
-curl -s http://127.0.0.1:8123/health    # 含 infer_ep=cuda|cpu、丢帧/时延等
+curl -s http://127.0.0.1:8123/health    # 含 infer_ep / decode_ep / encode_ep、丢帧/时延等
 curl -s -X POST http://127.0.0.1:8123/stop
 ```
 
@@ -386,17 +388,75 @@ curl -s -X POST http://127.0.0.1:8123/stop
 
 ---
 
-## GPU 推理策略
+## 模型支持（YOLOv8 / YOLO11 / YOLO26 + 自定义）
+
+RUNTIME 推理引擎为 **`YoloEngine`（ONNX Runtime）**，与 VIDEO Python 对齐的检测能力：
+
+| 模型 | `.onnx` | `.pt` | 说明 |
+|------|---------|-------|------|
+| YOLOv8 / YOLO11 | ✅ | ✅（自动导出） | classic detect：`[1,4+C,N]` + NMS |
+| YOLO26 | ✅ | ✅（自动导出） | **end2end**：输出末维=6 `[x1,y1,x2,y2,conf,cls]`，不再 NMS |
+| 用户自定义 | ✅（优先） | ✅（导出为 `model.onnx`） | 需为 Ultralytics detect / end2end；拒 YOLOv5 |
+
+**`.pt` 怎么用：** 二进制本身只跑 ORT。若 ini/`model_path` 指向 `.pt`，或 VIDEO 解析到 `.pt`：
+
+1. VIDEO `runtime_config_service` 调用 [`scripts/ensure_onnx_model.py`](scripts/ensure_onnx_model.py) 导出并缓存 `.onnx`（旁路写 `.names`）
+2. RUNTIME 启动时若仍收到 `.pt`，也会再调同一脚本做兜底导出
+
+导出依赖 **ultralytics**。优先用环境变量指定解释器：`RUNTIME_PYTHON` / `EASYAIOT_PYTHON` / `VIDEO_PYTHON`（原子包 `env.sh` 可取消注释）。
+
+**任务 `model_ids` 映射（与 VIDEO 一致）：**
+
+| id | 模型文件（规范名） |
+|----|------|
+| `-1` | `yolo11n.onnx`（历史别名 `yolov11n.onnx` 仍可用） |
+| `-2` | `yolov8n.onnx` |
+| `-3` | `yolo26n.onnx`（end2end，输出 `[1,N,6]`） |
+| `>0` | 自定义目录优先 `model.onnx`，否则从 `best.pt`/`model.pt` 导出 |
+
+`/health` 增加 `model_layout=detect|end2end`。离线包会带上 `scripts/ensure_onnx_model.py` 与已有内置 `.onnx`。
+
+手工导出：
+
+```bash
+export RUNTIME_PYTHON=/path/to/python   # 需已装 ultralytics
+"$RUNTIME_PYTHON" RUNTIME/scripts/ensure_onnx_model.py -i yolov8n.pt -o RUNTIME/models/yolov8n.onnx
+"$RUNTIME_PYTHON" RUNTIME/scripts/ensure_onnx_model.py -i yolo26n.pt -o RUNTIME/models/yolo26n.onnx
+```
+
+---
+
+## GPU 推理与硬解硬编
+
+### 推理（ORT）
 
 - 默认 **prefer GPU**：ONNX Runtime 优先挂载 `CUDAExecutionProvider`，Session 创建失败则自动回退 CPU，任务不中断。
 - 配置（`[ai]` / 环境变量）：
   - `prefer_gpu` / `RUNTIME_PREFER_GPU`（默认 `true`）
   - `force_cpu` / `RUNTIME_FORCE_CPU`（强制仅 CPU）
   - `gpu_device_id` / `RUNTIME_GPU_DEVICE_ID` 或 `CUDA_VISIBLE_DEVICES`
-- 日志会出现 `Using CUDA EP` 或 `Using CPU execution (fallback)`；`GET /health` 含 `infer_ep=cuda|cpu`。
-- **本轮不做**：TensorRT EP、FFmpeg NVDEC/NVENC。
+- 日志会出现 `Using CUDA EP` 或 `Using CPU execution (fallback)`；`GET /health` 含 `infer_ep=cuda|cpu`、`model_layout`。
 
-安装侧：检测到 `nvidia-smi` 时优先下载 **GPU ORT** 包（如 `onnxruntime-linux-x64-gpu-*`），写入 `deploy.env` 的 CUDA lib 路径；无 GPU / 下载失败则用 CPU 包并告警。
+### 硬解 / 硬编（NVIDIA，realtime）
+
+- **硬解**：FFmpeg CUDA hwdevice（NVDEC）→ `av_hwframe_transfer_data` 到主机内存 → `sws` 成 BGR → 现有推理/画框。
+- **硬编**：RTMP 推流优先 `h264_nvenc`（分辨率 16 对齐，`preset` 默认 `p3`），失败回退 `libx264`。
+- 配置（`[ai]` / 环境变量）：
+
+| 字段 / 环境变量 | 默认 | 含义 |
+|-----------------|------|------|
+| `prefer_hwaccel` / `RUNTIME_PREFER_HWACCEL` | `true` | 优先硬解+硬编 |
+| `force_soft_av` / `RUNTIME_FORCE_SOFT_AV` | `false` | 强制软解软编 |
+| `hwaccel_device_id` | 同 `gpu_device_id` | CUDA 设备 |
+| `nvenc_preset` / `RUNTIME_NVENC_PRESET` | `p3` | NVENC preset（对齐 VIDEO） |
+
+- `prefer_gpu=false` 或 `force_cpu=true` 时会同步 `force_soft_av`，避免 CPU 任务抢 NVENC。
+- 硬解连续 `transfer` 失败会在本会话降级软解；硬编 open 失败用 `libx264`，任务不中断。
+- `GET /health` 增加 `decode_ep=cuda|cpu`、`encode_ep=h264_nvenc|libx264|none`。
+- **snap/patrol** 仍走 OpenCV `VideoCapture`（本轮无硬解硬编）。
+- **本轮不做**：TensorRT EP、VAAPI/QSV、GPU 零拷贝贯通。
+
+安装侧：检测到 `nvidia-smi` 时优先下载 **GPU ORT** 包（如 `onnxruntime-linux-x64-gpu-*`），写入 `deploy.env` 的 CUDA lib 路径；无 GPU / 下载失败则用 CPU 包并告警。硬解硬编还依赖本机 FFmpeg 是否编入 CUDA/`h264_nvenc`（conda 栈通常具备）。
 
 ---
 
@@ -409,6 +469,11 @@ curl -s -X POST http://127.0.0.1:8123/stop
 | realtime 无带框预览 | 确认任务为 `executor=cpp` + `realtime`，ini 中 `enable_rtmp=true` 且 `rtmp_url` 为独立 `ai/` 路径（不要写成 `live/`） |
 | 只有告警没有画面 | 抓拍/巡检默认不以长推流为主；看结构化告警即可。需要画面时给 realtime 或显式配置 `ai_rtmp` |
 | `/health` 显示 `infer_ep=cpu` | 正常回退；检查驱动、`nvidia-smi`、ORT GPU 包与 `LD_LIBRARY_PATH` |
+| cpp 任务没用上自定义模型 | 确认目录有 `.onnx`，或本机可跑 `ensure_onnx_model.py` 从 `.pt` 导出；看 VIDEO 日志 `RUNTIME model export` |
+| YOLO26 框异常 | `/health` 应显示 `model_layout=end2end`；否则导出的不是 end2end ONNX |
+| `/health` 显示 `decode_ep=cpu` / `encode_ep=libx264` | 无 NVIDIA、FFmpeg 无 CUDA/nvenc，或 `force_soft_av=true`；属正常回退 |
+| 本地 mp4/文件播完后任务结束 | 有限媒体（裸路径 / `file://`）遇 EOF **干净退出**，不再狂重连；直播 RTSP/UDP 仍会退避重连 |
+| `control_port` 变成 8000 | 端口必须在 **8000–9000**（与 VIDEO 一致）；越界会 ERROR 日志并回退 8000 |
 | 与 EDGE 混淆 | `EDGE/runtime/` 是 Python 边缘包；本模块是 C++ `RUNTIME` 二进制 |
 
 更细的平台级部署步骤见 [`.doc/部署文档/平台部署文档_zh.md`](../.doc/部署文档/平台部署文档_zh.md) 与 [部署最佳实践](../.doc/部署文档/部署最佳实践.md) 中的 **RUNTIME 原子模式** 小节。
