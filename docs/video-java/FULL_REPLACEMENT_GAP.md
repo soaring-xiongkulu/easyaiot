@@ -38,7 +38,7 @@
 
 | # | 域 | Python 前缀 | Py 路由数 | Java 现状 | Java 已有映射（摘要） | 完整替换判定 | 关联 EX / 备注 |
 |---|----|-------------|----------:|-----------|----------------------|--------------|----------------|
-| 1 | algorithm_task | `/video/algorithm` | 21 | 切片 | list/get/start/stop/restart/services/status/post-process/status；heartbeat/realtime | **严重不足** | 无 create/update/delete；无 patrol heartbeat；无 logs/streams；post-process 仅 status，init/toggle/ide/results 缺；远程 node 拒绝（EX-REMOTE-NODE） |
+| 1 | algorithm_task | `/video/algorithm` | 21 | 管理面 + lifecycle | list/get/CRUD/start/stop/restart/services/status/heartbeat/logs/streams/post-process | **本地切片** | route_inventory `/video/algorithm` Py=21 Java=21 diff=0；远程 node 仍 400（EX-REMOTE-NODE） |
 | 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；Kafka 仍 EX-KAFKA-HOOK |
 | 3 | camera | `/video/camera` | **59** | 切片 | list、get、stream start/stop/status | **严重不足** | 注册/ONVIF/NVR/目录/PTZ/扫段/FlightHub/流票据/预设位等约 50+ 路由未迁 |
 | 4 | stream_forward | `/video/stream-forward` | 13 | 切片 | get、start/stop/status | **严重不足** | CRUD、restart、heartbeat、logs、streams、ensure-task 缺 |
@@ -65,19 +65,19 @@
 
 | 状态 | 方法 | 路径 |
 |------|------|------|
-| ✅ Java 有 | GET | `/video/algorithm/task/list` |
+| ✅ | GET | `/video/algorithm/task/list` |
 | ✅ | GET | `/video/algorithm/task/{id}` |
+| ✅ | POST | `/video/algorithm/task`（创建） |
+| ✅ | PUT/DELETE | `/video/algorithm/task/{id}` |
 | ✅ | GET | `/video/algorithm/task/{id}/services/status` |
 | ✅ | POST | `/video/algorithm/task/{id}/start\|stop\|restart` |
-| ✅ | GET | `/video/algorithm/task/{id}/post-process/status` |
 | ✅ | POST | `/video/algorithm/heartbeat/realtime` |
-| ❌ 缺 | POST | `/video/algorithm/task`（创建） |
-| ❌ | PUT/DELETE | `/video/algorithm/task/{id}` |
-| ❌ | POST | `/video/algorithm/heartbeat/patrol` |
-| ❌ | GET | `.../extractor|sorter|pusher|realtime/logs` |
-| ❌ | GET | `.../streams` |
-| ❌ | POST/PUT/GET | post-process `init` / `toggle` / `ide-url` / `results` |
+| ✅ | POST | `/video/algorithm/heartbeat/patrol` |
+| ✅ | GET | `.../extractor\|sorter\|pusher\|realtime/logs` |
+| ✅ | GET | `.../streams` |
+| ✅ | GET/POST/PUT | post-process `status` / `init` / `toggle` / `ide-url` / `results` |
 | ❌ 行为 | — | `schedule_policy!=local` 远程 node 部署（现 400，EX-REMOTE-NODE） |
+| ✅ 路由差 | `/video/algorithm`：**Py 21 / Java 21 / diff 0**（`route_inventory.py --prefix /video/algorithm`） |
 
 ### 2.2 `alert` — 管理面 + hook（FR-W1-ALERT）
 

@@ -3,6 +3,7 @@ package com.basiclab.iot.video.service;
 import com.basiclab.iot.video.config.VideoProperties;
 import com.basiclab.iot.video.dal.AlgorithmTaskRepository;
 import com.basiclab.iot.video.dal.DeviceDetectionRegionRepository;
+import com.basiclab.iot.video.dal.PostProcessResultRepository;
 import com.basiclab.iot.video.domain.AlgorithmTaskRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.support.JsonFields;
@@ -22,6 +23,7 @@ public class PostProcessService {
 
     private final AlgorithmTaskRepository taskRepository;
     private final DeviceDetectionRegionRepository regionRepository;
+    private final PostProcessResultRepository resultRepository;
     private final VideoProperties videoProperties;
 
     public Map<String, Object> getStatus(long taskId) {
@@ -38,6 +40,7 @@ public class PostProcessService {
         status.put("script_exists", Files.isRegularFile(scriptPath));
         status.put("workspace_path", workspace.toString());
         status.put("workspace_root", videoProperties.getPostProcess().getWorkspaceRoot());
+        status.put("ide_url", buildIdeUrl(taskId));
         status.put("enqueue_count", PostProcessEnqueueAudit.enqueueCount());
         status.put("enqueue_url", PostProcessEnqueueAudit.lastEnqueueUrl());
         status.put("enqueue_ok", PostProcessEnqueueAudit.lastEnqueueOk());
@@ -108,6 +111,102 @@ public class PostProcessService {
         } catch (Exception ignored) {
             // workspace optional for certify enqueue path
         }
+    }
+
+    public Map<String, Object> initWorkspace(long taskId) {
+        AlgorithmTaskRow task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new VideoBusinessException(404, "任务不存在"));
+        String scriptName = defaultScriptName(task.getPostProcessScript());
+        Path workspace = taskWorkspaceDir(taskId);
+        try {
+            Files.createDirectories(workspace);
+            Path scriptPath = workspace.resolve(scriptName);
+            List<String> created = new ArrayList<>();
+            if (!Files.isRegularFile(scriptPath)) {
+                Files.writeString(scriptPath, POST_PROCESS_TEMPLATE);
+                created.add(scriptName);
+            }
+            Path readme = workspace.resolve("README.md");
+            if (!Files.isRegularFile(readme)) {
+                Files.writeString(readme, "# 算法任务后处理工作区\n");
+                created.add("README.md");
+            }
+            Map<String, Object> fields = new LinkedHashMap<>();
+            fields.put("post_process_script", scriptName);
+            fields.put("post_process_enabled", true);
+            if (task.getPostProcessReplicas() == null || task.getPostProcessReplicas() < 1) {
+                fields.put("post_process_replicas", 1);
+            }
+            taskRepository.updateFields(taskId, fields);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("workspace_path", workspace.toString());
+            data.put("container_path", getContainerWorkspacePath(taskId));
+            data.put("script_path", scriptPath.toString());
+            data.put("created_files", created);
+            data.put("post_process_enabled", true);
+            return data;
+        } catch (Exception e) {
+            throw new VideoBusinessException(500, "初始化后处理工作区失败: " + e.getMessage());
+        }
+    }
+
+    public Map<String, Object> getIdeUrl(long taskId) {
+        AlgorithmTaskRow task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new VideoBusinessException(404, "任务不存在"));
+        initWorkspace(taskId);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("ide_url", buildIdeUrl(taskId));
+        data.put("task_id", taskId);
+        data.put("task_name", task.getTaskName());
+        return data;
+    }
+
+    public Map<String, Object> toggle(long taskId, Map<String, Object> body) {
+        if (body == null || !body.containsKey("enabled")) {
+            throw new VideoBusinessException(400, "缺少 enabled 参数");
+        }
+        AlgorithmTaskRow task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new VideoBusinessException(404, "任务不存在"));
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("post_process_enabled", Boolean.parseBoolean(String.valueOf(body.get("enabled"))));
+        if (body.get("post_process_script") != null) {
+            String script = String.valueOf(body.get("post_process_script")).trim();
+            fields.put("post_process_script", script.isEmpty() ? "post_process.py" : script);
+        }
+        if (body.get("post_process_replicas") != null) {
+            try {
+                fields.put("post_process_replicas", Math.max(1, Integer.parseInt(String.valueOf(body.get("post_process_replicas")))));
+            } catch (NumberFormatException ignored) {
+                // keep existing
+            }
+        }
+        taskRepository.updateFields(taskId, fields);
+        return taskRepository.findById(taskId)
+                .orElse(task)
+                .toMap();
+    }
+
+    public Map<String, Object> listResults(
+            long taskId,
+            int pageNo,
+            int pageSize,
+            String deviceId,
+            java.time.LocalDateTime beginDatetime,
+            java.time.LocalDateTime endDatetime
+    ) {
+        taskRepository.findById(taskId)
+                .orElseThrow(() -> new VideoBusinessException(404, "任务不存在"));
+        return resultRepository.list(taskId, pageNo, pageSize, deviceId, beginDatetime, endDatetime);
+    }
+
+    public String buildIdeUrl(long taskId) {
+        String base = System.getenv().getOrDefault("VSCODE_IDE_PUBLIC_URL", "/dev-api/vscode").replaceAll("/$", "");
+        String folder = java.net.URLEncoder.encode(getContainerWorkspacePath(taskId), java.nio.charset.StandardCharsets.UTF_8);
+        return base + "/?folder=" + folder;
+    }
+
+    private String getContainerWorkspacePath(long taskId) {
+        return "/home/workspace/task_" + taskId;
     }
 
     private Path taskWorkspaceDir(long taskId) {

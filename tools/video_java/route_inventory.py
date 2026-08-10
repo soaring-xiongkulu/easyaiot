@@ -8,18 +8,25 @@ import re
 from pathlib import Path
 from typing import Iterable, List, Set, Tuple
 
-ROUTE_DECORATOR = re.compile(
-    r"@(?:\w+\.)?(?:route|get|post|put|delete|patch)mapping\s*\(\s*['\"]([^'\"]*)['\"]"
-    r"(?:\s*,\s*methods\s*=\s*\[([^\]]+)\])?",
-    re.IGNORECASE,
-)
 JAVA_MAPPING = re.compile(
     r"@(?P<ann>Get|Post|Put|Delete|Patch)Mapping\s*\(\s*(?:value\s*=\s*)?['\"](?P<path>[^'\"]+)['\"]",
     re.IGNORECASE,
 )
 CLASS_PREFIX = re.compile(r"@RequestMapping\s*\(\s*['\"](?P<prefix>[^'\"]+)['\"]")
+
+BLUEPRINT_SPECS = {
+    "/video/alert": {
+        "file": "alert.py",
+        "bp": "alert_bp",
+    },
+    "/video/algorithm": {
+        "file": "algorithm_task.py",
+        "bp": "algorithm_task_bp",
+    },
+}
+
 BLUEPRINT_ROUTE = re.compile(
-    r"@alert_bp\.route\(\s*['\"](?P<path>[^'\"]*)['\"]"
+    r"@(?P<bp>\w+_bp)\.route\(\s*['\"](?P<path>[^'\"]*)['\"]"
     r"(?:\s*,\s*methods\s*=\s*\[(?P<methods>[^\]]+)\])?",
     re.IGNORECASE,
 )
@@ -27,6 +34,13 @@ BLUEPRINT_ROUTE = re.compile(
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def normalize_path_params(path: str) -> str:
+    """Normalize Flask <int:id> and Spring {id} to a common {param} token."""
+    p = re.sub(r"<(?:int:|string:)?\w+>", "{param}", path)
+    p = re.sub(r"\{[^}]+\}", "{param}", p)
+    return p
 
 
 def normalize_route(method: str, path: str, prefix: str) -> str:
@@ -38,14 +52,28 @@ def normalize_route(method: str, path: str, prefix: str) -> str:
     full = re.sub(r"/{2,}", "/", full)
     if full != "/" and full.endswith("/"):
         full = full.rstrip("/")
+    full = normalize_path_params(full)
     return f"{method} {full}"
 
 
 def python_routes(prefix: str) -> Set[str]:
-    blueprint = repo_root() / "VIDEO" / "_retired_python_video" / "app" / "blueprints" / "alert.py"
+    spec = BLUEPRINT_SPECS.get(prefix.rstrip("/"))
+    if not spec:
+        raise SystemExit(f"unsupported prefix for python oracle: {prefix}")
+    blueprint = (
+        repo_root()
+        / "VIDEO"
+        / "_retired_python_video"
+        / "app"
+        / "blueprints"
+        / spec["file"]
+    )
     text = blueprint.read_text(encoding="utf-8")
+    bp_name = spec["bp"]
     routes: Set[str] = set()
     for match in BLUEPRINT_ROUTE.finditer(text):
+        if match.group("bp") != bp_name:
+            continue
         sub = match.group("path") or ""
         methods_raw = match.group("methods")
         if methods_raw:

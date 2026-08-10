@@ -141,6 +141,12 @@ public class AlgorithmTaskRepository {
     }
 
     public List<AlgorithmTaskRow> list(int pageNo, int pageSize, String search, String taskType) {
+        return list(pageNo, pageSize, search, taskType, null, null);
+    }
+
+    public List<AlgorithmTaskRow> list(
+            int pageNo, int pageSize, String search, String taskType, String deviceId, Boolean isEnabled
+    ) {
         int offset = Math.max(0, (pageNo - 1) * pageSize);
         String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
         StringBuilder sql = new StringBuilder(SELECT_TASK + " WHERE 1=1");
@@ -149,12 +155,20 @@ public class AlgorithmTaskRepository {
             sql.append(" AND t.task_type = ?");
             args.add(taskType.trim());
         }
+        if (deviceId != null && !deviceId.isBlank()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM algorithm_task_device atd WHERE atd.task_id = t.id AND atd.device_id = ?)");
+            args.add(deviceId.trim());
+        }
+        if (isEnabled != null) {
+            sql.append(" AND t.is_enabled = ?");
+            args.add(isEnabled);
+        }
         if (like != null) {
             sql.append(" AND (t.task_name ILIKE ? OR t.task_code ILIKE ?)");
             args.add(like);
             args.add(like);
         }
-        sql.append(" ORDER BY t.id DESC LIMIT ? OFFSET ?");
+        sql.append(" ORDER BY t.is_enabled DESC, t.updated_at DESC LIMIT ? OFFSET ?");
         args.add(pageSize);
         args.add(offset);
         List<AlgorithmTaskRow> rows = jdbc.query(sql.toString(), ROW_MAPPER, args.toArray());
@@ -163,12 +177,24 @@ public class AlgorithmTaskRepository {
     }
 
     public long count(String search, String taskType) {
+        return count(search, taskType, null, null);
+    }
+
+    public long count(String search, String taskType, String deviceId, Boolean isEnabled) {
         String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM algorithm_task t WHERE 1=1");
         List<Object> args = new ArrayList<>();
         if (taskType != null && !taskType.isBlank()) {
             sql.append(" AND t.task_type = ?");
             args.add(taskType.trim());
+        }
+        if (deviceId != null && !deviceId.isBlank()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM algorithm_task_device atd WHERE atd.task_id = t.id AND atd.device_id = ?)");
+            args.add(deviceId.trim());
+        }
+        if (isEnabled != null) {
+            sql.append(" AND t.is_enabled = ?");
+            args.add(isEnabled);
         }
         if (like != null) {
             sql.append(" AND (t.task_name ILIKE ? OR t.task_code ILIKE ?)");
@@ -177,6 +203,185 @@ public class AlgorithmTaskRepository {
         }
         Long total = jdbc.queryForObject(sql.toString(), Long.class, args.toArray());
         return total != null ? total : 0L;
+    }
+
+    public long insert(Map<String, Object> fields) {
+        Long id = jdbc.queryForObject(
+                """
+                INSERT INTO algorithm_task (
+                    task_name, task_code, task_type, executor, schedule_policy, is_enabled,
+                    extract_interval, frame_skip, detect_conf,
+                    tracking_enabled, tracking_similarity_threshold, tracking_max_age, tracking_smooth_alpha,
+                    alert_event_enabled, alert_event_suppress_time, alarm_suppress_time,
+                    face_detection_enabled, plate_detection_enabled,
+                    face_matching_enabled, plate_matching_enabled, alert_notification_enabled,
+                    post_process_enabled, post_process_replicas, prefer_gpu,
+                    defense_mode, patrol_mode, patrol_interval_sec, patrol_pool_size,
+                    model_ids, alert_class_names, face_library_ids, plate_library_ids,
+                    matching_business_tags, alert_notification_config, defense_schedule,
+                    sam_supplement_enabled, sam_supplement_config,
+                    motion_gate_enabled, motion_gate_config,
+                    pose_analysis_enabled, pose_analysis_config,
+                    pose_intent_enabled, pose_library_ids, pose_intent_config,
+                    cron_expression, target_node_id, runtime_bin_path, runtime_control_port,
+                    total_frames, total_detections, total_captures,
+                    run_status, status, created_at, updated_at
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?,
+                    ?, ?,
+                    ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?,
+                    0, 0, 0,
+                    'stopped', 0, NOW(), NOW()
+                ) RETURNING id
+                """,
+                Long.class,
+                fields.get("task_name"),
+                fields.get("task_code"),
+                fields.get("task_type"),
+                fields.get("executor"),
+                fields.get("schedule_policy"),
+                fields.get("is_enabled"),
+                fields.get("extract_interval"),
+                fields.get("frame_skip"),
+                fields.get("detect_conf"),
+                fields.get("tracking_enabled"),
+                fields.get("tracking_similarity_threshold"),
+                fields.get("tracking_max_age"),
+                fields.get("tracking_smooth_alpha"),
+                fields.get("alert_event_enabled"),
+                fields.get("alert_event_suppress_time"),
+                fields.get("alarm_suppress_time"),
+                fields.get("face_detection_enabled"),
+                fields.get("plate_detection_enabled"),
+                fields.get("face_matching_enabled"),
+                fields.get("plate_matching_enabled"),
+                fields.get("alert_notification_enabled"),
+                fields.get("post_process_enabled"),
+                fields.get("post_process_replicas"),
+                fields.get("prefer_gpu"),
+                fields.get("defense_mode"),
+                fields.get("patrol_mode"),
+                fields.get("patrol_interval_sec"),
+                fields.get("patrol_pool_size"),
+                fields.get("model_ids"),
+                fields.get("alert_class_names"),
+                fields.get("face_library_ids"),
+                fields.get("plate_library_ids"),
+                fields.get("matching_business_tags"),
+                fields.get("alert_notification_config"),
+                fields.get("defense_schedule"),
+                fields.get("sam_supplement_enabled"),
+                fields.get("sam_supplement_config"),
+                fields.get("motion_gate_enabled"),
+                fields.get("motion_gate_config"),
+                fields.get("pose_analysis_enabled"),
+                fields.get("pose_analysis_config"),
+                fields.get("pose_intent_enabled"),
+                fields.get("pose_library_ids"),
+                fields.get("pose_intent_config"),
+                fields.get("cron_expression"),
+                fields.get("target_node_id"),
+                fields.get("runtime_bin_path"),
+                fields.get("runtime_control_port")
+        );
+        return id != null ? id : 0L;
+    }
+
+    public void updateFields(long id, Map<String, Object> fields) {
+        if (fields.isEmpty()) {
+            return;
+        }
+        StringBuilder sql = new StringBuilder("UPDATE algorithm_task SET updated_at = NOW()");
+        List<Object> args = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : fields.entrySet()) {
+            sql.append(", ").append(entry.getKey()).append(" = ?");
+            args.add(entry.getValue());
+        }
+        sql.append(" WHERE id = ?");
+        args.add(id);
+        jdbc.update(sql.toString(), args.toArray());
+    }
+
+    public void delete(long id) {
+        jdbc.update("DELETE FROM algorithm_task_device WHERE task_id = ?", id);
+        jdbc.update("DELETE FROM algorithm_task WHERE id = ?", id);
+    }
+
+    public void replaceDevices(long taskId, List<String> deviceIds) {
+        jdbc.update("DELETE FROM algorithm_task_device WHERE task_id = ?", taskId);
+        if (deviceIds == null) {
+            return;
+        }
+        for (String deviceId : deviceIds) {
+            jdbc.update(
+                    "INSERT INTO algorithm_task_device (task_id, device_id, created_at) VALUES (?, ?, NOW())",
+                    taskId,
+                    deviceId
+            );
+        }
+    }
+
+    public List<Map<String, Object>> listStreamDevices(long taskId) {
+        return jdbc.queryForList(
+                """
+                SELECT d.id AS device_id,
+                       COALESCE(d.name, d.id) AS device_name,
+                       d.http_stream,
+                       d.rtmp_stream,
+                       d.ai_http_stream,
+                       d.ai_rtmp_stream,
+                       d.source,
+                       d.cover_image_path
+                FROM algorithm_task_device atd
+                JOIN device d ON d.id = atd.device_id
+                WHERE atd.task_id = ?
+                ORDER BY d.id
+                """,
+                taskId
+        );
+    }
+
+    public void updatePatrolHeartbeat(
+            long taskId,
+            String serverIp,
+            Integer processId,
+            String logPath,
+            Integer totalPatrols,
+            Integer totalDetections
+    ) {
+        jdbc.update(
+                """
+                UPDATE algorithm_task
+                SET service_last_heartbeat = NOW(),
+                    service_server_ip = COALESCE(?, service_server_ip),
+                    service_process_id = COALESCE(?, service_process_id),
+                    service_log_path = COALESCE(?, service_log_path),
+                    total_captures = COALESCE(?, total_captures),
+                    total_detections = COALESCE(?, total_detections),
+                    last_process_time = NOW(),
+                    run_status = CASE WHEN run_status = 'stopped' THEN run_status ELSE 'running' END,
+                    updated_at = NOW()
+                WHERE id = ?
+                """,
+                serverIp,
+                processId,
+                logPath,
+                totalPatrols,
+                totalDetections,
+                taskId
+        );
     }
 
     public void updateRunState(long id, boolean enabled, String runStatus, String logPath, Integer port, Integer pid) {

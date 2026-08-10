@@ -30,10 +30,17 @@ public class AlgorithmTaskLifecycleService {
     }
 
     public Map<String, Object> listTasks(int pageNo, int pageSize, String search, String taskType) {
-        var items = taskRepository.list(pageNo, pageSize, search, taskType).stream().map(AlgorithmTaskRow::toMap).toList();
+        return listTasks(pageNo, pageSize, search, taskType, null, null);
+    }
+
+    public Map<String, Object> listTasks(
+            int pageNo, int pageSize, String search, String taskType, String deviceId, Boolean isEnabled
+    ) {
+        var items = taskRepository.list(pageNo, pageSize, search, taskType, deviceId, isEnabled)
+                .stream().map(AlgorithmTaskRow::toMap).toList();
         return Map.of(
                 "items", items,
-                "total", taskRepository.count(search, taskType)
+                "total", taskRepository.count(search, taskType, deviceId, isEnabled)
         );
     }
 
@@ -105,6 +112,9 @@ public class AlgorithmTaskLifecycleService {
         } else if ("snap".equals(taskType)) {
             result.put("snap_service", svc);
         } else if ("patrol".equals(taskType)) {
+            svc.put("patrol_mode", task.getPatrolMode());
+            svc.put("patrol_interval_sec", task.getPatrolIntervalSec());
+            svc.put("patrol_pool_size", task.getPatrolPoolSize());
             result.put("patrol_service", svc);
         }
         return result;
