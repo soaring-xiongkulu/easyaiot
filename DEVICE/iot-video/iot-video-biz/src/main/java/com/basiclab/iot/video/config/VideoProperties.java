@@ -16,6 +16,9 @@ public class VideoProperties {
     private final Runtime runtime = new Runtime();
     private final HealthMonitor healthMonitor = new HealthMonitor();
     private final Media media = new Media();
+    private final SpaceCleanup spaceCleanup = new SpaceCleanup();
+    private final PlaybackDiskGuard playbackDiskGuard = new PlaybackDiskGuard();
+    private final MediaJanitor mediaJanitor = new MediaJanitor();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -101,5 +104,43 @@ public class VideoProperties {
         private long intervalMs = 60_000L;
         /** Mirrors {@code ALGORITHM_HEARTBEAT_FAILOVER_SECONDS} (default 90s). */
         private int heartbeatFailoverSeconds = 90;
+    }
+
+    @Data
+    public static class SpaceCleanup {
+        /** Mirrors Python {@code auto_cleanup_*_spaces} APScheduler jobs (default 30 min). */
+        private boolean enabled = true;
+        private long intervalMs = 1_800_000L;
+    }
+
+    @Data
+    public static class PlaybackDiskGuard {
+        /** Mirrors {@code PLAYBACK_CLEANUP_ENABLED} (default on). */
+        private boolean enabled = true;
+        /** Mirrors {@code PLAYBACK_GUARD_INTERVAL_MINUTES} (default 10 min). */
+        private long intervalMs = 600_000L;
+        private int maxAgeHours = 1;
+        private int deviceMaxFiles = 30;
+        private int globalMaxFiles = 2000;
+        private double keepRatio = 0.2;
+        private double diskWarnPercent = 80.0;
+        private double diskCriticalPercent = 90.0;
+        private double diskTargetPercent = 75.0;
+        private int emergencyBatchSize = 50;
+        private int emergencyMaxRounds = 200;
+        /** Optional override for SRS playbacks root ({@code MEDIA_RECORD_DIR} / {@code SRS_RECORD_DIR}). */
+        private String recordDir = "";
+        private String hostDataRoot = "";
+    }
+
+    @Data
+    public static class MediaJanitor {
+        /** Mirrors {@code MEDIA_JANITOR_ENABLED} (default on). */
+        private boolean enabled = true;
+        /** Mirrors {@code JANITOR_INTERVAL_SECONDS} (default 60s). */
+        private long intervalMs = 60_000L;
+        private int orphanMinAgeMinutes = 10;
+        private String snapDir = "";
+        private String hostDataRoot = "";
     }
 }

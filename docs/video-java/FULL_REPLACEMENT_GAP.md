@@ -16,9 +16,9 @@
 |------|------------------|-------------------|----------------------|
 | Blueprint / 域 | **14** | 有控制器触及约 **12** 域，其中 **2** 全缺、**多数仅切片** | ~15–25% 路由面 |
 | HTTP `@route` / `@*Mapping` | **≈265** | **≈29** | **~11%** |
-| `app/services` 量级 | **67** 个 py | **20** 个 Java service + 4 process + 2 scheduler | 编排核心有，周边大缺 |
+| `app/services` 量级 | **67** 个 py | **23** 个 Java service + 4 process + 5 scheduler | 编排核心有，周边大缺 |
 | 独立 worker 目录 | `services/` 下 frame/sorter/pusher/media_*/post_process/stream_forward 等 | **无对等多进程 worker 包**（推流/RUNTIME 用 JVM 内 Supervisor） | 模型不同，能力未对齐 |
-| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG：auto_start 算法/观看/stream_forward + 算法健康恢复；清理/janitor/抓拍调度仍缺 | 部分 |
+| 启动后台任务 | auto_start 算法/推流/观看、空间清理、janitor、磁盘守护、健康监控、抓拍调度… | FR-W1-BG + FR-W3-OPS：auto_start/健康/空间清理/janitor/磁盘守护；snap 调度仍缺 | 部分 |
 | 门禁自称 | — | Phase -1～3 PASS + EVID | **切片证据 ≠ 完整替换** |
 
 **结论一句话：**  
@@ -165,9 +165,9 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | `auto_start_streaming`（观看 ffmpeg） | ✅ `ViewForwardAutoResume*`（`enable_forward` + 离线/rtmp 跳过） | FR-W1-BG 已对齐本地语义 |
 | `auto_start_all_tasks`（算法） | ✅ `AlgorithmTaskAutoStart*`（enabled + local + 模型/设备校验） | FR-W1-BG 已补 |
 | `stream_forward` auto_start | ✅ `StreamForwardAutoStart*`（enabled + local） | FR-W1-BG 已补；远程分片仍 ❌ |
-| 抓拍/录像空间定时清理（30min） | **缺** | 必须补 |
-| playback disk guard | **缺** | 必须补 |
-| media janitor | **缺** | 必须补或明确由独立 worker 承担 |
+| 抓拍/录像空间定时清理（30min） | ✅ `SpaceCleanupScheduler` + `SnapSpaceCleanupService` / `RecordSpaceCleanupService`（DB mini 清理 + 启动即清） | FR-W3-OPS 已补 |
+| playback disk guard | ✅ `PlaybackDiskGuardScheduler` + `PlaybackDiskGuardService`（10min + 启动首次） | FR-W3-OPS 已补 |
+| media janitor | ✅ `MediaJanitorScheduler` + `MediaJanitorService`（60s 孤儿重入队 + 磁盘紧急） | FR-W3-OPS 已补 |
 | stream_forward 集群健康迁移 | **缺** | 集群场景必须（`STREAM_FORWARD_HEALTH_*` 仅远程） |
 | algorithm_task 健康监控（60s） | ✅ `AlgorithmTaskHealthRecovery*`（启动即恢复 + 定时；local 以 supervisor 为准） | FR-W1-BG 已对齐 P0 |
 | snap_task 调度器 `init_all_tasks` | **缺** | snap 任务面补齐时必须 |

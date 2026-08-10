@@ -65,10 +65,11 @@ public class DvrDeviceResolver {
             device = Optional.ofNullable(fromFile.device());
         }
 
-        return device.map(row -> new ResolvedDevice(deviceId, row)).orElseGet(() -> new ResolvedDevice(null, null));
+        final String resolvedDeviceId = deviceId;
+        return device.map(row -> new ResolvedDevice(resolvedDeviceId, row)).orElseGet(() -> new ResolvedDevice(null, null));
     }
 
-    static String parseInferStreamDeviceId(String stream) {
+    public static String parseInferStreamDeviceId(String stream) {
         if (stream == null || !stream.startsWith("infer_")) {
             return null;
         }

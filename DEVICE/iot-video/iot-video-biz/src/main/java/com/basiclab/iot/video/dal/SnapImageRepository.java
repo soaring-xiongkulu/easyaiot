@@ -65,6 +65,35 @@ public class SnapImageRepository {
         return total != null ? total : 0L;
     }
 
+    public boolean existsByDeviceAndObjectName(String deviceId, String objectName) {
+        Long total = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM snap_image WHERE device_id = ? AND object_name = ?",
+                Long.class,
+                deviceId,
+                objectName
+        );
+        return total != null && total > 0;
+    }
+
+    public int deleteExpiredBefore(int spaceId, String deviceId, Timestamp cutoff) {
+        if (cutoff == null) {
+            return 0;
+        }
+        if (deviceId != null && !deviceId.isBlank()) {
+            return jdbc.update(
+                    "DELETE FROM snap_image WHERE space_id = ? AND device_id = ? AND captured_at < ?",
+                    spaceId,
+                    deviceId,
+                    cutoff
+            );
+        }
+        return jdbc.update(
+                "DELETE FROM snap_image WHERE space_id = ? AND captured_at < ?",
+                spaceId,
+                cutoff
+        );
+    }
+
     private static void imageFilters(StringBuilder sql, List<Object> args, String deviceId, String search,
                                      String source, Timestamp start, Timestamp end) {
         if (deviceId != null && !deviceId.isBlank()) {

@@ -24,6 +24,25 @@ video:
     enabled: true
     interval-ms: 60000
     heartbeat-failover-seconds: 90
+  space-cleanup:
+    enabled: true
+    interval-ms: 1800000
+  playback-disk-guard:
+    enabled: true
+    interval-ms: 600000
+    max-age-hours: 1
+    device-max-files: 30
+    global-max-files: 2000
+    keep-ratio: 0.2
+    disk-warn-percent: 80
+    disk-critical-percent: 90
+    disk-target-percent: 75
+    emergency-batch-size: 50
+    emergency-max-rounds: 200
+  media-janitor:
+    enabled: true
+    interval-ms: 60000
+    orphan-min-age-minutes: 10
   alert:
     use-direct-persist: true
     alert-notification-topic: iot-alert-notification
