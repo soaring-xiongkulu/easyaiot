@@ -1,5 +1,43 @@
 {
   "layer": "api",
-  "status": "fail",
-  "reason": "candidate Phase 2 endpoints not implemented"
+  "status": "sampled",
+  "endpoint": "/video/face/matching/publish",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "msg": "投递成功",
+    "message": "投递成功",
+    "data": {
+      "taskId": 48,
+      "taskName": "vj_p2_face_match",
+      "taskType": "realtime",
+      "deviceId": "vj_p2_device",
+      "deviceName": "vj_p2 certify camera",
+      "libraryId": 6,
+      "libraryName": null,
+      "faceImagePath": "/tmp/vj_p2_face_certify.jpg",
+      "threshold": null,
+      "faceMatchingThreshold": null,
+      "timestamp": "2026-08-10T05:00:03.200363900Z",
+      "correlationId": "vj_p2_face_certify"
+    }
+  },
+  "normalized": {
+    "code": 0,
+    "data": {
+      "correlationId": "vj_p2_face_certify",
+      "deviceId": "vj_p2_device",
+      "deviceName": "vj_p2 certify camera",
+      "faceImagePath": "vj_p2_face_certify.jpg",
+      "faceMatchingThreshold": null,
+      "libraryId": 6,
+      "libraryName": null,
+      "taskId": 48,
+      "taskName": "vj_p2_face_match",
+      "taskType": "realtime",
+      "threshold": null,
+      "timestamp": "<TIMESTAMP>"
+    },
+    "msg": "投递成功"
+  }
 }

@@ -16,6 +16,8 @@ video:
   skip-background-tasks: true
   alert:
     use-direct-persist: true
+  matching:
+    use-direct-process: true
   ffmpeg-path: F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd
   runtime:
     repo-root: F:/acme

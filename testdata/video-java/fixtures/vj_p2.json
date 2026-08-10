@@ -15,6 +15,7 @@
   "record_space_id": 10,
   "detection_region_id": 3,
   "face_image_path": "/tmp/vj_p2_face_certify.jpg",
+  "face_correlation_id": "vj_p2_face_certify",
   "plate_no": "粤B00001",
   "plate_image_path": "/tmp/vj_p2_plate_certify.jpg",
   "snap_space_code": "vj_p2_snap",

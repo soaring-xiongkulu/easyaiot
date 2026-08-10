@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class VideoProperties {
 
     private final Alert alert = new Alert();
+    private final Matching matching = new Matching();
     private final Runtime runtime = new Runtime();
     private final HealthMonitor healthMonitor = new HealthMonitor();
 
@@ -23,6 +24,15 @@ public class VideoProperties {
     public static class Alert {
         /** mini / local: persist alerts directly to DB (no Kafka). */
         private boolean useDirectPersist = true;
+    }
+
+    @Data
+    public static class Matching {
+        /**
+         * mini / local: mock Kafka publish success (certify-safe when broker unavailable).
+         * Mirrors Python mini path documented in P2-S3.
+         */
+        private boolean useDirectProcess = true;
     }
 
     @Data

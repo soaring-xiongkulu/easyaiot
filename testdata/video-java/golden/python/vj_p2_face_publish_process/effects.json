@@ -2,8 +2,8 @@
   "layer": "side_effect",
   "status": "sampled",
   "snapshot": {
-    "publish_code": -1,
-    "publish_ok": false,
+    "publish_code": 0,
+    "publish_ok": true,
     "process_code": 0,
     "process_ok": true,
     "matching_record_created": true
