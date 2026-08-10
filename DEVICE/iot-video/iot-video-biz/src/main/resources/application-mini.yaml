@@ -24,3 +24,6 @@ video:
     sink-use-gateway: false
     gateway-url: http://localhost:48080
     enqueue-timeout-ms: 5000
+  node-remote:
+    remote-deploy-enabled: false
+    gateway-url: http://localhost:48099

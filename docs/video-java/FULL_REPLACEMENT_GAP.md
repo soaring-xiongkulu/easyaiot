@@ -39,10 +39,10 @@
 
 | # | 域 | Python 前缀 | Py 路由数 | Java 现状 | Java 已有映射（摘要） | 完整替换判定 | 关联 EX / 备注 |
 |---|----|-------------|----------:|-----------|----------------------|--------------|----------------|
-| 1 | algorithm_task | `/video/algorithm` | 21 | 管理面 + lifecycle | list/get/CRUD/start/stop/restart/services/status/heartbeat/logs/streams/post-process | **本地切片** | route_inventory `/video/algorithm` Py=21 Java=21 diff=0；远程 node 仍 400（EX-REMOTE-NODE） |
+| 1 | algorithm_task | `/video/algorithm` | 21 | 管理面 + lifecycle | list/get/CRUD/start/stop/restart/services/status/heartbeat/logs/streams/post-process | **本地切片** | route_inventory `/video/algorithm` Py=21 Java=21 diff=0；**FR-B4 ✅** 远程 node 客户端（prod 需 iot-node + Agent 联调） |
 | 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；**EX-KAFKA-HOOK resolved**（`use-direct-persist=false` → Kafka produce + fallback） |
 | 3 | camera | `/video/camera` | **59** | 全量路由 | list/CRUD/stream/目录/NVR/… | **路由切片完成** | `route_inventory` Py=59 Java=59 diff=0；**FR-W2-CAM**；ONVIF/扫描/抓拍行为待 SDK |
-| 4 | stream_forward | `/video/stream-forward` | 13 | 全量路由 | list/get/CRUD/start/stop/restart/status/heartbeat/logs/streams/ensure-task | **路由切片完成** | `route_inventory` Py=13 Java=13 diff=0；**FR-W2-SF**；远程 node/auto 调度仍 400 |
+| 4 | stream_forward | `/video/stream-forward` | 13 | 全量路由 | list/get/CRUD/start/stop/restart/status/heartbeat/logs/streams/ensure-task | **路由切片完成** | `route_inventory` Py=13 Java=13 diff=0；**FR-W2-SF**；**FR-B4 ✅** 远程 node 客户端（分片/SRS 健康迁移仍待集群联调） |
 | 5 | face | `/video/face` | 35 | 全量路由 | health/model/libraries/persons/entries/auto-enroll/normalize/match/recognize/matching/* | **路由切片完成** | `route_inventory` Py=35 Java=35 diff=0；**FR-W2-MATCH**；InsightFace/Milvus 推理桩 |
 | 6 | plate | `/video/plate` | 26 | 全量路由 | health/model/libraries/entries/auto-enroll/normalize/match/recognize/matching/* | **路由切片完成** | `route_inventory` Py=26 Java=26 diff=0；**FR-W2-MATCH**；PaddleOCR 推理桩 |
 | 7 | snap | `/video/snap` | 38 | 全量路由 | space/task/region/service/images/storage | **路由切片完成** | `route_inventory` Py=38 Java=38 diff=0；**FR-W2-MEDIA**；MinIO/调度器待 SDK |
@@ -78,7 +78,7 @@
 | ✅ | GET | `.../extractor\|sorter\|pusher\|realtime/logs` |
 | ✅ | GET | `.../streams` |
 | ✅ | GET/POST/PUT | post-process `status` / `init` / `toggle` / `ide-url` / `results` |
-| ❌ 行为 | — | `schedule_policy!=local` 远程 node 部署（现 400，EX-REMOTE-NODE） |
+| ✅ 行为 | — | `schedule_policy=auto|node` 远程 iot-node 部署（**FR-B4 ✅** `IotNodeClient`；mini 默认本机回退） |
 | ✅ 路由差 | `/video/algorithm`：**Py 21 / Java 21 / diff 0**（`route_inventory.py --prefix /video/algorithm`） |
 
 ### 2.2 `alert` — 管理面 + hook（FR-W1-ALERT）
@@ -116,7 +116,7 @@
 | ✅ | GET | `/video/stream-forward/task/{id}/logs` |
 | ✅ | GET | `/video/stream-forward/task/{id}/streams` |
 | ✅ | POST | `/video/stream-forward/device/{device_id}/ensure-task` |
-| ❌ 行为 | — | `schedule_policy!=local` 远程 node 部署（现 400，EX-REMOTE-NODE） |
+| ✅ 行为 | — | `schedule_policy=auto|node` 远程 iot-node 部署（**FR-B4 ✅** `IotNodeClient`；mini 默认本机回退） |
 | ✅ 路由差 | `/video/stream-forward`：**Py 13 / Java 13 / diff 0**（`route_inventory.py --prefix /video/stream-forward`） |
 
 ### 2.5 `face` / `plate` — FR-W2-MATCH（路由面 diff=0）
@@ -185,7 +185,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | Alert → Kafka | 可走 Kafka | `use-direct-persist=false` → Kafka produce（minimal 驼峰消息，deviceId key）；失败 fallback direct_persist；local/mini 默认仍 direct | **resolved by FR-W1-KAFKA**（prod 需 broker + iot-sink 联调） |
 | Post-process → iot-sink | 真 enqueue | `use-stub-enqueue: true`（local） | **resolved by FR-B1**（`use-stub-enqueue=false` → HTTP POST iot-sink；不可达时 `enqueue_ok=false` + warn 日志；local/mini 默认仍 stub） |
 | Face/Plate matching | Kafka + 模型 | publish/process 切片；mini mock | 真 Kafka + 推理/旁路 |
-| 远程 node / RUNTIME 分发 | node_client | EX-REMOTE-NODE 本地拒绝 | 对齐 iot-node API |
+| 远程 node / RUNTIME 分发 | node_client | **FR-B4 ✅** `IotNodeClient` allocate/deploy/stop | prod 集群需 iot-node + Agent + SRS 联调 |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **无** | 随 camera 域补齐 |
 | MinIO 空间同步/清理 | snap/record 多接口 | **✅ FR-B2** `VideoMinioService` + `SpaceFileMetadataService`；`video.minio.enabled` / `MINIO_ENABLED` 开关；DVR/snap 上传真路径 | mini 默认 `enabled=false`（DB/本地路径）；prod 需 MinIO 联调 |
 | 鉴权（流票据、网关 token） | 有 | **FR-W1-AUTH ✅** mini gateway + `system-server` token check（invalid Bearer 401；valid Bearer 200）；流票据仍缺 | 生产全量路由 + 流票据待 W2 camera |

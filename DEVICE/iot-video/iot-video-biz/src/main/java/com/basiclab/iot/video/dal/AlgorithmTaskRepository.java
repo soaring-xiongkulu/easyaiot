@@ -402,6 +402,47 @@ public class AlgorithmTaskRepository {
         );
     }
 
+    public void updateRemoteRunState(
+            long id,
+            boolean enabled,
+            String runStatus,
+            String logPath,
+            Integer port,
+            Integer pid,
+            long nodeId,
+            String serverIp
+    ) {
+        jdbc.update(
+                """
+                UPDATE algorithm_task
+                SET is_enabled = ?, run_status = ?, service_log_path = ?,
+                    service_port = ?, service_process_id = ?, node_id = ?, service_server_ip = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+                """,
+                enabled,
+                runStatus,
+                logPath,
+                port,
+                pid,
+                nodeId,
+                serverIp,
+                id
+        );
+    }
+
+    public void clearRemoteBinding(long id) {
+        jdbc.update(
+                """
+                UPDATE algorithm_task
+                SET node_id = NULL, service_process_id = NULL, service_server_ip = NULL,
+                    updated_at = NOW()
+                WHERE id = ?
+                """,
+                id
+        );
+    }
+
     public void updateHeartbeat(long id, String serverIp, Integer port, Integer processId, String logPath, String runStatus) {
         jdbc.update(
                 """

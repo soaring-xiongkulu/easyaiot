@@ -29,6 +29,8 @@ public class StreamForwardService {
     private final ViewForwardService viewForwardService;
     private final StreamForwardSupervisor supervisor;
     private final VideoProperties videoProperties;
+    private final RemoteScheduleSupport remoteScheduleSupport;
+    private final StreamForwardRemoteDeployService remoteDeployService;
 
     public Map<String, Object> getTask(long taskId) {
         StreamForwardTaskRow row = taskRepository.findById(taskId)
@@ -51,9 +53,13 @@ public class StreamForwardService {
             throw new VideoBusinessException(400, "推流转发任务必须关联至少一个摄像头");
         }
 
-        String policy = task.getSchedulePolicy() != null ? task.getSchedulePolicy() : "local";
-        if (!"local".equalsIgnoreCase(policy)) {
-            throw new VideoBusinessException(400, "Phase 1 仅支持本机 schedule_policy=local（远程 node 见 EXEMPTIONS）");
+        if (remoteScheduleSupport.shouldUseRemoteDeploy(task)) {
+            if (task.getNodeId() != null && remoteDeployService.isRemoteHealthy(task)) {
+                Map<String, Object> data = new HashMap<>(task.toMap());
+                data.put("already_running", true);
+                return Map.of("message", "任务已在远程节点运行", "data", data);
+            }
+            return remoteDeployService.deploy(task);
         }
 
         Map<String, Supplier<List<String>>> deviceCommands = new LinkedHashMap<>();
@@ -89,6 +95,9 @@ public class StreamForwardService {
         StreamForwardTaskRow task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new VideoBusinessException(400, "推流转发任务不存在"));
 
+        if (task.getNodeId() != null) {
+            remoteDeployService.stopRemote(task);
+        }
         supervisor.stop(taskId);
         taskRepository.updateEnabled(taskId, false, null);
         StreamForwardTaskRow updated = taskRepository.findById(taskId).orElse(task);

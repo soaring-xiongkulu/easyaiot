@@ -22,6 +22,21 @@ public class RuntimeIniGenerator {
     private final VideoProperties videoProperties;
 
     public String generate(AlgorithmTaskRow task, Path logPath) throws IOException {
+        IniArtifact artifact = buildIniArtifact(task, logPath, null);
+        Files.writeString(Path.of(artifact.localIniPath()), artifact.content());
+        return artifact.localIniPath();
+    }
+
+    /**
+     * Build ini content for remote deploy (files payload to iot-node Agent).
+     */
+    public IniArtifact buildRemoteIniArtifact(AlgorithmTaskRow task, String remoteLogDir) throws IOException {
+        Path logPath = Path.of(remoteLogDir.replace('\\', '/'), "runtime.log");
+        String remoteIni = remoteLogDir.replace('\\', '/') + "/runtime.ini";
+        return buildIniArtifact(task, logPath, remoteIni);
+    }
+
+    private IniArtifact buildIniArtifact(AlgorithmTaskRow task, Path logPath, String remoteIniPath) throws IOException {
         if (task.getDeviceIds() == null || task.getDeviceIds().isEmpty()) {
             throw new VideoBusinessException(400, "任务 " + task.getId() + " 未绑定设备，无法生成 RUNTIME 配置");
         }
@@ -38,7 +53,10 @@ public class RuntimeIniGenerator {
                 : 8000 + (int) (task.getId() % 1000);
         Path configDir = Path.of(videoProperties.getRuntime().getConfigDir());
         Files.createDirectories(configDir);
-        Path iniPath = configDir.resolve("task_" + task.getId() + ".ini");
+        String iniPathStr = remoteIniPath != null
+                ? remoteIniPath
+                : configDir.resolve("task_" + task.getId() + ".ini").toString();
+        Path iniPath = remoteIniPath == null ? Path.of(iniPathStr) : configDir.resolve("task_" + task.getId() + ".ini");
         Path logDir = logPath.getParent() != null ? logPath.getParent() : logPath;
         Path alertImageDir = logDir.resolve("alerts");
         Files.createDirectories(alertImageDir);
@@ -132,8 +150,10 @@ public class RuntimeIniGenerator {
                 frameSkip,
                 alertEnabled ? "true" : "false"
         );
-        Files.writeString(iniPath, content);
-        return iniPath.toString();
+        return new IniArtifact(iniPath.toString(), content, remoteIniPath != null ? remoteIniPath : iniPath.toString());
+    }
+
+    public record IniArtifact(String localIniPath, String content, String deployIniPath) {
     }
 
     public String resolveRuntimeBin(AlgorithmTaskRow task) {

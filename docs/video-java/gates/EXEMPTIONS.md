@@ -4,7 +4,7 @@ Rows with Owner sign-off `pending` are **provisional** — certify may mark a la
 
 | ID | Capability | Reason | Owner sign-off |
 |----|------------|--------|----------------|
-| EX-REMOTE-NODE | Remote iot-node deploy for algorithm tasks | Phase 0 local-only; `schedule_policy!=local` rejected with 400 | orchestrator, 2026-08-10 |
+| EX-REMOTE-NODE | Remote iot-node deploy for algorithm tasks | **resolved by FR-B4** (2026-08-10): `IotNodeClient` + scheduler allocate / workload deploy/stop; `schedule_policy=auto|node` uses iot-node when `NODE_REMOTE_DEPLOY` enabled; mini defaults local fallback (mirrors Python) | orchestrator, 2026-08-10 |
 | EX-KAFKA-HOOK | Kafka alert path when `use-direct-persist=false` | **resolved by FR-W1-KAFKA** (2026-08-10): `AlertKafkaProducer` + minimal camelCase message to `iot-alert-notification` / `iot-snapshot-alert`; suppress interval; Kafka failure → direct_persist fallback; local/mini default `use-direct-persist=true` | orchestrator, 2026-08-10 |
 | EX-ORACLE-HEALTH-DB | Oracle `/actuator/health` HTTP 500 (DB probe encoding) | Env-specific; P0 requires Java candidate UP; oracle DB health documented | orchestrator, 2026-08-10 |
 | EX-GATEWAY-AUTH-LOCAL | Gateway OAuth token check via `system-server` on mini profile | **resolved by FR-W1-AUTH** (2026-08-10): `system-server` `:48099` live; invalid Bearer → 401; valid token (admin login) → gateway 200 + video-server body; see `GATEWAY_AUTH_SMOKE.md` | orchestrator, 2026-08-10 |

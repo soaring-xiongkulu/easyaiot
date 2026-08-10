@@ -22,6 +22,8 @@ public class AlgorithmTaskLifecycleService {
     private final RuntimeIniGenerator iniGenerator;
     private final AlgorithmRuntimeSupervisor supervisor;
     private final VideoProperties videoProperties;
+    private final RemoteScheduleSupport remoteScheduleSupport;
+    private final AlgorithmRemoteDeployService remoteDeployService;
 
     public Map<String, Object> getTask(long id) {
         AlgorithmTaskRow row = taskRepository.findById(id)
@@ -48,8 +50,13 @@ public class AlgorithmTaskLifecycleService {
         AlgorithmTaskRow task = taskRepository.findById(id)
                 .orElseThrow(() -> new VideoBusinessException(400, "算法任务不存在"));
         normalizeExecutor(task.getExecutor());
-        if (!"local".equalsIgnoreCase(task.getSchedulePolicy() != null ? task.getSchedulePolicy() : "local")) {
-            throw new VideoBusinessException(400, "Phase 0 仅支持本机 schedule_policy=local（远程 node 见 EXEMPTIONS）");
+        if (remoteScheduleSupport.shouldUseRemoteDeploy(task)) {
+            if (task.getNodeId() != null && remoteDeployService.isRemoteHealthy(task)) {
+                Map<String, Object> data = new HashMap<>(task.toMap());
+                data.put("already_running", true);
+                return Map.of("message", "任务已在远程节点运行", "data", data);
+            }
+            return remoteDeployService.deploy(task);
         }
         if (supervisor.isAlive(id)) {
             Map<String, Object> data = new HashMap<>(task.toMap());
@@ -81,8 +88,11 @@ public class AlgorithmTaskLifecycleService {
     }
 
     public Map<String, Object> stop(long id) {
-        taskRepository.findById(id)
+        AlgorithmTaskRow task = taskRepository.findById(id)
                 .orElseThrow(() -> new VideoBusinessException(400, "算法任务不存在"));
+        if (task.getNodeId() != null) {
+            remoteDeployService.stopRemote(task);
+        }
         supervisor.stop(id, true);
         taskRepository.updateRunState(id, false, "stopped", null, null, null);
         AlgorithmTaskRow updated = taskRepository.findById(id)
@@ -123,6 +133,9 @@ public class AlgorithmTaskLifecycleService {
 
     private String resolveServiceStatus(long id, AlgorithmTaskRow task) {
         if (supervisor.isAlive(id)) {
+            return "running";
+        }
+        if (task.getNodeId() != null && remoteDeployService.isRemoteHealthy(task)) {
             return "running";
         }
         // Match Python certify heuristic: enabled + run_status=running counts as alive even if

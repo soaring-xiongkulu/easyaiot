@@ -21,6 +21,7 @@ public class VideoProperties {
     private final MediaJanitor mediaJanitor = new MediaJanitor();
     private final Minio minio = new Minio();
     private final SnapTaskScheduler snapTaskScheduler = new SnapTaskScheduler();
+    private final NodeRemote nodeRemote = new NodeRemote();
 
     /**
      * Mirrors Python {@code VIDEO_SKIP_BACKGROUND_TASKS=1} — disables scheduled health recovery
@@ -179,5 +180,25 @@ public class VideoProperties {
          * Disabled when {@code video.skip-background-tasks=true}.
          */
         private boolean enabled = true;
+    }
+
+    @Data
+    public static class NodeRemote {
+        /**
+         * Mirrors Python {@code NODE_REMOTE_DEPLOY}. When unset, mini profile defaults false;
+         * otherwise true. Env {@code NODE_REMOTE_DEPLOY} wins.
+         */
+        private Boolean remoteDeployEnabled;
+        /** Gateway / JAVA_BACKEND_URL for {@code /admin-api/node/*}. */
+        private String gatewayUrl = "http://localhost:48080";
+        /** Remote VIDEO tree on compute nodes ({@code NODE_REMOTE_VIDEO_ROOT}). */
+        private String remoteVideoRoot = "/opt/easyaiot/VIDEO";
+        /** Remote RUNTIME binary ({@code REMOTE_RUNTIME_BIN}). */
+        private String remoteRuntimeBin = "/opt/easyaiot/RUNTIME/bin/RUNTIME";
+        private String remoteRuntimeLdLibraryPath = "/opt/easyaiot/RUNTIME/lib:/opt/easyaiot/RUNTIME/build/lib";
+        /** Python interpreter on remote nodes for stream_forward run_deploy.py. */
+        private String remotePython = "python3";
+        private int requestTimeoutMs = 90_000;
+        private int devicesPerShard = 4;
     }
 }

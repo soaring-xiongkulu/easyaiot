@@ -152,6 +152,47 @@ public class StreamForwardTaskRepository {
         );
     }
 
+    public void updateRemoteDeployState(
+            long id,
+            boolean enabled,
+            String logPath,
+            Integer pid,
+            long nodeId,
+            String serverIp,
+            String deviceDeployments
+    ) {
+        jdbc.update(
+                """
+                UPDATE stream_forward_task
+                SET is_enabled = ?, service_log_path = ?, service_process_id = ?,
+                    node_id = ?, service_server_ip = ?, device_deployments = ?,
+                    last_success_time = CASE WHEN ? THEN NOW() ELSE last_success_time END,
+                    updated_at = NOW()
+                WHERE id = ?
+                """,
+                enabled,
+                logPath,
+                pid,
+                nodeId,
+                serverIp,
+                deviceDeployments,
+                enabled,
+                id
+        );
+    }
+
+    public void clearRemoteBinding(long id) {
+        jdbc.update(
+                """
+                UPDATE stream_forward_task
+                SET node_id = NULL, service_process_id = NULL, service_server_ip = NULL,
+                    device_deployments = NULL, updated_at = NOW()
+                WHERE id = ?
+                """,
+                id
+        );
+    }
+
     public List<StreamForwardTaskRow> list(
             int pageNo, int pageSize, String search, String deviceId, Boolean isEnabled
     ) {
