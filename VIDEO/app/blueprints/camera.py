@@ -38,6 +38,8 @@ from app.utils.ffmpeg_compat import (
     ffmpeg_rtsp_open_timeout_flag as _ffmpeg_rtsp_open_timeout_flag,
     ffmpeg_rtsp_timeout_args as _ffmpeg_rtsp_timeout_args,
     ffmpeg_supports_rw_timeout as _ffmpeg_supports_rw_timeout,
+    resolve_ffmpeg_binary as _resolve_ffmpeg_binary,
+    resolve_view_h264_codec as _resolve_view_h264_codec,
 )
 from app.utils.ffmpeg_process_registry import stop_registered_process
 from app.utils.flighthub_source import (
@@ -205,12 +207,14 @@ class FFmpegDaemon:
             while self._running:
                 if not self._forward_enabled_in_db():
                     logger.info(f"设备 {self.device_id} 已关闭观看转发(enable_forward=False)，守护线程退出")
+                    self._running = False
                     return
 
                 with self._app.app_context():
                     device = Device.query.get(self.device_id)
                 if not device:
                     logger.warning(f"设备 {self.device_id} 不存在，守护线程退出")
+                    self._running = False
                     return
                 # 说明：
                 # - 撕裂/下半发白/解码报错，常见诱因是上游转推重连后缺少关键帧或关键帧间隔过大；
@@ -277,9 +281,11 @@ class FFmpegDaemon:
                     rtsp_transport = "udp"
 
                 is_rtsp_input = (input_url or "").strip().lower().startswith("rtsp://")
+                ffmpeg_bin = _resolve_ffmpeg_binary()
+                video_codec = _resolve_view_h264_codec()
 
                 ffmpeg_cmd = [
-                    "ffmpeg",
+                    ffmpeg_bin,
                     "-hide_banner",
                     "-loglevel",
                     "warning",
@@ -313,43 +319,61 @@ class FFmpegDaemon:
 
                     # 输出：仅视频
                     "-an",
-
-                    # 编码：低延迟 + 高频关键帧 + 无B帧，减少重连后花屏/撕裂
-                    "-c:v",
-                    "libx264",
-                    "-preset",
-                    preset,
-                    "-tune",
-                    "zerolatency",
                 ])
 
-                # 优先使用 CRF（恒定质量）；否则使用 ABR/CBR（码率）
-                if crf:
-                    ffmpeg_cmd.extend(["-crf", crf])
-                else:
+                if video_codec == "copy":
+                    # 当前 ffmpeg 无可用 H.264 编码器时透传（源需已是 H.264）
+                    ffmpeg_cmd.extend(["-c:v", "copy"])
+                elif video_codec == "h264_nvenc":
+                    # NVENC：preset 映射到 p1–p7；低延迟 tune=ll
+                    nvenc_preset = {
+                        "ultrafast": "p1",
+                        "superfast": "p2",
+                        "veryfast": "p4",
+                        "faster": "p4",
+                        "fast": "p5",
+                        "medium": "p5",
+                        "slow": "p6",
+                        "slower": "p7",
+                        "veryslow": "p7",
+                    }.get((preset or "veryfast").lower(), "p4")
                     ffmpeg_cmd.extend([
-                        "-b:v",
-                        bitrate,
-                        "-maxrate",
-                        bitrate,
-                        "-bufsize",
-                        bufsize,
+                        "-c:v", "h264_nvenc",
+                        "-preset", nvenc_preset,
+                        "-tune", "ll",
+                        "-rc", "cbr",
+                        "-b:v", bitrate,
+                        "-maxrate", bitrate,
+                        "-bufsize", bufsize,
+                        "-pix_fmt", "yuv420p",
+                        "-g", str(max(1, gop_size)),
+                        "-bf", "0",
+                    ])
+                else:
+                    # 软件编码（libx264 / 其他软件类）：低延迟 + 高频关键帧 + 无B帧
+                    ffmpeg_cmd.extend([
+                        "-c:v", video_codec,
+                        "-preset", preset,
+                        "-tune", "zerolatency",
+                    ])
+                    if crf:
+                        ffmpeg_cmd.extend(["-crf", crf])
+                    else:
+                        ffmpeg_cmd.extend([
+                            "-b:v", bitrate,
+                            "-maxrate", bitrate,
+                            "-bufsize", bufsize,
+                        ])
+                    ffmpeg_cmd.extend([
+                        "-pix_fmt", "yuv420p",
+                        "-profile:v", "main",
+                        "-g", str(max(1, gop_size)),
+                        "-keyint_min", str(max(1, source_fps)),
+                        "-sc_threshold", "0",
+                        "-bf", "0",
                     ])
 
                 ffmpeg_cmd.extend([
-                    "-pix_fmt",
-                    "yuv420p",
-                    "-profile:v",
-                    "main",
-                    "-g",
-                    str(max(1, gop_size)),
-                    "-keyint_min",
-                    str(max(1, source_fps)),
-                    "-sc_threshold",
-                    "0",
-                    "-bf",
-                    "0",
-
                     # RTMP/FLV
                     "-f",
                     "flv",
@@ -464,18 +488,25 @@ def start_ffmpeg_stream(device_id):
         with ffmpeg_lock:
             if device_id in ffmpeg_processes:
                 daemon = ffmpeg_processes[device_id]
-                if daemon._running:
+                alive = (
+                    daemon._running
+                    and daemon.process is not None
+                    and daemon.process.poll() is None
+                )
+                if alive:
                     return jsonify({
                         'code': 0,
                         'msg': '流媒体转发已在运行',
                         'data': {'rtmp_url': device.rtmp_stream, 'status': 'running'}
                     })
                 daemon.stop()
+                ffmpeg_processes.pop(device_id, None)
 
-            # 启动新进程并更新数据库
-            ffmpeg_processes[device_id] = FFmpegDaemon(device_id)
+            # 必须先落库 enable_forward=True，再启守护线程；
+            # 否则守护线程启动时读到 False 会立刻退出（竞态），表现为“已启动但实际 stopped”。
             device.enable_forward = True
             db.session.commit()
+            ffmpeg_processes[device_id] = FFmpegDaemon(device_id)
 
         return jsonify({
             'code': 0,

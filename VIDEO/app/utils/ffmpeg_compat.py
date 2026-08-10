@@ -1,13 +1,83 @@
-"""FFmpeg 版本兼容：RTSP 超时参数等在 FFmpeg 8+ 有变更。"""
+"""FFmpeg 版本兼容：二进制解析、H.264 编码器选择、RTSP 超时参数等。"""
 from __future__ import annotations
 
+import os
 import subprocess
-from typing import List, Optional
+from typing import List, Optional, Set
 
 # FFmpeg 8+：-stimeout/-rw_timeout 已移除，统一为 -timeout（单位仍为微秒）
 _FFMPEG_RTSP_OPEN_TIMEOUT_FLAG: Optional[str] = None
 _FFMPEG_SUPPORTS_RW_TIMEOUT: Optional[bool] = None
 _RTSP_DEMUXER_HELP: Optional[str] = None
+_FFMPEG_ENCODER_NAMES: Optional[Set[str]] = None
+_RESOLVED_FFMPEG_BIN: Optional[str] = None
+
+
+def _is_runnable_binary(path: str) -> bool:
+    if not path or not os.path.isfile(path):
+        return False
+    lower = path.lower()
+    if lower.endswith(('.exe', '.cmd', '.bat')):
+        return True
+    return os.access(path, os.X_OK)
+
+
+def resolve_ffmpeg_binary() -> str:
+    """优先 FFMPEG_PATH；否则 PATH 上的 ffmpeg。"""
+    global _RESOLVED_FFMPEG_BIN
+    if _RESOLVED_FFMPEG_BIN is not None:
+        return _RESOLVED_FFMPEG_BIN
+    explicit = (os.getenv('FFMPEG_PATH') or '').strip().strip('"')
+    if _is_runnable_binary(explicit):
+        _RESOLVED_FFMPEG_BIN = explicit
+        return _RESOLVED_FFMPEG_BIN
+    _RESOLVED_FFMPEG_BIN = 'ffmpeg'
+    return _RESOLVED_FFMPEG_BIN
+
+
+def ffmpeg_encoder_names() -> Set[str]:
+    """探测当前 ffmpeg 可用的编码器名（缓存）。"""
+    global _FFMPEG_ENCODER_NAMES
+    if _FFMPEG_ENCODER_NAMES is not None:
+        return _FFMPEG_ENCODER_NAMES
+    names: Set[str] = set()
+    try:
+        probe = subprocess.run(
+            [resolve_ffmpeg_binary(), '-hide_banner', '-encoders'],
+            capture_output=True,
+            timeout=8,
+        )
+        text = (probe.stdout or b'').decode(errors='replace')
+        for line in text.splitlines():
+            # e.g. " V..... libx264              libx264 H.264 ..."
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[0].startswith('V'):
+                names.add(parts[1])
+    except Exception:
+        names = set()
+    _FFMPEG_ENCODER_NAMES = names
+    return _FFMPEG_ENCODER_NAMES
+
+
+def resolve_view_h264_codec() -> str:
+    """预览转推 H.264 编码器：环境变量覆盖，否则 libx264 → h264_nvenc → copy。"""
+    forced = (
+        os.getenv('VIEW_FFMPEG_CODEC')
+        or os.getenv('FFMPEG_VIDEO_CODEC')
+        or ''
+    ).strip().lower()
+    if forced in ('libx264', 'h264_nvenc', 'copy', 'h264_qsv', 'h264_amf'):
+        return forced
+    encoders = ffmpeg_encoder_names()
+    if 'libx264' in encoders:
+        return 'libx264'
+    if 'h264_nvenc' in encoders:
+        return 'h264_nvenc'
+    if 'h264_qsv' in encoders:
+        return 'h264_qsv'
+    if 'h264_amf' in encoders:
+        return 'h264_amf'
+    return 'copy'
 
 
 def ffmpeg_option_missing(stderr: bytes, option: str = "") -> bool:
@@ -26,7 +96,7 @@ def _rtsp_demuxer_help_text() -> str:
         return _RTSP_DEMUXER_HELP
     try:
         probe = subprocess.run(
-            ["ffmpeg", "-hide_banner", "-h", "demuxer=rtsp"],
+            [resolve_ffmpeg_binary(), "-hide_banner", "-h", "demuxer=rtsp"],
             capture_output=True,
             timeout=5,
         )
@@ -66,7 +136,7 @@ def ffmpeg_supports_rw_timeout() -> bool:
     try:
         probe = subprocess.run(
             [
-                "ffmpeg",
+                resolve_ffmpeg_binary(),
                 "-hide_banner",
                 "-rw_timeout",
                 "1",
