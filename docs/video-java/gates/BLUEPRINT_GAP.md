@@ -28,11 +28,11 @@ Heartbeat (`POST /video/algorithm/heartbeat/realtime`) is covered by `HeartbeatC
 | `alert` | `alert.py` | `/video/alert` | **partial** | `AlertHookController`（仅 hook） | `vj_p0_alert_hook`；**EX-ALERT-ADMIN-API** | 管理面 = FR-W1-ALERT |
 | `audio_talk` | `audio_talk.py` | `/video/camera/audio/talk` | **missing** | — | **EX-AUDIO-TALK** | FR-W3-TALK |
 | `camera` | `camera.py` | `/video/camera` | **slice-only** | `CameraController` | `vj_p1_camera_*` | ~50+ 路由未迁；FR-W2-CAM |
-| `device_detection_region` | `device_detection_region.py` | `/video/device-detection` | **slice-only** | `DeviceDetectionRegionController` | `vj_p2_detection_region_get` | 仅 GET |
-| `face` | `face.py` | `/video/face` | **slice-only** | `FaceMatchingController` | `vj_p2_face_publish_process` | 库/识别面缺 |
+| `device_detection_region` | `device_detection_region.py` | `/video/device-detection` | **slice-only** | `DeviceDetectionRegionController` | `vj_p2_detection_region_get`；**FR-W2-MATCH ✅ 路由 diff=0** | CRUD + cover/snapshot 路由已补 |
+| `face` | `face.py` | `/video/face` | **slice-only** | `FaceController` + `FaceMatchingController` | `vj_p2_face_publish_process`；**FR-W2-MATCH ✅ 路由 diff=0** | 库/识别面路由已补；推理桩 |
 | `media_hook` | `media_hook.py` | `/video/media` | **slice-only** | `MediaHookController` | `vj_p2_media_hook` | **FR-W2-HOOKS ✅ 路由 diff=0**；DVR MinIO 行为待 SDK |
 | `patrol` | `patrol.py` | `/video/patrol` | **slice-only** | `PatrolController` | `vj_p2_patrol_task_list`；**FR-W2-PATROL ✅ 路由 diff=0** | 会话守护/SSE 行为 mini 桩 |
-| `plate` | `plate.py` | `/video/plate` | **slice-only** | `PlateMatchingController` | `vj_p2_plate_publish_process` | 同 face |
+| `plate` | `plate.py` | `/video/plate` | **slice-only** | `PlateController` + `PlateMatchingController` | `vj_p2_plate_publish_process`；**FR-W2-MATCH ✅ 路由 diff=0** | 同 face |
 | `playback` | `playback.py` | `/video/playback` | **slice-only** | `PlaybackController` | `vj_p2_playback_url` | 仅 list 级 |
 | `record` | `record.py` | `/video/record` | **slice-only** | `RecordController` | `vj_p2_record_query` | 仅 space list |
 | `scenario_pose` | `scenario_pose.py` | `/video/scenario-pose` | **missing** | — | **EX-SCENARIO-POSE** | FR-W3-POSE |

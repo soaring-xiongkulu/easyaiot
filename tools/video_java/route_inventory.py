@@ -51,6 +51,18 @@ BLUEPRINT_SPECS = {
         "file": "patrol.py",
         "bp": "patrol_bp",
     },
+    "/video/face": {
+        "file": "face.py",
+        "bp": "face_bp",
+    },
+    "/video/plate": {
+        "file": "plate.py",
+        "bp": "plate_bp",
+    },
+    "/video/device-detection": {
+        "file": "device_detection_region.py",
+        "bp": "device_detection_region_bp",
+    },
 }
 
 BLUEPRINT_ROUTE = re.compile(

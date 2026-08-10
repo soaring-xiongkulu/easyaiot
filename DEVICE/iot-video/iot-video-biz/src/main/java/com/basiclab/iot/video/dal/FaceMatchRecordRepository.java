@@ -76,6 +76,43 @@ public class FaceMatchRecordRepository {
         return row;
     }
 
+    public Map<String, Object> listRecords(int page, int pageSize, Integer libraryId, String deviceId,
+                                          Boolean matched, String correlationId) {
+        int offset = Math.max(0, (page - 1) * pageSize);
+        StringBuilder sql = new StringBuilder("SELECT * FROM face_match_record WHERE 1=1");
+        java.util.List<Object> args = new java.util.ArrayList<>();
+        if (libraryId != null) {
+            sql.append(" AND library_id = ?");
+            args.add(libraryId);
+        }
+        if (deviceId != null && !deviceId.isBlank()) {
+            sql.append(" AND device_id = ?");
+            args.add(deviceId);
+        }
+        if (matched != null) {
+            sql.append(" AND matched = ?");
+            args.add(matched);
+        }
+        if (correlationId != null && !correlationId.isBlank()) {
+            sql.append(" AND correlation_id = ?");
+            args.add(correlationId);
+        }
+        String countSql = sql.toString().replace("SELECT *", "SELECT COUNT(*)");
+        Long total = jdbc.queryForObject(countSql, Long.class, args.toArray());
+        sql.append(" ORDER BY id DESC LIMIT ? OFFSET ?");
+        args.add(pageSize);
+        args.add(offset);
+        java.util.List<Map<String, Object>> items = jdbc.queryForList(sql.toString(), args.toArray()).stream()
+                .map(this::toApiMap)
+                .toList();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("data", items);
+        result.put("total", total != null ? total : 0L);
+        result.put("page", page);
+        result.put("page_size", pageSize);
+        return result;
+    }
+
     public java.util.List<Map<String, Object>> listByCorrelationId(String correlationId) {
         return jdbc.queryForList(
                 "SELECT * FROM face_match_record WHERE correlation_id = ? ORDER BY id ASC",

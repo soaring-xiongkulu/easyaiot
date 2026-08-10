@@ -42,13 +42,13 @@
 | 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；**EX-KAFKA-HOOK resolved**（`use-direct-persist=false` → Kafka produce + fallback） |
 | 3 | camera | `/video/camera` | **59** | 全量路由 | list/CRUD/stream/目录/NVR/… | **路由切片完成** | `route_inventory` Py=59 Java=59 diff=0；**FR-W2-CAM**；ONVIF/扫描/抓拍行为待 SDK |
 | 4 | stream_forward | `/video/stream-forward` | 13 | 全量路由 | list/get/CRUD/start/stop/restart/status/heartbeat/logs/streams/ensure-task | **路由切片完成** | `route_inventory` Py=13 Java=13 diff=0；**FR-W2-SF**；远程 node/auto 调度仍 400 |
-| 5 | face | `/video/face` | 35 | 切片 | matching/publish、matching/process | **严重不足** | 库/人像/entries/auto-enroll/normalize/recognize/model… 全缺 |
-| 6 | plate | `/video/plate` | 26 | 切片 | matching/publish、matching/process | **严重不足** | 同 face，库与识别面缺 |
+| 5 | face | `/video/face` | 35 | 全量路由 | health/model/libraries/persons/entries/auto-enroll/normalize/match/recognize/matching/* | **路由切片完成** | `route_inventory` Py=35 Java=35 diff=0；**FR-W2-MATCH**；InsightFace/Milvus 推理桩 |
+| 6 | plate | `/video/plate` | 26 | 全量路由 | health/model/libraries/entries/auto-enroll/normalize/match/recognize/matching/* | **路由切片完成** | `route_inventory` Py=26 Java=26 diff=0；**FR-W2-MATCH**；PaddleOCR 推理桩 |
 | 7 | snap | `/video/snap` | 38 | 全量路由 | space/task/region/service/images/storage | **路由切片完成** | `route_inventory` Py=38 Java=38 diff=0；**FR-W2-MEDIA**；MinIO/调度器待 SDK |
 | 8 | record | `/video/record` | 16 | 全量路由 | space/videos/dates/day/resolve-alert | **路由切片完成** | `route_inventory` Py=16 Java=16 diff=0；**FR-W2-MEDIA** |
 | 9 | playback | `/video/playback` | 7 | 全量路由 | list/CRUD/thumbnail/statistics | **路由切片完成** | `route_inventory` Py=7 Java=7 diff=0；**FR-W2-MEDIA** |
 | 10 | media_hook | `/video/media` | 全量路由 | hook/srs + hook/zlm + snap/completed | **路由切片完成** | `route_inventory` Py=6 Java=6 diff=0；**FR-W2-HOOKS**；MinIO DVR 上传待 SDK |
-| 11 | device_detection_region | `/video/device-detection` | 6 | 切片 | regions GET | **严重不足** | POST/PUT/DELETE、cover-image、snapshot 缺 |
+| 11 | device_detection_region | `/video/device-detection` | 6 | 全量路由 | regions CRUD、cover-image、snapshot | **路由切片完成** | `route_inventory` Py=6 Java=6 diff=0；**FR-W2-MATCH**；抓拍/MinIO 行为桩 |
 | 12 | patrol | `/video/patrol` | 9 | 全量路由 | session CRUD/start/stop/stats/events/SSE/heartbeat/directory devices | **路由切片完成** | `route_inventory` Py=9 Java=9 diff=0；**FR-W2-PATROL**；守护进程/SSE 行为 mini 桩 |
 | 13 | audio_talk | `/video/camera/audio/talk` | 5 | 无 | — | **缺失** | **EX-AUDIO-TALK** |
 | 14 | scenario_pose | `/video/scenario-pose` | 14 | 无 | — | **缺失** | **EX-SCENARIO-POSE** |
@@ -117,11 +117,13 @@
 | ❌ 行为 | — | `schedule_policy!=local` 远程 node 部署（现 400，EX-REMOTE-NODE） |
 | ✅ 路由差 | `/video/stream-forward`：**Py 13 / Java 13 / diff 0**（`route_inventory.py --prefix /video/stream-forward`） |
 
-### 2.5 `face` / `plate`
+### 2.5 `face` / `plate` — FR-W2-MATCH（路由面 diff=0）
 
-| 已有 | 仍缺（完整替换） |
-|------|------------------|
-| `/matching/publish`, `/matching/process` | health、model download/status；libraries/entries/persons CRUD；auto-enroll；normalize；match；recognize；matching/records；旧 `/library` API 等 |
+| 域 | 路由差 | 状态 | 说明 |
+|----|--------|------|------|
+| face | **Py 35 / Java 35 / diff 0** | ✅ 路由 | health/model；libraries/entries/persons CRUD；auto-enroll；normalize；match；recognize；matching/records；legacy `/library` |
+| plate | **Py 26 / Java 26 / diff 0** | ✅ 路由 | health/model；libraries/entries CRUD；auto-enroll；normalize；match；recognize；matching/records |
+| ❌ 行为 | — | InsightFace/ONNX、Milvus、PaddleOCR、Kafka matching consumer — Java 路由存在，推理/Milvus 为 Python 等价错误桩 |
 
 依赖层：Python 还有 InsightFace/ONNX、Milvus、PaddleOCR、Kafka matching consumer —— Java 现多为 **mini mock / stub**，完整替换需 ORT/SDK 或旁路策略产品拍板后落地。
 
@@ -140,7 +142,8 @@
 |----|--------|------|------|
 | media_hook | **Py 6 / Java 6 / diff 0** | ✅ 路由 | SRS `on_dvr/on_publish/on_unpublish`；ZLM `on_record_mp4/ts`；`snap/completed` |
 | ❌ 行为 | — | DVR MinIO 上传、Playback/RecordFile 写入、抓拍 Kafka→MinIO 全链路 — mini 形态 ack/DB 桩 |
-| regions | GET regions | POST/PUT/DELETE；cover-image；snapshot |
+| regions | **Py 6 / Java 6 / diff 0** | ✅ 路由 | GET/POST regions；PUT/DELETE region；cover-image；snapshot |
+| ❌ 行为 | — | 抓拍 FFmpeg/GB28181、MinIO 上传 — mini 形态错误结构对齐 |
 
 ### 2.8 整域缺失
 
