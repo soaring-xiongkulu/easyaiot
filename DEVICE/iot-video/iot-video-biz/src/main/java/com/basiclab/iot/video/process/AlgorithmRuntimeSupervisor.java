@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -22,11 +21,7 @@ public class AlgorithmRuntimeSupervisor {
 
     private final Map<Long, ManagedProcess> processes = new ConcurrentHashMap<>();
     private final Map<Long, Object> taskLocks = new ConcurrentHashMap<>();
-    private final ExecutorService logPump = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "video-runtime-log-pump");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ExecutorService logPump = SupervisorExecutors.newDaemonPool("video-runtime-log-pump-");
 
     private Object lockFor(long taskId) {
         return taskLocks.computeIfAbsent(taskId, ignored -> new Object());
@@ -101,14 +96,7 @@ public class AlgorithmRuntimeSupervisor {
                 stopUnlocked(taskId, true);
             }
         }
-        logPump.shutdownNow();
-        try {
-            if (!logPump.awaitTermination(10, TimeUnit.SECONDS)) {
-                log.warn("RUNTIME log pump did not terminate within 10s");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        SupervisorExecutors.shutdownAndAwait(logPump, "RUNTIME");
         taskLocks.clear();
     }
 

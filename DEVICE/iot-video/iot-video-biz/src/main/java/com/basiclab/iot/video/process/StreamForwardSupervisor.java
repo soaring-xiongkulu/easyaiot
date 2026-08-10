@@ -13,7 +13,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -25,11 +24,7 @@ public class StreamForwardSupervisor {
 
     private final Map<Long, ManagedTask> tasks = new ConcurrentHashMap<>();
     private final Map<Long, Object> taskLocks = new ConcurrentHashMap<>();
-    private final ExecutorService workers = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "stream-forward-worker");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ExecutorService workers = SupervisorExecutors.newDaemonPool("stream-forward-worker-");
 
     private Object lockFor(long taskId) {
         return taskLocks.computeIfAbsent(taskId, ignored -> new Object());
@@ -115,12 +110,13 @@ public class StreamForwardSupervisor {
 
     @PreDestroy
     public void shutdownAll() {
+        log.info("STREAM_FORWARD supervisor shutting down — stopping all managed children");
         for (Long taskId : new ArrayList<>(tasks.keySet())) {
             synchronized (lockFor(taskId)) {
                 stopUnlocked(taskId, true);
             }
         }
-        workers.shutdownNow();
+        SupervisorExecutors.shutdownAndAwait(workers, "STREAM_FORWARD");
         taskLocks.clear();
     }
 

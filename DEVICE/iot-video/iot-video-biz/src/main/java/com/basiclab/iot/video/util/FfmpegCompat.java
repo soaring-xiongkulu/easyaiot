@@ -123,6 +123,17 @@ public final class FfmpegCompat {
         return List.of(openFlag, String.valueOf(Math.max(openUs, ioUs)));
     }
 
+    /** Non-RTSP input timeout args — mirrors {@code camera.py} FFmpegDaemon lines 303–306. */
+    public static List<String> ffmpegNonRtspTimeoutArgs(int ioUs) {
+        if (ffmpegSupportsRwTimeout()) {
+            return List.of("-rw_timeout", String.valueOf(ioUs));
+        }
+        if ("-timeout".equals(ffmpegRtspOpenTimeoutFlag())) {
+            return List.of("-timeout", String.valueOf(ioUs));
+        }
+        return Collections.emptyList();
+    }
+
     public static String ffmpegRtspOpenTimeoutFlag() {
         if (rtspOpenTimeoutFlag != null) {
             return rtspOpenTimeoutFlag;

@@ -194,6 +194,8 @@ public class ViewForwardService {
                 cmd.add("prefer_tcp");
             }
             cmd.addAll(FfmpegCompat.ffmpegRtspTimeoutArgs(rtspOpenTimeoutUs, rtspIoTimeoutUs));
+        } else {
+            cmd.addAll(FfmpegCompat.ffmpegNonRtspTimeoutArgs(rtspIoTimeoutUs));
         }
 
         cmd.add("-fflags");

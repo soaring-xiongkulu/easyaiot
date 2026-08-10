@@ -15,7 +15,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -29,11 +28,7 @@ public class ViewForwardSupervisor {
     private final DeviceRepository deviceRepository;
     private final Map<String, ManagedForward> processes = new ConcurrentHashMap<>();
     private final Map<String, Object> deviceLocks = new ConcurrentHashMap<>();
-    private final ExecutorService workers = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "view-forward-worker");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ExecutorService workers = SupervisorExecutors.newDaemonPool("view-forward-worker-");
 
     private Object lockFor(String deviceId) {
         return deviceLocks.computeIfAbsent(deviceId, ignored -> new Object());
@@ -95,12 +90,13 @@ public class ViewForwardSupervisor {
 
     @PreDestroy
     public void shutdownAll() {
+        log.info("VIEW_FORWARD supervisor shutting down — stopping all managed children");
         for (String deviceId : new ArrayList<>(processes.keySet())) {
             synchronized (lockFor(deviceId)) {
                 stopUnlocked(deviceId, true);
             }
         }
-        workers.shutdownNow();
+        SupervisorExecutors.shutdownAndAwait(workers, "VIEW_FORWARD");
         deviceLocks.clear();
     }
 
