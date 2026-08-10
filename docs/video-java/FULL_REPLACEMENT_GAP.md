@@ -151,9 +151,9 @@
 
 | 域 | 路由差 | 状态 | 说明 |
 |----|--------|------|------|
-| `audio_talk` | **Py 5 / Java 5 / diff 0** | ✅ 路由 | **FR-W3-TALK**；ONVIF back-channel **行为桩** |
-| `scenario_pose` | **Py 14 / Java 14 / diff 0** | ✅ 路由 | **FR-W3-POSE** + **FR-B9 ✅** extract/match-test 经 Python YOLO worker（无引擎时空结果/错误） |
-| `patrol` | **Py 9 / Java 9 / diff 0** | ✅ 路由 | **FR-W2-PATROL**；守护/SSE **mini 桩** |
+| `audio_talk` | **Py 5 / Java 5 / diff 0** | ✅ 路由 | **FR-W3-TALK** + **FR-B10 ✅** ONVIF RTSP DESCRIBE/SETUP/PLAY + G.711 RTP |
+| `scenario_pose` | **Py 14 / Java 14 / diff 0** | ✅ 路由 | **FR-W3-POSE** + **FR-B9 ✅** extract；**FR-B10 ✅** match-test 相似度评分 |
+| `patrol` | **Py 9 / Java 9 / diff 0** | ✅ 路由 | **FR-W2-PATROL** + **FR-B10 ✅** 守护进程 env 对齐 + SSE hub |
 
 **14 inventoried 前缀无 HTTP 路由缺口**；剩余为 **行为 / 后台 / 集成**（§3–§4）。
 
@@ -251,7 +251,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 路由缺口（prefix-level） | **0** |
 | inventory 扫描 artifact | `/video/camera` 前缀 Java **+5**（talk 子路径重复计入） |
 | 整域 HTTP 未实现 | **无**（14 前缀均已 diff=0） |
-| 行为桩仍存的域 | patrol（SSE/守护 mini 桩）、audio_talk（ONVIF back-channel 真机）、algorithm/stream_forward（远程 node 集群健康）；face/plate/pose **FR-B9 ✅** Python worker 路径（prod 需模型运行时） |
+| 行为桩仍存的域 | algorithm/stream_forward（远程 node 集群健康）；face/plate/pose **FR-B9 ✅** Python worker（prod 需模型运行时）；patrol/audio_talk/match-image **FR-B10 ✅**（真机/MinIO 联调待 ops） |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 259 路由；仅防回归） |
 
 ---

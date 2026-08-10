@@ -1,6 +1,7 @@
 package com.basiclab.iot.video.service;
 
 import com.basiclab.iot.video.dal.AlertRepository;
+import com.basiclab.iot.video.service.minio.AlertImageUploadService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ public class MatchAlertService {
     public static final String EVENT_PLATE_LIBRARY_MATCH = "plate_library_match";
 
     private final AlertRepository alertRepository;
+    private final AlertImageUploadService alertImageUploadService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Long createFaceLibraryMatchAlert(
@@ -113,6 +115,9 @@ public class MatchAlertService {
             }
             alertData.put("information", objectMapper.writeValueAsString(info));
             long alertId = alertRepository.insertAlert(alertData, taskId, taskName);
+            if (alertId > 0 && imagePath != null && !imagePath.isBlank()) {
+                alertImageUploadService.uploadAndLinkAlertImage(imagePath, alertId, deviceId);
+            }
             return alertId > 0 ? alertId : null;
         } catch (Exception ex) {
             log.error("创建库匹配告警失败: event={}, deviceId={}, error={}", event, deviceId, ex.getMessage(), ex);

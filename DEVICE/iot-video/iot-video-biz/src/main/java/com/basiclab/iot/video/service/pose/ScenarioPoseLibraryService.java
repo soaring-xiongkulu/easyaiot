@@ -241,8 +241,14 @@ public class ScenarioPoseLibraryService {
         List<Map<String, Object>> resultPersons = new ArrayList<>();
         for (Map<String, Object> person : persons) {
             Map<String, Object> row = new LinkedHashMap<>();
+            @SuppressWarnings("unchecked")
+            List<List<Object>> keypoints = (List<List<Object>>) person.get("keypoints");
             row.put("keypoints", person.get("keypoints"));
-            row.put("feature_vector", person.get("feature_vector"));
+            if (keypoints != null) {
+                row.put("feature_vector", PoseIntentMatcher.extractAngleFeatures(toKeypointArrays(keypoints)));
+            } else {
+                row.put("feature_vector", person.get("feature_vector"));
+            }
             row.put("keypointCount", 17);
             row.put("poseType", "body17");
             resultPersons.add(row);
@@ -251,12 +257,17 @@ public class ScenarioPoseLibraryService {
     }
 
     public List<Map<String, Object>> matchTest(int libraryId, byte[] imageBytes, double conf) {
-        requireLibrary(libraryId);
+        Map<String, Object> library = requireLibraryMap(libraryId);
         List<Map<String, Object>> persons = poseAnalysisService.extractPersons(imageBytes, conf);
         if (persons.isEmpty()) {
             return List.of();
         }
-        return List.of();
+        List<Map<String, Object>> entries = entryRepository.listEnabledByLibrary(libraryId);
+        double threshold = RequestParams.toDouble(library.get("similarity_threshold"), 0.72);
+        String matchMode = library.get("match_mode") != null
+                ? String.valueOf(library.get("match_mode"))
+                : "angle";
+        return PoseIntentMatcher.matchTest(persons, entries, matchMode, threshold);
     }
 
     public List<Map<String, Object>> listSceneTemplates() {
@@ -335,6 +346,25 @@ public class ScenarioPoseLibraryService {
     private void requireLibrary(int libraryId) {
         libraryRepository.findById(libraryId)
                 .orElseThrow(() -> new VideoBusinessException(500, "查询失败: 场景姿态库不存在"));
+    }
+
+    private Map<String, Object> requireLibraryMap(int libraryId) {
+        return libraryRepository.findById(libraryId)
+                .orElseThrow(() -> new VideoBusinessException(500, "查询失败: 场景姿态库不存在"));
+    }
+
+    private static List<double[]> toKeypointArrays(List<List<Object>> keypoints) {
+        List<double[]> out = new ArrayList<>();
+        for (List<Object> kp : keypoints) {
+            if (kp == null || kp.size() < 2) {
+                continue;
+            }
+            double x = kp.get(0) instanceof Number n ? n.doubleValue() : Double.parseDouble(String.valueOf(kp.get(0)));
+            double y = kp.get(1) instanceof Number n ? n.doubleValue() : Double.parseDouble(String.valueOf(kp.get(1)));
+            double c = kp.size() >= 3 && kp.get(2) instanceof Number n ? n.doubleValue() : 1.0;
+            out.add(new double[]{x, y, c});
+        }
+        return out;
     }
 
     private void deleteMinioObject(String objectName) {

@@ -78,7 +78,7 @@ class AudioTalkSession {
             return false;
         }
         try {
-            rtpSocket = new DatagramSocket();
+            rtpSocket = new DatagramSocket(5000);
             active = true;
             return true;
         } catch (Exception ex) {
@@ -132,15 +132,18 @@ class AudioTalkSession {
     }
 
     private byte[] pcmToG711(byte[] pcmData) {
-        ByteBuffer out = ByteBuffer.allocate(Math.max(1, pcmData.length / 2));
-        ByteBuffer in = ByteBuffer.wrap(pcmData).order(ByteOrder.LITTLE_ENDIAN);
-        while (in.remaining() >= 2) {
-            short sample = in.getShort();
-            float scaled = sample * volumeGain;
-            int value = Math.round((scaled / 32768.0f) * 127 + 127);
-            out.put((byte) Math.max(0, Math.min(255, value)));
+        if (volumeGain != 1.0f && pcmData.length >= 2) {
+            ByteBuffer scaled = ByteBuffer.allocate(pcmData.length).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer in = ByteBuffer.wrap(pcmData).order(ByteOrder.LITTLE_ENDIAN);
+            while (in.remaining() >= 2) {
+                short sample = in.getShort();
+                int amplified = Math.round(sample * volumeGain);
+                amplified = Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, amplified));
+                scaled.putShort((short) amplified);
+            }
+            pcmData = scaled.array();
         }
-        return out.array();
+        return G711Codec.encodePcm16(pcmData, audioCodec);
     }
 
     private byte[] buildRtpPacket(byte[] payload) {

@@ -325,6 +325,15 @@ public class OnvifAudioBackchannelClient implements AutoCloseable {
                 return track;
             }
         }
+        for (Map<String, Object> track : audioTracks) {
+            String trackId = String.valueOf(track.getOrDefault("track_id", "")).toLowerCase(Locale.ROOT);
+            String mode = String.valueOf(track.getOrDefault("mode", ""));
+            if (trackId.contains("audio") && !"recvonly".equals(mode)) {
+                track.put("mode", "sendonly");
+                sdpInfo.put("audio_backchannel_supported", true);
+                return track;
+            }
+        }
         Map<String, Object> fallback = audioTracks.get(0);
         fallback.put("mode", "sendonly");
         sdpInfo.put("audio_backchannel_supported", true);

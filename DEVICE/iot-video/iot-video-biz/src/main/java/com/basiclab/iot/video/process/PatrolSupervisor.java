@@ -9,6 +9,8 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,11 +109,13 @@ public class PatrolSupervisor {
                     sleepQuietly(10_000L);
                     continue;
                 }
+                appendLogHeader(logFile, sessionId);
                 ProcessBuilder builder = new ProcessBuilder(command);
                 builder.directory(resolveDeployDir().toFile());
                 builder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
                 builder.redirectError(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
                 Map<String, String> env = builder.environment();
+                propagatePatrolEnv(env, sessionId, logDir);
                 env.put("PYTHONUNBUFFERED", "1");
                 env.put("PATROL_SESSION_ID", String.valueOf(sessionId));
                 env.put("LOG_PATH", logDir.toString());
@@ -134,6 +138,55 @@ public class PatrolSupervisor {
                 }
             }
         }
+    }
+
+    private static void appendLogHeader(Path logFile, long sessionId) {
+        try {
+            Files.writeString(
+                    logFile,
+                    "\n# 启动 patrol session " + sessionId + " " + Instant.now() + "\n",
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
+            );
+        } catch (IOException ignored) {
+            // non-fatal
+        }
+    }
+
+    private void propagatePatrolEnv(Map<String, String> env, long sessionId, Path logDir) {
+        String videoEnv = System.getenv("VIDEO_ENV");
+        if (videoEnv != null && !videoEnv.isBlank()) {
+            env.put("VIDEO_ENV", videoEnv.trim());
+        }
+        for (String key : List.of(
+                "DATABASE_URL", "GATEWAY_URL", "GB28181_SERVICE_URL", "JWT_TOKEN", "JAVA_BACKEND_URL",
+                "GB28181_HTTP_READ_TIMEOUT", "GB28181_PLAY_PROTOCOL", "GB28181_HEVC_RTSP_FIRST",
+                "GB28181_OPENCV_RTMP_FALLBACK_RTSP", "POD_IP", "HOST_IP", "AI_SERVICE_URL",
+                "USE_GPU", "GPU_IDS", "GPU_POLICY", "INFER_GPU_POLICY",
+                "KAFKA_BOOTSTRAP_SERVERS", "MINIO_ENDPOINT", "MINIO_ACCESS_KEY", "MINIO_SECRET_KEY",
+                "MINIO_SECURE"
+        )) {
+            String value = System.getenv(key);
+            if (value != null && !value.isBlank()) {
+                env.put(key, value);
+            }
+        }
+        String servicePort = System.getenv("VIDEO_SERVICE_PORT");
+        if (servicePort == null || servicePort.isBlank()) {
+            servicePort = System.getenv("FLASK_RUN_PORT");
+        }
+        if (servicePort != null && !servicePort.isBlank()) {
+            env.put("VIDEO_SERVICE_PORT", servicePort.trim());
+        }
+        String kafka = env.getOrDefault("KAFKA_BOOTSTRAP_SERVERS", System.getenv("KAFKA_BOOTSTRAP_SERVERS"));
+        if (kafka != null && !kafka.isBlank()) {
+            if (kafka.contains("Kafka") || kafka.contains("kafka-server")) {
+                env.put("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092");
+            } else {
+                env.put("KAFKA_BOOTSTRAP_SERVERS", kafka);
+            }
+        }
+        log.debug("patrol env propagated sessionId={} logDir={}", sessionId, logDir);
     }
 
     private List<String> buildCommand(long sessionId, Path logDir) {

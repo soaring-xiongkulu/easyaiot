@@ -23,6 +23,13 @@ public class AlertRepository {
 
     private final JdbcTemplate jdbc;
 
+    public void updateImageUrl(long alertId, String imageUrl) {
+        if (alertId <= 0 || imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+        jdbc.update("UPDATE alert SET image_url = ? WHERE id = ?", imageUrl, alertId);
+    }
+
     public long insertAlert(Map<String, Object> alertData, Long taskId, String taskName) {
         LocalDateTime alertTime = parseTime(alertData.get("time"));
         String information = alertData.get("information") != null ? String.valueOf(alertData.get("information")) : null;
