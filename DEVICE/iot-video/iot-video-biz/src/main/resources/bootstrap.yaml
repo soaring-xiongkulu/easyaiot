@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: video-server-java
+
+  profiles:
+    active: local
+
+server:
+  port: 48096
+
+logging:
+  file:
+    name: ${user.home}/logs/${spring.application.name}.log

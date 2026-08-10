@@ -1,0 +1,3 @@
+--- #################### local profile（无 DB / 无 Nacos） ####################
+
+debug: false
