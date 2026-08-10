@@ -1,0 +1,14 @@
+{
+  "description": "Phase 1 certify fixture — dedicated camera device + stream-forward task",
+  "device_id": "vj_p1_device",
+  "device_name": "vj_p1 certify camera",
+  "task_name_prefix": "vj_p1_",
+  "stream_forward_task_id": 3,
+  "source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+  "rtmp_stream": "rtmp://127.0.0.1/live/vj_p1",
+  "http_stream": "http://127.0.0.1:8080/vj_p1",
+  "needs_runtime": true,
+  "needs_ffmpeg": true,
+  "skip_background_env": "VIDEO_SKIP_BACKGROUND_TASKS=1",
+  "notes": "Run tools/video_java/seed_p1_fixture.py to resolve stream_forward_task_id and device row"
+}

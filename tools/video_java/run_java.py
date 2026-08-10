@@ -17,6 +17,7 @@ from vj_common import (
     http_json,
     load_fixture,
     load_manifest,
+    load_p1_fixture,
     normalize_api_layer,
     update_task_runtime_bin,
     write_layer,
@@ -27,6 +28,10 @@ from record_python import (  # noqa: E402
     _ensure_task_stopped,
     _lifecycle_from_service,
     _parse_ini_keys,
+    _record_camera_get,
+    _record_camera_list,
+    _record_stream_forward_start_stop,
+    _record_view_forward_start_stop,
     _resolve_ini_path,
     _task_detail,
     _task_service_status,
@@ -201,10 +206,45 @@ def _record_restart(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
             update_task_runtime_bin(task_id, normal_bin)
 
 
+def _write_java_fail(case_id: str, layer: str, reason: str) -> None:
+    out = golden_dir("java", case_id)
+    fname = LAYER_FILES.get(layer, f"{layer}.json")
+    path = out / fname
+    path.parent.mkdir(parents=True, exist_ok=True)
+    doc = {"layer": layer, "status": "fail", "reason": reason}
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _run_p1_with_failover(case: Dict[str, Any], fixture: Dict[str, Any], recorder) -> None:
+    """Run P1 recorder against candidate; write honest fail golden if endpoint missing."""
+    cid = case["case_id"]
+    base = case["candidate_base_url"].rstrip("/")
+    probe = {
+        "vj_p1_camera_list": "/video/camera/list?pageNo=1&pageSize=1",
+        "vj_p1_camera_get": f"/video/camera/device/{fixture['device_id']}",
+        "vj_p1_view_forward_start_stop": f"/video/camera/device/{fixture['device_id']}/stream/status",
+        "vj_p1_stream_forward_start_stop": f"/video/stream-forward/task/{fixture['stream_forward_task_id']}/status",
+    }.get(cid, "/video/camera/list?pageNo=1&pageSize=1")
+    status, _, _ = http_json("GET", f"{base}{probe}")
+    if status == 404:
+        layers = case.get("layers", ["api"])
+        for layer in layers:
+            _write_java_fail(cid, layer, f"candidate endpoint missing (HTTP {status} on {probe})")
+        if "api" not in layers:
+            _write_java_fail(cid, "api", f"candidate endpoint missing (HTTP {status})")
+        return
+    recorder(case, fixture, side="java")
+
+
 def run_case(case_id: str) -> None:
     manifest = load_manifest()
     case = find_case(manifest, case_id)
-    fixture = load_fixture() if case_id != "vj_p0_health" else {}
+    if case_id.startswith("vj_p1_"):
+        fixture = load_p1_fixture()
+    elif case_id != "vj_p0_health":
+        fixture = load_fixture()
+    else:
+        fixture = {}
     cid = case["case_id"]
     print(f"run_java: {cid}")
     if cid == "vj_p0_health":
@@ -217,6 +257,14 @@ def run_case(case_id: str) -> None:
         _record_alert_hook(case, fixture)
     elif cid == "vj_p0_restart":
         _record_restart(case, fixture)
+    elif cid == "vj_p1_camera_list":
+        _run_p1_with_failover(case, fixture, _record_camera_list)
+    elif cid == "vj_p1_camera_get":
+        _run_p1_with_failover(case, fixture, _record_camera_get)
+    elif cid == "vj_p1_view_forward_start_stop":
+        _run_p1_with_failover(case, fixture, _record_view_forward_start_stop)
+    elif cid == "vj_p1_stream_forward_start_stop":
+        _run_p1_with_failover(case, fixture, _record_stream_forward_start_stop)
     else:
         raise ValueError(f"unsupported case {cid}")
 
@@ -230,7 +278,7 @@ def main() -> int:
     if args.case_id:
         ids = [args.case_id]
     else:
-        ids = [c["case_id"] for c in manifest.get("cases", []) if c.get("priority") == "P0"]
+        ids = [c["case_id"] for c in manifest.get("cases", []) if c.get("priority") in ("P0", "P1")]
     for cid in ids:
         run_case(cid)
     return 0

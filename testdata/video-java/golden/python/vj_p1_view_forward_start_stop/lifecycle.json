@@ -1,0 +1,10 @@
+{
+  "layer": "lifecycle",
+  "status": "sampled",
+  "snapshot": {
+    "before_stream_status": "stopped",
+    "after_stream_status": "stopped",
+    "process_alive": false,
+    "enable_forward": true
+  }
+}

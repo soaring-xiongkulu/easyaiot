@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from diff_layers import diff_case
-from vj_common import find_case, layer_satisfies, load_manifest, phase0_case_ids, repo_root
+from vj_common import find_case, layer_satisfies, load_manifest, phase0_case_ids, phase1_case_ids, repo_root
 
 
 def _run(cmd: List[str]) -> int:
@@ -35,9 +35,14 @@ def _collect_exemptions(results: List[Dict[str, Any]]) -> List[str]:
     return rows
 
 
-def certify_phase0(*, record_oracle: bool, sample_java: bool) -> int:
+def _certify_cases(
+    case_ids: List[str],
+    *,
+    record_oracle: bool,
+    sample_java: bool,
+    phase: int,
+) -> tuple[List[Dict[str, Any]], bool]:
     manifest = load_manifest()
-    case_ids = phase0_case_ids(manifest)
     results: List[Dict[str, Any]] = []
     all_ok = True
 
@@ -65,8 +70,32 @@ def certify_phase0(*, record_oracle: bool, sample_java: bool) -> int:
             print(f"  {layer['layer']}: {layer['status']} — {layer.get('reason', '')}")
 
     exemptions = _collect_exemptions(results)
-    _write_gate_report(results, all_ok, exemptions)
-    _update_certify_status(results, all_ok, exemptions)
+    if phase == 0:
+        _write_gate_report(results, all_ok, exemptions)
+    elif phase == 1:
+        _write_phase1_gate_report(results, all_ok, exemptions)
+    _update_certify_status(results, all_ok, exemptions, phase=phase)
+    return results, all_ok
+
+
+def certify_phase0(*, record_oracle: bool, sample_java: bool) -> int:
+    manifest = load_manifest()
+    case_ids = phase0_case_ids(manifest)
+    _, all_ok = _certify_cases(
+        case_ids, record_oracle=record_oracle, sample_java=sample_java, phase=0
+    )
+    return 0 if all_ok else 1
+
+
+def certify_phase1(*, record_oracle: bool, sample_java: bool) -> int:
+    manifest = load_manifest()
+    case_ids = phase1_case_ids(manifest)
+    if not case_ids:
+        print("phase 1: no P1 cases in manifest")
+        return 2
+    _, all_ok = _certify_cases(
+        case_ids, record_oracle=record_oracle, sample_java=sample_java, phase=1
+    )
     return 0 if all_ok else 1
 
 
@@ -111,19 +140,86 @@ def _write_gate_report(
     print(f"gate report: {gate}")
 
 
-def _update_certify_status(
+def _write_phase1_gate_report(
     results: List[Dict[str, Any]], all_ok: bool, exemptions: List[str]
+) -> None:
+    gate = repo_root() / "docs" / "video-java" / "gates" / "PHASE_1_GATE.md"
+    gate.parent.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    lines = [
+        "# PHASE 1 Gate — camera / ffmpeg / stream-forward",
+        "",
+        f"**Status:** {'PASS' if all_ok else 'FAIL (scaffold — Java camera/ffmpeg not implemented)'}",
+        f"**Updated:** {ts}",
+        "",
+        "Gate PASS when every P1 case `ok` — each layer `pass` or signed `exempt`.",
+        "Media layer checks: stream status, ffmpeg process alive, codec summary (normalized).",
+        "",
+        "## Commands",
+        "",
+        "```text",
+        "python tools/video_java/seed_p1_fixture.py",
+        "python tools/video_java/certify.py --phase 1",
+        "```",
+        "",
+        "## Case table",
+        "",
+        "| case_id | layers | needs_ffmpeg | needs_runtime | notes |",
+        "|---------|--------|--------------|---------------|-------|",
+        "| vj_p1_camera_list | api | no | no | GET /video/camera/list |",
+        "| vj_p1_camera_get | api | no | no | GET /video/camera/device/{id} |",
+        "| vj_p1_view_forward_start_stop | media, lifecycle | yes | no | view-forward ffmpeg start/stop/status |",
+        "| vj_p1_stream_forward_start_stop | lifecycle, media | yes | yes | stream-forward task start/stop/status |",
+        "",
+        "## Case results",
+        "",
+        "| case_id | ok | layers |",
+        "|---------|----|--------|",
+    ]
+    for r in results:
+        layer_summary = ", ".join(f"{l['layer']}:{l['status']}" for l in r["layers"])
+        lines.append(f"| {r['case_id']} | {r['ok']} | {layer_summary} |")
+    lines.extend(["", "## Documented exemptions (this run)", ""])
+    if exemptions:
+        for row in exemptions:
+            lines.append(f"- {row}")
+    else:
+        lines.append("- (none)")
+    lines.append("")
+    gate.write_text("\n".join(lines), encoding="utf-8")
+    print(f"gate report: {gate}")
+
+
+def _update_certify_status(
+    results: List[Dict[str, Any]], all_ok: bool, exemptions: List[str], *, phase: int = 0
 ) -> None:
     path = repo_root() / "docs" / "video-java" / "CERTIFY_STATUS.md"
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     summary = ", ".join(f"{r['case_id']}={'PASS' if r['ok'] else 'FAIL'}" for r in results)
     ex_note = f"; exemptions: {', '.join(exemptions)}" if exemptions else ""
+
+    if phase == 0:
+        phase0_status = "PASS" if all_ok else "FAIL"
+        phase0_notes = f"{summary}{ex_note}"
+        phase0_updated = ts
+        phase1_status = "FAIL (in progress)"
+        phase1_notes = "scaffold — camera/ffmpeg pending"
+        phase1_updated = "2026-08-10"
+    else:
+        phase0_status = "PASS"
+        phase0_notes = "vj_p0_* cases green"
+        phase0_updated = "2026-08-10"
+        phase1_status = "PASS" if all_ok else "FAIL (in progress)"
+        phase1_notes = f"{summary}{ex_note}"
+        phase1_updated = ts
+
     body = f"""# VIDEO Java — CERTIFY_STATUS
 
 | Phase | Status | Updated | Notes |
 |-------|--------|---------|-------|
 | Phase -1 | PASS | 2026-08-10 | shell + doctor |
-| Phase 0 | {'PASS' if all_ok else 'FAIL'} | {ts} | {summary}{ex_note} |
+| Phase 0 | {phase0_status} | {phase0_updated} | {phase0_notes} |
+| Phase 1 | {phase1_status} | {phase1_updated} | {phase1_notes} |
 
 P0 direct: oracle `:6000` / candidate `:48096`.
 """
@@ -136,10 +232,12 @@ def main() -> int:
     parser.add_argument("--no-record", action="store_true", help="skip oracle recording")
     parser.add_argument("--no-java", action="store_true", help="skip java sampling")
     args = parser.parse_args()
-    if args.phase != 0:
-        print(f"only phase 0 supported (got {args.phase})")
-        return 2
-    return certify_phase0(record_oracle=not args.no_record, sample_java=not args.no_java)
+    if args.phase == 0:
+        return certify_phase0(record_oracle=not args.no_record, sample_java=not args.no_java)
+    if args.phase == 1:
+        return certify_phase1(record_oracle=not args.no_record, sample_java=not args.no_java)
+    print(f"unsupported phase {args.phase}")
+    return 2
 
 
 if __name__ == "__main__":

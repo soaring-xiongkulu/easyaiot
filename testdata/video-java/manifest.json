@@ -49,6 +49,46 @@
       "needs_runtime": true,
       "priority": "P0",
       "notes": "RUNTIME unexpected exit → auto-restart (stub_runtime_exit.bat)"
+    },
+    {
+      "case_id": "vj_p1_camera_list",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "needs_ffmpeg": false,
+      "priority": "P1",
+      "notes": "GET /video/camera/list — bilateral; fixture device vj_p1_device must appear"
+    },
+    {
+      "case_id": "vj_p1_camera_get",
+      "layers": ["api"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "needs_ffmpeg": false,
+      "priority": "P1",
+      "notes": "GET /video/camera/device/{id} — bilateral device detail"
+    },
+    {
+      "case_id": "vj_p1_view_forward_start_stop",
+      "layers": ["media", "lifecycle"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": false,
+      "needs_ffmpeg": true,
+      "priority": "P1",
+      "notes": "POST stream start/stop + GET status; ffmpeg process alive/not for vj_p1_device"
+    },
+    {
+      "case_id": "vj_p1_stream_forward_start_stop",
+      "layers": ["lifecycle", "media"],
+      "oracle_base_url": "http://127.0.0.1:6000",
+      "candidate_base_url": "http://127.0.0.1:48096",
+      "needs_runtime": true,
+      "needs_ffmpeg": true,
+      "priority": "P1",
+      "notes": "stream-forward task start/stop/status for dedicated vj_p1 fixture task"
     }
   ]
 }

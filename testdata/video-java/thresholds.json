@@ -1,7 +1,11 @@
 {
-  "_note": "Phase 0 thresholds; path/timestamp normalization in diff_layers",
+  "_note": "Phase 0+ thresholds; path/timestamp normalization in diff_layers",
   "api": {},
   "lifecycle": {},
   "alarm": {},
-  "ini": {}
+  "ini": {},
+  "media": {
+    "stream_status_required": true,
+    "ffmpeg_process_alive_required": true
+  }
 }

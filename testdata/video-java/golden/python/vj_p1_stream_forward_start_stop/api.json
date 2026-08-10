@@ -1,0 +1,82 @@
+{
+  "layer": "api",
+  "status": "sampled",
+  "endpoint": "/video/stream-forward/task/3/start",
+  "http_status": "{\"code\":0,\"data\":{\"already_running\":false,\"created_at\":null,\"description\":null,\"device_deployments\":[],\"device_ids\":[\"vj_p1_device\"],\"device_names\":[\"vj_p1 certify camera\"],\"exception_reason\":null,\"id\":3,\"is_enabled\":true,\"last_process_time\":null,\"last_success_time\":\"2026-08-10T02:44:12.025532Z\",\"node_id\":null,\"output_bitrate\":null,\"output_format\":\"rtmp\",\"output_quality\":\"high\",\"prefer_gpu\":false,\"schedule_policy\":\"local\",\"service_last_heartbeat\":null,\"service_log_path\":null,\"service_port\":null,\"service_process_id\":null,\"service_server_ip\":null,\"status\":0,\"target_node_id\":null,\"task_code\":\"vj_p1_fc833504\",\"task_name\":\"vj_p1_certify\",\"total_streams\":1,\"updated_at\":\"2026-08-10T02:44:12.027050Z\"},\"msg\":\"\\u542f\\u52a8\\u6210\\u529f\"}\n",
+  "body": {
+    "code": 0,
+    "data": {
+      "already_running": false,
+      "created_at": null,
+      "description": null,
+      "device_deployments": [],
+      "device_ids": [
+        "vj_p1_device"
+      ],
+      "device_names": [
+        "vj_p1 certify camera"
+      ],
+      "exception_reason": null,
+      "id": 3,
+      "is_enabled": true,
+      "last_process_time": null,
+      "last_success_time": "2026-08-10T02:44:12.025532Z",
+      "node_id": null,
+      "output_bitrate": null,
+      "output_format": "rtmp",
+      "output_quality": "high",
+      "prefer_gpu": false,
+      "schedule_policy": "local",
+      "service_last_heartbeat": null,
+      "service_log_path": null,
+      "service_port": null,
+      "service_process_id": null,
+      "service_server_ip": null,
+      "status": 0,
+      "target_node_id": null,
+      "task_code": "vj_p1_fc833504",
+      "task_name": "vj_p1_certify",
+      "total_streams": 1,
+      "updated_at": "2026-08-10T02:44:12.027050Z"
+    },
+    "msg": "启动成功"
+  },
+  "normalized": {
+    "code": 0,
+    "data": {
+      "already_running": false,
+      "created_at": "<TIMESTAMP>",
+      "description": null,
+      "device_deployments": [],
+      "device_ids": [
+        "vj_p1_device"
+      ],
+      "device_names": [
+        "vj_p1 certify camera"
+      ],
+      "exception_reason": null,
+      "id": 3,
+      "is_enabled": true,
+      "last_process_time": "<TIMESTAMP>",
+      "last_success_time": "<TIMESTAMP>",
+      "node_id": null,
+      "output_bitrate": null,
+      "output_format": "rtmp",
+      "output_quality": "high",
+      "prefer_gpu": false,
+      "schedule_policy": "local",
+      "service_last_heartbeat": "<TIMESTAMP>",
+      "service_log_path": null,
+      "service_port": null,
+      "service_process_id": null,
+      "service_server_ip": null,
+      "status": 0,
+      "target_node_id": null,
+      "task_code": "vj_p1_fc833504",
+      "task_name": "vj_p1_certify",
+      "total_streams": 1,
+      "updated_at": "<TIMESTAMP>"
+    },
+    "msg": "启动成功"
+  }
+}

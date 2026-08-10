@@ -20,6 +20,7 @@ from vj_common import (
     http_json,
     load_fixture,
     load_manifest,
+    load_p1_fixture,
     normalize_api_layer,
     update_task_runtime_bin,
     write_layer,
@@ -265,10 +266,189 @@ def _record_restart(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
             update_task_runtime_bin(task_id, normal_bin)
 
 
+def _stream_forward_status(base: str, task_id: int) -> Dict[str, Any]:
+    _, body, _ = http_json("GET", f"{base}/video/stream-forward/task/{task_id}/status")
+    data = body.get("data") if isinstance(body.get("data"), dict) else {}
+    return data
+
+
+def _media_from_stream_status(data: Dict[str, Any]) -> Dict[str, Any]:
+    status = data.get("status") or "stopped"
+    return {
+        "stream_status": status,
+        "ffmpeg_process_alive": status == "running",
+        "enable_forward": data.get("enable_forward"),
+        "codec_summary": data.get("codec_summary") or data.get("output_quality") or "unknown",
+        "rtmp_url_present": bool(data.get("rtmp_url")),
+        "service_status": status,
+    }
+
+
+def _record_camera_list(case: Dict[str, Any], fixture: Dict[str, Any], *, side: str = "python") -> None:
+    base_key = "oracle_base_url" if side == "python" else "candidate_base_url"
+    base = case[base_key].rstrip("/")
+    device_id = fixture["device_id"]
+    out = golden_dir(side, case["case_id"])
+    status, body, _ = http_json(
+        "GET", f"{base}/video/camera/list?pageNo=1&pageSize=50&search={device_id}"
+    )
+    write_layer(
+        out / LAYER_FILES["api"],
+        "api",
+        {
+            "endpoint": "/video/camera/list",
+            "http_status": status,
+            "body": body,
+            "normalized": normalize_api_layer(body),
+        },
+    )
+
+
+def _record_camera_get(case: Dict[str, Any], fixture: Dict[str, Any], *, side: str = "python") -> None:
+    base_key = "oracle_base_url" if side == "python" else "candidate_base_url"
+    base = case[base_key].rstrip("/")
+    device_id = fixture["device_id"]
+    out = golden_dir(side, case["case_id"])
+    status, body, _ = http_json("GET", f"{base}/video/camera/device/{device_id}")
+    write_layer(
+        out / LAYER_FILES["api"],
+        "api",
+        {
+            "endpoint": f"/video/camera/device/{device_id}",
+            "http_status": status,
+            "body": body,
+            "normalized": normalize_api_layer(body),
+        },
+    )
+
+
+def _record_view_forward_start_stop(
+    case: Dict[str, Any], fixture: Dict[str, Any], *, side: str = "python"
+) -> None:
+    base_key = "oracle_base_url" if side == "python" else "candidate_base_url"
+    base = case[base_key].rstrip("/")
+    device_id = fixture["device_id"]
+    out = golden_dir(side, case["case_id"])
+
+    http_json("POST", f"{base}/video/camera/device/{device_id}/stream/stop")
+    time.sleep(1.0)
+    _, before_body, _ = http_json(
+        "GET", f"{base}/video/camera/device/{device_id}/stream/status"
+    )
+    before_data = before_body.get("data") if isinstance(before_body.get("data"), dict) else {}
+    before_media = _media_from_stream_status(before_data)
+
+    _, start_body, start_status = http_json(
+        "POST", f"{base}/video/camera/device/{device_id}/stream/start"
+    )
+    time.sleep(3.0)
+    _, during_body, _ = http_json(
+        "GET", f"{base}/video/camera/device/{device_id}/stream/status"
+    )
+    during_data = during_body.get("data") if isinstance(during_body.get("data"), dict) else {}
+    during_media = _media_from_stream_status(during_data)
+
+    write_layer(
+        out / LAYER_FILES["api"],
+        "api",
+        {
+            "endpoint": f"/video/camera/device/{device_id}/stream/start",
+            "http_status": start_status,
+            "body": start_body,
+            "normalized": normalize_api_layer(start_body),
+        },
+    )
+    write_layer(
+        out / LAYER_FILES["media"],
+        "media",
+        {"snapshot": during_media},
+    )
+    write_layer(
+        out / LAYER_FILES["lifecycle"],
+        "lifecycle",
+        {
+            "snapshot": {
+                "before_stream_status": before_media["stream_status"],
+                "after_stream_status": during_media["stream_status"],
+                "process_alive": during_media["ffmpeg_process_alive"],
+                "enable_forward": during_data.get("enable_forward"),
+            }
+        },
+    )
+
+    http_json("POST", f"{base}/video/camera/device/{device_id}/stream/stop")
+    time.sleep(1.0)
+
+
+def _record_stream_forward_start_stop(
+    case: Dict[str, Any], fixture: Dict[str, Any], *, side: str = "python"
+) -> None:
+    base_key = "oracle_base_url" if side == "python" else "candidate_base_url"
+    base = case[base_key].rstrip("/")
+    task_id = int(fixture["stream_forward_task_id"])
+    out = golden_dir(side, case["case_id"])
+
+    http_json("POST", f"{base}/video/stream-forward/task/{task_id}/stop")
+    time.sleep(1.0)
+    before = _stream_forward_status(base, task_id)
+    before_status = before.get("status") or "stopped"
+
+    _, start_body, start_status = http_json(
+        "POST", f"{base}/video/stream-forward/task/{task_id}/start"
+    )
+    time.sleep(3.0)
+    during = _stream_forward_status(base, task_id)
+    during_status = during.get("status") or "stopped"
+    during_media = {
+        "stream_status": during_status,
+        "ffmpeg_process_alive": during_status == "running",
+        "codec_summary": fixture.get("output_quality") or "high",
+        "rtmp_url_present": True,
+        "service_status": during_status,
+        "total_streams": during.get("total_streams"),
+    }
+
+    write_layer(
+        out / LAYER_FILES["api"],
+        "api",
+        {
+            "endpoint": f"/video/stream-forward/task/{task_id}/start",
+            "http_status": start_status,
+            "body": start_body,
+            "normalized": normalize_api_layer(start_body),
+        },
+    )
+    write_layer(
+        out / LAYER_FILES["media"],
+        "media",
+        {"snapshot": during_media},
+    )
+    write_layer(
+        out / LAYER_FILES["lifecycle"],
+        "lifecycle",
+        {
+            "snapshot": {
+                "before_service_status": before_status,
+                "after_service_status": during_status,
+                "process_alive": during_status == "running",
+                "task_is_enabled": True,
+            }
+        },
+    )
+
+    http_json("POST", f"{base}/video/stream-forward/task/{task_id}/stop")
+    time.sleep(1.0)
+
+
 def record_case(case_id: str) -> None:
     manifest = load_manifest()
     case = find_case(manifest, case_id)
-    fixture = load_fixture() if case_id != "vj_p0_health" else {}
+    if case_id.startswith("vj_p1_"):
+        fixture = load_p1_fixture()
+    elif case_id != "vj_p0_health":
+        fixture = load_fixture()
+    else:
+        fixture = {}
     cid = case["case_id"]
     print(f"record_python: {cid}")
     if cid == "vj_p0_health":
@@ -281,6 +461,14 @@ def record_case(case_id: str) -> None:
         _record_alert_hook(case, fixture)
     elif cid == "vj_p0_restart":
         _record_restart(case, fixture)
+    elif cid == "vj_p1_camera_list":
+        _record_camera_list(case, fixture)
+    elif cid == "vj_p1_camera_get":
+        _record_camera_get(case, fixture)
+    elif cid == "vj_p1_view_forward_start_stop":
+        _record_view_forward_start_stop(case, fixture)
+    elif cid == "vj_p1_stream_forward_start_stop":
+        _record_stream_forward_start_stop(case, fixture)
     else:
         raise ValueError(f"unsupported case {cid}")
 
@@ -294,7 +482,11 @@ def main() -> int:
     if args.case_id:
         ids = [args.case_id]
     else:
-        ids = [c["case_id"] for c in manifest.get("cases", []) if c.get("priority") == "P0"]
+        ids = [
+            c["case_id"]
+            for c in manifest.get("cases", [])
+            if c.get("priority") in ("P0", "P1")
+        ]
     for cid in ids:
         record_case(cid)
     return 0

@@ -14,6 +14,7 @@ LAYER_FILES = {
     "lifecycle": "lifecycle.json",
     "alarm": "alarm.json",
     "ini": "ini.json",
+    "media": "media.json",
 }
 
 
@@ -31,6 +32,10 @@ def thresholds_path() -> Path:
 
 def fixtures_path() -> Path:
     return repo_root() / "testdata" / "video-java" / "fixtures" / "vj_p0.json"
+
+
+def p1_fixtures_path() -> Path:
+    return repo_root() / "testdata" / "video-java" / "fixtures" / "vj_p1.json"
 
 
 def golden_dir(side: str, case_id: str) -> Path:
@@ -54,6 +59,15 @@ def load_fixture() -> Dict[str, Any]:
     if not fx.get("task_id"):
         raise RuntimeError(
             "fixture task_id is null — run: python tools/video_java/seed_p0_fixture.py"
+        )
+    return fx
+
+
+def load_p1_fixture() -> Dict[str, Any]:
+    fx = load_json(p1_fixtures_path())
+    if not fx.get("stream_forward_task_id"):
+        raise RuntimeError(
+            "fixture stream_forward_task_id is null — run: python tools/video_java/seed_p1_fixture.py"
         )
     return fx
 
@@ -151,13 +165,36 @@ def normalize_api_layer(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "created_at",
                 "updated_at",
                 "last_notify_time",
+                "last_heartbeat",
+                "start_time",
             ):
                 if key in data:
                     data[key] = "<TIMESTAMP>"
-            for key in ("service_process_id", "service_port"):
+            for key in ("service_process_id", "service_port", "process_id", "pid"):
                 if key in data and data[key] is not None:
                     data[key] = "<NUM>"
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    for key in ("updated_at", "created_at", "last_heartbeat"):
+                        if key in item:
+                            item[key] = "<TIMESTAMP>"
     return out
+
+
+def normalize_media_layer(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize media/stream snapshot for machine-checkable diff."""
+    snap = payload.get("snapshot") if isinstance(payload.get("snapshot"), dict) else payload
+    if not isinstance(snap, dict):
+        return normalize_value(payload)
+    out = dict(snap)
+    for key in ("pid", "process_id", "service_process_id", "start_time", "last_heartbeat"):
+        if key in out and out[key] is not None:
+            out[key] = "<NUM>"
+    for key in ("log_path", "service_log_path", "rtmp_url", "http_stream"):
+        if key in out and isinstance(out[key], str) and out[key]:
+            out[key] = Path(out[key]).name or "<PATH>"
+    return normalize_value(out)
 
 
 def write_layer(path: Path, layer: str, payload: Dict[str, Any]) -> None:
@@ -171,6 +208,14 @@ def phase0_case_ids(manifest: Dict[str, Any]) -> List[str]:
         c["case_id"]
         for c in manifest.get("cases", [])
         if c.get("priority") == "P0"
+    ]
+
+
+def phase1_case_ids(manifest: Dict[str, Any]) -> List[str]:
+    return [
+        c["case_id"]
+        for c in manifest.get("cases", [])
+        if c.get("priority") == "P1"
     ]
 
 

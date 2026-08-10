@@ -1,0 +1,5 @@
+{
+  "layer": "media",
+  "status": "fail",
+  "reason": "candidate endpoint missing (HTTP 404 on /video/camera/device/vj_p1_device/stream/status)"
+}

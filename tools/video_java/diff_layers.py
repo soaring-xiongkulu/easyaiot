@@ -16,6 +16,7 @@ from vj_common import (
     layer_satisfies,
     load_manifest,
     load_thresholds,
+    normalize_media_layer,
     normalize_value,
     resolve_exemption,
 )
@@ -27,6 +28,14 @@ def _lifecycle_degenerate(snapshot: Any) -> bool:
     if snapshot.get("heartbeat_ok") is False and snapshot.get("run_status") is None:
         return True
     if snapshot.get("process_alive") is False and snapshot.get("after_run_status") is None:
+        return True
+    return False
+
+
+def _media_degenerate(snapshot: Any) -> bool:
+    if not isinstance(snapshot, dict):
+        return True
+    if snapshot.get("stream_status") is None and snapshot.get("ffmpeg_process_alive") is None:
         return True
     return False
 
@@ -123,6 +132,15 @@ def diff_layer(
                         reds.append(
                             f"ini[{sec}].{k}: {normalize_value(py_sec[k])!r} != {normalize_value(java_sec[k])!r}"
                         )
+    elif layer == "media":
+        py_norm = normalize_media_layer(py_data)
+        java_norm = normalize_media_layer(java_data)
+        if _media_degenerate(py_norm):
+            return _fail(
+                layer,
+                "oracle media golden degenerate; no parity baseline (do not pass on java-only)",
+            )
+        reds = _diff_dict(py_norm, java_norm)
     else:
         py_norm = normalize_value(py_data.get("snapshot") or py_data)
         java_norm = normalize_value(java_data.get("snapshot") or java_data)
@@ -212,7 +230,7 @@ def diff_case(case_id: str, layers: List[str]) -> Tuple[bool, List[Dict[str, Any
 def main() -> int:
     parser = argparse.ArgumentParser(description="Diff VIDEO Java golden layers")
     parser.add_argument("case_id")
-    parser.add_argument("--layers", nargs="*", default=["api", "lifecycle", "alarm", "ini"])
+    parser.add_argument("--layers", nargs="*", default=["api", "lifecycle", "alarm", "ini", "media"])
     args = parser.parse_args()
     ok, results = diff_case(args.case_id, args.layers)
     for r in results:

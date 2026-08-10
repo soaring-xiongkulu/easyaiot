@@ -1,0 +1,12 @@
+{
+  "layer": "media",
+  "status": "sampled",
+  "snapshot": {
+    "stream_status": "stopped",
+    "ffmpeg_process_alive": false,
+    "enable_forward": true,
+    "codec_summary": "unknown",
+    "rtmp_url_present": true,
+    "service_status": "stopped"
+  }
+}

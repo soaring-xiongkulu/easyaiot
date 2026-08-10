@@ -1,0 +1,10 @@
+{
+  "layer": "lifecycle",
+  "status": "sampled",
+  "snapshot": {
+    "before_service_status": "stopped",
+    "after_service_status": "running",
+    "process_alive": true,
+    "task_is_enabled": true
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "layer": "api",
+  "status": "fail",
+  "reason": "candidate endpoint missing (HTTP 404 on /video/camera/list?pageNo=1&pageSize=1)"
+}

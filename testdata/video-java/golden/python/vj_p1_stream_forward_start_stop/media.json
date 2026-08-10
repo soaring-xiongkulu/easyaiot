@@ -1,0 +1,12 @@
+{
+  "layer": "media",
+  "status": "sampled",
+  "snapshot": {
+    "stream_status": "running",
+    "ffmpeg_process_alive": true,
+    "codec_summary": "high",
+    "rtmp_url_present": true,
+    "service_status": "running",
+    "total_streams": 1
+  }
+}
