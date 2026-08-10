@@ -48,6 +48,9 @@ export interface StreamForwardTask {
   prefer_gpu?: boolean;
   target_node_id?: number | null;
   node_id?: number | null;
+  /** cpp=RUNTIME forward 高性能（默认）；python=FFmpeg */
+  executor?: 'cpp' | 'python';
+  runtime_bin_path?: string | null;
   device_deployments?: Array<{
     device_ids: string[];
     node_id: number;
@@ -109,6 +112,7 @@ export const createStreamForwardTask = (data: {
   schedule_policy?: 'local' | 'auto' | 'node';
   prefer_gpu?: boolean;
   target_node_id?: number | null;
+  executor?: 'cpp' | 'python';
 }) => {
   return commonApi<{ code: number; msg: string; data: StreamForwardTask }>(
     'post',

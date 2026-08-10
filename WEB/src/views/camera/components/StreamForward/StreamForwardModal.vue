@@ -17,7 +17,14 @@
       </div>
     </template>
     <div class="form-content">
-      <BasicForm @register="registerForm" />
+      <a-alert
+        v-if="showRuntimeBanner"
+        class="runtime-version-banner mb-3"
+        type="info"
+        show-icon
+        :message="runtimeBannerText"
+      />
+      <BasicForm @register="registerForm" @field-value-change="handleFieldValueChange" />
     </div>
   </BasicDrawer>
 </template>
@@ -32,6 +39,7 @@ import {
   updateStreamForwardTask,
   type StreamForwardTask,
 } from '@/api/device/stream_forward';
+import { getRuntimeInfo } from '@/api/device/algorithm_task';
 import { getDeviceList } from '@/api/device/camera';
 import { getNodePage } from '@/api/device/node';
 import { Button } from '@/components/Button'
@@ -51,7 +59,30 @@ const confirmLoading = ref(false);
 const deviceOptions = ref<Array<{ label: string; value: string }>>([]);
 const nodeOptions = ref<Array<{ label: string; value: number }>>([]);
 const formValues = ref<any>({});
+const runtimeInfo = ref<{ ready?: boolean; version?: string | null; binPath?: string | null } | null>(null);
 const modalData = ref<{ type?: string; record?: StreamForwardTask }>({});
+
+const showRuntimeBanner = computed(() => {
+  const ex = String(formValues.value?.executor || 'cpp').toLowerCase();
+  return ex === 'cpp' || ex === 'c++' || ex === 'runtime';
+});
+
+const runtimeBannerText = computed(() => {
+  const info = runtimeInfo.value;
+  if (info?.ready) {
+    return `本机 RUNTIME 已就绪${info.version ? `（${info.version}）` : ''}，高性能推流将使用 RTSP→RTMP 直通（低 CPU）`;
+  }
+  return '本机 RUNTIME 未就绪：启动高性能任务时将尝试自动编译，或请先执行 RUNTIME/install_linux.sh；远程节点需先在「节点管理 → 业务运行时分发」安装 RUNTIME';
+});
+
+async function loadRuntimeInfo() {
+  try {
+    const data = await getRuntimeInfo();
+    runtimeInfo.value = data || { ready: false };
+  } catch {
+    runtimeInfo.value = { ready: false };
+  }
+}
 
 const modalTitle = computed(() => {
   if (modalData.value.type === 'view') return '查看推流转发任务';
@@ -66,9 +97,10 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   taskId.value = null;
   confirmLoading.value = false;
   resetFields();
+  runtimeInfo.value = null;
   
   // 加载设备列表与计算节点
-  await Promise.all([loadDeviceOptions(), loadNodes()]);
+  await Promise.all([loadDeviceOptions(), loadNodes(), loadRuntimeInfo()]);
   
   if (modalData.value.record) {
     const record = modalData.value.record;
@@ -86,6 +118,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
+      executor: record.executor || 'cpp',
     });
     
     // 查看模式禁用表单
@@ -93,6 +126,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       updateSchema([
         { field: 'task_name', componentProps: { disabled: true } },
         { field: 'device_ids', componentProps: { disabled: true } },
+        { field: 'executor', componentProps: { disabled: true } },
         { field: 'output_format', componentProps: { disabled: true } },
         { field: 'output_quality', componentProps: { disabled: true } },
         { field: 'output_bitrate', componentProps: { disabled: true } },
@@ -114,12 +148,20 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       is_enabled: false,
       schedule_policy: 'local',
       prefer_gpu: true,
+      executor: 'cpp',
     });
     setDrawerProps({ showOkBtn: true });
   }
   
   setDrawerProps({ confirmLoading: false });
 });
+
+function handleFieldValueChange(field: string, value: unknown) {
+  formValues.value = { ...formValues.value, [field]: value };
+  if (field === 'executor' && String(value || '').toLowerCase() === 'cpp' && !runtimeInfo.value) {
+    loadRuntimeInfo();
+  }
+}
 
 const [registerForm, { setFieldsValue, resetFields, validate, updateSchema }] = useForm({
   transformDateToString: false,
@@ -153,6 +195,20 @@ const [registerForm, { setFieldsValue, resetFields, validate, updateSchema }] = 
       helpMessage: '选择需要推流转发的摄像头，可多选',
     },
     {
+      field: 'executor',
+      label: '推流引擎',
+      component: 'Select',
+      defaultValue: 'cpp',
+      componentProps: {
+        placeholder: '请选择推流引擎',
+        options: [
+          { label: '高性能（RUNTIME 直通）', value: 'cpp' },
+          { label: '兼容模式（FFmpeg）', value: 'python' },
+        ],
+      },
+      helpMessage: '高性能：C++ RUNTIME RTSP→RTMP 零转码，CPU 占用低，适合 NVR 多路；兼容模式：FFmpeg copy/转码，支持 HEVC 等非 H.264 源',
+    },
+    {
       field: 'schedule_policy',
       label: '调度策略',
       component: 'Select',
@@ -161,7 +217,7 @@ const [registerForm, { setFieldsValue, resetFields, validate, updateSchema }] = 
         placeholder: '请选择调度策略',
         options: schedulePolicyOptions,
       },
-      helpMessage: '本机：在当前 VIDEO 服务部署；自动/指定节点：多路摄像头默认按设备分片分散到集群节点',
+      helpMessage: '本机：在当前 VIDEO 服务部署；自动/指定节点：多路摄像头默认按设备分片分散到集群节点。高性能(cpp)调度到节点前，请先在「节点管理 → 业务运行时分发」安装 RUNTIME',
     },
     {
       field: 'prefer_gpu',
@@ -317,6 +373,7 @@ const handleReset = async () => {
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
+      executor: record.executor || 'cpp',
     });
   } else {
     await setFieldsValue({
@@ -325,6 +382,7 @@ const handleReset = async () => {
       is_enabled: false,
       schedule_policy: 'local',
       prefer_gpu: true,
+      executor: 'cpp',
     });
   }
 };

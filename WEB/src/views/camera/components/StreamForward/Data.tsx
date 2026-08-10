@@ -22,6 +22,20 @@ export function getBasicColumns(): BasicColumn[] {
       },
     },
     {
+      title: '执行后端',
+      dataIndex: 'executor',
+      width: 120,
+      customRender: ({ text }) => {
+        const ex = String(text || 'cpp').toLowerCase();
+        const isCpp = ex === 'cpp' || ex === 'c++' || ex === 'runtime';
+        return (
+          <Tag color={isCpp ? 'orange' : 'blue'}>
+            {isCpp ? '高性能' : '兼容模式'}
+          </Tag>
+        );
+      },
+    },
+    {
       title: '输出格式',
       dataIndex: 'output_format',
       width: 100,
