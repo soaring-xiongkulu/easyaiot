@@ -39,6 +39,10 @@ BLUEPRINT_SPECS = {
         "file": "playback.py",
         "bp": "playback_bp",
     },
+    "/video/stream-forward": {
+        "file": "stream_forward.py",
+        "bp": "stream_forward_bp",
+    },
 }
 
 BLUEPRINT_ROUTE = re.compile(

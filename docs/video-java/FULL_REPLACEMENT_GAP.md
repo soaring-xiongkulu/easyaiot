@@ -41,7 +41,7 @@
 | 1 | algorithm_task | `/video/algorithm` | 21 | 管理面 + lifecycle | list/get/CRUD/start/stop/restart/services/status/heartbeat/logs/streams/post-process | **本地切片** | route_inventory `/video/algorithm` Py=21 Java=21 diff=0；远程 node 仍 400（EX-REMOTE-NODE） |
 | 2 | alert | `/video/alert` | 10 | 管理面 + hook | page/count/statistics/correlation/image/record/record/query/clear/clear/all + `POST /hook` | **本地切片** | route_inventory `/video/alert` Py=10 Java=10 diff=0；**EX-ALERT-ADMIN-API resolved**；**EX-KAFKA-HOOK resolved**（`use-direct-persist=false` → Kafka produce + fallback） |
 | 3 | camera | `/video/camera` | **59** | 全量路由 | list/CRUD/stream/目录/NVR/… | **路由切片完成** | `route_inventory` Py=59 Java=59 diff=0；**FR-W2-CAM**；ONVIF/扫描/抓拍行为待 SDK |
-| 4 | stream_forward | `/video/stream-forward` | 13 | 切片 | get、start/stop/status | **严重不足** | CRUD、restart、heartbeat、logs、streams、ensure-task 缺 |
+| 4 | stream_forward | `/video/stream-forward` | 13 | 全量路由 | list/get/CRUD/start/stop/restart/status/heartbeat/logs/streams/ensure-task | **路由切片完成** | `route_inventory` Py=13 Java=13 diff=0；**FR-W2-SF**；远程 node/auto 调度仍 400 |
 | 5 | face | `/video/face` | 35 | 切片 | matching/publish、matching/process | **严重不足** | 库/人像/entries/auto-enroll/normalize/recognize/model… 全缺 |
 | 6 | plate | `/video/plate` | 26 | 切片 | matching/publish、matching/process | **严重不足** | 同 face，库与识别面缺 |
 | 7 | snap | `/video/snap` | 38 | 全量路由 | space/task/region/service/images/storage | **路由切片完成** | `route_inventory` Py=38 Java=38 diff=0；**FR-W2-MEDIA**；MinIO/调度器待 SDK |
@@ -100,11 +100,22 @@
 | ✅ | SRS 回调、目录树、conflicts、inference-input、ensure-spaces、FlightHub 配置/登记 |
 | ❌ 行为 | ONVIF 真连接、NVR 通道枚举、hiktools 扫描、抓拍抽帧、司空 live、GB28181 全量同步 — 无硬件/SDK 时仅错误结构对齐 |
 
-### 2.4 `stream_forward`
+### 2.4 `stream_forward` — FR-W2-SF（路由面 diff=0）
 
-| 已有 | 仍缺 |
-|------|------|
-| get / start / stop / status | list、POST 创建、PUT/DELETE、restart、heartbeat、logs、streams、`ensure-task` |
+| 状态 | 方法 | 路径 |
+|------|------|------|
+| ✅ | GET | `/video/stream-forward/task/list` |
+| ✅ | GET | `/video/stream-forward/task/{id}` |
+| ✅ | POST | `/video/stream-forward/task` |
+| ✅ | PUT/DELETE | `/video/stream-forward/task/{id}` |
+| ✅ | POST | `/video/stream-forward/task/{id}/start\|stop\|restart` |
+| ✅ | GET | `/video/stream-forward/task/{id}/status` |
+| ✅ | POST | `/video/stream-forward/heartbeat` |
+| ✅ | GET | `/video/stream-forward/task/{id}/logs` |
+| ✅ | GET | `/video/stream-forward/task/{id}/streams` |
+| ✅ | POST | `/video/stream-forward/device/{device_id}/ensure-task` |
+| ❌ 行为 | — | `schedule_policy!=local` 远程 node 部署（现 400，EX-REMOTE-NODE） |
+| ✅ 路由差 | `/video/stream-forward`：**Py 13 / Java 13 / diff 0**（`route_inventory.py --prefix /video/stream-forward`） |
 
 ### 2.5 `face` / `plate`
 

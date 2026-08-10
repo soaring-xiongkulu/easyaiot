@@ -95,6 +95,39 @@ public class StreamForwardService {
         return Map.of("message", "停止成功", "data", updated.toMap());
     }
 
+    public Map<String, Object> restart(long taskId) {
+        StreamForwardTaskRow task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new VideoBusinessException(400, "推流转发任务不存在"));
+        if (!Boolean.TRUE.equals(task.getIsEnabled())) {
+            return start(taskId);
+        }
+        supervisor.stop(taskId);
+        return start(taskId);
+    }
+
+    public Map<String, Object> receiveHeartbeat(Map<String, Object> body) {
+        if (body == null || body.get("task_id") == null) {
+            throw new VideoBusinessException(400, "缺少必要参数：task_id");
+        }
+        long taskId = Long.parseLong(String.valueOf(body.get("task_id")));
+        StreamForwardTaskRow task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new VideoBusinessException(400, "推流转发任务不存在：task_id=" + taskId));
+
+        String serverIp = body.get("server_ip") != null ? String.valueOf(body.get("server_ip")) : null;
+        Integer port = toInteger(body.get("port"));
+        Integer processId = toInteger(body.get("process_id"));
+        String logPath = body.get("log_path") != null ? String.valueOf(body.get("log_path")) : null;
+        if (logPath == null || logPath.isBlank()) {
+            logPath = Path.of(videoProperties.getRuntime().getLogsDir(), "stream_forward_task_" + taskId).toString();
+        }
+        taskRepository.updateHeartbeat(taskId, serverIp, port, processId, logPath);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("task_id", task.getId());
+        data.put("task_name", task.getTaskName());
+        return data;
+    }
+
     public Map<String, Object> taskStatus(long taskId) {
         StreamForwardTaskRow task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new VideoBusinessException(400, "推流转发任务不存在"));
@@ -146,6 +179,20 @@ public class StreamForwardService {
         return taskRepository.findById(taskId)
                 .map(row -> Boolean.TRUE.equals(row.getIsEnabled()))
                 .orElse(false);
+    }
+
+    private static Integer toInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static String formatInstant(Instant instant) {

@@ -11,7 +11,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -147,6 +149,196 @@ public class StreamForwardTaskRepository {
                 pid,
                 enabled,
                 id
+        );
+    }
+
+    public List<StreamForwardTaskRow> list(
+            int pageNo, int pageSize, String search, String deviceId, Boolean isEnabled
+    ) {
+        int offset = Math.max(0, (pageNo - 1) * pageSize);
+        String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
+        StringBuilder sql = new StringBuilder("SELECT " + SELECT_COLUMNS + " FROM stream_forward_task WHERE 1=1");
+        List<Object> args = new ArrayList<>();
+        if (deviceId != null && !deviceId.isBlank()) {
+            sql.append("""
+                     AND EXISTS (
+                       SELECT 1 FROM stream_forward_task_device sftd
+                       WHERE sftd.stream_forward_task_id = stream_forward_task.id
+                         AND sftd.device_id = ?
+                     )
+                    """);
+            args.add(deviceId.trim());
+        }
+        if (isEnabled != null) {
+            sql.append(" AND is_enabled = ?");
+            args.add(isEnabled);
+        }
+        if (like != null) {
+            sql.append(" AND (task_name ILIKE ? OR task_code ILIKE ?)");
+            args.add(like);
+            args.add(like);
+        }
+        sql.append(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
+        args.add(pageSize);
+        args.add(offset);
+        List<StreamForwardTaskRow> rows = jdbc.query(sql.toString(), ROW_MAPPER, args.toArray());
+        rows.forEach(this::attachDevices);
+        return rows;
+    }
+
+    public long count(String search, String deviceId, Boolean isEnabled) {
+        String like = search != null && !search.isBlank() ? "%" + search.trim() + "%" : null;
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM stream_forward_task WHERE 1=1");
+        List<Object> args = new ArrayList<>();
+        if (deviceId != null && !deviceId.isBlank()) {
+            sql.append("""
+                     AND EXISTS (
+                       SELECT 1 FROM stream_forward_task_device sftd
+                       WHERE sftd.stream_forward_task_id = stream_forward_task.id
+                         AND sftd.device_id = ?
+                     )
+                    """);
+            args.add(deviceId.trim());
+        }
+        if (isEnabled != null) {
+            sql.append(" AND is_enabled = ?");
+            args.add(isEnabled);
+        }
+        if (like != null) {
+            sql.append(" AND (task_name ILIKE ? OR task_code ILIKE ?)");
+            args.add(like);
+            args.add(like);
+        }
+        Long total = jdbc.queryForObject(sql.toString(), Long.class, args.toArray());
+        return total != null ? total : 0L;
+    }
+
+    public long insert(Map<String, Object> fields) {
+        Long id = jdbc.queryForObject(
+                """
+                INSERT INTO stream_forward_task (
+                    task_name, task_code, output_format, output_quality, output_bitrate,
+                    description, is_enabled, total_streams, schedule_policy, prefer_gpu,
+                    target_node_id, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW())
+                RETURNING id
+                """,
+                Long.class,
+                fields.get("task_name"),
+                fields.get("task_code"),
+                fields.get("output_format"),
+                fields.get("output_quality"),
+                fields.get("output_bitrate"),
+                fields.get("description"),
+                fields.get("is_enabled"),
+                fields.get("total_streams"),
+                fields.get("schedule_policy"),
+                fields.get("prefer_gpu"),
+                fields.get("target_node_id")
+        );
+        return id != null ? id : 0L;
+    }
+
+    public void updateFields(long id, Map<String, Object> fields) {
+        if (fields.isEmpty()) {
+            return;
+        }
+        StringBuilder sql = new StringBuilder("UPDATE stream_forward_task SET updated_at = NOW()");
+        List<Object> args = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : fields.entrySet()) {
+            sql.append(", ").append(entry.getKey()).append(" = ?");
+            args.add(entry.getValue());
+        }
+        sql.append(" WHERE id = ?");
+        args.add(id);
+        jdbc.update(sql.toString(), args.toArray());
+    }
+
+    public void delete(long id) {
+        jdbc.update("DELETE FROM stream_forward_task_device WHERE stream_forward_task_id = ?", id);
+        jdbc.update("DELETE FROM stream_forward_task WHERE id = ?", id);
+    }
+
+    public void replaceDevices(long taskId, List<String> deviceIds) {
+        jdbc.update("DELETE FROM stream_forward_task_device WHERE stream_forward_task_id = ?", taskId);
+        if (deviceIds == null) {
+            return;
+        }
+        for (String deviceId : deviceIds) {
+            jdbc.update(
+                    """
+                    INSERT INTO stream_forward_task_device (stream_forward_task_id, device_id, created_at)
+                    VALUES (?, ?, NOW())
+                    """,
+                    taskId,
+                    deviceId
+            );
+        }
+    }
+
+    public Optional<Long> findTaskIdByDeviceId(String deviceId) {
+        List<Long> ids = jdbc.query(
+                """
+                SELECT sft.id
+                FROM stream_forward_task sft
+                JOIN stream_forward_task_device sftd ON sftd.stream_forward_task_id = sft.id
+                WHERE sftd.device_id = ?
+                ORDER BY sft.id ASC
+                LIMIT 1
+                """,
+                (rs, rowNum) -> rs.getLong("id"),
+                deviceId
+        );
+        return ids.isEmpty() ? Optional.empty() : Optional.of(ids.get(0));
+    }
+
+    public void updateHeartbeat(
+            long id, String serverIp, Integer port, Integer processId, String logPath
+    ) {
+        jdbc.update(
+                """
+                UPDATE stream_forward_task
+                SET service_last_heartbeat = NOW(),
+                    service_server_ip = COALESCE(?, service_server_ip),
+                    service_port = COALESCE(?, service_port),
+                    service_process_id = COALESCE(?, service_process_id),
+                    service_log_path = COALESCE(?, service_log_path),
+                    updated_at = NOW()
+                WHERE id = ?
+                """,
+                serverIp,
+                port,
+                processId,
+                logPath,
+                id
+        );
+    }
+
+    public List<Map<String, Object>> listStreamDevices(long taskId) {
+        return jdbc.query(
+                """
+                SELECT d.id AS device_id,
+                       COALESCE(d.name, d.id) AS device_name,
+                       d.rtmp_stream,
+                       d.http_stream,
+                       d.source,
+                       d.cover_image_path
+                FROM stream_forward_task_device sftd
+                JOIN device d ON d.id = sftd.device_id
+                WHERE sftd.stream_forward_task_id = ?
+                ORDER BY d.id
+                """,
+                (rs, rowNum) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("device_id", rs.getString("device_id"));
+                    row.put("device_name", rs.getString("device_name"));
+                    row.put("rtmp_stream", rs.getString("rtmp_stream"));
+                    row.put("http_stream", rs.getString("http_stream"));
+                    row.put("source", rs.getString("source"));
+                    row.put("cover_image_path", rs.getString("cover_image_path"));
+                    return row;
+                },
+                taskId
         );
     }
 }
