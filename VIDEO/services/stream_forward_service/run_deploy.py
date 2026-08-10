@@ -656,8 +656,9 @@ def load_task_config():
             for device in devices:
                 if allowed_device_ids is not None and device.id not in allowed_device_ids:
                     continue
-                # 获取RTSP输入流地址
-                rtsp_url = device.source
+                # 获取RTSP输入流地址（原画 live/ 默认主码流）
+                from app.services.runtime_config_service import resolve_forward_rtsp_url
+                rtsp_url = resolve_forward_rtsp_url(device)
                 if not rtsp_url:
                     logger.warning(f"设备 {device.id} 没有配置源地址，跳过")
                     continue
@@ -687,7 +688,9 @@ def load_task_config():
                 'output_format': task.output_format,
                 'output_quality': task.output_quality,
                 'output_bitrate': task.output_bitrate,
-                'device_streams': device_streams_info
+                'executor': getattr(task, 'executor', None) or 'cpp',
+                'device_streams': device_streams_info,
+                '_task': task,
             })()
             
             logger.info(f"✅ 任务配置加载成功: task_id={TASK_ID}, task_name={task.task_name}, 设备数={len(device_streams_info)}")
@@ -2457,6 +2460,29 @@ def main():
     update_task_status(status=0, exception_reason=None)
     
     device_streams = task_config.device_streams
+
+    from services.stream_forward_service.runtime_relay import (
+        stream_forward_use_runtime,
+        run_runtime_forward_relay_mode,
+    )
+
+    if stream_forward_use_runtime(getattr(task_config, '_task', None)):
+        logger.info('使用 RUNTIME 高性能推流模式（executor=cpp, forward copy）')
+        log_path = os.getenv('LOG_PATH', '').strip() or os.getcwd()
+        run_runtime_forward_relay_mode(
+            task=getattr(task_config, '_task', None) or task_config,
+            device_streams=device_streams,
+            stop_event=stop_event,
+            device_pushers=device_pushers,
+            logger=logger,
+            log_path=log_path,
+            check_rtmp_server_connection=check_rtmp_server_connection,
+            check_and_stop_existing_stream=check_and_stop_existing_stream,
+            update_task_status=update_task_status,
+            heartbeat_worker=heartbeat_worker,
+            mark_quality_success=_mark_quality_success,
+        )
+        return
 
     if _ffmpeg_native_enabled():
         if _ffmpeg_native_mux_enabled():

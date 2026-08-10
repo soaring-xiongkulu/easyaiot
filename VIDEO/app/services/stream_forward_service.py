@@ -73,6 +73,34 @@ def _trigger_deploy_sync(task_id: int, *, full_restart: bool = False) -> None:
         raise
 
 
+def refresh_stream_forward_rtsp_for_devices(device_ids: Optional[List[str]]) -> None:
+    """算法任务启停后刷新推流转发 RTSP（主/子码流切换需 full_restart）。"""
+    ids = [d for d in (device_ids or []) if d]
+    if not ids:
+        return
+    from .stream_forward_launcher_service import restart_stream_forward_task_services
+
+    task_ids = set()
+    for device_id in ids:
+        tasks = StreamForwardTask.query.filter(
+            StreamForwardTask.is_enabled.is_(True),
+            StreamForwardTask.devices.any(Device.id == device_id),
+        ).all()
+        for task in tasks:
+            task_ids.add(task.id)
+    for task_id in task_ids:
+        try:
+            logger.info(
+                'refresh forward RTSP after algo change task_id=%s devices=%s',
+                task_id, ids,
+            )
+            restart_stream_forward_task_services(task_id)
+        except Exception as e:
+            logger.warning(
+                'refresh forward RTSP failed task_id=%s: %s', task_id, e, exc_info=True,
+            )
+
+
 def create_stream_forward_task(task_name: str,
                                device_ids: Optional[List[str]] = None,
                                output_format: str = 'rtmp',
@@ -82,9 +110,11 @@ def create_stream_forward_task(task_name: str,
                                is_enabled: bool = False,
                                schedule_policy: str = 'local',
                                prefer_gpu: bool = True,
-                               target_node_id: Optional[int] = None) -> StreamForwardTask:
+                               target_node_id: Optional[int] = None,
+                               executor: str = 'cpp') -> StreamForwardTask:
     """创建推流转发任务"""
     try:
+        from app.services.runtime_config_service import normalize_executor
         device_id_list = device_ids or []
         
         # 验证所有设备是否存在
@@ -110,6 +140,7 @@ def create_stream_forward_task(task_name: str,
             schedule_policy=schedule_policy or 'local',
             prefer_gpu=prefer_gpu if prefer_gpu is not None else True,
             target_node_id=target_node_id,
+            executor=normalize_executor(executor),
         )
         
         db.session.add(task)
@@ -149,6 +180,7 @@ def update_stream_forward_task(task_id: int, auto_rebalance: bool = True, **kwar
         schedule_changed = False
         previous_schedule = task.schedule_policy or 'local'
         previous_target_node = task.target_node_id
+        previous_executor = getattr(task, 'executor', None) or 'cpp'
         
         # 更新字段
         if 'task_name' in kwargs:
@@ -202,6 +234,14 @@ def update_stream_forward_task(task_id: int, auto_rebalance: bool = True, **kwar
             task.target_node_id = kwargs['target_node_id']
         if 'prefer_gpu' in kwargs:
             task.prefer_gpu = bool(kwargs['prefer_gpu'])
+        if 'executor' in kwargs:
+            from app.services.runtime_config_service import normalize_executor
+            new_executor = normalize_executor(kwargs['executor'])
+            if new_executor != normalize_executor(previous_executor):
+                schedule_changed = True
+            task.executor = new_executor
+        if 'runtime_bin_path' in kwargs:
+            task.runtime_bin_path = kwargs['runtime_bin_path']
         
         task.updated_at = datetime.utcnow()
         db.session.commit()
@@ -469,6 +509,7 @@ def ensure_nvr_stream_forward_task(nvr_id: int) -> Optional[StreamForwardTask]:
             description=description,
             is_enabled=False,
             schedule_policy=schedule_policy,
+            executor='cpp',
         )
         try:
             start_stream_forward_task(task.id)
@@ -519,7 +560,8 @@ def ensure_device_stream_forward_task(device_id: str) -> Optional[StreamForwardT
             output_format='rtmp',
             output_quality='high',
             description=f"为设备 {device.name or device_id} 自动创建的推流转发任务",
-            is_enabled=False  # 先创建，稍后启动
+            is_enabled=False,  # 先创建，稍后启动
+            executor='cpp',
         )
         
         # 启动任务

@@ -123,7 +123,7 @@ def _deploy_shard_locally(
 
     _stop_local_shard(workload_id)
     env = os.environ.copy()
-    env.update(_build_stream_forward_deploy_env(task_id, log_dir, host, device_ids, workload_id))
+    env.update(_build_stream_forward_deploy_env(task_id, log_dir, host, device_ids, workload_id, task=task))
     env['VIDEO_ROOT'] = video_root
     deploy_script = os.path.join(video_root, 'services', 'stream_forward_service', 'run_deploy.py')
 
@@ -485,7 +485,15 @@ def _build_stream_forward_deploy_env(
     device_ids: Optional[List[str]] = None,
     workload_id: Optional[str] = None,
     node_tags: Optional[dict] = None,
+    task: Optional[StreamForwardTask] = None,
 ) -> dict:
+    from app.services.runtime_config_service import (
+        normalize_executor,
+        resolve_runtime_bin,
+        REMOTE_RUNTIME_BIN,
+        runtime_config_dir,
+        runtime_library_path_env,
+    )
     env = {}
     for key in (
         'DATABASE_URL', 'GATEWAY_URL', 'JWT_TOKEN', 'JAVA_BACKEND_URL', 'POD_IP', 'HOST_IP', 'VIDEO_ENV',
@@ -533,7 +541,11 @@ def _build_stream_forward_deploy_env(
     env['TASK_ID'] = str(task_id)
     env['VIDEO_SERVICE_PORT'] = video_service_port
     env['VIDEO_CONTROL_URL'] = video_control_url
-    env['VIDEO_HEARTBEAT_URL'] = f'{video_control_url}/stream-forward/heartbeat'
+    # 心跳直连 VIDEO Flask（:6000），避免 Gateway :48080 未启动时 worker 连续失败后退出
+    from app.utils.service_urls import resolve_video_service_base_url
+    env['VIDEO_HEARTBEAT_URL'] = (
+        f'{resolve_video_service_base_url().rstrip("/")}/video/stream-forward/heartbeat'
+    )
     env['LOG_PATH'] = log_path
     env['POD_IP'] = server_host
     env['HOST_IP'] = server_host
@@ -543,6 +555,20 @@ def _build_stream_forward_deploy_env(
         env['WORKLOAD_ID'] = workload_id
     from app.utils.node_remote_tools import apply_remote_toolchain_env
     apply_remote_toolchain_env(env)
+
+    executor = normalize_executor(getattr(task, 'executor', None) if task else os.getenv('STREAM_FORWARD_EXECUTOR', 'cpp'))
+    env['STREAM_FORWARD_EXECUTOR'] = executor
+    if executor == 'cpp':
+        runtime_bin = resolve_runtime_bin(task)
+        if node_tags is not None or os.getenv('NODE_REMOTE_VIDEO_ROOT'):
+            env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
+        else:
+            env['RUNTIME_BIN'] = runtime_bin
+        env['RUNTIME_CONFIG_DIR'] = str(runtime_config_dir())
+        lib_path = runtime_library_path_env()
+        if lib_path:
+            existing = (env.get('LD_LIBRARY_PATH') or '').strip()
+            env['LD_LIBRARY_PATH'] = f'{lib_path}:{existing}' if existing else lib_path
     return env
 
 
@@ -700,7 +726,7 @@ def _deploy_shard_with_workload_id(
     deploy_script = os.path.join(work_dir, 'run_deploy.py')
     command = [python_exec, deploy_script]
 
-    env = _build_stream_forward_deploy_env(task_id, log_dir, host, device_ids, workload_id, node_tags)
+    env = _build_stream_forward_deploy_env(task_id, log_dir, host, device_ids, workload_id, node_tags, task=task)
     env['VIDEO_ROOT'] = video_root_remote
 
     result = node_client.deploy_workload(
@@ -972,7 +998,7 @@ def _deploy_task_on_remote_node(
     deploy_script = os.path.join(work_dir, 'run_deploy.py')
     command = [python_exec, deploy_script]
 
-    env = _build_stream_forward_deploy_env(task_id, log_dir, host, node_tags=node_tags)
+    env = _build_stream_forward_deploy_env(task_id, log_dir, host, node_tags=node_tags, task=task)
     env['VIDEO_ROOT'] = video_root_remote
 
     result = node_client.deploy_workload(
@@ -1466,9 +1492,17 @@ def restart_stream_forward_task_services(task_id: int) -> bool:
 
 def start_stream_forward_task(task_id: int):
     """启动推流转发任务（本机守护进程或远程节点/设备级分片）"""
+    from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
+
     task = StreamForwardTask.query.get(task_id)
     if not task:
         raise ValueError(f"推流转发任务不存在: task_id={task_id}")
+
+    if normalize_executor(getattr(task, 'executor', None) or 'cpp') == 'cpp':
+        try:
+            ensure_runtime_bin_ready(task)
+        except Exception as e:
+            raise RuntimeError(f'高性能推流转发需要 RUNTIME 二进制: {e}') from e
 
     with _starting_lock:
         if task_id not in _starting_tasks:
