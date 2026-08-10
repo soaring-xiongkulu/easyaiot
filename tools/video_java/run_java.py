@@ -37,6 +37,7 @@ from record_python import (  # noqa: E402
     _record_playback_url,
     _record_record_query,
     _record_face_publish_process,
+    _record_plate_publish_process,
     _record_snap_list_or_create,
     _record_stream_forward_start_stop,
     _record_view_forward_start_stop,
@@ -256,6 +257,7 @@ def _run_p2_with_failover(case: Dict[str, Any], fixture: Dict[str, Any], recorde
         "vj_p2_media_hook": "/video/media/hook/snap/completed",
         "vj_p2_detection_region_get": f"/video/device-detection/device/{fixture['device_id']}/regions",
         "vj_p2_face_publish_process": "/video/face/matching/publish",
+        "vj_p2_plate_publish_process": "/video/plate/matching/publish",
     }.get(cid, "/video/snap/space/list?pageNo=1&pageSize=1")
     if cid == "vj_p2_media_hook":
         status, _, _ = http_json("POST", f"{base}{probe}", fixture.get("media_hook_payload") or {})
@@ -264,6 +266,13 @@ def _run_p2_with_failover(case: Dict[str, Any], fixture: Dict[str, Any], recorde
             "POST",
             f"{base}{probe}",
             {"taskId": fixture["face_task_id"], "faceImagePath": fixture["face_image_path"]},
+            timeout=5.0,
+        )
+    elif cid == "vj_p2_plate_publish_process":
+        status, _, _ = http_json(
+            "POST",
+            f"{base}{probe}",
+            {"taskId": fixture["plate_task_id"], "plateNo": fixture["plate_no"]},
             timeout=5.0,
         )
     else:
@@ -321,7 +330,7 @@ def run_case(case_id: str) -> None:
     elif cid == "vj_p2_face_publish_process":
         _run_p2_with_failover(case, fixture, _record_face_publish_process)
     elif cid == "vj_p2_plate_publish_process":
-        _run_p2_honest_fail(case)
+        _run_p2_with_failover(case, fixture, _record_plate_publish_process)
     elif cid == "vj_p2_post_process_enqueue":
         _run_p2_honest_fail(case)
     elif cid == "vj_p2_snap_list_or_create":

@@ -1,5 +1,45 @@
 {
   "layer": "api",
-  "status": "fail",
-  "reason": "candidate Phase 2 endpoints not implemented"
+  "status": "sampled",
+  "endpoint": "/video/plate/matching/publish",
+  "http_status": 200,
+  "body": {
+    "code": 0,
+    "msg": "投递成功",
+    "message": "投递成功",
+    "data": {
+      "taskId": 49,
+      "taskName": "vj_p2_plate_match",
+      "taskType": "realtime",
+      "deviceId": "vj_p2_device",
+      "deviceName": "vj_p2 certify camera",
+      "libraryId": 4,
+      "libraryName": null,
+      "plateNo": "粤B00001",
+      "plateColor": null,
+      "plateImagePath": "/tmp/vj_p2_plate_certify.jpg",
+      "detectConf": null,
+      "timestamp": "2026-08-10T05:13:09.186234400Z",
+      "correlationId": "vj_p2_plate_certify"
+    }
+  },
+  "normalized": {
+    "code": 0,
+    "data": {
+      "correlationId": "vj_p2_plate_certify",
+      "detectConf": null,
+      "deviceId": "vj_p2_device",
+      "deviceName": "vj_p2 certify camera",
+      "libraryId": 4,
+      "libraryName": null,
+      "plateColor": null,
+      "plateImagePath": "vj_p2_plate_certify.jpg",
+      "plateNo": "粤B00001",
+      "taskId": 49,
+      "taskName": "vj_p2_plate_match",
+      "taskType": "realtime",
+      "timestamp": "<TIMESTAMP>"
+    },
+    "msg": "投递成功"
+  }
 }

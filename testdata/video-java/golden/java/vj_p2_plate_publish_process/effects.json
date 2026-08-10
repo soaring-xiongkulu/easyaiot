@@ -1,5 +1,12 @@
 {
   "layer": "side_effect",
-  "status": "fail",
-  "reason": "candidate Phase 2 endpoints not implemented"
+  "status": "sampled",
+  "snapshot": {
+    "publish_code": 0,
+    "publish_ok": true,
+    "kafka_sent": true,
+    "process_code": 0,
+    "process_ok": true,
+    "matching_record_created": true
+  }
 }

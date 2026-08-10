@@ -2,15 +2,43 @@
   "layer": "api",
   "status": "sampled",
   "endpoint": "/video/plate/matching/publish",
-  "http_status": 0,
+  "http_status": 200,
   "body": {
-    "code": -1,
-    "msg": "TimeoutError: timed out",
-    "data": {}
+    "code": 0,
+    "msg": "投递成功",
+    "data": {
+      "taskId": 49,
+      "taskName": "vj_p2_plate_match",
+      "taskType": "realtime",
+      "deviceId": "vj_p2_device",
+      "deviceName": "vj_p2 certify camera",
+      "libraryId": 4,
+      "plateNo": "粤B00001",
+      "plateImagePath": "/tmp/vj_p2_plate_certify.jpg",
+      "correlationId": "vj_p2_plate_certify",
+      "libraryName": null,
+      "plateColor": null,
+      "detectConf": null,
+      "timestamp": "2026-08-10T13:13:08.269690"
+    }
   },
   "normalized": {
-    "code": -1,
-    "data": {},
-    "msg": "TimeoutError: timed out"
+    "code": 0,
+    "data": {
+      "correlationId": "vj_p2_plate_certify",
+      "detectConf": null,
+      "deviceId": "vj_p2_device",
+      "deviceName": "vj_p2 certify camera",
+      "libraryId": 4,
+      "libraryName": null,
+      "plateColor": null,
+      "plateImagePath": "vj_p2_plate_certify.jpg",
+      "plateNo": "粤B00001",
+      "taskId": 49,
+      "taskName": "vj_p2_plate_match",
+      "taskType": "realtime",
+      "timestamp": "<TIMESTAMP>"
+    },
+    "msg": "投递成功"
   }
 }
