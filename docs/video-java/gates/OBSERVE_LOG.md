@@ -41,4 +41,12 @@ CLOSE-S3 polls covered health/camera only. EVID-S5 adds lifecycle/alarm probes �
 | Probe | Result |
 |-------|--------|
 | `POST /video/algorithm/heartbeat/realtime` (direct + gateway) | ✅ `code=0`, task_id=35 |
-| `POST /video/alert/hook` (direct) | ✅ `code=0` |
+| `POST /video/alert/hook` (direct) | ✅ `code=0` (`status=skipped` — fixture events off) |
+
+## EVID-S6 extension (alert-hook SUCCESS)
+
+EVID-S6 re-runs alert-hook after `ensure_p0_alert_fixture` — see [OBSERVE_EVID-S6.md](./OBSERVE_EVID-S6.md):
+
+| Probe | Result |
+|-------|--------|
+| `POST /video/alert/hook` (direct) | ✅ `code=0`, **`status=success`**, `alert_id=4509` |
