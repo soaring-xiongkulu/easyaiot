@@ -1,11 +1,11 @@
 package com.basiclab.iot.video.service;
 
 import com.basiclab.iot.video.dal.AlgorithmTaskRepository;
+import com.basiclab.iot.video.domain.AlgorithmTaskRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -20,14 +20,16 @@ public class HeartbeatService {
             throw new VideoBusinessException(400, "缺少必要参数：task_id");
         }
         long taskId = Long.parseLong(String.valueOf(rawId));
-        taskRepository.findById(taskId)
+        AlgorithmTaskRow task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new VideoBusinessException(400, "算法任务不存在：task_id=" + taskId));
         String serverIp = body.get("server_ip") != null ? String.valueOf(body.get("server_ip")) : null;
         Integer port = parseInt(body.get("port"));
         Integer processId = parseInt(body.get("process_id"));
         String logPath = body.get("log_path") != null ? String.valueOf(body.get("log_path")) : null;
-        taskRepository.updateHeartbeat(taskId, serverIp, port, processId, logPath, "running");
-        return Map.of("task_id", taskId, "task_name", taskRepository.findById(taskId).map(t -> t.getTaskName()).orElse(""));
+        // Match oracle: heartbeat does not promote run_status from stopped → running.
+        String runStatus = "stopped".equals(task.getRunStatus()) ? null : "running";
+        taskRepository.updateHeartbeat(taskId, serverIp, port, processId, logPath, runStatus);
+        return Map.of("task_id", taskId, "task_name", task.getTaskName());
     }
 
     private Integer parseInt(Object value) {

@@ -2,7 +2,7 @@
   "layer": "lifecycle",
   "status": "sampled",
   "snapshot": {
-    "run_status": "running",
+    "run_status": "stopped",
     "service_server_ip": "127.0.0.1",
     "service_port": 8101,
     "heartbeat_ok": true

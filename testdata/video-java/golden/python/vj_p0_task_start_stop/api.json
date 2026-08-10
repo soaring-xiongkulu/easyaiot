@@ -2,7 +2,7 @@
   "layer": "api",
   "status": "sampled",
   "endpoint": "/video/algorithm/task/35/start",
-  "http_status": "{\"code\":0,\"data\":{\"alarm_suppress_time\":300,\"alert_class_names\":[],\"alert_event_enabled\":true,\"alert_event_suppress_time\":5,\"alert_notification_config\":null,\"alert_notification_enabled\":false,\"algorithm_services\":[],\"already_running\":false,\"created_at\":null,\"cron_expression\":null,\"defense_mode\":\"full\",\"defense_schedule\":null,\"detect_conf\":0.5,\"device_ids\":[\"vj_p0_device\"],\"device_names\":[\"vj_p0 certify camera\"],\"exception_reason\":null,\"executor\":\"cpp\",\"extract_interval\":null,\"face_detection_enabled\":false,\"face_library_ids\":[],\"face_library_names\":[],\"face_matching_enabled\":false,\"face_matching_threshold\":null,\"focus_device_id\":null,\"frame_skip\":25,\"id\":35,\"is_enabled\":true,\"last_capture_time\":null,\"last_notify_time\":null,\"last_process_time\":null,\"last_success_time\":null,\"matching_business_tags\":[],\"model_ids\":[],\"model_names\":null,\"motion_gate_config\":null,\"motion_gate_enabled\":false,\"node_id\":null,\"patrol_interval_sec\":null,\"patrol_mode\":null,\"patrol_pool_size\":null,\"plate_detection_enabled\":false,\"plate_library_ids\":[],\"plate_library_names\":[],\"plate_matching_enabled\":false,\"pose_analysis_config\":null,\"pose_analysis_enabled\":false,\"pose_intent_config\":null,\"pose_intent_enabled\":false,\"pose_intent_threshold\":null,\"pose_library_ids\":[],\"pose_library_names\":[],\"post_process_enabled\":false,\"post_process_replicas\":1,\"post_process_script\":null,\"prefer_gpu\":false,\"rtmp_input_url\":null,\"rtmp_output_url\":null,\"runtime_bin_path\":\"F:\\\\acme\\\\.worktrees\\\\video-java\\\\tools\\\\video_java\\\\stub_runtime.bat\",\"runtime_control_port\":null,\"sam_supplement_config\":null,\"sam_supplement_enabled\":false,\"schedule_policy\":\"local\",\"service_last_heartbeat\":\"2026-08-10T02:09:28.875278Z\",\"service_log_path\":\"F:\\\\acme\\\\VIDEO\\\\logs\\\\task_35\",\"service_port\":8035,\"service_process_id\":null,\"service_server_ip\":\"127.0.0.1\",\"space_id\":null,\"space_name\":null,\"status\":0,\"target_node_id\":null,\"task_code\":\"vj_p0_9482075d\",\"task_name\":\"vj_p0_certify\",\"task_type\":\"realtime\",\"total_captures\":0,\"total_detections\":0,\"total_frames\":0,\"tracking_enabled\":false,\"tracking_max_age\":25,\"tracking_similarity_threshold\":0.2,\"tracking_smooth_alpha\":0.25,\"updated_at\":\"2026-08-10T02:12:11.864610Z\"},\"msg\":\"\\u542f\\u52a8\\u6210\\u529f\"}\n",
+  "http_status": "{\"code\":0,\"data\":{\"alarm_suppress_time\":300,\"alert_class_names\":[],\"alert_event_enabled\":true,\"alert_event_suppress_time\":5,\"alert_notification_config\":null,\"alert_notification_enabled\":false,\"algorithm_services\":[],\"already_running\":false,\"created_at\":null,\"cron_expression\":null,\"defense_mode\":\"full\",\"defense_schedule\":null,\"detect_conf\":0.5,\"device_ids\":[\"vj_p0_device\"],\"device_names\":[\"vj_p0 certify camera\"],\"exception_reason\":null,\"executor\":\"cpp\",\"extract_interval\":null,\"face_detection_enabled\":false,\"face_library_ids\":[],\"face_library_names\":[],\"face_matching_enabled\":false,\"face_matching_threshold\":null,\"focus_device_id\":null,\"frame_skip\":25,\"id\":35,\"is_enabled\":true,\"last_capture_time\":null,\"last_notify_time\":null,\"last_process_time\":null,\"last_success_time\":null,\"matching_business_tags\":[],\"model_ids\":[],\"model_names\":null,\"motion_gate_config\":null,\"motion_gate_enabled\":false,\"node_id\":null,\"patrol_interval_sec\":null,\"patrol_mode\":null,\"patrol_pool_size\":null,\"plate_detection_enabled\":false,\"plate_library_ids\":[],\"plate_library_names\":[],\"plate_matching_enabled\":false,\"pose_analysis_config\":null,\"pose_analysis_enabled\":false,\"pose_intent_config\":null,\"pose_intent_enabled\":false,\"pose_intent_threshold\":null,\"pose_library_ids\":[],\"pose_library_names\":[],\"post_process_enabled\":false,\"post_process_replicas\":1,\"post_process_script\":null,\"prefer_gpu\":false,\"rtmp_input_url\":null,\"rtmp_output_url\":null,\"runtime_bin_path\":\"F:\\\\acme\\\\.worktrees\\\\video-java\\\\tools\\\\video_java\\\\stub_runtime.bat\",\"runtime_control_port\":null,\"sam_supplement_config\":null,\"sam_supplement_enabled\":false,\"schedule_policy\":\"local\",\"service_last_heartbeat\":\"2026-08-10T10:18:46.991277Z\",\"service_log_path\":\"F:\\\\acme\\\\VIDEO\\\\logs\\\\task_35\",\"service_port\":8035,\"service_process_id\":12345,\"service_server_ip\":\"127.0.0.1\",\"space_id\":null,\"space_name\":null,\"status\":0,\"target_node_id\":null,\"task_code\":\"vj_p0_9482075d\",\"task_name\":\"vj_p0_certify\",\"task_type\":\"realtime\",\"total_captures\":0,\"total_detections\":0,\"total_frames\":0,\"tracking_enabled\":false,\"tracking_max_age\":25,\"tracking_similarity_threshold\":0.2,\"tracking_smooth_alpha\":0.25,\"updated_at\":\"2026-08-10T02:22:26.038195Z\"},\"msg\":\"\\u542f\\u52a8\\u6210\\u529f\"}\n",
   "body": {
     "code": 0,
     "data": {
@@ -72,10 +72,10 @@
       "sam_supplement_config": null,
       "sam_supplement_enabled": false,
       "schedule_policy": "local",
-      "service_last_heartbeat": "2026-08-10T02:09:28.875278Z",
+      "service_last_heartbeat": "2026-08-10T10:18:46.991277Z",
       "service_log_path": "F:\\acme\\VIDEO\\logs\\task_35",
       "service_port": 8035,
-      "service_process_id": null,
+      "service_process_id": 12345,
       "service_server_ip": "127.0.0.1",
       "space_id": null,
       "space_name": null,
@@ -91,7 +91,7 @@
       "tracking_max_age": 25,
       "tracking_similarity_threshold": 0.2,
       "tracking_smooth_alpha": 0.25,
-      "updated_at": "2026-08-10T02:12:11.864610Z"
+      "updated_at": "2026-08-10T02:22:26.038195Z"
     },
     "msg": "启动成功"
   },
@@ -167,7 +167,7 @@
       "service_last_heartbeat": "<TIMESTAMP>",
       "service_log_path": "task_35",
       "service_port": "<NUM>",
-      "service_process_id": null,
+      "service_process_id": "<NUM>",
       "service_server_ip": "127.0.0.1",
       "space_id": null,
       "space_name": null,

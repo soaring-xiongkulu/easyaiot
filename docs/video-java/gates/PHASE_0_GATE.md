@@ -1,7 +1,7 @@
 # PHASE 0 Gate — VIDEO Java minimal closed loop
 
 **Status:** FAIL
-**Updated:** 2026-08-10 02:18 UTC
+**Updated:** 2026-08-10 02:22 UTC
 
 Only layer status `pass` counts toward gate PASS. `exempt` layers are documented below but do not satisfy parity.
 
@@ -19,7 +19,7 @@ python tools/video_java/certify.py --phase 0
 |---------|----|--------|
 | vj_p0_health | False | api:exempt |
 | vj_p0_task_start_stop | True | lifecycle:pass, ini:pass |
-| vj_p0_heartbeat | False | lifecycle:fail |
+| vj_p0_heartbeat | True | lifecycle:pass |
 | vj_p0_alert_hook | True | alarm:pass |
 
 ## Documented exemptions (this run)

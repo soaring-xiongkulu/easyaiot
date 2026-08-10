@@ -106,15 +106,21 @@ def _record_heartbeat(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
     base = case["candidate_base_url"].rstrip("/")
     task_id = int(fixture["task_id"])
     out = golden_dir("java", case["case_id"])
+    _ensure_task_stopped(base, task_id)
+    control_port = int(fixture.get("control_port", 8001 + task_id % 1000))
+    log_path = fixture.get("log_path") or str(Path.home() / ".video-java" / "logs" / f"task_{task_id}")
     payload = {
         "task_id": task_id,
         "server_ip": "127.0.0.1",
-        "port": fixture.get("control_port", 8001),
+        "port": control_port,
         "process_id": 12345,
-        "log_path": fixture.get("log_path", f"/tmp/task_{task_id}"),
+        "log_path": log_path,
     }
     _, body, _ = http_json("POST", f"{base}/video/algorithm/heartbeat/realtime", payload)
     after = _task_detail(base, task_id)
+    after_data = after.get("data") or {}
+    after_svc = _task_service_status(base, task_id)
+    after_lc = _lifecycle_from_service(after_svc)
     write_layer(
         out / LAYER_FILES["api"],
         "api",
@@ -125,9 +131,9 @@ def _record_heartbeat(case: Dict[str, Any], fixture: Dict[str, Any]) -> None:
         "lifecycle",
         {
             "snapshot": {
-                "run_status": after.get("data", {}).get("run_status"),
-                "service_server_ip": after.get("data", {}).get("service_server_ip"),
-                "service_port": after.get("data", {}).get("service_port"),
+                "run_status": after_lc["run_status"],
+                "service_server_ip": after_data.get("service_server_ip"),
+                "service_port": after_data.get("service_port"),
                 "heartbeat_ok": body.get("code") == 0,
             }
         },

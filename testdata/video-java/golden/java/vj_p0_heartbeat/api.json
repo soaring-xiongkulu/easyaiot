@@ -7,8 +7,8 @@
     "msg": "心跳接收成功",
     "message": "心跳接收成功",
     "data": {
-      "task_name": "vj_p0_certify",
-      "task_id": 35
+      "task_id": 35,
+      "task_name": "vj_p0_certify"
     }
   },
   "normalized": {

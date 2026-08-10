@@ -2,19 +2,19 @@
   "layer": "api",
   "status": "sampled",
   "endpoint": "/actuator/health",
-  "http_status": 500,
+  "http_status": 200,
   "body": {
     "hostname": "LAPTOP-IMH06J0F",
-    "status": "failure",
-    "timestamp": 1786327611.1442735,
+    "status": "success",
+    "timestamp": 1786328535.6794426,
     "results": [
       {
         "checker": "database_available",
-        "output": "'utf-8' codec can't decode byte 0xd6 in position 61: invalid continuation byte",
-        "passed": false,
-        "timestamp": 1786327611.1442735,
-        "expires": 1786327620.1442735,
-        "response_time": 0.074018
+        "output": "Database OK",
+        "passed": true,
+        "timestamp": 1786328535.6794426,
+        "expires": 1786328562.6794426,
+        "response_time": 0.010709
       }
     ]
   },
@@ -23,15 +23,15 @@
     "results": [
       {
         "checker": "database_available",
-        "expires": 1786327620.1442735,
-        "output": "'utf-8' codec can't decode byte 0xd6 in position 61: invalid continuation byte",
-        "passed": false,
-        "response_time": 0.074018,
-        "timestamp": 1786327611.1442735
+        "expires": 1786328562.6794426,
+        "output": "Database OK",
+        "passed": true,
+        "response_time": 0.010709,
+        "timestamp": 1786328535.6794426
       }
     ],
-    "status": "failure",
-    "timestamp": 1786327611.1442735
+    "status": "success",
+    "timestamp": 1786328535.6794426
   },
-  "raw": "{\"hostname\": \"LAPTOP-IMH06J0F\", \"status\": \"failure\", \"timestamp\": 1786327611.1442735, \"results\": [{\"checker\": \"database_available\", \"output\": \"'utf-8' codec can't decode byte 0xd6 in position 61: invalid continuation byte\", \"passed\": false, \"timestamp\": 1786327611.1442735, \"expires\": 1786327620.1442735, \"response_time\": 0.074018}]}"
+  "raw": "{\"hostname\": \"LAPTOP-IMH06J0F\", \"status\": \"success\", \"timestamp\": 1786328535.6794426, \"results\": [{\"checker\": \"database_available\", \"output\": \"Database OK\", \"passed\": true, \"timestamp\": 1786328535.6794426, \"expires\": 1786328562.6794426, \"response_time\": 0.010709}]}"
 }
