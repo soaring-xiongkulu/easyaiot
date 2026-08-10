@@ -2,8 +2,10 @@ package com.basiclab.iot.video.controller;
 
 import com.basiclab.iot.video.domain.vo.SpaceListApiResponse;
 import com.basiclab.iot.video.domain.vo.VideoApiResponse;
+import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.service.record.RecordSpaceAdminService;
 import com.basiclab.iot.video.service.record.RecordVideoService;
+import com.basiclab.iot.video.support.MediaPathSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -123,13 +126,20 @@ public class RecordController {
         return response;
     }
 
-    @GetMapping("/space/{spaceId}/video/{*objectName}")
-    public ResponseEntity<byte[]> getVideo(@PathVariable int spaceId, @PathVariable String objectName) {
-        byte[] content = recordVideoService.getVideoContent(spaceId, objectName);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(recordVideoService.videoContentType(objectName)))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + recordVideoService.videoFilename(objectName) + "\"")
-                .body(content);
+    @GetMapping("/space/{spaceId}/video/**")
+    public ResponseEntity<?> getVideo(@PathVariable int spaceId, HttpServletRequest request) {
+        String objectName = MediaPathSupport.pathWithinHandlerMapping(request);
+        try {
+            byte[] content = recordVideoService.getVideoContent(spaceId, objectName);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(recordVideoService.videoContentType(objectName)))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + recordVideoService.videoFilename(objectName) + "\"")
+                    .body(content);
+        } catch (VideoBusinessException ex) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(VideoApiResponse.error(ex.getCode(), ex.getMessage()));
+        }
     }
 
     @DeleteMapping("/space/{spaceId}/videos")

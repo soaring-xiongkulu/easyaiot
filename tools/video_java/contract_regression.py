@@ -37,7 +37,7 @@ SMOKE_ENDPOINTS: Dict[str, str] = {
     "/video/patrol": "/video/patrol/session/list",
     "/video/face": "/video/face/health",
     "/video/plate": "/video/plate/health",
-    "/video/device-detection": "/video/device-detection/regions",
+    "/video/device-detection": "/video/device-detection/device/1/regions",
     "/video/camera/audio/talk": "/video/camera/audio/talk/health",
     "/video/scenario-pose": "/video/scenario-pose/libraries",
 }

@@ -1,7 +1,6 @@
 package com.basiclab.iot.video.controller;
 
 import com.basiclab.iot.video.domain.vo.VideoApiResponse;
-import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.service.PatrolSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,16 +30,8 @@ public class PatrolController {
     }
 
     @GetMapping("/session/{sessionId}")
-    public Object getSession(@PathVariable long sessionId) {
-        try {
-            return VideoApiResponse.success(patrolSessionService.getSession(sessionId));
-        } catch (VideoBusinessException ex) {
-            if (ex.getCode() == 404) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(VideoApiResponse.error(404, ex.getMessage()));
-            }
-            throw ex;
-        }
+    public VideoApiResponse<Map<String, Object>> getSession(@PathVariable long sessionId) {
+        return VideoApiResponse.success(patrolSessionService.getSession(sessionId));
     }
 
     @PostMapping("/session/{sessionId}/start")
@@ -67,29 +58,13 @@ public class PatrolController {
     }
 
     @GetMapping("/session/{sessionId}/stats")
-    public Object sessionStats(@PathVariable long sessionId) {
-        try {
-            return VideoApiResponse.success(patrolSessionService.buildStats(sessionId));
-        } catch (VideoBusinessException ex) {
-            if (ex.getCode() == 404) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(VideoApiResponse.error(404, ex.getMessage()));
-            }
-            throw ex;
-        }
+    public VideoApiResponse<Map<String, Object>> sessionStats(@PathVariable long sessionId) {
+        return VideoApiResponse.success(patrolSessionService.buildStats(sessionId));
     }
 
     @GetMapping(value = "/session/{sessionId}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Object sessionEvents(@PathVariable long sessionId) {
-        try {
-            return patrolSessionService.subscribeEvents(sessionId);
-        } catch (VideoBusinessException ex) {
-            if (ex.getCode() == 404) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(VideoApiResponse.error(404, ex.getMessage()));
-            }
-            throw ex;
-        }
+        return patrolSessionService.subscribeEvents(sessionId);
     }
 
     @GetMapping("/directory/{directoryId}/devices")
@@ -101,18 +76,10 @@ public class PatrolController {
     }
 
     @PatchMapping("/session/{sessionId}")
-    public Object patchSession(
+    public VideoApiResponse<Map<String, Object>> patchSession(
             @PathVariable long sessionId,
             @RequestBody(required = false) Map<String, Object> body) {
-        try {
-            return VideoApiResponse.success(patrolSessionService.patchSession(sessionId, body != null ? body : Map.of()));
-        } catch (VideoBusinessException ex) {
-            if (ex.getCode() == 404) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(VideoApiResponse.error(404, ex.getMessage()));
-            }
-            throw ex;
-        }
+        return VideoApiResponse.success(patrolSessionService.patchSession(sessionId, body != null ? body : Map.of()));
     }
 
     @PostMapping("/heartbeat")

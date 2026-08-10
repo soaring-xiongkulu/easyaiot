@@ -9,10 +9,19 @@ from pathlib import Path
 from typing import Iterable, List, Set, Tuple
 
 JAVA_MAPPING = re.compile(
-    r"@(?P<ann>Get|Post|Put|Delete|Patch)Mapping\s*\(\s*(?:value\s*=\s*)?['\"](?P<path>[^'\"]+)['\"]",
+    r"@(?P<ann>Get|Post|Put|Delete|Patch)Mapping\s*\(\s*(?:value\s*=\s*)?(?P<paths>\{[^}]+\}|['\"][^'\"]*['\"])",
     re.IGNORECASE,
 )
 CLASS_PREFIX = re.compile(r"@RequestMapping\s*\(\s*['\"](?P<prefix>[^'\"]+)['\"]")
+
+
+def _mapping_subpaths(raw: str) -> List[str]:
+    """Extract path literals from @XMapping('...') or @XMapping({'', '/'}) etc."""
+    raw = raw.strip()
+    if raw.startswith("{"):
+        inner = raw[1:-1]
+        return [p.strip().strip("'\"") for p in inner.split(",") if p.strip().strip("'\"") or p.strip() in ('""', "''")]
+    return [raw.strip("'\"")]
 
 BLUEPRINT_SPECS = {
     "/video/alert": {
@@ -147,9 +156,9 @@ def java_routes(prefix: str) -> Set[str]:
         if not class_prefix.startswith(prefix.rstrip("/")):
             continue
         for match in JAVA_MAPPING.finditer(text):
-            sub = match.group("path")
             method = match.group("ann").upper()
-            routes.add(normalize_route(method, sub, class_prefix))
+            for sub in _mapping_subpaths(match.group("paths")):
+                routes.add(normalize_route(method, sub, class_prefix))
     return routes
 
 

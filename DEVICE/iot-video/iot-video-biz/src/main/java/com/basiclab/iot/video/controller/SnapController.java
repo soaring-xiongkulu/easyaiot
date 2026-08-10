@@ -2,12 +2,14 @@ package com.basiclab.iot.video.controller;
 
 import com.basiclab.iot.video.domain.vo.SpaceListApiResponse;
 import com.basiclab.iot.video.domain.vo.VideoApiResponse;
+import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.service.snap.SnapAlgorithmService;
 import com.basiclab.iot.video.service.snap.SnapImageService;
 import com.basiclab.iot.video.service.snap.SnapRegionService;
 import com.basiclab.iot.video.service.snap.SnapSpaceAdminService;
 import com.basiclab.iot.video.service.snap.SnapStorageService;
 import com.basiclab.iot.video.service.snap.SnapTaskService;
+import com.basiclab.iot.video.support.MediaPathSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -262,14 +265,21 @@ public class SnapController {
         return response;
     }
 
-    @GetMapping("/space/{spaceId}/image/{*objectName}")
-    public ResponseEntity<byte[]> getImage(@PathVariable int spaceId, @PathVariable String objectName) {
-        byte[] content = snapImageService.getImageContent(spaceId, objectName);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(snapImageService.imageContentType(objectName)))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=\"" + snapImageService.imageFilename(objectName) + "\"")
-                .body(content);
+    @GetMapping("/space/{spaceId}/image/**")
+    public ResponseEntity<?> getImage(@PathVariable int spaceId, HttpServletRequest request) {
+        String objectName = MediaPathSupport.pathWithinHandlerMapping(request);
+        try {
+            byte[] content = snapImageService.getImageContent(spaceId, objectName);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(snapImageService.imageContentType(objectName)))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + snapImageService.imageFilename(objectName) + "\"")
+                    .body(content);
+        } catch (VideoBusinessException ex) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(VideoApiResponse.error(ex.getCode(), ex.getMessage()));
+        }
     }
 
     @DeleteMapping("/space/{spaceId}/images")

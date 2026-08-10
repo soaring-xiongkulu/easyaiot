@@ -1,7 +1,9 @@
 package com.basiclab.iot.video.support;
 
 import com.basiclab.iot.video.config.VideoProperties;
+import org.springframework.web.servlet.HandlerMapping;
 
+import javax.servlet.http.HttpServletRequest;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +72,16 @@ public final class MediaPathSupport {
             expanded = System.getProperty("user.home") + expanded.substring(1);
         }
         return Path.of(expanded).normalize().toString();
+    }
+
+    /** Remaining path after {@code /**} mapping (AntPathMatcher-safe; mirrors Flask {@code <path:>}). */
+    public static String pathWithinHandlerMapping(HttpServletRequest request) {
+        Object raw = request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        if (raw == null) {
+            return "";
+        }
+        String path = String.valueOf(raw);
+        return path.startsWith("/") ? path.substring(1) : path;
     }
 
     private static String env(String name) {

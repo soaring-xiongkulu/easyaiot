@@ -42,7 +42,7 @@ public class PlaybackController {
         return VideoApiResponse.success(playbackService.get(playbackId));
     }
 
-    @PostMapping("/")
+    @PostMapping({"", "/"})
     public VideoApiResponse<Map<String, Object>> create(@RequestBody(required = false) Map<String, Object> body) {
         return VideoApiResponse.success("录像回放记录创建成功", playbackService.create(body != null ? body : Map.of()));
     }
