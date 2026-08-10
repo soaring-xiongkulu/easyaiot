@@ -295,23 +295,33 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B40 契约探针 404 假阳性**（`:48096` live） | FR-B39 业务 code=404→HTTP 404 后 39 条探针误报 unmapped；`contract_regression.py` 区分 envelope 404 vs Spring 404 → **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json` |
 | **FR-B41 face entry 成功路径**（`:48096` local） | `face_rec.onnx` 官方 buffalo_l 下载 + worker + Milvus v2.4.15；multipart **code=0** + **12** FaceEntry keys + `image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json` |
 | **FR-B42 face entry update 带图**（`:48096` local） | `PUT /video/face/entries/{id}` multipart → delete MinIO + re-extract + Milvus re-upsert；**code=0** + 12 keys + `image_url` + `milvus_id` 变更；artifact `logs/fr-b42-face-update-latest.json` |
+| **FR-B43 face/plate /health 真探测**（`:48096` local） | `/video/face/health`：`face_vector_store.ping` + `recognition_model_loaded`；`/video/plate/health`：`get_plate_model_status` 键；**2/2** probe pass；artifact `logs/fr-b43-health-latest.json` |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B42
+## 9. 最终判定 — FR-B43
+
+| 问题 | 答案 |
+|------|------|
+| Face/plate /health 真探测？ | **是（local）** — face `collection_exists=true` + `recognition_model_loaded=true`；plate `exists=true`；artifact `logs/fr-b43-health-latest.json` |
+| Python-first cites？ | `face_vector_store.ping` L164-179 + `face.py` L83-90；`get_plate_model_status` L47-62 + `plate.py` L55-59 |
+| phase0？ | **PASS 5/5** — `logs/certify-frb43-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — local-only；prod Milvus/模型 soak 仍 open |
+
+## 10. 历史判定归档（只读）
+
+<details>
+<summary>FR-B42 / FR-B41 / FR-B40 / FR-B38 … 历史判定（点击展开）</summary>
+
+### FR-B42
 
 | 问题 | 答案 |
 |------|------|
 | Face entry update 带图成功？ | **是（local）** — HTTP 200 **code=0** msg=更新成功；12 keys；`image_url` + `milvus_id` 均更新；artifact `logs/fr-b42-face-update-latest.json` |
 | Python-first cites？ | `face_library_service.update_entry` L428-482（delete MinIO → extract_and_crop → delete milvus_id → add_face_to_library）；`add_entry` L303-380 作 setup |
 | phase0？ | **PASS 5/5** — `logs/certify-frb42-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — local-only；`/video/face/health` stub 仍非 prod 绿 |
-
-## 10. 历史判定归档（只读）
-
-<details>
-<summary>FR-B41 / FR-B40 / FR-B38 … 历史判定（点击展开）</summary>
+| 能否称 COMPLETE？ | **禁止** — local-only；`/video/face/health` stub 仍非 prod 绿（**已由 FR-B43 收口**） |
 
 ### FR-B41
 

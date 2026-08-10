@@ -1,0 +1,99 @@
+{
+  "generated_at": "20260810T224110Z",
+  "base_url": "http://127.0.0.1:48096",
+  "server_up": true,
+  "health_detail": "health HTTP 200",
+  "acme_root": "F:\\acme\\.worktrees\\video-java",
+  "face_rec_onnx": "F:\\acme\\.worktrees\\video-java\\VIDEO\\face_rec.onnx",
+  "plate_detect_onnx": "F:\\acme\\.worktrees\\video-java\\VIDEO\\plate_detect.onnx",
+  "plate_rec_onnx": "F:\\acme\\.worktrees\\video-java\\VIDEO\\plate_rec.onnx",
+  "probes": [
+    {
+      "id": "face_health_truthful",
+      "path": "GET /video/face/health",
+      "python_source": "VIDEO/_retired_python_video/app/services/face_vector_store.py ping L164-179 + VIDEO/_retired_python_video/app/blueprints/face.py health L83-90",
+      "required_keys": [
+        "collection_exists",
+        "collection_name",
+        "milvus_uri",
+        "recognition_model_downloading",
+        "recognition_model_loaded"
+      ],
+      "checks": [
+        {
+          "check": "keys",
+          "status": "pass"
+        },
+        {
+          "check": "code",
+          "status": "pass"
+        },
+        {
+          "check": "truthful_green",
+          "status": "pass",
+          "detail": "milvus+collection+model"
+        }
+      ],
+      "http_status": 200,
+      "business_code": 0,
+      "data": {
+        "milvus_uri": "http://localhost:19530",
+        "collection_name": "face_embeddings",
+        "collection_exists": true,
+        "recognition_model_loaded": true,
+        "recognition_model_downloading": false
+      },
+      "ok": true
+    },
+    {
+      "id": "plate_health_truthful",
+      "path": "GET /video/plate/health",
+      "python_source": "VIDEO/_retired_python_video/app/utils/plate_model_download.py get_plate_model_status L47-62 + VIDEO/_retired_python_video/app/blueprints/plate.py health L55-59",
+      "required_keys": [
+        "detect_model",
+        "detect_path",
+        "downloading",
+        "error",
+        "exists",
+        "progress",
+        "rec_model",
+        "rec_path",
+        "stage"
+      ],
+      "checks": [
+        {
+          "check": "keys",
+          "status": "pass"
+        },
+        {
+          "check": "code",
+          "status": "pass"
+        },
+        {
+          "check": "truthful_green",
+          "status": "pass",
+          "detail": "plate models ready"
+        }
+      ],
+      "http_status": 200,
+      "business_code": 0,
+      "data": {
+        "exists": true,
+        "detect_model": "plate_detect.onnx",
+        "rec_model": "plate_rec.onnx",
+        "detect_path": "F:/acme/.worktrees/video-java/VIDEO/plate_detect.onnx",
+        "rec_path": "F:/acme/.worktrees/video-java/VIDEO/plate_rec.onnx",
+        "downloading": false,
+        "stage": "done",
+        "progress": 100,
+        "error": null
+      },
+      "ok": true
+    }
+  ],
+  "summary": {
+    "pass": 2,
+    "total": 2
+  },
+  "disclaimer": "FR-B43 health probes require live video-server + ACME_ROOT + models on disk. Milvus down → collection_exists=false (honest). Models missing → exists=false. Local-only evidence — not COMPLETE."
+}

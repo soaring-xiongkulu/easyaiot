@@ -1,0 +1,15 @@
+WARN record_python failed for vj_p0_heartbeat (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_heartbeat
+certify: vj_p0_heartbeat ok=True
+  lifecycle: pass 鈥?ok
++ F:\anaconda\python.exe record_python.py vj_p0_alert_hook
+WARN record_python failed for vj_p0_alert_hook (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_alert_hook
+certify: vj_p0_alert_hook ok=True
+  alarm: pass 鈥?ok
++ F:\anaconda\python.exe record_python.py vj_p0_restart
+WARN record_python failed for vj_p0_restart (rc=1) 鈥?diff may use stale/missing python golden
++ F:\anaconda\python.exe run_java.py vj_p0_restart
+certify: vj_p0_restart ok=True
+  lifecycle: pass 鈥?ok
+gate report: F:\acme\.worktrees\video-java\docs\video-java\gates\PHASE_0_GATE.md

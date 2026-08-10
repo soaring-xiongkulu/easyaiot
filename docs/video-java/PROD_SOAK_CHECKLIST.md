@@ -82,8 +82,8 @@
 
 | # | 项 | 配置 / 依赖 | 期望证据 | 状态 |
 |---|-----|-------------|----------|------|
-| 6.1 | InsightFace + Milvus | 模型文件 + Milvus URI | `/video/face/health` collection_exists=true | ✅ local-only evidence — FR-B41：`POST /video/face/libraries/{id}/entries` multipart **code=0** + 12 keys + `image_url` + `milvus_id`；`logs/fr-b41-face-entry-success-latest.json`；FR-B42：`PUT /video/face/entries/{id}` multipart **code=0** + `image_url`/`milvus_id` 更新；`logs/fr-b42-face-update-latest.json`；需 `ACME_ROOT`+`VIDEO_PYTHON`+Milvus v2.4.15；**非 prod 绿** |
-| 6.2 | PaddleOCR plate | 模型下载完成 | `/video/plate/health` exists=true | ⬜ |
+| 6.1 | InsightFace + Milvus | 模型文件 + Milvus URI | `/video/face/health` collection_exists=true | ✅ local-only evidence — FR-B41/B42 entry/update；**FR-B43 ✅** `/video/face/health` 真探测：`collection_exists=true` + `recognition_model_loaded=true` + `collection_name=face_embeddings`；`face_vector_store.ping` worker；`logs/fr-b43-health-latest.json`；需 `ACME_ROOT`+Milvus v2.4.15+`face_rec.onnx`；**非 prod 绿** |
+| 6.2 | PaddleOCR plate | 模型下载完成 | `/video/plate/health` exists=true | ✅ local-only evidence — FR-B43：`exists=true` + `stage=done` + `plate_detect.onnx`/`plate_rec.onnx` 真路径；`get_plate_model_status` 键对齐；`logs/fr-b43-health-latest.json`；**非 prod 绿** |
 | 6.3 | YOLO pose | Python worker 或 ORT | extract/match-test 非 bypass | ⬜ |
 | 6.4 | 匹配命中告警链 | Kafka + 库配置 | `face_library_match` / `plate_library_match` 入库 | ⬜ |
 

@@ -68,16 +68,17 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B42）
+## 8. 现状摘要（2026-08-11 FR-B43）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
 - **契约硬化：** **FR-B40 ✅** contract_regression **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json`。
 - **Face entry：** **FR-B41 ✅** local multipart **code=0** + 12 keys + `image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json`。
 - **Face entry update：** **FR-B42 ✅** local `PUT` multipart **code=0** + 12 keys + `image_url`/`milvus_id` 更新；artifact `logs/fr-b42-face-update-latest.json`。
+- **Face/plate health：** **FR-B43 ✅** `/video/face/health` + `/video/plate/health` 真探测对齐 Python 键；artifact `logs/fr-b43-health-latest.json`。
 - **行为：** face no-model → **HTTP 400**（`face.py` L282-283）；业务 404 → HTTP 404 envelope（`patrol.py` L45）。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb42-phase0.log`）。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb43-phase0.log`）。
 - **项目状态：** **FR HTTP 面已齐 — 禁止 COMPLETE**。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B41/B42 face local；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（FR-B41/B42/B43 face/plate local；其余仍 ⬜）。
 
 ## 9. 你的下一步
 
@@ -99,6 +100,8 @@
 **FR-B41（local）：** `python tools/video_java/fr_b41_face_entry_success.py` → `logs/fr-b41-face-entry-success-latest.*`；face multipart **code=0** + 12 keys + MinIO `image_url` + Milvus `milvus_id`。
 
 **FR-B42（local）：** `python tools/video_java/fr_b42_face_update_success.py` → `logs/fr-b42-face-update-latest.*`；face `PUT` update multipart **code=0** + 12 keys + `image_url`/`milvus_id` 更新。
+
+**FR-B43（local）：** `python tools/video_java/fr_b43_health_probe.py` → `logs/fr-b43-health-latest.*`；face/plate `/health` 真探测 **2/2 pass**；`collection_exists=true` + `exists=true`。
 
 ## 10. 历史审查决议（切片期，仍有效的工程约束）
 

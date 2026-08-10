@@ -121,6 +121,15 @@ public class PythonInferenceWorker {
         return run(script, "delete_by_milvus_id", extra, null, null);
     }
 
+    /** Mirrors Python {@code face_vector_store.ping()}. */
+    public WorkerResult faceVectorStorePing() {
+        Path script = resolveScript("face_inference_cli.py");
+        if (script == null) {
+            return WorkerResult.fail("inference worker script not found: face_inference_cli.py");
+        }
+        return run(script, "ping", List.of(), null, null);
+    }
+
     public WorkerResult plateRecognize(byte[] imageBytes) {
         Path script = requireScript("plate_inference_cli.py");
         return run(script, "recognize", List.of(), null, imageBytes);

@@ -33,6 +33,14 @@ def cmd_health() -> dict:
         return {"available": False, "error": str(exc)}
 
 
+def cmd_ping() -> dict:
+    """Mirrors face_vector_store.ping() for /video/face/health."""
+    bootstrap()
+    from app.services.face_vector_store import get_face_vector_store
+
+    return get_face_vector_store().ping()
+
+
 def _load_image(image_path: str | None, image_base64: str | None):
     import cv2
     import numpy as np
@@ -150,7 +158,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="face inference worker")
     parser.add_argument(
         "command",
-        choices=["health", "match", "recognize", "extract_crop", "add_to_library", "delete_by_milvus_id"],
+        choices=["health", "ping", "match", "recognize", "extract_crop", "add_to_library", "delete_by_milvus_id"],
     )
     parser.add_argument("--image-path")
     parser.add_argument("--image-base64")
@@ -166,6 +174,9 @@ def main() -> int:
     try:
         if args.command == "health":
             _emit(cmd_health())
+            return 0
+        if args.command == "ping":
+            _emit(cmd_ping())
             return 0
         if args.command == "match":
             if args.library_id is None:
