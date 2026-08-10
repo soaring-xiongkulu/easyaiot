@@ -27,5 +27,7 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B21** GET 信封自动矩阵 + 信封缺口修复 | **DONE** | `0649efe` |
 | **FR-B22** 深字段扩面 + HANDOFF/soak checklist | **DONE** | `d605e2c` |
 | **FR-B23** 本地 Kafka+MinIO soak + deep skip 清除 | **DONE** | `6dda749` |
+| **FR-B28** GET keys-matrix 基线（41 映射 / 59 envelope-only） | **DONE** | `5fed768` |
+| **FR-B29** keys-matrix 扩面 + 8 deferred 清除 | **DONE** | `5514689` |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免 + **prod** soak checklist 有证据（local-only ≠ prod 绿）。

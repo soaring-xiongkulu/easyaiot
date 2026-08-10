@@ -50,7 +50,8 @@ public class PostProcessResultRepository {
         pageArgs.add(offset);
         List<Map<String, Object>> items = jdbc.queryForList(
                 """
-                SELECT id, task_id, device_id, device_name, event_time, result_json, created_at
+                SELECT id, task_id, task_name, task_code, task_type, device_id, device_name,
+                       frame_number, event_time, counts, events, alerts, payload, correlation_id, created_at
                 FROM algorithm_post_process_result
                 """ + where + " ORDER BY id DESC LIMIT ? OFFSET ?",
                 pageArgs.toArray()

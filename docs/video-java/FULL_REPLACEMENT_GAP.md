@@ -276,9 +276,20 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B22 深字段扩面**（`:48096` live） | **25** 端点（+9：algorithm/stream-forward get-by-id、face/plate libraries、alert statistics、snap task list、record space-by-device、record videos list、playback statistics）→ **130 pass** / **0 fail** / **2 skip**（空列表 item-key）；artifact `logs/fr-b22-field-contract-latest.json`；**≠ 全量 259 字段矩阵**；`PROD_SOAK_CHECKLIST.md` 已建（全部 ⬜） |
 | **FR-B22 GET 信封矩阵**（`:48096` live，复跑） | **265** pass / **0 fail**；artifact `logs/fr-b22-field-matrix-latest.json` |
 | **FR-B28 GET 字段键矩阵**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**98 GET**（**95** JSON + **3** 非 JSON skip）；**41** Python-first 路径映射 → **39** key-assert / **59** envelope-only；item-key **31 pass** / **0 fail** / **8 deferred**（空 data/列表）；全局 seed **15/15**；artifact `logs/fr-b28-keys-matrix-latest.json`；**≠ 259 路由全键覆盖**；`SnapTaskRepository.insert` 修复 |
+| **FR-B29 GET 字段键矩阵**（`:48096` live） | **265** inventoried → **265 pass** / **0 fail**；**98 GET**（**95** JSON + **3** 非 JSON skip）；**94** Python-first 路径映射 → **92** key-assert / **6** envelope-only；item-key **60 pass** / **0 fail** / **0 deferred**（B29 seed 清除 8 条）；artifact `logs/fr-b29-keys-matrix-latest.json`；**≠ 259 路由全键覆盖** |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
+
+## 9. 最终判定 — FR-B29
+
+| 问题 | 答案 |
+|------|------|
+| 全量 GET 字段键自动矩阵？ | **部分** — `field_contract.py --keys-matrix` 覆盖 **265** inventoried 路由；**94** Python `to_dict`/blueprint 映射（+53 vs FR-B28）；**92** 路由执行 item/object 键断言；**6** 未映射 envelope-only；artifact `logs/fr-b29-keys-matrix-latest.json` |
+| FR-B28 8 deferred 清除？ | **是** — `seed_fr_b29_keys_matrix.py`（alert/location/NVR/track/matching）+ 映射修正 |
+| Java 字段/信封修复？ | **是** — `PostProcessResultRepository` 列对齐；`AlgorithmTaskController.postProcessResults` → `VideoApiResponse`；`FaceController.listPersons` Python 顶栏分页；`VideoApiResponseAdvice` 透传 `{code,msg}` Map；`SnapStorageService` 存储统计键对齐 |
+| phase0？ | **PASS 5/5** — `logs/certify-frb29-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — 6 路由仍 envelope-only；prod soak open；推理/远程 node 等行为桩 |
 
 ## 9. 最终判定 — FR-B28
 
@@ -327,11 +338,11 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 问题 | 答案 |
 |------|------|
 | HTTP 路由是否与 Python 对齐？ | **是**（14 inventoried 前缀 `route_inventory` diff=0） |
-| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 39 端点已执行**（FR-B27：**192 pass / 0 fail**）；**GET 信封矩阵 265/265**；**GET 字段键矩阵 265/265**（FR-B28：**39** mapped key-assert / **59** envelope-only） |
-| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（`logs/fr-b27-*`）；**FR-B28 ✅** keys-matrix + SnapTask insert 修复（`logs/fr-b28-*`）；`snap_image.updated_at` schema 错位已修 |
+| 能否说「Java 已完整替换 Python VIDEO」？ | **不能** — prod 联调与**全量**字段级契约仍 open；**HTTP 薄探针 265/265 已绿**（FR-B18）；**深字段抽样 39 端点已执行**（FR-B27：**192 pass / 0 fail**）；**GET 信封矩阵 265/265**；**GET 字段键矩阵 265/265**（FR-B29：**92** mapped key-assert / **6** envelope-only） |
+| 本地 MinIO/Kafka soak？ | **部分** — MinIO put + sync API（`logs/fr-b23-soak-*`）；**FR-B24 ✅** Kafka 宿主机 E2E；**FR-B25 ✅** 真文件 MinIO+DB（hybrid DVR）；**FR-B26 ✅** 纯 kafka DVR + Alert Kafka produce（`logs/fr-b26-*`）；**FR-B27 ✅** matching Kafka produce + 深字段 39 端点（`logs/fr-b27-*`）；**FR-B28 ✅** keys-matrix 基线（`logs/fr-b28-*`）；**FR-B29 ✅** keys-matrix 扩面 + deferred 清除（`logs/fr-b29-*`）；`snap_image.updated_at` schema 错位已修 |
 | 能否称 COMPLETE / 退役 Python？ | **禁止** |
 | 证据硬化（EVID）能否停？ | **可以停**，转本文件 backlog + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md) |
-| 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **未映射 59 GET 路由 Python 键矩阵** + 空 data deferred 端点种子 + prod 场景回放 + 回滚演练 |
+| 距完整替换还缺什么？ | **prod 联调 soak**（checklist 大部仍 ⬜）+ **6 GET 路由 Python 键矩阵** + prod 场景回放 + 回滚演练 |
 
 **维护约定：** 每完成一个 FR 工作包，在本文件对应行改为 ✅，更新该域 Py vs Java 路由数，并保留短契约测；**不要**再开 Phase 门禁剧或 EVID/CLOSE 轮次。在全部 P0/P1（及产品未豁免的 P2）勾完前，禁止对外宣称「VIDEO Java 完整替换完成」。
 

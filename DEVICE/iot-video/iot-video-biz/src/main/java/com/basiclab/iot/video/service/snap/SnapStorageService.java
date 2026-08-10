@@ -29,10 +29,12 @@ public class SnapStorageService {
         Map<String, Object> config = storageRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new VideoBusinessException(500, "获取设备存储配置失败"));
         Map<String, Object> result = new LinkedHashMap<>(config);
-        result.put("snap_used_size", 0);
-        result.put("snap_file_count", 0);
-        result.put("video_used_size", 0);
-        result.put("video_file_count", 0);
+        result.put("snap_size", 0L);
+        result.put("snap_count", 0);
+        result.put("snap_usage_ratio", 0.0);
+        result.put("video_size", 0L);
+        result.put("video_count", 0);
+        result.put("video_usage_ratio", 0.0);
         return result;
     }
 

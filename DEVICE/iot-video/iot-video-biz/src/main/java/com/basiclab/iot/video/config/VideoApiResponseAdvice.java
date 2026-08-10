@@ -49,6 +49,11 @@ public class VideoApiResponseAdvice implements ResponseBodyAdvice<Object> {
         if (body instanceof VideoApiResponse) {
             return body;
         }
+        if (body instanceof java.util.Map<?, ?> map) {
+            if (map.containsKey("code") && (map.containsKey("msg") || map.containsKey("message"))) {
+                return body;
+            }
+        }
         String typeName = body.getClass().getName();
         if (typeName.contains("CommonResult")) {
             return VideoApiResponse.error(500, "internal adapter leak: CommonResult must not be returned from VIDEO controllers");

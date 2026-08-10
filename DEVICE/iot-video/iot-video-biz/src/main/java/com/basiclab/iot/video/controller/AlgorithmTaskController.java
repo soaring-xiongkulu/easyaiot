@@ -170,7 +170,7 @@ public class AlgorithmTaskController {
     }
 
     @GetMapping("/task/{id}/post-process/results")
-    public Map<String, Object> postProcessResults(
+    public VideoApiResponse<Map<String, Object>> postProcessResults(
             @PathVariable("id") long id,
             @RequestParam(defaultValue = "1") int pageNo,
             @RequestParam(defaultValue = "20") int pageSize,
@@ -179,12 +179,8 @@ public class AlgorithmTaskController {
             @RequestParam(required = false) String end_datetime) {
         LocalDateTime begin = parseDateTime(begin_datetime);
         LocalDateTime end = parseDateTime(end_datetime);
-        Map<String, Object> result = postProcessService.listResults(id, pageNo, pageSize, device_id, begin, end);
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("code", 0);
-        response.put("msg", "success");
-        response.putAll(result);
-        return response;
+        return VideoApiResponse.success(
+                postProcessService.listResults(id, pageNo, pageSize, device_id, begin, end));
     }
 
     private static LocalDateTime parseDateTime(String raw) {

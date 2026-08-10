@@ -103,12 +103,11 @@ public class FaceController {
             @RequestParam(required = false) Integer page_size) {
         int resolvedPage = pageNo > 0 ? pageNo : page;
         int resolvedSize = page_size != null ? page_size : pageSize;
-        Map<String, Object> data = faceLibraryService.listPersons(libraryId, search, resolvedPage, resolvedSize);
+        Map<String, Object> result = faceLibraryService.listPersons(libraryId, search, resolvedPage, resolvedSize);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("code", 0);
         response.put("msg", "success");
-        response.put("message", "success");
-        response.putAll(data);
+        response.putAll(result);
         return response;
     }
 

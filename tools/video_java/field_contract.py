@@ -480,12 +480,19 @@ FACE_MODEL_STATUS_KEYS: Set[str] = {
 
 # Python: camera.py list_device_locations → map item keys (device_id + lat/lng/name)
 CAMERA_LOCATION_ITEM_KEYS: Set[str] = {
-    "device_id",
+    "id",
     "name",
-    "latitude",
-    "longitude",
+    "source",
     "directory_id",
     "online",
+    "longitude",
+    "latitude",
+    "altitude",
+    "address",
+    "heading",
+    "location_source",
+    "location_updated_at",
+    "has_location",
 }
 
 # Python: camera.py list_directories tree node L2529-2538
@@ -549,7 +556,7 @@ SNAP_IMAGE_ITEM_KEYS: Set[str] = {
 
 ARTIFACT_PREFIX = "fr-b27"
 MATRIX_ARTIFACT_PREFIX = "fr-b27"
-KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b28"
+KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b29"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -625,6 +632,8 @@ EXTRA_ROUTE_KEY_SPECS: Dict[str, Dict[str, Any]] = {
         "data_keys": STREAM_FORWARD_TASK_KEYS,
     },
 }
+
+# FR-B29: merged at build_route_key_specs() from keys_matrix_b29_specs (Python-first).
 
 SAMPLE_CASES: List[Dict[str, Any]] = [
     {
@@ -1286,16 +1295,45 @@ def build_route_key_specs() -> Dict[str, Dict[str, Any]]:
             merged["list_item_keys"] = set(merged["list_item_keys"])
         specs[path] = merged
 
+    try:
+        from keys_matrix_b29_specs import bind_field_contract_keys, B29_EXTRA_ROUTE_KEY_SPECS
+
+        bind_field_contract_keys(sys.modules[__name__])
+        for path, extra in B29_EXTRA_ROUTE_KEY_SPECS.items():
+            merged = dict(extra)
+            if "data_keys" in merged and not isinstance(merged["data_keys"], set):
+                merged["data_keys"] = set(merged["data_keys"])
+            if "list_item_keys" in merged and not isinstance(merged["list_item_keys"], set):
+                merged["list_item_keys"] = set(merged["list_item_keys"])
+            if "top_keys" in merged and not isinstance(merged["top_keys"], set):
+                merged["top_keys"] = set(merged["top_keys"])
+            specs[path] = merged
+    except ImportError:
+        pass
+
     return specs
 
 
 def materialize_keys_matrix_path(path: str, *, created_ids: Optional[Dict[str, str]] = None) -> str:
     """Materialize inventoried path + default query suffixes for keys-matrix probes."""
     concrete = path
-    if created_ids and "{param}" in path and path in created_ids:
-        concrete = path.replace("{param}", created_ids[path], 1)
-    elif "{param}" in concrete:
-        concrete = materialize_matrix_path(path)
+    if created_ids:
+        if path in created_ids:
+            concrete = path.replace("{param}", created_ids[path], 1)
+        elif "{param}" in path:
+            # Replace first {param} using longest matching parent prefix in created_ids
+            best_parent = ""
+            best_id = None
+            for parent, entity_id in created_ids.items():
+                if "{param}" not in parent:
+                    continue
+                if path.startswith(parent.rsplit("{param}", 1)[0]) and len(parent) > len(best_parent):
+                    best_parent = parent
+                    best_id = entity_id
+            if best_id and "{param}" in concrete:
+                concrete = concrete.replace("{param}", best_id, 1)
+    if "{param}" in concrete:
+        concrete = materialize_matrix_path(path if concrete == path else concrete)
     base = concrete.split("?", 1)[0]
     if "?" in concrete:
         return concrete
@@ -1320,6 +1358,37 @@ def build_setup_id_map(setups: List[Dict[str, Any]]) -> Dict[str, str]:
         if template and isinstance(data, dict) and data.get("id") is not None:
             norm = template.replace("{id}", "{param}").split("?", 1)[0]
             id_map[norm] = str(data["id"])
+
+    # record_space_by_device GET setup → bind /video/record/space/{param}
+    for setup in setups:
+        if setup.get("case_id") != "record_space_by_device" or not setup.get("ok"):
+            continue
+        data = setup.get("data")
+        if isinstance(data, dict) and data.get("id") is not None:
+            id_map["/video/record/space/{param}"] = str(data["id"])
+
+    algo_id = id_map.get("/video/algorithm/task/{param}")
+    if algo_id:
+        prefix = "/video/algorithm/task/{param}/"
+        for path in build_route_key_specs().keys():
+            if path.startswith(prefix):
+                id_map.setdefault(path, algo_id)
+
+    sf_id = id_map.get("/video/stream-forward/task/{param}")
+    if sf_id:
+        prefix = "/video/stream-forward/task/{param}/"
+        for path in build_route_key_specs().keys():
+            if path.startswith(prefix):
+                id_map.setdefault(path, sf_id)
+
+    nvr_id = None
+    for setup in setups:
+        if str(setup.get("case_id", "")).startswith("b29_nvr") and setup.get("nvr_id"):
+            nvr_id = str(setup["nvr_id"])
+            break
+    if nvr_id:
+        id_map["/video/camera/nvr/{param}"] = nvr_id
+
     return id_map
 
 
@@ -1421,18 +1490,21 @@ def assert_keys_matrix_route(
             record("data_keys", not miss, f"missing {miss}" if miss else f"{len(data_keys)} keys ok")
 
     if spec.get("data_list"):
-        items: List[Any] = data if isinstance(data, list) else []
-        item_keys = spec.get("list_item_keys") or set()
-        record("data_is_list", isinstance(data, list), f"type={type(data).__name__}")
-        if items and item_keys:
-            miss = missing_keys(items[0], item_keys)
-            record(
-                "list_item_keys",
-                not miss,
-                f"missing {miss}" if miss else f"{len(item_keys)} keys on first item",
-            )
-        elif item_keys:
-            record("list_item_keys", True, "empty list — item keys deferred", skipped=True)
+        if data is None:
+            record("data_is_list", True, "data null — list keys deferred", skipped=True)
+        else:
+            items: List[Any] = data if isinstance(data, list) else []
+            item_keys = spec.get("list_item_keys") or set()
+            record("data_is_list", isinstance(data, list), f"type={type(data).__name__}")
+            if items and item_keys:
+                miss = missing_keys(items[0], item_keys)
+                record(
+                    "list_item_keys",
+                    not miss,
+                    f"missing {miss}" if miss else f"{len(item_keys)} keys on first item",
+                )
+            elif item_keys:
+                record("list_item_keys", True, "empty list — item keys deferred", skipped=True)
 
     list_path = spec.get("list_path")
     item_keys = spec.get("list_item_keys")
@@ -1463,6 +1535,7 @@ def run_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]]
     if server_up:
         print("  running global setups for seed data...")
         setups = run_global_setups(base_url, timeout)
+        setups.extend(run_b29_seed_setups(base_url, timeout))
     created_ids = build_setup_id_map(setups)
 
     routes = collect_inventoried_routes()
@@ -1587,7 +1660,7 @@ def write_keys_matrix_artifacts(
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     lines = [
-        "# FR-B28 GET Keys Matrix — inventoried routes (Python-first)",
+        "# FR-B29 GET Keys Matrix — inventoried routes (Python-first)",
         "",
         f"**Generated:** {payload['generated_at']}",
         f"**Base URL:** {base_url}",
@@ -1684,6 +1757,50 @@ def http_get_json(base_url: str, path: str, timeout: float = 8.0) -> Tuple[int, 
     return status, body, raw
 
 
+def http_put_json(
+    base_url: str, path: str, payload: Dict[str, Any], timeout: float = 8.0
+) -> Tuple[int, Dict[str, Any], str]:
+    url = base_url.rstrip("/") + path
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        method="PUT",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            status = resp.status
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+        raw = exc.read().decode("utf-8", errors="replace")
+    try:
+        body = json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError:
+        body = {"_raw": raw}
+    if not isinstance(body, dict):
+        body = {"data": body}
+    return status, body, raw
+
+
+def run_b29_seed_setups(base_url: str, timeout: float) -> List[Dict[str, Any]]:
+    """Run FR-B29 deferred item-key seed steps (location, NVR, track session, matching)."""
+    results: List[Dict[str, Any]] = []
+    try:
+        from seed_fr_b29_keys_matrix import run_all
+
+        payload = run_all()
+        for step in payload.get("steps", []):
+            results.append({"case_id": f"b29_{step.get('step')}", **step})
+            flag = "OK" if step.get("ok") else "FAIL"
+            print(f"  b29-seed {step.get('step')}: {flag}")
+    except Exception as exc:
+        results.append({"case_id": "b29_seed", "ok": False, "detail": str(exc)})
+        print(f"  b29-seed: FAIL ({exc})")
+    return results
+
+
 def http_post_json(
     base_url: str, path: str, payload: Dict[str, Any], timeout: float = 8.0
 ) -> Tuple[int, Dict[str, Any], str]:
@@ -1751,6 +1868,8 @@ def run_setup(base_url: str, setup: Dict[str, Any], timeout: float) -> Dict[str,
         status, body_resp, _ = http_get_json(base_url, str(setup["path"]), timeout=timeout)
     elif method == "POST":
         status, body_resp, _ = http_post_json(base_url, str(setup["path"]), body, timeout=timeout)
+    elif method == "PUT":
+        status, body_resp, _ = http_put_json(base_url, str(setup["path"]), body, timeout=timeout)
     else:
         result["detail"] = f"unsupported setup method {method}"
         return result
