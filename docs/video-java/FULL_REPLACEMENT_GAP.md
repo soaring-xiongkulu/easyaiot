@@ -178,7 +178,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | 远程 node / RUNTIME 分发 | node_client | EX-REMOTE-NODE 本地拒绝 | 对齐 iot-node API |
 | ONVIF / NVR / GB28181 / FlightHub | camera 大面 | **无** | 随 camera 域补齐 |
 | MinIO 空间同步/清理 | snap/record 多接口 | 基本无 | 随空间域补齐 |
-| 鉴权（流票据、网关 token） | 有 | 本地 EX-GATEWAY-AUTH-LOCAL | 生产 system-server 联通证明 |
+| 鉴权（流票据、网关 token） | 有 | **FR-W1-AUTH ✅** mini gateway + `system-server` token check（invalid Bearer 401；valid Bearer 200）；流票据仍缺 | 生产全量路由 + 流票据待 W2 camera |
 | 对外 JSON | `{code,msg,data}` | `VideoApiResponse` 已对齐方向 | 全接口字段级与 WEB 对表 |
 
 ---
@@ -216,7 +216,7 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **P0** | Alert 管理面 | page/count/statistics/image/record/clear | **是**（告警台） |
 | **P0** | Algorithm CRUD + patrol heartbeat + logs | 任务可配可管 | **是** |
 | **P0** | auto_start / 健康恢复对等 | 进程重启后业务自愈 | **部分**（FR-W1-BG ✅ 本地；集群/stream_forward health ❌） |
-| **P0** | Gateway + system-server 鉴权真通 | 去掉 EX-GATEWAY-AUTH-LOCAL | **是** |
+| **P0** | Gateway + system-server 鉴权真通 | **✅ FR-W1-AUTH**（EX-GATEWAY-AUTH-LOCAL resolved） | ~~是~~ 本地已通；生产切流仍需 ops 演练 |
 | **P0** | Alert Kafka 或产品书面确认永久 direct | 去掉或接受 EX-KAFKA-HOOK | **是**（按产品） |
 | **P1** | Camera 主路径 | 注册/CRUD/目录/ONVIF/PTZ/snapshot/流票据 | **是**（设备台） |
 | **P1** | Snap/Record/Playback 主路径 | 空间+文件+任务 | **是** |
