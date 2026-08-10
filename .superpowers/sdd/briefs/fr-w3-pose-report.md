@@ -13,7 +13,7 @@ Ported all **14** `/video/scenario-pose` Python routes to Java `ScenarioPoseCont
 
 ## Commits
 
-(see `git log -1` after commit)
+- `6a52ddd` feat(video-java): FR-W3-POSE port scenario-pose routes (14/14)
 
 ## Python files read
 
