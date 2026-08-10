@@ -15,7 +15,7 @@
 | 0.1 | Java `video-server` 健康 | Nacos 注册 + `/actuator/health` UP | 截图或 `curl` JSON `status:UP` | ⬜ |
 | 0.2 | 网关路由 | `lb://video-server`（非 Python 遗留名） | `gateway` 路由表导出 | ⬜ |
 | 0.3 | 共享 DB | Java 与 WEB 同库只读冒烟 | 告警/设备 list 200 + 有数据 | ⬜ |
-| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B32 复跑 PASS 5/5（mini-safe 恢复后）；`logs/certify-frb32-phase0.log` |
+| 0.4 | Phase 0 薄烟雾 | `python tools/video_java/certify.py --phase 0` | `gates/PHASE_0_GATE.md` PASS | ✅ local-only evidence — FR-B33 复跑 PASS 5/5；`logs/certify-frb33-phase0.log` |
 
 ---
 
@@ -107,7 +107,8 @@
 | 8.1 | 薄探针 | `contract_regression.py` @ prod URL | 265 pass / 0 fail | ⬜ |
 | 8.2 | 深字段抽样 | `field_contract.py --deep` @ prod | 25 端点 / 0 fail | ⬜ |
 | 8.3 | GET 信封矩阵 | `field_contract.py --matrix` @ prod | 95 JSON GET 信封 0 fail | ⬜ |
-| 8.4 | 全量字段矩阵 | **未实现** | 259 路由字段键 — open backlog | ⬜ |
+| 8.4 | POST 成功体键矩阵 | `field_contract.py --post-keys-matrix` @ prod | 16 样本 / 0 fail | ✅ local-only — FR-B33：`logs/fr-b33-post-keys-matrix-latest.json`（11 success-key + 5 envelope-only）；**≠ prod** |
+| 8.5 | 全量字段矩阵 | **未实现** | 259 路由字段键 — open backlog | ⬜ |
 
 ---
 

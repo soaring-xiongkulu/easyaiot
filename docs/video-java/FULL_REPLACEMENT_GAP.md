@@ -282,18 +282,19 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | **FR-B31 storage cleanup**（`:48096` local） | `SnapStorageService.cleanup` 对齐 Python `check_and_cleanup_storage` + `cleanup_old_files`；MinIO disabled 诚实 no-op；artifact `logs/fr-b31-storage-cleanup-latest.json` |
 | **FR-B32 cleanup 真删除 E2E**（`:9000` local） | 超配额 `frb32_device` 种子 + MinIO enabled → `POST /storage/cleanup` 真 `remove_object`；before/after object count；artifact `logs/fr-b32-cleanup-e2e-latest.json` |
 | **FR-B32 6 非 JSON GET 探针**（`:48096` local） | content-type pass（非 envelope）：alert/image、alert/record、patrol SSE、playback/thumbnail、record video、snap image；artifact `logs/fr-b32-binary-get-latest.json` |
+| **FR-B33 POST keys-matrix**（`:48096` local） | **16** curated POST 样本 → **16/16 pass** / **0 fail**；**11** success-key（Python to_dict）+ **5** envelope-only 4xx；**67** assert pass；artifact `logs/fr-b33-post-keys-matrix-latest.json`；**≠ 全量 POST 字段键矩阵** |
 | 现有 vj_* certify cases | ~18（**远不够**覆盖 265 路由；仅防回归） |
 
 ---
 
-## 9. 最终判定 — FR-B32
+## 9. 最终判定 — FR-B33
 
 | 问题 | 答案 |
 |------|------|
-| MinIO 超配额 cleanup 真删除？ | **是（local）** — `frb32_device` 500B 配额 + 5×100B 对象 → `snap_deleted_count≥1` + MinIO count 下降；artifact `logs/fr-b32-cleanup-e2e-latest.json` |
-| 6 非 JSON GET content-type 探针？ | **是（local）** — `fr_b32_binary_get.py`；分类为 content-type pass（非 keys-matrix envelope）；artifact `logs/fr-b32-binary-get-latest.json` |
-| phase0？ | **PASS 5/5** — `logs/certify-frb32-phase0.log` |
-| 能否称 COMPLETE？ | **禁止** — prod soak open；POST field-key matrix backlog；6 路由 prod 二进制/SSE 取证未做 |
+| POST success body 键矩阵？ | **是（local）** — 16 样本（algo/snap/face/plate/sf/playback/pose/patrol/camera/alert×2 + 5×4xx）；Python-first to_dict 映射；artifact `logs/fr-b33-post-keys-matrix-latest.json` |
+| Java 缺键修复？ | **是** — `DeviceRepository.insert` 补 `auto_snap_enabled=false`（对齐 `models.py` Device L81） |
+| phase0？ | **PASS 5/5** — `logs/certify-frb33-phase0.log` |
+| 能否称 COMPLETE？ | **禁止** — prod soak open；POST keys-matrix 仅 16 条 curated 样本；全量 ~112 POST 未覆盖 |
 
 ## 10. 历史判定归档（只读）
 

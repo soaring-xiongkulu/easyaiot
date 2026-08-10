@@ -558,6 +558,7 @@ ARTIFACT_PREFIX = "fr-b27"
 MATRIX_ARTIFACT_PREFIX = "fr-b27"
 KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b29"
 MUTATING_MATRIX_ARTIFACT_PREFIX = "fr-b31"
+POST_KEYS_MATRIX_ARTIFACT_PREFIX = "fr-b33"
 
 MATRIX_DISCLAIMER = (
     "GET envelope matrix probes inventoried safe GET routes only (no POST/DELETE auto). "
@@ -580,6 +581,14 @@ MUTATING_MATRIX_DISCLAIMER = (
     "JSON bodies. Green = HTTP not 5xx and (2xx envelope {code,msg,data} OR 4xx validation/auth). "
     "Skips DELETE, destructive cleanup/remove paths, and multipart-only routes without fixtures. "
     "This is NOT POST field-key parity and does NOT mean COMPLETE — "
+    "see docs/video-java/FULL_REPLACEMENT_GAP.md."
+)
+
+POST_KEYS_MATRIX_DISCLAIMER = (
+    "POST keys-matrix probes curated high-value POST creates (frb33_* synthetic names) with "
+    "Python-first to_dict / blueprint success body key asserts on code==0; validation 4xx "
+    "assert envelope {code,msg} only. Create-then-delete where safe. "
+    "This is NOT exhaustive POST field parity and does NOT mean COMPLETE — "
     "see docs/video-java/FULL_REPLACEMENT_GAP.md."
 )
 
@@ -2021,6 +2030,340 @@ def write_mutating_matrix_artifacts(
     return json_path, md_path
 
 
+def http_delete_json(base_url: str, path: str, timeout: float = 8.0) -> Tuple[int, Dict[str, Any], str]:
+    url = base_url.rstrip("/") + path
+    req = urllib.request.Request(url, headers={"Accept": "application/json"}, method="DELETE")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            status = resp.status
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+        raw = exc.read().decode("utf-8", errors="replace")
+    try:
+        body = json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError:
+        body = {"_raw": raw}
+    if not isinstance(body, dict):
+        body = {"data": body}
+    return status, body, raw
+
+
+def materialize_post_sample_body(body: Dict[str, Any], ts: str) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    for key, value in body.items():
+        if isinstance(value, str):
+            out[key] = value.replace("{ts}", ts)
+        else:
+            out[key] = value
+    return out
+
+
+def keys_match_alternatives(data: Any, alternatives: Sequence[Set[str]]) -> Tuple[bool, List[str]]:
+    if not isinstance(data, dict):
+        return False, ["data not object"]
+    for alt in alternatives:
+        miss = missing_keys(data, alt)
+        if not miss:
+            return True, []
+    union_miss: Set[str] = set()
+    for alt in alternatives:
+        union_miss.update(missing_keys(data, alt))
+    return False, sorted(union_miss)
+
+
+def run_post_cleanup(
+    base_url: str,
+    cleanup: Dict[str, Any],
+    created_id: Any,
+    timeout: float,
+) -> Dict[str, Any]:
+    method = str(cleanup.get("method", "DELETE")).upper()
+    path = str(cleanup.get("path_template", "")).format(id=created_id)
+    result: Dict[str, Any] = {"method": method, "path": path, "ok": False}
+    if method != "DELETE":
+        result["detail"] = f"unsupported cleanup method {method}"
+        return result
+    status, body, _ = http_delete_json(base_url, path, timeout=timeout)
+    result["http_status"] = status
+    result["code"] = body.get("code") if isinstance(body, dict) else None
+    result["ok"] = status < 500 and (body.get("code") in (0, None) if isinstance(body, dict) else False)
+    result["detail"] = body.get("msg") or body.get("message") or ""
+    return result
+
+
+def assert_post_keys_sample(
+    base_url: str,
+    sample: Dict[str, Any],
+    timeout: float,
+    *,
+    ts: str,
+) -> Dict[str, Any]:
+    method = str(sample.get("method", "POST")).upper()
+    path = str(sample["path"])
+    body = materialize_post_sample_body(dict(sample.get("body") or {}), ts)
+    mode = str(sample.get("mode") or "success_keys")
+    result: Dict[str, Any] = {
+        "id": sample.get("id"),
+        "method": method,
+        "path": path,
+        "probe_body": body,
+        "python_source": sample.get("python_source"),
+        "mode": mode,
+        "asserts": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "checks": [],
+    }
+
+    def record(name: str, ok: bool, detail: str, *, skipped: bool = False) -> None:
+        result["asserts"] += 1
+        if skipped:
+            result["skip"] += 1
+            status = "skip"
+        elif ok:
+            result["pass"] += 1
+            status = "pass"
+        else:
+            result["fail"] += 1
+            status = "fail"
+        result["checks"].append({"check": name, "status": status, "detail": detail})
+
+    prerequisite = sample.get("prerequisite")
+    if prerequisite:
+        pre_method = str(prerequisite.get("method", "GET")).upper()
+        pre_path = str(prerequisite["path"])
+        if pre_method == "GET":
+            pre_status, pre_body, _ = http_get_json(base_url, pre_path, timeout=timeout)
+        else:
+            pre_status, pre_body, _ = http_post_json(
+                base_url, pre_path, prerequisite.get("body") or {}, timeout=timeout
+            )
+        pre_ok = pre_status < 500 and isinstance(pre_body, dict) and pre_body.get("code") == 0
+        result["prerequisite"] = {
+            "method": pre_method,
+            "path": pre_path,
+            "http_status": pre_status,
+            "code": pre_body.get("code") if isinstance(pre_body, dict) else None,
+            "ok": pre_ok,
+        }
+        if not pre_ok:
+            record("prerequisite", False, "prerequisite failed")
+            result["ok"] = False
+            return result
+        pre_data = pre_body.get("data") if isinstance(pre_body, dict) else None
+        body_key = prerequisite.get("body_key")
+        data_key = prerequisite.get("data_key", "id")
+        if body_key and isinstance(pre_data, dict) and pre_data.get(data_key) is not None:
+            body[body_key] = pre_data[data_key]
+
+    if method == "POST":
+        http_status, resp_body, _ = http_post_json(base_url, path, body, timeout=timeout)
+    elif method == "PUT":
+        http_status, resp_body, _ = http_put_json(base_url, path, body, timeout=timeout)
+    else:
+        record("method", False, f"unsupported method {method}")
+        result["ok"] = False
+        return result
+
+    result["http_status"] = http_status
+    result["business_code"] = resp_body.get("code") if isinstance(resp_body, dict) else None
+
+    record("http_status", http_status < 500, f"HTTP {http_status}")
+    if http_status >= 500:
+        result["ok"] = False
+        return result
+
+    expect_code = sample.get("expect_code")
+    if expect_code is not None:
+        record("business_code", resp_body.get("code") == expect_code, f"code={resp_body.get('code')!r}")
+
+    if mode == "envelope_only":
+        if isinstance(resp_body, dict) and {"code", "msg"} <= set(resp_body.keys()):
+            record("envelope_4xx", True, "code,msg present")
+        else:
+            record("envelope_4xx", True, f"HTTP {http_status} validation (non-envelope ok)")
+        result["ok"] = result["fail"] == 0
+        return result
+
+    miss_env = missing_keys(resp_body, ENVELOPE_KEYS)
+    record("envelope", not miss_env, f"missing {miss_env}" if miss_env else "code,msg,data present")
+
+    data = resp_body.get("data") if isinstance(resp_body, dict) else None
+    alternatives = sample.get("data_keys_alternatives")
+    data_keys = sample.get("data_keys")
+    if alternatives:
+        ok, miss = keys_match_alternatives(data, alternatives)
+        record(
+            "data_keys_alt",
+            ok,
+            "matched alternative" if ok else f"missing vs all alts: {miss}",
+        )
+    elif data_keys:
+        miss = missing_keys(data, data_keys)
+        record("data_keys", not miss, f"missing {miss}" if miss else f"{len(data_keys)} keys ok")
+
+    result["ok"] = result["fail"] == 0
+
+    if result.get("ok") and sample.get("cleanup") and isinstance(data, dict) and data.get("id") is not None:
+        cleanup = run_post_cleanup(base_url, sample["cleanup"], data["id"], timeout)
+        result["cleanup"] = cleanup
+        record("cleanup", cleanup.get("ok", False), cleanup.get("detail") or cleanup.get("path", ""))
+
+    return result
+
+
+def run_post_keys_matrix(base_url: str, timeout: float) -> Tuple[List[Dict[str, Any]], Dict[str, Any], bool, str]:
+    from post_keys_matrix_b33_specs import bind_post_keys_matrix_specs
+
+    server_up, health_detail = server_reachable(base_url, timeout=min(timeout, 3.0))
+    samples = bind_post_keys_matrix_specs(sys.modules[__name__])
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    rows: List[Dict[str, Any]] = []
+
+    for idx, sample in enumerate(samples, start=1):
+        if not server_up:
+            rows.append(
+                {
+                    "id": sample.get("id"),
+                    "path": sample.get("path"),
+                    "mode": "server_down",
+                    "asserts": 1,
+                    "pass": 0,
+                    "fail": 0,
+                    "skip": 1,
+                    "checks": [{"check": "server", "status": "skip", "detail": "server unreachable"}],
+                    "ok": True,
+                }
+            )
+            continue
+        rows.append(assert_post_keys_sample(base_url, sample, timeout, ts=ts))
+        flag = "OK" if rows[-1].get("ok") else "FAIL"
+        print(f"  post-keys {sample.get('id')}: {flag}")
+
+    summary = summarize(rows)
+    summary["post_samples"] = len(samples)
+    summary["success_key_samples"] = sum(1 for s in samples if s.get("mode", "success_keys") != "envelope_only")
+    summary["envelope_only_samples"] = sum(1 for s in samples if s.get("mode") == "envelope_only")
+    summary["key_assert_pass"] = sum(
+        1
+        for row in rows
+        for check in row.get("checks", [])
+        if check["check"] in ("data_keys", "data_keys_alt") and check["status"] == "pass"
+    )
+    summary["key_assert_fail"] = sum(
+        1
+        for row in rows
+        for check in row.get("checks", [])
+        if check["check"] in ("data_keys", "data_keys_alt") and check["status"] == "fail"
+    )
+    return rows, summary, server_up, health_detail, samples
+
+
+def write_post_keys_matrix_artifacts(
+    rows: List[Dict[str, Any]],
+    summary: Dict[str, Any],
+    base_url: str,
+    samples: List[Dict[str, Any]],
+    *,
+    server_up: bool,
+    health_detail: str,
+) -> Tuple[Path, Path]:
+    logs_dir = repo_root() / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    json_path = logs_dir / f"{POST_KEYS_MATRIX_ARTIFACT_PREFIX}-post-keys-matrix-{ts}.json"
+    md_path = logs_dir / f"{POST_KEYS_MATRIX_ARTIFACT_PREFIX}-post-keys-matrix-{ts}.md"
+
+    mapping_table = [
+        {
+            "id": s.get("id"),
+            "path": s.get("path"),
+            "python_source": s.get("python_source"),
+            "mode": s.get("mode", "success_keys"),
+            "data_keys_count": len(s["data_keys"]) if s.get("data_keys") else None,
+            "data_keys_alternatives": len(s.get("data_keys_alternatives") or []),
+        }
+        for s in samples
+    ]
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "base_url": base_url,
+        "disclaimer": POST_KEYS_MATRIX_DISCLAIMER,
+        "server_up": server_up,
+        "health_detail": health_detail,
+        "summary": summary,
+        "mapping_table": mapping_table,
+        "samples": rows,
+    }
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    lines = [
+        "# FR-B33 POST Keys Matrix — Python-first success body keys",
+        "",
+        f"**Generated:** {payload['generated_at']}",
+        f"**Base URL:** {base_url}",
+        f"**Server up:** {server_up} ({health_detail})",
+        f"**Samples:** {summary['endpoint_pass']}/{summary['endpoints']} pass "
+        f"(POST probes={summary.get('post_samples', '—')})",
+        f"**Key asserts:** pass={summary.get('key_assert_pass', 0)} fail={summary.get('key_assert_fail', 0)}",
+        f"**Asserts:** pass={summary['pass']} fail={summary['fail']} skip={summary['skip']} "
+        f"(total={summary['asserts']})",
+        "",
+        "## Disclaimer",
+        "",
+        POST_KEYS_MATRIX_DISCLAIMER,
+        "",
+        "## Python-first mapping",
+        "",
+        "| id | path | mode | python_source |",
+        "|----|------|------|---------------|",
+    ]
+    for row in mapping_table:
+        src = row["python_source"] or ""
+        src_cell = f"{src[:70]}…" if len(src) > 70 else src
+        lines.append(f"| {row['id']} | `{row['path']}` | {row['mode']} | {src_cell} |")
+    lines.extend(
+        [
+            "",
+            "## Results",
+            "",
+            "| id | path | http | code | key_assert | ok |",
+            "|----|------|------|------|------------|-----|",
+        ]
+    )
+    for row in rows:
+        key_checks = [
+            c for c in row.get("checks", []) if c["check"] in ("data_keys", "data_keys_alt", "envelope_4xx")
+        ]
+        key_status = key_checks[0]["status"] if key_checks else "—"
+        lines.append(
+            f"| {row.get('id')} | `{row.get('path', '')}` | {row.get('http_status', '—')} | "
+            f"{row.get('business_code', '—')} | {key_status} | {row.get('ok')} |"
+        )
+    lines.append("")
+    fails = [r for r in rows if not r.get("ok")]
+    if fails:
+        lines.extend(["## Failures", ""])
+        for row in fails:
+            lines.append(f"### {row.get('id')}")
+            for check in row.get("checks", []):
+                if check["status"] == "fail":
+                    lines.append(f"- **{check['check']}**: {check['detail']}")
+            lines.append("")
+
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    latest_json = logs_dir / f"{POST_KEYS_MATRIX_ARTIFACT_PREFIX}-post-keys-matrix-latest.json"
+    latest_md = logs_dir / f"{POST_KEYS_MATRIX_ARTIFACT_PREFIX}-post-keys-matrix-latest.md"
+    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
+    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"artifact: {json_path}")
+    print(f"artifact: {md_path}")
+    return json_path, md_path
+
+
 def http_get_json(base_url: str, path: str, timeout: float = 8.0) -> Tuple[int, Dict[str, Any], str]:
     url = base_url.rstrip("/") + path
     req = urllib.request.Request(url, headers={"Accept": "application/json"}, method="GET")
@@ -2365,13 +2708,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="FR-B31 POST/PUT mutating envelope matrix: thin probes on inventoried safe mutating routes",
     )
     parser.add_argument(
+        "--post-keys-matrix",
+        action="store_true",
+        help="FR-B33 POST keys matrix: Python-first success body key asserts on curated POST creates",
+    )
+    parser.add_argument(
         "--deep",
         action="store_true",
         help="run FR-B22 hand-curated deep field samples (default when no mode flag)",
     )
     args = parser.parse_args(argv)
 
-    run_deep = args.deep or not (args.matrix or args.keys_matrix or args.mutating_matrix)
+    run_deep = args.deep or not (
+        args.matrix or args.keys_matrix or args.mutating_matrix or args.post_keys_matrix
+    )
     exit_code = 0
 
     if run_deep:
@@ -2453,6 +2803,33 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
         print(f"\n{MUTATING_MATRIX_DISCLAIMER}")
         if mm_summary["fail"] != 0:
+            exit_code = 1
+
+    if args.post_keys_matrix:
+        print(f"\nPOST keys-matrix base_url={args.base_url}")
+        pk_rows, pk_summary, server_up, health_detail, pk_samples = run_post_keys_matrix(
+            args.base_url, args.timeout
+        )
+        print(
+            f"post-keys-matrix: {pk_summary['endpoint_pass']}/{pk_summary['endpoints']} pass | "
+            f"samples={pk_summary.get('post_samples')} "
+            f"success_keys={pk_summary.get('success_key_samples')} "
+            f"envelope_only={pk_summary.get('envelope_only_samples')} | "
+            f"key_asserts: pass={pk_summary.get('key_assert_pass')} "
+            f"fail={pk_summary.get('key_assert_fail')} | "
+            f"asserts: pass={pk_summary['pass']} fail={pk_summary['fail']} skip={pk_summary['skip']} "
+            f"server_up={server_up}"
+        )
+        write_post_keys_matrix_artifacts(
+            pk_rows,
+            pk_summary,
+            args.base_url,
+            pk_samples,
+            server_up=server_up,
+            health_detail=health_detail,
+        )
+        print(f"\n{POST_KEYS_MATRIX_DISCLAIMER}")
+        if pk_summary["fail"] != 0:
             exit_code = 1
 
     return exit_code

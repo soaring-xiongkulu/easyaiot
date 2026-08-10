@@ -168,9 +168,9 @@ public class DeviceRepository {
                     id, name, source, rtmp_stream, http_stream, ai_rtmp_stream, ai_http_stream, stream,
                     ip, port, username, password, mac, manufacturer, model, firmware_version, serial_number,
                     hardware_id, support_move, support_zoom, nvr_id, nvr_channel, rtsp_direct, channel_online,
-                    connection_status, enable_forward, directory_id, longitude, latitude, altitude, address,
+                    connection_status, enable_forward, auto_snap_enabled, directory_id, longitude, latitude, altitude, address,
                     location_source, location_updated_at, heading
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 row.getId(),
                 row.getName(),
@@ -198,6 +198,7 @@ public class DeviceRepository {
                 row.getChannelOnline(),
                 row.getConnectionStatus(),
                 row.getEnableForward(),
+                Boolean.FALSE,
                 row.getDirectoryId(),
                 row.getLongitude(),
                 row.getLatitude(),
