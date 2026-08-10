@@ -86,10 +86,22 @@ NODE/pip-wheels/
 RTC/data/
 RTC/.env
 RTC/vendor/go2rtc/
+# RUNTIME 构建产物、离线包、本地验证与模型权重（由 install/export/download 脚本生成，不随仓库分发）
+RUNTIME/atomic.env
+RUNTIME/.atomic-test/
+RUNTIME/.atomic-verify/
+RUNTIME/.bundle-runtime/
 RUNTIME/build/
 RUNTIME/build-linux/
 RUNTIME/cmake-build-debug/
+RUNTIME/cmake-build-local/
+RUNTIME/cmake-build-orangepi/
 RUNTIME/deploy.env
+RUNTIME/models/*
+!RUNTIME/models/coco.names
+RUNTIME/.test-hwaccel/
+RUNTIME/.test-yolo-link/
+RUNTIME/.test-*/
 # .scripts/docker 中间件数据目录和日志目录
 .scripts/docker/db_data/
 .scripts/docker/.deploy_profile
@@ -158,6 +170,3 @@ VIDEO/ffmpeg-master-*.tar.xz
 !/WEB/logs/.gitkeep
 *.zip
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
-RUNTIME/atomic.env
-RUNTIME/.atomic-test/
-RUNTIME/.atomic-verify/
