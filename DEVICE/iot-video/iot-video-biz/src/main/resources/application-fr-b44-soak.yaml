@@ -1,0 +1,24 @@
+# FR-B44 local pose extract + matching-alert evidence overlay.
+# Activate with: --spring.profiles.active=local,fr-b44-soak
+# Combines fr-b25-soak (MinIO) with use-direct-process=false for LibraryMatchingProcessor.
+#
+# Python-first refs:
+#   library_matching_service.process_face_matching_message L215-300
+#   library_matching_service._create_match_alert L110-152
+
+video:
+  minio:
+    enabled: true
+    endpoint: http://127.0.0.1:9000
+    access-key: minioadmin
+    secret-key: basiclab@iot975248395
+    secure: false
+  media:
+    upload-mode: hybrid
+    snap-upload-mode: kafka
+  matching:
+    use-direct-process: false
+    face-matching-topic: iot-face-matching
+    plate-matching-topic: iot-plate-matching
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092

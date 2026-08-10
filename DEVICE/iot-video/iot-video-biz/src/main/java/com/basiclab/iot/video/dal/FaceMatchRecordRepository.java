@@ -1,5 +1,6 @@
 package com.basiclab.iot.video.dal;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,7 @@ import java.util.Map;
 public class FaceMatchRecordRepository {
 
     private final JdbcTemplate jdbc;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Map<String, Object> insert(
             Long taskId,
@@ -57,7 +59,7 @@ public class FaceMatchRecordRepository {
             Long alertId
     ) {
         Timestamp now = Timestamp.from(Instant.now());
-        String candidatesJson = candidates == null ? null : String.valueOf(candidates);
+        String candidatesJson = toJsonString(candidates);
         Long id = jdbc.queryForObject(
                 """
                 INSERT INTO face_match_record (
@@ -202,9 +204,29 @@ public class FaceMatchRecordRepository {
             return null;
         }
         try {
-            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(trimmed, Object.class);
+            return objectMapper.readValue(trimmed, Object.class);
         } catch (Exception ignored) {
             return raw;
+        }
+    }
+
+    private String toJsonString(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String s) {
+            String trimmed = s.trim();
+            if (trimmed.isEmpty()) {
+                return null;
+            }
+            if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+                return trimmed;
+            }
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception ex) {
+            return null;
         }
     }
 }

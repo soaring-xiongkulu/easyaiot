@@ -458,6 +458,15 @@ Python `run.py` 启动时拉起的能力 vs Java：
 | `is_custom_save_time` 列错位？ | **已修** — Java `DeviceSpaceRepository` 对齐 Python `RecordSpace.save_time_custom` |
 | 能否称 COMPLETE？ | **禁止** |
 
+## 10. 最终判定 — FR-B44
+
+| 问题 | 答案 |
+|------|------|
+| YOLO pose extract 真 keypoints？ | **是（local-only）** — `fr_b44_pose_probe.py` **2/2**；`pose_inference_cli.py` + `yolo26n-pose.pt`；max_conf≈0.99；`logs/fr-b44-pose-latest.json` |
+| Pose match-test 真 similarity？ | **是（local-only）** — same artifact；entry keypoints persisted；matched=true |
+| Face matching hit → alert？ | **是（local-only）** — `fr_b44_matching_alert_probe.py` **1/1**；`matched=true` + `alert_id` + `face_library_match`；`library_matching_service._create_match_alert`；profile `fr-b44-soak` |
+| 能否称 COMPLETE？ | **禁止** |
+
 ## 11. 最终判定 — FR-B23
 
 | 问题 | 答案 |

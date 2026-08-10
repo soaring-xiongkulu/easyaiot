@@ -308,6 +308,12 @@ public class ScenarioPoseLibraryService {
         if (persons.isEmpty()) {
             throw new VideoBusinessException(400, "未检测到人体姿态，请更换图片");
         }
+        @SuppressWarnings("unchecked")
+        List<List<Object>> keypoints = (List<List<Object>>) persons.get(0).get("keypoints");
+        List<double[]> kpArrays = toKeypointArrays(keypoints);
+        List<Double> feat = PoseIntentMatcher.extractAngleFeatures(kpArrays);
+        String keypointsJson = keypoints != null ? writeJson(keypoints) : null;
+        String featureVectorJson = feat != null ? writeJson(feat) : null;
         String objectName = libraryId + "/" + UUID.randomUUID().toString().replace("-", "") + ".jpg";
         String imageUrl = "/api/v1/buckets/" + POSE_BUCKET + "/objects/download?prefix=" + objectName;
         int id = entryRepository.insert(
@@ -316,8 +322,8 @@ public class ScenarioPoseLibraryService {
                 "image",
                 objectName,
                 imageUrl,
-                null,
-                null,
+                keypointsJson,
+                featureVectorJson,
                 null,
                 remark,
                 true

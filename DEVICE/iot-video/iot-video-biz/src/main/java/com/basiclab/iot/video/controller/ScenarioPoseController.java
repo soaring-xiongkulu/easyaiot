@@ -5,6 +5,7 @@ import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.service.pose.ScenarioPoseLibraryService;
 import com.basiclab.iot.video.support.RequestParams;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -73,26 +74,33 @@ public class ScenarioPoseController {
         return response;
     }
 
-    @PostMapping("/libraries/{libraryId}/entries")
-    public VideoApiResponse<Map<String, Object>> addEntry(
+    @PostMapping(value = "/libraries/{libraryId}/entries", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public VideoApiResponse<Map<String, Object>> addEntryMultipart(
             @PathVariable int libraryId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String remark,
             @RequestParam(required = false) String conf,
-            @RequestParam(required = false) MultipartFile file,
+            @RequestParam(required = false) MultipartFile file) throws Exception {
+        String entryName = name != null && !name.isBlank() ? name.trim() : "参考姿态";
+        double confidence = conf != null ? RequestParams.toDouble(conf, 0.25) : 0.25;
+        byte[] bytes = file != null && !file.isEmpty() ? file.getBytes() : null;
+        return VideoApiResponse.success("添加成功",
+                poseLibraryService.addEntry(libraryId, entryName, remark, confidence, bytes, Map.of()));
+    }
+
+    @PostMapping(value = "/libraries/{libraryId}/entries", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public VideoApiResponse<Map<String, Object>> addEntryJson(
+            @PathVariable int libraryId,
             @RequestBody(required = false) Map<String, Object> body) throws Exception {
         Map<String, Object> data = body != null ? body : Map.of();
-        String entryName = name != null ? name : RequestParams.str(data, "name");
+        String entryName = RequestParams.str(data, "name");
         if (entryName.isBlank()) {
             entryName = "参考姿态";
         }
-        String entryRemark = remark != null ? remark : RequestParams.strOrNull(data, "remark");
-        double confidence = conf != null
-                ? RequestParams.toDouble(conf, 0.25)
-                : RequestParams.toDouble(data.get("conf"), 0.25);
-        byte[] bytes = file != null && !file.isEmpty() ? file.getBytes() : null;
+        String entryRemark = RequestParams.strOrNull(data, "remark");
+        double confidence = RequestParams.toDouble(data.get("conf"), 0.25);
         return VideoApiResponse.success("添加成功",
-                poseLibraryService.addEntry(libraryId, entryName, entryRemark, confidence, bytes, data));
+                poseLibraryService.addEntry(libraryId, entryName, entryRemark, confidence, null, data));
     }
 
     @PutMapping("/entries/{entryId}")

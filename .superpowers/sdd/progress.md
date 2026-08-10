@@ -43,5 +43,6 @@ HTTP 面 FR-W* 已齐。行为波次：
 | **FR-B41** face_rec.onnx + face entry 成功路径 local | **DONE** | (this commit) |
 | **FR-B42** face entry update 带图 | **DONE** | (this commit) |
 | **FR-B43** face/plate /health 真探测 | **DONE** | (this commit) |
+| **FR-B44** pose extract/match-test + matching hit→alert | **DONE** | (this commit) |
 
 COMPLETE 仍禁止，直至行为缺口可勾选或产品签字豁免 + **prod** soak checklist 有证据（local-only ≠ prod 绿）。
