@@ -5,6 +5,7 @@ import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.support.S3BucketNameSupport;
 import com.basiclab.iot.video.support.VideoMinioBucketPolicy;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
 import io.minio.ListObjectsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -170,6 +171,42 @@ public class VideoMinioService {
             );
         } catch (Exception e) {
             throw new VideoBusinessException(500, "MinIO 上传失败: " + e.getMessage());
+        }
+    }
+
+    public boolean bucketExists(String bucketName) {
+        if (!isStorageEnabled() || bucketName == null || bucketName.isBlank()) {
+            return false;
+        }
+        try {
+            return requireClient().bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+        } catch (Exception e) {
+            log.warn("MinIO bucketExists failed bucket={} error={}", bucketName, e.getMessage());
+            return false;
+        }
+    }
+
+    public byte[] readBytes(String bucketName, String objectName) {
+        if (!isStorageEnabled()) {
+            throw new VideoBusinessException(503, "MinIO 未启用，无法读取对象");
+        }
+        if (objectName == null || objectName.isBlank()) {
+            throw new VideoBusinessException(400, "对象名不能为空");
+        }
+        MinioClient client = requireClient();
+        try {
+            if (!client.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
+                throw new VideoBusinessException(500, "图片存储不可用");
+            }
+            try (InputStream stream = client.getObject(
+                    GetObjectArgs.builder().bucket(bucketName).object(objectName).build()
+            )) {
+                return stream.readAllBytes();
+            }
+        } catch (VideoBusinessException ex) {
+            throw ex;
+        } catch (Exception e) {
+            throw new VideoBusinessException(500, "MinIO 读取失败: " + e.getMessage());
         }
     }
 

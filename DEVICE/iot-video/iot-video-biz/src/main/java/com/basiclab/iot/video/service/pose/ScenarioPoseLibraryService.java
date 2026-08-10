@@ -3,6 +3,7 @@ package com.basiclab.iot.video.service.pose;
 import com.basiclab.iot.video.dal.ScenarioPoseEntryRepository;
 import com.basiclab.iot.video.dal.ScenarioPoseLibraryRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
+import com.basiclab.iot.video.service.minio.VideoMinioService;
 import com.basiclab.iot.video.support.RequestParams;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Slf4j
 @Service
@@ -62,6 +65,7 @@ public class ScenarioPoseLibraryService {
     private final ScenarioPoseLibraryRepository libraryRepository;
     private final ScenarioPoseEntryRepository entryRepository;
     private final PoseAnalysisService poseAnalysisService;
+    private final VideoMinioService videoMinioService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<Map<String, Object>> listLibraries(String search, Boolean isEnabled) {
@@ -230,7 +234,20 @@ public class ScenarioPoseLibraryService {
         if (imagePath == null || imagePath.isBlank()) {
             throw new VideoBusinessException(400, "该条目无参考图片");
         }
-        throw new VideoBusinessException(500, "提取失败: 图片存储不可用");
+        byte[] imageBytes = loadEntryImageBytes(imagePath);
+        List<Map<String, Object>> persons = poseAnalysisService.extractPersons(imageBytes, conf);
+        if (persons.isEmpty()) {
+            throw new VideoBusinessException(400, "未检测到人体姿态");
+        }
+        @SuppressWarnings("unchecked")
+        List<List<Object>> keypoints = (List<List<Object>>) persons.get(0).get("keypoints");
+        List<double[]> kpArrays = toKeypointArrays(keypoints);
+        List<Double> feat = PoseIntentMatcher.extractAngleFeatures(kpArrays);
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("keypoints", keypoints != null ? writeJson(keypoints) : null);
+        fields.put("feature_vector", feat != null ? writeJson(feat) : null);
+        entryRepository.update(entryId, fields);
+        return entryRepository.findById(entryId).orElseThrow();
     }
 
     public Map<String, Object> extractPreview(byte[] imageBytes, double conf) {
@@ -315,6 +332,9 @@ public class ScenarioPoseLibraryService {
         String keypointsJson = keypoints != null ? writeJson(keypoints) : null;
         String featureVectorJson = feat != null ? writeJson(feat) : null;
         String objectName = libraryId + "/" + UUID.randomUUID().toString().replace("-", "") + ".jpg";
+        if (videoMinioService.isStorageEnabled()) {
+            videoMinioService.uploadBytes(POSE_BUCKET, objectName, imageBytes, "image/jpeg", true);
+        }
         String imageUrl = "/api/v1/buckets/" + POSE_BUCKET + "/objects/download?prefix=" + objectName;
         int id = entryRepository.insert(
                 libraryId,
@@ -377,7 +397,22 @@ public class ScenarioPoseLibraryService {
         if (objectName == null || objectName.isBlank()) {
             return;
         }
-        log.debug("skip MinIO delete for scenario pose object {}", objectName);
+        videoMinioService.removeObject(POSE_BUCKET, objectName);
+    }
+
+    private byte[] loadEntryImageBytes(String imagePath) {
+        if (videoMinioService.isStorageEnabled() && videoMinioService.bucketExists(POSE_BUCKET)) {
+            return videoMinioService.readBytes(POSE_BUCKET, imagePath);
+        }
+        Path localPath = Path.of(imagePath);
+        if (Files.isRegularFile(localPath)) {
+            try {
+                return Files.readAllBytes(localPath);
+            } catch (Exception ex) {
+                throw new VideoBusinessException(500, "读取本地图片失败: " + ex.getMessage());
+            }
+        }
+        throw new VideoBusinessException(500, "提取失败: 图片存储不可用");
     }
 
     private String toJsonTags(Object tags) {

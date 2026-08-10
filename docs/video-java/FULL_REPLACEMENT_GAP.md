@@ -152,7 +152,7 @@
 | 域 | 路由差 | 状态 | 说明 |
 |----|--------|------|------|
 | `audio_talk` | **Py 5 / Java 5 / diff 0** | ✅ 路由 | **FR-W3-TALK** + **FR-B10 ✅** ONVIF RTSP DESCRIBE/SETUP/PLAY + G.711 RTP |
-| `scenario_pose` | **Py 14 / Java 14 / diff 0** | ✅ 路由 | **FR-W3-POSE** + **FR-B9 ✅** extract；**FR-B10 ✅** match-test 相似度评分 |
+| `scenario_pose` | **Py 14 / Java 14 / diff 0** | ✅ 路由 | **FR-W3-POSE** + **FR-B9 ✅** extract；**FR-B10 ✅** match-test；**FR-B45 ✅** reExtract MinIO load 接线（runtime YOLO honest_ex） |
 | `patrol` | **Py 9 / Java 9 / diff 0** | ✅ 路由 | **FR-W2-PATROL** + **FR-B10 ✅** 守护进程 env 对齐 + SSE hub |
 
 **14 inventoried 前缀无 HTTP 路由缺口**；剩余为 **行为 / 后台 / 集成**（§3–§4）。

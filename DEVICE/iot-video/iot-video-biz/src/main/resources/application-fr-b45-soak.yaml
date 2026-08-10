@@ -1,0 +1,27 @@
+# FR-B45 local plate matching→alert + Kafka consume + reExtract MinIO overlay.
+# Activate with: --spring.profiles.active=local,fr-b45-soak
+#
+# Python-first refs:
+#   library_matching_service.process_plate_matching_message L303-382
+#   library_matching_service._create_match_alert L110-152 (plate_library_match)
+#   plate_matching_kafka_service.py build_plate_matching_message + send_plate_matching_to_kafka
+#   scenario_pose_library_service.re_extract_entry L314-336
+
+video:
+  minio:
+    enabled: true
+    endpoint: http://127.0.0.1:9000
+    access-key: minioadmin
+    secret-key: basiclab@iot975248395
+    secure: false
+  media:
+    upload-mode: hybrid
+    snap-upload-mode: kafka
+  matching:
+    use-direct-process: false
+    face-matching-topic: iot-face-matching
+    plate-matching-topic: iot-plate-matching
+    plate-matching-consumer-enabled: true
+    plate-matching-consumer-group: video-plate-matching-frb45
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092

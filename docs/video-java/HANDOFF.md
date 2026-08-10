@@ -68,18 +68,19 @@
 6. `DEVICE/iot-video/iot-video-biz/.../controller`  
 7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
 
-## 8. 现状摘要（2026-08-11 FR-B44）
+## 8. 现状摘要（2026-08-11 FR-B45）
 
 - **HTTP 路由：** `route_inventory` 14 前缀 **Py≈259 / Java≈259 / diff=0**（`FR-W4` 全量核对）。
 - **契约硬化：** **FR-B40 ✅** contract_regression **265 pass / 0 fail**；artifact `logs/fr-b40-contract-latest.json`。
 - **Face entry：** **FR-B41 ✅** local multipart **code=0** + 12 keys + `image_url` + `milvus_id`；artifact `logs/fr-b41-face-entry-success-latest.json`。
 - **Face entry update：** **FR-B42 ✅** local `PUT` multipart **code=0** + 12 keys + `image_url`/`milvus_id` 更新；artifact `logs/fr-b42-face-update-latest.json`。
 - **Face/plate health：** **FR-B43 ✅** `/video/face/health` + `/video/plate/health` 真探测对齐 Python 键；artifact `logs/fr-b43-health-latest.json`。
-- **Pose extract + matching alert：** **FR-B44 ✅** YOLO pose extract/match-test **2/2** + face matching hit→`face_library_match` alert **1/1**；artifacts `logs/fr-b44-pose-latest.json`, `logs/fr-b44-matching-alert-latest.json`。
+- **Pose extract + face matching alert：** **FR-B44 ✅** YOLO pose extract/match-test **2/2** + face matching hit→`face_library_match` alert **1/1**；artifacts `logs/fr-b44-pose-latest.json`, `logs/fr-b44-matching-alert-latest.json`。
+- **Plate matching + Kafka consume + reExtract：** **FR-B45 ✅** plate `plate_library_match` direct **1/1** + Kafka publish→consumer→alert **1/1**；reExtract MinIO 代码接线（runtime honest_ex YOLO）；artifacts `logs/fr-b45-*`。
 - **行为：** face no-model → **HTTP 400**（`face.py` L282-283）；业务 404 → HTTP 404 envelope（`patrol.py` L45）。
-- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb44-phase0.log`）。
+- **脚手架：** Phase -1～0 骨架 + FR-W1～W3 路由/后台扩面已完成；**phase0 PASS 5/5**（`logs/certify-frb45-phase0.log`）。
 - **项目状态：** **FR HTTP 面已齐 — 禁止 COMPLETE**。
-- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（§6.3/§6.4 local ✅；其余仍 ⬜）。
+- **prod soak：** 见 [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)（§6.4 plate+Kafka local ✅；其余仍 ⬜）。
 
 ## 9. 你的下一步
 

@@ -63,6 +63,14 @@ public class VideoProperties {
         private String faceMatchingTopic = "iot-face-matching";
         /** Mirrors Python {@code KAFKA_PLATE_MATCHING_TOPIC}. */
         private String plateMatchingTopic = "iot-plate-matching";
+        /**
+         * When {@link #useDirectProcess} is false, consume plate matching Kafka messages in-process
+         * (mirrors iot-sink {@code PlateMatchingConsumer} → VIDEO /plate/matching/process).
+         */
+        private boolean plateMatchingConsumerEnabled = false;
+        /** Dedicated group avoids backlog on shared {@code iot-sink-plate-matching-consumer}. */
+        private String plateMatchingConsumerGroup = "video-plate-matching-consumer";
+        private long plateMatchingPollTimeoutMs = 1_000L;
     }
 
     @Data
