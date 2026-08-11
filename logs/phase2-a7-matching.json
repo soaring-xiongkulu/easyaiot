@@ -1,0 +1,191 @@
+{
+  "pack": "P2-A7",
+  "title": "Face/plate matching Kafka path parity (local full stack)",
+  "generated_at": "2026-08-11T19:12:32+08:00",
+  "status": "⛔",
+  "status_detail": "缺 Milvus/InsightFace — face process honestly bypassed (status=bypassed); plate Kafka publish + process hit/miss PASS; use-direct-process=false (real Kafka, not mock)",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "nacos": "127.0.0.1:8848",
+    "minio": "127.0.0.1:9000",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096"
+  },
+  "config_checks": [
+    {
+      "check": "video.matching.use-direct-process",
+      "expected": false,
+      "source": "application-local.yaml + application.yaml (VideoProperties default)",
+      "actual": false,
+      "status": "pass",
+      "note": "MatchingKafkaProducer.publishFace/Plate used (not mini mock path); logs show real partition/offset"
+    },
+    {
+      "check": "video.matching.face-matching-topic",
+      "expected": "iot-face-matching",
+      "actual": "iot-face-matching",
+      "status": "pass"
+    },
+    {
+      "check": "video.matching.plate-matching-topic",
+      "expected": "iot-plate-matching",
+      "actual": "iot-plate-matching",
+      "status": "pass"
+    },
+    {
+      "check": "face recognition engine (InsightFace + Milvus)",
+      "expected": "PythonInferenceWorker face_inference_cli.py health available=true",
+      "actual": "unavailable — process returns status=bypassed",
+      "status": "blocked",
+      "note": "Honest ⛔ per brief; bypass recorded, not treated as match success"
+    }
+  ],
+  "oracle_python": {
+    "face_publish": "F:/acme/VIDEO/app/services/face_matching_kafka_service.py → send_face_matching_to_kafka() → topic iot-face-matching",
+    "plate_publish": "F:/acme/VIDEO/app/services/plate_matching_kafka_service.py → send_plate_matching_to_kafka() → topic iot-plate-matching",
+    "face_process": "F:/acme/VIDEO/app/services/library_matching_service.py → InsightFace + Milvus when engine available",
+    "plate_process": "F:/acme/VIDEO/app/services/library_matching_service.py → plate_entry DB lookup",
+    "gate": "Non-mini: Kafka publish (not in-process stub); face requires recognition engine"
+  },
+  "java_candidate": {
+    "face_publish": "FaceMatchingService.publish() → MatchingKafkaProducer.publishFace()",
+    "plate_publish": "PlateMatchingService.publish() → MatchingKafkaProducer.publishPlate()",
+    "face_process": "FaceMatchingService.process() → LibraryMatchingProcessor.processFace()",
+    "plate_process": "PlateMatchingService.process() → LibraryMatchingProcessor.processPlate()",
+    "kafka_consumer": "PlateMatchingKafkaConsumerRunner (gated: plate-matching-consumer-enabled=false by default)",
+    "gate": "videoProperties.getMatching().isUseDirectProcess() == false → real KafkaTemplate.send"
+  },
+  "fixture": {
+    "face_task_id": 48,
+    "face_task_name": "vj_p2_face_match",
+    "face_library_id": 6,
+    "plate_task_id": 49,
+    "plate_task_name": "vj_p2_plate_match",
+    "plate_library_id": 79,
+    "device_id": "frb26_device",
+    "face_image_path": "F:/acme/.worktrees/video-java/.image/image/face.jpg",
+    "plate_hit_no": "P2A7HIT01",
+    "plate_miss_no": "P2A7MISS99",
+    "plate_entry_inserted": { "id": 21, "library_id": 79, "plate_no": "P2A7HIT01", "owner_name": "A7 Hit Owner" }
+  },
+  "face_publish": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/face/matching/publish",
+    "correlation_id": "phase2-a7-face-pub-20260811191207",
+    "http_status": 200,
+    "code": 0,
+    "kafka_log": "face matching kafka sent: topic=iot-face-matching, partition=48, offset=1"
+  },
+  "face_process": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/face/matching/process",
+    "correlation_id": "phase2-a7-face-proc-20260811191207",
+    "http_status": 200,
+    "code": 0,
+    "record": {
+      "id": 43,
+      "matched": false,
+      "status": "bypassed",
+      "error_message": "recognition engine unavailable (Python worker / InsightFace / Milvus not configured)",
+      "library_id": 6
+    },
+    "interpretation": "Real process path executed; honest bypass (not fake match); engine/Milvus absent"
+  },
+  "plate_publish": {
+    "gateway": {
+      "method": "POST",
+      "endpoint": "http://127.0.0.1:48080/admin-api/video/plate/matching/publish",
+      "correlation_id": "phase2-a7-plate-pub-20260811191207",
+      "code": 0,
+      "kafka_log": "plate matching kafka sent: topic=iot-plate-matching, partition=48, offset=0"
+    },
+    "direct_video_server": {
+      "method": "POST",
+      "endpoint": "http://127.0.0.1:48096/video/plate/matching/publish",
+      "correlation_id": "phase2-a7-plate-direct-20260811191232",
+      "code": 0,
+      "kafka_log": "plate matching kafka sent: topic=iot-plate-matching, partition=48, offset=1"
+    }
+  },
+  "plate_process_hit": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/plate/matching/process",
+    "correlation_id": "phase2-a7-plate-hit-20260811191207",
+    "code": 0,
+    "record": {
+      "id": 38,
+      "matched": true,
+      "library_id": 79,
+      "library_name": "vj_p2 plate lib",
+      "plate_no": "P2A7HIT01",
+      "matched_plate_entry_id": 21,
+      "matched_owner_name": "A7 Hit Owner",
+      "alert_id": 4669,
+      "status": "success"
+    }
+  },
+  "plate_process_miss": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/plate/matching/process",
+    "correlation_id": "phase2-a7-plate-miss-20260811191207",
+    "code": 0,
+    "record": {
+      "id": 39,
+      "matched": false,
+      "plate_no": "P2A7MISS99",
+      "status": "success"
+    }
+  },
+  "kafka_broker_proof": {
+    "method": "docker exec kafka-server /opt/kafka/bin/kafka-console-consumer.sh",
+    "topics": {
+      "iot-face-matching": {
+        "correlation_id": "phase2-a7-face-pub-20260811191207",
+        "verified": true
+      },
+      "iot-plate-matching": {
+        "correlation_ids": [
+          "phase2-a7-plate-pub-20260811191207",
+          "phase2-a7-plate-direct-20260811191232"
+        ],
+        "verified": true
+      }
+    },
+    "status": "pass"
+  },
+  "acceptance": [
+    { "check": "use-direct-process=false under local profile (committed + default)", "status": "pass" },
+    { "check": "face matching publish → real Kafka iot-face-matching (not mock)", "status": "pass" },
+    { "check": "plate matching publish → real Kafka iot-plate-matching (gateway + direct)", "status": "pass" },
+    { "check": "broker messages consumed for correlation IDs", "status": "pass" },
+    { "check": "plate process hit (DB lookup) + miss comparison", "status": "pass" },
+    { "check": "face process with InsightFace + Milvus hit/miss", "status": "blocked", "reason": "PythonInferenceWorker face engine unavailable; status=bypassed recorded honestly" },
+    { "check": "use-direct-process not flipped to fake PASS", "status": "pass" },
+    { "check": "bypass not treated as match success", "status": "pass" }
+  ],
+  "code_fixes_applied": [
+    "LibraryMatchingProcessor.processFace — null-safe bestMatch when inserting face_match_record (NPE on unmatched path)"
+  ],
+  "concerns": [
+    "Face matching requires Python worker + face_rec.onnx + Milvus — not on Phase 1 local stack",
+    "PlateMatchingKafkaConsumerRunner disabled by default (plate-matching-consumer-enabled=false); process API exercised directly (mirrors consumer → process path)",
+    "Test plate_entry id=21 inserted into library 79 for hit comparison"
+  ],
+  "phase2_a_series": {
+    "A1": "PASS",
+    "A2": "PASS",
+    "A3": "PASS",
+    "A4": "PASS",
+    "A5": "PASS",
+    "A6": "⛔缺 sink",
+    "A7": "⛔缺 Milvus/InsightFace (plate kafka+process PASS)",
+    "closed": true,
+    "note": "Phase 2 A-series complete; Python Oracle retained"
+  },
+  "nested_subagents": "none",
+  "a1_a5_hard_gate": "holds — A1–A5 PASS unchanged; no shortcuts flipped; profile local"
+}

@@ -308,6 +308,67 @@ Prove Java `video-server` under `profile=local` with `use-stub-enqueue=false` pe
 
 ---
 
-## Next pack
+## Pack A7 — Face/plate matching Kafka path
 
-**A7** — Matching (`logs/phase2-a7-matching.json`).
+| Field | Value |
+|-------|-------|
+| **Status** | **⛔缺 Milvus/InsightFace** |
+| **Date** | 2026-08-11 |
+| **Evidence** | `logs/phase2-a7-matching.json` |
+
+### Goal
+
+Prove Java `video-server` under `profile=local` with `use-direct-process=false` publishes face/plate matching via **real Kafka** and processes plate matches (hit + miss) — aligned with Python `face_matching_kafka_service` / `plate_matching_kafka_service` / `library_matching_service`. Face requires InsightFace + Milvus; honest bypass when absent.
+
+### Oracle reference (Python)
+
+| Item | Location |
+|------|----------|
+| Face Kafka publish | `VIDEO/app/services/face_matching_kafka_service.py` → `send_face_matching_to_kafka()` |
+| Plate Kafka publish | `VIDEO/app/services/plate_matching_kafka_service.py` → `send_plate_matching_to_kafka()` |
+| Process | `VIDEO/app/services/library_matching_service.py` → face (Milvus) + plate (DB lookup) |
+
+### Java candidate
+
+| Item | Location |
+|------|-------|
+| Config | `application-local.yaml` → `video.matching.use-direct-process: false` |
+| Publish | `FaceMatchingService` / `PlateMatchingService` → `MatchingKafkaProducer` |
+| Process | `LibraryMatchingProcessor` → `FaceRecognitionService` / `PlateEntryRepository` |
+| Plate consumer | `PlateMatchingKafkaConsumerRunner` (gated; default off) |
+
+### Acceptance results
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `use-direct-process=false` (committed local + default) | **PASS** |
+| 2 | Face publish → `iot-face-matching` (broker verified) | **PASS** |
+| 3 | Plate publish → `iot-plate-matching` (gateway + direct) | **PASS** |
+| 4 | Plate process hit + miss | **PASS** — `P2A7HIT01` matched, `P2A7MISS99` not |
+| 5 | Face process with InsightFace + Milvus hit/miss | **⛔** — `status=bypassed`, engine unavailable |
+| 6 | Bypass not treated as match success | **PASS** |
+
+### Fixture
+
+- Task 48 `vj_p2_face_match` (face library 6), task 49 `vj_p2_plate_match` (plate library 79); device `frb26_device`
+- Plate entry `P2A7HIT01` in library 79 for hit test
+
+### Code fixes (A7)
+
+- `LibraryMatchingProcessor` — null-safe `bestMatch` on face record insert (NPE fix)
+
+---
+
+## Phase 2 A-series summary
+
+| Pack | Status |
+|------|--------|
+| A1 Alert Kafka | **PASS** |
+| A2 RUNTIME lifecycle | **PASS** |
+| A3 Forward/ffmpeg | **PASS** |
+| A4 Media MinIO | **PASS** |
+| A5 Camera | **PASS** |
+| A6 Post-process | **⛔缺 sink** |
+| A7 Matching | **⛔缺 Milvus/InsightFace** |
+
+**A-series closed** (2026-08-11). Python Oracle retained. No COMPLETE. Optional re-runs: start `iot-sink` on `:48092` (A6) or face inference + Milvus (A7).
