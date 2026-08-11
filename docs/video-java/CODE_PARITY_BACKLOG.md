@@ -75,7 +75,7 @@
 
 | ID | 违约/缺口 | 证据锚点 | 归类 |
 |----|-----------|----------|------|
-| **D-01** | 告警 Kafka 失败 → `direct_persist` fallback 仍可 success | `AlertHookService.java` L88–91, `fallbackPersistOnKafkaFailure`；Python `_fallback_persist_on_kafka_failure`（**Part1 禁用**） | Part1 → **CP-1** |
+| **D-01** | ~~告警 Kafka 失败 → `direct_persist` fallback 仍可 success~~ **CP-1 PASS** — fallback removed; honest `code=500` | `AlertHookService.java`；证据 `logs/cp-1-no-fallback.json` | Part1 → **CP-1** ✓ |
 | **D-02** | `plateMatchingConsumerEnabled=false`：publish 通但 video 内 consume 默认关 | `VideoProperties.Matching` L74；A7 报告注明 consumer disabled | Part1 → **CP-2** |
 | **D-03** | `iot-video` **无** Face matching Kafka consumer（消费在 `iot-sink`；本机未接线则链断） | 无 `FaceMatching*Consumer` in iot-video；sink `FaceMatchingConsumer` → HTTP process | Part1 接线 **CP-2/CP-3**；引擎 **Part2** |
 | **D-04** | `iot-sink` local 库端口未对齐 **15432** / 未纳入可复现启动 | `iot-sink/.../application-local.yaml` → `jdbc:postgresql://localhost:5432/iot-video20`；A6 `:48092` refused | Part1 → **CP-3** |
@@ -100,7 +100,7 @@
 
 | ID | 域 | Python 锚点 | Java 现状 | 差距 | 建议包 | 优先级 |
 |----|----|-------------|-----------|------|--------|--------|
-| G-01 | Alert | `_fallback_persist_on_kafka_failure` | `fallbackPersistOnKafkaFailure` 仍启用 | Part1 禁用兜底；Kafka 失败诚实失败 | CP-1 | P0 |
+| G-01 | Alert | `_fallback_persist_on_kafka_failure` | ~~`fallbackPersistOnKafkaFailure`~~ **已移除（CP-1 PASS）** | Part1 禁用兜底；Kafka 失败诚实失败 | CP-1 | P0 ✓ |
 | G-02 | Matching consume | sink/VIDEO process 链路 | plate consumer 默认 false；face 仅 sink | local 默认消费链完备 + 可测到 process/诚实缺引擎 | CP-2 | P0 |
 | G-03 | Post-process / sink | `post_process_sink_client.py` | Client 已有；sink PG:5432；未进栈 | 15432 + runbook + `enqueue_ok=true` | CP-3 | P0 |
 | G-04 | Snap schedule | `init_all_tasks` | `initAllTasks` 已有，缺证据 | 启动后调度条目可核对 | CP-4 | P1 |
@@ -118,5 +118,7 @@
 | 项 | 状态 |
 |----|------|
 | Part1/Part2 分类 + 零 Fallback 纪律 | **已文档化** |
-| CP 任务包索引 + briefs | **已建立**（实现 **另令**） |
-| 功能实现 / 长联调 / FR-B / COMPLETE / 删 Python | **禁止（本波）** |
+| CP 任务包索引 + briefs | **已建立** |
+| **CP-1** 告警 Kafka fallback 清除 | **PASS** — `logs/cp-1-no-fallback.json` |
+| CP-2…CP-10 | **待 W2+** |
+| 功能实现 / 长联调 / FR-B / COMPLETE / 删 Python | **禁止** |
