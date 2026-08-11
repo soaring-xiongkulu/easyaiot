@@ -30,7 +30,7 @@
 |------|------|--------|-------|--------|----------|--------|
 | CP-1 No Fallback | W1 | **PASS** | [cp-1-brief.md](./briefs/cp-1-brief.md) | [cp-1-report.md](./briefs/cp-1-report.md) | `logs/cp-1-no-fallback.json` | `e7ee0c9` |
 | CP-3 iot-sink enqueue | W2-first | **PASS** | [cp-3-brief.md](./briefs/cp-3-brief.md) | [cp-3-report.md](./briefs/cp-3-report.md) | `logs/cp-3-sink-enqueue.json` | `a3faeec` |
-| CP-2 Matching consume | W2-second | pending | [cp-2-brief.md](./briefs/cp-2-brief.md) | — | `logs/cp-2-matching-consume.json` | — |
+| CP-2 Matching consume | W2-second | **PASS** | [cp-2-brief.md](./briefs/cp-2-brief.md) | [cp-2-report.md](./briefs/cp-2-report.md) | `logs/cp-2-matching-consume.json` | `0dff12f` |
 | CP-4 Snap scheduler | W3 | pending | [cp-4-brief.md](./briefs/cp-4-brief.md) | — | `logs/cp-4-snap-scheduler.json` | — |
 | CP-5 services/status | W3 | pending | [cp-5-brief.md](./briefs/cp-5-brief.md) | — | `logs/cp-5-services-status.json` | — |
 | CP-6 Patrol | W4 | pending | [cp-6-brief.md](./briefs/cp-6-brief.md) | — | `logs/cp-6-patrol.json` | — |

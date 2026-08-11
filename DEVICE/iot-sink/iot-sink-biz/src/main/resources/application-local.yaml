@@ -293,7 +293,26 @@ basiclab:
           keep-alive-timeout-seconds: 300 # 保持连接超时时间（秒）
           ssl-enabled: false # 是否启用 SSL
           ssl-options: # SSL 配置
-            cert-path: # SSL 证书路径
+            cert-path: # SSL 私钥路径
             key-path: # SSL 私钥路径
             trust-store-path: # 信任存储路径
             trust-store-password: # 信任存储密码
+
+--- #################### CP-2 matching consume (local commercial) ####################
+
+# Face/plate matching: video-server publish → Kafka → iot-sink consumers → gateway /matching/process
+basiclab:
+  video:
+    service-url: http://127.0.0.1:48080
+    api-prefix: /admin-api/video
+
+spring:
+  kafka:
+    face-matching:
+      topic: iot-face-matching
+      group-id: iot-sink-face-matching-consumer
+      result-topic: iot-face-matching-result
+    plate-matching:
+      topic: iot-plate-matching
+      group-id: iot-sink-plate-matching-consumer
+      result-topic: iot-plate-matching-result

@@ -10,6 +10,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -24,8 +25,7 @@ import java.util.Map;
 @Service
 public class FaceMatchingServiceImpl implements FaceMatchingService {
 
-    @Autowired(required = false)
-    private RestTemplate restTemplate;
+    private static final RestTemplate MATCHING_HTTP = createMatchingRestTemplate();
 
     @Autowired(required = false)
     private KafkaTemplate<String, String> iotKafkaTemplate;
@@ -49,10 +49,6 @@ public class FaceMatchingServiceImpl implements FaceMatchingService {
         }
         if (message.getFaceImagePath() == null || message.getFaceImagePath().isEmpty()) {
             throw new IllegalArgumentException("faceImagePath 不能为空");
-        }
-
-        if (restTemplate == null) {
-            restTemplate = new RestTemplate();
         }
 
         Map<String, Object> payload = new HashMap<>();
@@ -79,7 +75,7 @@ public class FaceMatchingServiceImpl implements FaceMatchingService {
         log.info("开始调用人脸匹配: deviceId={}, libraryId={}, path={}",
                 message.getDeviceId(), message.getLibraryId(), message.getFaceImagePath());
 
-        ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+        ResponseEntity<String> response = MATCHING_HTTP.postForEntity(url, entity, String.class);
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new IllegalStateException("VIDEO 人脸匹配接口返回异常: status=" + response.getStatusCodeValue()
                     + ", body=" + response.getBody());
@@ -108,6 +104,13 @@ public class FaceMatchingServiceImpl implements FaceMatchingService {
             log.warn("发送人脸匹配结果到 Kafka 失败: deviceId={}, error={}",
                     message.getDeviceId(), e.getMessage(), e);
         }
+    }
+
+    private static RestTemplate createMatchingRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10_000);
+        factory.setReadTimeout(30_000);
+        return new RestTemplate(factory);
     }
 
     private static String normalizeBaseUrl(String baseUrl) {

@@ -87,6 +87,14 @@ docker exec kafka-server /opt/kafka/bin/kafka-topics.sh --bootstrap-server local
   --create --if-not-exists --topic iot-post-process-request --partitions 64 --replication-factor 1
 docker exec kafka-server /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic iot-post-process-result --partitions 64 --replication-factor 1
+
+# Kafka topics for matching consume chain (CP-2; sink FaceMatchingConsumer / PlateMatchingConsumer)
+docker exec kafka-server /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+  --create --if-not-exists --topic iot-face-matching --partitions 64 --replication-factor 1
+docker exec kafka-server /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+  --create --if-not-exists --topic iot-plate-matching --partitions 64 --replication-factor 1
+docker exec kafka-server /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+  --create --if-not-exists --topic iot-snapshot-alert --partitions 64 --replication-factor 1
 ```
 
 ## Phase 2 readiness

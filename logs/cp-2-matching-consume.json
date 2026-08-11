@@ -1,0 +1,166 @@
+{
+  "pack": "CP-2",
+  "title": "Matching consume→process chain (iot-sink consumers → gateway /matching/process)",
+  "generated_at": "2026-08-11T22:23:30+08:00",
+  "status": "PASS",
+  "status_detail": "Plate hit/miss via sink PlateMatchingConsumer→HTTP process; face via FaceMatchingConsumer→HTTP process with honest bypass (no InsightFace/Milvus); use-direct-process=false; commercial path uses iot-sink consumers (not video PlateMatchingKafkaConsumerRunner)",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "prior_reports": [
+    "cp-1-report.md (PASS e7ee0c9)",
+    "cp-3-report.md (PASS 2b995e3)",
+    "phase2-a7-report.md (plate process OK; face bypassed)"
+  ],
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096",
+    "iot_sink": "127.0.0.1:48092 (UP, restarted with CP-2 fix)"
+  },
+  "consumer_path": {
+    "chosen": "iot-sink",
+    "rationale": "Python/Java design: FaceMatchingConsumer + PlateMatchingConsumer in sink process; video PlateMatchingKafkaConsumerRunner left disabled (plate-matching-consumer-enabled=false)",
+    "plate_group": "iot-sink-plate-matching-consumer",
+    "face_group": "iot-sink-face-matching-consumer",
+    "process_url_base": "http://127.0.0.1:48080/admin-api/video"
+  },
+  "config_checks": [
+    {
+      "check": "video.matching.use-direct-process",
+      "expected": false,
+      "actual": false,
+      "status": "pass"
+    },
+    {
+      "check": "video.matching.plate-matching-consumer-enabled",
+      "expected": false,
+      "actual": false,
+      "status": "pass",
+      "note": "Intentionally false — sink owns consume path on local commercial stack"
+    },
+    {
+      "check": "basiclab.video.service-url (sink)",
+      "expected": "http://127.0.0.1:48080",
+      "actual": "http://127.0.0.1:48080",
+      "status": "pass"
+    },
+    {
+      "check": "kafka topics iot-face-matching / iot-plate-matching",
+      "expected": "exist",
+      "actual": "present (64 partitions)",
+      "status": "pass"
+    }
+  ],
+  "code_changes": [
+    {
+      "file": "DEVICE/iot-sink/iot-sink-biz/src/main/java/.../PlateMatchingServiceImpl.java",
+      "change": "Dedicated SimpleClientHttpRequestFactory RestTemplate for matching HTTP (avoids shared HttpComponents pool crash stopping Kafka listener)"
+    },
+    {
+      "file": "DEVICE/iot-sink/iot-sink-biz/src/main/java/.../FaceMatchingServiceImpl.java",
+      "change": "Same dedicated RestTemplate fix"
+    },
+    {
+      "file": "DEVICE/iot-sink/iot-sink-biz/src/main/resources/application-local.yaml",
+      "change": "Documented basiclab.video.service-url + spring.kafka face/plate-matching topic config for local"
+    },
+    {
+      "file": "docs/video-java/PHASE1_STACK.md",
+      "change": "Kafka topic bootstrap for iot-face-matching, iot-plate-matching, iot-snapshot-alert"
+    }
+  ],
+  "fixture": {
+    "face_task_id": 48,
+    "face_library_id": 6,
+    "plate_task_id": 49,
+    "plate_library_id": 79,
+    "device_id": "frb26_device",
+    "plate_hit_no": "P2A7HIT01",
+    "plate_miss_no": "P2A7MISS99",
+    "face_image_path": "F:/acme/.worktrees/video-java/.image/image/face.jpg"
+  },
+  "plate_publish_hit": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/plate/matching/publish",
+    "correlation_id": "cp-2-plate-hit-20260811222309",
+    "code": 0,
+    "kafka_topic": "iot-plate-matching",
+    "kafka_partition": 48,
+    "kafka_offset": 2
+  },
+  "plate_consume_hit": {
+    "consumer": "iot-sink PlateMatchingConsumer",
+    "sink_log": "收到车牌匹配消息 topic=iot-plate-matching partition=48 offset=2 → 开始调用车牌匹配 → 车牌匹配处理完成 matched=true alert_id=8510",
+    "process_endpoint": "http://127.0.0.1:48080/admin-api/video/plate/matching/process",
+    "db_record": {
+      "id": 40,
+      "plate_no": "P2A7HIT01",
+      "matched": true,
+      "status": "success",
+      "alert_id": 8510,
+      "correlation_id": "cp-2-plate-hit-20260811222309"
+    },
+    "status": "pass"
+  },
+  "plate_publish_miss": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/plate/matching/publish",
+    "correlation_id": "cp-2-plate-miss-20260811222309",
+    "code": 0,
+    "kafka_topic": "iot-plate-matching",
+    "kafka_partition": 48,
+    "kafka_offset": 3
+  },
+  "plate_consume_miss": {
+    "consumer": "iot-sink PlateMatchingConsumer",
+    "sink_log": "收到车牌匹配消息 offset=3 → 车牌匹配处理完成 matched=false",
+    "db_record": {
+      "id": 41,
+      "plate_no": "P2A7MISS99",
+      "matched": false,
+      "status": "success",
+      "correlation_id": "cp-2-plate-miss-20260811222309"
+    },
+    "status": "pass"
+  },
+  "face_publish": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/face/matching/publish",
+    "correlation_id": "cp-2-face-20260811222309",
+    "code": 0,
+    "kafka_topic": "iot-face-matching",
+    "kafka_partition": 48,
+    "kafka_offset": 1
+  },
+  "face_consume": {
+    "consumer": "iot-sink FaceMatchingConsumer",
+    "sink_log": "收到人脸匹配消息 offset=1 → 开始调用人脸匹配 → 人脸匹配处理完成 status=bypassed",
+    "process_endpoint": "http://127.0.0.1:48080/admin-api/video/face/matching/process",
+    "db_record": {
+      "id": 44,
+      "matched": false,
+      "status": "bypassed",
+      "error_message": "recognition engine unavailable (Python worker / InsightFace / Milvus not configured)",
+      "correlation_id": "cp-2-face-20260811222309"
+    },
+    "interpretation": "Consume→process chain proven; honest bypass (Part2 engine absent) — not treated as match success",
+    "status": "pass"
+  },
+  "acceptance": {
+    "publish_kafka_not_direct_process": true,
+    "sink_plate_consumer_invoke_process": true,
+    "sink_face_consumer_invoke_process": true,
+    "plate_hit_db_via_consume": true,
+    "plate_miss_db_via_consume": true,
+    "face_honest_bypass_via_consume": true,
+    "use_direct_process_false": true,
+    "overall": "PASS"
+  },
+  "notes_for_cp4": {
+    "sink_restarted": "logs/cp-2-sink-server.log after RestTemplate fix",
+    "video_plate_consumer": "Still disabled by design on local — do not enable both sink and video consumers on same group without intent"
+  },
+  "nested_subagents": "none"
+}

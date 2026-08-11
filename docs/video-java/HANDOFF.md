@@ -1,7 +1,7 @@
 # VIDEO Python → Java — HANDOFF
 
 > **话术：** CODE-PARITY 波次 0：Part1/Part2 清单与任务包已建立；功能实现另令；Python 仍为对照，禁止删除。  
-> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **CODE-PARITY W1 CP-1 PASS**；**W2 CP-3 PASS**；下一步 **CP-2 matching consume**。  
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **CODE-PARITY W1 CP-1 PASS**；**W2 CP-3 + CP-2 PASS**；下一步 **W3 CP-4 ∥ CP-5**。  
 > **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标
@@ -75,13 +75,14 @@
 - **CP-1 PASS（W1）：** 已移除 `AlertHookService.fallbackPersistOnKafkaFailure`；Kafka 失败 → API `code=500`，无 `direct_persist` 成功兜底。证据：`logs/cp-1-no-fallback.json`、`.superpowers/sdd/briefs/cp-1-report.md`。  
 - **Part1 纪律：** 商业 `local` **零 Fallback**（告警路径已收口；严于 Python `_fallback_persist_on_kafka_failure`）。  
 - **CP-3 PASS（W2-first）：** `iot-sink` PG **15432**、`:48092` 可复现启动、`enqueue_ok=true`（无 stub）。证据：`logs/cp-3-sink-enqueue.json`、`.superpowers/sdd/briefs/cp-3-report.md`。
-- **已知违约降级（待 CP）：** `plateMatchingConsumerEnabled=false`；face 消费在 `iot-sink` 未接线；`services/status` certify 假 running heuristic。  
+- **CP-2 PASS（W2-second）：** matching consume→process via **iot-sink** `PlateMatchingConsumer` / `FaceMatchingConsumer` → gateway `/matching/process`；plate hit/miss DB；face honest `bypassed`。证据：`logs/cp-2-matching-consume.json`、`.superpowers/sdd/briefs/cp-2-report.md`。
+- **已知违约降级（待 CP）：** `services/status` certify 假 running heuristic。  
 - **禁止：** COMPLETE、FR-B、矩阵刷绿、删 main Python、「等线上」、用 mini/direct/stub 冒充 Part1。
 
 ## 9. 下一步（等令）
 
-1. **W2：CP-2**（matching consume 链）— 串行，见 [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md)。**Prereq CP-3 ✓**（sink `:48092` UP）。  
-2. CP-4…CP-10 按波次；Part2 引擎（InsightFace/Milvus/真机）**不开工直至 Part1 代码路径收口**。  
+1. **W3：CP-4 ∥ CP-5**（snap scheduler + services/status）— 见 [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md)。**Prereq CP-2 ✓**（matching consume chain)。  
+2. CP-6…CP-10 按波次；Part2 引擎（InsightFace/Milvus/真机）**不开工直至 Part1 代码路径收口**。  
 3. Python Oracle 仍保留；**禁止删除**。
 
 ## 10. 历史约束
