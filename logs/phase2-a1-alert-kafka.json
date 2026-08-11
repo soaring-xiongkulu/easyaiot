@@ -1,0 +1,143 @@
+{
+  "pack": "P2-A1",
+  "title": "Alert hook Kafka path parity (local full stack)",
+  "generated_at": "2026-08-11T17:27:15+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "nacos": "127.0.0.1:8848",
+    "minio": "127.0.0.1:9000",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096"
+  },
+  "config_checks": [
+    {
+      "check": "video.alert.use-direct-persist",
+      "expected": false,
+      "source": "application-local.yaml + application.yaml (VideoProperties default)",
+      "actual": false,
+      "status": "pass",
+      "note": "Actuator env/configprops not exposed (health,info only); committed local profile + running response mode=kafka confirms effective false"
+    },
+    {
+      "check": "video.kafka.bootstrap-servers",
+      "expected": "127.0.0.1:9092",
+      "source": "application-local.yaml",
+      "status": "pass"
+    }
+  ],
+  "oracle_python": {
+    "source": "F:/acme/VIDEO/app/services/alert_hook_service.py",
+    "direct_persist_gate": "_should_use_direct_alert_persist() returns false when ALERT_USE_DIRECT_PERSIST unset and not mini profile",
+    "non_mini_path": "process_alert_hook → get_kafka_producer() → producer.send(topic, key=device_id) → returns topic/partition/offset on success",
+    "fallback": "_fallback_persist_on_kafka_failure only when Kafka send fails (mode would be direct_persist, not primary path)"
+  },
+  "java_candidate": {
+    "service": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/AlertHookService.java",
+    "controller": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/controller/AlertHookController.java",
+    "kafka_producer": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/AlertKafkaProducer.java",
+    "gate": "videoProperties.getAlert().isUseDirectPersist() == false → sendViaKafka()",
+    "response_fields": ["status", "mode", "topic", "partition", "offset"]
+  },
+  "fixture": {
+    "device_id": "frb26_device",
+    "device_name": "FR-B26 Pure Kafka DVR + Alert E2E",
+    "task_id": 61,
+    "task_name": "frb26_alert_e2e",
+    "task_type": "realtime",
+    "alert_event_enabled": true
+  },
+  "request": {
+    "method": "POST",
+    "endpoints_tried": [
+      "http://127.0.0.1:48080/admin-api/video/alert/hook",
+      "http://127.0.0.1:48096/video/alert/hook"
+    ],
+    "payload": {
+      "object": "person",
+      "event": "phase2_a1_kafka_parity",
+      "device_id": "frb26_device",
+      "device_name": "FR-B26 Pure Kafka DVR + Alert E2E",
+      "region": "zone1",
+      "information": "Phase 2 A1 alert kafka parity evidence run",
+      "task_type": "realtime",
+      "correlation_id": "phase2-a1-20260811172715"
+    }
+  },
+  "expected": {
+    "status": "success",
+    "mode": "kafka",
+    "topic": "iot-alert-notification",
+    "must_not_be": "direct_persist",
+    "python_parity": "Non-mini: Kafka publish with device_id key; minimal message when no notification config; shouldNotify=false"
+  },
+  "java_actual": {
+    "gateway": {
+      "http_status": 200,
+      "code": 0,
+      "msg": "告警事件已发送",
+      "data": {
+        "status": "success",
+        "mode": "kafka",
+        "topic": "iot-alert-notification",
+        "partition": 48,
+        "offset": 1
+      }
+    },
+    "direct_video_server": {
+      "http_status": 200,
+      "code": 0,
+      "data": {
+        "status": "success",
+        "mode": "kafka",
+        "topic": "iot-alert-notification",
+        "partition": 48,
+        "offset": 2
+      }
+    }
+  },
+  "kafka_broker_proof": {
+    "method": "docker exec kafka-server /opt/kafka/bin/kafka-console-consumer.sh",
+    "topic": "iot-alert-notification",
+    "partition": 48,
+    "offsets_verified": [1, 2],
+    "sample_message_offset_2": {
+      "deviceId": "frb26_device",
+      "deviceName": "FR-B26 Pure Kafka DVR + Alert E2E",
+      "taskId": 61,
+      "taskName": "frb26_alert_e2e",
+      "alert": {
+        "object": "person",
+        "event": "phase2_a1_kafka_parity",
+        "region": "zone1",
+        "information": "Phase 2 A1 alert kafka parity evidence run",
+        "taskType": "realtime"
+      },
+      "shouldNotify": false,
+      "correlationId": "phase2-a1-20260811172715"
+    },
+    "status": "pass"
+  },
+  "vs_python": {
+    "direct_persist_default": "align — both false under local/non-mini",
+    "kafka_primary_path": "align — Java mode=kafka with topic/partition/offset matches Python success return shape",
+    "message_shape": "align — camelCase AlertNotificationMessage fields (deviceId, taskId, alert.imagePath, shouldNotify)",
+    "no_notification_config": "align — minimal message, shouldNotify=false, still publishes to iot-alert-notification",
+    "fallback_not_used": "align — no direct_persist in successful responses"
+  },
+  "acceptance": {
+    "use_direct_persist_false": true,
+    "post_alert_hook_ok": true,
+    "mode_kafka": true,
+    "kafka_attempt_not_fallback": true,
+    "broker_message_verified": true,
+    "overall": "PASS"
+  },
+  "concerns": [],
+  "ready_for_a2": true,
+  "disclaimer": "Local full-stack evidence only — not COMPLETE. Profile local; use-direct-persist not flipped."
+}
