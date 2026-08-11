@@ -3,7 +3,7 @@
 **Status:** PASS  
 **Pack:** P2-A5  
 **Date:** 2026-08-11  
-**Commit:** (see index after commit) — `feat(video-java): phase2 A5 camera mainpath parity`  
+**Commit:** `af3f3bd` — `feat(video-java): phase2 A5 camera mainpath parity`  
 **Evidence:** `logs/phase2-a5-camera.json`  
 **nested_subagents:** none
 
