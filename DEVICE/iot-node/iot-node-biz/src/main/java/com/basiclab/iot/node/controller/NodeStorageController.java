@@ -1,6 +1,7 @@
 package com.basiclab.iot.node.controller;
 
 import com.basiclab.iot.common.domain.CommonResult;
+import com.basiclab.iot.node.domain.vo.NodeCephTopologyRespVO;
 import com.basiclab.iot.node.domain.vo.NodeMediaRemoteDeployRespVO;
 import com.basiclab.iot.node.domain.vo.NodeStorageMountCheckRespVO;
 import com.basiclab.iot.node.domain.vo.NodeStorageStackCheckRespVO;
@@ -9,16 +10,19 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import com.basiclab.iot.node.domain.vo.NodeNfsClusterAssignReqVO;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 
 import static com.basiclab.iot.common.domain.CommonResult.success;
 
-@Tag(name = "存储 - Ceph 集群纳管")
+@Tag(name = "存储 - NFS 集群纳管")
 @RestController
 @RequestMapping("/node/storage/")
 @Validated
@@ -28,8 +32,20 @@ public class NodeStorageController {
     @Resource
     private NodeStorageService nodeStorageService;
 
+    @GetMapping("/topology")
+    @Operation(summary = "NFS 共享媒体节点拓扑")
+    public CommonResult<NodeCephTopologyRespVO> topology() {
+        return success(nodeStorageService.getCephTopology());
+    }
+
+    @PostMapping("/assign-nfs-cluster")
+    @Operation(summary = "分配/切换 NFS 集群（服务端 + 客户端 tags）")
+    public CommonResult<NodeCephTopologyRespVO> assignNfsCluster(@RequestBody NodeNfsClusterAssignReqVO req) {
+        return success(nodeStorageService.assignNfsCluster(req));
+    }
+
     @PostMapping("/check-ssh")
-    @Operation(summary = "通过 SSH 检测 Ceph 存储节点集群与挂载状态")
+    @Operation(summary = "通过 SSH 检测 NFS 服务端 Export 与挂载状态")
     public CommonResult<NodeStorageStackCheckRespVO> checkBySsh(@RequestParam("nodeId") Long nodeId) {
         return success(nodeStorageService.checkStorageStackBySsh(nodeId));
     }
