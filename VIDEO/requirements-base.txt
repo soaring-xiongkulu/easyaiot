@@ -27,6 +27,7 @@ onvif-zeep==0.2.12
 APScheduler>=3.10.4
 croniter>=1.4.1
 kafka-python>=2.0.2
+paho-mqtt>=1.6.1
 paddlepaddle==3.2.0
 paddleocr==3.2.0
 insightface

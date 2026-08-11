@@ -34,13 +34,13 @@ def is_mini_deploy_profile() -> bool:
 
 
 def minio_storage_enabled() -> bool:
-    """mini 形态默认不部署 MinIO，空间/抓拍/录像等走本地路径。"""
+    """mini 形态亦部署 MinIO（sink 归档）；可通过 MINIO_ENABLED 显式关闭。"""
     explicit = (os.getenv('MINIO_ENABLED') or '').strip().lower()
     if explicit in ('1', 'true', 'yes', 'on'):
         return True
     if explicit in ('0', 'false', 'no', 'off'):
         return False
-    return not is_mini_deploy_profile()
+    return True
 
 
 def resolve_video_service_base_url() -> str:

@@ -64,7 +64,7 @@ try:
 except ModuleNotFoundError as exc:
     if exc.name != "app.utils.utf8_detection_label":
         raise
-    # EDGE/runtime 由 VIDEO 服务种子生成，但使用自身独立的公共运行库。
+    # VIDEO Python 算法服务公共运行库。
     from lib.utf8_detection_label import draw_detection_label
 from app.utils.algo_model_detect import run_model_detection
 from app.utils.face_capture_queue_service import (
@@ -86,7 +86,6 @@ from app.utils.plate_capture_queue_service import (
 from app.utils.service_urls import (
     epoch_to_shanghai_datetime,
     now_shanghai_naive,
-    resolve_alert_hook_url,
     resolve_face_matching_publish_url,
     resolve_plate_matching_publish_url,
 )
@@ -309,8 +308,8 @@ else:
 TASK_ID = int(os.getenv('TASK_ID', '0'))
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/iot_video')
 VIDEO_SERVICE_PORT = os.getenv('VIDEO_SERVICE_PORT', '6000')
-# 告警/匹配回调：mini 形态直连 VIDEO；完整形态经 iot-gateway /admin-api/video
-ALERT_HOOK_URL = resolve_alert_hook_url()
+# 匹配回调：mini 形态直连 VIDEO；完整形态经 iot-gateway /admin-api/video
+# 告警事件统一走 MQTT → iot-sink（见 app.utils.algo_mqtt_bus）
 FACE_MATCHING_PUBLISH_URL = resolve_face_matching_publish_url()
 PLATE_MATCHING_PUBLISH_URL = resolve_plate_matching_publish_url()
 
@@ -1470,7 +1469,7 @@ def mark_cron_slot_captured(device_id: str, current_time: float) -> None:
         pass
 
 def _post_snapshot_alert(alert_data: Dict) -> None:
-    """POST 抓拍/告警到 hook（cron 整帧抓拍始终发送；目标告警受 alert_event_enabled 控制）。"""
+    """发布抓拍/告警到 MQTT 算法总线（cron 整帧抓拍始终发送；目标告警受 alert_event_enabled 控制）。"""
     info_raw = alert_data.get('information')
     is_cron_capture = False
     if isinstance(info_raw, str):
@@ -1494,19 +1493,25 @@ def _post_snapshot_alert(alert_data: Dict) -> None:
             alert_data['plate_detection_enabled'] = bool(
                 getattr(task_config, 'plate_detection_enabled', False)
             )
-        response = requests.post(
-            ALERT_HOOK_URL,
-            json=alert_data,
-            timeout=5,
-            headers={'Content-Type': 'application/json'},
-        )
-        if response.status_code != 200:
+
+        try:
+            from app.utils.algo_mqtt_bus import publish_alert
+        except ImportError:
+            try:
+                from algo_mqtt_bus import publish_alert  # type: ignore
+            except ImportError:
+                logger.error('algo_mqtt_bus 不可用，无法发送抓拍告警')
+                return
+
+        ok = publish_alert(alert_data, snapshot=True)
+        if not ok:
             logger.warning(
-                f"发送抓拍/告警到 hook 失败: status={response.status_code}, "
-                f"device_id={alert_data.get('device_id')}, body={response.text[:200]}"
+                f"发送抓拍/告警到 MQTT 失败: device_id={alert_data.get('device_id')}"
             )
-    except requests.exceptions.RequestException as e:
-        logger.warning(f"发送抓拍/告警到 hook 异常: {e}, URL={ALERT_HOOK_URL}")
+    except Exception as e:
+        logger.warning(
+            f"发送抓拍/告警到 MQTT 异常: {e}, device_id={alert_data.get('device_id')}"
+        )
 
 
 def send_alert_event_async(alert_data: Dict):
@@ -1531,63 +1536,46 @@ def send_alert_event_async(alert_data: Dict):
                     return
 
             logger.info(
-                f"🚨 开始异步发送告警事件: device_id={device_id}, object={alert_data.get('object')}, "
-                f"event={alert_data.get('event')}, URL={ALERT_HOOK_URL}")
+                f"🚨 开始异步发送告警事件(MQTT): device_id={device_id}, object={alert_data.get('object')}, "
+                f"event={alert_data.get('event')}")
 
-            # 通过 HTTP 发送告警事件到 sink hook 接口
-            # sink 会负责将告警投入 Kafka
-            try:
-                # 标记为抓拍算法任务（确保task_type正确传递）
-                alert_data['task_type'] = 'snapshot'
-                # 检测开关由算法服务透传给 alert_hook_service，避免 alert_hook_service 再查库
-                if 'face_detection_enabled' not in alert_data:
-                    alert_data['face_detection_enabled'] = bool(
-                        getattr(task_config, 'face_detection_enabled', False)
-                    )
-                if 'plate_detection_enabled' not in alert_data:
-                    alert_data['plate_detection_enabled'] = bool(
-                        getattr(task_config, 'plate_detection_enabled', False)
-                    )
-                # 如果information是字典，也添加task_type
-                if 'information' in alert_data and isinstance(alert_data['information'], dict):
-                    alert_data['information']['task_type'] = 'snapshot'
-                response = requests.post(
-                    ALERT_HOOK_URL,
-                    json=alert_data,
-                    timeout=5,
-                    headers={'Content-Type': 'application/json'}
+            # 标记为抓拍算法任务（确保task_type正确传递）
+            alert_data['task_type'] = 'snapshot'
+            if 'face_detection_enabled' not in alert_data:
+                alert_data['face_detection_enabled'] = bool(
+                    getattr(task_config, 'face_detection_enabled', False)
                 )
-                hook_result = {}
-                try:
-                    body = response.json()
-                    if isinstance(body, dict):
-                        hook_result = body.get('data') if isinstance(body.get('data'), dict) else body
-                except Exception:
-                    hook_result = {}
+            if 'plate_detection_enabled' not in alert_data:
+                alert_data['plate_detection_enabled'] = bool(
+                    getattr(task_config, 'plate_detection_enabled', False)
+                )
+            # 如果information是字典，也添加task_type
+            if 'information' in alert_data and isinstance(alert_data['information'], dict):
+                alert_data['information']['task_type'] = 'snapshot'
 
-                hook_status = hook_result.get('status')
-                if response.status_code == 200 and hook_status in (None, 'success'):
-                    mode = hook_result.get('mode', 'kafka')
-                    alert_id = hook_result.get('alert_id')
+            try:
+                from app.utils.algo_mqtt_bus import publish_alert
+            except ImportError:
+                try:
+                    from algo_mqtt_bus import publish_alert  # type: ignore
+                except ImportError:
+                    logger.error('algo_mqtt_bus 不可用，无法发送告警')
+                    return
+
+            try:
+                ok = publish_alert(alert_data, snapshot=True)
+                if ok:
                     logger.info(
                         f"✅ 告警事件已成功处理: device_id={device_id}, "
-                        f"object={alert_data.get('object')}, mode={mode}"
-                        + (f", alert_id={alert_id}" if alert_id else "")
-                    )
-                elif response.status_code == 200 and hook_status in ('skipped', 'suppressed'):
-                    logger.warning(
-                        f"⚠️ 告警被 hook 跳过: device_id={device_id}, "
-                        f"status={hook_status}, reason={hook_result.get('reason')}"
+                        f"object={alert_data.get('object')}, mode=mqtt"
                     )
                 else:
                     logger.warning(
-                        f"❌ 发送告警事件到 hook 失败: status_code={response.status_code}, "
-                        f"hook_status={hook_status}, response={response.text}, "
-                        f"device_id={device_id}"
+                        f"❌ 发送告警事件到 MQTT 失败: device_id={device_id}"
                     )
-            except requests.exceptions.RequestException as e:
+            except Exception as e:
                 logger.warning(
-                    f"❌ 发送告警事件到 hook 异常: {str(e)}, URL={ALERT_HOOK_URL}, "
+                    f"❌ 发送告警事件到 MQTT 异常: {str(e)}, "
                     f"device_id={device_id}"
                 )
         except Exception as e:

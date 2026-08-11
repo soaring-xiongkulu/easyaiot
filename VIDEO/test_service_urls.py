@@ -27,7 +27,7 @@ class TestServiceUrls(unittest.TestCase):
         os.environ.clear()
         os.environ.update(self._env)
 
-    def test_mini_profile_uses_direct_video_hook(self):
+    def test_mini_profile_uses_direct_video_api(self):
         with patch.dict(os.environ, {
             'EASYAIOT_DEPLOY_PROFILE': 'mini',
             'GATEWAY_URL': 'http://localhost:48099',
@@ -35,10 +35,6 @@ class TestServiceUrls(unittest.TestCase):
         }, clear=True):
             self.assertTrue(is_mini_deploy_profile())
             self.assertFalse(should_use_gateway_for_video_api())
-            self.assertEqual(
-                resolve_alert_hook_url(),
-                'http://127.0.0.1:6000/video/alert/hook',
-            )
 
     def test_gateway_port_48099_without_profile_is_mini(self):
         with patch.dict(os.environ, {
@@ -46,10 +42,6 @@ class TestServiceUrls(unittest.TestCase):
             'VIDEO_SERVICE_PORT': '6000',
         }, clear=True):
             self.assertTrue(is_mini_deploy_profile())
-            self.assertEqual(
-                resolve_alert_hook_url(),
-                'http://127.0.0.1:6000/video/alert/hook',
-            )
 
     def test_standard_profile_not_mini_with_stale_gateway_port(self):
         with patch.dict(os.environ, {
@@ -60,10 +52,6 @@ class TestServiceUrls(unittest.TestCase):
             self.assertFalse(is_mini_deploy_profile())
             self.assertTrue(minio_storage_enabled())
             self.assertTrue(should_use_gateway_for_video_api())
-            self.assertEqual(
-                resolve_alert_hook_url(),
-                'http://localhost:48099/admin-api/video/alert/hook',
-            )
 
     def test_full_gateway_uses_admin_api_prefix(self):
         with patch.dict(os.environ, {
@@ -72,24 +60,23 @@ class TestServiceUrls(unittest.TestCase):
         }, clear=True):
             self.assertFalse(is_mini_deploy_profile())
             self.assertTrue(should_use_gateway_for_video_api())
-            self.assertEqual(
-                resolve_alert_hook_url(),
-                'http://gateway.example.com:48080/admin-api/video/alert/hook',
-            )
 
-    def test_explicit_alert_hook_url_wins(self):
+    def test_alert_hook_url_helper_still_resolvable_but_unused(self):
+        """resolve_alert_hook_url 保留给遗留脚本；正式事件面已无 /video/alert/hook。"""
         with patch.dict(os.environ, {
             'ALERT_HOOK_URL': 'http://custom:7000/hook',
             'GATEWAY_URL': 'http://localhost:48099',
         }, clear=True):
             self.assertEqual(resolve_alert_hook_url(), 'http://custom:7000/hook')
 
-    def test_mini_profile_disables_minio_storage(self):
+    def test_mini_profile_enables_minio_when_unified(self):
         with patch.dict(os.environ, {
             'EASYAIOT_DEPLOY_PROFILE': 'mini',
-            'GATEWAY_URL': 'http://localhost:48099',
+            'GATEWAY_URL': 'http://localhost:48080',
+            'MINIO_ENABLED': 'true',
         }, clear=True):
-            self.assertFalse(minio_storage_enabled())
+            self.assertTrue(is_mini_deploy_profile())
+            self.assertTrue(minio_storage_enabled())
 
     def test_minio_enabled_override(self):
         with patch.dict(os.environ, {

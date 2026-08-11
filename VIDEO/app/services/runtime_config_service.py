@@ -22,7 +22,7 @@ from typing import List, Optional, Tuple
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from models import AlgorithmTask, Device, DeviceDetectionRegion
-from app.utils.service_urls import resolve_alert_hook_url, resolve_video_service_base_url
+from app.utils.service_urls import resolve_video_service_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -868,7 +868,6 @@ def generate_runtime_ini(
         )
 
     video_base = resolve_video_service_base_url().rstrip('/')
-    alert_hook = resolve_alert_hook_url()
     heartbeat = _heartbeat_url(task_type, video_base)
     control_port = _control_port(task)
     conf = float(task.detect_conf if task.detect_conf is not None else 0.5)
@@ -899,9 +898,19 @@ def generate_runtime_ini(
     patrol_pool = max(1, min(int(getattr(task, 'patrol_pool_size', None) or 4), 16))
 
     log_dir = os.path.dirname(log_path) if log_path else str(runtime_config_dir())
-    alert_image_dir = os.path.join(log_dir, 'alerts')
+    # Prefer shared Ceph/FS mount when set (ALGO_MEDIA_REF_MODE=shared_fs)
+    alert_image_dir = (os.getenv('ALERT_IMAGES_DIR') or '').strip() or os.path.join(log_dir, 'alerts')
     if write_local:
         os.makedirs(alert_image_dir, exist_ok=True)
+
+    # host 网络下默认本机 EMQX；生产可通过 MQTT_BROKER_URLS 覆盖
+    mqtt_broker_urls = (os.getenv('MQTT_BROKER_URLS') or '').strip() or '127.0.0.1:1883'
+    mqtt_username = (os.getenv('MQTT_ALGO_USERNAME') or '').strip()
+    mqtt_password = (os.getenv('MQTT_ALGO_PASSWORD') or '').strip()
+    mqtt_client_id = (os.getenv('MQTT_ALGO_CLIENT_ID') or f'algo-runtime-{task.id}').strip()
+    mqtt_tenant = (os.getenv('MQTT_ALGO_TENANT') or 'default').strip()
+    algo_bus_transport = (os.getenv('ALGO_BUS_TRANSPORT') or 'mqtt').strip() or 'mqtt'
+    compute_node_id = (os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or '').strip()
 
     devices_json = _devices_json(devices)
     # Escape for ini single-line: keep as JSON, no raw newlines
@@ -974,7 +983,6 @@ nvenc_preset={(os.getenv('RUNTIME_NVENC_PRESET') or os.getenv('REALTIME_NVENC_PR
 
 [alarm]
 enable={'true' if task.alert_event_enabled else 'false'}
-hook_url={alert_hook}
 confidence_threshold={conf}
 cooldown_time={cooldown}
 image_dir={alert_image_dir}
@@ -988,11 +996,17 @@ device_id={primary.id}
 device_name={primary.name or primary.id}
 task_type={hook_tt}
 algorithm_name={algo_name}
-alert_hook_url={alert_hook}
 heartbeat_url={heartbeat}
 heartbeat_interval_sec={'15' if task_type == 'patrol' else '10'}
 log_path={log_path}
 alert_image_dir={alert_image_dir}
+algo_bus_transport={algo_bus_transport}
+mqtt_broker_urls={mqtt_broker_urls}
+mqtt_username={mqtt_username}
+mqtt_password={mqtt_password}
+mqtt_client_id={mqtt_client_id}
+mqtt_tenant={mqtt_tenant}
+compute_node_id={compute_node_id}
 headless=true
 frame_skip={frame_skip}
 cron_expression={cron}
@@ -1000,6 +1014,14 @@ patrol_mode={patrol_mode}
 patrol_interval_sec={patrol_interval}
 patrol_pool_size={patrol_pool}
 devices_json={devices_json_one_line}
+
+[mqtt]
+broker_urls={mqtt_broker_urls}
+username={mqtt_username}
+password={mqtt_password}
+client_id={mqtt_client_id}
+tenant={mqtt_tenant}
+transport={algo_bus_transport}
 
 [features]
 enable_rtmp={'true' if enable_rtmp else 'false'}

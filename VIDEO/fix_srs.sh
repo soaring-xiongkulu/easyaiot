@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# 以当前用户重建 SRS 容器，使 ~/easyaiot/data 与宿主机 VIDEO/算法进程一致。
+# 以当前用户重建 SRS 容器，使 NFS 媒体根与宿主机 VIDEO/算法进程一致。
 #
-# 背景：若以 root/sudo 启动过 SRS，compose 中 ~/easyaiot/data 会落到 /root/easyaiot/data，
-# 而 VIDEO 在普通用户下读的是 $HOME/easyaiot/data，导致 DVR 录像路径对不上。
+# 背景：若以 root/sudo 启动过 SRS，compose 卷可能挂到 /root/...，
+# 而 VIDEO 在普通用户下读的是 $HOME/easyaiot/media，导致 DVR 录像路径对不上。
 # 本脚本会删除旧容器并以当前用户重新创建（仅 restart 无法更换 volume 挂载）。
 #
 # 用法（在 VIDEO 目录或任意路径）：
@@ -15,7 +15,7 @@ COMPOSE_DIR="$(cd "${VIDEO_DIR}/../.scripts/docker" && pwd)"
 COMPOSE_FILE="${COMPOSE_DIR}/docker-compose.yml"
 CONTAINER_NAME="${SRS_CONTAINER_NAME:-srs-server}"
 COMPOSE_SERVICE="${SRS_COMPOSE_SERVICE:-SRS}"
-HOST_DATA_DIR="${EASYAIOT_HOST_DATA_DIR:-${HOME}/easyaiot/data}"
+HOST_DATA_DIR="${EASYAIOT_MEDIA_ROOT:-${HOME}/easyaiot/media}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

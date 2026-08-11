@@ -763,23 +763,14 @@ def _fallback_persist_on_kafka_failure(
 
 def process_alert_hook(alert_data: Dict) -> Dict:
     """
-    处理告警Hook请求：仅发送到Kafka（Java端统一处理消息，包括区域比对、布防时段判断、存储到数据库）
-    
-    Args:
-        alert_data: 告警数据字典，包含以下字段：
-            - object: 对象类型（必填）
-            - event: 事件类型（必填）
-            - device_id: 设备ID（必填）
-            - device_name: 设备名称（必填）
-            - region: 区域（可选）
-            - information: 详细信息，可以是字符串或字典（可选）
-            - time: 报警时间，格式：'YYYY-MM-DD HH:MM:SS'（可选，默认当前时间）
-            - image_path: 图片路径（可选，不直接传输图片，而是传输图片所在磁盘路径）
-            - record_path: 录像路径（可选）
-    
-    Returns:
-        dict: 发送到Kafka的消息字典
+    [DEPRECATED] 旧 HTTP/Kafka 告警入口。正式路径为 MQTT → iot-sink。
+
+    仅在 ALGO_BUS_TRANSPORT=http/off 时由 /video/alert/hook 兼容调用。
     """
+    logger.warning(
+        'process_alert_hook 已废弃：事件应走 MQTT 算法总线。device_id=%s',
+        (alert_data or {}).get('device_id'),
+    )
     global _producer, _last_kafka_unavailable_warning_time, _kafka_unavailable_warning_interval
     try:
         if 'time' in alert_data:

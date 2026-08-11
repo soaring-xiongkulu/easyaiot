@@ -44,7 +44,6 @@ from app.utils.onnx_inference import ONNXInference
 from app.utils.algo_model_detect import run_model_detection
 from app.utils.alert_images_paths import resolve_alert_images_root
 from app.utils.patrol_snap_upload import upload_patrol_frame_to_snap_space
-from app.utils.service_urls import resolve_alert_hook_url
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,7 +57,6 @@ TASK_ID = int(os.getenv('TASK_ID', '0'))
 PATROL_SAVE_SNAP = os.getenv('PATROL_SAVE_SNAP', '1').strip().lower() not in ('0', 'false', 'no', 'off')
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/iot_video')
 VIDEO_SERVICE_PORT = os.getenv('VIDEO_SERVICE_PORT', '6000')
-ALERT_HOOK_URL = resolve_alert_hook_url()
 YOLO_IMG_SIZE = int(os.getenv('YOLO_IMG_SIZE', '416'))
 YOLO_WORKER_THREADS = int(os.getenv('YOLO_WORKER_THREADS', '2'))
 DETECTION_QUEUE_SIZE = int(os.getenv('DETECTION_QUEUE_SIZE', '50'))
@@ -484,8 +482,16 @@ def _send_alert(device_id: str, device_name: str, frame: np.ndarray, detections:
         'image_path': image_path,
     }
     try:
-        requests.post(ALERT_HOOK_URL, json=alert_data, timeout=5)
-        logger.info('设备 %s 巡检告警: %s', device_id, counts)
+        try:
+            from app.utils.algo_mqtt_bus import publish_alert
+        except ImportError:
+            from algo_mqtt_bus import publish_alert  # type: ignore
+
+        ok = publish_alert(alert_data, snapshot=False)
+        if ok:
+            logger.info('设备 %s 巡检告警(MQTT): %s', device_id, counts)
+        else:
+            logger.warning('发送巡检告警到 MQTT 失败 device=%s', device_id)
     except Exception as exc:
         logger.warning('发送告警失败 device=%s: %s', device_id, exc)
 

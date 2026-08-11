@@ -1,5 +1,6 @@
 """
-算法后处理入队客户端：经 HTTP 投递至 iot-sink，由 Java 侧对接 Kafka（VIDEO 不直连 Kafka）。
+算法后处理入队客户端：优先经 MQTT 算法总线投递至 iot-sink；
+仅当 ALGO_BUS_TRANSPORT 显式关闭（http/off/0/false）时回退 HTTP，由 Java 侧对接 Kafka。
 """
 from __future__ import annotations
 
@@ -71,6 +72,23 @@ def publish_post_process_request(
     alert_image_path: Optional[str] = None,
 ) -> bool:
     message = build_post_process_request_message(ctx, alert_image_path=alert_image_path)
+
+    try:
+        from app.utils.algo_mqtt_bus import bus_enabled, publish_post_process
+    except ImportError:
+        try:
+            from algo_mqtt_bus import bus_enabled, publish_post_process  # type: ignore
+        except ImportError:
+            bus_enabled = lambda: False  # type: ignore
+            publish_post_process = None  # type: ignore
+
+    if bus_enabled() and publish_post_process is not None:
+        ok = publish_post_process(message)
+        if ok:
+            return True
+        logger.warning('后处理 MQTT 入队失败，将不再回退 HTTP（总线已启用）')
+        return False
+
     url = _sink_enqueue_url()
     try:
         response = requests.post(url, json=message, timeout=5, headers={'Content-Type': 'application/json'})

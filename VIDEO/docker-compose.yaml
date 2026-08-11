@@ -37,11 +37,10 @@ services:
       - ./model:/app/model
       # face_rec.onnx 经上方 ./:/app 卷持久化，勿单独挂载文件路径：
       # 宿主机不存在时 Docker 会把 ./face_rec.onnx 建成目录，导致 WEB 下载后 os.replace 报 Errno 21
-      # 告警图片目录（与iot-sink服务共享，用于大模型实时分析等服务的图片上传）
-      - ./alert_images:/app/alert_images
-      # SRS录像目录（与 middleware compose 中 SRS 一致：宿主机 ~/easyaiot/data -> 容器 /data）
-      # 容器内路径仍为 /data/playbacks/{live,ai}/...（由 SRS dvr_path 决定）
-      - ~/easyaiot/data:/data:rw
+      # NFS 共享媒体根（唯一存储；生产 /mnt/easyaiot-media，开发可设 EASYAIOT_MEDIA_ROOT=/tmp/easyaiot-nfs-mount）
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}:/mnt/easyaiot-media:rw
+      # SRS Hook 契约路径 /data/playbacks → 映射 NFS playbacks
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/playbacks:/data/playbacks:rw
       # 环境变量配置文件（用于Docker部署，使用.env.docker）
       - ./.env.docker:/app/.env:ro
 
@@ -86,8 +85,12 @@ services:
       # TDengine配置（使用localhost，因为使用host网络模式）
       - TDENGINE_HOST=${TDENGINE_HOST:-localhost}
       - TDENGINE_PORT=${TDENGINE_PORT:-6030}
-      # 告警图片落盘根目录（与卷 ./alert_images:/app/alert_images 一致，供 iot-sink 读取并上传 MinIO）
-      - ALERT_IMAGES_DIR=/app/alert_images
+      # 告警图片落盘（NFS 共享根，与 iot-sink basiclab.media.mount-root 一致）
+      - ALERT_IMAGES_DIR=/mnt/easyaiot-media/alert_images
+      # iot-sink 经 Gateway + Nacos 负载（内网回调统一走 48080）
+      - IOT_SINK_USE_GATEWAY=1
+      - SINK_DVR_HOOK_URL=http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr
+      - IOT_SINK_MEDIA_HOOK_URL=http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr
       # 视频服务特有配置
       - MODEL_AI_PUSH_URL=${MODEL_AI_PUSH_URL:-pro.basiclab.top:1935}
       - CAMERA_ONLINE_INTERVAL=${CAMERA_ONLINE_INTERVAL:-10}

@@ -15,8 +15,8 @@ from app.utils.service_urls import SHANGHAI_TZ, epoch_to_shanghai_datetime
 
 logger = logging.getLogger(__name__)
 
-# 宿主机 SRS 数据根目录（与 compose volume ~/easyaiot/data:/data 一致；容器内仍为 /data）
-DEFAULT_SRS_HOST_DATA_ROOT = '~/easyaiot/data'
+# 宿主机 SRS/媒体根（与 compose ${EASYAIOT_MEDIA_ROOT}:/data 一致；容器内仍为 /data）
+DEFAULT_SRS_HOST_DATA_ROOT = '~/easyaiot/media'
 
 
 def srs_dvr_min_file_bytes() -> int:
@@ -87,12 +87,18 @@ def parse_srs_dvr_path_date(absolute_file_path: str) -> Tuple[Optional[str], Opt
 
 def _candidate_srs_host_roots() -> list[str]:
     roots: list[str] = []
-    explicit = (os.getenv('SRS_HOST_DATA_ROOT') or '').strip()
-    if explicit:
-        c = os.path.normpath(os.path.expanduser(os.path.expandvars(explicit)))
-        if c not in roots:
-            roots.append(c)
-    for raw in (os.path.expanduser(DEFAULT_SRS_HOST_DATA_ROOT), '/data'):
+    for env_key in ('SRS_HOST_DATA_ROOT', 'EASYAIOT_MEDIA_ROOT', 'MEDIA_HOST_DATA_ROOT'):
+        explicit = (os.getenv(env_key) or '').strip()
+        if explicit:
+            c = os.path.normpath(os.path.expanduser(os.path.expandvars(explicit)))
+            if c not in roots:
+                roots.append(c)
+    for raw in (
+        os.path.expanduser(DEFAULT_SRS_HOST_DATA_ROOT),
+        os.path.expanduser('~/easyaiot/data'),
+        '/mnt/easyaiot-media',
+        '/data',
+    ):
         c = os.path.normpath(raw)
         if c not in roots:
             roots.append(c)
@@ -102,8 +108,8 @@ def _candidate_srs_host_roots() -> list[str]:
 def discover_srs_host_data_root() -> str:
     """解析 SRS 录像在宿主机上的根目录（须与 SRS 容器 volume 源路径一致）。
 
-    统一约定宿主机 ``~/easyaiot/data``（compose 挂载为容器内 ``/data``）。
-    可通过 ``SRS_HOST_DATA_ROOT`` 覆盖；未配置时自动探测含 playbacks 的目录。
+    统一约定宿主机媒体根（NFS ``/mnt/easyaiot-media`` 或 ``~/easyaiot/media`` 本地 bind）。
+    可通过 ``SRS_HOST_DATA_ROOT`` / ``EASYAIOT_MEDIA_ROOT`` 覆盖；未配置时自动探测含 playbacks 的目录。
     """
     explicit = (os.getenv('SRS_HOST_DATA_ROOT') or '').strip()
     if explicit:

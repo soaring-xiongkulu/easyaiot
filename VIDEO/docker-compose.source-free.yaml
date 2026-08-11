@@ -9,6 +9,6 @@ services:
       - ./static:/app/static
       - ./temp_uploads:/app/temp_uploads
       - ./model:/app/model
-      - ./alert_images:/app/alert_images
-      - ~/easyaiot/data:/data:rw
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}:/mnt/easyaiot-media:rw
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/playbacks:/data/playbacks:rw
       - ./.env.docker:/app/.env:ro

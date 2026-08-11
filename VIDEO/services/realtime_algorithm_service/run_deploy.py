@@ -60,7 +60,7 @@ try:
 except ModuleNotFoundError as exc:
     if exc.name != "app.utils.utf8_detection_label":
         raise
-    # EDGE/runtime 由 VIDEO 服务种子生成，但使用自身独立的公共运行库。
+    # VIDEO Python 算法服务公共运行库。
     from lib.utf8_detection_label import draw_detection_label
 from app.utils.algo_model_detect import (
     is_end2end_ultralytics_model,
@@ -86,7 +86,6 @@ from app.utils.plate_capture_queue_service import (
 )
 from app.utils.service_urls import (
     is_mini_deploy_profile,
-    resolve_alert_hook_url,
     resolve_face_matching_publish_url,
     resolve_plate_matching_publish_url,
 )
@@ -393,8 +392,8 @@ BEIJING_TZ = pytz.timezone('Asia/Shanghai')
 TASK_ID = int(os.getenv('TASK_ID', '0'))
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/iot_video')
 VIDEO_SERVICE_PORT = os.getenv('VIDEO_SERVICE_PORT', '6000')
-# 告警/匹配回调：mini 形态直连 VIDEO；完整形态经 iot-gateway /admin-api/video
-ALERT_HOOK_URL = resolve_alert_hook_url()
+# 匹配回调：mini 形态直连 VIDEO；完整形态经 iot-gateway /admin-api/video
+# 告警事件统一走 MQTT → iot-sink（见 app.utils.algo_mqtt_bus）
 FACE_MATCHING_PUBLISH_URL = resolve_face_matching_publish_url()
 PLATE_MATCHING_PUBLISH_URL = resolve_plate_matching_publish_url()
 
@@ -1959,7 +1958,7 @@ def _task_config_reload_worker(interval_sec: int = 30):
 
 
 def send_alert_event_async(alert_data: Dict):
-    """异步发送告警事件到 sink hook 接口（后台线程）"""
+    """异步发送告警事件到 MQTT 算法总线（iot-sink）。"""
 
     def _send():
         try:
@@ -1967,58 +1966,43 @@ def send_alert_event_async(alert_data: Dict):
                 logger.warning(f"⚠️ 告警事件发送被跳过：task_config={task_config is not None}, alert_event_enabled={task_config.alert_event_enabled if task_config else None}, device_id={alert_data.get('device_id')}")
                 return
             
-            logger.info(f"📤 开始发送告警事件: device_id={alert_data.get('device_id')}, object={alert_data.get('object')}, URL={ALERT_HOOK_URL}")
+            logger.info(f"📤 开始发送告警事件(MQTT): device_id={alert_data.get('device_id')}, object={alert_data.get('object')}")
 
-            # 通过 HTTP 发送告警事件到 sink hook 接口
-            # sink 会负责将告警投入 Kafka
-            try:
-                # 标记为实时算法任务
-                alert_data['task_type'] = 'realtime'
-                # 检测开关由算法服务透传给 alert_hook_service，避免 alert_hook_service 再查库
-                if 'face_detection_enabled' not in alert_data:
-                    alert_data['face_detection_enabled'] = bool(
-                        getattr(task_config, 'face_detection_enabled', False)
-                    )
-                if 'plate_detection_enabled' not in alert_data:
-                    alert_data['plate_detection_enabled'] = bool(
-                        getattr(task_config, 'plate_detection_enabled', False)
-                    )
-                response = requests.post(
-                    ALERT_HOOK_URL,
-                    json=alert_data,
-                    timeout=5,
-                    headers={'Content-Type': 'application/json'}
+            # 标记为实时算法任务
+            alert_data['task_type'] = 'realtime'
+            if 'face_detection_enabled' not in alert_data:
+                alert_data['face_detection_enabled'] = bool(
+                    getattr(task_config, 'face_detection_enabled', False)
                 )
-                hook_result = {}
-                try:
-                    body = response.json()
-                    if isinstance(body, dict):
-                        hook_result = body.get('data') if isinstance(body.get('data'), dict) else body
-                except Exception:
-                    hook_result = {}
+            if 'plate_detection_enabled' not in alert_data:
+                alert_data['plate_detection_enabled'] = bool(
+                    getattr(task_config, 'plate_detection_enabled', False)
+                )
 
-                hook_status = hook_result.get('status')
-                if response.status_code == 200 and hook_status in (None, 'success'):
-                    mode = hook_result.get('mode', 'kafka')
-                    alert_id = hook_result.get('alert_id')
+            try:
+                from app.utils.algo_mqtt_bus import publish_alert
+            except ImportError:
+                try:
+                    from algo_mqtt_bus import publish_alert  # type: ignore
+                except ImportError:
+                    logger.error('algo_mqtt_bus 不可用，无法发送告警')
+                    return
+
+            try:
+                ok = publish_alert(alert_data, snapshot=False)
+                if ok:
                     logger.info(
                         f"✅ 告警事件已成功处理: device_id={alert_data.get('device_id')}, "
-                        f"object={alert_data.get('object')}, mode={mode}"
-                        + (f", alert_id={alert_id}" if alert_id else "")
-                    )
-                elif response.status_code == 200 and hook_status in ('skipped', 'suppressed'):
-                    logger.warning(
-                        f"⚠️ 告警被 hook 跳过: device_id={alert_data.get('device_id')}, "
-                        f"status={hook_status}, reason={hook_result.get('reason')}"
+                        f"object={alert_data.get('object')}, mode=mqtt"
                     )
                 else:
                     logger.warning(
-                        f"❌ 发送告警事件到 hook 失败: status_code={response.status_code}, "
-                        f"hook_status={hook_status}, response={response.text}, "
-                        f"device_id={alert_data.get('device_id')}"
+                        f"❌ 发送告警事件到 MQTT 失败: device_id={alert_data.get('device_id')}"
                     )
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"❌ 发送告警事件到 sink hook 异常: {str(e)}, URL={ALERT_HOOK_URL}, device_id={alert_data.get('device_id')}")
+            except Exception as e:
+                logger.warning(
+                    f"❌ 发送告警事件到 MQTT 异常: {str(e)}, device_id={alert_data.get('device_id')}"
+                )
         except Exception as e:
             logger.error(f"发送告警事件失败: {str(e)}", exc_info=True)
 
@@ -4494,7 +4478,7 @@ def main():
     logger.info(f"   Overlay保留最新帧: {OVERLAY_KEEP_LATEST} (阈值: {OVERLAY_KEEP_LATEST_THRESHOLD})")
     logger.info(f"   告警保留最新帧: {ALERT_KEEP_LATEST} (阈值: {ALERT_KEEP_LATEST_THRESHOLD})")
     logger.info(f"   主画面 overlay 最大复用: {_overlay_effective_max_age_sec():.2f}s (LATEST_OVERLAY_MAX_AGE_MS={LATEST_OVERLAY_MAX_AGE_MS or 'auto'})")
-    logger.info(f"   告警 Hook URL: {ALERT_HOOK_URL}")
+    logger.info(f"   告警出口: MQTT 算法总线 (mqtt/iot-alert-notification)")
     logger.info("=" * 60)
 
     # 注册信号处理器

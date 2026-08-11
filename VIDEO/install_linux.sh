@@ -435,7 +435,7 @@ create_env_file() {
     ensure_deploy_profile
     apply_python_service_deploy_env "${EASYAIOT_ROOT}"
     if is_mini_deploy_profile; then
-        print_info "mini 形态：已配置本机部署（JAVA_BACKEND_URL=48099, NODE_REMOTE_DEPLOY=false）"
+        print_info "mini 形态：已配置 Gateway 部署（48080）+ MQTT→iot-sink 统一事件面"
     else
         print_info "${EASYAIOT_DEPLOY_PROFILE:-full} 形态：已配置网关部署（JAVA_BACKEND_URL=48080, MinIO 启用）"
     fi
