@@ -1,0 +1,86 @@
+﻿{
+    "pack":  "CP-5",
+    "title":  "Algorithm services/status honesty (no DB-only fake running)",
+    "generated_at":  "2026-08-11T22:46:39+08:00",
+    "status":  "PASS",
+    "profile":  "local",
+    "worktree":  "F:/acme/.worktrees/video-java",
+    "branch":  "feat/video-java",
+    "correlation_id":  "cp-5-evidence-20260811224610",
+    "change":  "Removed resolveServiceStatus certify heuristic (is_enabled+run_status=running without alive process)",
+    "stack":  {
+                  "postgresql":  "127.0.0.1:15432/iot-video20",
+                  "video_server":  "127.0.0.1:48096",
+                  "gateway":  "127.0.0.1:48080"
+              },
+    "oracle_python":  {
+                          "legacy_null":  "extractor/sorter/pusher always null in new architecture",
+                          "services_status":  "F:/acme/VIDEO/app/blueprints/algorithm_task.py get_task_services_status",
+                          "running_sources":  "daemon poll OR heartbeat<60s — NOT is_enabled+run_status alone"
+                      },
+    "java_candidate":  {
+                           "lifecycle":  "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/AlgorithmTaskLifecycleService.java",
+                           "method":  "resolveServiceStatus"
+                       },
+    "fixture":  {
+                    "task_type":  "realtime",
+                    "task_id":  61,
+                    "task_name":  "frb26_alert_e2e"
+                },
+    "scenarios":  {
+                      "start_then_running":  {
+                                                 "expected":  {
+                                                                  "status":  "running",
+                                                                  "pid_alive":  true
+                                                              },
+                                                 "pid_alive":  true,
+                                                 "run_status":  "running",
+                                                 "process_id":  34444,
+                                                 "realtime_status":  "running",
+                                                 "status":  "pass",
+                                                 "api_code":  0,
+                                                 "endpoint":  "POST/GET http://127.0.0.1:48080/admin-api/video/algorithm/task/61/start then /services/status"
+                                             },
+                      "null_legacy_fields_python_parity":  {
+                                                               "expected":  {
+                                                                                "sorter":  null,
+                                                                                "extractor":  null,
+                                                                                "pusher":  null
+                                                                            },
+                                                               "extractor":  null,
+                                                               "note":  "Python new architecture also returns null for extractor/sorter/pusher — not a gap",
+                                                               "sorter":  null,
+                                                               "pusher":  null,
+                                                               "endpoint":  "GET http://127.0.0.1:48080/admin-api/video/algorithm/task/61/services/status",
+                                                               "status":  "pass"
+                                                           },
+                      "orphan_db_no_fake_running":  {
+                                                        "expected":  {
+                                                                         "status":  "stopped",
+                                                                         "must_not_be":  "running_from_db_only"
+                                                                     },
+                                                        "method":  "stop supervisor then SQL is_enabled=true, run_status=running, heartbeat stale",
+                                                        "realtime_status":  "stopped",
+                                                        "status":  "pass",
+                                                        "db_run_status":  "running"
+                                                    },
+                      "kill_process_stale_heartbeat":  {
+                                                           "killed_pid":  13088,
+                                                           "realtime_status":  "stopped",
+                                                           "method":  "start, taskkill RUNTIME, age heartbeat 5m, GET status before restart window",
+                                                           "db_run_status":  "running",
+                                                           "expected":  {
+                                                                            "status":  "stopped",
+                                                                            "note":  "must not report running solely from DB run_status"
+                                                                        },
+                                                           "status":  "pass"
+                                                       }
+                  },
+    "acceptance":  {
+                       "start_running_with_alive_pid":  true,
+                       "legacy_fields_null_python_parity":  true,
+                       "orphan_db_not_fake_running":  true,
+                       "kill_not_fake_running_from_db":  true,
+                       "overall":  "PASS"
+                   }
+}

@@ -79,8 +79,8 @@
 | **D-02** | ~~`plateMatchingConsumerEnabled=false`：publish 通但 video 内 consume 默认关~~ **CP-2 PASS** — sink `PlateMatchingConsumer` consume→process proven; video runner intentionally off | `VideoProperties.Matching` L74；证据 `logs/cp-2-matching-consume.json` | Part1 → **CP-2** ✓ |
 | **D-03** | ~~`iot-video` 无 Face consumer；sink 未接线~~ **CP-2 PASS** — `FaceMatchingConsumer` → HTTP `/face/matching/process` (honest bypass) | sink consumers；证据 `logs/cp-2-matching-consume.json` | Part1 **CP-2** ✓；引擎 **Part2** |
 | **D-04** | ~~`iot-sink` local 库端口未对齐 **15432** / 未纳入可复现启动~~ **CP-3 PASS** — PG 15432 + sink `:48092` runbook | `application-local.yaml`；证据 `logs/cp-3-sink-enqueue.json` | Part1 → **CP-3** ✓ |
-| **D-05** | `services/status`：进程已死仍可因 DB `is_enabled`+`run_status=running` 报 running（certify heuristic） | `AlgorithmTaskLifecycleService.resolveServiceStatus` L153–158 | Part1 → **CP-5**（`extractor`/`sorter`/`pusher` 为 null **与 Python 同形**，非缺口） |
-| **D-06** | Snap 调度与 Python `init_all_tasks` **缺证据级对齐**（代码已有 `SnapTaskSchedulerService.initAllTasks`） | Python `snap_task_service.init_all_tasks`；Java scheduler 已实现但无 CP 证据 | Part1 → **CP-4** |
+| **D-05** | ~~`services/status`：进程已死仍可因 DB `is_enabled`+`run_status=running` 报 running（certify heuristic）~~ **CP-5 PASS** — heuristic removed; alive process or heartbeat&lt;60s only | `AlgorithmTaskLifecycleService.resolveServiceStatus`；证据 `logs/cp-5-services-status.json` | Part1 → **CP-5** ✓（`extractor`/`sorter`/`pusher` 为 null **与 Python 同形**，非缺口） |
+| **D-06** | ~~Snap 调度与 Python `init_all_tasks` **缺证据级对齐**~~ **CP-4 PASS** — boot schedules all `is_enabled` tasks; set parity + honest RTSP fail | Python `snap_task_service.init_all_tasks`；证据 `logs/cp-4-snap-scheduler.json` | Part1 → **CP-4** ✓ |
 | **D-07** | ~~Post-process：代码路径已有，缺 sink 进程 → A6 `enqueue_ok=false`~~ **CP-3 PASS** — sink UP, `enqueue_ok=true` | `logs/cp-3-sink-enqueue.json` | Part1 → **CP-3** ✓ |
 | **D-08** | ~~Matching：缺 consume→process 本机闭环证据~~ **CP-2 PASS** — sink consumers → process; plate hit/miss; face honest bypass | `logs/cp-2-matching-consume.json` | Part1 **CP-2** ✓；InsightFace/Milvus **Part2** |
 | **D-09** | Patrol / AudioTalk：**控制器已有**，相对 Python 行为/SSE/进程语义需证据级收口 | `PatrolController` / `AudioTalkController` vs `patrol.py` / `audio_talk.py` | Part1 → **CP-6 / CP-7** |
@@ -103,8 +103,8 @@
 | G-01 | Alert | `_fallback_persist_on_kafka_failure` | ~~`fallbackPersistOnKafkaFailure`~~ **已移除（CP-1 PASS）** | Part1 禁用兜底；Kafka 失败诚实失败 | CP-1 | P0 ✓ |
 | G-02 | Matching consume | sink/VIDEO process 链路 | **CP-2 PASS** — sink consumers → gateway process; plate hit/miss; face bypass | **CP-2 PASS** | CP-2 | P0 ✓ |
 | G-03 | Post-process / sink | `post_process_sink_client.py` | Client 已有；sink **15432 + :48092** + `enqueue_ok=true` | **CP-3 PASS** | CP-3 | P0 ✓ |
-| G-04 | Snap schedule | `init_all_tasks` | `initAllTasks` 已有，缺证据 | 启动后调度条目可核对 | CP-4 | P1 |
-| G-05 | Algo status | `services/status` + 真进程 | certify heuristic 假 running | 去掉假 running；字段与 Python 对齐 | CP-5 | P1 |
+| G-04 | Snap schedule | `init_all_tasks` | **CP-4 PASS** — `listEnabled` fix + boot schedules 10/10 enabled ids | **CP-4 PASS** | CP-4 | P1 ✓ |
+| G-05 | Algo status | `services/status` + 真进程 | **CP-5 PASS** — no DB-only fake running; legacy null fields documented | **CP-5 PASS** | CP-5 | P1 ✓ |
 | G-06 | Patrol | `patrol.py` | `PatrolController` 等 | 行为/SSE 证据收口 | CP-6 | P2 |
 | G-07 | AudioTalk | `audio_talk.py` | `AudioTalkService` | 启停/capabilities 证据 | CP-7 | P2 |
 | G-08 | GB28181 code | `gb28181_*` / camera | `Gb28181SourceSupport` / Sync | 源解析+同步 API 代码证据（无真机要求） | CP-8 | P2 |
@@ -122,5 +122,7 @@
 | **CP-1** 告警 Kafka fallback 清除 | **PASS** — `logs/cp-1-no-fallback.json` |
 | **CP-3** iot-sink 15432 + enqueue | **PASS** — `logs/cp-3-sink-enqueue.json` |
 | **CP-2** matching consume→process | **PASS** — `logs/cp-2-matching-consume.json` |
-| CP-4…CP-10 | **待 W3+**（CP-4 ∥ CP-5 next） |
+| **CP-4** snap scheduler init_all_tasks | **PASS** — `logs/cp-4-snap-scheduler.json` |
+| **CP-5** services/status honesty | **PASS** — `logs/cp-5-services-status.json` |
+| CP-6…CP-10 | **待 W4/W5**（W3 complete） |
 | 功能实现 / 长联调 / FR-B / COMPLETE / 删 Python | **禁止** |

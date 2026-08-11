@@ -143,18 +143,17 @@ public class AlgorithmTaskLifecycleService {
         return result;
     }
 
+    /**
+     * Align Python {@code get_task_services_status}: running only when the managed OS process
+     * (or remote node) is alive, or heartbeat is fresh (&lt;60s). DB {@code is_enabled} +
+     * {@code run_status=running} alone must not report running — extractor/sorter/pusher stay
+     * null like Python (new architecture unified realtime service).
+     */
     private String resolveServiceStatus(long id, AlgorithmTaskRow task) {
         if (supervisor.isAlive(id)) {
             return "running";
         }
         if (task.getNodeId() != null && remoteDeployService.isRemoteHealthy(task)) {
-            return "running";
-        }
-        // Match Python certify heuristic: enabled + run_status=running counts as alive even if
-        // the OS process briefly exited (health recovery / crash-restart window).
-        if (Boolean.TRUE.equals(task.getIsEnabled())
-                && task.getRunStatus() != null
-                && "running".equalsIgnoreCase(task.getRunStatus().trim())) {
             return "running";
         }
         Instant heartbeat = task.getServiceLastHeartbeat();
