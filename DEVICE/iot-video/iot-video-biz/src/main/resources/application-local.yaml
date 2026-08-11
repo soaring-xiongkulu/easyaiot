@@ -13,27 +13,32 @@ management:
       enabled: false
 
 video:
-  # local certify needs health recovery for vj_p0_restart (was true → scheduler off → false green risk)
+  # Daily candidate = commercial / full local stack (bootstrap.yaml active: local).
+  # Do NOT re-enable direct/stub/sync shortcuts here; use profile mini or explicit env for certify.
   skip-background-tasks: false
   health-monitor:
     interval-ms: 5000
   alert:
-    use-direct-persist: true
+    use-direct-persist: false
     alert-notification-topic: iot-alert-notification
     snapshot-alert-topic: iot-snapshot-alert
   kafka:
     bootstrap-servers: 127.0.0.1:9092
   matching:
-    use-direct-process: true
+    use-direct-process: false
   post-process:
-    # certify-safe stub; set false + reachable iot-sink for real enqueue (FR-B1)
-    use-stub-enqueue: true
+    use-stub-enqueue: false
     workspace-root: ${user.home}/.video-java/post-process-workspaces
     sink-host: 127.0.0.1
     sink-port: "48092"
     sink-use-gateway: false
     gateway-url: http://localhost:48080
     enqueue-timeout-ms: 5000
+  media:
+    upload-mode: kafka
+  minio:
+    enabled: true
+    endpoint: http://127.0.0.1:9000
   ffmpeg-path: F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd
   runtime:
     repo-root: F:/acme

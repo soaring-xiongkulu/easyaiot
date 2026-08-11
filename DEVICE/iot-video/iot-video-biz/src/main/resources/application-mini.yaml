@@ -7,6 +7,8 @@ spring:
     username: postgres
     password: iot45722414822
 
+# Explicit shortcut profile for thin certify / broker-optional smoke ONLY.
+# Daily candidate must use profile local (commercial defaults) — not mini.
 video:
   alert:
     use-direct-persist: true
@@ -29,6 +31,10 @@ video:
     sink-use-gateway: false
     gateway-url: http://localhost:48080
     enqueue-timeout-ms: 5000
+  media:
+    upload-mode: sync
+  minio:
+    enabled: false
   node-remote:
     remote-deploy-enabled: false
     gateway-url: http://localhost:48099

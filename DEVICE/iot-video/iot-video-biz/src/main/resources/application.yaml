@@ -46,8 +46,10 @@ video:
     enabled: true
     interval-ms: 60000
     orphan-min-age-minutes: 10
+  # Commercial / full local-stack defaults (not mini/certify shortcuts).
+  # Shortcuts (direct persist / stub enqueue / sync upload / MinIO off) only via profile mini or explicit env.
   alert:
-    use-direct-persist: true
+    use-direct-persist: false
     alert-notification-topic: iot-alert-notification
     snapshot-alert-topic: iot-snapshot-alert
   kafka:
@@ -58,12 +60,12 @@ video:
     max-block-ms: 60000
     send-timeout-ms: 10000
   matching:
-    use-direct-process: true
+    use-direct-process: false
   inference:
     enabled: true
     timeout-seconds: 120
   post-process:
-    use-stub-enqueue: true
+    use-stub-enqueue: false
     workspace-root: ${user.home}/.video-java/post-process-workspaces
     sink-host: 127.0.0.1
     sink-port: "48092"
@@ -75,8 +77,8 @@ video:
     logs-dir: ${user.home}/.video-java/logs
     repo-root: ${ACME_ROOT:${RUNTIME_ROOT:}}
   media:
-    # sync | kafka | hybrid — mirrors Python MEDIA_UPLOAD_MODE; sync default (no broker required)
-    upload-mode: sync
+    # sync | kafka | hybrid — commercial default kafka (Python non-mini / cluster)
+    upload-mode: kafka
     dvr-completed-topic: media.dvr.completed
     dvr-dlq-topic: media.dvr.dlq
     dvr-consumer-group: upload-worker-dvr
@@ -87,3 +89,6 @@ video:
     snap-consumer-group: upload-worker-snap
     snap-max-retries: 8
     snap-poll-timeout-ms: 1000
+  minio:
+    enabled: true
+    endpoint: http://localhost:9000

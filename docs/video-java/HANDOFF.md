@@ -1,93 +1,83 @@
 # VIDEO Python → Java — HANDOFF
 
-> 给后续 Agent / 开发者的编排说明。  
-> **现行主线 = 完整功能替换（Phase FR）**，不是切片 certify COMPLETE。
+> **阶段 0 已落地：** 规矩与商业默认已切换；完整替换进行中；Python 仍为对照，禁止删除。  
+> **禁止 COMPLETE / 禁止 FR-B46+ 本地取证流水线。**
 
 ## 1. 一句话目标
 
-在**不重写 RUNTIME / ffmpeg / 流媒体 / AI**的前提下，把 Python VIDEO 编排层 **按功能面** 替换为 Java（`DEVICE/iot-video`），使 WEB/网关使用的 `/admin-api/video/**` 能力与 Python 一致，再退役 Python。
+在**不重写 RUNTIME / ffmpeg / 流媒体 / AI**、**不自研 Kafka/MinIO/Nacos/网关**的前提下，让 Java `DEVICE/iot-video`（`video-server`）在**本机完整栈**上功能等价替代 Python VIDEO，然后才允许从仓库移除 Python VIDEO。
 
 ## 2. 完成定义（不可降级）
+
+**仅当本机完整栈上，Java 已等价承担 Python VIDEO 的关键能力后，才允许从仓库移除 Python VIDEO。**
+
+**进度 = 功能等价**，不是 certify / 矩阵 / local artifact 数量。
 
 **不是：**
 
 - Java 进程能起来 / 少数 API 200  
-- Phase 0/1/2/3 CERTIFY 全绿  
+- Phase 0/1/2/3 CERTIFY 全绿 / keys-matrix 刷绿  
 - 15～30 分钟 observe  
-- 服务改名 + Python 归档 + 话术 COMPLETE  
-- `BLUEPRINT_GAP` 标 `migrated`（那只表示曾有切片 case）
+- 服务改名 + 归档 `_retired_python_video` + 话术 COMPLETE  
+- 「等 prod / 缺线上环境」叙事（**唯一环境 = 本机**）
 
-**必须是：**
+**禁止：** 归档或删除 `F:/acme` @ `main` 上的 `VIDEO/`（Python Oracle）。分支上 `_retired_python_video` 只是副本，**不等于 Python 已退役**。
 
-[`FULL_REPLACEMENT_GAP.md`](./FULL_REPLACEMENT_GAP.md) 中 **P0/P1（及产品未永久豁免的 P2）** 域行全部 ✅（路由 + 关键后台任务），路由差收敛；仅此时允许宣布「完整替换完成」并退役 Python。
+执行方案：[`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md)。商业默认：[`PHASE0_DEFAULTS.md`](./PHASE0_DEFAULTS.md)。本机验收阻塞：[`CUTOVER_BLOCKERS.md`](./CUTOVER_BLOCKERS.md)。
 
-执行方案：[`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md)。
-
-## 3. 门禁角色（换角色，不整锅端）
+## 3. 门禁角色
 
 | 机制 | 角色 |
 |------|------|
-| 薄烟雾 `certify --phase 0` | **防回归**（health / 真 RUNTIME / hook success）；合入建议跑 |
-| Phase 1/2/3 全绿 | **不作为进度**；历史档案 |
-| 长观察 | **仅切流/预发 runbook**；开发期不算 PASS |
-| 扩面验证 | 契约测试 + 路由清单 diff；**不为每个 API 录双边 golden** |
+| 薄烟雾 `certify --phase 0` | **防回归可选**（建议 `--spring.profiles.active=mini`）；**不算进度** |
+| Phase 1/2/3 CERTIFY / 矩阵刷绿 | **不作为进度** |
+| 长观察 | **不算 PASS** |
+| 本机完整栈验收 | **唯一进度口径**（对标 Python） |
 
-## 4. Oracle / Candidate
+## 4. Oracle / Candidate（禁止颠倒）
 
-| | 路径 | 说明 |
-|--|------|------|
-| Oracle（只读对照） | `VIDEO/_retired_python_video/` | 按域读 blueprint/service；缺对照可临时恢复，**禁止再归档当完成** |
-| 外部 oracle（可选） | `F:/acme/VIDEO` @ `video-java-oracle-baseline` | 录制/对照备用 |
-| Candidate | `DEVICE/iot-video/` | `feat/video-java` @ worktree `F:/acme/.worktrees/video-java` |
-| 文档 | `docs/video-java/` | 进度只看缺口表 |
-| 工具 | `tools/video_java/` | 薄烟雾 +（待补）路由 diff / 契约抽检 |
+| 角色 | 位置 |
+|------|------|
+| **Oracle / 功能标准** | `F:/acme` @ `main` 的 `VIDEO/`（Python，必须能作对照） |
+| **Candidate** | `F:/acme/.worktrees/video-java` @ `feat/video-java` 的 `DEVICE/iot-video`（`video-server`） |
+| 副本（非 Oracle） | worktree 内 `VIDEO/_retired_python_video/` — **不能**当「Python 已退役」 |
 
-**Oracle tip：** `bfbe7457ac65c90eb49d59247a1a2706d55c677d` — tag `video-java-oracle-baseline`。
+对照 = Python；Java 是被对齐的一方。
 
 ## 5. 强制工作方式
 
-1. **缺口表驱动：** 打开域缺口 → 读 Python → 补 Java 同前缀 → 短契约 → 勾选缺口表。  
-2. **Oracle 只读：** 不为「图方便」改 Python 业务语义。  
-3. **Candidate 按域扩面：** 禁止再用 CLOSE/EVID/长观察堆文档代替路由覆盖。  
-4. **EX-\* = backlog**（完整替换下），除非产品书面永久豁免并改缺口表。  
-5. **估时：** 按域路由数与服务复杂度；禁止用「certify 全绿」冒充燃尽。
+1. **本机完整栈验收驱动**（Kafka / MinIO / Nacos / 网关 = 现成外部依赖，只挂不重写）。  
+2. **Oracle 只读：** 不为图方便改 Python 业务语义；禁止删 main `VIDEO/`。  
+3. **禁止 FR-B46+ / keys-matrix / field-matrix / POST 样本刷绿。**  
+4. **日常启动 profile = `local`（商业默认）**；捷径仅 `mini` 或显式 env。  
+5. **禁止 COMPLETE**，直至本机完整栈功能等价。
 
 ## 6. 范围速查
 
-**In：** 全部对外 `/video/**`（经网关 `/admin-api/video/**`）契约面；任务/设备/告警/媒体/巡检/对讲等 Python 已有能力；启动后台自愈与清理等关键守护。  
+**In：** `/video/**`（经网关 `/admin-api/video/**`）契约与行为等价；关键后台守护。  
 
-**Out：** C++ RUNTIME 改写成 Java；自研 ffmpeg/SRS/ZLM；自研 InsightFace/Paddle/Milvus；AI/SAM 训练并入。
+**Out：** 自研 Kafka/MinIO/Nacos/网关；C++ RUNTIME 改写成 Java；自研 InsightFace/Paddle/Milvus。
 
-## 7. 阅读清单（开工前）
+## 7. 阅读清单
 
-1. [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md) — **现行方案**  
-2. [FULL_REPLACEMENT_GAP.md](./FULL_REPLACEMENT_GAP.md) — **唯一进度表**  
-3. [STACK.md](./STACK.md)  
-4. [EXECUTION.md](./EXECUTION.md)  
-5. `VIDEO/_retired_python_video/run.py` + `app/blueprints/` + services  
-6. `DEVICE/iot-video/iot-video-biz/.../controller`  
-7. 历史切片（只读）：[PLAN.md](./PLAN.md)、`gates/PHASE_*_GATE.md`
+1. [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md) — **商业默认**  
+2. [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) — **本机验收阻塞**  
+3. [FULL_REPLACEMENT_GAP.md](./FULL_REPLACEMENT_GAP.md)  
+4. [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md)  
+5. `F:/acme/VIDEO/`（Oracle）+ Candidate controllers
 
-## 8. 现状摘要（2026-08-11 — 纠偏后）
+## 8. 现状摘要（阶段 0）
 
-- **话术：** **HTTP 契约面已齐；行为/prod 联调进行中。**
-- **HTTP 路由：** 14 前缀 `route_inventory` **diff=0**（≈259）。
-- **本地契约/行为取证：** 已停写入进度；历史 local artifact 见 `PROD_SOAK_CHECKLIST.md`（**≠ prod 绿**）。
-- **项目状态：** **禁止 COMPLETE**；**禁止继续 FR-B46+ / 矩阵刷绿本地流水线**。
-- **切流阻塞（现行主入口）：** [`CUTOVER_BLOCKERS.md`](./CUTOVER_BLOCKERS.md)。
+- **话术：** 阶段 0：规矩与商业默认已切换；完整替换进行中；Python 仍为对照，禁止删除。  
+- **HTTP 契约面：** 14 前缀 inventory diff≈0（历史）。  
+- **默认配置：** `local` / `application.yaml` / `VideoProperties` 已切商业默认（Kafka / 真 enqueue / MinIO on）；捷径仅 `mini`。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)。  
+- **禁止：** COMPLETE、FR-B46+、矩阵刷绿、删 main Python VIDEO、「等线上」叙事。
 
-## 9. 你的下一步
+## 9. 下一步（阶段 1 — 须另令）
 
-**只看** [`CUTOVER_BLOCKERS.md`](./CUTOVER_BLOCKERS.md) + [`PROD_SOAK_CHECKLIST.md`](./PROD_SOAK_CHECKLIST.md)：
+本机完整栈验收（起/挂 Nacos、Kafka、MinIO、网关），按 [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 逐项对标 Python。**未经下一令不要启动阶段 1。**
 
-1. **优先（须确认后动手）：** checklist **0.1 / 0.2 / 0.3** — Nacos `video-server` 注册 → 网关 `lb://video-server` → 共享库只读冒烟。无环境则标 ⛔，停止。
-2. **产品拍板：** InsightFace/Milvus/Paddle 真推理 vs 永久旁路；Kafka direct 是否永久；P2 现场项豁免。
-3. **⛔ 环境项：** WVP / 真机 ONVIF / iot-node / Ceph / Nacos 真切换 — 不在 mini 里假装完成。
-4. **phase0：** 仅防回归可选，**不算切流进度**。
+## 10. 历史约束
 
-**禁止：** 新开 FR-B46、FR-B47…；扩 keys-matrix / field-matrix / POST 样本数刷绿；用 local soak 冒充 prod。
-
-## 10. 历史审查决议（切片期，仍有效的工程约束）
-
-栈、`{code,msg,data}`、共用 DB、不升 Boot 3、独立门禁目录等约束仍有效。  
-**已作废的完成叙事：** CLOSE-S4 COMPLETE、整域 migrated、用 Phase 1/2/3 全绿当进度。
+栈、`{code,msg,data}`、共用 DB、不升 Boot 3 等仍有效。  
+**已作废：** CLOSE COMPLETE、整域 migrated、用 certify/矩阵当进度、等 prod 叙事。

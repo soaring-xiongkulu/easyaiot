@@ -34,8 +34,12 @@ public class VideoProperties {
 
     @Data
     public static class Alert {
-        /** mini / local: persist alerts directly to DB (no Kafka). */
-        private boolean useDirectPersist = true;
+        /**
+         * Commercial / full local-stack default: publish alerts via Kafka.
+         * Shortcut (direct DB persist) only via env / {@code mini} profile —
+         * mirrors Python {@code ALERT_USE_DIRECT_PERSIST} / mini-deploy profile.
+         */
+        private boolean useDirectPersist = false;
         /** Mirrors Python {@code KAFKA_ALERT_NOTIFICATION_TOPIC}. */
         private String alertNotificationTopic = "iot-alert-notification";
         /** Mirrors Python {@code KAFKA_SNAPSHOT_ALERT_TOPIC}. */
@@ -55,10 +59,10 @@ public class VideoProperties {
     @Data
     public static class Matching {
         /**
-         * mini / local: mock Kafka publish success (certify-safe when broker unavailable).
-         * Mirrors Python mini path documented in P2-S3.
+         * Commercial default: face/plate matching goes through Kafka (not in-process stub).
+         * Shortcut only via env / {@code mini} profile.
          */
-        private boolean useDirectProcess = true;
+        private boolean useDirectProcess = false;
         /** Mirrors Python {@code KAFKA_FACE_MATCHING_TOPIC}. */
         private String faceMatchingTopic = "iot-face-matching";
         /** Mirrors Python {@code KAFKA_PLATE_MATCHING_TOPIC}. */
@@ -76,10 +80,10 @@ public class VideoProperties {
     @Data
     public static class PostProcess {
         /**
-         * mini / local: stub sink HTTP enqueue (certify-safe when iot-sink unavailable).
-         * When false, POST to iot-sink /post-process/enqueue (mirrors Python publish_post_process_request).
+         * Commercial default: real HTTP enqueue to iot-sink.
+         * Stub enqueue only via env / {@code mini} profile (certify-safe).
          */
-        private boolean useStubEnqueue = true;
+        private boolean useStubEnqueue = false;
         private String workspaceRoot = System.getProperty("user.home") + "/.video-java/post-process-workspaces";
         private String sinkHost = "127.0.0.1";
         private String sinkPort = "48092";
@@ -108,8 +112,11 @@ public class VideoProperties {
 
     @Data
     public static class Media {
-        /** Mirrors Python {@code MEDIA_UPLOAD_MODE}: sync | kafka | hybrid. */
-        private String uploadMode = "sync";
+        /**
+         * Commercial default {@code kafka} (Python non-mini / cluster path).
+         * {@code sync} only via env / {@code mini} profile — do not use sync as “green without broker”.
+         */
+        private String uploadMode = "kafka";
         /** Mirrors {@code MEDIA_SNAP_UPLOAD_MODE}; empty inherits uploadMode. */
         private String snapUploadMode = "";
         private String dvrCompletedTopic = "media.dvr.completed";
@@ -178,10 +185,11 @@ public class VideoProperties {
     @Data
     public static class Minio {
         /**
-         * mini / local default off — mirrors Python {@code minio_storage_enabled()}.
-         * Override with env {@code MINIO_ENABLED=true} for prod MinIO paths.
+         * Commercial / full local-stack default on (local MinIO is the formal path).
+         * Disable only via env {@code MINIO_ENABLED=false} or {@code mini} profile —
+         * mirrors Python {@code minio_storage_enabled()} when not mini-deploy.
          */
-        private boolean enabled = false;
+        private boolean enabled = true;
         /** MinIO endpoint (http://host:port or host:port). Env MINIO_ENDPOINT wins. */
         private String endpoint = "http://localhost:9000";
         private String accessKey = "minioadmin";
