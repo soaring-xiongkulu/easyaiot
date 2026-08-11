@@ -36,6 +36,7 @@ public class CameraHardwareService {
     private final OnvifWsDiscovery onvifWsDiscovery = new OnvifWsDiscovery();
     private final HikScanService hikScanService;
     private final CameraScreenshotService cameraScreenshotService;
+    private final Gb28181SourceResolver gb28181SourceResolver;
     private final ExecutorService captureExecutor = Executors.newCachedThreadPool();
     private final AtomicLong taskIdSeq = new AtomicLong(1);
 
@@ -285,8 +286,16 @@ public class CameraHardwareService {
         if (device.getSource() == null || device.getSource().isBlank()) {
             throw new VideoBusinessException(400, "设备源地址为空");
         }
+        String source = device.getSource().trim();
+        if (Gb28181SourceResolver.isGb28181Source(source)) {
+            String resolved = gb28181SourceResolver.resolve(source);
+            if (resolved == null || resolved.isBlank()) {
+                throw new VideoBusinessException(500, "无法获取可播放的视频流地址（国标点播失败或设备离线）");
+            }
+            source = resolved.trim();
+        }
         try {
-            byte[] jpeg = FfmpegFrameCapture.captureJpeg(device.getSource().trim(), 10);
+            byte[] jpeg = FfmpegFrameCapture.captureJpeg(source, 10);
             return cameraScreenshotService.persistJpeg(deviceId, jpeg, 0, 0);
         } catch (FfmpegFrameCapture.CaptureException ex) {
             throw new VideoBusinessException(500, ex.getMessage());

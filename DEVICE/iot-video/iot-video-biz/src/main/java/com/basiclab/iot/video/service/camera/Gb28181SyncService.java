@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Mirrors retired Python {@code app.services.gb28181_sync_service}.
@@ -275,6 +276,29 @@ public class Gb28181SyncService {
 
     public long countGbDevices() {
         return deviceRepository.countBySourcePrefix(Gb28181SourceSupport.SOURCE_PREFIX);
+    }
+
+    public DeviceRow ensureGb28181VirtualDevice(String deviceId, String name) {
+        Optional<Gb28181SourceResolver.ParsedSource> parsed =
+                Gb28181SourceResolver.parseVirtualDeviceId(deviceId);
+        if (parsed.isEmpty()) {
+            throw new VideoBusinessException(400, "无效的国标虚拟设备 ID: " + deviceId);
+        }
+        return deviceRepository.findById(deviceId).orElseGet(() -> {
+            int defaultDirId = directoryRepository.ensureDefaultDirectory();
+            Gb28181SourceResolver.ParsedSource channel = parsed.get();
+            String displayName = (name != null && !name.isBlank())
+                    ? name.strip()
+                    : (channel.channelId() != null ? channel.channelId() : deviceId);
+            NormalizedChannel normalized = new NormalizedChannel(
+                    channel.deviceId(),
+                    channel.channelId(),
+                    displayName
+            );
+            upsertGbDevice(normalized, defaultDirId, Location.empty());
+            return deviceRepository.findById(deviceId)
+                    .orElseThrow(() -> new VideoBusinessException(500, "创建国标设备 " + deviceId + " 失败"));
+        });
     }
 
     public String buildSyncMessage(Map<String, Object> stats) {

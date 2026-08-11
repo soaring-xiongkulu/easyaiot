@@ -33,6 +33,7 @@ public class CameraAdminService {
     private final VideoMinioService videoMinioService;
     private final CameraHardwareService cameraHardwareService;
     private final StreamUrlSupport streamUrlSupport;
+    private final Gb28181SourceResolver gb28181SourceResolver;
 
     public String registerDevice(Map<String, Object> data) {
         String id = data.get("id") != null ? String.valueOf(data.get("id")).trim() : String.valueOf(System.nanoTime());
@@ -223,10 +224,10 @@ public class CameraAdminService {
         );
         String rtmpStream = firstNonBlank(streams[0], device.getRtmpStream());
         String httpStream = firstNonBlank(streams[1], device.getHttpStream());
-        boolean isGb28181 = source.toLowerCase(Locale.ROOT).startsWith("gb28181://");
+        boolean isGb28181 = Gb28181SourceResolver.isGb28181Source(source);
         String resolvedSource = null;
         if (isGb28181) {
-            resolvedSource = source;
+            resolvedSource = gb28181SourceResolver.resolve(source);
         } else if (source.toLowerCase(Locale.ROOT).startsWith("rtsp://")
                 || source.toLowerCase(Locale.ROOT).startsWith("rtmp://")) {
             resolvedSource = source;

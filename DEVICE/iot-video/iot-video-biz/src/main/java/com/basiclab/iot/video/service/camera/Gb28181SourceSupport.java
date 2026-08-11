@@ -160,6 +160,11 @@ final class Gb28181SourceSupport {
         return parsePositiveInt(System.getenv("GB28181_HTTP_READ_TIMEOUT"), 15) * 1000;
     }
 
+    /** WVP play/start uses longer read timeout than directory sync (Python default 60s). */
+    static int playReadTimeoutMs() {
+        return parsePositiveInt(System.getenv("GB28181_HTTP_READ_TIMEOUT"), 60) * 1000;
+    }
+
     private static int parsePositiveInt(String raw, int defaultValue) {
         if (raw == null || raw.isBlank()) {
             return defaultValue;

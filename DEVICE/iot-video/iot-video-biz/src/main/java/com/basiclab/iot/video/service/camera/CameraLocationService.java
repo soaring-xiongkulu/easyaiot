@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class CameraLocationService {
 
     private final DeviceRepository deviceRepository;
     private final CameraService cameraService;
+    private final Gb28181SyncService gb28181SyncService;
 
     public List<Map<String, Object>> listLocations(Integer directoryId, boolean hasLocationOnly) {
         List<DeviceRow> devices = deviceRepository.listForMap(directoryId, hasLocationOnly);
@@ -29,17 +31,14 @@ public class CameraLocationService {
     }
 
     public Map<String, Object> getLocation(String deviceId) {
-        DeviceRow device = deviceRepository.findById(deviceId)
-                .orElseThrow(() -> new VideoBusinessException(400, "设备不存在: " + deviceId));
+        DeviceRow device = resolveDeviceForLocation(deviceId);
         Map<String, Object> info = cameraService.toDeviceMap(device);
         info.put("id", device.getId());
         return info;
     }
 
     public Map<String, Object> updateLocation(String deviceId, Map<String, Object> data) {
-        if (!deviceRepository.findById(deviceId).isPresent()) {
-            throw new VideoBusinessException(400, "设备不存在: " + deviceId);
-        }
+        resolveDeviceForLocation(deviceId);
         Double longitude = parseOptionalDouble(data.get("longitude"));
         Double latitude = parseOptionalDouble(data.get("latitude"));
         validateLocationPair(longitude, latitude);
@@ -75,6 +74,17 @@ public class CameraLocationService {
         result.put("updated", updated);
         result.put("errors", errors);
         return result;
+    }
+
+    private DeviceRow resolveDeviceForLocation(String deviceId) {
+        Optional<DeviceRow> existing = deviceRepository.findById(deviceId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        if (deviceId != null && deviceId.startsWith("gb28181_")) {
+            return gb28181SyncService.ensureGb28181VirtualDevice(deviceId, null);
+        }
+        throw new VideoBusinessException(400, "设备不存在: " + deviceId);
     }
 
     private static Double parseOptionalDouble(Object value) {

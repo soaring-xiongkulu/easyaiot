@@ -1,0 +1,80 @@
+﻿{
+    "pack":  "CP-8",
+    "title":  "GB28181 source resolve + sync API code parity (fixture)",
+    "generated_at":  "2026-08-11T23:49:30+08:00",
+    "status":  "PASS",
+    "profile":  "local",
+    "worktree":  "F:/acme/.worktrees/video-java",
+    "branch":  "feat/video-java",
+    "correlation_id":  "cp-8-evidence-20260811234758",
+    "nested_subagents":  "none",
+    "stack":  {
+                  "postgresql":  "127.0.0.1:15432/iot-video20",
+                  "video_server":  "127.0.0.1:48096 (direct, fixture map)",
+                  "gateway":  "bypassed for CP-8 evidence"
+              },
+    "oracle_python":  {
+                          "sync_service":  "F:/acme/VIDEO/app/services/gb28181_sync_service.py",
+                          "inference":  "F:/acme/VIDEO/app/services/camera_service.py resolve_device_inference_input",
+                          "source_resolve":  "F:/acme/VIDEO/app/utils/gb28181_source.py resolve_gb28181_source",
+                          "sync_route":  "POST /video/camera/directory/sync-gb28181"
+                      },
+    "java_candidate":  {
+                           "sync_service":  "DEVICE/iot-video/iot-video-biz/.../Gb28181SyncService.java",
+                           "sync_api":  "POST /video/camera/directory/sync-gb28181",
+                           "inference_api":  "GET /video/camera/device/{id}/inference-input",
+                           "resolver":  "DEVICE/iot-video/iot-video-biz/.../Gb28181SourceResolver.java"
+                       },
+    "fixture":  {
+                    "channel_id":  "34020000001320000002",
+                    "fixture_map":  "{\"gb28181://34020000001320000001/34020000001320000002\":\"rtsp://127.0.0.1:8554/cp8-fixture\"}",
+                    "sip_device_id":  "34020000001320000001",
+                    "source":  "gb28181://34020000001320000001/34020000001320000002",
+                    "fixture_rtsp":  "rtsp://127.0.0.1:8554/cp8-fixture",
+                    "virtual_id":  "gb28181_34020000001320000001_34020000001320000002"
+                },
+    "scenarios":  {
+                      "sync_payload_creates_device":  {
+                                                          "expected":  {
+                                                                           "name":  "CP8 Fixture Channel",
+                                                                           "source":  "gb28181://34020000001320000001/34020000001320000002"
+                                                                       },
+                                                          "channels_seen":  1,
+                                                          "status":  "pass",
+                                                          "api_code":  0,
+                                                          "created":  1,
+                                                          "db_name":  "CP8 Fixture Channel",
+                                                          "db_source":  "gb28181://34020000001320000001/34020000001320000002",
+                                                          "endpoint":  "POST http://127.0.0.1:48096/video/camera/directory/sync-gb28181"
+                                                      },
+                      "fixture_resolve_inference_input":  {
+                                                              "status":  "pass",
+                                                              "expected_resolve":  "rtsp://127.0.0.1:8554/cp8-fixture",
+                                                              "note":  "Requires GB28181_FIXTURE_MAP on video-server process; honest null if WVP down without fixture",
+                                                              "is_gb28181":  true,
+                                                              "endpoint":  "GET http://127.0.0.1:48096/video/camera/device/gb28181_34020000001320000001_34020000001320000002/inference-input",
+                                                              "resolved_source":  "rtsp://127.0.0.1:8554/cp8-fixture"
+                                                          },
+                      "ensure_virtual_device_on_location":  {
+                                                                "db_present":  true,
+                                                                "endpoint":  "GET http://127.0.0.1:48096/video/camera/device/gb28181_34020000001320000001_34020000001320000003/location",
+                                                                "api_code":  0,
+                                                                "status":  "pass"
+                                                            },
+                      "wvp_unreachable_honest_null":  {
+                                                          "status":  "pass",
+                                                          "source":  "gb28181://34020000001320000001/34020000001320000099",
+                                                          "note":  "Valid gb28181:// parse but play API unreachable without fixture 鈥?honest null",
+                                                          "expected":  null,
+                                                          "endpoint":  "GET http://127.0.0.1:48096/video/camera/device/gb28181_34020000001320000001_34020000001320000099/inference-input (no GB28181_FIXTURE_MAP entry, WVP down)",
+                                                          "resolved_source":  null
+                                                      }
+                  },
+    "acceptance":  {
+                       "sync_payload_writes_device":  true,
+                       "fixture_or_honest_null":  true,
+                       "virtual_device_ensure":  true,
+                       "invalid_source_honest_null":  true,
+                       "overall":  "PASS"
+                   }
+}

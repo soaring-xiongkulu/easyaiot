@@ -35,7 +35,7 @@
 | CP-5 services/status | W3 | **PASS** | [cp-5-brief.md](./briefs/cp-5-brief.md) | [cp-5-report.md](./briefs/cp-5-report.md) | `logs/cp-5-services-status.json` | `14c725d` |
 | CP-6 Patrol | W4 | **PASS** | [cp-6-brief.md](./briefs/cp-6-brief.md) | [cp-6-report.md](./briefs/cp-6-report.md) | `logs/cp-6-patrol.json` | `193ef0e` |
 | CP-7 AudioTalk | W4 | **PASS** | [cp-7-brief.md](./briefs/cp-7-brief.md) | [cp-7-report.md](./briefs/cp-7-report.md) | `logs/cp-7-audiotalk.json` | `1672696` |
-| CP-8 GB28181 code | W4 | pending | [cp-8-brief.md](./briefs/cp-8-brief.md) | — | `logs/cp-8-gb28181-code.json` | — |
+| CP-8 GB28181 code | W4 | **PASS** | [cp-8-brief.md](./briefs/cp-8-brief.md) | [cp-8-report.md](./briefs/cp-8-report.md) | `logs/cp-8-gb28181-code.json` | — |
 | CP-9 FlightHub+directory | W4 | **PASS** | [cp-9-brief.md](./briefs/cp-9-brief.md) | [cp-9-report.md](./briefs/cp-9-report.md) | `logs/cp-9-flighthub-directory.json` | `5fd7ba9` |
 | CP-10 Boot daemons | W5 | pending | [cp-10-brief.md](./briefs/cp-10-brief.md) | — | `logs/cp-10-boot-daemons.json` | — |
 
