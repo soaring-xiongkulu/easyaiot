@@ -3,7 +3,7 @@
 **Status:** PASS  
 **Pack:** P2-A2  
 **Date:** 2026-08-11  
-**Commit:** `7511dd2` — `feat(video-java): phase2 A2 runtime lifecycle parity`  
+**Commit:** `e214456` — `feat(video-java): phase2 A2 runtime lifecycle parity`  
 **Evidence:** `logs/phase2-a2-runtime-lifecycle.json`
 
 ## Prior packs
