@@ -45,12 +45,21 @@ typedef struct Config {
     std::string taskType{"realtime"};  // realtime | snap | snapshot | patrol
     std::string algorithmName{"detection"};
     std::string heartbeatUrl;
-    std::string alertHookUrl;
+    std::string alertHookUrl;  // deprecated: events use MQTT; kept for HTTP fallback
     std::string logPath;
     std::string alertImageDir;
     int heartbeatIntervalSec{10};
     bool headless{true};
     int frameSkip{8};  // realtime: infer every N frames; snap fallback interval sec
+
+    // Algorithm event bus (MQTT → iot-sink); heartbeat stays HTTP → VIDEO
+    std::string algoBusTransport;  // empty/mqtt default; http/off disables
+    std::string mqttBrokerUrls;
+    std::string mqttUsername;
+    std::string mqttPassword;
+    std::string mqttClientId;
+    std::string mqttTenant;
+    std::string computeNodeId;
 
     // snap
     std::string cronExpression;

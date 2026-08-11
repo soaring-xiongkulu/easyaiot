@@ -1,11 +1,12 @@
 # RUNTIME 模块
 
-EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解码、AI 推理与结果回传；**不替代 VIDEO**。
+EasyAIoT 的 **C++ 帧执行器**。负责拉流、解码、AI 推理与结果回传；**不替代 VIDEO**。
 
 | 角色 | 模块 | 职责 |
 |------|------|------|
-| 编排 / 预览 / 告警面 | **VIDEO** | 设备流、SRS 转发、任务生命周期、alert hook、Kafka、落库 |
-| 高速执行后端 | **RUNTIME** | 拉流 → 解码 → 推理 → **告警/心跳回传**；`realtime` **默认推带框检测流到 `ai_rtmp`** |
+| 编排 / 预览 / 任务管理 | **VIDEO** | 设备流、SRS 转发、任务生命周期、**HTTP 心跳**、启停 |
+| 事件落库 / 通知 / 归档 | **iot-sink** | 订阅 MQTT 算法总线，告警入库、MinIO 归档、通知 enrichment |
+| 高速执行后端 | **RUNTIME** | 拉流 → 解码 → 推理 → **MQTT 告警** + **HTTP 心跳**；`realtime` 默认推带框流到 `ai_rtmp` |
 
 双路媒体（互不占用）：
 
@@ -24,7 +25,7 @@ EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解�
 | `snap` | Cron 调度抓拍（SnapScheduler）；以结构化结果/告警为主 |
 | `patrol` | 多设备轮巡（PatrolScheduler）；以结构化结果/告警为主 |
 
-> 本机与集群节点均支持 `executor=cpp`。与 `EDGE/runtime/`（Python 边缘运行包）**不是同一回事**。
+> 事件面默认 `ALGO_BUS_TRANSPORT=mqtt`（`mqtt/iot-alert-notification` 等）→ iot-sink；心跳仍 HTTP → VIDEO。原 EDGE 模块已移除，边缘算力请用**原子模式**。
 
 ---
 
@@ -56,12 +57,14 @@ EasyAIoT 的 **C++ 帧执行器**（由原 TASK 演进）。负责拉流、解�
 拓扑示意（原子节点）：
 
 ```text
-摄像头 ──► 中心 VIDEO（live/ 原画预览、任务编排、告警落库）
+摄像头 ──► 中心 VIDEO（live/ 原画预览、任务编排、HTTP 心跳）
               │
               │ 下发 task_*.ini + 拉起（Agent / 本机守护）
               ▼
-         计算节点 RUNTIME ──► alert/heartbeat → 中心 VIDEO
+         计算节点 RUNTIME ──► HTTP heartbeat → 中心 VIDEO
+                           ──► MQTT alert → EMQX → iot-sink（落库/归档/通知）
                            ──► realtime 默认 RTMP → 中心 SRS ai/{device}
+                           ──► 告警图 → ALERT_IMAGES_DIR（Ceph/共享 FS）
 ```
 
 ---
@@ -361,10 +364,10 @@ curl -s -X POST http://127.0.0.1:8123/stop
 
 ## 流水线与回调
 
-`Pull+Decode → FrameRing(drop-oldest) → Infer(+draw) → ResultRing → Emit(alert hook) + 可选 RTMP(ai/)`
+`Pull+Decode → FrameRing(drop-oldest) → Infer(+draw) → ResultRing → Emit(MQTT alert) + 可选 RTMP(ai/)`
 
-- 心跳：realtime/snap → `POST /video/algorithm/heartbeat/realtime`；patrol → `.../heartbeat/patrol`
-- 告警：`POST /video/alert/hook`（snap 的 hook `task_type` 为 `snapshot`）
+- 心跳：realtime/snap → `POST /video/algorithm/heartbeat/realtime`；patrol → `.../heartbeat/patrol`（**仍 HTTP → VIDEO**）
+- 告警：默认 MQTT `mqtt/iot-alert-notification`（snap → `mqtt/iot-snapshot-alert`）→ iot-sink；`ALGO_BUS_TRANSPORT=http` 时才回退 `/video/alert/hook`
 - 检测流：`realtime` 默认 `enable_rtmp=true`，推到设备独立 `ai_rtmp`（与 `live/` 预览分离）
 - 健康：`GET /health`；控制口可 `POST /stop` 优雅退出
 
@@ -474,6 +477,7 @@ export RUNTIME_PYTHON=/path/to/python   # 需已装 ultralytics
 | `/health` 显示 `decode_ep=cpu` / `encode_ep=libx264` | 无 NVIDIA、FFmpeg 无 CUDA/nvenc，或 `force_soft_av=true`；属正常回退 |
 | 本地 mp4/文件播完后任务结束 | 有限媒体（裸路径 / `file://`）遇 EOF **干净退出**，不再狂重连；直播 RTSP/UDP 仍会退避重连 |
 | `control_port` 变成 8000 | 端口必须在 **8000–9000**（与 VIDEO 一致）；越界会 ERROR 日志并回退 8000 |
-| 与 EDGE 混淆 | `EDGE/runtime/` 是 Python 边缘包；本模块是 C++ `RUNTIME` 二进制 |
+| MQTT 未通 | 检查 `MQTT_BROKER_URLS` / ini `[mqtt]`；iot-sink 须订阅 `mqtt/iot-*` |
+| 告警无图 | 确认 `ALERT_IMAGES_DIR` 与 sink 共享挂载；MQTT 只传路径 |
 
 更细的平台级部署步骤见 [`.doc/部署文档/平台部署文档_zh.md`](../.doc/部署文档/平台部署文档_zh.md) 与 [部署最佳实践](../.doc/部署文档/部署最佳实践.md) 中的 **RUNTIME 原子模式** 小节。

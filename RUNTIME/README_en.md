@@ -1,6 +1,6 @@
 # RUNTIME Module
 
-High-performance **C++ frame worker** for EasyAIoT (evolved from TASK). Handles pull / decode / infer / emit. It does **not** replace VIDEO.
+High-performance **C++ frame worker** for EasyAIoT. Handles pull / decode / infer / emit. It does **not** replace VIDEO.
 
 ## Role vs VIDEO
 

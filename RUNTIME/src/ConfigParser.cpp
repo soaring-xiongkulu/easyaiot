@@ -3,9 +3,12 @@
  */
 
 #include "ConfigParser.h"
+#include "AlgoMqttBus.h"
 #include <json/json.h>
 #include <sstream>
 #include <cstdlib>
+#include <algorithm>
+#include <cctype>
 
 std::string ConfigParser::trim(const std::string& str) {
     const std::string whitespace = " \t\r\n";
@@ -256,8 +259,37 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 if (config.frameSkip <= 0) config.frameSkip = 8;
             } else if (key == "alert_image_dir") {
                 config.alertImageDir = value;
+            } else if (key == "algo_bus_transport") {
+                config.algoBusTransport = value;
+            } else if (key == "mqtt_broker_urls") {
+                config.mqttBrokerUrls = value;
+            } else if (key == "mqtt_username") {
+                config.mqttUsername = value;
+            } else if (key == "mqtt_password") {
+                config.mqttPassword = value;
+            } else if (key == "mqtt_client_id") {
+                config.mqttClientId = value;
+            } else if (key == "mqtt_tenant") {
+                config.mqttTenant = value;
+            } else if (key == "compute_node_id" || key == "node_id") {
+                config.computeNodeId = value;
             } else if (key == "devices_json") {
                 parseDevicesJson(value, config.devices);
+            }
+        }
+        else if (currentSection == "mqtt") {
+            if (key == "broker_urls" || key == "mqtt_broker_urls") {
+                config.mqttBrokerUrls = value;
+            } else if (key == "username") {
+                config.mqttUsername = value;
+            } else if (key == "password") {
+                config.mqttPassword = value;
+            } else if (key == "client_id") {
+                config.mqttClientId = value;
+            } else if (key == "tenant") {
+                config.mqttTenant = value;
+            } else if (key == "algo_bus_transport" || key == "transport") {
+                config.algoBusTransport = value;
             }
         }
         else if (currentSection == "features") {
@@ -330,9 +362,42 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         config.hookHttpUrl = config.alertHookUrl;
     }
 
-    if (config.enableAlarm && config.hookHttpUrl.empty()) {
-        LOG(ERROR) << "[ERROR] Alarm detection enabled but callback URL not configured";
-        return false;
+    // Env overrides for MQTT event bus / shared alert images (Ceph)
+    if (const char* v = std::getenv("ALGO_BUS_TRANSPORT")) {
+        if (config.algoBusTransport.empty()) config.algoBusTransport = trim(v);
+    }
+    if (const char* v = std::getenv("MQTT_BROKER_URLS")) {
+        if (config.mqttBrokerUrls.empty()) config.mqttBrokerUrls = trim(v);
+    }
+    if (const char* v = std::getenv("MQTT_ALGO_USERNAME")) {
+        if (config.mqttUsername.empty()) config.mqttUsername = v;
+    }
+    if (const char* v = std::getenv("MQTT_ALGO_PASSWORD")) {
+        if (config.mqttPassword.empty()) config.mqttPassword = v;
+    }
+    if (const char* v = std::getenv("MQTT_ALGO_CLIENT_ID")) {
+        if (config.mqttClientId.empty()) config.mqttClientId = v;
+    }
+    if (const char* v = std::getenv("MQTT_ALGO_TENANT")) {
+        if (config.mqttTenant.empty()) config.mqttTenant = v;
+    }
+    if (const char* v = std::getenv("COMPUTE_NODE_ID")) {
+        if (config.computeNodeId.empty()) config.computeNodeId = trim(v);
+    } else if (const char* v = std::getenv("NODE_ID")) {
+        if (config.computeNodeId.empty()) config.computeNodeId = trim(v);
+    }
+    if (const char* v = std::getenv("ALERT_IMAGES_DIR")) {
+        std::string dir = trim(v);
+        if (!dir.empty()) config.alertImageDir = dir;
+    }
+
+    const bool mqttBus = AlgoMqttBus::busEnabled(config);
+    if (config.enableAlarm && !mqttBus) {
+        LOG(WARNING) << "[CONFIG] Alarm enabled but ALGO_BUS_TRANSPORT disabled "
+                     << "(set MQTT_BROKER_URLS + leave ALGO_BUS_TRANSPORT=mqtt)";
+    }
+    if (config.enableAlarm && config.mqttBrokerUrls.empty()) {
+        LOG(WARNING) << "[CONFIG] Alarm enabled but mqtt_broker_urls / MQTT_BROKER_URLS empty";
     }
 
     if (config.alertImageDir.empty() && !config.logPath.empty()) {
