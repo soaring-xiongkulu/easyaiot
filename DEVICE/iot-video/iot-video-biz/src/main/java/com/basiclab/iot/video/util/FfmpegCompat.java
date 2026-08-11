@@ -22,6 +22,7 @@ public final class FfmpegCompat {
     private static volatile String rtspOpenTimeoutFlag;
     private static volatile Boolean supportsRwTimeout;
     private static volatile String rtspDemuxerHelp;
+    private static volatile String fullHelpText;
 
     private FfmpegCompat() {}
 
@@ -68,9 +69,8 @@ public final class FfmpegCompat {
         }
         Set<String> names = new HashSet<>();
         try {
-            Process process = new ProcessBuilder(
-                    resolveFfmpegBinary(), "-hide_banner", "-encoders"
-            ).redirectErrorStream(true).start();
+            Process process = buildProcess(resolveFfmpegBinary(), "-hide_banner", "-encoders")
+                    .redirectErrorStream(true).start();
             boolean finished = process.waitFor(8, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
@@ -123,13 +123,14 @@ public final class FfmpegCompat {
         return List.of(openFlag, String.valueOf(Math.max(openUs, ioUs)));
     }
 
-    /** Non-RTSP input timeout args — mirrors {@code camera.py} FFmpegDaemon lines 303–306. */
+    /**
+     * Non-RTSP input timeout args — mirrors {@code camera.py} FFmpegDaemon lines 303–306.
+     * Do not fall back to global {@code -timeout}: on Windows essentials builds it is RTSP-demuxer-only
+     * and breaks file/http inputs (ffmpeg exits immediately with "Option timeout not found").
+     */
     public static List<String> ffmpegNonRtspTimeoutArgs(int ioUs) {
         if (ffmpegSupportsRwTimeout()) {
             return List.of("-rw_timeout", String.valueOf(ioUs));
-        }
-        if ("-timeout".equals(ffmpegRtspOpenTimeoutFlag())) {
-            return List.of("-timeout", String.valueOf(ioUs));
         }
         return Collections.emptyList();
     }
@@ -150,31 +151,17 @@ public final class FfmpegCompat {
         if (supportsRwTimeout != null) {
             return supportsRwTimeout;
         }
+        // lavfi rejects -rw_timeout even when the global option exists; prefer help text.
+        if (ffmpegFullHelpText().contains("-rw_timeout")) {
+            supportsRwTimeout = true;
+            return true;
+        }
         if (rtspDemuxerHasOption("rw_timeout")) {
             supportsRwTimeout = true;
             return true;
         }
-        try {
-            Process process = new ProcessBuilder(
-                    resolveFfmpegBinary(),
-                    "-hide_banner",
-                    "-rw_timeout", "1",
-                    "-f", "lavfi",
-                    "-i", "nullsrc=s=1x1:d=0.01",
-                    "-frames:v", "1",
-                    "-f", "null",
-                    "-"
-            ).redirectErrorStream(true).start();
-            boolean finished = process.waitFor(8, TimeUnit.SECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-            }
-            String err = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            supportsRwTimeout = !ffmpegOptionMissing(err, "rw_timeout");
-        } catch (Exception e) {
-            supportsRwTimeout = false;
-        }
-        return supportsRwTimeout;
+        supportsRwTimeout = false;
+        return false;
     }
 
     private static boolean rtspDemuxerHasOption(String option) {
@@ -182,14 +169,31 @@ public final class FfmpegCompat {
         return rtspDemuxerHelpText().contains("-" + name);
     }
 
+    private static String ffmpegFullHelpText() {
+        if (fullHelpText != null) {
+            return fullHelpText;
+        }
+        try {
+            Process process = buildProcess(resolveFfmpegBinary(), "-hide_banner", "-h", "full")
+                    .redirectErrorStream(true).start();
+            boolean finished = process.waitFor(8, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+            }
+            fullHelpText = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            fullHelpText = "";
+        }
+        return fullHelpText;
+    }
+
     private static String rtspDemuxerHelpText() {
         if (rtspDemuxerHelp != null) {
             return rtspDemuxerHelp;
         }
         try {
-            Process process = new ProcessBuilder(
-                    resolveFfmpegBinary(), "-hide_banner", "-h", "demuxer=rtsp"
-            ).redirectErrorStream(true).start();
+            Process process = buildProcess(resolveFfmpegBinary(), "-hide_banner", "-h", "demuxer=rtsp")
+                    .redirectErrorStream(true).start();
             boolean finished = process.waitFor(5, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
@@ -199,6 +203,19 @@ public final class FfmpegCompat {
             rtspDemuxerHelp = "";
         }
         return rtspDemuxerHelp;
+    }
+
+    /** Wrap {@code .cmd}/{@code .bat} binaries with {@code cmd.exe /c} (Windows parity with supervisors). */
+    private static ProcessBuilder buildProcess(String binary, String... args) {
+        List<String> command = new ArrayList<>();
+        String lower = binary.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".bat") || lower.endsWith(".cmd")) {
+            command.add("cmd.exe");
+            command.add("/c");
+        }
+        command.add(binary);
+        command.addAll(List.of(args));
+        return new ProcessBuilder(command);
     }
 
     private static boolean ffmpegOptionMissing(String stderr, String option) {

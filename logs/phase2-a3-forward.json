@@ -1,0 +1,126 @@
+{
+  "pack": "P2-A3",
+  "title": "ViewForward / stream-forward start/stop + real ffmpeg process parity (local full stack)",
+  "generated_at": "2026-08-11T18:10:17+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "nacos": "127.0.0.1:8848",
+    "minio": "127.0.0.1:9000",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096",
+    "srs_rtmp": "127.0.0.1:1935 (docker srs-server)"
+  },
+  "ffmpeg_binary": {
+    "configured": "F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd",
+    "version": "ffmpeg 7.1-essentials_build-www.gyan.dev",
+    "real_process_name": "ffmpeg-win-x86_64-v7.1 (child of cmd.exe wrapper for .cmd binary)"
+  },
+  "oracle_python": {
+    "view_forward": "F:/acme/VIDEO/app/blueprints/camera.py → FFmpegDaemon / start_stream / stop_stream / stream_status",
+    "stream_forward": "F:/acme/VIDEO/app/services/stream_forward_daemon.py → StreamForwardDaemon",
+    "stream_forward_api": "F:/acme/VIDEO/app/blueprints/stream_forward.py → /task/{id}/start|stop|status",
+    "ffmpeg_compat": "F:/acme/VIDEO/app/utils/ffmpeg_compat.py → resolve_ffmpeg_binary / timeout args"
+  },
+  "java_candidate": {
+    "view_forward_controller": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/controller/CameraController.java → POST /camera/device/{id}/stream/start|stop, GET /status",
+    "view_forward_service": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/ViewForwardService.java",
+    "view_forward_supervisor": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/process/ViewForwardSupervisor.java",
+    "stream_forward_controller": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/controller/StreamForwardController.java",
+    "stream_forward_service": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/StreamForwardService.java",
+    "stream_forward_supervisor": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/process/StreamForwardSupervisor.java",
+    "ffmpeg_compat": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/util/FfmpegCompat.java"
+  },
+  "code_fixes_applied": [
+    {
+      "file": "FfmpegCompat.java",
+      "issue": "lavfi probe falsely reported rw_timeout missing; fell back to global -timeout which breaks file:// inputs on Windows essentials ffmpeg",
+      "fix": "Detect rw_timeout via -h full help text; remove global -timeout fallback for non-RTSP; wrap .cmd/.bat probes with cmd.exe /c"
+    }
+  ],
+  "view_forward_fixture": {
+    "device_id": "frb26_device",
+    "source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+    "rtmp_output": "rtmp://127.0.0.1/live/frb26_device",
+    "prior_pack": "A1/A2 (same device)"
+  },
+  "view_forward_lifecycle": {
+    "preclean_stop": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/camera/device/frb26_device/stream/stop",
+      "code": 0
+    },
+    "start": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/camera/device/frb26_device/stream/start",
+      "code": 0,
+      "msg": "流媒体转发已启动",
+      "rtmp_url": "rtmp://127.0.0.1/live/frb26_device"
+    },
+    "status_running": {
+      "endpoint": "GET http://127.0.0.1:48080/admin-api/video/camera/device/frb26_device/stream/status",
+      "code": 0,
+      "status": "running",
+      "enable_forward": true,
+      "supervisor_pid": 25320,
+      "pid_alive_after_8s": true,
+      "pid_note": "PID is cmd.exe hosting ffmpeg.cmd; child process ffmpeg-win-x86_64-v7.1 confirmed encoding",
+      "log_evidence": "C:/Users/g/.video-java/logs/view-forward/frb26_device/ffmpeg.stdout.log — h264 decode warnings (normal), no Option timeout error"
+    },
+    "stop": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/camera/device/frb26_device/stream/stop",
+      "code": 0,
+      "msg": "转码已停止"
+    },
+    "status_stopped": {
+      "endpoint": "GET http://127.0.0.1:48080/admin-api/video/camera/device/frb26_device/stream/status",
+      "code": 0,
+      "status": "stopped",
+      "enable_forward": false,
+      "pid": null,
+      "pid_gone_after_stop": true
+    }
+  },
+  "stream_forward_fixture": {
+    "task_id": 63,
+    "task_name": "frb36_sf_restart_20260810213445",
+    "device_id": "vj_p2_device",
+    "source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+    "rtmp_output": "rtmp://127.0.0.1/live/vj_p2"
+  },
+  "stream_forward_lifecycle": {
+    "start": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/stream-forward/task/63/start",
+      "code": 0,
+      "msg": "启动成功",
+      "is_enabled": true
+    },
+    "status_running": {
+      "endpoint": "GET http://127.0.0.1:48080/admin-api/video/stream-forward/task/63/status",
+      "code": 0,
+      "status": "running",
+      "log_evidence": "C:/Users/g/.video-java/logs/stream_forward_task_63/vj_p2_device/ffmpeg.stdout.log — h264 decode active"
+    },
+    "stop": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/stream-forward/task/63/stop",
+      "code": 0,
+      "msg": "停止成功",
+      "is_enabled": false
+    }
+  },
+  "acceptance": {
+    "start_ffmpeg_alive": "PASS",
+    "status_running": "PASS",
+    "stop_process_gone": "PASS",
+    "real_ffmpeg_not_stub": "PASS",
+    "no_fake_running": "PASS"
+  },
+  "concerns": [
+    "SRS StreamBusy if stale RTMP publish lingers — preclean stop + kill stray ffmpeg before start",
+    "Supervisor PID is cmd.exe wrapper when ffmpeg-path ends in .cmd; use child process name for forensic checks",
+    "Python camera.py still has same global -timeout fallback — Java fix is ahead for Windows file sources"
+  ],
+  "ready_for_a4": true
+}

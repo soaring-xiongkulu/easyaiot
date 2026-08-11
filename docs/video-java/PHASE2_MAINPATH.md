@@ -102,6 +102,56 @@ Prove Java `video-server` under `profile=local` can start/stop an algo task with
 
 ---
 
+## Pack A3 — ViewForward / stream-forward ffmpeg lifecycle
+
+| Field | Value |
+|-------|-------|
+| **Status** | **PASS** |
+| **Date** | 2026-08-11 |
+| **Evidence** | `logs/phase2-a3-forward.json` |
+
+### Goal
+
+Prove Java `video-server` under `profile=local` can start/stop device preview forward (ViewForward) and/or stream-forward tasks with a **real ffmpeg** subprocess alive, status reasonable, and clean stop — aligned with Python `camera.py` FFmpegDaemon and `stream_forward_daemon.py`.
+
+### Oracle reference (Python)
+
+| Item | Location |
+|------|----------|
+| ViewForward API | `VIDEO/app/blueprints/camera.py` → `/device/{id}/stream/start`, `/stop`, `/status` |
+| ffmpeg launch | `camera.py` → `FFmpegDaemon` → `subprocess.Popen(ffmpeg_cmd)` |
+| Stream-forward API | `VIDEO/app/blueprints/stream_forward.py` → `/task/{id}/start`, `/stop`, `/status` |
+| Stream-forward daemon | `VIDEO/app/services/stream_forward_daemon.py` → `StreamForwardDaemon` |
+| ffmpeg compat | `VIDEO/app/utils/ffmpeg_compat.py` |
+
+### Java candidate
+
+| Item | Location |
+|------|-------|
+| ViewForward | `CameraController` → `ViewForwardService` → `ViewForwardSupervisor` |
+| Stream-forward | `StreamForwardController` → `StreamForwardService` → `StreamForwardSupervisor` |
+| ffmpeg command | `ViewForwardService.buildFfmpegCommand()` + `FfmpegCompat` |
+
+### Acceptance results
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Start → ffmpeg alive (Windows) | **PASS** — supervisor PID 25320, child `ffmpeg-win-x86_64-v7.1` |
+| 2 | `stream/status` running | **PASS** — `status=running`, `enable_forward=true` |
+| 3 | Stop → process gone | **PASS** — PID gone, `enable_forward=false` |
+| 4 | Stream-forward task start/stop | **PASS** — task 63 `status=running`, ffmpeg log active |
+
+### Fixture
+
+- Device `frb26_device` (file `F:/acme/RUNTIME/testdata/sample.mp4` → SRS `rtmp://127.0.0.1/live/frb26_device`)
+- Stream-forward task 63 (`vj_p2_device`, same file source)
+
+### Code fixes (A3)
+
+- `FfmpegCompat.java` — correct `rw_timeout` detection; remove broken global `-timeout` fallback for file inputs; `cmd.exe /c` wrapper for `.cmd` probes
+
+---
+
 ## Next pack
 
-**A3** — Forward/ffmpeg path (`logs/phase2-a3-forward.json`).
+**A4** — Media MinIO path (`logs/phase2-a4-media-minio.json`).
