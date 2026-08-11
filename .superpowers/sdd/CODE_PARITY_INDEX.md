@@ -33,7 +33,7 @@
 | CP-2 Matching consume | W2-second | **PASS** | [cp-2-brief.md](./briefs/cp-2-brief.md) | [cp-2-report.md](./briefs/cp-2-report.md) | `logs/cp-2-matching-consume.json` | `9dfd2b3` |
 | CP-4 Snap scheduler | W3 | **PASS** | [cp-4-brief.md](./briefs/cp-4-brief.md) | [cp-4-report.md](./briefs/cp-4-report.md) | `logs/cp-4-snap-scheduler.json` | `7863f25` |
 | CP-5 services/status | W3 | **PASS** | [cp-5-brief.md](./briefs/cp-5-brief.md) | [cp-5-report.md](./briefs/cp-5-report.md) | `logs/cp-5-services-status.json` | `14c725d` |
-| CP-6 Patrol | W4 | **PASS** | [cp-6-brief.md](./briefs/cp-6-brief.md) | [cp-6-report.md](./briefs/cp-6-report.md) | `logs/cp-6-patrol.json` | — |
+| CP-6 Patrol | W4 | **PASS** | [cp-6-brief.md](./briefs/cp-6-brief.md) | [cp-6-report.md](./briefs/cp-6-report.md) | `logs/cp-6-patrol.json` | `193ef0e` |
 | CP-7 AudioTalk | W4 | pending | [cp-7-brief.md](./briefs/cp-7-brief.md) | — | `logs/cp-7-audiotalk.json` | — |
 | CP-8 GB28181 code | W4 | pending | [cp-8-brief.md](./briefs/cp-8-brief.md) | — | `logs/cp-8-gb28181-code.json` | — |
 | CP-9 FlightHub+directory | W4 | **PASS** | [cp-9-brief.md](./briefs/cp-9-brief.md) | [cp-9-report.md](./briefs/cp-9-report.md) | `logs/cp-9-flighthub-directory.json` | `5fd7ba9` |
