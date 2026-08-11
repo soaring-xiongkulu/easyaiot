@@ -66,16 +66,16 @@
 4. [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md)  
 5. `F:/acme/VIDEO/`（Oracle）+ Candidate controllers
 
-## 8. 现状摘要（阶段 0）
+## 8. 现状摘要（阶段 1 接线 — 2026-08-11）
 
-- **话术：** 阶段 0：规矩与商业默认已切换；完整替换进行中；Python 仍为对照，禁止删除。  
+- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2 PASS；0.3 功能 PASS，desktop PG 5432 端口待解）。  
 - **HTTP 契约面：** 14 前缀 inventory diff≈0（历史）。  
-- **默认配置：** `local` / `application.yaml` / `VideoProperties` 已切商业默认（Kafka / 真 enqueue / MinIO on）；捷径仅 `mini`。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)。  
+- **默认配置：** `local` / `application.yaml` / `VideoProperties` 商业默认；`bootstrap-local` Nacos discovery 已启用；`application-local` datasource 对齐 `5432`。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)、[PHASE1_STACK.md](./PHASE1_STACK.md)。  
 - **禁止：** COMPLETE、FR-B46+、矩阵刷绿、删 main Python VIDEO、「等线上」叙事。
 
-## 9. 下一步（阶段 1 — 须另令）
+## 9. 下一步（阶段 2 — 须另令）
 
-本机完整栈验收（起/挂 Nacos、Kafka、MinIO、网关），按 [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 逐项对标 Python。**未经下一令不要启动阶段 1。**
+按 [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续：解决 desktop PG `:5432` 冲突后，推进 Kafka 告警链 / MinIO 上传 / 匹配告警等 1.x–6.x 对标 Python。**未经下一令不要启动阶段 2。**
 
 ## 10. 历史约束
 

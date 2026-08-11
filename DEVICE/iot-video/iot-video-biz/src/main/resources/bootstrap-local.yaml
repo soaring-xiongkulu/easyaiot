@@ -1,9 +1,14 @@
---- #################### local 形态：不依赖 Nacos 注册/配置中心 ####################
+--- #################### 注册中心相关配置（本机完整栈：启用 Nacos 发现） ####################
 
 spring:
   cloud:
     nacos:
+      server-addr: ${NACOS_SERVER:localhost:8848}
       discovery:
-        enabled: false
+        enabled: true
+        metadata:
+          version: 1.0.0
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:}
       config:
         enabled: false
