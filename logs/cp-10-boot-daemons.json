@@ -1,0 +1,242 @@
+{
+  "pack": "CP-10",
+  "title": "Boot daemons map — Python run.py ↔ Java schedulers / auto-start / janitor",
+  "generated_at": "2026-08-12T00:16:08+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "correlation_id": "cp-10-evidence-20260812001608",
+  "nested_subagents": "none",
+  "prior_reports": [
+    "cp-1-report.md (PASS)",
+    "cp-2-report.md (PASS)",
+    "cp-3-report.md (PASS)",
+    "cp-4-report.md (PASS snap init)",
+    "cp-5-report.md (PASS services/status)",
+    "cp-6-report.md (PASS patrol)",
+    "cp-7-report.md (PASS audiotalk)",
+    "cp-8-report.md (PASS gb28181)",
+    "cp-9-report.md (PASS flighthub+directory)"
+  ],
+  "oracle": {
+    "file": "F:/acme/VIDEO/run.py",
+    "background_gate": "VIDEO_SKIP_BACKGROUND_TASKS — start_background_tasks=False skips Nacos+all APScheduler jobs",
+    "background_block_lines": "L1007–L1495 (after blueprints; inside create_app)"
+  },
+  "java": {
+    "gate": "video.skip-background-tasks + @ConditionalOnProperty on scheduler components",
+    "scheduler_package": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/scheduler/"
+  },
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "video_server": "127.0.0.1:48096 (evidence boot PID 2784)",
+    "gateway": "127.0.0.1:48080"
+  },
+  "mapping": [
+    {
+      "id": "M-01",
+      "python": "VIDEO_SKIP_BACKGROUND_TASKS gate (run.py L1003–L1015)",
+      "java": "VideoProperties.skipBackgroundTasks + scheduler @ConditionalOnProperty",
+      "parity": "aligned",
+      "notes": "local profile: skip-background-tasks=false"
+    },
+    {
+      "id": "M-02",
+      "python": "Nacos register + heartbeat thread (run.py L1017–L1059)",
+      "java": "Spring Cloud Nacos (bootstrap-local.yaml discovery)",
+      "parity": "aligned",
+      "notes": "Framework-managed; not a *Scheduler class"
+    },
+    {
+      "id": "M-03",
+      "python": "maybe_fix_srs_on_startup (run.py L1008–L1012)",
+      "java": "—",
+      "parity": "gap",
+      "notes": "No Java boot hook found; SRS ops via PlaybackDiskGuard / media paths"
+    },
+    {
+      "id": "M-04",
+      "python": "_start_search / camera APScheduler (run.py L1118–L1124)",
+      "java": "—",
+      "parity": "gap",
+      "notes": "ONVIF discovery thread not ported to Java boot"
+    },
+    {
+      "id": "M-05",
+      "python": "auto_start_streaming() (run.py L1141–L1147)",
+      "java": "ViewForwardAutoResumeScheduler → ViewForwardAutoResumeService.resumeEnabledDevices()",
+      "parity": "aligned",
+      "evidence": "sample-1"
+    },
+    {
+      "id": "M-06",
+      "python": "auto_cleanup_snap_spaces interval 30m + boot (run.py L1158–L1178)",
+      "java": "SpaceCleanupScheduler @Scheduled + cleanupOnStartup → SnapSpaceCleanupService",
+      "parity": "aligned",
+      "evidence": "sample-2"
+    },
+    {
+      "id": "M-07",
+      "python": "auto_cleanup_record_spaces interval 30m + boot (run.py L1180–L1203)",
+      "java": "SpaceCleanupScheduler → RecordSpaceCleanupService",
+      "parity": "aligned",
+      "evidence": "sample-2"
+    },
+    {
+      "id": "M-08",
+      "python": "playback_disk_guard (PLAYBACK_GUARD_INTERVAL_MINUTES, run.py L1209–L1236)",
+      "java": "PlaybackDiskGuardScheduler → PlaybackDiskGuardService",
+      "parity": "aligned",
+      "evidence": "boot_log"
+    },
+    {
+      "id": "M-09",
+      "python": "media_janitor (JANITOR_INTERVAL_SECONDS, run.py L1238–L1261)",
+      "java": "MediaJanitorScheduler → MediaJanitorService.runCycle()",
+      "parity": "aligned",
+      "evidence": "sample-3"
+    },
+    {
+      "id": "M-10",
+      "python": "stream_forward_health interval + boot (run.py L1263–L1289, L1480–L1487)",
+      "java": "StreamForwardHealthScheduler scheduled + healthCycleOnStartup",
+      "parity": "aligned",
+      "notes": "DB has 0 is_enabled stream_forward_task at evidence time"
+    },
+    {
+      "id": "M-11",
+      "python": "algorithm_task_health interval + boot (run.py L1291–L1317, L1489–L1495)",
+      "java": "AlgorithmTaskHealthRecoveryScheduler",
+      "parity": "aligned",
+      "evidence": "honest_runtime_fail"
+    },
+    {
+      "id": "M-12",
+      "python": "init_all_tasks() (run.py L1319–L1327)",
+      "java": "SnapTaskScheduler.initOnStartup → SnapTaskSchedulerService.initAllTasks()",
+      "parity": "aligned",
+      "evidence": "sample-4_cp4_cross_ref"
+    },
+    {
+      "id": "M-13",
+      "python": "start_auto_frame_extraction (commented out, run.py L1329–L1338)",
+      "java": "—",
+      "parity": "n/a",
+      "notes": "Both sides disabled by design"
+    },
+    {
+      "id": "M-14",
+      "python": "check_heartbeat_timeout interval 1m (run.py L1340–L1457)",
+      "java": "—",
+      "parity": "gap",
+      "notes": "Legacy FrameExtractor/Sorter/Pusher timeout job not ported; realtime status uses supervisor/heartbeat in lifecycle"
+    },
+    {
+      "id": "M-15",
+      "python": "Reset face/plate auto-enroll is_running on boot (run.py L1448–L1454)",
+      "java": "—",
+      "parity": "gap",
+      "notes": "Auto-enroll reset only on explicit stop API paths in Java"
+    },
+    {
+      "id": "M-16",
+      "python": "algorithm auto_start_all_tasks (run.py L1460–L1468)",
+      "java": "AlgorithmTaskAutoStartScheduler → AlgorithmTaskAutoStartService",
+      "parity": "aligned",
+      "evidence": "honest_skip"
+    },
+    {
+      "id": "M-17",
+      "python": "stream_forward auto_start_all_tasks (run.py L1470–L1478)",
+      "java": "StreamForwardAutoStartScheduler → StreamForwardAutoStartService",
+      "parity": "aligned",
+      "notes": "0 enabled tasks in DB at evidence time"
+    },
+    {
+      "id": "M-18",
+      "python": "safe_shutdown_daemons atexit (run.py L1126–L1139)",
+      "java": "AlgorithmRuntimeSupervisor / ViewForwardSupervisor @PreDestroy hooks",
+      "parity": "partial",
+      "notes": "Spring lifecycle; no single atexit mirror"
+    },
+    {
+      "id": "M-19",
+      "python": "sync_unassigned_devices_to_default_directory on DB migrate (run.py L469–L474)",
+      "java": "Gb28181SyncService.syncUnassignedDevicesToDefaultDirectory (on GB sync / API)",
+      "parity": "different_trigger",
+      "notes": "On-demand not boot daemon"
+    }
+  ],
+  "samples": {
+    "sample_1_view_forward_auto_resume": {
+      "oracle": "camera.auto_start_streaming — devices with enable_forward=true",
+      "db_enable_forward_count": 4,
+      "db_enable_forward_ids": [
+        "1786275910997290600",
+        "loop_face",
+        "loop_one_by_one",
+        "loop_pbc"
+      ],
+      "java_resumed_count": 4,
+      "log_file": "logs/cp-10-video-server.log",
+      "log_lines": [
+        "L2799 view-forward auto-resume started device_id=1786275910997290600",
+        "L3525 view-forward auto-resume started device_id=loop_face",
+        "L3565 view-forward auto-resume started device_id=loop_one_by_one",
+        "L3627 view-forward auto-resume started device_id=loop_pbc",
+        "L3628 view-forward auto-resume complete: resumed=4",
+        "L3629 ViewForwardAutoResumeScheduler view-forward startup auto-resume: resumed=4"
+      ],
+      "parity": "db_count_equals_resumed_count"
+    },
+    "sample_2_space_cleanup_startup": {
+      "oracle": "auto_cleanup_all_spaces + auto_cleanup_all_record_spaces at boot",
+      "java": "SpaceCleanupScheduler.cleanupOnStartup",
+      "snap_startup_log": "L1447 startup 抓拍空间清理完成: {processed_count=0, deleted_count=0, ...}",
+      "record_startup_log": "L1663 startup 录像空间清理完成: {processed_count=1, deleted_count=1, ...}",
+      "honest_work": "record space vj_p2 deleted=1 expired file — not fake zero"
+    },
+    "sample_3_media_janitor": {
+      "oracle": "media_janitor APScheduler job id=media_janitor",
+      "java": "MediaJanitorScheduler.scheduledJanitor",
+      "log_line": "L1136 Janitor 周期完成: dvr_orphans=0 requeued=0 snap_orphans=0 requeued=0 disk=92.11%",
+      "interval_ms": 60000
+    },
+    "sample_4_snap_init_cross_ref": {
+      "oracle": "snap_task_service.init_all_tasks",
+      "java": "SnapTaskScheduler + CP-4 fix",
+      "db_enabled_count": 10,
+      "java_scheduled_count": 10,
+      "log_line": "L1318 抓拍任务调度器初始化完成: enabled=10, scheduled=10, scheduled_task_ids=[7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+      "cross_ref": "logs/cp-4-snap-scheduler.json"
+    },
+    "honest_algorithm_auto_start": {
+      "enabled_local_tasks": 4,
+      "started": 0,
+      "reason": "model_ids blank on tasks 50,62,138,139 — skipped with WARN, not fake success",
+      "log_lines": [
+        "L784 发现 4 个启用的算法任务，开始启动服务...",
+        "L785–788 缺少模型 ID 配置，跳过",
+        "L789 算法任务自动启动完成: 0/4"
+      ]
+    },
+    "honest_health_recovery_runtime_missing": {
+      "note": "RUNTIME binary missing → recovery ERROR logged, not silent success",
+      "example_log": "L871 算法任务 50 恢复失败: RUNTIME 二进制不存在"
+    }
+  },
+  "gaps_documented": [
+    "M-03 SRS startup self-check",
+    "M-04 ONVIF camera search thread",
+    "M-14 legacy heartbeat timeout APScheduler job",
+    "M-15 boot reset of face/plate auto-enroll is_running"
+  ],
+  "acceptance": {
+    "mapping_table_in_report": true,
+    "samples_with_local_evidence": 4,
+    "no_fake_success": true,
+    "part1_a_series_cp_closed": true,
+    "overall": "PASS"
+  }
+}

@@ -86,7 +86,7 @@
 | **D-09** | Patrol / AudioTalk：**控制器已有**，相对 Python 行为/SSE/进程语义需证据级收口 | **CP-6 PASS** + **CP-7 PASS** — patrol main-path + AudioTalk capabilities/start/stop/health | Part1 → **CP-6** ✓ / **CP-7** ✓ |
 | **D-10** | ~~GB28181 代码证据~~ **CP-8 PASS** — fixture resolve + sync payload + virtual ensure + WVP-down honest null | `Gb28181SourceResolver` / `Gb28181SyncService`；证据 `logs/cp-8-gb28181-code.json` | Part1 → **CP-8** ✓ |
 | **D-10a** | ~~FlightHub + directory 代码证据~~ **CP-9 PASS** — config shape + missing-creds honest fail + directory fields on shared DB | 证据 `logs/cp-9-flighthub-directory.json` | Part1 → **CP-9** ✓ |
-| **D-11** | `run.py` 后台项 vs Java schedulers：多项已移植，缺总表证据 | Python `run.py`；Java `*Scheduler` / AutoStart / Janitor | Part1 → **CP-10** |
+| **D-11** | ~~`run.py` 后台项 vs Java schedulers：缺总表证据~~ **CP-10 PASS** — mapping table + 4 sampled boot daemons | 证据 `logs/cp-10-boot-daemons.json`；gap 项已文档化（camera search / SRS boot / legacy heartbeat job） | Part1 → **CP-10** ✓ |
 
 **相对门卡审查增删说明**
 
@@ -110,7 +110,7 @@
 | G-07 | AudioTalk | `audio_talk.py` | **CP-7 PASS** — capabilities/start/stop/health HTTP+code parity; honest fixture fail | **CP-7 PASS** | CP-7 | P2 ✓ |
 | G-08 | GB28181 code | `gb28181_*` / camera | **CP-8 PASS** — `Gb28181SourceResolver` + fixture map + sync + honest WVP null | **CP-8 PASS** | CP-8 | P2 ✓ |
 | G-09 | FlightHub + directory | `flighthub_*` / directory routes | **CP-9 PASS** — config/live honest fail + directory key fields | **CP-9 PASS** | CP-9 | P2 ✓ |
-| G-10 | Boot daemons | `run.py` 后台块 | 多个 `*Scheduler` | 对照表 + 抽样证据 | CP-10 | P2 |
+| G-10 | Boot daemons | `run.py` 后台块 | **CP-10 PASS** — 19-row map; view-forward/space/janitor/snap sampled | **CP-10 PASS** | CP-10 | P2 ✓ |
 
 ---
 
@@ -129,5 +129,6 @@
 | **CP-6** patrol main-path | **PASS** — `logs/cp-6-patrol.json` |
 | **CP-8** GB28181 code path | **PASS** — `logs/cp-8-gb28181-code.json` |
 | **CP-7** AudioTalk main-path | **PASS** — `logs/cp-7-audiotalk.json` |
-| CP-10 | **待 W5**（W4 complete） |
-| 功能实现 / 长联调 / FR-B / COMPLETE / 删 Python | **禁止** |
+| **CP-10** boot daemons map | **PASS** — `logs/cp-10-boot-daemons.json` |
+| **Part1 CP-1…CP-10** | **全部 PASS** — A-series code packs closed |
+| Part2 引擎 / 长联调 / FR-B / COMPLETE / 删 Python | **禁止 / 另令** |

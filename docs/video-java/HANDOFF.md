@@ -1,7 +1,7 @@
 # VIDEO Python → Java — HANDOFF
 
 > **话术：** CODE-PARITY 波次 0：Part1/Part2 清单与任务包已建立；功能实现另令；Python 仍为对照，禁止删除。  
-> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **CODE-PARITY W1–W4 complete**（CP-1…CP-9 except pending items）；下一步 **W5 CP-10**。  
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **Part1 CODE-PARITY complete**（CP-1…CP-10 PASS）；Part2 引擎另令。  
 > **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标
@@ -82,12 +82,14 @@
 - **CP-6 PASS（W4）：** patrol main-path create→start→stats/events/stop 与 Python 关键语义对齐；26-key session + stats 扩展；SSE initial progress；stop HTTP/code parity；`countAlive` 会话上限。证据：`logs/cp-6-patrol.json`、`.superpowers/sdd/briefs/cp-6-report.md`。
 - **CP-7 PASS（W4）：** AudioTalk capabilities/start/stop/health HTTP+code 与 Python 对齐；缺设备 400/404 诚实；fixture 无 IP → capabilities `supported=false`、start HTTP 500 `success=false`。证据：`logs/cp-7-audiotalk.json`、`.superpowers/sdd/briefs/cp-7-report.md`。
 - **CP-8 PASS（W4）：** `Gb28181SourceResolver` + fixture map + sync payload + virtual device ensure；WVP 不可达时 `resolved_source=null` 诚实失败。证据：`logs/cp-8-gb28181-code.json`、`.superpowers/sdd/briefs/cp-8-report.md`。
+- **CP-10 PASS（W5）：** `run.py` 后台块 ↔ Java `*Scheduler`/AutoStart/Janitor 对照表；抽样 view-forward auto-resume（4/4）、space cleanup、media janitor、snap init（CP-4 交叉）。证据：`logs/cp-10-boot-daemons.json`、`.superpowers/sdd/briefs/cp-10-report.md`。
+- **Part1 A-series CP 已收口**（CP-1…CP-10）；**非** COMPLETE / **非** 删 Python。
 - **禁止：** COMPLETE、FR-B、矩阵刷绿、删 main Python、「等线上」、用 mini/direct/stub 冒充 Part1。
 
 ## 9. 下一步（等令）
 
-1. **W5：CP-10** — boot daemons 对照表 + 抽样证据；见 [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md)。
-2. Part2 引擎（InsightFace/Milvus/真机）**不开工直至 Part1 代码路径收口**。  
+1. **Part2 引擎** — InsightFace/Milvus/RUNTIME 真机/模型安装；见 [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md)。  
+2. Boot daemon **gap**（camera search、SRS boot self-check、legacy heartbeat job）— 可选 Part1 补丁或接受文档化 gap。  
 3. Python Oracle 仍保留；**禁止删除**。
 
 ## 10. 历史约束
