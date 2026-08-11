@@ -3,7 +3,7 @@
 **Status:** ⛔ (缺 sink)  
 **Pack:** P2-A6  
 **Date:** 2026-08-11  
-**Commit:** `a28f9b8` — `feat(video-java): phase2 A6 postprocess enqueue parity`  
+**Commit:** `f7c3276` — `feat(video-java): phase2 A6 postprocess enqueue parity`  
 **Evidence:** `logs/phase2-a6-postprocess.json`  
 **nested_subagents:** none
 

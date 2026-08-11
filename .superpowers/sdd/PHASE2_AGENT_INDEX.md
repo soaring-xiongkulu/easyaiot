@@ -9,7 +9,7 @@ All Phase 2 subagents **must** read prior pack reports before starting, and **mu
 | A3 Forward/ffmpeg | PASS | [phase2-a3-brief.md](./briefs/phase2-a3-brief.md) | [phase2-a3-report.md](./briefs/phase2-a3-report.md) | `logs/phase2-a3-forward.json` | `50ce091` |
 | A4 Media MinIO | PASS | [phase2-a4-brief.md](./briefs/phase2-a4-brief.md) | [phase2-a4-report.md](./briefs/phase2-a4-report.md) | `logs/phase2-a4-media-minio.json` | `2be5393` |
 | A5 Camera | PASS | [phase2-a5-brief.md](./briefs/phase2-a5-brief.md) | [phase2-a5-report.md](./briefs/phase2-a5-report.md) | `logs/phase2-a5-camera.json` | `af3f3bd` |
-| A6 Post-process | ⛔缺 sink | [phase2-a6-brief.md](./briefs/phase2-a6-brief.md) | [phase2-a6-report.md](./briefs/phase2-a6-report.md) | `logs/phase2-a6-postprocess.json` | `a28f9b8` |
+| A6 Post-process | ⛔缺 sink | [phase2-a6-brief.md](./briefs/phase2-a6-brief.md) | [phase2-a6-report.md](./briefs/phase2-a6-report.md) | `logs/phase2-a6-postprocess.json` | `f7c3276` |
 | A7 Matching | pending | — | — | `logs/phase2-a7-matching.json` | — |
 
 ## Collaboration rules (binding)
