@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成（原 <strong>EDGE</strong> 聯邦邊緣套件已移除，邊緣算力統一走 <strong>RUNTIME 原子模式</strong>），並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發；算力盒可走<strong>原子模式</strong>：本機只裝執行器，告警與畫面回中心，擴節點不必再堆整套業務面）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -148,7 +148,6 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>RUNTIME 高速執行層</strong>：把「看圖、算圖、推圖」從解釋型語言鏈路裏抽出來，用 <strong>原生二進制</strong>貫通<strong>拉流 → 解碼 → 推理 → 告警回傳 → 帶框推流</strong>。相對 Python 執行路徑，避開 GIL 與多進程編排開銷，同等硬件上<strong>同機路數更高、端到端時延更低、CPU/內存更省</strong>；即時 / 抓拍 / 巡檢與多路原畫轉發共用同一套執行能力，默認 <code>executor=cpp</code>。業務上可做到：園區 NVR 數十路先保證「看得清、不卡頓」，再按需只對重點通道開 AI；原畫預覽與帶框研判同屏切換、互不拖垮；平臺（VIDEO/WEB）繼續管設備編排、告警歸檔與權限，執行層專注吞吐與時延——擴路、加場景不必先換整機</li>
   <li><strong>高性能推流轉發</strong>：面向「要先把畫面鋪滿大屏 / 分屏，不必每路都開算法」的真實交付——NVR 批量通道、樓宇多點位可一鍵建轉發任務，默認走 <strong>RUNTIME</strong> 高性能路徑（亦可切兼容模式），讓多路原畫以更低資源開銷穩定上牆。原畫觀看與 AI 研判可同設備並行：值守既能看未標註實況，也能切到帶框結果；算法啓停後轉發策略自動跟進，少一次手工改配置、少一輪聯調返工。配套並排預覽能力，驗收時直接對比延時與標註效果，縮短「裝完還要對半天畫面」的週期</li>
-  <li><strong>原子模式：算力盒只裝執行器</strong>：邊緣算力盒 / 集羣工作節點可<strong>只安裝 RUNTIME 二進制</strong>，本機不部署 VIDEO / WEB / DEVICE——裝機體積小、故障面窄、擴容像「加一台算力」而非「再裝一套平臺」。節點把告警與心跳匯聚到中心 VIDEO；中心下發即時 / 抓拍 / 巡檢（<code>executor=cpp</code>）由同一執行進程承接，即時任務仍默認推帶框檢測流回中心 SRS。原子 = 本機無業務面，不是「不推流」；智能與畫面仍在中心統一研判。一鍵：<code>VIDEO_BASE_URL=http://&lt;中心&gt;:6000 bash .scripts/docker/install_linux.sh runtime</code>；亦可經 WEB「業務運行時分發」批量裝到節點</li>
   <li><strong>平臺名稱與 Logo 全觸點自定義</strong>：同一套 EasyAIoT 部署到現場後，用戶看到的應是「自己的平臺」，而不是通用產品名。監控大屏內置可視化「平臺標識設置」，管理員在界面中即可完成品牌替換——管理後臺可改平臺名稱與 Logo（同步側邊欄、瀏覽器標題）；監控大屏可獨立設置指揮標題；登入頁可自定義名稱、Logo、表單標題及淺色/深色背景圖，三處視覺統一、即時生效，並支持保存與一鍵重置。
     <ul style="margin: 5px 0; padding-left: 20px;">
       <li><strong>對系統集成商與方案商</strong>：省去前端改膚、二次開發與發版成本；PoC 演示與正式交付可快速切換爲客戶品牌，同一套代碼支撐多客戶項目，縮短回款週期、提高方案複用率</li>
@@ -166,7 +165,6 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>多中心節點 × 多工作節點聯邦集羣</strong>：面向跨區域、多機房與雲邊協同部署，平臺採用「N 箇中心節點 + N 個工作節點」聯邦架構——中心節點統一編排，工作節點承載算力與媒體執行，可橫向擴展。每個中心節點納管本域工作節點，支持流媒體、音視頻轉碼、視頻分析、模型推理與訓練等能力的遠程分發與一鍵部署；多中心可互聯同步，集羣泳道視圖直觀呈現「中心—工作」拓撲與資源水位。算法任務、自動標註流水線、推流轉發等工作負載按節點角色與 GPU 能力智能調度，讓海量路數接入、高併發推理與分佈式訓練在同一集羣中協同運轉，真正做到「納得進、分得清、擴得開、管得全」</li>
   <li><strong>SAM 零啓動自動標註編排流水線</strong>：面向「尚無標註樣本、尚無可用檢測模型」的冷啓動場景，平臺集成 SAM 開放詞彙分割能力，提供一鍵無人值守標註流水線。系統按策略自動串聯攝像頭抽幀採集、文本提示首批標註、達標後自動觸發 YOLO 微調訓練、量產階段以 YOLO 高速推理爲主並對漏檢樣本智能切換 SAM 回補、按進度週期性迭代訓練及數據集自動打包導出，完整貫通「採—標—訓—導」閉環。支持任務暫停恢復與本地/集羣算力彈性調度，配合可視化策略配置與運行日誌，幫助用戶從零樣本、零模型起步快速沉澱專屬檢測能力，讓「開口定義類別、坐等模型成型」成爲數據集建設的預設可用路徑</li>
   <li><strong>萬級彈性算力集羣與橫向擴容池</strong>：面向超大規模 AI 與視頻業務，構建雲邊端一體的分佈式算力底座，將算法任務、推流轉發、算法服務、模型訓練與推理統一納入橫向負載均衡與彈性伸縮體系。新增伺服器一鍵納管入網即可成爲可調度算力單元，調度中樞按資源水位與業務壓力自動分發任務、平衡負載，實現從百路到萬路攝像頭、從單機到萬級節點的線性擴容——無需重複部署與手工調參，讓海量路數接入、高併發推理與分佈式訓練在同一算力池中協同運行，真正做到「擴得動、跑得穩、管得住」</li>
-  <li><strong>RUNTIME 原子邊緣算力</strong>：面向廣域布點與算力盒擴容——節點只裝 RUNTIME 執行器，告警經 MQTT 匯入 iot-sink，心跳回 VIDEO；不必再為每個網點堆疊整套業務面。原 EDGE 聯邦邊緣套件已移除，統一走本路徑</li>
   <li><strong>天地圖空間可視化與以圖研判</strong>：接入國家天地圖，將攝像頭、告警與人車識別能力匯聚到一張地圖，讓監控從「看畫面」升級爲「看全局」。流媒體與告警模組均提供「地圖分佈」視圖，配合設備目錄樹按區域聚焦，一眼掌握卡口布局與在線狀態；支持地圖點選、地點搜索與批量導入座標，國標通道、NVR 通道與直連攝像頭均可快速完成布點，讓每路畫面都有清晰的空間歸屬。告警事件自動關聯攝像頭座標上圖展示，可按時間、事件類型、任務與業務標籤篩選，選中即可查看抓拍與錄像，幫助值守人員從「哪裏出事」快速切入處置。結合人臉庫與車牌庫識別能力，可將同一目標在多個點位上的命中記錄串聯成空間脈絡——<strong>以人尋跡</strong>，還原重點人員在布控範圍內的出現路線與活動範圍；<strong>以車尋跡</strong>，串聯過車記錄，快速定位車輛行經路徑與停留區域，爲尋人找車、巡防布控與事後覆盤提供直觀線索。移動類設備還支持軌跡回放，按時間軸重現巡邏與行進路線；矢量地圖與衛星影像隨心切換，自動適應視野，讓管理者以地圖爲綱、以圖爲媒，更快發現異常、鎖定目標、指揮調度</li>
   <li><strong>Qwen / DeepSeek 多卡部署</strong>：支持將 Qwen、DeepSeek 等大語言模型以多卡並行方式部署上線，可按集羣靈活調度 GPU 算力，實現模型實例的彈性擴縮與負載均衡，滿足高併發推理與長上下文場景下的穩定服務能力</li>
   <li><strong>視覺大模型智能理解</strong>：集成QwenVL3視覺大模型，支持對即時視頻畫面進行深度視覺推理與語義理解，能夠對畫面內容進行智能分析與場景理解，提供更豐富的視覺認知能力，實現從像素級感知到語義級理解的跨越</li>
@@ -182,7 +180,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
     <ul style="margin: 5px 0; padding-left: 20px;">
       <li><strong>即時算法任務</strong>：用於即時畫面分析，支持 RTSP/RTMP 流處理；執行後端默認 <code>executor=cpp</code>（拉起 <strong>RUNTIME</strong>，默認推帶框 AI 流並回傳告警/心跳），亦可選 <code>python</code> 兼容路徑</li>
       <li><strong>抓拍算法任務</strong>：用於抓拍圖像分析；默認亦可走 <code>executor=cpp</code>（RUNTIME SnapScheduler / Cron），對抓拍畫面智能識別</li>
-      <li><strong>巡檢算法任務</strong>：面向多路輪巡與連接池調度；默認亦可走 <code>executor=cpp</code>（RUNTIME PatrolScheduler），以「少連接、廣覆蓋」完成批量 AI 巡檢；節點可原子模式只裝執行器承接</li>
+      <li><strong>巡檢算法任務</strong>：面向多路輪巡與連接池調度；默認亦可走 <code>executor=cpp</code>（RUNTIME PatrolScheduler），以「少連接、廣覆蓋」完成批量 AI 巡檢</li>
     </ul>
   </li>
   <li><strong>數據集標註與多格式數據集管理</strong>：內置可視化圖像標註工作臺，支持矩形框、多邊形等標註形態，以及標註類別管理與進度跟蹤；全面兼容 YOLO、COCO、ImageFolder 等主流數據集格式的靈活導入與導出，並打通雲平臺數據集通道，支持雲端數據集的一鍵導入與同步導出，貫通「數據採集—人工標註—模型訓練—部署推理」全流程閉環</li>
@@ -316,7 +314,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java擅長構建穩定可靠的平臺架構，卻不適合網路編程與AI開發；Python擅長網路編程與AI算法，卻在高路數、低時延的幀級執行上容易碰到 GIL 與進程開銷瓶頸；C++擅長高性能任務執行，卻不宜承擔平臺架構與算法編排——因此平臺把<strong>拉流解碼、推理、帶框推流與多路原畫轉發</strong>下沉到 <strong>RUNTIME</strong>，WEB/VIDEO 繼續做編排與業務面；邊緣算力盒還可<strong>原子模式</strong>只裝該執行器，中心統一研判。Go擅長高併發網路編程與協議實現，卻不宜承擔平臺管控與AI算法；TypeScript擅長複雜前端交互與類型安全的工程化界面，卻不宜承擔後端高性能計算與AI推理。EasyAIoT採用五合一語言混編架構，讓各語言各司其職，構建一個實現頗具挑戰、使用卻極其便捷的AIoT平臺。
+Java擅長構建穩定可靠的平臺架構，卻不適合網路編程與AI開發；Python擅長網路編程與AI算法，卻在高路數、低時延的幀級執行上容易碰到 GIL 與進程開銷瓶頸；C++擅長高性能任務執行，卻不宜承擔平臺架構與算法編排——因此平臺把<strong>拉流解碼、推理、帶框推流與多路原畫轉發</strong>下沉到 <strong>RUNTIME</strong>，WEB/VIDEO 繼續做編排與業務面。Go擅長高併發網路編程與協議實現，卻不宜承擔平臺管控與AI算法；TypeScript擅長複雜前端交互與類型安全的工程化界面，卻不宜承擔後端高性能計算與AI推理。EasyAIoT採用五合一語言混編架構，讓各語言各司其職，構建一個實現頗具挑戰、使用卻極其便捷的AIoT平臺。
 </p>
 
 ![EasyAIoT平臺架構.jpg](.image/iframe2.jpg)
@@ -399,7 +397,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力（原 EDGE 已移除，邊緣走 RUNTIME 原子模式）：
+EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -466,7 +464,7 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE�
     <li><strong>狀態上報</strong>：週期性心跳，即時上報 CPU、記憶體、磁盤、GPU 利用率及在運工作負載狀態</li>
     <li><strong>遠程工作負載</strong>：接收平臺下發的部署/停止指令，在節點本地拉起 AI 模型服務、算法任務、音視頻轉碼等工作負載</li>
     <li><strong>媒體節點池</strong>：支持在節點上遠程部署流媒體能力，實現設備與媒體節點綁定及流地址生成</li>
-    <li><strong>節點角色</strong>：支持算力、媒體、混合三種角色，支撐跨節點調度與彈性擴容；算力節點可走 <strong>RUNTIME 原子模式</strong>（只裝執行器），承接中心下發的即時 / 抓拍 / 巡檢與高性能轉發</li>
+    <li><strong>節點角色</strong>：支持算力、媒體、混合三種角色，支撐跨節點調度與彈性擴容；算力節點可承接中心下發的即時 / 抓拍 / 巡檢與高性能轉發</li>
     <li><strong>離線友好</strong>：支持離線依賴打包與 Agent 熱更新，適配無外網或受限網路環境下的批量節點納管</li>
   </ul>
 </td>
@@ -521,19 +519,10 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE�
     <li><strong>告警與狀態回傳中心</strong>：分析與轉發過程的告警、運行狀態匯聚回 VIDEO 統一落庫與通知，節點本地不堆業務數據</li>
     <li><strong>過載時保即時</strong>：算力吃緊時優先保障當前畫面與告警時效，避免「越忙越卡、越卡越漏」</li>
     <li><strong>GPU 優先、失敗可續跑</strong>：有加速卡則優先用，不可用時自動降級繼續跑，任務不中斷</li>
-    <li><strong>原子模式</strong>：算力盒 / 工作節點只裝執行器，不裝 VIDEO/WEB/DEVICE；中心編排、節點幹活，擴容像加算力而非加整套平臺</li>
     <li><strong>一鍵分發</strong>：WEB「業務運行時分發」或安裝腳本批量下發；中心機隨 VIDEO 安裝自動掛載本機執行器</li>
-  </ul>
-</td>
-</tr>
-<tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>RUNTIME 原子邊緣</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
-  <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>原 EDGE 模組已移除</strong>：邊緣算力統一走 <strong>RUNTIME 原子模式</strong>（只裝執行器）</li>
     <li><strong>事件面 MQTT</strong>：告警/抓拍/後處理發往 EMQX 算法總線，由 <strong>iot-sink</strong> 落庫、歸檔與通知 enrichment</li>
-    <li><strong>管理面 HTTP 心跳</strong>：任務存活仍回 VIDEO，啟停與任務表由 VIDEO 管理</li>
-    <li><strong>NFS 媒體根</strong>：告警圖、SRS 錄影統一寫入 <strong>NFS 共享媒體根</strong>（`EASYAIOT_MEDIA_ROOT`，預設 `/mnt/easyaiot-media`；無 sudo 時 fallback 至 `$HOME/easyaiot/media`）；MQTT 只帶路徑，由 <strong>iot-sink</strong> 讀盤歸檔 MinIO</li>
+    <li><strong>管理面 HTTP 心跳</strong>：任務存活回 VIDEO，啓停與任務表由 VIDEO 管理</li>
+    <li><strong>NFS 媒體根</strong>：告警圖、SRS 錄像統一寫入 <strong>NFS 共享媒體根</strong>（`EASYAIOT_MEDIA_ROOT`，默認 `/mnt/easyaiot-media`；無 sudo 時 fallback 至 `$HOME/easyaiot/media`）；MQTT 只帶路徑，由 <strong>iot-sink</strong> 讀盤歸檔 MinIO</li>
   </ul>
 </td>
 </tr>
@@ -640,7 +629,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流作業系統上部署，爲不
 構築了物聯網設備（尤其是海量攝像頭）的高效接入與管控網路。我們深度融合流媒體即時傳輸技術與前沿人工智能（AI），打造一體化服務核心。這套方案不僅打通了異構設備的互聯互通，更將高清視頻流與強大的AI解析引擎深度集成，賦予監控系統"智能之眼"——精準實現人臉識別、異常行爲分析、風險人員布控及周界入侵檢測。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-平臺支持即時、抓拍與巡檢等類型的算法任務：三類任務均可默認走 <strong>RUNTIME 高速執行層</strong>（<code>executor=cpp</code>）——以原生二進制完成長連接拉流、解碼、YOLO 推理與結果回傳，即時任務<strong>默認推帶框 AI 檢測流</strong>；抓拍按 Cron 採幀識別；巡檢多路輪巡覆蓋；推流轉發亦可走同一高性能路徑把多路原畫省資源上牆。相對 Python 兼容後端，高性能路徑更吃得住高路數與低時延。告警與心跳統一回 VIDEO；計算節點可開<strong>原子模式</strong>——只裝執行器、業務面留在中心，算力盒輕裝入網、擴容即加節點。通過算法任務管理實現靈活的抽幀與排序策略，結合模型服務集羣推理，確保毫秒級響應與高可用。同時提供全防 / 半防兩種佈防策略，按時段精準監控與告警。
+平臺支持即時、抓拍與巡檢等類型的算法任務：三類任務均可默認走 <strong>RUNTIME 高速執行層</strong>（<code>executor=cpp</code>）——以原生二進制完成長連接拉流、解碼、YOLO 推理與結果回傳，即時任務<strong>默認推帶框 AI 檢測流</strong>；抓拍按 Cron 採幀識別；巡檢多路輪巡覆蓋；推流轉發亦可走同一高性能路徑把多路原畫省資源上牆。相對 Python 兼容後端，高性能路徑更吃得住高路數與低時延。告警與心跳統一回 VIDEO。通過算法任務管理實現靈活的抽幀與排序策略，結合模型服務集羣推理，確保毫秒級響應與高可用。同時提供全防 / 半防兩種佈防策略，按時段精準監控與告警。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
 在物聯網設備管理方面，EasyAIoT提供完整的設備生命週期管理能力，支持多種物聯網與工業協議（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA），實現設備的快速接入、安全認證、即時監控和智能控制。通過規則引擎實現設備數據的智能流轉與處理，結合AI能力對設備數據進行深度分析，實現從設備接入、數據採集、智能分析到決策執行的全流程自動化，真正實現萬物互聯、萬物智控。
