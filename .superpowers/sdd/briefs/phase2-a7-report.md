@@ -3,7 +3,7 @@
 **Status:** ⛔ (缺 Milvus/InsightFace)  
 **Pack:** P2-A7  
 **Date:** 2026-08-11  
-**Commit:** (pending) — `feat(video-java): phase2 A7 matching kafka path parity`  
+**Commit:** `f63d46c` — `feat(video-java): phase2 A7 matching kafka path parity`  
 **Evidence:** `logs/phase2-a7-matching.json`  
 **nested_subagents:** none
 

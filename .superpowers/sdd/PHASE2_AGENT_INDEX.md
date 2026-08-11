@@ -10,7 +10,7 @@ All Phase 2 subagents **must** read prior pack reports before starting, and **mu
 | A4 Media MinIO | PASS | [phase2-a4-brief.md](./briefs/phase2-a4-brief.md) | [phase2-a4-report.md](./briefs/phase2-a4-report.md) | `logs/phase2-a4-media-minio.json` | `2be5393` |
 | A5 Camera | PASS | [phase2-a5-brief.md](./briefs/phase2-a5-brief.md) | [phase2-a5-report.md](./briefs/phase2-a5-report.md) | `logs/phase2-a5-camera.json` | `af3f3bd` |
 | A6 Post-process | ⛔缺 sink | [phase2-a6-brief.md](./briefs/phase2-a6-brief.md) | [phase2-a6-report.md](./briefs/phase2-a6-report.md) | `logs/phase2-a6-postprocess.json` | `f7c3276` |
-| A7 Matching | ⛔缺 Milvus | [phase2-a7-brief.md](./briefs/phase2-a7-brief.md) | [phase2-a7-report.md](./briefs/phase2-a7-report.md) | `logs/phase2-a7-matching.json` | (pending) |
+| A7 Matching | ⛔缺 Milvus | [phase2-a7-brief.md](./briefs/phase2-a7-brief.md) | [phase2-a7-report.md](./briefs/phase2-a7-report.md) | `logs/phase2-a7-matching.json` | `f63d46c` |
 
 **Phase 2 A-series closed** (2026-08-11). A1–A5 PASS; A6 ⛔缺 sink; A7 ⛔缺 Milvus/InsightFace. Python Oracle retained; no COMPLETE.
 
