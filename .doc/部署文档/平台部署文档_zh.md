@@ -276,7 +276,7 @@ PANEL 安装包编译：[COMPILE/README.md](../../COMPILE/README.md)。
 - macOS：Homebrew bash 4+（系统自带 bash 3.2 无法运行镜像拉取脚本）
 - Windows：Git for Windows（提供 bash 4+）或 WSL；推荐启用 Docker Desktop 的 WSL2 后端
 - **国内镜像加速**：桌面脚本可自动写入用户级 `~/.docker/daemon.json`（与 Linux 同源 `DOCKER_MIRROR`）；**FUXA** 走专用 `pull_fuxa.sh`（1ms 优先）
-- **引擎内存**：按形态自动调配 — mini **4GB** / standard **16GB** / full **24GB**（主机建议分别 ≥8 / ≥24 / ≥32GB）
+- **引擎内存**：按形态自动调配 — mini **8GB** / standard **16GB** / full **24GB**（主机建议分别 ≥8 / ≥24 / ≥32GB）
 
 `install` / `pull` / `update` / `start` 等会在部署前**自动做前置检测**：汇总缺少的组件并打印安装指引，然后**中止**。也可：
 
@@ -378,7 +378,7 @@ EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_windows.sh install
 
 | 选项 | 名称 | Linux 主机建议 | 桌面 Docker 引擎目标 | 适用场景 |
 |:----:|------|----------------|----------------------|----------|
-| 1 | **mini** | ≥ 4 GB | 4 GB | 边缘节点、PoC 验证 |
+| 1 | **mini** | ≥ 8 GB | 8 GB | 边缘节点、PoC 验证 |
 | 2 | **standard** | ≥ 16 GB | 16 GB | 常规生产 / 演示 |
 | 3 | **full**（默认） | ≥ 20 GB | 24 GB（主机建议 ≥32 GB） | 完整功能，含 APP H5 / FUXA |
 
@@ -388,6 +388,10 @@ export EASYAIOT_DEPLOY_PROFILE=full && sudo .../install_linux.sh install  # 非�
 ```
 
 各规格服务差异见 [部署最佳实践 - 部署规格选型](./部署最佳实践.md#部署规格选型)。
+
+### NFS 共享媒体存储
+
+告警图、SRS 录像等写入 **NFS 媒体根**（`EASYAIOT_MEDIA_ROOT`，默认 `/mnt/easyaiot-media`；无 sudo 时 `$HOME/easyaiot/media`）。安装脚本会自动准备 NFS 栈并同步到各模块 `.env`；容器内统一挂载 `/mnt/easyaiot-media`。详见 [部署最佳实践 - NFS 共享媒体存储](./部署最佳实践.md#nfs-共享媒体存储)。
 
 ---
 

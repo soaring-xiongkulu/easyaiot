@@ -27,7 +27,7 @@ On Windows desktop, as on macOS, deploy **only via remote pre-built images**. Do
 
 | Profile | Host recommendation | Docker / WSL2 engine target memory |
 |---------|---------------------|------------------------------------|
-| mini | ≥ 8 GB | **4 GB** |
+| mini | ≥ 8 GB | **8 GB** |
 | standard | ≥ 24 GB | **16 GB** |
 | full | ≥ 32 GB | **24 GB** |
 
@@ -47,7 +47,7 @@ Recommended first-time flow:
 .\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
 .\.scripts\docker\install_windows.ps1 check
 .\.scripts\docker\install_windows.ps1 mirrors     # China registry-mirrors (aligned with Linux)
-.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
+.\.scripts\docker\install_windows.ps1 resources   # mini 8G / standard 16G / full 24G
 ```
 
 Verify:

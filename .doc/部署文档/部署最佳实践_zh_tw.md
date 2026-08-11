@@ -185,7 +185,7 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 
 | 規格 | 別名 | 建議記憶體 | 適用場景 |
 |------|------|----------|----------|
-| **mini** | `1` / `4g` | ≥ 4 GB | 邊緣節點、PoC |
+| **mini** | `1` / `4g` | ≥ 8 GB | 邊緣節點、PoC |
 | **standard** | `2` / `16g` | ≥ 16 GB | 常規生產 |
 | **full** | `3`（預設） | ≥ 20 GB | 完整功能 + APP H5 |
 
@@ -197,14 +197,16 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 
 **mini**
 
-- 業務：`iot-system`、VIDEO、AI、WEB
-- 中介軟體：PostgreSQL、Redis、SRS
-- 不啟動：Nacos、Gateway、Kafka、iot-sink、MinIO、Milvus、ZLMediaKit、Node-RED、TDengine、EMQX 及多數 DEVICE 子模組
-- API 路由：nginx 將 `/admin-api`、`/dev-api` 直連 `iot-system:48099`
+- 業務：`iot-system`、`iot-gateway`、`iot-sink`、`iot-infra`、VIDEO、AI、WEB
+- 中介軟體：Nacos、PostgreSQL、Redis、Kafka、MinIO、SRS、EMQX
+- 不啟動：`iot-device`、`iot-dataset`、`iot-node`、`iot-visualize`、`iot-file`、`iot-message`、`iot-gb28181`、`iot-tdengine`、Milvus、ZLMediaKit、Node-RED、FUXA、TDengine、APP / VISUALIZE / TRANSFORM 等全量模組
+- 事件面：與 standard/full 一致 — MQTT → Gateway → iot-sink 落庫與歸檔
+- 媒體：安裝時自動準備 NFS 媒體棧（`EASYAIOT_MEDIA_ROOT`）
+- API 路由：經 Gateway（48080）統一入口
 
 **standard**
 
-- 不啟動：TDengine、Node-RED、`iot-device`、`iot-tdengine`（含 EMQX）
+- 不啟動：TDengine、Node-RED、`iot-device`、`iot-tdengine`
 - 其餘全部啟動
 
 **full**
@@ -216,6 +218,25 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 ```bash
 .scripts/docker/analyze_deploy_memory.sh
 .scripts/docker/analyze_deploy_memory.sh --all-profiles
+```
+
+### NFS 共享媒體儲存
+
+告警截圖、SRS 錄影等**統一寫入 NFS 媒體根**（環境變數 `EASYAIOT_MEDIA_ROOT`）。單機部署由本機 export；叢集由 iot-node 分配 NFS 掛載；桌面端以本地目錄 bind。
+
+| 項 | 說明 |
+|----|------|
+| 標準路徑 | `/mnt/easyaiot-media`（`alert_images/`、`playbacks/` 等） |
+| 無 sudo | 自動 fallback 至 `$HOME/easyaiot/media` |
+| 容器內 | 固定掛載 `/mnt/easyaiot-media` |
+| 錄影歸檔 | SRS `on_dvr` → iot-sink → MinIO → playback URL |
+| 告警 | RUNTIME/VIDEO → MQTT → iot-sink 讀 NFS 同路徑 → MinIO → DB |
+
+一鍵安裝會呼叫 `.scripts/media-cluster/nfs/ensure_nfs_media_stack.sh`；鏈路驗收：
+
+```bash
+.scripts/docker/verify_dvr_nfs_chain.sh
+.scripts/docker/verify_alert_mqtt_chain.sh
 ```
 
 ---
@@ -595,7 +616,7 @@ cd WEB && ./install_linux.sh build
 | `.scripts/docker/logs/` | 安裝腳本日誌；`merged_logs_*`、`disk_usage_*` 分析報告 |
 | `.scripts/docker/standalone-logs/` | Nacos 等中介軟體落盤 |
 | `.build-cache/device/logs/` | DEVICE 微服務 Spring 日誌 |
-| `~/easyaiot/data/srs.log` | SRS 串流媒體 |
+| `${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/srs.log` | SRS 串流媒體（媒體根由 `deploy_profile` 解析） |
 | `WEB/logs/runtime.log` | WEB 執行日誌 |
 | `docker logs <容器名>` | 容器 stdout（AI/VIDEO 常用） |
 

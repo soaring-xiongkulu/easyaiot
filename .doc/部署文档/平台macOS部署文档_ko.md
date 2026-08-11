@@ -53,7 +53,7 @@ Homebrew bash 4+ 사용을 권장합니다(시스템 `/bin/bash`는 3.2):
 
 | 사양 | 호스트 권장 | Docker 엔진 목표 메모리 | 설명 |
 |------|-------------|------------------------|------|
-| mini | ≥ 8 GB | **4 GB** | 엣지 / PoC |
+| mini | ≥ 8 GB | **8 GB** | 엣지 / PoC |
 | standard | ≥ 24 GB | **16 GB** | 일상 개발·데모 |
 | full | ≥ 32 GB (48 GB+ 권장) | **24 GB** | 전체 기능 |
 
@@ -80,7 +80,7 @@ Homebrew bash 4+ 사용을 권장합니다(시스템 `/bin/bash`는 3.2):
 bash .scripts/docker/install_mac.sh bootstrap   # Homebrew bash + Docker Desktop(실패 시 Colima) + 미러/리소스
 bash .scripts/docker/install_mac.sh check       # 사전 환경 자가 점검
 bash .scripts/docker/install_mac.sh mirrors     # 국내 registry-mirrors(Linux와 동일)
-bash .scripts/docker/install_mac.sh resources   # 형태별 엔진 메모리: mini 4G / standard 16G / full 24G
+bash .scripts/docker/install_mac.sh resources   # 형태별 엔진 메모리: mini 8G / standard 16G / full 24G
 ```
 
 `install` / `pull` / `update` / `start`는 실제 배포 전 **자동으로 사전 검사**하며, 미충족 시 설치 안내 후 중단합니다.
@@ -218,7 +218,7 @@ bash .scripts/docker/install_mac.sh update
 | iot-tdengine Restarting | `tdengine-server` healthy 확인 후 `start` |
 | 미디어 주소 / GB28181 이상 | `export HOST_IP=<로컬 LAN IP>` 후 `start` / `install` 재실행 |
 | 실수로 `build` | 데스크톱은 거부함; `pull` + `install` 사용 |
-| SRS 등 데이터 디렉터리 | 스크립트가 `~/easyaiot/data`를 호스트 데이터 폴백으로 사용할 수 있음 |
+| SRS 등 데이터 디렉터리 | 미디어 루트 `EASYAIOT_MEDIA_ROOT` (기본 `/mnt/easyaiot-media`; 데스크톱 fallback `$HOME/easyaiot/media`) |
 | Colima와 Desktop 혼용 | `docker context use desktop-linux`(또는 `colima`); 배포 전 엔진 하나만 유지 |
 
 프로덕션 및 전체 로컬 빌드는 Linux 사용: `.scripts/docker/install_linux.sh`.

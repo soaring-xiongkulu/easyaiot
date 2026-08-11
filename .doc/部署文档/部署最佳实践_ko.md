@@ -187,7 +187,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 | 프로필 | 별칭 | 권장 RAM | 사용 사례 |
 |--------|------|----------|-----------|
-| **mini** | `1` / `4g` | ≥ 4 GB | 엣지 노드, PoC |
+| **mini** | `1` / `4g` | ≥ 8 GB | 엣지 노드, PoC |
 | **standard** | `2` / `16g` | ≥ 16 GB | 일반 프로덕션 |
 | **full** | `3` (기본값) | ≥ 20 GB | 전체 기능 + APP H5 |
 
@@ -199,14 +199,16 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 **mini**
 
-- 비즈니스: `iot-system`, VIDEO, AI, WEB
-- 미들웨어: PostgreSQL, Redis, SRS
-- 미시작: Nacos, Gateway, Kafka, iot-sink, MinIO, Milvus, ZLMediaKit, Node-RED, TDengine, EMQX 및 대부분의 DEVICE 하위 모듈
-- API 라우팅: nginx가 `/admin-api` 및 `/dev-api`를 `iot-system:48099`로 프록시
+- 비즈니스: `iot-system`, `iot-gateway`, `iot-sink`, `iot-infra`, VIDEO, AI, WEB
+- 미들웨어: Nacos, PostgreSQL, Redis, Kafka, MinIO, SRS, EMQX
+- 미시작: `iot-device`, `iot-dataset`, `iot-node`, `iot-visualize`, `iot-file`, `iot-message`, `iot-gb28181`, `iot-tdengine`, Milvus, ZLMediaKit, Node-RED, FUXA, TDengine, APP / VISUALIZE / TRANSFORM 등
+- 이벤트 평면: standard/full과 동일 — MQTT → Gateway → iot-sink
+- 미디어: 설치 시 NFS 미디어 스택 자동 준비 (`EASYAIOT_MEDIA_ROOT`)
+- API 라우팅: Gateway(48080) 통합 진입
 
 **standard**
 
-- 미시작: TDengine, Node-RED, `iot-device`, `iot-tdengine`（EMQX 포함）
+- 미시작: TDengine, Node-RED, `iot-device`, `iot-tdengine`
 - 나머지 모두 시작
 
 **full**
@@ -588,7 +590,7 @@ cd WEB && ./install_linux.sh build
 | `.scripts/docker/logs/` | 설치 스크립트 로그; `merged_logs_*`, `disk_usage_*` 보고서 |
 | `.scripts/docker/standalone-logs/` | Nacos 및 기타 미들웨어 디스크 로그 |
 | `.build-cache/device/logs/` | DEVICE 마이크로서비스 Spring 로그 |
-| `~/easyaiot/data/srs.log` | SRS 스트리밍 |
+| `${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/srs.log` | SRS 스트리밍 (`deploy_profile`이 미디어 루트 해석) |
 | `WEB/logs/runtime.log` | WEB 런타임 로그 |
 | `docker logs <container>` | 컨테이너 stdout (AI/VIDEO에서 일반적) |
 

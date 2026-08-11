@@ -53,7 +53,7 @@ macOS использует единую точку входа:
 
 | Профиль | Рекомендация для хоста | Целевая память движка Docker | Примечание |
 |---------|------------------------|------------------------------|------------|
-| mini | ≥ 8 ГБ | **4 ГБ** | Edge / PoC |
+| mini | ≥ 8 ГБ | **8 ГБ** | Edge / PoC |
 | standard | ≥ 24 ГБ | **16 ГБ** | Ежедневная разработка и демо |
 | full | ≥ 32 ГБ (рекомендуется 48 ГБ+) | **24 ГБ** | Полный функционал |
 
@@ -80,7 +80,7 @@ macOS использует единую точку входа:
 bash .scripts/docker/install_mac.sh bootstrap   # Homebrew bash + Docker Desktop (запасной Colima) + mirrors/ресурсы
 bash .scripts/docker/install_mac.sh check       # Самопроверка окружения
 bash .scripts/docker/install_mac.sh mirrors     # Китайские registry-mirrors (как на Linux)
-bash .scripts/docker/install_mac.sh resources   # Память движка по профилю: mini 4G / standard 16G / full 24G
+bash .scripts/docker/install_mac.sh resources   # Память движка по профилю: mini 8G / standard 16G / full 24G
 ```
 
 `install` / `pull` / `update` / `start` **автоматически проверяют** предварительные условия; при несоответствии выводят инструкцию по установке и прерываются.
@@ -218,7 +218,7 @@ bash .scripts/docker/install_mac.sh update
 | iot-tdengine Restarting | Сначала дождитесь healthy у `tdengine-server`, затем `start` |
 | Проблемы медиа / GB28181 | `export HOST_IP=<LAN IP>` и снова `start` / `install` |
 | Случайный `build` | Десктоп отклонит; используйте `pull` + `install` |
-| Каталоги данных SRS | Скрипт может использовать `~/easyaiot/data` как запасной каталог на хосте |
+| Каталоги данных SRS | Корень медиа `EASYAIOT_MEDIA_ROOT` (по умолчанию `/mnt/easyaiot-media`; fallback `$HOME/easyaiot/media`) |
 | Смешение Colima и Desktop | `docker context use desktop-linux` (или `colima`); перед развёртыванием оставьте один движок |
 
 Для production и полной локальной сборки используйте Linux: `.scripts/docker/install_linux.sh`.

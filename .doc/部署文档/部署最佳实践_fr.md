@@ -187,7 +187,7 @@ Enregistré dans `.scripts/docker/.deploy_profile`, réutilisé par `start` / `s
 
 | Profil | Alias | RAM recommandée | Cas d'usage |
 |--------|-------|-----------------|-------------|
-| **mini** | `1` / `4g` | ≥ 4 Go | Nœuds edge, PoC |
+| **mini** | `1` / `4g` | ≥ 8 Go | Nœuds edge, PoC |
 | **standard** | `2` / `16g` | ≥ 16 Go | Production standard |
 | **full** | `3` (par défaut) | ≥ 20 Go | Fonctionnalités complètes + APP H5 |
 
@@ -199,14 +199,16 @@ Enregistré dans `.scripts/docker/.deploy_profile`, réutilisé par `start` / `s
 
 **mini**
 
-- Métier : `iot-system`, VIDEO, AI, WEB
-- Middleware : PostgreSQL, Redis, SRS
-- Non démarrés : Nacos, Gateway, Kafka, iot-sink, MinIO, Milvus, ZLMediaKit, Node-RED, TDengine, EMQX, et la plupart des sous-modules DEVICE
-- Routage API : nginx proxy `/admin-api` et `/dev-api` vers `iot-system:48099`
+- Métier : `iot-system`, `iot-gateway`, `iot-sink`, `iot-infra`, VIDEO, AI, WEB
+- Middleware : Nacos, PostgreSQL, Redis, Kafka, MinIO, SRS, EMQX
+- Non démarrés : `iot-device`, `iot-dataset`, `iot-node`, `iot-visualize`, `iot-file`, `iot-message`, `iot-gb28181`, `iot-tdengine`, Milvus, ZLMediaKit, Node-RED, FUXA, TDengine, APP / VISUALIZE / TRANSFORM, etc.
+- Plan événements : identique à standard/full — MQTT → Gateway → iot-sink
+- Média : pile NFS préparée à l'installation (`EASYAIOT_MEDIA_ROOT`)
+- Routage API : entrée unifiée via Gateway (48080)
 
 **standard**
 
-- Non démarrés : TDengine, Node-RED, `iot-device`, `iot-tdengine` (inclut EMQX)
+- Non démarrés : TDengine, Node-RED, `iot-device`, `iot-tdengine`
 - Tous les autres démarrés
 
 **full**
@@ -588,7 +590,7 @@ cd WEB && ./install_linux.sh build
 | `.scripts/docker/logs/` | Journaux du script d'installation ; rapports `merged_logs_*`, `disk_usage_*` |
 | `.scripts/docker/standalone-logs/` | Journaux sur disque de Nacos et autres middleware |
 | `.build-cache/device/logs/` | Journaux Spring des microservices DEVICE |
-| `~/easyaiot/data/srs.log` | Streaming SRS |
+| `${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/srs.log` | Streaming SRS (racine média résolue par `deploy_profile`) |
 | `WEB/logs/runtime.log` | Journal d'exécution WEB |
 | `docker logs <container>` | stdout du conteneur (courant pour AI/VIDEO) |
 

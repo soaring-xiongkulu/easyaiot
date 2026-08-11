@@ -27,7 +27,7 @@
 
 | Профиль | Рекомендация для хоста | Целевая память Docker / WSL2 |
 |---------|------------------------|------------------------------|
-| mini | ≥ 8 ГБ | **4 ГБ** |
+| mini | ≥ 8 ГБ | **8 ГБ** |
 | standard | ≥ 24 ГБ | **16 ГБ** |
 | full | ≥ 32 ГБ | **24 ГБ** |
 
@@ -47,7 +47,7 @@
 .\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
 .\.scripts\docker\install_windows.ps1 check
 .\.scripts\docker\install_windows.ps1 mirrors     # китайские registry-mirrors (как в Linux)
-.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
+.\.scripts\docker\install_windows.ps1 resources   # mini 8G / standard 16G / full 24G
 ```
 
 Проверка:

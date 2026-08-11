@@ -187,7 +187,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 | Профиль | Псевдонимы | Рекомендуемая RAM | Сценарий |
 |---------|------------|-------------------|----------|
-| **mini** | `1` / `4g` | ≥ 4 ГБ | Edge-узлы, PoC |
+| **mini** | `1` / `4g` | ≥ 8 ГБ | Edge-узлы, PoC |
 | **standard** | `2` / `16g` | ≥ 16 ГБ | Обычный production |
 | **full** | `3` (по умолчанию) | ≥ 20 ГБ | Полный функционал + APP H5 |
 
@@ -199,14 +199,16 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 
 **mini**
 
-- Бизнес: `iot-system`, VIDEO, AI, WEB
-- Middleware: PostgreSQL, Redis, SRS
-- Не запускаются: Nacos, Gateway, Kafka, iot-sink, MinIO, Milvus, ZLMediaKit, Node-RED, TDengine, EMQX и большинство подмодулей DEVICE
-- Маршрутизация API: nginx проксирует `/admin-api` и `/dev-api` на `iot-system:48099`
+- Бизнес: `iot-system`, `iot-gateway`, `iot-sink`, `iot-infra`, VIDEO, AI, WEB
+- Middleware: Nacos, PostgreSQL, Redis, Kafka, MinIO, SRS, EMQX
+- Не запускаются: `iot-device`, `iot-dataset`, `iot-node`, `iot-visualize`, `iot-file`, `iot-message`, `iot-gb28181`, `iot-tdengine`, Milvus, ZLMediaKit, Node-RED, FUXA, TDengine, APP / VISUALIZE / TRANSFORM и др.
+- Событийный контур: как standard/full — MQTT → Gateway → iot-sink
+- Медиа: NFS-стек готовится при установке (`EASYAIOT_MEDIA_ROOT`)
+- Маршрутизация API: единая точка входа Gateway (48080)
 
 **standard**
 
-- Не запускаются: TDengine, Node-RED, `iot-device`, `iot-tdengine` (включая EMQX)
+- Не запускаются: TDengine, Node-RED, `iot-device`, `iot-tdengine`
 - Все остальные запускаются
 
 **full**
@@ -588,7 +590,7 @@ cd WEB && ./install_linux.sh build
 | `.scripts/docker/logs/` | Журналы скрипта установки; отчеты `merged_logs_*`, `disk_usage_*` |
 | `.scripts/docker/standalone-logs/` | Журналы на диске Nacos и другого middleware |
 | `.build-cache/device/logs/` | Spring-журналы микросервисов DEVICE |
-| `~/easyaiot/data/srs.log` | Стриминг SRS |
+| `${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/srs.log` | Стриминг SRS (корень медиа через `deploy_profile`) |
 | `WEB/logs/runtime.log` | Журнал выполнения WEB |
 | `docker logs <container>` | stdout контейнера (типично для AI/VIDEO) |
 

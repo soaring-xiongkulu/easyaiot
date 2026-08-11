@@ -203,7 +203,7 @@ Sélectionné de manière interactive lors du premier `install`, enregistré dan
 
 | Option | Nom | RAM recommandée | Cas d'usage |
 |:------:|------|-----------------|-------------|
-| 1 | **mini** | ≥ 4 Go | Nœuds edge, PoC |
+| 1 | **mini** | ≥ 8 Go | Nœuds edge, PoC |
 | 2 | **standard** | ≥ 16 Go | Production courante |
 | 3 | **full** (par défaut) | ≥ 20 Go | Fonctionnalités complètes + APP H5 |
 

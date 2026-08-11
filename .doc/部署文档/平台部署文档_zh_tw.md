@@ -230,7 +230,7 @@ bash .scripts/docker/install_windows.sh install
 
 | 選項 | 名稱 | 建議記憶體 | 適用場景 |
 |:----:|------|----------|----------|
-| 1 | **mini** | ≥ 4 GB | 邊緣節點、PoC 驗證 |
+| 1 | **mini** | ≥ 8 GB | 邊緣節點、PoC 驗證 |
 | 2 | **standard** | ≥ 16 GB | 常規生產 |
 | 3 | **full**（預設） | ≥ 20 GB | 完整功能，含 APP H5 |
 

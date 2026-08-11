@@ -187,7 +187,7 @@ Saved to `.scripts/docker/.deploy_profile`, reused by `start` / `stop` / `update
 
 | Profile | Aliases | Recommended RAM | Use case |
 |---------|---------|-----------------|----------|
-| **mini** | `1` / `4g` | ≥ 4 GB | Edge nodes, PoC |
+| **mini** | `1` / `4g` | ≥ 8 GB | Edge nodes, PoC |
 | **standard** | `2` / `16g` | ≥ 16 GB | Regular production |
 | **full** | `3` (default) | ≥ 20 GB | Full features + APP H5 |
 
@@ -199,14 +199,16 @@ Saved to `.scripts/docker/.deploy_profile`, reused by `start` / `stop` / `update
 
 **mini**
 
-- Business: `iot-system`, VIDEO, AI, WEB
-- Middleware: PostgreSQL, Redis, SRS
-- Not started: Nacos, Gateway, Kafka, iot-sink, MinIO, Milvus, ZLMediaKit, Node-RED, TDengine, EMQX, and most DEVICE sub-modules
-- API routing: nginx proxies `/admin-api` and `/dev-api` to `iot-system:48099`
+- Business: `iot-system`, `iot-gateway`, `iot-sink`, `iot-infra`, VIDEO, AI, WEB
+- Middleware: Nacos, PostgreSQL, Redis, Kafka, MinIO, SRS, EMQX
+- Not started: `iot-device`, `iot-dataset`, `iot-node`, `iot-visualize`, `iot-file`, `iot-message`, `iot-gb28181`, `iot-tdengine`, Milvus, ZLMediaKit, Node-RED, FUXA, TDengine, APP / VISUALIZE / TRANSFORM, etc.
+- Event plane: same as standard/full — MQTT → Gateway → iot-sink for ingest and archive
+- Media: NFS media stack auto-prepared on install (`EASYAIOT_MEDIA_ROOT`)
+- API routing: unified entry via Gateway (48080)
 
 **standard**
 
-- Not started: TDengine, Node-RED, `iot-device`, `iot-tdengine` (includes EMQX)
+- Not started: TDengine, Node-RED, `iot-device`, `iot-tdengine`
 - All others started
 
 **full**
@@ -218,6 +220,25 @@ Memory analysis:
 ```bash
 .scripts/docker/analyze_deploy_memory.sh
 .scripts/docker/analyze_deploy_memory.sh --all-profiles
+```
+
+### NFS shared media storage
+
+Alert images and SRS DVR files are written to a **shared NFS media root** (`EASYAIOT_MEDIA_ROOT`). Single-node installs export locally; clusters use iot-node NFS assignment; desktop installs bind a local directory.
+
+| Item | Description |
+|------|-------------|
+| Default path | `/mnt/easyaiot-media` (`alert_images/`, `playbacks/`, etc.) |
+| No sudo | Falls back to `$HOME/easyaiot/media` |
+| In containers | Always mounted at `/mnt/easyaiot-media` |
+| DVR archive | SRS `on_dvr` → iot-sink → MinIO → playback URL |
+| Alerts | RUNTIME/VIDEO → MQTT → iot-sink reads NFS path → MinIO → DB |
+
+Install scripts call `.scripts/media-cluster/nfs/ensure_nfs_media_stack.sh`. Verification:
+
+```bash
+.scripts/docker/verify_dvr_nfs_chain.sh
+.scripts/docker/verify_alert_mqtt_chain.sh
 ```
 
 ---
@@ -611,7 +632,7 @@ cd WEB && ./install_linux.sh build
 | `.scripts/docker/logs/` | Install script logs; `merged_logs_*`, `disk_usage_*` reports |
 | `.scripts/docker/standalone-logs/` | Nacos and other middleware on-disk logs |
 | `.build-cache/device/logs/` | DEVICE microservice Spring logs |
-| `~/easyaiot/data/srs.log` | SRS streaming |
+| `${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/srs.log` | SRS streaming (media root resolved by `deploy_profile`) |
 | `WEB/logs/runtime.log` | WEB runtime log |
 | `docker logs <container>` | Container stdout (common for AI/VIDEO) |
 

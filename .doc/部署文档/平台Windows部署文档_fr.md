@@ -27,7 +27,7 @@ Sous Windows bureau, comme sous macOS, déployez **uniquement via des images pr�
 
 | Profil | Recommandation hôte | Mémoire cible moteur Docker / WSL2 |
 |--------|---------------------|-------------------------------------|
-| mini | ≥ 8 Go | **4 Go** |
+| mini | ≥ 8 Go | **8 Go** |
 | standard | ≥ 24 Go | **16 Go** |
 | full | ≥ 32 Go | **24 Go** |
 
@@ -47,7 +47,7 @@ Flux recommandé pour la première fois :
 .\.scripts\docker\install_windows.ps1 bootstrap   # WSL2 + Docker Desktop + mirrors + resources
 .\.scripts\docker\install_windows.ps1 check
 .\.scripts\docker\install_windows.ps1 mirrors     # registry-mirrors Chine (aligné Linux)
-.\.scripts\docker\install_windows.ps1 resources   # mini 4G / standard 16G / full 24G
+.\.scripts\docker\install_windows.ps1 resources   # mini 8G / standard 16G / full 24G
 ```
 
 Vérification :

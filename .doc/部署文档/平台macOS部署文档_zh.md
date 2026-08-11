@@ -53,7 +53,7 @@ macOS 使用统一入口：
 
 | 规格 | 主机建议 | Docker 引擎目标内存 | 说明 |
 |------|----------|---------------------|------|
-| mini | ≥ 8 GB | **4 GB** | 边缘 / PoC |
+| mini | ≥ 8 GB | **8 GB** | 边缘 / PoC |
 | standard | ≥ 24 GB | **16 GB** | 日常开发演示 |
 | full | ≥ 32 GB（推荐 48 GB+） | **24 GB** | 完整功能 |
 
@@ -80,7 +80,7 @@ macOS 使用统一入口：
 bash .scripts/docker/install_mac.sh bootstrap   # Homebrew bash + Docker Desktop（失败可回退 Colima）+ 镜像源/资源
 bash .scripts/docker/install_mac.sh check       # 前置环境自检
 bash .scripts/docker/install_mac.sh mirrors     # 国内 registry-mirrors（对齐 Linux）
-bash .scripts/docker/install_mac.sh resources   # 按形态调引擎内存：mini 4G / standard 16G / full 24G
+bash .scripts/docker/install_mac.sh resources   # 按形态调引擎内存：mini 8G / standard 16G / full 24G
 ```
 
 `install` / `pull` / `update` / `start` 会在真正部署前**自动做前置检测**；不满足则打印安装指引并中止。
@@ -218,7 +218,7 @@ bash .scripts/docker/install_mac.sh update
 | iot-tdengine Restarting | 先保证 `tdengine-server` healthy，再 `start` |
 | 媒体地址 / GB28181 异常 | `export HOST_IP=<本机局域网IP>` 后重新 `start` / `install` |
 | 误执行 `build` | 桌面端会直接拒绝；请改用 `pull` + `install` |
-| SRS 等数据目录 | 脚本可能使用 `~/easyaiot/data` 作为宿主机数据兜底目录 |
+| SRS 等数据目录 | 媒体根 `EASYAIOT_MEDIA_ROOT`（默认 `/mnt/easyaiot-media`；桌面端 fallback `$HOME/easyaiot/media`） |
 | Colima 与 Desktop 混用 | `docker context use desktop-linux`（或 `colima`）；部署前只保留一个引擎 |
 
 生产与完整本地构建请使用 Linux：`.scripts/docker/install_linux.sh`。

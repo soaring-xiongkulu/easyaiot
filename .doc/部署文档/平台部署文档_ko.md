@@ -202,7 +202,7 @@ bash .scripts/docker/install_windows.sh install
 
 | 옵션 | 이름 | 권장 RAM | 사용 사례 |
 |:------:|------|-----------------|----------|
-| 1 | **mini** | ≥ 4 GB | 엣지 노드, PoC |
+| 1 | **mini** | ≥ 8 GB | 엣지 노드, PoC |
 | 2 | **standard** | ≥ 16 GB | 일반 프로덕션 |
 | 3 | **full** (기본값) | ≥ 20 GB | 전체 기능 + APP H5 |
 

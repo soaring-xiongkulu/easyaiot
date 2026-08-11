@@ -53,7 +53,7 @@ The script will:
 
 | Profile | Host recommendation | Docker engine target memory | Notes |
 |---------|---------------------|-----------------------------|-------|
-| mini | ≥ 8 GB | **4 GB** | Edge / PoC |
+| mini | ≥ 8 GB | **8 GB** | Edge / PoC |
 | standard | ≥ 24 GB | **16 GB** | Daily dev & demos |
 | full | ≥ 32 GB (48 GB+ recommended) | **24 GB** | Full features |
 
@@ -80,7 +80,7 @@ Install deps and self-check before the first deploy (prints a checklist; install
 bash .scripts/docker/install_mac.sh bootstrap   # Homebrew bash + Docker Desktop (fallback Colima) + mirrors/resources
 bash .scripts/docker/install_mac.sh check       # Prerequisite self-check
 bash .scripts/docker/install_mac.sh mirrors     # China registry-mirrors (aligned with Linux)
-bash .scripts/docker/install_mac.sh resources   # Engine memory by profile: mini 4G / standard 16G / full 24G
+bash .scripts/docker/install_mac.sh resources   # Engine memory by profile: mini 8G / standard 16G / full 24G
 ```
 
 `install` / `pull` / `update` / `start` **auto-run prerequisite checks** before real deploy; if unmet, they print install guidance and abort.
@@ -218,7 +218,7 @@ Log directory: `.scripts/docker/logs/install_mac_*.log`
 | iot-tdengine Restarting | Ensure `tdengine-server` is healthy, then `start` |
 | Media / GB28181 issues | `export HOST_IP=<LAN IP>` then `start` / `install` again |
 | Accidental `build` | Desktop rejects it; use `pull` + `install` |
-| SRS data dirs | Script may use `~/easyaiot/data` as host data fallback |
+| SRS data dirs | Media root `EASYAIOT_MEDIA_ROOT` (default `/mnt/easyaiot-media`; desktop fallback `$HOME/easyaiot/media`) |
 | Mixing Colima & Desktop | `docker context use desktop-linux` (or `colima`); keep one engine before deploy |
 
 For production and full local builds, use Linux: `.scripts/docker/install_linux.sh`.
