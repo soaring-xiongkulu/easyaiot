@@ -3,7 +3,7 @@
 **Status:** PASS  
 **Pack:** P2-A3  
 **Date:** 2026-08-11  
-**Commit:** `27e84e2` — `feat(video-java): phase2 A3 forward ffmpeg parity`  
+**Commit:** `50ce091` — `feat(video-java): phase2 A3 forward ffmpeg parity`  
 **Evidence:** `logs/phase2-a3-forward.json`
 
 ## Prior packs
