@@ -1,6 +1,9 @@
 package com.basiclab.iot.video.process;
 
+import com.basiclab.iot.video.config.VideoProperties;
+import com.basiclab.iot.video.support.RuntimeLibraryPath;
 import javax.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +18,12 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AlgorithmRuntimeSupervisor {
 
     private static final long RESTART_BACKOFF_MS = 5000L;
 
+    private final VideoProperties videoProperties;
     private final Map<Long, ManagedProcess> processes = new ConcurrentHashMap<>();
     private final Map<Long, Object> taskLocks = new ConcurrentHashMap<>();
     private final ExecutorService logPump = SupervisorExecutors.newDaemonPool("video-runtime-log-pump-");
@@ -50,6 +55,7 @@ public class AlgorithmRuntimeSupervisor {
         }
         pb.redirectErrorStream(true);
         pb.redirectOutput(stdoutLog.toFile());
+        applyRuntimeLibraryPath(pb, runtimeBin);
         Process process = pb.start();
         ManagedProcess mp = new ManagedProcess(process, iniPath, runtimeBin, logDir);
         processes.put(taskId, mp);
@@ -104,6 +110,40 @@ public class AlgorithmRuntimeSupervisor {
         ManagedProcess mp = processes.get(taskId);
         if (mp != null && mp.process != null && mp.process.isAlive()) {
             return (int) mp.process.pid();
+        }
+        return null;
+    }
+
+    private void applyRuntimeLibraryPath(ProcessBuilder pb, String runtimeBin) {
+        Path repoRoot = resolveRepoRoot();
+        Path binPath = runtimeBin != null && !runtimeBin.isBlank() ? Path.of(runtimeBin) : null;
+        String libPath = RuntimeLibraryPath.pathForProcess(repoRoot, binPath);
+        Map<String, String> env = pb.environment();
+        if (System.getProperty("os.name", "").toLowerCase().contains("win")) {
+            env.put("PATH", libPath);
+        } else {
+            env.put("LD_LIBRARY_PATH", libPath);
+        }
+        if (binPath != null) {
+            env.put("RUNTIME_BIN", binPath.toString());
+        }
+        if (repoRoot != null) {
+            env.put("RUNTIME_REPO_ROOT", repoRoot.toString());
+            env.put("RUNTIME_ROOT", repoRoot.resolve("RUNTIME").toString());
+        }
+    }
+
+    private Path resolveRepoRoot() {
+        String configured = videoProperties.getRuntime().getRepoRoot();
+        if (configured != null && !configured.isBlank()) {
+            return Path.of(configured.trim());
+        }
+        String envRoot = System.getenv("ACME_ROOT");
+        if (envRoot == null || envRoot.isBlank()) {
+            envRoot = System.getenv("RUNTIME_ROOT");
+        }
+        if (envRoot != null && !envRoot.isBlank()) {
+            return Path.of(envRoot.trim());
         }
         return null;
     }

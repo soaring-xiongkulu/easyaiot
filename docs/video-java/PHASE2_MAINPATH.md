@@ -50,6 +50,58 @@ Prove Java `video-server` under `profile=local` sends alert hooks via **real Kaf
 
 ---
 
+## Pack A2 — Algo task RUNTIME lifecycle
+
+| Field | Value |
+|-------|-------|
+| **Status** | **PASS** |
+| **Date** | 2026-08-11 |
+| **Evidence** | `logs/phase2-a2-runtime-lifecycle.json` |
+
+### Goal
+
+Prove Java `video-server` under `profile=local` can start/stop an algo task with a **real C++ RUNTIME** subprocess alive, `services/status` reasonable, and clean stop — aligned with Python `start_algorithm_task` / `stop_algorithm_task`.
+
+### Oracle reference (Python)
+
+| Item | Location |
+|------|----------|
+| Start/stop | `VIDEO/app/services/algorithm_task_service.py` → `start_algorithm_task` / `stop_algorithm_task` |
+| RUNTIME launch | `VIDEO/app/services/algorithm_task_daemon.py` → `Popen(runtime_bin, ini, env+PATH)` |
+| Binary resolve | `VIDEO/app/services/runtime_config_service.py` → `resolve_runtime_bin` / `ensure_runtime_bin_ready` |
+| DLL PATH | `runtime_config_service.runtime_library_path_env()` |
+| API routes | `VIDEO/app/blueprints/algorithm_task.py` → `/task/{id}/start`, `/stop`, `/services/status` |
+
+### Java candidate
+
+| Item | Location |
+|------|-------|
+| Controller | `AlgorithmTaskController` → `POST /task/{id}/start`, `/stop`; `GET /services/status` |
+| Lifecycle | `AlgorithmTaskLifecycleService.start()` / `.stop()` |
+| Supervisor | `AlgorithmRuntimeSupervisor` + `RuntimeLibraryPath` (PATH for vendor DLLs) |
+| Ini | `RuntimeIniGenerator` (Windows `file://` → plain path) |
+
+### Acceptance results
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `executor_bin` real RUNTIME.exe (not stub) | **PASS** — 650240 bytes |
+| 2 | Start → PID alive on Windows | **PASS** — PID 42616 |
+| 3 | `services/status` running | **PASS** — `status=running`, `run_status=running` |
+| 4 | Stop → process gone, DB stopped | **PASS** — PID gone, `is_enabled=false` |
+
+### Fixture
+
+- Task 61 `frb26_alert_e2e` (device `frb26_device`, from A1); `runtime_bin_path` → worktree `RUNTIME/build-win/Release/RUNTIME.exe`
+
+### Code fixes (A2)
+
+- `RuntimeLibraryPath.java` — PATH parity with Python `runtime_library_path_env()`
+- `AlgorithmRuntimeSupervisor` — inject PATH before spawn
+- `RuntimeIniGenerator` — strip `file://` for Windows ffmpeg
+
+---
+
 ## Next pack
 
-**A2** — TBD per brief / CUTOVER_BLOCKERS (MinIO alert image upload chain or next main-path item).
+**A3** — Forward/ffmpeg path (`logs/phase2-a3-forward.json`).

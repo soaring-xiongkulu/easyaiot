@@ -5,7 +5,7 @@ All Phase 2 subagents **must** read prior pack reports before starting, and **mu
 | Pack | Status | Brief | Report | Evidence | Commit |
 |------|--------|-------|--------|----------|--------|
 | A1 Alert Kafka | PASS | [phase2-a1-brief.md](./briefs/phase2-a1-brief.md) | [phase2-a1-report.md](./briefs/phase2-a1-report.md) | `logs/phase2-a1-alert-kafka.json` | `2b3d483` |
-| A2 RUNTIME lifecycle | pending | [phase2-a2-brief.md](./briefs/phase2-a2-brief.md) | _(write phase2-a2-report.md)_ | `logs/phase2-a2-runtime-lifecycle.json` | — |
+| A2 RUNTIME lifecycle | PASS | [phase2-a2-brief.md](./briefs/phase2-a2-brief.md) | [phase2-a2-report.md](./briefs/phase2-a2-report.md) | `logs/phase2-a2-runtime-lifecycle.json` | `7511dd2` |
 | A3 Forward/ffmpeg | pending | — | — | `logs/phase2-a3-forward.json` | — |
 | A4 Media MinIO | pending | — | — | `logs/phase2-a4-media-minio.json` | — |
 | A5 Camera | pending | — | — | `logs/phase2-a5-camera.json` | — |

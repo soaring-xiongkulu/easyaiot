@@ -43,7 +43,7 @@ public class RuntimeIniGenerator {
         String deviceId = task.getDeviceIds().get(0);
         Map<String, String> device = taskRepository.findDevice(deviceId)
                 .orElseThrow(() -> new VideoBusinessException(400, "设备不存在: " + deviceId));
-        String rtspUrl = device.get("source");
+        String rtspUrl = normalizeRtspUrl(device.get("source"));
         if (rtspUrl == null || rtspUrl.isBlank()) {
             throw new VideoBusinessException(400, "设备 " + deviceId + " 无可用 RTSP/source 地址");
         }
@@ -229,6 +229,21 @@ public class RuntimeIniGenerator {
         }
         throw new VideoBusinessException(400,
                 "无法定位 RUNTIME 仓库根目录。请设置 video.runtime.repo-root、ACME_ROOT 或 RUNTIME_ROOT");
+    }
+
+    /**
+     * FFmpeg on Windows does not accept {@code file://} URIs; strip to a plain path.
+     * Network schemes (rtsp/http/rtmp) are passed through unchanged.
+     */
+    private String normalizeRtspUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        String trimmed = url.trim();
+        if (trimmed.regionMatches(true, 0, "file://", 0, 7)) {
+            return trimmed.substring(7);
+        }
+        return trimmed;
     }
 
     private String normalizeTaskType(String taskType) {

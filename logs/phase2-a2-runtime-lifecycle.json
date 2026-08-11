@@ -1,0 +1,120 @@
+{
+  "pack": "P2-A2",
+  "title": "Algo task start/stop + real RUNTIME lifecycle parity (local full stack)",
+  "generated_at": "2026-08-11T17:47:15+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "nacos": "127.0.0.1:8848",
+    "minio": "127.0.0.1:9000",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096"
+  },
+  "oracle_python": {
+    "start": "F:/acme/VIDEO/app/services/algorithm_task_service.py → start_algorithm_task() → start_task_services()",
+    "stop": "F:/acme/VIDEO/app/services/algorithm_task_service.py → stop_algorithm_task() → stop_all_task_services()",
+    "runtime_launch": "F:/acme/VIDEO/app/services/algorithm_task_daemon.py → _start_runtime() → subprocess.Popen(runtime_bin, runtime_ini, env with PATH/LD_LIBRARY_PATH)",
+    "runtime_bin_resolve": "F:/acme/VIDEO/app/services/runtime_config_service.py → resolve_runtime_bin() / ensure_runtime_bin_ready()",
+    "library_path": "F:/acme/VIDEO/app/services/runtime_config_service.py → runtime_library_path_env() prepends build-win/Release + vendor DLL dirs",
+    "ini_generation": "F:/acme/VIDEO/app/services/runtime_config_service.py → write_runtime_ini()",
+    "api_routes": "F:/acme/VIDEO/app/blueprints/algorithm_task.py → POST /task/{id}/start|stop, GET /task/{id}/services/status"
+  },
+  "java_candidate": {
+    "controller": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/controller/AlgorithmTaskController.java",
+    "lifecycle": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/AlgorithmTaskLifecycleService.java",
+    "supervisor": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/process/AlgorithmRuntimeSupervisor.java",
+    "ini_generator": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/RuntimeIniGenerator.java",
+    "library_path": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/support/RuntimeLibraryPath.java"
+  },
+  "runtime_binary": {
+    "path": "F:/acme/.worktrees/video-java/RUNTIME/build-win/Release/RUNTIME.exe",
+    "size_bytes": 650240,
+    "is_stub": false,
+    "note": "Real C++ RUNTIME (executor=cpp); onnxruntime.dll co-located in build-win/Release; vendor DLLs from RUNTIME/vendor/conda-env/Library/bin"
+  },
+  "code_fixes_applied": [
+    {
+      "file": "AlgorithmRuntimeSupervisor.java",
+      "change": "Inject PATH/LD_LIBRARY_PATH via RuntimeLibraryPath before ProcessBuilder.start (parity with Python daemon env)"
+    },
+    {
+      "file": "RuntimeIniGenerator.java",
+      "change": "normalizeRtspUrl() strips file:// prefix for Windows ffmpeg avformat_open_input"
+    },
+    {
+      "file": "RuntimeLibraryPath.java",
+      "change": "New helper mirroring Python runtime_library_path_env(); resolves DLL dirs from runtime bin parent + repo-root"
+    }
+  ],
+  "fixture": {
+    "task_id": 61,
+    "task_name": "frb26_alert_e2e",
+    "task_type": "realtime",
+    "executor": "cpp",
+    "device_id": "frb26_device",
+    "device_source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+    "runtime_bin_path_set": "F:/acme/.worktrees/video-java/RUNTIME/build-win/Release/RUNTIME.exe",
+    "ini_rtsp_url_normalized": "F:/acme/RUNTIME/testdata/sample.mp4",
+    "prior_pack": "A1 (same device frb26_device)"
+  },
+  "lifecycle": {
+    "preclean_stop": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/algorithm/task/61/stop",
+      "code": 0,
+      "msg": "停止成功"
+    },
+    "start": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/algorithm/task/61/start",
+      "code": 0,
+      "msg": "启动成功",
+      "already_running": false,
+      "service_process_id": 42616,
+      "pid_alive_after_5s": true,
+      "runtime_log_evidence": "C:/Users/g/.video-java/logs/task_61/runtime.stdout.log — YOLO init, media player OK, ALARM-THREAD VIDEO hook accepted"
+    },
+    "services_status": {
+      "endpoint": "GET http://127.0.0.1:48080/admin-api/video/algorithm/task/61/services/status",
+      "code": 0,
+      "realtime_service": {
+        "status": "running",
+        "run_status": "running",
+        "process_id": 42616,
+        "port": 8061,
+        "server_ip": "127.0.0.1"
+      }
+    },
+    "stop": {
+      "endpoint": "POST http://127.0.0.1:48080/admin-api/video/algorithm/task/61/stop",
+      "code": 0,
+      "msg": "停止成功",
+      "db_after_stop": {
+        "is_enabled": false,
+        "run_status": "stopped"
+      },
+      "pid_42616_gone": true
+    }
+  },
+  "acceptance": {
+    "executor_not_stub": true,
+    "start_pid_alive": true,
+    "services_status_running": true,
+    "stop_process_gone": true,
+    "overall": "PASS"
+  },
+  "vs_python": {
+    "start_stop_api_shape": "align — POST /algorithm/task/{id}/start|stop via gateway /admin-api/video/**",
+    "services_status_shape": "align — realtime_service.status/run_status/process_id/port",
+    "runtime_subprocess": "align — Java ProcessBuilder(runtime_bin, ini) with PATH for vendor DLLs",
+    "ini_content": "align — [video]/[ai]/[alarm]/[task]/[video_task] sections; Windows file:// normalized to plain path"
+  },
+  "concerns": [
+    "F:/acme/RUNTIME/build-win/Release/RUNTIME.exe absent on this host; worktree binary used via task.runtime_bin_path",
+    "Other tasks (50, 62) may leave RUNTIME children running — lifecycle evidence scoped to task 61 PID 42616"
+  ],
+  "ready_for_a3": true,
+  "disclaimer": "Local full-stack evidence only — not COMPLETE. Profile local; no stub executor."
+}

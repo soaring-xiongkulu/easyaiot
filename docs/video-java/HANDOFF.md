@@ -66,17 +66,18 @@
 4. [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md)  
 5. `F:/acme/VIDEO/`（Oracle）+ Candidate controllers
 
-## 8. 现状摘要（阶段 2 A1 — 2026-08-11）
+## 8. 现状摘要（阶段 2 A2 — 2026-08-11）
 
-- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2/0.3 PASS）；**阶段 2 pack A1 PASS** — alert hook Kafka 主路径对标 Python 非 mini。  
-- **A1 证据：** `logs/phase2-a1-alert-kafka.json`；`profile=local`，`use-direct-persist=false`，`POST /admin-api/video/alert/hook` → `mode=kafka`（topic/partition/offset），broker 消息已消费验证。见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
+- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2/0.3 PASS）；**阶段 2 pack A1 PASS** — alert hook Kafka；**A2 PASS** — algo task start/stop + 真实 RUNTIME 子进程生命周期。  
+- **A1 证据：** `logs/phase2-a1-alert-kafka.json`；`profile=local`，`use-direct-persist=false`，`POST /admin-api/video/alert/hook` → `mode=kafka`（topic/partition/offset），broker 消息已消费验证。  
+- **A2 证据：** `logs/phase2-a2-runtime-lifecycle.json`；task 61 `frb26_alert_e2e`：`POST .../algorithm/task/61/start` → RUNTIME PID 存活 → `services/status` running → `stop` 干净。见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
 - **HTTP 契约面：** 14 前缀 inventory diff≈0（历史）。  
 - **默认配置：** `local` / `application.yaml` / `VideoProperties` 商业默认；`bootstrap-local` Nacos discovery 已启用；`application-local` datasource 对齐 **15432**（共享 `iot-video20`）。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)、[PHASE1_STACK.md](./PHASE1_STACK.md)。  
 - **禁止：** COMPLETE、FR-B46+、矩阵刷绿、删 main Python VIDEO、「等线上」叙事。
 
-## 9. 下一步（阶段 2 — A2 起）
+## 9. 下一步（阶段 2 — A3 起）
 
-按 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md) / [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续：**A2**（MinIO 告警图上传链或下一 main-path 包）及 1.x–6.x 剩余对标 Python。**A1 已完成，可接 A2 令。**
+按 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md) / [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续：**A3**（Forward/ffmpeg 路径）及剩余对标 Python。**A2 已完成，可接 A3 令。**
 
 ## 10. 历史约束
 
