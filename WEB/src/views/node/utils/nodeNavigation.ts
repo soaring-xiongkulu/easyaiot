@@ -29,6 +29,28 @@ export function navigateToNodeServiceTab(
   });
 }
 
+/** 分布式存储子 Tab：topology | ops */
+export function navigateToStorageSubTab(
+  router: Router,
+  subTab: 'topology' | 'ops' = 'topology',
+  nodeId?: number,
+) {
+  const tabKey = NODE_SERVICE_TAB.storage;
+  const query: Record<string, string> = {
+    tab: tabKey,
+    storageTab: subTab,
+  };
+  if (nodeId) query.nodeId = String(nodeId);
+  if (isNodeIndexRoute(router)) {
+    requestNodePageTab({ tab: tabKey, nodeId });
+    const next = { ...router.currentRoute.value.query, ...query };
+    delete (next as Record<string, unknown>).mediaTab;
+    router.replace({ query: next }).catch(() => undefined);
+    return;
+  }
+  router.push({ path: '/node/index', query });
+}
+
 /** 泳道批量操作：携带多节点跳转部署 Tab */
 export function navigateToNodeBatchTab(router: Router, tab: string, nodeIds: number[]) {
   if (!nodeIds.length) return;

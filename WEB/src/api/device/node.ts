@@ -293,6 +293,56 @@ export interface StorageMountCheckResult {
   steps?: MediaDeployStepVO[];
 }
 
+/** NFS / 共享媒体拓扑节点 */
+export interface CephTopologyNodeVO {
+  nodeId: number;
+  name?: string;
+  host?: string;
+  nodeRole?: string;
+  status?: string;
+  agentPort?: number;
+  /** platform | storage_nfs | nfs_client（兼容 storage_osd / ceph_client） */
+  kind?: string;
+  isPlatform?: boolean;
+  cephMountReady?: boolean;
+  cephMountPath?: string;
+  cephMonHost?: string;
+  cephPool?: string;
+  cephfsName?: string;
+  nfsMountReady?: boolean;
+  nfsMountPath?: string;
+  nfsServerHost?: string;
+  nfsExportPath?: string;
+  storageBackend?: string;
+  alertImagesDir?: string;
+  playbacksDir?: string;
+  snapsDir?: string;
+  lastHeartbeatAt?: string;
+  sshCredentialConfigured?: boolean;
+}
+
+export interface CephTopologyLinkVO {
+  sourceNodeId?: number;
+  targetNodeId?: number;
+  relation?: string;
+}
+
+export interface CephTopologySummaryVO {
+  totalNodes?: number;
+  storageNodes?: number;
+  clientNodes?: number;
+  mountReadyCount?: number;
+  mountNotReadyCount?: number;
+  offlineCount?: number;
+}
+
+export interface CephTopologyResult {
+  center?: CephTopologyNodeVO;
+  nodes?: CephTopologyNodeVO[];
+  links?: CephTopologyLinkVO[];
+  summary?: CephTopologySummaryVO;
+}
+
 export interface AgentCheckResult {
   success?: boolean;
   deployed?: boolean;
@@ -480,7 +530,32 @@ export const checkStorageStackBySsh = async (nodeId: number): Promise<StorageSta
   return unwrapNodeApiData<StorageStackCheckResult>(res);
 };
 
-/** 通过 SSH 检测 CephFS 客户端挂载 */
+/** NFS 共享媒体节点拓扑（原 getCephTopology，字段兼容） */
+export const getCephTopology = async (): Promise<CephTopologyResult> => {
+  const res = await commonApi('get', `${Api.Node}/storage/topology`, {}, { isTransformResponse: false });
+  return unwrapNodeApiData<CephTopologyResult>(res);
+};
+
+export interface NfsClusterAssignPayload {
+  serverNodeId?: number;
+  clientNodeIds?: number[];
+  mountRoot?: string;
+  nfsExport?: string;
+  nfsMountOpts?: string;
+}
+
+/** 分配/切换 NFS 集群（服务端 + 客户端 tags） */
+export const assignNfsCluster = async (payload: NfsClusterAssignPayload): Promise<CephTopologyResult> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/assign-nfs-cluster`,
+    payload,
+    { isTransformResponse: false, timeout: 2 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<CephTopologyResult>(res);
+};
+
+/** 通过 SSH 检测 NFS 客户端挂载 */
 export const checkStorageMountBySsh = async (nodeId: number): Promise<StorageMountCheckResult> => {
   const res = await commonApi(
     'post',

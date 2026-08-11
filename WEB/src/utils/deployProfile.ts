@@ -46,9 +46,9 @@ export function isScenarioPoseLibraryEnabled(): boolean {
   return !isMiniDeployProfile();
 }
 
-/** mini 形态不支持无限联邦边缘集群，不展示边缘节点管理 */
+/** EDGE 模块已移除：边缘联邦由 RUNTIME 原子模式 + MQTT 事件面替代，不再展示边缘节点管理 */
 export function isEdgeNodeEnabled(): boolean {
-  return !isMiniDeployProfile();
+  return false;
 }
 
 /** mini / standard 均不部署可视化后端与编辑器，统一隐藏相关顶级菜单 */

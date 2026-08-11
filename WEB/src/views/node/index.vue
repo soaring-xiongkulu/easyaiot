@@ -93,7 +93,7 @@ import StorageEnvBatch from './components/StorageEnvBatch/index.vue';
 import TransformWorkloadInit from './components/TransformWorkloadInit/index.vue';
 import VideoWorkloadInit from './components/VideoWorkloadInit/index.vue';
 import { isTransformEnabled } from '@/utils/deployProfile';
-import { NODE_PAGE, resolveLegacyWorkloadTab } from './utils/constants';
+import { NODE_PAGE, NODE_SERVICE_TAB, resolveLegacyWorkloadTab } from './utils/constants';
 import { useNodePageTabRequest } from './utils/useNodePageTab';
 
 defineOptions({ name: 'ComputeNodeIndex' });
@@ -107,6 +107,10 @@ const route = useRoute();
 const tabRequest = useNodePageTabRequest();
 
 function resolveRouteTab(): string {
+  // 兼容旧链接：流媒体子 Tab mediaTab=ceph → 分布式存储拓扑
+  if (String(route.query.mediaTab || '') === 'ceph') {
+    return NODE_SERVICE_TAB.storage;
+  }
   const raw = String(route.query.tab || '1');
   if (!showTransformTab && raw === '11') {
     return '1';

@@ -1,74 +1,93 @@
 <template>
   <div class="storage-env-batch">
-    <ClusterScopeBar @lane-change="handleLaneChange" />
+    <Tabs v-model:activeKey="innerTab" class="storage-inner-tabs">
+      <TabPane key="topology" :tab="NODE_TERM.storageCephTopology">
+        <Alert
+          class="mb-3"
+          type="info"
+          show-icon
+          message="中心关联的 NFS 共享媒体节点拓扑。点击节点可检测挂载状态并执行 NFS 服务端/客户端运维；批量表单式操作请切换至「批量运维」。"
+        />
+        <CephTopologyPanel
+          v-if="innerTab === 'topology'"
+          embedded-in-storage
+          @open-ops="openBatchOps"
+        />
+      </TabPane>
 
-    <CollapseContainer title="① OSD 部署（storage 角色）" :canExpan="true" :defaultExpan="true" class="mb-4">
-      <ClusterNodeSelector
-        ref="osdSelectorRef"
-        v-model:selected-node-ids="osdNodeIds"
-        role-filter="storage"
-        :show-scope-bar="false"
-        :initial-node-ids="initialNodeIds"
-        placeholder="选择 storage 节点部署 Ceph OSD"
-      />
-      <Space wrap class="mb-3">
-        <Button :loading="osdLoading === 'check'" :disabled="!osdNodeIds.length" @click="runOsdCheck">
-          检测 OSD
-        </Button>
-        <Button type="primary" :loading="osdLoading === 'deploy'" :disabled="!osdNodeIds.length" @click="runOsdDeploy">
-          部署 OSD
-        </Button>
-      </Space>
-      <BatchNodeResults :results="osdResults" />
-    </CollapseContainer>
+      <TabPane key="ops" :tab="NODE_TERM.storageBatchOps">
+        <ClusterScopeBar @lane-change="handleLaneChange" />
 
-    <CollapseContainer title="② 存储池创建（storage / MON 节点）" :canExpan="true" :defaultExpan="true" class="mb-4">
-      <ClusterNodeSelector
-        ref="poolSelectorRef"
-        v-model:selected-node-ids="poolNodeIds"
-        role-filter="storage"
-        :show-scope-bar="false"
-        :initial-node-ids="initialNodeIds"
-        placeholder="选择 MON 所在 storage 节点（通常单选）"
-      />
-      <Space wrap class="mb-3">
-        <Button type="primary" :loading="poolLoading" :disabled="!poolNodeIds.length" @click="runPoolDeploy">
-          创建存储池
-        </Button>
-      </Space>
-      <BatchNodeResults :results="poolResults" />
-    </CollapseContainer>
+        <CollapseContainer title="① NFS 服务端（storage 角色）" :canExpan="true" :defaultExpan="true" class="mb-4">
+          <ClusterNodeSelector
+            ref="osdSelectorRef"
+            v-model:selected-node-ids="osdNodeIds"
+            role-filter="storage"
+            :show-scope-bar="false"
+            :initial-node-ids="initialNodeIds"
+            placeholder="选择 storage 节点安装 NFS 服务端"
+          />
+          <Space wrap class="mb-3">
+            <Button :loading="osdLoading === 'check'" :disabled="!osdNodeIds.length" @click="runOsdCheck">
+              检测 NFS 服务端
+            </Button>
+            <Button type="primary" :loading="osdLoading === 'deploy'" :disabled="!osdNodeIds.length" @click="runOsdDeploy">
+              安装 NFS 服务端
+            </Button>
+          </Space>
+          <BatchNodeResults :results="osdResults" />
+        </CollapseContainer>
 
-    <CollapseContainer title="③ CephFS 客户端挂载" :canExpan="true" :defaultExpan="true" class="mb-4">
-      <ClusterNodeSelector
-        ref="clientSelectorRef"
-        v-model:selected-node-ids="clientNodeIds"
-        role-filter="cephClient"
-        :show-scope-bar="false"
-        :initial-node-ids="initialNodeIds"
-        placeholder="选择 compute / gpu / hybrid / media 节点挂载 CephFS"
-      />
-      <Space wrap class="mb-3">
-        <Button :loading="clientLoading === 'check'" :disabled="!clientNodeIds.length" @click="runClientCheck">
-          检测挂载
-        </Button>
-        <Button
-          type="primary"
-          :loading="clientLoading === 'deploy'"
-          :disabled="!clientNodeIds.length"
-          @click="runClientDeploy"
-        >
-          挂载 CephFS
-        </Button>
-      </Space>
-      <BatchNodeResults :results="clientResults" />
-    </CollapseContainer>
+        <CollapseContainer title="② Export 初始化（storage 节点）" :canExpan="true" :defaultExpan="true" class="mb-4">
+          <ClusterNodeSelector
+            ref="poolSelectorRef"
+            v-model:selected-node-ids="poolNodeIds"
+            role-filter="storage"
+            :show-scope-bar="false"
+            :initial-node-ids="initialNodeIds"
+            placeholder="选择 NFS 服务端节点（通常单选）"
+          />
+          <Space wrap class="mb-3">
+            <Button type="primary" :loading="poolLoading" :disabled="!poolNodeIds.length" @click="runPoolDeploy">
+              初始化 Export
+            </Button>
+          </Space>
+          <BatchNodeResults :results="poolResults" />
+        </CollapseContainer>
+
+        <CollapseContainer title="③ NFS 客户端挂载" :canExpan="true" :defaultExpan="true" class="mb-4">
+          <ClusterNodeSelector
+            ref="clientSelectorRef"
+            v-model:selected-node-ids="clientNodeIds"
+            role-filter="cephClient"
+            :show-scope-bar="false"
+            :initial-node-ids="initialNodeIds"
+            placeholder="选择 compute / gpu / hybrid / media 节点挂载 NFS"
+          />
+          <Space wrap class="mb-3">
+            <Button :loading="clientLoading === 'check'" :disabled="!clientNodeIds.length" @click="runClientCheck">
+              检测挂载
+            </Button>
+            <Button
+              type="primary"
+              :loading="clientLoading === 'deploy'"
+              :disabled="!clientNodeIds.length"
+              @click="runClientDeploy"
+            >
+              挂载 NFS 客户端
+            </Button>
+          </Space>
+          <BatchNodeResults :results="clientResults" />
+        </CollapseContainer>
+      </TabPane>
+    </Tabs>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
-import { Space } from 'ant-design-vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { Alert, Space, TabPane, Tabs } from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import { CollapseContainer } from '@/components/Container';
 import { useMessage } from '@/hooks/web/useMessage';
@@ -80,18 +99,32 @@ import {
   deployStoragePoolBySsh,
   type WorkloadBundleNodeResult,
 } from '@/api/device/node';
+import { NODE_TERM } from '../../utils/constants';
 import { runSequentialNodeOps, summarizeBatchResults } from '../../utils/batchNodeOps';
 import BatchNodeResults from '../BatchNodeResults/index.vue';
+import CephTopologyPanel from '../CephTopologyPanel/index.vue';
 import ClusterNodeSelector from '../ClusterNodeSelector/index.vue';
 import ClusterScopeBar from '../ClusterScopeBar/index.vue';
 
 defineOptions({ name: 'StorageEnvBatch' });
 
-defineProps<{
+const props = defineProps<{
   initialNodeIds?: number[];
 }>();
 
 const { createMessage } = useMessage();
+const route = useRoute();
+const router = useRouter();
+
+function resolveStorageTab(): 'topology' | 'ops' {
+  const raw = String(route.query.storageTab || '');
+  if (raw === 'ops') return 'ops';
+  // 兼容旧链接 mediaTab=ceph
+  if (String(route.query.mediaTab || '') === 'ceph') return 'topology';
+  return 'topology';
+}
+
+const innerTab = ref<'topology' | 'ops'>(resolveStorageTab());
 
 const osdSelectorRef = ref<InstanceType<typeof ClusterNodeSelector>>();
 const poolSelectorRef = ref<InstanceType<typeof ClusterNodeSelector>>();
@@ -108,6 +141,41 @@ const clientLoading = ref<'check' | 'deploy' | null>(null);
 const osdResults = ref<WorkloadBundleNodeResult[]>([]);
 const poolResults = ref<WorkloadBundleNodeResult[]>([]);
 const clientResults = ref<WorkloadBundleNodeResult[]>([]);
+
+watch(
+  () => [route.query.storageTab, route.query.mediaTab] as const,
+  () => {
+    innerTab.value = resolveStorageTab();
+  },
+);
+
+watch(innerTab, (tab) => {
+  const q: Record<string, any> = { ...route.query };
+  if (tab === 'ops') q.storageTab = 'ops';
+  else q.storageTab = 'topology';
+  delete q.mediaTab;
+  router.replace({ query: q }).catch(() => undefined);
+});
+
+function openBatchOps(nodeId?: number) {
+  innerTab.value = 'ops';
+  if (nodeId) {
+    osdNodeIds.value = [nodeId];
+    poolNodeIds.value = [nodeId];
+    clientNodeIds.value = [nodeId];
+  }
+}
+
+watch(
+  () => props.initialNodeIds,
+  (ids) => {
+    if (!ids?.length) return;
+    if (innerTab.value === 'ops' && !osdNodeIds.value.length) {
+      clientNodeIds.value = [...ids];
+    }
+  },
+  { immediate: true },
+);
 
 function handleLaneChange() {
   osdNodeIds.value = [];
@@ -133,7 +201,7 @@ async function runOsdCheck() {
           nodeName: node.name,
           host: node.host,
           success: !!data.success,
-          message: data.message || (data.osdRunning ? 'OSD 就绪' : 'OSD 未就绪'),
+          message: data.message || (data.osdRunning ? 'NFS 服务端就绪' : 'NFS 服务端未就绪'),
         });
       } catch (e: unknown) {
         results.push({
@@ -230,5 +298,19 @@ async function runClientDeploy() {
 .storage-env-batch {
   padding: 16px 20px 24px;
   min-height: 480px;
+
+  .storage-inner-tabs {
+    :deep(.ant-tabs-nav) {
+      margin-bottom: 16px;
+    }
+  }
+
+  .mb-3 {
+    margin-bottom: 12px;
+  }
+
+  .mb-4 {
+    margin-bottom: 16px;
+  }
 }
 </style>

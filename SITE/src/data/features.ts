@@ -49,7 +49,7 @@ export const features: FeatureItem[] = [
     points: [
       'YOLO 目标检测与 SAM 零样本标注',
       '人脸 / 车牌识别与可编排后处理',
-      '无限联邦边缘集群，算力随业务铺开',
+      'RUNTIME 原子边缘：MQTT 告警 + HTTP 心跳，算力随业务铺开',
     ],
     image: '/images/feature-ai.jpg',
   },

@@ -51,7 +51,9 @@ export const NODE_TERM = {
   agentPort: '监测代理端口',
   mediaService: '流媒体引擎',
   mqttService: 'MQTT 网关',
-  storageService: 'Ceph 存储',
+  storageCephTopology: 'NFS 集群拓扑',
+  storageBatchOps: '批量运维',
+  storageService: 'NFS 共享存储',
   mediaPort: '流媒体端口',
   mqttPort: 'MQTT 端口',
   platformUrl: '平台接入地址',
@@ -150,7 +152,7 @@ export const NODE_ROLE_DESC: Record<string, string> = {
   gpu: '配备 GPU，用于模型推理、深度学习算法等算力密集型任务',
   media: '用于 SRS/ZLM 流媒体集群，设备拉流/推流',
   mqtt: '用于 EMQX MQTT 集群，设备物联网协议接入',
-  storage: 'Ceph OSD 节点，承载录像/抓拍分布式存储',
+  storage: 'NFS 存储节点，export 共享媒体目录（录像/抓拍/告警图）',
   hybrid: '同时承担计算与媒体调度',
 };
 
@@ -358,9 +360,9 @@ export const CLUSTER_NODE_ROLE_FILTERS = {
   media: ['media', 'hybrid'] as const,
   /** MQTT 网关节点 */
   mqtt: ['mqtt'] as const,
-  /** Ceph 存储/MON 节点 */
+  /** NFS 存储/MON 节点 */
   storage: ['storage'] as const,
-  /** 需挂载 CephFS 的节点 */
+  /** 需挂载 NFS 的节点（兼容键名 cephClient） */
   cephClient: ['compute', 'gpu', 'hybrid', 'media'] as const,
 } as const;
 

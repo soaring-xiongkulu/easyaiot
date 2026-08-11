@@ -1,5 +1,7 @@
 <template>
   <div class="media-env-batch">
+    <MediaPathReadinessBar :selected-node="singleNodeDetail" />
+
     <ClusterNodeSelector
       ref="selectorRef"
       v-model:selected-node-ids="selectedNodeIds"
@@ -54,6 +56,7 @@ import { readMediaPortsFromTags, SETUP_COPY } from '../../utils/constants';
 import { runSequentialNodeOps, summarizeBatchResults } from '../../utils/batchNodeOps';
 import BatchNodeResults from '../BatchNodeResults/index.vue';
 import ClusterNodeSelector from '../ClusterNodeSelector/index.vue';
+import MediaPathReadinessBar from '../MediaPathReadinessBar/index.vue';
 import MediaStackSetupPanel from '../MediaStackSetupPanel/index.vue';
 
 defineOptions({ name: 'MediaEnvBatch' });
@@ -192,5 +195,13 @@ async function handleSingleDeployed() {
 .media-env-batch {
   padding: 16px 20px 24px;
   min-height: 480px;
+
+  .mb-3 {
+    margin-bottom: 12px;
+  }
+
+  .mb-4 {
+    margin-bottom: 16px;
+  }
 }
 </style>
