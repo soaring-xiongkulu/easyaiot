@@ -7,7 +7,7 @@ All Phase 2 subagents **must** read prior pack reports before starting, and **mu
 | A1 Alert Kafka | PASS | [phase2-a1-brief.md](./briefs/phase2-a1-brief.md) | [phase2-a1-report.md](./briefs/phase2-a1-report.md) | `logs/phase2-a1-alert-kafka.json` | `2b3d483` |
 | A2 RUNTIME lifecycle | PASS | [phase2-a2-brief.md](./briefs/phase2-a2-brief.md) | [phase2-a2-report.md](./briefs/phase2-a2-report.md) | `logs/phase2-a2-runtime-lifecycle.json` | `e214456` |
 | A3 Forward/ffmpeg | PASS | [phase2-a3-brief.md](./briefs/phase2-a3-brief.md) | [phase2-a3-report.md](./briefs/phase2-a3-report.md) | `logs/phase2-a3-forward.json` | `50ce091` |
-| A4 Media MinIO | PASS | [phase2-a4-brief.md](./briefs/phase2-a4-brief.md) | [phase2-a4-report.md](./briefs/phase2-a4-report.md) | `logs/phase2-a4-media-minio.json` | `a00af3d` |
+| A4 Media MinIO | PASS | [phase2-a4-brief.md](./briefs/phase2-a4-brief.md) | [phase2-a4-report.md](./briefs/phase2-a4-report.md) | `logs/phase2-a4-media-minio.json` | `2be5393` |
 | A5 Camera | pending | — | — | `logs/phase2-a5-camera.json` | — |
 | A6 Post-process | pending | — | — | `logs/phase2-a6-postprocess.json` | — |
 | A7 Matching | pending | — | — | `logs/phase2-a7-matching.json` | — |

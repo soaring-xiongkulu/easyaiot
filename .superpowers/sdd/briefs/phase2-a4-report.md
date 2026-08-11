@@ -3,7 +3,7 @@
 **Status:** PASS  
 **Pack:** P2-A4  
 **Date:** 2026-08-11  
-**Commit:** `a00af3d` — `feat(video-java): phase2 A4 media minio kafka parity`  
+**Commit:** `2be5393` — `feat(video-java): phase2 A4 media minio kafka parity`  
 **Evidence:** `logs/phase2-a4-media-minio.json`  
 **nested_subagents:** none
 
