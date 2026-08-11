@@ -127,6 +127,7 @@ RUNTIME/models/**/*.names.json -diff
 RUNTIME/.bundle-runtime/** -diff
 RUNTIME/.bundle-runtime/**/*.tar.gz binary -diff
 RUNTIME/build/** -diff
+RUNTIME/build-mqtt/** -diff
 RUNTIME/build-linux/** -diff
 RUNTIME/.atomic-test/** -diff
 RUNTIME/.atomic-verify/** -diff

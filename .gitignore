@@ -193,4 +193,11 @@ AI/yolov*.names.json
 # apt 离线包缓存目录（apt download / 离线装机用，统一放这里）
 .offline-debs/
 
+# Maven 构建临时备份（本地调试/权限问题时的产物，勿提交）
+**/target.bak_old/
+**/target.bak_root_owned/
+
+# 安装脚本生成的本地 docker env（模板见 .env.docker）
+.scripts/docker/.env
+
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据

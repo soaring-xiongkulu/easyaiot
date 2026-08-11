@@ -23,6 +23,7 @@ target/
 *.class
 target/*
 build/*
+build-mqtt/
 cmake-build-local/*
 cmake-build-debug/*
 cmake-build-orangepi/*
