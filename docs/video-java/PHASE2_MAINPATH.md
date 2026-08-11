@@ -205,6 +205,59 @@ Prove Java `video-server` under `profile=local` with `upload-mode=kafka` and Min
 
 ---
 
+## Pack A5 — Camera list/get/register key-path
+
+| Field | Value |
+|-------|-------|
+| **Status** | **PASS** |
+| **Date** | 2026-08-11 |
+| **Evidence** | `logs/phase2-a5-camera.json` |
+
+### Goal
+
+Prove Java `video-server` under `profile=local` list/get/register/update camera key fields align with Python Oracle semantics on shared `iot-video20` DB — prefer gateway `/admin-api/video/camera/**`.
+
+### Oracle reference (Python)
+
+| Item | Location |
+|------|----------|
+| List | `VIDEO/app/blueprints/camera.py` → `GET /list` → `get_device_list` |
+| Get | `camera.py` → `GET /device/{id}` → `get_camera_info` → `_to_dict` |
+| Register | `camera.py` → `POST /register/device` → `register_camera` |
+| Update | `camera.py` → `PUT /device/{id}` → `update_camera` |
+| Key fields | `camera_service.py` → `_to_dict` (streams, online, location, nvr, device_kind) |
+
+### Java candidate
+
+| Item | Location |
+|------|-------|
+| Controller | `CameraController` → `/list`, `/device/{id}`, `/register/device`, `PUT /device/{id}` |
+| List/Get | `CameraService` → `listDevices` / `getDevice` → `toMap` |
+| Register/Update | `CameraAdminService` → `registerDevice` / `updateDevice` |
+| Spaces | `ensureSpacesQuiet` on register (mirrors Python `ensure_device_spaces`) |
+
+### Acceptance results
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | List returns devices with `total` (gateway + direct agree) | **PASS** — 17 devices |
+| 2 | Get key fields match Python `_to_dict` on same DB (`frb26_device`) | **PASS** |
+| 3 | List item == GET for same device | **PASS** |
+| 4 | Register with `source` + `cameraType=custom` | **PASS** — `p2a5_cam_20260811184235` |
+| 5 | Register creates snap_space + record_space | **PASS** — ids 33/32 |
+| 6 | Update name/model persisted | **PASS** |
+
+### Fixture
+
+- Existing: `frb26_device` (A1–A4 fixture)
+- New: `p2a5_cam_20260811184235` — snap_space 33, record_space 32
+
+### Code fixes (A5)
+
+- None (evidence-only pack; routes from FR-W2-CAM)
+
+---
+
 ## Next pack
 
-**A5** — Camera (`logs/phase2-a5-camera.json`).
+**A6** — Post-process (`logs/phase2-a6-postprocess.json`).

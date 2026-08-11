@@ -1,0 +1,197 @@
+{
+  "pack": "P2-A5",
+  "title": "Camera list/get/register/update key-field parity vs Python Oracle (shared DB, local full stack)",
+  "generated_at": "2026-08-11T18:45:30+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "nacos": "127.0.0.1:8848",
+    "minio": "127.0.0.1:9000",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096"
+  },
+  "oracle_python": {
+    "list_api": "F:/acme/VIDEO/app/blueprints/camera.py → GET /list",
+    "get_api": "F:/acme/VIDEO/app/blueprints/camera.py → GET /device/{id}",
+    "register_api": "F:/acme/VIDEO/app/blueprints/camera.py → POST /register/device",
+    "update_api": "F:/acme/VIDEO/app/blueprints/camera.py → PUT /device/{id}",
+    "service": "F:/acme/VIDEO/app/services/camera_service.py → get_device_list / get_camera_info / register_camera / update_camera / _to_dict",
+    "key_fields": [
+      "id", "name", "source", "rtmp_stream", "http_stream", "ai_rtmp_stream", "ai_http_stream",
+      "enable_forward", "stream", "ip", "port", "username", "mac", "manufacturer", "model",
+      "firmware_version", "serial_number", "hardware_id", "support_move", "support_zoom",
+      "directory_id", "rtsp_direct", "channel_online", "connection_status", "online",
+      "longitude", "latitude", "altitude", "address", "heading", "location_source",
+      "location_updated_at", "has_location", "device_kind", "nvr_id", "nvr_channel", "nvr_label", "nvr"
+    ],
+    "oracle_verification": "Flask minimal app + camera_service._to_dict() against same iot-video20 DB (no Python HTTP server required)"
+  },
+  "java_candidate": {
+    "controller": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/controller/CameraController.java",
+    "list_service": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/CameraService.java → listDevices / getDevice / toMap",
+    "admin_service": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/camera/CameraAdminService.java → registerDevice / updateDevice",
+    "repository": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/dal/DeviceRepository.java"
+  },
+  "code_fixes_applied": [],
+  "fixture_existing": {
+    "device_id": "frb26_device",
+    "name": "FR-B26 Pure Kafka DVR + Alert E2E",
+    "source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+    "directory_id": 1,
+    "prior_packs": "A1/A2/A3/A4 (same device)"
+  },
+  "fixture_registered": {
+    "device_id": "p2a5_cam_20260811184235",
+    "register_payload": {
+      "id": "p2a5_cam_20260811184235",
+      "name": "Phase2 A5 Register Test",
+      "source": "file:///F:/acme/RUNTIME/testdata/sample.mp4",
+      "cameraType": "custom",
+      "manufacturer": "EasyAIoT",
+      "model": "Camera-EasyAIoT"
+    },
+    "update_payload": {
+      "name": "Phase2 A5 Updated Name",
+      "manufacturer": "EasyAIoT",
+      "model": "P2A5-Updated"
+    },
+    "snap_space_id": 33,
+    "snap_space_code": "SPACE_D0511757",
+    "record_space_id": 32,
+    "record_space_code": "RECORD_DB69F11B"
+  },
+  "list_path": {
+    "gateway": {
+      "method": "GET",
+      "endpoint": "http://127.0.0.1:48080/admin-api/video/camera/list?pageNo=1&pageSize=100",
+      "http_status": 200,
+      "code": 0,
+      "total": 17,
+      "items_returned": 17
+    },
+    "direct_video_server": {
+      "method": "GET",
+      "endpoint": "http://127.0.0.1:48096/video/camera/list?pageNo=1&pageSize=100",
+      "http_status": 200,
+      "code": 0,
+      "total": 17,
+      "items_returned": 17
+    },
+    "list_get_consistency": {
+      "device_id": "frb26_device",
+      "check": "list item key fields == GET /device/{id} for same device",
+      "status": "pass",
+      "key_fields_compared": ["id", "name", "source", "rtmp_stream", "http_stream", "manufacturer", "model", "enable_forward", "online", "device_kind", "directory_id"]
+    }
+  },
+  "get_path": {
+    "gateway": {
+      "method": "GET",
+      "endpoint": "http://127.0.0.1:48080/admin-api/video/camera/device/frb26_device",
+      "http_status": 200,
+      "code": 0,
+      "key_fields": {
+        "id": "frb26_device",
+        "name": "FR-B26 Pure Kafka DVR + Alert E2E",
+        "source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+        "rtmp_stream": "rtmp://127.0.0.1/live/frb26_device",
+        "http_stream": "http://127.0.0.1:8080/frb26_device",
+        "manufacturer": "fr-b26",
+        "model": "kafka-alert-e2e",
+        "enable_forward": false,
+        "online": true,
+        "device_kind": "direct",
+        "directory_id": 1
+      }
+    },
+    "python_oracle_to_dict": {
+      "device_id": "frb26_device",
+      "key_fields": {
+        "id": "frb26_device",
+        "name": "FR-B26 Pure Kafka DVR + Alert E2E",
+        "source": "file://F:/acme/RUNTIME/testdata/sample.mp4",
+        "rtmp_stream": "rtmp://127.0.0.1/live/frb26_device",
+        "http_stream": "http://127.0.0.1:8080/frb26_device",
+        "manufacturer": "fr-b26",
+        "model": "kafka-alert-e2e",
+        "enable_forward": false,
+        "online": true,
+        "device_kind": "direct",
+        "directory_id": 1
+      },
+      "java_vs_python": "all 11 key fields match"
+    }
+  },
+  "register_path": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/camera/register/device",
+    "http_status": 200,
+    "code": 0,
+    "msg": "设备注册成功",
+    "data": { "id": "p2a5_cam_20260811184235" },
+    "db_row_after_register": {
+      "id": "p2a5_cam_20260811184235",
+      "name": "Phase2 A5 Register Test",
+      "source": "file:///F:/acme/RUNTIME/testdata/sample.mp4",
+      "manufacturer": "EasyAIoT",
+      "model": "Camera-EasyAIoT",
+      "directory_id": 1
+    },
+    "ensure_spaces": {
+      "snap_space_id": 33,
+      "snap_bucket": "snap-space",
+      "record_space_id": 32,
+      "record_bucket": "record-space",
+      "note": "registerDevice → ensureSpacesQuiet mirrors Python ensure_device_spaces on register"
+    },
+    "get_after_register": {
+      "online": true,
+      "device_kind": "direct",
+      "rtmp_stream": "rtmp://10.0.0.1:1935/live/p2a5_cam_20260811184235",
+      "http_stream": "http://10.0.0.1:8080/live/p2a5_cam_20260811184235.flv",
+      "python_oracle_match": true,
+      "note": "Default stream URLs from StreamUrlSupport.defaultStreamUrls; stored per-device in DB same as Python _generate_stream_urls"
+    }
+  },
+  "update_path": {
+    "method": "PUT",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/camera/device/p2a5_cam_20260811184235",
+    "http_status": 200,
+    "code": 0,
+    "msg": "设备信息更新成功",
+    "payload": {
+      "name": "Phase2 A5 Updated Name",
+      "manufacturer": "EasyAIoT",
+      "model": "P2A5-Updated"
+    },
+    "get_after_update": {
+      "name": "Phase2 A5 Updated Name",
+      "model": "P2A5-Updated"
+    },
+    "db_row_after_update": {
+      "name": "Phase2 A5 Updated Name",
+      "model": "P2A5-Updated"
+    },
+    "python_oracle_to_dict_match": true
+  },
+  "acceptance": [
+    { "check": "list + get key fields align on shared DB (frb26_device)", "status": "pass" },
+    { "check": "list item == get for same device (internal consistency)", "status": "pass" },
+    { "check": "register device with source + custom cameraType", "status": "pass" },
+    { "check": "register creates snap_space + record_space rows", "status": "pass" },
+    { "check": "update name/model persisted and reflected in get", "status": "pass" },
+    { "check": "Java GET key fields match Python _to_dict on same DB rows", "status": "pass" },
+    { "check": "gateway and direct :48096 list totals agree", "status": "pass" }
+  ],
+  "concerns": [
+    "ONVIF register (/register/device/onvif) not exercised — no hardware sweep per brief; route exists with aligned error contract from FR-W2-CAM",
+    "Stream URL host for newly registered devices uses application default (10.0.0.1) vs frb26_device custom 127.0.0.1 — both explainable via stored DB values / Python _generate_stream_urls parity",
+    "Python HTTP service not running; oracle comparison via camera_service._to_dict against shared PostgreSQL"
+  ],
+  "nested_subagents": "none",
+  "ready_for_a6": true
+}
