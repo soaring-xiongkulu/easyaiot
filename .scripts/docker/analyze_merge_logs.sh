@@ -283,7 +283,7 @@ init_deploy_profile_for_logs() {
     case "$EASYAIOT_DEPLOY_PROFILE" in
         mini)
             export EASYAIOT_ENABLE_TDENGINE=0
-            export EASYAIOT_ENABLE_EMQX=0
+            export EASYAIOT_ENABLE_EMQX=1
             ;;
         standard)
             export EASYAIOT_ENABLE_TDENGINE=0

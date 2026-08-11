@@ -10,7 +10,7 @@
 #   ./install_business_linux.sh <命令> [选项] [模块...]
 #
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
-#   mini(1)     - 4G：iot-system + VIDEO/AI/RTC/WEB（无可视化）
+#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件
 #   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/iot-visualize 等（含 EMQX）
 #   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE、TRANSFORM）
 #
@@ -297,8 +297,8 @@ verify_module_health() {
 
     ensure_deploy_profile
     if [ "$module" = "DEVICE" ] && is_mini_deploy_profile; then
-        port="48099"
-        health_endpoint=""
+        port="48080"
+        health_endpoint="/actuator/health"
     fi
 
     print_module_banner "$module" "verify"

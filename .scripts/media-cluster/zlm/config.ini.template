@@ -40,7 +40,7 @@ udpTTL=64
 enable=1
 on_publish=http://${MEDIA_HOOK_HOST}:${MEDIA_HOOK_PORT}${MEDIA_HOOK_PATH_PREFIX}/video/media/hook/srs/on_publish
 on_stream_changed=http://${MEDIA_HOOK_HOST}:${MEDIA_HOOK_PORT}${MEDIA_HOOK_PATH_PREFIX}/video/media/hook/srs/on_unpublish
-on_record_mp4=http://${MEDIA_HOOK_HOST}:${MEDIA_HOOK_PORT}${MEDIA_HOOK_PATH_PREFIX}/video/media/hook/zlm/on_record_mp4
+on_record_mp4=http://${MEDIA_HOOK_HOST}:${MEDIA_HOOK_PORT}${MEDIA_HOOK_PATH_PREFIX}/sink/media/hook/zlm/on_record_mp4
 timeoutSec=10
 alive_interval=30.0
 

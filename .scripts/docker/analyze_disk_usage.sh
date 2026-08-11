@@ -40,9 +40,9 @@ LOCAL_ALERT_IMAGES_DIR="${PROJECT_ROOT}/VIDEO/alert_images"
 LOCAL_PLAYBACK_CANDIDATES=(
     "${MEDIA_RECORD_DIR:-}|MEDIA_RECORD_DIR（本地录像根目录）"
     "${SRS_RECORD_DIR:-}|SRS_RECORD_DIR（本地录像根目录）"
-    "${EASYAIOT_HOST_DATA_DIR:-${HOME}/easyaiot/data}/playbacks|SRS 默认 playbacks（~/easyaiot/data/playbacks）"
-    "${HOME}/easyaiot/data/playbacks|~/easyaiot/data/playbacks"
-    "/mnt/easyaiot-media/playbacks|集群模式 CephFS playbacks"
+    "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/playbacks|NFS 媒体根 playbacks（EASYAIOT_MEDIA_ROOT）"
+    "${HOME}/easyaiot/media/playbacks|~/easyaiot/media/playbacks（无 sudo 本地 bind）"
+    "${HOME}/easyaiot/data/playbacks|~/easyaiot/data/playbacks（历史路径）"
     "${SCRIPT_DIR}/srs_data/playbacks|中间件 srs_data/playbacks 挂载"
     "/data/playbacks|容器 /data/playbacks 常见宿主机映射"
 )
@@ -50,9 +50,9 @@ LOCAL_PLAYBACK_CANDIDATES=(
 # 本地告警图片中转（上传 MinIO alert-images 前落盘，与 VIDEO/iot-sink 卷挂载一致）
 LOCAL_ALERT_IMAGE_CANDIDATES=(
     "${ALERT_IMAGES_DIR:-}|ALERT_IMAGES_DIR 环境变量"
-    "${PROJECT_ROOT}/VIDEO/alert_images|VIDEO/alert_images（默认本地告警图目录）"
-    "${HOME}/easyaiot/data/alert_images|~/easyaiot/data/alert_images"
-    "/mnt/easyaiot-media/alert_images|集群模式 CephFS alert_images"
+    "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/alert_images|NFS alert_images"
+    "${HOME}/easyaiot/media/alert_images|~/easyaiot/media/alert_images"
+    "${HOME}/easyaiot/data/alert_images|~/easyaiot/data/alert_images（历史）"
 )
 
 print_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }

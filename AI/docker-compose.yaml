@@ -29,8 +29,8 @@ services:
       - ./:/app
       # 数据目录（包含数据集、模型、推理结果、上传文件）
       - ./data:/app/data
-      # mini 形态本地对象存储与 SRS 录像等同用宿主机 ~/easyaiot/data（network_mode: host 不共享 mount namespace）
-      - ~/easyaiot/data:/data:rw
+      # NFS 共享媒体根（与 SRS/VIDEO/iot-sink 一致；无 sudo 时 fallback 到 $HOME/easyaiot/media）
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}:/data:rw
       # 静态文件目录
       - ./static:/app/static
       # 临时上传目录

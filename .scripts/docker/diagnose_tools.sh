@@ -96,6 +96,10 @@ _print_analyze_header() {
     echo "     说明：先看运行状态，再自动做健康检查"
     echo "  4) Docker 与环境检查"
     echo "     说明：确认 Docker / Compose 是否安装可用"
+    echo "  5) 告警事件面验收（控制面共享盘 + MQTT 入库）"
+    echo "     说明：探针校验 ALERT_IMAGES 共享挂载，再跑 MQTT→iot-sink→alert 表"
+    echo "  6) 节点 Ceph/共享媒体（列表·探针·业务打通）"
+    echo "     说明：按 compute_node 列出 ceph_mount_ready，验 alert_images + playbacks"
     echo ""
     echo "  0) 返回上级菜单"
     echo ""
@@ -172,7 +176,7 @@ run_analyze_interactive_menu() {
     local choice=""
     while true; do
         _print_analyze_header
-        read -r -p "请输入分析选项 [0-4]: " choice || choice=""
+        read -r -p "请输入分析选项 [0-6]: " choice || choice=""
         if [ -z "$choice" ]; then
             continue
         fi
@@ -195,6 +199,14 @@ run_analyze_interactive_menu() {
             4)
                 print_info "即将执行：Docker 与环境检查 (check)"
                 easyaiot_run_command check
+                ;;
+            5)
+                print_info "即将执行：告警事件面验收 (verify-alert)"
+                easyaiot_run_command verify-alert
+                ;;
+            6)
+                print_info "即将执行：节点 Ceph 列表 + 业务验收 (ceph verify)"
+                easyaiot_run_command ceph verify
                 ;;
             0|q|Q|exit|b|B)
                 return 0

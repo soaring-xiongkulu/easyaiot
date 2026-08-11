@@ -203,13 +203,26 @@ ensure_dirs() {
   )
   for d in "${dirs[@]}"; do mkdir -p "${SCRIPT_DIR}/${d}"; done
 
-  # macOS 根分区常只读；Windows/macOS 均可用用户目录作为 SRS 宿主机数据目录兜底
-  local DESKTOP_DATA_DIR="${EASYAIOT_DESKTOP_DATA_DIR:-$HOME/easyaiot/data}"
-  if mkdir -p "$DESKTOP_DATA_DIR/playbacks" 2>/dev/null; then
-    chmod 777 "$DESKTOP_DATA_DIR" "$DESKTOP_DATA_DIR/playbacks" 2>/dev/null || true
+  # macOS/Windows：根分区常只读；使用统一媒体根（NFS 或 $HOME/easyaiot/media 本地 bind）
+  local resolve_helper="${SCRIPT_DIR}/../media-cluster/nfs/resolve_media_root.sh"
+  # shellcheck source=/dev/null
+  [ -f "$resolve_helper" ] && source "$resolve_helper"
+  local media_root
+  media_root="$(resolve_easyaiot_media_root 2>/dev/null || echo "${EASYAIOT_MEDIA_ROOT:-${HOME}/easyaiot/media}")"
+  export EASYAIOT_MEDIA_ROOT="$media_root"
+  if mkdir -p "${media_root}/playbacks" "${media_root}/alert_images" 2>/dev/null; then
+    chmod 777 "${media_root}" "${media_root}/playbacks" 2>/dev/null || true
   else
-    warn "无法创建数据目录 $DESKTOP_DATA_DIR，请手动创建并赋予权限"
+    warn "无法创建媒体目录 ${media_root}，请手动创建并赋予权限"
   fi
+  touch "${SCRIPT_DIR}/.env"
+  if grep -q '^EASYAIOT_MEDIA_ROOT=' "${SCRIPT_DIR}/.env" 2>/dev/null; then
+    local tmp="${SCRIPT_DIR}/.env.tmp.$$"
+    sed "s|^EASYAIOT_MEDIA_ROOT=.*|EASYAIOT_MEDIA_ROOT=${media_root}|" "${SCRIPT_DIR}/.env" > "$tmp" && mv "$tmp" "${SCRIPT_DIR}/.env"
+  else
+    echo "EASYAIOT_MEDIA_ROOT=${media_root}" >> "${SCRIPT_DIR}/.env"
+  fi
+  ok "媒体根目录: ${media_root}"
 }
 
 ensure_env() {

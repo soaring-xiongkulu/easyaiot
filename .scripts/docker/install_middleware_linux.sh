@@ -2260,11 +2260,10 @@ create_all_storage_directories() {
         fi
     done
 
-    # SRS 容器绑定宿主机 ~/easyaiot/data -> 容器 /data（与 docker-compose.yml 一致）
-    # 注意：只对数据根目录顶层和 playbacks 设权限，绝不对整个目录树递归
-    local _host_data_dir="${EASYAIOT_HOST_DATA_DIR:-$HOME/easyaiot/data}"
-    run_priv mkdir -p "${_host_data_dir}/playbacks" 2>/dev/null || true
-    run_priv chmod 777 "${_host_data_dir}" "${_host_data_dir}/playbacks" 2>/dev/null || true
+    # SRS 容器绑定 NFS 媒体根 -> 容器 /data（与 docker-compose.yml 一致）
+    local _media_root="${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}"
+    run_priv mkdir -p "${_media_root}/playbacks" 2>/dev/null || true
+    run_priv chmod 777 "${_media_root}" "${_media_root}/playbacks" 2>/dev/null || true
     
     if [ $created_count -eq $total_count ]; then
         print_success "所有存储目录已创建并设置为777权限（${created_count}/${total_count}）"
@@ -2642,21 +2641,38 @@ wait_for_zlmediakit() {
     return 1
 }
 
-# 在安装 SRS 之前创建宿主机 ~/easyaiot/data（SRS 配置中 srs_log_file、dvr_path 使用容器内 /data）
-ensure_host_data_directory_before_srs() {
-    local _host_data_dir="${EASYAIOT_HOST_DATA_DIR:-$HOME/easyaiot/data}"
-    print_info "安装 SRS 前检查宿主机目录 ${_host_data_dir} ..."
-    # 注意：只对数据根目录顶层和 playbacks 设权限，绝不对整个目录树递归
-    local created=0
-    if run_priv mkdir -p "${_host_data_dir}/playbacks" 2>/dev/null; then
-        run_priv chmod 777 "${_host_data_dir}" "${_host_data_dir}/playbacks" 2>/dev/null || true
-        created=1
+# 在安装 SRS 之前确保 NFS 媒体栈（单机默认本机 export；集群挂载远程 NFS_SERVER）
+ensure_nfs_media_before_srs() {
+    local nfs_script="${SCRIPT_DIR}/../media-cluster/nfs/ensure_nfs_media_stack.sh"
+    local resolve_helper="${SCRIPT_DIR}/../media-cluster/nfs/resolve_media_root.sh"
+    local mount_root
+    # shellcheck source=/dev/null
+    [ -f "$resolve_helper" ] && source "$resolve_helper"
+    mount_root="$(resolve_easyaiot_media_root 2>/dev/null || echo "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}")"
+    export EASYAIOT_MEDIA_ROOT="$mount_root"
+    print_info "安装 SRS 前准备 NFS 媒体栈（挂载点 ${mount_root}）..."
+    if [ ! -f "$nfs_script" ]; then
+        print_error "未找到 NFS 脚本: ${nfs_script}"
+        return 1
     fi
-    if [ "$created" -eq 1 ]; then
-        print_success "宿主机目录已就绪: ${_host_data_dir}（含 playbacks 子目录）"
+    if run_priv env \
+        EASYAIOT_MEDIA_ROOT="$mount_root" \
+        NFS_SERVER="${NFS_SERVER:-}" \
+        NFS_EXPORT="${NFS_EXPORT:-}" \
+        bash "$nfs_script"; then
+        mount_root="$(resolve_easyaiot_media_root 2>/dev/null || echo "$mount_root")"
+        export EASYAIOT_MEDIA_ROOT="$mount_root"
+        run_priv chmod 777 "$mount_root" "${mount_root}/playbacks" 2>/dev/null || true
+        print_success "媒体栈已就绪: ${mount_root}"
     else
-        print_warning "无法在宿主机创建 ${_host_data_dir}（请使用 root/sudo 执行安装，或手动: mkdir -p ${_host_data_dir}/playbacks && chmod 777 ${_host_data_dir} ${_host_data_dir}/playbacks）。"
+        print_error "媒体栈准备失败（集群模式需 sudo mount；单机无 sudo 时应 fallback 到 \$HOME/easyaiot/media）"
+        return 1
     fi
+}
+
+# 兼容旧名（内部仍可能被引用）
+ensure_host_data_directory_before_srs() {
+    ensure_nfs_media_before_srs
 }
 
 # 按部署形态写入 SRS http_hooks（SRS 使用 host 网络）
@@ -2669,12 +2685,12 @@ _apply_srs_http_hooks() {
         local video_port="${FLASK_RUN_PORT:-6000}"
         local host_ip=$(get_host_ip)
         on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
-        on_dvr_url="http://${host_ip}:${video_port}/video/camera/callback/on_dvr"
-        print_info "mini 形态：SRS Hook 直连 VIDEO 服务 ${on_publish_url}（无 Gateway）"
+        on_dvr_url="http://${gateway_ip}:48080/admin-api/sink/media/hook/srs/on_dvr"
+        print_info "mini 形态：on_publish 直连 VIDEO；on_dvr 经 Gateway→iot-sink"
     else
         on_publish_url="http://${gateway_ip}:48080/admin-api/video/camera/callback/on_publish"
-        on_dvr_url="http://${gateway_ip}:48080/admin-api/video/camera/callback/on_dvr"
-        print_info "SRS Hook 经 Gateway: http://${gateway_ip}:48080/admin-api/video/camera/callback/*"
+        on_dvr_url="http://${gateway_ip}:48080/admin-api/sink/media/hook/srs/on_dvr"
+        print_info "SRS Hook：on_publish 经 Gateway→VIDEO；on_dvr 经 Gateway→iot-sink"
     fi
 
     sed -i -E "s|on_dvr[[:space:]]+http://[^;]+;|on_dvr              ${on_dvr_url};|g" "$srs_config_file"
@@ -2739,10 +2755,10 @@ prepare_srs_config() {
     if is_mini_deploy_profile; then
         local video_port="${FLASK_RUN_PORT:-6000}"
         on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
-        on_dvr_url="http://${host_ip}:${video_port}/video/camera/callback/on_dvr"
+        on_dvr_url="http://${gateway_ip}:48080/admin-api/sink/media/hook/srs/on_dvr"
     else
         on_publish_url="http://${gateway_ip}:48080/admin-api/video/camera/callback/on_publish"
-        on_dvr_url="http://${gateway_ip}:48080/admin-api/video/camera/callback/on_dvr"
+        on_dvr_url="http://${gateway_ip}:48080/admin-api/sink/media/hook/srs/on_dvr"
     fi
     cat > "$srs_config_file" << EOF
 # SRS Docker 配置文件
@@ -6405,7 +6421,7 @@ show_help() {
     echo "环境变量:"
     echo "  EASYAIOT_DEPLOY_PROFILE   - 部署规格: mini(1,≥4GB) | standard(2,≥16GB) | full(3,≥20GB，默认)"
     echo "  EASYAIOT_ENABLE_TDENGINE  - 完整版自动为 1；mini/standard 为 0"
-    echo "  EASYAIOT_ENABLE_EMQX      - standard/完整版自动为 1；mini 为 0"
+    echo "  EASYAIOT_ENABLE_EMQX      - mini/standard/完整版均为 1；显式 0 可关闭"
     echo "  FORCE_CHMOD=true    - 对已存在的数据目录强制完整递归 chmod 修复（默认只设顶层，数据量大时慢）"
     echo "                        仅在怀疑既有目录权限损坏、容器读写报错时使用一次"
     echo "                        示例: FORCE_CHMOD=true ./install_middleware_linux.sh update"

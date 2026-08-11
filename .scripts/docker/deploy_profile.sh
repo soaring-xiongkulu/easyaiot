@@ -2,7 +2,7 @@
 # EasyAIoT 部署形态配置
 #
 # EASYAIOT_DEPLOY_PROFILE 取值（默认 full）：
-#   mini     | 1  — 边缘精简版，推荐宿主机内存 ≥ 4 GB
+#   mini     | 1  — 边缘精简版，推荐宿主机内存 ≥ 4 GB（事件面统一 Gateway→iot-sink）
 #   standard | 2  — 标准版，推荐宿主机内存 ≥ 16 GB
 #   full     | 3  — 完整版，推荐宿主机内存 ≥ 20 GB（默认）
 #
@@ -26,14 +26,23 @@ _deploy_profile_repo_root() {
     echo "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 }
 
+_deploy_profile_load_media_root_helpers() {
+    local helper
+    helper="$(_deploy_profile_repo_root)/.scripts/media-cluster/nfs/resolve_media_root.sh"
+    [ -f "$helper" ] || return 0
+    # shellcheck source=../media-cluster/nfs/resolve_media_root.sh
+    source "$helper"
+}
+
 apply_deploy_profile() {
+    _deploy_profile_load_media_root_helpers
     EASYAIOT_DEPLOY_PROFILE="$(_resolve_deploy_profile_raw)"
     export EASYAIOT_DEPLOY_PROFILE
 
     case "$EASYAIOT_DEPLOY_PROFILE" in
         mini)
             export EASYAIOT_ENABLE_TDENGINE=0
-            export EASYAIOT_ENABLE_EMQX=0
+            export EASYAIOT_ENABLE_EMQX=1
             ;;
         standard)
             export EASYAIOT_ENABLE_TDENGINE=0
@@ -45,14 +54,21 @@ apply_deploy_profile() {
             ;;
     esac
 
+    EASYAIOT_MEDIA_ROOT="$(resolve_easyaiot_media_root 2>/dev/null || echo "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}")"
+    export EASYAIOT_MEDIA_ROOT
+    if [ -z "${NFS_SERVER:-}" ]; then
+        NFS_SERVER="$(resolve_nfs_server_from_mount)"
+        [ -n "$NFS_SERVER" ] && export NFS_SERVER
+    fi
+
     sync_deploy_profile_to_modules
 }
 
-# docker compose --profile 参数（standard/full 启用 EMQX；full 另启 TDengine）
+# docker compose --profile 参数（mini/standard/full 启用 EMQX；full 另启 TDengine）
 compose_profile_flags() {
     case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
         full) echo "--profile tdengine --profile emqx" ;;
-        standard) echo "--profile emqx" ;;
+        mini|standard) echo "--profile emqx" ;;
         *) echo "" ;;
     esac
 }
@@ -62,7 +78,7 @@ middleware_skipped_services() {
     local -a skips=()
     case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
         mini)
-            skips+=(Nacos MinIO Milvus ZLMediaKit NodeRED FUXA TDengine TDengine-init EMQX Kafka)
+            skips+=(Milvus ZLMediaKit NodeRED FUXA TDengine TDengine-init)
             ;;
         standard)
             skips+=(NodeRED FUXA TDengine TDengine-init)
@@ -78,7 +94,7 @@ device_skipped_services() {
     local -a skips=()
     case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
         mini)
-            skips+=(iot-gateway iot-infra iot-device iot-dataset iot-node iot-visualize iot-file iot-message iot-gb28181 iot-tdengine iot-sink)
+            skips+=(iot-device iot-dataset iot-node iot-visualize iot-file iot-message iot-gb28181 iot-tdengine)
             ;;
         standard)
             skips+=(iot-device iot-tdengine iot-visualize)
@@ -91,13 +107,10 @@ device_skipped_services() {
 
 # DEVICE compose 服务：仅启动白名单（空表示除跳过列表外全部启动）
 device_enabled_services() {
-    case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
-        mini) echo "iot-system" ;;
-        *) echo "" ;;
-    esac
+    echo ""
 }
 
-# mini 形态：不部署 Nacos / Gateway，前端经 nginx 直连 iot-system 宿主机端口
+# mini 形态：精简模块集，但事件面与 standard/full 统一（Gateway→Nacos→iot-sink）
 is_mini_deploy_profile() {
     [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "mini" ]
 }
@@ -260,11 +273,11 @@ print_deploy_profile_summary() {
   warn_web_rebuild_if_profile_changed
   case "${EASYAIOT_DEPLOY_PROFILE}" in
     mini)
-      echo "  业务: iot-system（48099）, VIDEO, AI, RTC, WEB（告警由 VIDEO 直连落库，无需 iot-sink/Kafka）"
+      echo "  业务: iot-gateway + iot-system + iot-sink + VIDEO/AI/RTC/WEB（告警/DVR 统一经 Gateway→sink）"
       echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
-      echo "  中间件: PostgreSQL, Redis, SRS"
-      echo "  不启动: Kafka, iot-sink, Nacos, MinIO, iot-gateway, iot-infra, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine, EMQX、iot-visualize/VISUALIZE、TRANSFORM 及多数 DEVICE 模块"
-      echo "  API 路由: nginx 将 /admin-api、/dev-api 直连宿主机 iot-system:48099（登录鉴权由 system 自身处理）"
+      echo "  中间件: PostgreSQL, Redis, SRS, Nacos, MinIO, EMQX, Kafka"
+      echo "  不启动: TDengine, Milvus, ZLMediaKit, NodeRED, FUXA、iot-device/iot-node/iot-visualize/TRANSFORM 等"
+      echo "  API 路由: nginx → Gateway:48080 → Nacos LB（含 /admin-api/sink/**）"
       ;;
     standard)
       echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE、TRANSFORM（相关菜单不启用）"
@@ -363,6 +376,21 @@ select_deploy_profile_interactive() {
     echo ""
 }
 
+# 从现有 mount 推断 NFS 服务端（未显式设置 NFS_SERVER 时）
+resolve_nfs_server_from_mount() {
+    if [ -n "${NFS_SERVER:-}" ]; then
+        echo "${NFS_SERVER}"
+        return
+    fi
+    local root
+    root="$(resolve_easyaiot_media_root)"
+    if mountpoint -q "$root" 2>/dev/null; then
+        findmnt -n -o SOURCE "$root" 2>/dev/null | cut -d: -f1 || true
+        return
+    fi
+    echo ""
+}
+
 # 写入或更新 .env.docker 中的键值
 # 使用临时文件方式（而非 sed -i），兼容 GNU sed 与 BSD sed（macOS）
 _set_env_docker_kv() {
@@ -378,14 +406,11 @@ _set_env_docker_kv() {
     fi
 }
 
-# WEB：按形态写入 nginx 配置路径（compose 读 WEB/.env 中的 NGINX_CONF）
+# WEB：按形态写入 nginx 配置（统一经 Gateway 48080）
 sync_web_deploy_profile_env() {
     local root="${1:-$(_deploy_profile_repo_root)}"
     local web_env="${root}/WEB/.env"
     local conf="./conf/nginx.conf"
-    if is_mini_deploy_profile; then
-        conf="./conf/nginx.mini.conf"
-    fi
     [ -f "$web_env" ] || return 0
     if grep -q '^NGINX_CONF=' "$web_env" 2>/dev/null; then
         local tmp="${web_env}.tmp.$$"
@@ -399,10 +424,25 @@ sync_web_deploy_profile_env() {
 # 将 .deploy_profile 同步到各业务模块持久化配置（install/start/restart 均应一致）
 sync_deploy_profile_to_modules() {
     local root="${1:-$(_deploy_profile_repo_root)}"
+    apply_middleware_deploy_env "$root"
     apply_python_service_deploy_env "$root"
     apply_device_deploy_env "$root"
     apply_transform_deploy_env "$root"
     sync_web_deploy_profile_env "$root"
+}
+
+# 中间件 compose：写入 .env 供 SRS 等 volume 变量替换
+apply_middleware_deploy_env() {
+    local root="${1:-$(_deploy_profile_repo_root)}"
+    local env_file="${root}/.scripts/docker/.env"
+    local mount_root
+    mount_root="$(resolve_easyaiot_media_root)"
+    local nfs_export="${NFS_EXPORT:-/mnt/easyaiot-media}"
+    mkdir -p "$(dirname "$env_file")"
+    touch "$env_file"
+    _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$mount_root"
+    _set_env_docker_kv "$env_file" NFS_SERVER "${NFS_SERVER:-}"
+    _set_env_docker_kv "$env_file" NFS_EXPORT "$nfs_export"
 }
 
 # DEVICE：按形态写入 .env（docker compose 自动读取，供 IOT_SYSTEM_SPRING_PROFILES_ACTIVE 等变量替换）
@@ -417,6 +457,7 @@ apply_device_deploy_env() {
         _set_env_docker_kv "$env_file" IOT_SYSTEM_SPRING_PROFILES_ACTIVE "local"
     fi
     _set_env_docker_kv "$env_file" IOT_SINK_SPRING_PROFILES_ACTIVE "$(iot_sink_spring_profiles_active)"
+    _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$(resolve_easyaiot_media_root)"
 }
 
 # TRANSFORM：按形态写入 .env.docker（供运行脚本统一读取）
@@ -457,7 +498,21 @@ record_web_deploy_profile_built() {
     echo "${EASYAIOT_DEPLOY_PROFILE:-full}" > "$stamp"
 }
 
-# 按部署形态同步 VIDEO/AI .env.docker（mini 直连 48099 + 本地存储；standard/full 走网关 + MinIO）
+# 按部署形态同步 VIDEO/AI .env.docker（告警/DVR 统一经 Gateway→iot-sink；mini 仅精简 DEVICE/中间件）
+_apply_python_sink_media_env() {
+    local env_file="$1"
+    local mount_root
+    mount_root="$(resolve_easyaiot_media_root)"
+    _set_env_docker_kv "$env_file" MINIO_ENABLED true
+    _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 1
+    _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
+    _set_env_docker_kv "$env_file" IOT_SINK_MEDIA_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
+    _set_env_docker_kv "$env_file" ALERT_IMAGES_DIR "/mnt/easyaiot-media/alert_images"
+    _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$mount_root"
+    _set_env_docker_kv "$env_file" SRS_HOST_DATA_ROOT "$mount_root"
+    _set_env_docker_kv "$env_file" SRS_RECORD_DIR "${mount_root}/playbacks"
+}
+
 apply_python_service_deploy_env() {
     local root="${1:-$(_deploy_profile_repo_root)}"
     if [ -z "$root" ]; then
@@ -467,30 +522,23 @@ apply_python_service_deploy_env() {
     for module in VIDEO AI; do
         env_file="${root}/${module}/.env.docker"
         [ -f "$env_file" ] || continue
+        _set_env_docker_kv "$env_file" EASYAIOT_DEPLOY_PROFILE "${EASYAIOT_DEPLOY_PROFILE:-full}"
+        _set_env_docker_kv "$env_file" JAVA_BACKEND_URL "http://localhost:48080"
+        _set_env_docker_kv "$env_file" GATEWAY_URL "http://localhost:48080"
+        _set_env_docker_kv "$env_file" AUTH_CHECK_URL "http://localhost:48080/admin-api/system/auth/get-permission-info"
         if is_mini_deploy_profile; then
-            _set_env_docker_kv "$env_file" EASYAIOT_DEPLOY_PROFILE mini
-            _set_env_docker_kv "$env_file" JAVA_BACKEND_URL "http://localhost:48099"
-            _set_env_docker_kv "$env_file" GATEWAY_URL "http://localhost:48099"
-            _set_env_docker_kv "$env_file" AUTH_CHECK_URL "http://localhost:48099/admin-api/system/auth/get-permission-info"
             _set_env_docker_kv "$env_file" NODE_REMOTE_DEPLOY false
-            if [ "$module" = "VIDEO" ]; then
-                _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST true
-                _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST true
-            fi
-            if [ "$module" = "AI" ]; then
-                # compose 只读挂载 ../.scripts/minio -> /minio-seed-data（flat 种子数据）
-                _set_env_docker_kv "$env_file" MINIO_SEED_DATA_ROOT "/minio-seed-data"
-            fi
         else
-            _set_env_docker_kv "$env_file" EASYAIOT_DEPLOY_PROFILE "${EASYAIOT_DEPLOY_PROFILE:-full}"
-            _set_env_docker_kv "$env_file" JAVA_BACKEND_URL "http://localhost:48080"
-            _set_env_docker_kv "$env_file" GATEWAY_URL "http://localhost:48080"
-            _set_env_docker_kv "$env_file" AUTH_CHECK_URL "http://localhost:48080/admin-api/system/auth/get-permission-info"
             _set_env_docker_kv "$env_file" NODE_REMOTE_DEPLOY true
-            if [ "$module" = "VIDEO" ]; then
+        fi
+        if [ "$module" = "VIDEO" ]; then
+            if is_mini_deploy_profile; then
+                _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST true
+            else
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST false
-                _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST false
             fi
+            _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST false
+            _apply_python_sink_media_env "$env_file"
         fi
     done
 }

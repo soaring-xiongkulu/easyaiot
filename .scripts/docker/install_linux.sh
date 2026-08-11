@@ -21,6 +21,9 @@
 #   clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件）
 #   update     - 更新镜像并重启所有服务（交互可选拉取/本地重建）
 #   verify     - 验证所有服务是否启动成功
+#   verify-alert - 告警事件面验收（共享盘挂载 + MQTT→iot-sink→入库）
+#   verify-dvr   - DVR/NFS 链路验收（NFS 写盘 → sink → MinIO）
+#   ceph|verify-ceph - 节点 Ceph/共享媒体：list|status|probe|verify（告警图+录像目录）
 #   check      - 检查 Docker 和 Docker Compose 安装状态
 #   profile    - 显示当前部署形态与服务范围
 #   site [子命令] - 官方网站 SITE 独立部署
@@ -30,7 +33,7 @@
 #   analyze-disk   - 项目关键目录磁盘占用分析
 #
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
-#   mini(1)     - 4G：iot-system + VIDEO/AI/RTC/WEB + 最小中间件（无 Kafka/iot-sink/Nacos/Gateway/Infra/可视化）
+#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件（无 TDengine/可视化/iot-node 等）
 #   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/NodeRED/iot-visualize（含 EMQX）
 #   full(3)     - 全量（默认，约 20G）；含 iot-visualize/VISUALIZE、TRANSFORM；启动后自动拉起工业协议演示（Modbus TCP/RTU + OPC UA）；PANEL 全形态启用
 # ============================================
@@ -1247,12 +1250,6 @@ _check_iot_gateway_ready() {
 }
 
 wait_for_device_gateway() {
-    # mini 形态无 iot-gateway，直连 iot-system，无需等待
-    if is_mini_deploy_profile; then
-        print_info "当前为 mini 部署形态，跳过 iot-gateway 就绪检查（直连 iot-system:48099）"
-        return 0
-    fi
-
     print_info "等待 iot-gateway 就绪（Gateway API 网关，端口 48080）..."
 
     # 检查容器是否存在
@@ -1749,6 +1746,25 @@ verify_all() {
             echo -e "  运维控制台 (PANEL):     http://localhost:9200"
         fi
         echo ""
+        # 服务健康通过后，可选跑告警事件面（共享盘 + MQTT 入库）；失败默认仅告警不拖垮 verify
+        if [ "${EASYAIOT_VERIFY_ALERT_ON_VERIFY:-1}" != "0" ]; then
+            print_info "继续告警事件面验收（可用 EASYAIOT_VERIFY_ALERT_ON_VERIFY=0 跳过）…"
+            if verify_alert_mqtt_chain; then
+                print_success "告警事件面验收通过"
+            else
+                print_warning "告警事件面验收未通过（不影响上方服务健康结果）。单独重跑: $0 verify-alert"
+            fi
+            echo ""
+        fi
+        if [ "${EASYAIOT_VERIFY_DVR_ON_VERIFY:-1}" != "0" ]; then
+            print_info "继续 DVR/NFS 链路验收（可用 EASYAIOT_VERIFY_DVR_ON_VERIFY=0 跳过）…"
+            if verify_dvr_nfs_chain; then
+                print_success "DVR/NFS 链路验收通过"
+            else
+                print_warning "DVR/NFS 链路验收未通过。单独重跑: $0 verify-dvr"
+            fi
+            echo ""
+        fi
         return 0
     else
         print_warning "部分服务未就绪:"
@@ -1759,6 +1775,49 @@ verify_all() {
         print_info "查看日志: ./install_linux.sh logs"
         return 1
     fi
+}
+
+# 告警事件面：共享盘挂载 + MQTT→iot-sink→alert 入库
+verify_alert_mqtt_chain() {
+    local script="${SCRIPT_DIR}/verify_alert_mqtt_chain.sh"
+    if [ ! -f "$script" ]; then
+        print_error "未找到 ${script}"
+        return 1
+    fi
+    if [ ! -x "$script" ]; then
+        chmod +x "$script" 2>/dev/null || true
+    fi
+    print_section "告警事件面验收（共享盘 + MQTT 入库）"
+    bash "$script" "$@"
+}
+
+verify_dvr_nfs_chain() {
+    local script="${SCRIPT_DIR}/verify_dvr_nfs_chain.sh"
+    if [ ! -f "$script" ]; then
+        print_error "未找到 ${script}"
+        return 1
+    fi
+    if [ ! -x "$script" ]; then
+        chmod +x "$script" 2>/dev/null || true
+    fi
+    print_section "DVR/NFS 链路验收（NFS 写盘 → sink → MinIO）"
+    bash "$script" "$@"
+}
+
+# 节点 Ceph/共享媒体目录：列表、状态、探针、业务验收
+run_ceph_cmd() {
+    local script="${SCRIPT_DIR}/verify_ceph_nodes.sh"
+    if [ ! -f "$script" ]; then
+        print_error "未找到 ${script}"
+        return 1
+    fi
+    if [ ! -x "$script" ]; then
+        chmod +x "$script" 2>/dev/null || true
+    fi
+    local sub="${1:-verify}"
+    shift || true
+    print_section "节点 Ceph / 共享媒体（${sub}）"
+    bash "$script" "$sub" "$@"
 }
 
 # 检查 Docker 和 Docker Compose 安装状态
@@ -1852,7 +1911,11 @@ show_help() {
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
     echo "  update          - 更新镜像并重启所有服务（交互可选拉取/本地重建）"
-    echo "  verify          - 验证所有服务是否启动成功"
+    echo "  verify          - 验证所有服务是否启动成功（含告警/DVR 事件面验收）"
+    echo "  verify-alert    - 告警事件面验收（控制面共享盘 + MQTT→iot-sink→入库）"
+    echo "  verify-dvr      - DVR/NFS 链路验收（NFS → sink Hook → MinIO → playback）"
+    echo "  ceph|verify-ceph - 节点 Ceph/共享媒体管理与验收"
+    echo "      ceph list | status [id|host|all] | probe [id|host|all] | verify [--mount-only]"
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
@@ -1887,6 +1950,10 @@ show_help() {
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
     echo "  VIDEO_BASE_URL               - runtime 原子模式：中心 VIDEO 汇聚地址（如 http://192.168.1.10:6000）"
     echo "  EASYAIOT_RUNTIME_INSTALL_DIR - runtime 原子模式安装目录（默认 /opt/easyaiot/RUNTIME）"
+    echo "  EASYAIOT_VERIFY_ALERT_ON_VERIFY=0 - verify 时跳过告警 MQTT/共享盘验收"
+    echo "  EASYAIOT_VERIFY_ALERT_STRICT=1    - verify-alert 前置缺失时按失败退出"
+    echo "  MQTT_BROKER_URLS / ALERT_IMAGES_DIR / VERIFY_DEVICE_ID - 告警验收覆盖项"
+    echo "  CEPH_MOUNT_ROOT / PLAYBACKS_DIR / CEPH_SSH_USER - 节点 Ceph 探针覆盖项"
     echo ""
 }
 
@@ -1992,6 +2059,19 @@ main() {
             ;;
         verify)
             verify_all
+            ;;
+        verify-alert|verify-mqtt-alert|verify-alert-chain)
+            verify_alert_mqtt_chain "${@:2}"
+            ;;
+        verify-dvr|verify-dvr-nfs|verify-nfs-dvr)
+            verify_dvr_nfs_chain "${@:2}"
+            ;;
+        ceph|verify-ceph|ceph-nodes)
+            if [ "$cmd" = "verify-ceph" ] && [ -z "${2:-}" ]; then
+                run_ceph_cmd verify
+            else
+                run_ceph_cmd "${2:-verify}" "${@:3}"
+            fi
             ;;
         check)
             check_environment

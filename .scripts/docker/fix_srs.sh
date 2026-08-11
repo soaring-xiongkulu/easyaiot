@@ -4,7 +4,7 @@
 # SRS 容器重启脚本
 # ============================================
 # 重启 docker-compose 中的 SRS 服务（容器名：srs-server），用于配置变更或异常恢复后快速拉起。
-# 与 compose 约定一致：宿主机 ~/easyaiot/data 挂载为容器内 /data（录像与 srs.log）。
+# 与 compose 约定一致：宿主机 NFS 媒体根挂载为容器内 /data（录像与 srs.log）。
 # 使用方法（在 .scripts/docker 目录下）：
 #   ./fix_srs.sh
 # ============================================
@@ -22,7 +22,7 @@ cd "$SCRIPT_DIR"
 
 CONTAINER_NAME="${SRS_CONTAINER_NAME:-srs-server}"
 COMPOSE_SERVICE="${SRS_COMPOSE_SERVICE:-SRS}"
-HOST_DATA_DIR="${EASYAIOT_HOST_DATA_DIR:-$HOME/easyaiot/data}"
+HOST_DATA_DIR="${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}"
 
 print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
@@ -44,16 +44,20 @@ get_compose_cmd() {
     fi
 }
 
-# 与 install_middleware_linux.sh 约定一致：宿主机 ~/easyaiot/data
+# 与 compose 约定一致：NFS 媒体根挂载为容器 /data（录像 srs.log 与 playbacks）
 ensure_srs_host_data_dir() {
-    if [ "$EUID" -eq 0 ]; then
-        mkdir -p "${HOST_DATA_DIR}/playbacks" 2>/dev/null || true
-        chmod 777 "${HOST_DATA_DIR}" "${HOST_DATA_DIR}/playbacks" 2>/dev/null || true
-    elif command -v sudo &>/dev/null; then
-        sudo mkdir -p "${HOST_DATA_DIR}/playbacks" 2>/dev/null || true
-        sudo chmod 777 "${HOST_DATA_DIR}" "${HOST_DATA_DIR}/playbacks" 2>/dev/null || true
+    local mount_root="${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}"
+    local nfs_script="${SCRIPT_DIR}/../media-cluster/nfs/ensure_nfs_media_stack.sh"
+    if [ -f "$nfs_script" ]; then
+        if [ "$EUID" -eq 0 ]; then
+            env EASYAIOT_MEDIA_ROOT="$mount_root" NFS_SERVER="${NFS_SERVER:-}" bash "$nfs_script"
+        elif command -v sudo &>/dev/null; then
+            sudo env EASYAIOT_MEDIA_ROOT="$mount_root" NFS_SERVER="${NFS_SERVER:-}" bash "$nfs_script"
+        else
+            env EASYAIOT_MEDIA_ROOT="$mount_root" NFS_SERVER="${NFS_SERVER:-}" bash "$nfs_script"
+        fi
     else
-        mkdir -p "${HOST_DATA_DIR}/playbacks" 2>/dev/null || true
+        mkdir -p "${mount_root}/playbacks" 2>/dev/null || true
     fi
 }
 

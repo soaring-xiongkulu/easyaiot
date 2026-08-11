@@ -6,7 +6,7 @@ services:
     command: !reset null
     volumes: !override
       - ./data:/app/data
-      - ~/easyaiot/data:/data:rw
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}:/data:rw
       - ./static:/app/static
       - ./temp_uploads:/app/temp_uploads
       - ./model:/app/model
