@@ -17,9 +17,9 @@ Oracle = `F:/acme` @ main `VIDEO/` · Candidate = worktree `DEVICE/iot-video` ·
 |-----------|----|------|------|
 | 0.1 | Nacos 注册 + health | **PASS** | `logs/phase1-0.1-evidence.json` |
 | 0.2 | 网关 `lb://video-server` | **PASS** | `logs/phase1-0.2-evidence.json` |
-| 0.3 | 共享 DB 只读冒烟 | **PASS**（功能）/ **⛔**（5432 字面端口） | `logs/phase1-0.3-evidence.json` |
+| 0.3 | 共享 DB 只读冒烟 | **PASS** | `logs/phase1-0.3-reverify.json` |
 
-**已修复配置：** `bootstrap-local.yaml` Nacos discovery 启用；`application-local.yaml` datasource 对齐 `5432` + MinIO env 占位。
+**已修复配置：** `bootstrap-local.yaml` Nacos discovery 启用；`application-local.yaml` datasource 对齐 docker 主机映射 **15432** / `iot-video20` + MinIO env 占位（无需 CLI override）。
 
 ---
 
@@ -27,7 +27,6 @@ Oracle = `F:/acme` @ main `VIDEO/` · Candidate = worktree `DEVICE/iot-video` ·
 
 | # | 项 | 阻塞说明 |
 |---|-----|----------|
-| D1 | Desktop PG 端口冲突 | 本机 `postgresql-x64-17` 占用 `:5432`（密码与 `iot-video20` 不一致）；docker `postgres-server` 映射 **`:15432`**。已提交配置为 `5432`；须管理员停止 native PG 或重映射 docker 至 `5432`。 |
 | D2 | Nacos 冷启动 | 全新 Nacos 卷须 `POST /nacos/v1/auth/users/admin` 初始化（见 `install_middleware_desktop.sh`）。 |
 | 3.x | WVP / 国标 | 本机可达 WVP 则测；否则记缺口 |
 | 4.x | ONVIF / NVR / 真机 | 有设备则测 |

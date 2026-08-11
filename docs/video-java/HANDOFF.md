@@ -68,14 +68,14 @@
 
 ## 8. 现状摘要（阶段 1 接线 — 2026-08-11）
 
-- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2 PASS；0.3 功能 PASS，desktop PG 5432 端口待解）。  
+- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2/0.3 PASS；datasource 对齐 docker **15432**）。  
 - **HTTP 契约面：** 14 前缀 inventory diff≈0（历史）。  
-- **默认配置：** `local` / `application.yaml` / `VideoProperties` 商业默认；`bootstrap-local` Nacos discovery 已启用；`application-local` datasource 对齐 `5432`。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)、[PHASE1_STACK.md](./PHASE1_STACK.md)。  
+- **默认配置：** `local` / `application.yaml` / `VideoProperties` 商业默认；`bootstrap-local` Nacos discovery 已启用；`application-local` datasource 对齐 **15432**（共享 `iot-video20`）。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)、[PHASE1_STACK.md](./PHASE1_STACK.md)。  
 - **禁止：** COMPLETE、FR-B46+、矩阵刷绿、删 main Python VIDEO、「等线上」叙事。
 
 ## 9. 下一步（阶段 2 — 须另令）
 
-按 [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续：解决 desktop PG `:5432` 冲突后，推进 Kafka 告警链 / MinIO 上传 / 匹配告警等 1.x–6.x 对标 Python。**未经下一令不要启动阶段 2。**
+按 [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续：推进 Kafka 告警链 / MinIO 上传 / 匹配告警等 1.x–6.x 对标 Python。**未经下一令不要启动阶段 2。**
 
 ## 10. 历史约束
 

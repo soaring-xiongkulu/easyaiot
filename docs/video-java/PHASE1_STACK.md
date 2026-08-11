@@ -18,13 +18,13 @@
 
 - Docker Desktop was down at brief time; started via `D:\Docker\App\Docker Desktop.exe`.
 - Nacos image pulled from mirror `docker.1ms.run/nacos/nacos-server:v2.5.1`; fresh volume required admin init (`POST /nacos/v1/auth/users/admin`).
-- Desktop PG port conflict: docker-compose maps Postgres to **15432** because native PG17 occupies **5432**. Committed `application-local.yaml` uses canonical **5432** per Oracle `.env`; runtime 0.3 evidence used `--spring.datasource.url=…15432…` override to reach shared `iot-video20` data.
+- **Why port 15432 (not 5432):** On this Windows desktop, native `postgresql-x64-17` binds **5432** with a different password — it is **not** the shared ACME `iot-video20` database. Docker `postgres-server` maps host **15432** → container **5432** (see `.scripts/docker` compose). Oracle `VIDEO/.env` uses `:5432` for Linux/container-native networking; on Windows docker-compose the host-facing port is **15432**. Committed `application-local.yaml` targets **15432** so `video-server` reaches the shared DB without CLI override.
 
 ## Config files changed
 
 | File | Change |
 |------|--------|
-| `DEVICE/iot-video/iot-video-biz/src/main/resources/application-local.yaml` | Datasource `15432` → **`5432`**; MinIO `access-key` / `secret-key` env placeholders |
+| `DEVICE/iot-video/iot-video-biz/src/main/resources/application-local.yaml` | Datasource **`15432`** / `iot-video20` (docker host map; see note above); MinIO `access-key` / `secret-key` env placeholders |
 | `DEVICE/iot-video/iot-video-biz/src/main/resources/bootstrap-local.yaml` | Nacos discovery **enabled** (`video-server`); config center disabled; credentials via `${NACOS_*}` env |
 
 ## 0.1 — Nacos registration + `/actuator/health`
@@ -51,12 +51,11 @@ Route: `application.yaml` → `uri: lb://video-server` for `/admin-api/video/**`
 
 | Check | Result |
 |-------|--------|
-| JDBC config committed to port **5432** / `iot-video20` | **PASS** (config) |
-| `GET /admin-api/video/camera/list` via gateway → `code:0`, 16 devices | **PASS** |
+| JDBC config committed to port **15432** / `iot-video20` (no CLI override) | **PASS** |
+| `GET /admin-api/video/camera/list` via gateway → `code:0`, real device rows | **PASS** |
 | `GET /admin-api/video/alert/page` via gateway → `code:0`, real alert rows | **PASS** |
-| Literal port **5432** connect without override on this desktop | **⛔** (native PG17 password mismatch; shared data on docker **15432**) |
 
-**Evidence:** `logs/phase1-0.3-evidence.json`, `logs/phase1-0.3-video-server.log`
+**Evidence:** `logs/phase1-0.3-reverify.json`, `logs/phase1-0.3-evidence.json` (prior run with CLI override)
 
 ## Start commands (reference)
 
@@ -79,6 +78,6 @@ java -jar DEVICE/iot-gateway/target/iot-gateway.jar --spring.profiles.active=loc
 
 ## Phase 2 readiness
 
-**Partial — 0.1/0.2 green; 0.3 functional smoke green with desktop PG port caveat.**
+**Ready — 0.1/0.2/0.3 green on committed `application-local.yaml` (port 15432, profile `local` only).**
 
-Resolve before Phase 2: stop `postgresql-x64-17` (admin) or remap docker Postgres to host `:5432` so committed `application-local.yaml` connects without override.
+Note: native `postgresql-x64-17` still occupies host `:5432`; that is a separate instance and intentionally not used.
