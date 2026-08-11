@@ -1,0 +1,156 @@
+{
+  "pack": "P2-A6",
+  "title": "Post-process real enqueue to iot-sink (no stub, local full stack)",
+  "generated_at": "2026-08-11T18:52:38+08:00",
+  "status": "⛔",
+  "status_detail": "缺 sink — iot-sink not listening on 127.0.0.1:48092; real HTTP enqueue attempted, not stub",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "nacos": "127.0.0.1:8848",
+    "minio": "127.0.0.1:9000",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096",
+    "iot_sink": "127.0.0.1:48092 (DOWN — connection refused)"
+  },
+  "config_checks": [
+    {
+      "check": "video.post-process.use-stub-enqueue",
+      "expected": false,
+      "source": "application-local.yaml + application.yaml (VideoProperties default)",
+      "actual": false,
+      "status": "pass",
+      "note": "Stub path not used; enqueue_ok=false proves real HTTP attempted (stub would record enqueue_ok=true)"
+    },
+    {
+      "check": "video.post-process.sink-host / sink-port",
+      "expected": "127.0.0.1:48092",
+      "source": "application-local.yaml",
+      "actual": "127.0.0.1:48092",
+      "status": "pass"
+    },
+    {
+      "check": "video.post-process.sink-use-gateway",
+      "expected": false,
+      "source": "application-local.yaml (direct sink enqueue mirrors Python post_process_sink_client)",
+      "actual": false,
+      "status": "pass"
+    },
+    {
+      "check": "iot-sink reachable",
+      "expected": "HTTP 2xx on POST /post-process/enqueue",
+      "actual": "connection refused (TcpTestSucceeded=false); gateway /admin-api/sink/post-process/enqueue → 503",
+      "status": "blocked",
+      "note": "Honest ⛔ per brief — sink not running on local stack; stub not restored"
+    }
+  ],
+  "oracle_python": {
+    "enqueue": "F:/acme/VIDEO/app/utils/post_process_runner.py → enqueue_post_process_request()",
+    "sink_client": "F:/acme/VIDEO/app/services/post_process_sink_client.py → publish_post_process_request() → POST http://127.0.0.1:48092/post-process/enqueue",
+    "orchestration": "F:/acme/VIDEO/app/services/alert_post_orchestrator_service.py → schedule post-alert orchestration when task needs sink processing",
+    "gate": "Non-mini: real HTTP to iot-sink; no stub enqueue"
+  },
+  "java_candidate": {
+    "sink_client": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/PostProcessSinkClient.java → publishPostProcessRequest()",
+    "orchestrator": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/AlertPostOrchestratorService.java",
+    "post_process_service": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/PostProcessService.java",
+    "audit": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/PostProcessEnqueueAudit.java",
+    "controller": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/controller/AlgorithmTaskController.java → /task/{id}/post-process/*",
+    "gate": "videoProperties.getPostProcess().isUseStubEnqueue() == false → RestTemplate POST to sinkEnqueueUrl()"
+  },
+  "fixture": {
+    "task_id": 61,
+    "task_name": "frb26_alert_e2e",
+    "task_type": "realtime",
+    "device_id": "frb26_device",
+    "device_name": "FR-B26 Pure Kafka DVR + Alert E2E",
+    "executor": "cpp",
+    "prior_packs": "A1/A2/A3/A4/A5 (same device/task)"
+  },
+  "workspace_init": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/algorithm/task/61/post-process/init",
+    "http_status": 200,
+    "code": 0,
+    "post_process_enabled": true,
+    "workspace_path": "C:/Users/g/.video-java/post-process-workspaces/task_61",
+    "script_path": "C:/Users/g/.video-java/post-process-workspaces/task_61/post_process.py",
+    "created_files": ["post_process.py", "README.md"]
+  },
+  "enqueue_trigger": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/video/alert/hook",
+    "correlation_id": "phase2-a6-20260811185238",
+    "payload_summary": {
+      "object": "person",
+      "event": "phase2_a6_postprocess_parity",
+      "device_id": "frb26_device",
+      "task_id": 61,
+      "task_type": "realtime",
+      "information": {
+        "frame_number": 42,
+        "detections": [
+          {
+            "class_name": "person",
+            "confidence": 0.92,
+            "bbox": [100, 120, 200, 400],
+            "track_id": 7,
+            "duration": 1.5
+          }
+        ]
+      }
+    },
+    "alert_hook_response": {
+      "code": 0,
+      "status": "skipped",
+      "reason": "alert_event_disabled",
+      "note": "Orchestration still scheduled because explicit task_id present (mirrors Python alert hook pre-check)"
+    },
+    "expected_enqueue_url": "http://127.0.0.1:48092/post-process/enqueue"
+  },
+  "enqueue_audit": {
+    "status_endpoint": "GET http://127.0.0.1:48080/admin-api/video/algorithm/task/61/post-process/status",
+    "before_reset": {
+      "enqueue_count": 0,
+      "enqueue_url": null,
+      "enqueue_ok": null
+    },
+    "after_hook_wait_3s": {
+      "enqueue_count": 1,
+      "enqueue_url": "post-process/enqueue",
+      "enqueue_ok": false,
+      "stub_path_used": false,
+      "interpretation": "Real HTTP attempted to iot-sink; failure recorded because sink down"
+    }
+  },
+  "direct_sink_probe": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48092/post-process/enqueue",
+    "result": "connection refused",
+    "correlation_id": "phase2-a6-20260811185238-direct"
+  },
+  "gateway_sink_probe": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48080/admin-api/sink/post-process/enqueue",
+    "result": "503 Service Unavailable"
+  },
+  "acceptance": [
+    { "check": "use-stub-enqueue=false under local profile (committed + default)", "status": "pass" },
+    { "check": "post-process workspace init + enabled on task 61", "status": "pass" },
+    { "check": "alert hook path triggers post-process enqueue orchestration (explicit task_id + detections)", "status": "pass" },
+    { "check": "real HTTP enqueue attempted (enqueue_count=1, enqueue_ok=false, not stub)", "status": "pass" },
+    { "check": "iot-sink UP and HTTP 2xx on enqueue", "status": "blocked", "reason": "127.0.0.1:48092 not listening; no iot-sink-biz.jar running" },
+    { "check": "stub not restored to fake PASS", "status": "pass" }
+  ],
+  "code_fixes_applied": [],
+  "concerns": [
+    "iot-sink (DEVICE/iot-sink) not part of Phase 1 stack wiring — must be started on :48092 for full PASS",
+    "iot-sink application-local.yaml still points PG to localhost:5432 (not 15432 docker map) — separate from video-server wiring",
+    "alert_event_enabled=false on task 61 means alert hook returns skipped; enqueue still fires via explicit task_id orchestration path"
+  ],
+  "nested_subagents": "none",
+  "ready_for_a7": true
+}

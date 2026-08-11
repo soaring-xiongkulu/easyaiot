@@ -66,21 +66,22 @@
 4. [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md)  
 5. `F:/acme/VIDEO/`（Oracle）+ Candidate controllers
 
-## 8. 现状摘要（阶段 2 A5 — 2026-08-11）
+## 8. 现状摘要（阶段 2 A6 — 2026-08-11）
 
-- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2/0.3 PASS）；**阶段 2 pack A1 PASS** — alert hook Kafka；**A2 PASS** — algo RUNTIME 生命周期；**A3 PASS** — ViewForward / stream-forward 真实 ffmpeg 子进程生命周期；**A4 PASS** — media DVR/Snap hook Kafka → consumer → MinIO + DB 路径可解释；**A5 PASS** — camera list/get/register/update 关键字段与 Python Oracle 同库对齐。  
+- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2/0.3 PASS）；**阶段 2 pack A1 PASS** — alert hook Kafka；**A2 PASS** — algo RUNTIME 生命周期；**A3 PASS** — ViewForward / stream-forward 真实 ffmpeg 子进程生命周期；**A4 PASS** — media DVR/Snap hook Kafka → consumer → MinIO + DB 路径可解释；**A5 PASS** — camera list/get/register/update 关键字段与 Python Oracle 同库对齐；**A6 ⛔缺 sink** — `use-stub-enqueue=false` 下真实 HTTP 入队已触发（`enqueue_count=1`，`enqueue_ok=false`），但本机 `iot-sink` 未监听 `:48092`，未恢复 stub。  
 - **A1 证据：** `logs/phase2-a1-alert-kafka.json`；`profile=local`，`use-direct-persist=false`，`POST /admin-api/video/alert/hook` → `mode=kafka`（topic/partition/offset），broker 消息已消费验证。  
 - **A2 证据：** `logs/phase2-a2-runtime-lifecycle.json`；task 61 `frb26_alert_e2e`：`POST .../algorithm/task/61/start` → RUNTIME PID 存活 → `services/status` running → `stop` 干净。  
 - **A3 证据：** `logs/phase2-a3-forward.json`；device `frb26_device` ViewForward：`stream/start` → ffmpeg PID 存活 → `stream/status` running → `stop` 干净；stream-forward task 63 同路径验证。  
 - **A4 证据：** `logs/phase2-a4-media-minio.json`；`upload-mode=kafka`，`minio.enabled=true`：`POST .../media/hook/snap/completed` → `media.snap.completed` → MinIO `snap-space` + `snap_image`；`POST .../media/hook/srs/on_dvr` → `media.dvr.completed` → MinIO `record-space` + `record_file`/`playback`。  
 - **A5 证据：** `logs/phase2-a5-camera.json`；`GET /admin-api/video/camera/list` + `GET .../device/frb26_device` 关键字段与 Python `_to_dict` 同库一致；`POST .../register/device` 登记 `p2a5_cam_20260811184235` + snap/record space；`PUT` 更新 name/model。见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
+- **A6 证据：** `logs/phase2-a6-postprocess.json`；`use-stub-enqueue=false`；`POST .../algorithm/task/61/post-process/init` 启用后处理；`POST .../alert/hook`（显式 `task_id` + `detections`）→ `enqueue_count=1`、`enqueue_ok=false`（真实 HTTP 非 stub）；`127.0.0.1:48092` 连接拒绝。见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
 - **HTTP 契约面：** 14 前缀 inventory diff≈0（历史）。  
 - **默认配置：** `local` / `application.yaml` / `VideoProperties` 商业默认；`bootstrap-local` Nacos discovery 已启用；`application-local` datasource 对齐 **15432**（共享 `iot-video20`）。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)、[PHASE1_STACK.md](./PHASE1_STACK.md)。  
 - **禁止：** COMPLETE、FR-B46+、矩阵刷绿、删 main Python VIDEO、「等线上」叙事。
 
-## 9. 下一步（阶段 2 — A6 起）
+## 9. 下一步（阶段 2 — A7 起）
 
-按 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md) / [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续：**A6**（Post-process）及剩余对标 Python。**A5 已完成，可接 A6 令。**
+按 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md) / [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续：**A7**（Matching）及剩余对标 Python。**A6 已完成（⛔缺 sink，Java 侧真实入队已证），可接 A7 令。** 可选：启动本机 `iot-sink`（`:48092`）后重跑 A6 取证至 PASS。
 
 ## 10. 历史约束
 

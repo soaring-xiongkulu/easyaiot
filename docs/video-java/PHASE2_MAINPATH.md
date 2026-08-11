@@ -258,6 +258,56 @@ Prove Java `video-server` under `profile=local` list/get/register/update camera 
 
 ---
 
+## Pack A6 — Post-process real enqueue (no stub)
+
+| Field | Value |
+|-------|-------|
+| **Status** | **⛔缺 sink** |
+| **Date** | 2026-08-11 |
+| **Evidence** | `logs/phase2-a6-postprocess.json` |
+
+### Goal
+
+Prove Java `video-server` under `profile=local` with `use-stub-enqueue=false` performs **real HTTP enqueue** to iot-sink when post-process is enabled — aligned with Python `post_process_sink_client.publish_post_process_request()`.
+
+### Oracle reference (Python)
+
+| Item | Location |
+|------|----------|
+| Enqueue gate | Non-mini: real HTTP, no stub |
+| Sink URL | `post_process_sink_client.py` → `http://127.0.0.1:48092/post-process/enqueue` |
+| Trigger | `post_process_runner.enqueue_post_process_request()` via alert orchestration |
+| Message | `build_post_process_request_message(ctx)` camelCase fields |
+
+### Java candidate
+
+| Item | Location |
+|------|-------|
+| Config | `application-local.yaml` → `video.post-process.use-stub-enqueue: false` |
+| Sink client | `PostProcessSinkClient.publishPostProcessRequest()` → `RestTemplate` POST |
+| Orchestrator | `AlertPostOrchestratorService` → async enqueue on alert hook |
+| Audit | `PostProcessEnqueueAudit` via `GET /task/{id}/post-process/status` |
+
+### Acceptance results
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `use-stub-enqueue=false` (committed local + default) | **PASS** |
+| 2 | Post-process workspace init + enabled on task 61 | **PASS** |
+| 3 | Alert hook + detections triggers enqueue orchestration | **PASS** — `enqueue_count=1` |
+| 4 | Real HTTP attempted (not stub) | **PASS** — `enqueue_ok=false` (stub would be `true`) |
+| 5 | iot-sink UP + HTTP 2xx on enqueue | **⛔** — `127.0.0.1:48092` connection refused; GW sink 503 |
+
+### Fixture
+
+- Task 61 `frb26_alert_e2e` (device `frb26_device`, from A1); workspace `~/.video-java/post-process-workspaces/task_61/`
+
+### Code fixes (A6)
+
+- None (evidence-only pack; sink client from prior FR-B work)
+
+---
+
 ## Next pack
 
-**A6** — Post-process (`logs/phase2-a6-postprocess.json`).
+**A7** — Matching (`logs/phase2-a7-matching.json`).
