@@ -265,10 +265,15 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
             return true;
         }
         Map<String, String> tags = node.getTags();
-        if (tags == null || !tags.containsKey("ceph_mount_ready")) {
+        if (tags == null) {
             return false;
         }
-        String ready = tags.get("ceph_mount_ready");
+        String ready = tags.containsKey("nfs_mount_ready")
+                ? tags.get("nfs_mount_ready")
+                : tags.get("ceph_mount_ready");
+        if (ready == null) {
+            return false;
+        }
         return "true".equalsIgnoreCase(ready) || "1".equals(ready) || "yes".equalsIgnoreCase(ready);
     }
 

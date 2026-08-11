@@ -14,8 +14,8 @@
       </label>
       <label class="control-item node-select-row__target">
         <Select
-          v-model:value="selectedNodeIds"
-          mode="multiple"
+          v-model:value="selectValue"
+          :mode="multiple ? 'multiple' : undefined"
           show-search
           allow-clear
           option-filter-prop="label"
@@ -25,7 +25,7 @@
           :filter-option="filterNode"
           :loading="nodesLoading"
         >
-          <template #tagRender="{ value: tagValue, closable, onClose }">
+          <template v-if="multiple" #tagRender="{ value: tagValue, closable, onClose }">
             <Tag :closable="closable" class="node-select-tag" @close="onClose">
               {{ resolveNodeHost(tagValue) }}
             </Tag>
@@ -34,7 +34,7 @@
       </label>
       <div class="node-select-row__actions">
         <Button @click="loadNodes" :loading="nodesLoading">刷新</Button>
-        <Button type="link" @click="selectAllEligible">全选可用</Button>
+        <Button v-if="multiple" type="link" @click="selectAllEligible">全选可用</Button>
       </div>
     </div>
   </div>
@@ -64,16 +64,39 @@ const props = withDefaults(
     showScopeBar?: boolean;
     /** 默认隐藏本机控制面（platform）节点：分发目标不含本机默认实例 */
     excludePlatform?: boolean;
+    /** 是否多选；文件管理等场景建议单选 */
+    multiple?: boolean;
   }>(),
   {
     roleFilter: 'computeWorkload',
     placeholder: '选择目标节点（需已配置 SSH 凭据）',
     showScopeBar: true,
     excludePlatform: true,
+    multiple: true,
   },
 );
 
 const selectedNodeIds = defineModel<number[]>('selectedNodeIds', { default: () => [] });
+
+const selectValue = computed<number | number[] | undefined>({
+  get() {
+    if (props.multiple) return selectedNodeIds.value;
+    return selectedNodeIds.value[0];
+  },
+  set(val) {
+    if (props.multiple) {
+      selectedNodeIds.value = Array.isArray(val) ? val : val != null ? [val as number] : [];
+      return;
+    }
+    if (Array.isArray(val)) {
+      selectedNodeIds.value = val.length ? [val[val.length - 1]] : [];
+    } else if (val != null) {
+      selectedNodeIds.value = [val as number];
+    } else {
+      selectedNodeIds.value = [];
+    }
+  },
+});
 
 const nodesLoading = ref(false);
 const scopeLoading = ref(false);

@@ -1,11 +1,21 @@
 <template>
   <div class="ceph-topology-panel">
     <div class="toolbar">
+      <Alert
+        v-if="coverageWarning"
+        class="mb-2"
+        type="warning"
+        show-icon
+        message="NFS 覆盖异常，请查看未就绪或未探测节点，或点击「刷新现状」。"
+      />
       <Space wrap>
         <Button type="default" :loading="assignLoading" @click="runAssignDefaultCluster">
           分配 NFS 集群（默认本机）
         </Button>
         <Button type="primary" :loading="loading" @click="reload">刷新拓扑</Button>
+        <Button type="primary" ghost :loading="refreshing" @click="runRefreshStatus">
+          刷新现状
+        </Button>
         <Button :disabled="!selected" :loading="checking" @click="runCheckSelected">
           检测选中节点
         </Button>
@@ -51,12 +61,19 @@
         <Button v-if="selected && embeddedInStorage" @click="openBatchOps">打开批量运维</Button>
       </Space>
       <div v-if="summary" class="summary">
+        <Tag :color="coverageColor">
+          客户端挂载覆盖 {{ coverageReady }} / {{ coverageTotal }}（{{ coveragePercent }}%）
+        </Tag>
         <Tag color="blue">节点 {{ summary.totalNodes ?? 0 }}</Tag>
         <Tag color="purple">存储 {{ summary.storageNodes ?? 0 }}</Tag>
         <Tag color="cyan">客户端 {{ summary.clientNodes ?? 0 }}</Tag>
         <Tag color="success">挂载就绪 {{ summary.mountReadyCount ?? 0 }}</Tag>
         <Tag color="warning">未就绪 {{ summary.mountNotReadyCount ?? 0 }}</Tag>
         <Tag color="default">离线/待纳管 {{ summary.offlineCount ?? 0 }}</Tag>
+        <Tag v-if="(summary.unprobedCount ?? 0) > 0" color="orange">
+          未探测 {{ summary.unprobedCount }}
+        </Tag>
+        <span v-if="summary.lastProbeAt" class="probe-hint">最近探测 {{ summary.lastProbeAt }}</span>
       </div>
     </div>
 
@@ -69,7 +86,7 @@
       <Drawer
         v-model:open="drawerOpen"
         :title="selected ? `${selected.name || ''} (#${selected.nodeId})` : '节点详情'"
-        width="420"
+        width="520"
         :destroy-on-close="false"
       >
         <template v-if="selected">
@@ -88,6 +105,9 @@
             <Descriptions.Item label="抓拍">{{ selected.snapsDir || '-' }}</Descriptions.Item>
             <Descriptions.Item label="NFS 服务端">{{ selected.nfsServerHost || selected.cephMonHost || '-' }}</Descriptions.Item>
             <Descriptions.Item label="Export">{{ selected.nfsExportPath || selected.nfsMountPath || '-' }}</Descriptions.Item>
+            <Descriptions.Item label="实际挂载源">{{ selected.nfsMountSource || '-' }}</Descriptions.Item>
+            <Descriptions.Item label="最近探测">{{ selected.nfsProbeAt || '未探测' }}</Descriptions.Item>
+            <Descriptions.Item label="探测摘要">{{ selected.nfsProbeSummary || '-' }}</Descriptions.Item>
             <Descriptions.Item label="SSH 凭据">
               {{ selected.sshCredentialConfigured ? '已配置' : '未配置' }}
             </Descriptions.Item>
@@ -108,6 +128,26 @@
               <Button v-if="embeddedInStorage" @click="openBatchOps">打开批量运维</Button>
               <Button v-else @click="goStorageTab">打开运维面板</Button>
             </Space>
+          </div>
+
+          <div class="op-log-section">
+            <div class="op-log-header">
+              <span>操作日志</span>
+              <Button size="small" :loading="opLogLoading" @click="loadOpLogs">刷新日志</Button>
+            </div>
+            <div v-if="!opLogs.length && !opLogLoading" class="op-log-empty">暂无日志</div>
+            <div v-for="item in opLogs" :key="item.id" class="op-log-item">
+              <div class="op-log-meta">
+                <Tag :color="item.success ? 'success' : 'error'">{{ item.success ? '成功' : '失败' }}</Tag>
+                <span class="op-type">{{ opTypeLabel(item.opType) }}</span>
+                <span class="op-time">{{ item.createTime || '-' }}</span>
+              </div>
+              <div class="op-msg">{{ item.message || '-' }}</div>
+              <details v-if="item.steps?.length">
+                <summary>步骤明细（{{ item.steps.length }}）</summary>
+                <pre>{{ formatSteps(item.steps) }}</pre>
+              </details>
+            </div>
           </div>
         </template>
       </Drawer>
@@ -130,11 +170,15 @@ import {
   deployStorageOsdBySsh,
   deployStoragePoolBySsh,
   assignNfsCluster,
+  batchRefreshNfsBySsh,
   getCephTopology,
+  getNfsOpLogs,
   unmountStorageBySsh,
   type CephTopologyNodeVO,
   type CephTopologyResult,
   type CephTopologySummaryVO,
+  type MediaDeployStepVO,
+  type NfsOpLogItem,
 } from '@/api/device/node';
 import { navigateToStorageSubTab } from '../../utils/nodeNavigation';
 
@@ -150,12 +194,15 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'open-ops', nodeId?: number): void;
+  (e: 'summary-change', summary: CephTopologySummaryVO | null): void;
 }>();
 
 const { createMessage } = useMessage();
 const router = useRouter();
 
 const assignLoading = ref(false);
+const loading = ref(false);
+const refreshing = ref(false);
 const checking = ref(false);
 const opLoading = ref<'client' | 'osd' | 'pool' | 'unmount' | null>(null);
 const topology = ref<CephTopologyResult | null>(null);
@@ -164,9 +211,41 @@ const selected = ref<CephTopologyNodeVO | null>(null);
 const drawerOpen = ref(false);
 const checkMessage = ref('');
 const checkOk = ref(false);
+const opLogLoading = ref(false);
+const opLogs = ref<NfsOpLogItem[]>([]);
 
 const chartRef = ref<HTMLDivElement | null>(null);
 const { setOptions, resize, getInstance } = useECharts(chartRef as Ref<HTMLDivElement>);
+
+const coverageTotal = computed(() => summary.value?.clientNodes ?? 0);
+const coverageReady = computed(() => {
+  const nodes = topology.value?.nodes || [];
+  let n = 0;
+  for (const node of nodes) {
+    if (node.kind === 'nfs_client' || node.kind === 'ceph_client') {
+      if (node.nfsMountReady ?? node.cephMountReady) n++;
+    }
+  }
+  return n;
+});
+const coveragePercent = computed(() => {
+  if (summary.value?.coveragePercent != null) return summary.value.coveragePercent;
+  const total = coverageTotal.value;
+  if (total <= 0) return 0;
+  return Math.round((coverageReady.value * 100) / total);
+});
+const coverageColor = computed(() => {
+  const p = coveragePercent.value;
+  if (p >= 100) return 'success';
+  if (p >= 50) return 'warning';
+  return 'error';
+});
+const coverageWarning = computed(() => {
+  const s = summary.value;
+  if (!s) return false;
+  if ((s.clientNodes ?? 0) <= 0 && (s.storageNodes ?? 0) <= 0) return false;
+  return (s.coveragePercent ?? 100) < 100 || (s.mountNotReadyCount ?? 0) > 0 || (s.unprobedCount ?? 0) > 0;
+});
 
 const isStorageKind = computed(
   () => selected.value?.kind === 'storage_nfs' || selected.value?.kind === 'storage_osd',
@@ -179,6 +258,45 @@ const isClientKind = computed(
 );
 const canManage = computed(() => !!selected.value?.sshCredentialConfigured);
 
+function opTypeLabel(t?: string) {
+  const map: Record<string, string> = {
+    refresh: '刷新现状',
+    auto_refresh: '定时巡检',
+    check_stack: '检测服务端',
+    check_mount: '检测挂载',
+    deploy_server: '安装服务端',
+    deploy_client: '挂载客户端',
+    deploy_export: '初始化 Export',
+    unmount: '卸载',
+    mkdir: '新建目录',
+    upload: '上传文件',
+    delete: '删除文件',
+    rename: '重命名',
+  };
+  return (t && map[t]) || t || '-';
+}
+
+function formatSteps(steps?: MediaDeployStepVO[]) {
+  if (!steps?.length) return '';
+  return steps.map((s) => `[${s.status || '-'}] ${s.name || ''}\n${s.output || ''}`).join('\n---\n');
+}
+
+async function loadOpLogs() {
+  if (!selected.value?.nodeId) {
+    opLogs.value = [];
+    return;
+  }
+  opLogLoading.value = true;
+  try {
+    const data = await getNfsOpLogs({ nodeId: selected.value.nodeId, pageNo: 1, pageSize: 20 });
+    opLogs.value = data.list || [];
+  } catch {
+    opLogs.value = [];
+  } finally {
+    opLogLoading.value = false;
+  }
+}
+
 function kindLabel(kind?: string) {
   if (kind === 'platform') return '控制面';
   if (kind === 'storage_nfs' || kind === 'storage_osd') return 'NFS 服务端';
@@ -189,6 +307,8 @@ function kindLabel(kind?: string) {
 function nodeColor(n: CephTopologyNodeVO) {
   if (n.kind === 'platform') return '#266cfb';
   if (n.status === 'offline' || n.status === 'pending') return '#bfbfbf';
+  if (!n.nfsProbeAt && !(n.nfsMountReady ?? n.cephMountReady)) return '#d9d9d9';
+  if (n.nfsProbeAt && !(n.nfsMountReady ?? n.cephMountReady)) return '#ff4d4f';
   if (n.nfsMountReady ?? n.cephMountReady) return '#52c41a';
   return '#faad14';
 }
@@ -268,6 +388,7 @@ async function runAssignDefaultCluster() {
     const data = await assignNfsCluster({ mountRoot: '/mnt/easyaiot-media' });
     topology.value = data;
     summary.value = data.summary || null;
+    emit('summary-change', summary.value);
     createMessage.success('NFS 集群 tags 已分配（未指定服务端时使用平台本机 export）');
     await nextTick();
     setOptions(buildChartOption(data) as any);
@@ -278,6 +399,29 @@ async function runAssignDefaultCluster() {
   }
 }
 
+async function runRefreshStatus() {
+  refreshing.value = true;
+  try {
+    const data = await batchRefreshNfsBySsh({});
+    if (data.topology) {
+      topology.value = data.topology;
+      summary.value = data.topology.summary || null;
+      emit('summary-change', summary.value);
+      await nextTick();
+      setOptions(buildChartOption(data.topology) as any);
+      bindChartClick();
+    } else {
+      await reload();
+    }
+    if (data.success) createMessage.success(data.message || '现状已刷新');
+    else createMessage.warning(data.message || '部分节点刷新失败');
+  } catch (e: any) {
+    createMessage.error(e?.message || '刷新现状失败');
+  } finally {
+    refreshing.value = false;
+  }
+}
+
 async function reload() {
   loading.value = true;
   checkMessage.value = '';
@@ -285,6 +429,7 @@ async function reload() {
     const data = await getCephTopology();
     topology.value = data;
     summary.value = data.summary || null;
+    emit('summary-change', summary.value);
     await nextTick();
     setOptions(buildChartOption(data) as any);
     bindChartClick();
@@ -306,6 +451,7 @@ function bindChartClick() {
     selected.value = raw;
     drawerOpen.value = true;
     checkMessage.value = '';
+    loadOpLogs();
   });
 }
 
@@ -331,6 +477,7 @@ async function runCheckSelected() {
       }
     }
     await reload();
+    await loadOpLogs();
   } catch (e: any) {
     checkOk.value = false;
     checkMessage.value = e?.message || '检测失败';
@@ -440,6 +587,11 @@ watch(
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    align-items: center;
+  }
+  .probe-hint {
+    color: #8c8c8c;
+    font-size: 12px;
   }
   .body {
     position: relative;
@@ -466,6 +618,58 @@ watch(
   }
   .drawer-actions {
     margin-top: 16px;
+  }
+  .op-log-section {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px dashed #e8e8e8;
+  }
+  .op-log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .op-log-empty {
+    color: #999;
+    font-size: 13px;
+  }
+  .op-log-item {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: #fafafa;
+    border-radius: 6px;
+  }
+  .op-log-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .op-type {
+    font-weight: 500;
+  }
+  .op-time {
+    color: #8c8c8c;
+    font-size: 12px;
+  }
+  .op-msg {
+    font-size: 13px;
+    color: #595959;
+  }
+  .op-log-item pre {
+    margin: 6px 0 0;
+    max-height: 160px;
+    overflow: auto;
+    padding: 8px;
+    background: #f5f5f5;
+    font-size: 12px;
+    white-space: pre-wrap;
+  }
+  .mb-2 {
+    margin-bottom: 8px;
   }
   .mt-3 {
     margin-top: 12px;

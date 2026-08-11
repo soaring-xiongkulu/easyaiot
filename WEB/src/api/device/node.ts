@@ -277,8 +277,13 @@ export interface MqttStackCheckResult {
 export interface StorageStackCheckResult {
   success?: boolean;
   deployed?: boolean;
+  /** 兼容字段：NFS 服务端健康 */
   cephHealthy?: boolean;
+  nfsHealthy?: boolean;
+  /** 兼容：NFS 2049 / 服务在线 */
   osdRunning?: boolean;
+  nfsPortOk?: boolean;
+  /** 兼容：挂载就绪 */
   cephfsReady?: boolean;
   poolExists?: boolean;
   mountReady?: boolean;
@@ -314,6 +319,9 @@ export interface CephTopologyNodeVO {
   nfsServerHost?: string;
   nfsExportPath?: string;
   storageBackend?: string;
+  nfsProbeAt?: string;
+  nfsProbeSummary?: string;
+  nfsMountSource?: string;
   alertImagesDir?: string;
   playbacksDir?: string;
   snapsDir?: string;
@@ -334,6 +342,9 @@ export interface CephTopologySummaryVO {
   mountReadyCount?: number;
   mountNotReadyCount?: number;
   offlineCount?: number;
+  coveragePercent?: number;
+  lastProbeAt?: string;
+  unprobedCount?: number;
 }
 
 export interface CephTopologyResult {
@@ -341,6 +352,55 @@ export interface CephTopologyResult {
   nodes?: CephTopologyNodeVO[];
   links?: CephTopologyLinkVO[];
   summary?: CephTopologySummaryVO;
+}
+
+export interface NfsBatchRefreshPayload {
+  nodeIds?: number[];
+  auto?: boolean;
+}
+
+export interface NfsBatchRefreshResult {
+  success?: boolean;
+  message?: string;
+  results?: Array<{
+    nodeId?: number;
+    nodeName?: string;
+    host?: string;
+    success?: boolean;
+    message?: string;
+    steps?: MediaDeployStepVO[];
+  }>;
+  topology?: CephTopologyResult;
+}
+
+export interface NfsOpLogItem {
+  id?: number;
+  nodeId?: number;
+  opType?: string;
+  success?: boolean;
+  message?: string;
+  createTime?: string;
+  steps?: MediaDeployStepVO[];
+}
+
+export interface NfsOpLogPageResult {
+  list?: NfsOpLogItem[];
+  total?: number;
+}
+
+export interface NfsFileEntry {
+  name?: string;
+  directory?: boolean;
+  size?: number;
+  mtime?: string;
+  relativePath?: string;
+}
+
+export interface NfsFileListResult {
+  mountRoot?: string;
+  relativePath?: string;
+  absolutePath?: string;
+  entries?: NfsFileEntry[];
 }
 
 export interface AgentCheckResult {
@@ -553,6 +613,128 @@ export const assignNfsCluster = async (payload: NfsClusterAssignPayload): Promis
     { isTransformResponse: false, timeout: 2 * 60 * 1000 },
   );
   return unwrapNodeApiData<CephTopologyResult>(res);
+};
+
+/** 批量 SSH 刷新 NFS 现状并落库 */
+export const batchRefreshNfsBySsh = async (
+  payload: NfsBatchRefreshPayload = {},
+): Promise<NfsBatchRefreshResult> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/batch-refresh-ssh`,
+    payload,
+    { isTransformResponse: false, timeout: 30 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<NfsBatchRefreshResult>(res);
+};
+
+/** NFS 运维操作日志分页 */
+export const getNfsOpLogs = async (params: {
+  nodeId?: number;
+  opType?: string;
+  pageNo?: number;
+  pageSize?: number;
+}): Promise<NfsOpLogPageResult> => {
+  const res = await commonApi('get', `${Api.Node}/storage/op-logs`, { params }, { isTransformResponse: false });
+  return unwrapNodeApiData<NfsOpLogPageResult>(res);
+};
+
+/** 只读列出节点媒体挂载根 */
+export const listNfsMediaFiles = async (nodeId: number, path?: string): Promise<NfsFileListResult> => {
+  const res = await commonApi(
+    'get',
+    `${Api.Node}/storage/files/list`,
+    { params: { nodeId, path: path || '' } },
+    { isTransformResponse: false, timeout: 2 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<NfsFileListResult>(res);
+};
+
+/** 只读下载节点媒体文件（返回 blob） */
+export const downloadNfsMediaFile = async (nodeId: number, path: string): Promise<Blob> => {
+  const res = await commonApi(
+    'get',
+    `${Api.Node}/storage/files/download`,
+    { params: { nodeId, path }, responseType: 'blob' },
+    { isTransformResponse: false, timeout: 5 * 60 * 1000 },
+  );
+  // commonApi 可能已解包；兼容直接 blob
+  if (res instanceof Blob) return res;
+  const data = (res as { data?: Blob })?.data;
+  if (data instanceof Blob) return data;
+  return new Blob([res as any]);
+};
+
+export interface NfsFileOpsResult {
+  success?: boolean;
+  message?: string;
+  relativePath?: string;
+}
+
+/** 在媒体根内创建目录 */
+export const mkdirNfsMediaDir = async (
+  nodeId: number,
+  name: string,
+  path?: string,
+): Promise<NfsFileOpsResult> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/files/mkdir`,
+    { params: { nodeId, name, path: path || '' } },
+    { isTransformResponse: false, timeout: 2 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<NfsFileOpsResult>(res);
+};
+
+/** 上传文件到媒体根当前目录 */
+export const uploadNfsMediaFile = async (
+  nodeId: number,
+  file: File,
+  path?: string,
+): Promise<NfsFileOpsResult> => {
+  const form = new FormData();
+  form.append('file', file);
+  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  const res = await defHttp.post(
+    {
+      url: `${Api.Node}/storage/files/upload`,
+      params: { nodeId, path: path || '' },
+      data: form,
+      headers: {
+        ignoreCancelToken: true,
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 5 * 60 * 1000,
+    },
+    { isTransformResponse: false },
+  );
+  return unwrapNodeApiData<NfsFileOpsResult>(res);
+};
+
+/** 删除媒体根内文件或目录 */
+export const deleteNfsMediaPath = async (nodeId: number, path: string): Promise<NfsFileOpsResult> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/files/delete`,
+    { params: { nodeId, path } },
+    { isTransformResponse: false, timeout: 5 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<NfsFileOpsResult>(res);
+};
+
+/** 同目录重命名 */
+export const renameNfsMediaPath = async (
+  nodeId: number,
+  path: string,
+  newName: string,
+): Promise<NfsFileOpsResult> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/files/rename`,
+    { params: { nodeId, path, newName } },
+    { isTransformResponse: false, timeout: 2 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<NfsFileOpsResult>(res);
 };
 
 /** 通过 SSH 检测 NFS 客户端挂载 */

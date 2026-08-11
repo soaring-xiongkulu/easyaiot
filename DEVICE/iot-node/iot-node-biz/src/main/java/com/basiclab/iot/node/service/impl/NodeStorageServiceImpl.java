@@ -1,16 +1,29 @@
 package com.basiclab.iot.node.service.impl;
 
+import com.basiclab.iot.common.domain.PageResult;
+import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.node.dal.dataobject.ComputeNodeDO;
 import com.basiclab.iot.node.dal.dataobject.EdgeNodeDO;
 import com.basiclab.iot.node.dal.dataobject.NodeSshCredentialDO;
+import com.basiclab.iot.node.dal.dataobject.NodeStorageOpLogDO;
 import com.basiclab.iot.node.dal.pgsql.ComputeNodeMapper;
 import com.basiclab.iot.node.dal.pgsql.EdgeNodeMapper;
 import com.basiclab.iot.node.dal.pgsql.NodeSshCredentialMapper;
+import com.basiclab.iot.node.dal.pgsql.NodeStorageOpLogMapper;
 import com.basiclab.iot.node.domain.vo.NodeCephTopologyRespVO;
-import com.basiclab.iot.node.domain.vo.NodeNfsClusterAssignReqVO;
 import com.basiclab.iot.node.domain.vo.NodeMediaRemoteDeployRespVO;
+import com.basiclab.iot.node.domain.vo.NodeNfsBatchRefreshReqVO;
+import com.basiclab.iot.node.domain.vo.NodeNfsBatchRefreshRespVO;
+import com.basiclab.iot.node.domain.vo.NodeNfsClusterAssignReqVO;
+import com.basiclab.iot.node.domain.vo.NodeStorageFileDownloadResult;
+import com.basiclab.iot.node.domain.vo.NodeStorageFileEntryVO;
+import com.basiclab.iot.node.domain.vo.NodeStorageFileListRespVO;
+import com.basiclab.iot.node.domain.vo.NodeStorageFileOpsRespVO;
 import com.basiclab.iot.node.domain.vo.NodeStorageMountCheckRespVO;
+import com.basiclab.iot.node.domain.vo.NodeStorageOpLogPageReqVO;
+import com.basiclab.iot.node.domain.vo.NodeStorageOpLogRespVO;
 import com.basiclab.iot.node.domain.vo.NodeStorageStackCheckRespVO;
+import com.basiclab.iot.node.domain.vo.NodeWorkloadBundleNodeResultVO;
 import com.basiclab.iot.node.service.NodeStorageService;
 import com.basiclab.iot.node.util.CredentialEncryptUtil;
 import com.basiclab.iot.node.util.SshSessionHelper;
@@ -18,12 +31,16 @@ import com.basiclab.iot.node.util.StorageStackDeployUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -37,6 +54,12 @@ import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.except
 import static com.basiclab.iot.node.enums.ErrorCodeConstants.COMPUTE_NODE_NOT_EXISTS;
 import static com.basiclab.iot.node.enums.ErrorCodeConstants.SSH_CREDENTIAL_NOT_EXISTS;
 import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_CLUSTER_SOURCE_NOT_FOUND;
+import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_FILE_EXISTS;
+import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_FILE_NAME_INVALID;
+import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_FILE_NOT_FOUND;
+import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_FILE_PATH_INVALID;
+import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_FILE_ROOT_FORBIDDEN;
+import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_FILE_TOO_LARGE;
 import static com.basiclab.iot.node.enums.ErrorCodeConstants.STORAGE_NODE_ROLE_INVALID;
 
 @Slf4j
@@ -47,6 +70,9 @@ public class NodeStorageServiceImpl implements NodeStorageService {
     private static final int DEPLOY_TIMEOUT_MS = 900000;
     private static final int CHECK_TIMEOUT_MS = 120000;
     private static final int OPS_TIMEOUT_MS = 180000;
+    private static final int OP_LOG_STEPS_MAX = 32000;
+    private static final int OP_LOG_KEEP_PER_NODE = 100;
+    private static final long FILE_DOWNLOAD_MAX_BYTES = 50L * 1024 * 1024;
     private static final String[] SYNC_RELATIVE_FILES = {
             "install_nfs_server.sh",
             "install_nfs_client.sh",
@@ -54,12 +80,17 @@ public class NodeStorageServiceImpl implements NodeStorageService {
             "check_nfs_health.sh",
     };
 
+    /** 批量刷新时覆盖单次检测的 op_type */
+    private final ThreadLocal<String> opLogTypeOverride = new ThreadLocal<>();
+
     @Resource
     private ComputeNodeMapper computeNodeMapper;
     @Resource
     private EdgeNodeMapper edgeNodeMapper;
     @Resource
     private NodeSshCredentialMapper nodeSshCredentialMapper;
+    @Resource
+    private NodeStorageOpLogMapper nodeStorageOpLogMapper;
 
     @Value("${easyaiot.storage.cluster-source-path:}")
     private String storageClusterSourcePath;
@@ -161,6 +192,8 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         int ready = 0;
         int notReady = 0;
         int offline = 0;
+        int unprobed = 0;
+        String lastProbeAt = null;
         for (NodeCephTopologyRespVO.TopologyNodeVO n : nodes) {
             if ("storage_nfs".equals(n.getKind())) {
                 storageCnt++;
@@ -169,6 +202,14 @@ public class NodeStorageServiceImpl implements NodeStorageService {
             }
             if ("offline".equalsIgnoreCase(n.getStatus()) || "pending".equalsIgnoreCase(n.getStatus())) {
                 offline++;
+            }
+            if (!"platform".equals(n.getKind()) && !StringUtils.hasText(n.getNfsProbeAt())) {
+                unprobed++;
+            }
+            if (StringUtils.hasText(n.getNfsProbeAt())) {
+                if (lastProbeAt == null || n.getNfsProbeAt().compareTo(lastProbeAt) > 0) {
+                    lastProbeAt = n.getNfsProbeAt();
+                }
             }
             if (Boolean.TRUE.equals(n.getNfsMountReady())) {
                 ready++;
@@ -182,6 +223,29 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         summary.setMountReadyCount(ready);
         summary.setMountNotReadyCount(notReady);
         summary.setOfflineCount(offline);
+        summary.setUnprobedCount(unprobed);
+        summary.setLastProbeAt(lastProbeAt);
+        int coverageBase = clientCnt > 0 ? clientCnt : Math.max(ready + notReady, 0);
+        if (coverageBase <= 0) {
+            summary.setCoveragePercent(0);
+        } else {
+            // 覆盖率按客户端就绪计；若无纯客户端则以非 platform 就绪占比
+            int readyClients = 0;
+            int clientBase = 0;
+            for (NodeCephTopologyRespVO.TopologyNodeVO n : nodes) {
+                if ("nfs_client".equals(n.getKind())) {
+                    clientBase++;
+                    if (Boolean.TRUE.equals(n.getNfsMountReady())) {
+                        readyClients++;
+                    }
+                }
+            }
+            if (clientBase > 0) {
+                summary.setCoveragePercent((int) Math.round(readyClients * 100.0 / clientBase));
+            } else {
+                summary.setCoveragePercent((int) Math.round(ready * 100.0 / coverageBase));
+            }
+        }
         resp.setSummary(summary);
         return resp;
     }
@@ -199,13 +263,15 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         mountPath = mountPath.replaceAll("/+$", "");
 
         boolean mountReady = false;
+        boolean hasProbe = StringUtils.hasText(firstNonBlank(tags.get("nfs_probe_at"), null));
         String readyTag = firstNonBlank(tags.get("nfs_mount_ready"), tags.get("ceph_mount_ready"), null);
         if (StringUtils.hasText(readyTag)) {
             String r = readyTag.trim().toLowerCase(Locale.ROOT);
             mountReady = "true".equals(r) || "1".equals(r) || "yes".equals(r) || "on".equals(r);
         } else if (edge != null && Boolean.TRUE.equals(edge.getCephMountReady())) {
             mountReady = true;
-        } else if ("platform".equals(kind)) {
+        } else if ("platform".equals(kind) && !hasProbe) {
+            // 平台节点未探测时默认就绪；若已有探针则以探针为准
             mountReady = true;
         }
 
@@ -230,6 +296,9 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         vo.setNfsServerHost(nfsServer);
         vo.setNfsExportPath(nfsExport);
         vo.setStorageBackend(backend);
+        vo.setNfsProbeAt(firstNonBlank(tags.get("nfs_probe_at"), null));
+        vo.setNfsProbeSummary(firstNonBlank(tags.get("nfs_probe_summary"), null));
+        vo.setNfsMountSource(firstNonBlank(tags.get("nfs_mount_source"), null));
         vo.setCephMountReady(mountReady);
         vo.setCephMountPath(mountPath);
         vo.setCephMonHost(nfsServer);
@@ -316,6 +385,105 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         return getCephTopology();
     }
 
+    @Override
+    public NodeNfsBatchRefreshRespVO batchRefreshBySsh(NodeNfsBatchRefreshReqVO req) {
+        if (req == null) {
+            req = new NodeNfsBatchRefreshReqVO();
+        }
+        boolean auto = Boolean.TRUE.equals(req.getAuto());
+        String refreshType = auto ? "auto_refresh" : "refresh";
+        List<Long> targetIds = req.getNodeIds();
+        if (targetIds == null || targetIds.isEmpty()) {
+            targetIds = new ArrayList<>();
+            List<ComputeNodeDO> all = computeNodeMapper.selectList();
+            if (all != null) {
+                for (ComputeNodeDO n : all) {
+                    if (n == null || n.getId() == null) {
+                        continue;
+                    }
+                    String role = n.getNodeRole();
+                    if (StorageStackDeployUtil.isStorageRole(role) || StorageStackDeployUtil.isClientMountRole(role)
+                            || ComputeNodeServiceImpl.isPlatformNode(n)) {
+                        targetIds.add(n.getId());
+                    }
+                }
+            }
+        }
+
+        NodeNfsBatchRefreshRespVO resp = new NodeNfsBatchRefreshRespVO();
+        List<NodeWorkloadBundleNodeResultVO> results = new ArrayList<>();
+        int ok = 0;
+        int fail = 0;
+        int skipped = 0;
+        opLogTypeOverride.set(refreshType);
+        try {
+            for (Long nodeId : targetIds) {
+                if (nodeId == null) {
+                    continue;
+                }
+                ComputeNodeDO node = computeNodeMapper.selectById(nodeId);
+                NodeWorkloadBundleNodeResultVO item = new NodeWorkloadBundleNodeResultVO();
+                item.setNodeId(nodeId);
+                if (node == null) {
+                    item.setSuccess(false);
+                    item.setMessage("节点不存在");
+                    fail++;
+                    results.add(item);
+                    continue;
+                }
+                item.setNodeName(node.getName());
+                item.setHost(node.getHost());
+                NodeSshCredentialDO cred = nodeSshCredentialMapper.selectByNodeId(nodeId);
+                if (cred == null || !StringUtils.hasText(cred.getCredentialEnc())) {
+                    item.setSuccess(true);
+                    item.setMessage("跳过：未配置 SSH 凭据");
+                    skipped++;
+                    results.add(item);
+                    writeOpLog(nodeId, refreshType, true, item.getMessage(), null);
+                    continue;
+                }
+                try {
+                    if (StorageStackDeployUtil.isStorageRole(node.getNodeRole())
+                            || ComputeNodeServiceImpl.isPlatformNode(node)) {
+                        NodeStorageStackCheckRespVO check = checkStorageStackBySsh(nodeId);
+                        item.setSuccess(Boolean.TRUE.equals(check.getSuccess()));
+                        item.setMessage(check.getMessage());
+                        item.setSteps(check.getSteps());
+                        if (Boolean.TRUE.equals(check.getSuccess())) {
+                            ok++;
+                        } else {
+                            fail++;
+                        }
+                    } else {
+                        NodeStorageMountCheckRespVO check = checkStorageMountBySsh(nodeId);
+                        item.setSuccess(Boolean.TRUE.equals(check.getSuccess()));
+                        item.setMessage(check.getMessage());
+                        item.setSteps(check.getSteps());
+                        if (Boolean.TRUE.equals(check.getSuccess())) {
+                            ok++;
+                        } else {
+                            fail++;
+                        }
+                    }
+                } catch (Exception e) {
+                    item.setSuccess(false);
+                    item.setMessage(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+                    fail++;
+                    writeOpLog(nodeId, refreshType, false, item.getMessage(), null);
+                }
+                results.add(item);
+            }
+        } finally {
+            opLogTypeOverride.remove();
+        }
+        resp.setResults(results);
+        resp.setSuccess(fail == 0);
+        resp.setMessage(String.format("刷新完成：成功 %d，失败 %d，跳过 %d", ok, fail, skipped));
+        writeOpLog(null, refreshType, fail == 0, resp.getMessage(), null);
+        resp.setTopology(getCephTopology());
+        return resp;
+    }
+
     private void applyNfsTags(
             ComputeNodeDO node,
             String serverHost,
@@ -360,7 +528,9 @@ public class NodeStorageServiceImpl implements NodeStorageService {
     @Override
     public NodeStorageStackCheckRespVO checkStorageStackBySsh(Long nodeId) {
         ComputeNodeDO node = requireNode(nodeId);
-        if (!StorageStackDeployUtil.isStorageRole(node.getNodeRole())) {
+        if (!StorageStackDeployUtil.isStorageRole(node.getNodeRole())
+                && !ComputeNodeServiceImpl.isPlatformNode(node)
+                && !StorageStackDeployUtil.isClientMountRole(node.getNodeRole())) {
             throw exception(STORAGE_NODE_ROLE_INVALID);
         }
         return runHealthCheck(node);
@@ -369,7 +539,8 @@ public class NodeStorageServiceImpl implements NodeStorageService {
     @Override
     public NodeStorageMountCheckRespVO checkStorageMountBySsh(Long nodeId) {
         ComputeNodeDO node = requireNode(nodeId);
-        if (!StorageStackDeployUtil.isClientMountRole(node.getNodeRole())) {
+        if (!StorageStackDeployUtil.isClientMountRole(node.getNodeRole())
+                && !ComputeNodeServiceImpl.isPlatformNode(node)) {
             throw exception(STORAGE_NODE_ROLE_INVALID);
         }
         NodeSshCredential credential = loadSshCredential(nodeId);
@@ -382,13 +553,23 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         try (SshSessionHelper ssh = openSshSession(node, credential, sshPort)) {
             steps.add(runStep("SSH 连接", "success", "已连接 " + node.getHost() + ":" + sshPort));
             HealthProbe probe = probeHealth(ssh, node);
+            if (probe.sourceStep != null) {
+                steps.add(probe.sourceStep);
+            }
             steps.add(probe.mountStep);
+            if (probe.rwStep != null) {
+                steps.add(probe.rwStep);
+            }
             resp.setMountReady(probe.mountReady);
             resp.setSuccess(true);
             resp.setMessage(buildMountCheckMessage(probe, node));
+            persistProbeResult(node, probe, resp.getMessage());
+            writeOpLog(node.getId(), resolveOpType("check_mount"), true, resp.getMessage(), steps);
             return resp;
         } catch (Exception e) {
-            return buildMountCheckFailure(resp, steps, node, sshPort, e);
+            NodeStorageMountCheckRespVO failResp = buildMountCheckFailure(resp, steps, node, sshPort, e);
+            writeOpLog(node.getId(), resolveOpType("check_mount"), false, failResp.getMessage(), steps);
+            return failResp;
         }
     }
 
@@ -398,7 +579,8 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         if (!StorageStackDeployUtil.isStorageRole(node.getNodeRole())) {
             throw exception(STORAGE_NODE_ROLE_INVALID);
         }
-        return deployWithScript(node, "NFS 服务端", StorageStackDeployUtil.buildOsdInstallScript(node), "NFS_SERVER_OK");
+        return deployWithScript(node, "NFS 服务端", StorageStackDeployUtil.buildOsdInstallScript(node),
+                "NFS_SERVER_OK", "deploy_server");
     }
 
     @Override
@@ -407,7 +589,8 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         if (!StorageStackDeployUtil.isClientMountRole(node.getNodeRole())) {
             throw exception(STORAGE_NODE_ROLE_INVALID);
         }
-        return deployWithScript(node, "NFS 客户端挂载", StorageStackDeployUtil.buildClientInstallScript(node), "CLIENT_MOUNT_OK");
+        return deployWithScript(node, "NFS 客户端挂载", StorageStackDeployUtil.buildClientInstallScript(node),
+                "CLIENT_MOUNT_OK", "deploy_client");
     }
 
     @Override
@@ -416,7 +599,8 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         if (!StorageStackDeployUtil.isStorageRole(node.getNodeRole())) {
             throw exception(STORAGE_NODE_ROLE_INVALID);
         }
-        return deployWithScript(node, "初始化 NFS Export", StorageStackDeployUtil.buildPoolCreateScript(node), "NFS_SERVER_OK");
+        return deployWithScript(node, "初始化 NFS Export", StorageStackDeployUtil.buildPoolCreateScript(node),
+                "NFS_SERVER_OK", "deploy_export");
     }
 
     @Override
@@ -470,16 +654,25 @@ public class NodeStorageServiceImpl implements NodeStorageService {
                     + "echo UNMOUNT_OK\n";
             SshSessionHelper.SshExecResult result = execRemoteScript(ssh, script, OPS_TIMEOUT_MS);
             NodeMediaRemoteDeployRespVO.DeployStep step = new NodeMediaRemoteDeployRespVO.DeployStep();
-            step.setName("卸载 CephFS");
+            step.setName("卸载 NFS");
             step.setOutput(trimOutput(result.combinedOutput(), 4000));
             boolean ok = result.isSuccess() && result.combinedOutput().contains("UNMOUNT_OK");
             step.setStatus(ok ? "success" : "failed");
             steps.add(step);
             resp.setSuccess(ok);
-            resp.setMessage(ok ? "CephFS 已卸载" : "卸载 CephFS 失败");
+            resp.setMessage(ok ? "NFS 已卸载" : "卸载 NFS 失败");
+            if (ok) {
+                HealthProbe cleared = new HealthProbe();
+                cleared.mountReady = false;
+                cleared.rawOutput = "UNMOUNT_OK";
+                persistProbeResult(node, cleared, "NFS 已卸载");
+            }
+            writeOpLog(node.getId(), "unmount", ok, resp.getMessage(), steps);
             return resp;
         } catch (Exception e) {
-            return buildDeployFailure(resp, steps, node, sshPort, "卸载 CephFS", e);
+            NodeMediaRemoteDeployRespVO fail = buildDeployFailure(resp, steps, node, sshPort, "卸载 NFS", e);
+            writeOpLog(node.getId(), "unmount", false, fail.getMessage(), steps);
+            return fail;
         }
     }
 
@@ -496,22 +689,36 @@ public class NodeStorageServiceImpl implements NodeStorageService {
             steps.add(probe.nfsServerStep);
             steps.add(probe.nfsExportStep);
             steps.add(probe.nfsPortStep);
+            if (probe.sourceStep != null) {
+                steps.add(probe.sourceStep);
+            }
             steps.add(probe.poolStep);
             steps.add(probe.mountStep);
+            if (probe.rwStep != null) {
+                steps.add(probe.rwStep);
+            }
 
             resp.setCephHealthy(probe.cephHealthy);
             resp.setOsdRunning(probe.osdRunning);
             resp.setPoolExists(probe.poolExists);
             resp.setCephfsReady(probe.cephfsReady);
             resp.setMountReady(probe.mountReady);
-            boolean deployed = Boolean.TRUE.equals(probe.nfsExportReady)
-                    && Boolean.TRUE.equals(probe.mountReady);
+            boolean isServerRole = StorageStackDeployUtil.isStorageRole(node.getNodeRole())
+                    || outIndicatesServerRole(probe.rawOutput);
+            boolean deployed;
+            if (isServerRole) {
+                deployed = Boolean.TRUE.equals(probe.nfsExportReady) && Boolean.TRUE.equals(probe.mountReady);
+            } else {
+                deployed = Boolean.TRUE.equals(probe.mountReady);
+            }
             resp.setDeployed(deployed);
             resp.setSuccess(true);
             resp.setMessage(buildStackCheckMessage(resp, node));
+            persistProbeResult(node, probe, resp.getMessage());
+            writeOpLog(node.getId(), resolveOpType("check_stack"), true, resp.getMessage(), steps);
             return resp;
         } catch (Exception e) {
-            log.error("Ceph SSH 检测失败 nodeId={} host={}:{}", node.getId(), node.getHost(), sshPort, e);
+            log.error("NFS SSH 检测失败 nodeId={} host={}:{}", node.getId(), node.getHost(), sshPort, e);
             NodeMediaRemoteDeployRespVO.DeployStep fail = new NodeMediaRemoteDeployRespVO.DeployStep();
             fail.setName(steps.isEmpty() ? "SSH 连接" : "检测中断");
             fail.setStatus("failed");
@@ -521,12 +728,13 @@ public class NodeStorageServiceImpl implements NodeStorageService {
             resp.setSuccess(false);
             resp.setDeployed(false);
             resp.setMessage(fail.getOutput());
+            writeOpLog(node.getId(), resolveOpType("check_stack"), false, resp.getMessage(), steps);
             return resp;
         }
     }
 
     private NodeMediaRemoteDeployRespVO deployWithScript(
-            ComputeNodeDO node, String phaseName, String scriptBody, String successToken) {
+            ComputeNodeDO node, String phaseName, String scriptBody, String successToken, String opType) {
         NodeSshCredential credential = loadSshCredential(node.getId());
         int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
         String sourceRoot = resolveStorageClusterSource();
@@ -547,9 +755,21 @@ public class NodeStorageServiceImpl implements NodeStorageService {
             steps.add(deployStep);
             resp.setSuccess(ok);
             resp.setMessage(ok ? phaseName + " 完成" : phaseName + " 失败");
+            if (ok) {
+                try {
+                    HealthProbe probe = probeHealth(ssh, node);
+                    persistProbeResult(node, probe, resp.getMessage());
+                    steps.add(probe.mountStep);
+                } catch (Exception probeEx) {
+                    log.warn("部署后探针失败 nodeId={}: {}", node.getId(), probeEx.getMessage());
+                }
+            }
+            writeOpLog(node.getId(), opType, ok, resp.getMessage(), steps);
             return resp;
         } catch (Exception e) {
-            return buildDeployFailure(resp, steps, node, sshPort, phaseName, e);
+            NodeMediaRemoteDeployRespVO fail = buildDeployFailure(resp, steps, node, sshPort, phaseName, e);
+            writeOpLog(node.getId(), opType, false, fail.getMessage(), steps);
+            return fail;
         }
     }
 
@@ -561,25 +781,505 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         String out = result.combinedOutput();
 
         HealthProbe probe = new HealthProbe();
-        probe.nfsServerStep = stepFromToken("NFS 服务端", out, "NFS_SERVER_CLI_OK", "NFS_SERVER_CLI_MISSING", "未安装 nfs-kernel-server");
-        probe.nfsExportStep = stepFromToken("NFS Export", out, "NFS_EXPORT_OK", "NFS_EXPORT_MISSING", "Export 未配置");
-        probe.nfsPortStep = stepFromToken("NFS 2049", out, "NFS_PORT_OK", "NFS_PORT_MISSING", "2049 未监听");
+        probe.rawOutput = out;
+        boolean clientRole = out.contains("NFS_ROLE_CLIENT")
+                || (!StorageStackDeployUtil.isStorageRole(node.getNodeRole())
+                && !out.contains("NFS_ROLE_SERVER"));
+
+        if (clientRole && (out.contains("NFS_SERVER_CLI_SKIP_CLIENT") || out.contains("NFS_SERVER_CLI_MISSING"))) {
+            probe.nfsServerStep = runStep("NFS 服务端", "success", "客户端节点，跳过服务端 CLI 检查");
+        } else {
+            probe.nfsServerStep = stepFromToken("NFS 服务端", out, "NFS_SERVER_CLI_OK", "NFS_SERVER_CLI_MISSING",
+                    "未安装 nfs-kernel-server");
+        }
+        if (out.contains("NFS_EXPORT_SKIP_CLIENT")) {
+            probe.nfsExportStep = runStep("NFS Export", "success", "客户端节点，跳过 Export 检查");
+        } else {
+            probe.nfsExportStep = stepFromToken("NFS Export", out, "NFS_EXPORT_OK", "NFS_EXPORT_MISSING", "Export 未配置");
+        }
+        if (out.contains("NFS_PORT_SKIP_CLIENT")) {
+            probe.nfsPortStep = runStep("NFS 2049", "success", "客户端节点，跳过端口检查");
+        } else {
+            probe.nfsPortStep = stepFromToken("NFS 2049", out, "NFS_PORT_OK", "NFS_PORT_MISSING", "2049 未监听");
+        }
+
         boolean subOk = out.contains("MOUNT_ALERT_IMAGES_OK") && out.contains("MOUNT_PLAYBACKS_OK");
         probe.poolStep = runStep("媒体子目录", subOk ? "success" : "failed",
                 subOk ? "alert_images / playbacks / snaps 已就绪" : "子目录未完整创建");
-        boolean mountOk = out.contains("MOUNT_ROOT_OK");
+
+        boolean mountOk = out.contains("MOUNT_ROOT_OK") || out.contains("MOUNT_LOCAL_BIND_OK");
+        boolean sourceOk = out.contains("MOUNT_SOURCE_OK")
+                || out.contains("MOUNT_LOCAL_BIND_OK")
+                || out.contains("MOUNT_FSTYPE_LOCAL_OK");
+        boolean sourceMismatch = out.contains("MOUNT_SOURCE_MISMATCH");
+        boolean rwOk = out.contains("MOUNT_RW_OK");
+
+        probe.mountSource = extractMountSource(out);
+        if (sourceMismatch) {
+            probe.sourceStep = runStep("挂载源", "failed",
+                    "挂载源与配置不一致" + (probe.mountSource != null ? "：" + probe.mountSource : ""));
+        } else if (sourceOk || mountOk) {
+            probe.sourceStep = runStep("挂载源", "success",
+                    probe.mountSource != null ? "源=" + probe.mountSource : "挂载源匹配或本机回退");
+        } else {
+            probe.sourceStep = runStep("挂载源", "failed", "未能确认挂载源");
+        }
+
         probe.mountStep = runStep("NFS 挂载", mountOk ? "success" : "failed",
                 mountOk ? "挂载点 " + StorageStackDeployUtil.buildDeployEnvMap(node).get("MOUNT_ROOT") + " 已就绪"
                         : "NFS 未挂载");
+        probe.rwStep = runStep("读写探针", rwOk ? "success" : (mountOk ? "failed" : "failed"),
+                rwOk ? "挂载根可写" : "挂载根不可写或未挂载");
 
-        probe.nfsServerReady = out.contains("NFS_SERVER_CLI_OK") || out.contains("NFS_EXPORT_OK");
-        probe.nfsExportReady = out.contains("NFS_EXPORT_OK");
-        probe.mountReady = mountOk;
+        probe.nfsServerReady = out.contains("NFS_SERVER_CLI_OK") || out.contains("NFS_EXPORT_OK")
+                || out.contains("NFS_SERVER_CLI_SKIP_CLIENT");
+        probe.nfsExportReady = out.contains("NFS_EXPORT_OK") || out.contains("NFS_EXPORT_SKIP_CLIENT");
+        // 客户端：挂载 + 源匹配（或本机回退）+ 读写；缺 RW 仍可视为未完全就绪
+        probe.mountReady = mountOk && (sourceOk || !sourceMismatch) && rwOk;
+        if (mountOk && sourceOk && !rwOk) {
+            probe.mountReady = false;
+        }
+        if (mountOk && out.contains("MOUNT_LOCAL_BIND_OK") && rwOk) {
+            probe.mountReady = true;
+        }
         probe.poolExists = subOk;
-        probe.cephHealthy = probe.nfsServerReady;
-        probe.osdRunning = out.contains("NFS_PORT_OK");
-        probe.cephfsReady = mountOk;
+        probe.cephHealthy = Boolean.TRUE.equals(probe.nfsServerReady)
+                && (clientRole || out.contains("NFS_EXPORT_OK"));
+        probe.osdRunning = out.contains("NFS_PORT_OK") || out.contains("NFS_PORT_SKIP_CLIENT");
+        probe.cephfsReady = probe.mountReady;
         return probe;
+    }
+
+    private static boolean outIndicatesServerRole(String out) {
+        return out != null && out.contains("NFS_ROLE_SERVER");
+    }
+
+    private static String extractMountSource(String out) {
+        if (out == null) {
+            return null;
+        }
+        for (String line : out.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("MOUNT_SOURCE=")) {
+                String val = trimmed.substring("MOUNT_SOURCE=".length()).trim();
+                return StringUtils.hasText(val) ? val : null;
+            }
+        }
+        return null;
+    }
+
+    private void persistProbeResult(ComputeNodeDO node, HealthProbe probe, String summary) {
+        if (node == null || node.getId() == null || probe == null) {
+            return;
+        }
+        ComputeNodeDO latest = computeNodeMapper.selectById(node.getId());
+        if (latest == null) {
+            return;
+        }
+        Map<String, String> tags = latest.getTags() != null ? new HashMap<>(latest.getTags()) : new HashMap<>();
+        boolean ready = Boolean.TRUE.equals(probe.mountReady);
+        String readyStr = ready ? "true" : "false";
+        tags.put("nfs_mount_ready", readyStr);
+        tags.put("ceph_mount_ready", readyStr);
+        String at = Instant.now().toString();
+        tags.put("nfs_probe_at", at);
+        tags.put("nfs_probe_ok", readyStr);
+        String shortSummary = summary != null ? summary.trim() : "";
+        if (shortSummary.length() > 240) {
+            shortSummary = shortSummary.substring(0, 240);
+        }
+        tags.put("nfs_probe_summary", shortSummary);
+        if (StringUtils.hasText(probe.mountSource)) {
+            tags.put("nfs_mount_source", probe.mountSource.trim());
+        }
+        latest.setTags(tags);
+        computeNodeMapper.updateById(latest);
+        node.setTags(tags);
+
+        EdgeNodeDO edge = edgeNodeMapper.selectByComputeNodeId(latest.getId());
+        if (edge != null) {
+            edge.setCephMountReady(ready);
+            edgeNodeMapper.updateById(edge);
+        }
+    }
+
+    private String resolveOpType(String defaultType) {
+        String override = opLogTypeOverride.get();
+        return StringUtils.hasText(override) ? override : defaultType;
+    }
+
+    private void writeOpLog(
+            Long nodeId,
+            String opType,
+            boolean success,
+            String message,
+            List<NodeMediaRemoteDeployRespVO.DeployStep> steps) {
+        try {
+            NodeStorageOpLogDO row = new NodeStorageOpLogDO();
+            row.setNodeId(nodeId);
+            row.setOpType(opType != null ? opType : "refresh");
+            row.setSuccess(success);
+            String msg = message != null ? message.trim() : "";
+            if (msg.length() > 1000) {
+                msg = msg.substring(0, 1000);
+            }
+            row.setMessage(msg);
+            if (steps != null && !steps.isEmpty()) {
+                String json = JsonUtils.toJsonString(steps);
+                if (json != null && json.length() > OP_LOG_STEPS_MAX) {
+                    json = json.substring(0, OP_LOG_STEPS_MAX);
+                }
+                row.setStepsJson(json);
+            }
+            nodeStorageOpLogMapper.insert(row);
+            if (nodeId != null) {
+                trimOpLogs(nodeId);
+            }
+        } catch (Exception e) {
+            log.warn("写入 NFS 操作日志失败 nodeId={} opType={}: {}", nodeId, opType, e.getMessage());
+        }
+    }
+
+    private void trimOpLogs(Long nodeId) {
+        long count = nodeStorageOpLogMapper.countByNodeId(nodeId);
+        if (count <= OP_LOG_KEEP_PER_NODE) {
+            return;
+        }
+        List<NodeStorageOpLogDO> keepNewest = nodeStorageOpLogMapper.selectList(
+                new com.basiclab.iot.common.core.query.LambdaQueryWrapperX<NodeStorageOpLogDO>()
+                        .eq(NodeStorageOpLogDO::getNodeId, nodeId)
+                        .orderByDesc(NodeStorageOpLogDO::getCreateTime)
+                        .last("LIMIT " + OP_LOG_KEEP_PER_NODE));
+        if (keepNewest == null || keepNewest.isEmpty()) {
+            return;
+        }
+        Set<Long> keepIds = new HashSet<>();
+        for (NodeStorageOpLogDO row : keepNewest) {
+            if (row.getId() != null) {
+                keepIds.add(row.getId());
+            }
+        }
+        List<NodeStorageOpLogDO> all = nodeStorageOpLogMapper.selectList(NodeStorageOpLogDO::getNodeId, nodeId);
+        if (all == null) {
+            return;
+        }
+        for (NodeStorageOpLogDO row : all) {
+            if (row.getId() != null && !keepIds.contains(row.getId())) {
+                nodeStorageOpLogMapper.deleteById(row.getId());
+            }
+        }
+    }
+
+    @Override
+    public PageResult<NodeStorageOpLogRespVO> getOpLogPage(NodeStorageOpLogPageReqVO req) {
+        if (req == null) {
+            req = new NodeStorageOpLogPageReqVO();
+        }
+        PageResult<NodeStorageOpLogDO> page = nodeStorageOpLogMapper.selectPage(req);
+        List<NodeStorageOpLogRespVO> list = new ArrayList<>();
+        if (page.getList() != null) {
+            for (NodeStorageOpLogDO row : page.getList()) {
+                list.add(toOpLogResp(row));
+            }
+        }
+        return new PageResult<>(list, page.getTotal());
+    }
+
+    private NodeStorageOpLogRespVO toOpLogResp(NodeStorageOpLogDO row) {
+        NodeStorageOpLogRespVO vo = new NodeStorageOpLogRespVO();
+        vo.setId(row.getId());
+        vo.setNodeId(row.getNodeId());
+        vo.setOpType(row.getOpType());
+        vo.setSuccess(row.getSuccess());
+        vo.setMessage(row.getMessage());
+        vo.setCreateTime(row.getCreateTime());
+        if (StringUtils.hasText(row.getStepsJson())) {
+            try {
+                List<NodeMediaRemoteDeployRespVO.DeployStep> steps = JsonUtils.parseArray(
+                        row.getStepsJson(), NodeMediaRemoteDeployRespVO.DeployStep.class);
+                if (steps != null) {
+                    vo.setSteps(steps);
+                }
+            } catch (Exception ignore) {
+                // keep empty steps
+            }
+        }
+        return vo;
+    }
+
+    @Override
+    public NodeStorageFileListRespVO listMediaFiles(Long nodeId, String relativePath) {
+        ComputeNodeDO node = requireNode(nodeId);
+        String mountRoot = resolveNodeMountRoot(node);
+        String abs = resolveJailAbsolutePath(mountRoot, relativePath);
+        NodeSshCredential credential = loadSshCredential(nodeId);
+        int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
+        NodeStorageFileListRespVO resp = new NodeStorageFileListRespVO();
+        resp.setMountRoot(mountRoot);
+        resp.setAbsolutePath(abs);
+        resp.setRelativePath(toRelativePath(mountRoot, abs));
+        try (SshSessionHelper ssh = openSshSession(node, credential, sshPort)) {
+            List<SshSessionHelper.SftpEntry> entries = ssh.listDir(abs);
+            List<NodeStorageFileEntryVO> vos = new ArrayList<>();
+            for (SshSessionHelper.SftpEntry e : entries) {
+                NodeStorageFileEntryVO vo = new NodeStorageFileEntryVO();
+                vo.setName(e.name);
+                vo.setDirectory(e.directory);
+                vo.setSize(e.size);
+                if (e.mtimeSec > 0) {
+                    vo.setMtime(LocalDateTime.ofInstant(Instant.ofEpochSecond(e.mtimeSec), ZoneId.systemDefault()));
+                }
+                vo.setRelativePath(toRelativePath(mountRoot, joinPath(abs, e.name)));
+                vos.add(vo);
+            }
+            resp.setEntries(vos);
+            return resp;
+        } catch (Exception e) {
+            log.error("列出媒体文件失败 nodeId={} path={}", nodeId, abs, e);
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+    }
+
+    @Override
+    public NodeStorageFileDownloadResult downloadMediaFile(Long nodeId, String relativePath) {
+        ComputeNodeDO node = requireNode(nodeId);
+        String mountRoot = resolveNodeMountRoot(node);
+        String abs = resolveJailAbsolutePath(mountRoot, relativePath);
+        NodeSshCredential credential = loadSshCredential(nodeId);
+        int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
+        try (SshSessionHelper ssh = openSshSession(node, credential, sshPort)) {
+            SshSessionHelper.SftpEntry stat = ssh.stat(abs);
+            if (stat == null || stat.directory) {
+                throw exception(STORAGE_FILE_NOT_FOUND);
+            }
+            if (stat.size > FILE_DOWNLOAD_MAX_BYTES) {
+                throw exception(STORAGE_FILE_TOO_LARGE);
+            }
+            byte[] bytes = ssh.downloadBytes(abs);
+            NodeStorageFileDownloadResult result = new NodeStorageFileDownloadResult();
+            result.setFileName(stat.name);
+            result.setSize(stat.size);
+            result.setContent(bytes);
+            return result;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("下载媒体文件失败 nodeId={} path={}", nodeId, abs, e);
+            throw exception(STORAGE_FILE_NOT_FOUND);
+        }
+    }
+
+    @Override
+    public NodeStorageFileOpsRespVO mkdirMediaDir(Long nodeId, String parentRelativePath, String name) {
+        String dirName = sanitizeEntryName(name);
+        ComputeNodeDO node = requireNode(nodeId);
+        String mountRoot = resolveNodeMountRoot(node);
+        String parentAbs = resolveJailAbsolutePath(mountRoot, parentRelativePath);
+        String childRel = toRelativePath(mountRoot, joinPath(parentAbs, dirName));
+        String childAbs = resolveJailAbsolutePath(mountRoot, childRel);
+        NodeSshCredential credential = loadSshCredential(nodeId);
+        int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
+        NodeStorageFileOpsRespVO resp = new NodeStorageFileOpsRespVO();
+        try (SshSessionHelper ssh = openSshSession(node, credential, sshPort)) {
+            SshSessionHelper.SftpEntry existing = ssh.stat(childAbs);
+            if (existing != null) {
+                throw exception(STORAGE_FILE_EXISTS);
+            }
+            ssh.mkdir(childAbs);
+            resp.setSuccess(true);
+            resp.setMessage("已创建目录 " + dirName);
+            resp.setRelativePath(childRel);
+            writeOpLog(nodeId, "mkdir", true, resp.getMessage() + " @ " + childRel, null);
+            return resp;
+        } catch (RuntimeException e) {
+            writeOpLog(nodeId, "mkdir", false, e.getMessage(), null);
+            throw e;
+        } catch (Exception e) {
+            log.error("创建目录失败 nodeId={} path={}", nodeId, childAbs, e);
+            writeOpLog(nodeId, "mkdir", false, e.getMessage(), null);
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+    }
+
+    @Override
+    public NodeStorageFileOpsRespVO uploadMediaFile(Long nodeId, String parentRelativePath, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw exception(STORAGE_FILE_NAME_INVALID);
+        }
+        String original = file.getOriginalFilename();
+        String fileName = sanitizeEntryName(original != null ? original : "upload.bin");
+        if (file.getSize() > FILE_DOWNLOAD_MAX_BYTES) {
+            throw exception(STORAGE_FILE_TOO_LARGE);
+        }
+        ComputeNodeDO node = requireNode(nodeId);
+        String mountRoot = resolveNodeMountRoot(node);
+        String parentAbs = resolveJailAbsolutePath(mountRoot, parentRelativePath);
+        String childRel = toRelativePath(mountRoot, joinPath(parentAbs, fileName));
+        String childAbs = resolveJailAbsolutePath(mountRoot, childRel);
+        NodeSshCredential credential = loadSshCredential(nodeId);
+        int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
+        NodeStorageFileOpsRespVO resp = new NodeStorageFileOpsRespVO();
+        try (SshSessionHelper ssh = openSshSession(node, credential, sshPort)) {
+            SshSessionHelper.SftpEntry existing = ssh.stat(childAbs);
+            if (existing != null && existing.directory) {
+                throw exception(STORAGE_FILE_EXISTS);
+            }
+            byte[] bytes = file.getBytes();
+            ssh.uploadBytes(childAbs, bytes);
+            resp.setSuccess(true);
+            resp.setMessage((existing != null ? "已覆盖上传 " : "已上传 ") + fileName + "（" + bytes.length + " 字节）");
+            resp.setRelativePath(childRel);
+            writeOpLog(nodeId, "upload", true, resp.getMessage() + " @ " + childRel, null);
+            return resp;
+        } catch (RuntimeException e) {
+            writeOpLog(nodeId, "upload", false, e.getMessage(), null);
+            throw e;
+        } catch (Exception e) {
+            log.error("上传文件失败 nodeId={} path={}", nodeId, childAbs, e);
+            writeOpLog(nodeId, "upload", false, e.getMessage(), null);
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+    }
+
+    @Override
+    public NodeStorageFileOpsRespVO deleteMediaPath(Long nodeId, String relativePath) {
+        ComputeNodeDO node = requireNode(nodeId);
+        String mountRoot = resolveNodeMountRoot(node);
+        String abs = resolveJailAbsolutePath(mountRoot, relativePath);
+        if (!StringUtils.hasText(toRelativePath(mountRoot, abs))) {
+            throw exception(STORAGE_FILE_ROOT_FORBIDDEN);
+        }
+        NodeSshCredential credential = loadSshCredential(nodeId);
+        int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
+        NodeStorageFileOpsRespVO resp = new NodeStorageFileOpsRespVO();
+        try (SshSessionHelper ssh = openSshSession(node, credential, sshPort)) {
+            SshSessionHelper.SftpEntry stat = ssh.stat(abs);
+            if (stat == null) {
+                throw exception(STORAGE_FILE_NOT_FOUND);
+            }
+            ssh.deleteRecursive(abs);
+            resp.setSuccess(true);
+            resp.setMessage((stat.directory ? "已删除目录 " : "已删除文件 ") + stat.name);
+            resp.setRelativePath(toRelativePath(mountRoot, abs));
+            writeOpLog(nodeId, "delete", true, resp.getMessage() + " @ " + resp.getRelativePath(), null);
+            return resp;
+        } catch (RuntimeException e) {
+            writeOpLog(nodeId, "delete", false, e.getMessage(), null);
+            throw e;
+        } catch (Exception e) {
+            log.error("删除失败 nodeId={} path={}", nodeId, abs, e);
+            writeOpLog(nodeId, "delete", false, e.getMessage(), null);
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+    }
+
+    @Override
+    public NodeStorageFileOpsRespVO renameMediaPath(Long nodeId, String relativePath, String newName) {
+        String targetName = sanitizeEntryName(newName);
+        ComputeNodeDO node = requireNode(nodeId);
+        String mountRoot = resolveNodeMountRoot(node);
+        String abs = resolveJailAbsolutePath(mountRoot, relativePath);
+        if (!StringUtils.hasText(toRelativePath(mountRoot, abs))) {
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+        int slash = abs.lastIndexOf('/');
+        String parentAbs = slash > 0 ? abs.substring(0, slash) : mountRoot;
+        String targetAbs = resolveJailAbsolutePath(mountRoot, toRelativePath(mountRoot, joinPath(parentAbs, targetName)));
+        NodeSshCredential credential = loadSshCredential(nodeId);
+        int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
+        NodeStorageFileOpsRespVO resp = new NodeStorageFileOpsRespVO();
+        try (SshSessionHelper ssh = openSshSession(node, credential, sshPort)) {
+            SshSessionHelper.SftpEntry src = ssh.stat(abs);
+            if (src == null) {
+                throw exception(STORAGE_FILE_NOT_FOUND);
+            }
+            if (ssh.stat(targetAbs) != null) {
+                throw exception(STORAGE_FILE_EXISTS);
+            }
+            ssh.rename(abs, targetAbs);
+            resp.setSuccess(true);
+            resp.setMessage("已重命名为 " + targetName);
+            resp.setRelativePath(toRelativePath(mountRoot, targetAbs));
+            writeOpLog(nodeId, "rename", true, resp.getMessage() + " @ " + resp.getRelativePath(), null);
+            return resp;
+        } catch (RuntimeException e) {
+            writeOpLog(nodeId, "rename", false, e.getMessage(), null);
+            throw e;
+        } catch (Exception e) {
+            log.error("重命名失败 nodeId={} path={} -> {}", nodeId, abs, targetAbs, e);
+            writeOpLog(nodeId, "rename", false, e.getMessage(), null);
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+    }
+
+    private String sanitizeEntryName(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            throw exception(STORAGE_FILE_NAME_INVALID);
+        }
+        String name = raw.trim().replace('\\', '/');
+        int slash = name.lastIndexOf('/');
+        if (slash >= 0) {
+            name = name.substring(slash + 1);
+        }
+        name = name.trim();
+        if (!StringUtils.hasText(name) || ".".equals(name) || "..".equals(name)
+                || name.contains("/") || name.contains("..")) {
+            throw exception(STORAGE_FILE_NAME_INVALID);
+        }
+        if (name.length() > 200) {
+            throw exception(STORAGE_FILE_NAME_INVALID);
+        }
+        return name;
+    }
+
+    private String resolveJailAbsolutePath(String mountRoot, String relativePath) {
+        String root = mountRoot.replace('\\', '/').replaceAll("/+$", "");
+        if (!root.startsWith("/")) {
+            root = "/" + root;
+        }
+        String rel = relativePath == null ? "" : relativePath.trim().replace('\\', '/');
+        while (rel.startsWith("/")) {
+            rel = rel.substring(1);
+        }
+        if (rel.contains("..")) {
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+        String abs = rel.isEmpty() ? root : root + "/" + rel;
+        abs = abs.replaceAll("/{2,}", "/");
+        String rootSlash = root.endsWith("/") ? root : root + "/";
+        if (!abs.equals(root) && !abs.startsWith(rootSlash)) {
+            throw exception(STORAGE_FILE_PATH_INVALID);
+        }
+        return abs;
+    }
+
+    private String resolveNodeMountRoot(ComputeNodeDO node) {
+        Map<String, String> tags = node.getTags() != null ? node.getTags() : Map.of();
+        String mount = firstNonBlank(tags.get("media_mount_path"), tags.get("ceph_mount_path"), mediaHostDataRoot);
+        if (!StringUtils.hasText(mount)) {
+            mount = "/mnt/easyaiot-media";
+        }
+        return mount.replace('\\', '/').replaceAll("/+$", "");
+    }
+
+    private static String toRelativePath(String mountRoot, String absolute) {
+        String root = mountRoot.replaceAll("/+$", "");
+        String abs = absolute.replace('\\', '/');
+        if (abs.equals(root)) {
+            return "";
+        }
+        String prefix = root + "/";
+        if (abs.startsWith(prefix)) {
+            return abs.substring(prefix.length());
+        }
+        return abs;
+    }
+
+    private static String joinPath(String base, String name) {
+        if (base.endsWith("/")) {
+            return base + name;
+        }
+        return base + "/" + name;
     }
 
     private NodeMediaRemoteDeployRespVO.DeployStep stepFromToken(
@@ -589,6 +1289,9 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         }
         if (output.contains(failToken)) {
             return runStep(name, "failed", failHint);
+        }
+        if (output.contains(okToken.replace("_OK", "_SKIP_CLIENT"))) {
+            return runStep(name, "success", name + " 跳过（客户端）");
         }
         return runStep(name, "failed", name + " 状态未知");
     }
@@ -680,6 +1383,8 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         private NodeMediaRemoteDeployRespVO.DeployStep nfsPortStep;
         private NodeMediaRemoteDeployRespVO.DeployStep poolStep;
         private NodeMediaRemoteDeployRespVO.DeployStep mountStep;
+        private NodeMediaRemoteDeployRespVO.DeployStep sourceStep;
+        private NodeMediaRemoteDeployRespVO.DeployStep rwStep;
         private Boolean nfsServerReady;
         private Boolean nfsExportReady;
         private Boolean cephHealthy;
@@ -687,6 +1392,8 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         private Boolean poolExists;
         private Boolean cephfsReady;
         private Boolean mountReady;
+        private String rawOutput;
+        private String mountSource;
     }
 
     private NodeSshCredential loadSshCredential(Long nodeId) {

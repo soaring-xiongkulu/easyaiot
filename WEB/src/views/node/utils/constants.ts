@@ -53,6 +53,7 @@ export const NODE_TERM = {
   mqttService: 'MQTT 网关',
   storageCephTopology: 'NFS 集群拓扑',
   storageBatchOps: '批量运维',
+  storageFileOps: '文件运维',
   storageService: 'NFS 共享存储',
   mediaPort: '流媒体端口',
   mqttPort: 'MQTT 端口',
@@ -756,9 +757,9 @@ export function readStorageTagsFromTags(tags?: Record<string, string | undefined
 export type CephMountStatus = 'ready' | 'not_ready' | 'unknown';
 
 export const CEPH_MOUNT_LABELS: Record<CephMountStatus, string> = {
-  ready: 'Ceph 已挂载',
-  not_ready: 'Ceph 未就绪',
-  unknown: 'Ceph 未上报',
+  ready: 'NFS 已挂载',
+  not_ready: 'NFS 未就绪',
+  unknown: 'NFS 未上报',
 };
 
 export function isClusterComputeRole(role?: string): boolean {
@@ -769,8 +770,9 @@ export function readCephMountFromTags(tags?: Record<string, string | undefined>)
   status: CephMountStatus;
   mountPath?: string;
 } {
-  const raw = tags?.ceph_mount_ready;
-  const mountPath = tags?.ceph_mount_path || tags?.media_mount_path || undefined;
+  const raw = tags?.nfs_mount_ready ?? tags?.ceph_mount_ready;
+  const mountPath =
+    tags?.media_mount_path || tags?.ceph_mount_path || tags?.nfs_mount_path || undefined;
   if (raw == null || raw === '') {
     return { status: 'unknown', mountPath };
   }

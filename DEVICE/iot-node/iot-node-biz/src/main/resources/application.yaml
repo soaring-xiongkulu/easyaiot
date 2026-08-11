@@ -85,11 +85,17 @@ iot:
       - node_workload_binding
       - device_media_binding
       - control_plane_peer
+      - node_storage_op_log
 
 easyaiot:
   scheduler:
     # 自动调度时是否优先选择 GPU 节点（可被单次 allocate 请求的 preferGpu 覆盖）
     prefer-gpu-default: ${EASYAIOT_SCHEDULER_PREFER_GPU:true}
+  storage:
+    # NFS 定时巡检（SSH 刷新现状并写 op_log）
+    nfs-probe-enabled: ${EASYAIOT_NFS_PROBE_ENABLED:true}
+    nfs-probe-interval-ms: ${EASYAIOT_NFS_PROBE_INTERVAL_MS:900000}
+    cluster-source-path: ${EASYAIOT_STORAGE_CLUSTER_PATH:}
   media:
     cluster-source-path: ${EASYAIOT_MEDIA_CLUSTER_PATH:}
     # Hook 回调目标（SRS/ZLM on_publish 等）；默认自动探测，无需手动配置

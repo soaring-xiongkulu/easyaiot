@@ -5,7 +5,7 @@
       <div class="desc">
         <span>
           告警图与录像写入同一挂载根下的 <code>alert_images</code> / <code>playbacks</code>。
-          Ceph 集群运维与拓扑请前往「分布式存储」。
+          NFS 集群运维与拓扑请前往「分布式存储」。
         </span>
         <div v-if="selectedHint" class="node-hint">
           当前节点 {{ selectedHint.name }}（{{ selectedHint.host }}）：
@@ -15,12 +15,13 @@
           <span v-if="selectedHint.mountPath" class="path">{{ selectedHint.mountPath }}</span>
         </div>
         <div v-else-if="summary" class="cluster-hint">
-          关联节点挂载就绪 {{ summary.mountReadyCount ?? 0 }} / {{ clientTotal }}（客户端）
+          客户端挂载覆盖 {{ coverageReady }} / {{ coverageTotal }}（{{ coveragePercent }}%）
+          <span v-if="(summary.unprobedCount ?? 0) > 0"> · 未探测 {{ summary.unprobedCount }}</span>
         </div>
         <Space wrap class="actions">
           <Button type="link" size="small" :loading="loading" @click="reload">刷新</Button>
           <Button type="link" size="small" @click="goStorageTopology">
-            查看 Ceph 集群拓扑
+            查看 NFS 集群拓扑
           </Button>
         </Space>
       </div>
@@ -47,7 +48,17 @@ const router = useRouter();
 const loading = ref(false);
 const summary = ref<CephTopologySummaryVO | null>(null);
 
-const clientTotal = computed(() => summary.value?.clientNodes ?? 0);
+const coverageTotal = computed(() => summary.value?.clientNodes ?? 0);
+const coverageReady = computed(() => {
+  const s = summary.value;
+  if (!s) return 0;
+  // mountReadyCount 含非客户端；覆盖展示优先用 coveragePercent 反推
+  if (s.coveragePercent != null && coverageTotal.value > 0) {
+    return Math.round((s.coveragePercent * coverageTotal.value) / 100);
+  }
+  return Math.min(s.mountReadyCount ?? 0, coverageTotal.value);
+});
+const coveragePercent = computed(() => summary.value?.coveragePercent ?? 0);
 
 const selectedHint = computed(() => {
   const node = props.selectedNode;

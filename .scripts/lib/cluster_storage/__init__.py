@@ -100,20 +100,68 @@ def get_staging_dir() -> str:
 
 
 def verify_ceph_mount(mount_root: Optional[str] = None) -> bool:
-    """检查 CephFS 挂载是否就绪（cluster 模式或显式配置了挂载根时）。"""
+    """检查共享媒体挂载是否就绪。
+
+    - cluster 模式：要求挂载点为 mount，且优先校验 NFS 源（host:export）
+    - 非 cluster：目录存在可写或已是 mount 即可（单机 local_bind）
+    """
     root = (mount_root or get_mount_root()).rstrip('/\\')
     if not root or root in ('/data', '/tmp'):
         return True
     try:
         if not os.path.isdir(root):
             return False
+
+        nfs_server = (os.getenv('NFS_SERVER') or '').strip()
+        nfs_export = (os.getenv('NFS_EXPORT') or '').strip()
+        expected = f'{nfs_server}:{nfs_export}' if nfs_server and nfs_export else ''
+
         if os.path.ismount(root):
+            source = _findmnt_source(root)
+            if expected and source:
+                if source == expected or source.endswith(':' + nfs_export):
+                    # 远端要求 host 一致；本机 127.0.0.1 放宽
+                    src_host = source.split(':', 1)[0]
+                    if nfs_server in ('127.0.0.1', 'localhost', '::1') or src_host == nfs_server:
+                        return True
+                    if nfs_server and src_host != nfs_server and ':' in source:
+                        return False
+                elif ':' in source and nfs_export and not source.endswith(':' + nfs_export):
+                    return False
+            # 已是 mount：NFS 源含 ':' 或未配置期望源时视为可用
+            if source and ':' in source:
+                return True
+            if not is_cluster_mode():
+                return True
+            # cluster 下非 NFS 的 mount（如 bind）也接受
             return True
-        # 子目录已存在且可写时也视为可用（嵌套 bind mount 场景）
+
+        # 未 mount
+        if is_cluster_mode():
+            # 禁止仅靠 playbacks 可写判 true，避免本地目录假就绪
+            return False
+
         probe = os.path.join(root, 'playbacks')
         return os.path.isdir(probe) and os.access(probe, os.W_OK)
     except OSError:
         return False
+
+
+def _findmnt_source(mount_root: str) -> str:
+    """读取 findmnt SOURCE；失败返回空串。"""
+    try:
+        import subprocess
+
+        proc = subprocess.run(
+            ['findmnt', '-n', '-o', 'SOURCE', mount_root],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+        return (proc.stdout or '').strip()
+    except Exception:
+        return ''
 
 
 def apply_cluster_env_defaults(force: bool = False) -> Dict[str, str]:

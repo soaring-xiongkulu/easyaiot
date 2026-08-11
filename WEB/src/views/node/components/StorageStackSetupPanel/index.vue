@@ -239,41 +239,41 @@ watch(
           </Radio.Group>
         </FormItem>
 
-        <FormItem label="Ceph 健康检测">
+        <FormItem label="NFS 健康检测">
           <Space wrap>
             <Button :loading="checking" :disabled="!canOperate || deploying" @click="handleCheckDeploy">
               {{ SETUP_COPY.deployCheck }}
             </Button>
             <Button :loading="mountChecking" :disabled="!canOperate || deploying" @click="handleCheckMount">
-              检测 CephFS 挂载
+              检测 NFS 挂载
             </Button>
           </Space>
           <div v-if="!canOperate" class="form-hint">{{ disabledReason || '请先保存节点并配置 SSH' }}</div>
           <StorageStackCheckResult v-else-if="checkResult" :result="checkResult" @close="checkResult = null" />
           <div v-else-if="mountCheckResult" class="form-hint">
-            {{ mountCheckResult.message || (mountCheckResult.mountReady ? 'CephFS 已挂载' : 'CephFS 未挂载') }}
+            {{ mountCheckResult.message || (mountCheckResult.mountReady ? 'NFS 已挂载' : 'NFS 未挂载') }}
           </div>
-          <div v-else class="form-hint">通过 SSH 探测 Ceph 集群、OSD、存储池与 CephFS 挂载状态</div>
+          <div v-else class="form-hint">通过 SSH 探测 NFS 服务端、Export、端口与挂载状态</div>
         </FormItem>
 
         <template v-if="deployMode === 'auto'">
           <FormItem :label="SETUP_COPY.remoteDeploy">
             <Space wrap>
               <Button type="primary" :loading="deploying && deployAction === 'pool'" :disabled="!canOperate || deploying" @click="runDeploy('pool')">
-                创建存储池（MON 节点）
+                初始化 Export
               </Button>
               <Button :loading="deploying && deployAction === 'osd'" :disabled="!canOperate || deploying" @click="runDeploy('osd')">
-                准备 OSD 节点
+                安装 NFS 服务端
               </Button>
               <Button :loading="deploying && deployAction === 'client'" :disabled="!canOperate || deploying" @click="runDeploy('client')">
-                挂载 CephFS 客户端
+                挂载 NFS 客户端
               </Button>
               <Button v-if="deploying" danger @click="handleStopDeploy">停止部署</Button>
             </Space>
             <div v-if="disabledReason" class="form-hint">{{ disabledReason }}</div>
             <div v-else-if="guide.readySummary" class="form-hint">{{ guide.readySummary }}</div>
             <div v-else class="form-hint">
-              建议顺序：① MON 节点建池 ② 各 OSD 存储节点准备 ③ 媒体/Worker 节点挂载 CephFS
+              建议顺序：① 安装 NFS 服务端并初始化 Export ② 客户端节点挂载
             </div>
           </FormItem>
 

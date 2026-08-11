@@ -163,10 +163,192 @@ public class SshSessionHelper implements AutoCloseable {
         return count;
     }
 
+    /** 列出远程目录条目（不含 . / ..） */
+    @SuppressWarnings("unchecked")
+    public java.util.List<SftpEntry> listDir(String remoteDir) throws JSchException, SftpException {
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            java.util.Vector<ChannelSftp.LsEntry> vector = sftp.ls(remoteDir);
+            java.util.List<SftpEntry> result = new java.util.ArrayList<>();
+            if (vector == null) {
+                return result;
+            }
+            for (ChannelSftp.LsEntry entry : vector) {
+                String name = entry.getFilename();
+                if (".".equals(name) || "..".equals(name)) {
+                    continue;
+                }
+                com.jcraft.jsch.SftpATTRS attrs = entry.getAttrs();
+                boolean dir = attrs != null && attrs.isDir();
+                long size = attrs != null ? attrs.getSize() : 0L;
+                long mtimeSec = attrs != null ? attrs.getMTime() : 0L;
+                result.add(new SftpEntry(name, dir, size, mtimeSec));
+            }
+            result.sort((a, b) -> {
+                if (a.directory != b.directory) {
+                    return a.directory ? -1 : 1;
+                }
+                return a.name.compareToIgnoreCase(b.name);
+            });
+            return result;
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    /** 读取远程文件到内存（调用方需先校验大小） */
+    public byte[] downloadBytes(String remotePath) throws JSchException, SftpException, IOException {
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            try (InputStream in = sftp.get(remotePath);
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) >= 0) {
+                    out.write(buf, 0, n);
+                }
+                return out.toByteArray();
+            }
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    /** 远程文件属性；不存在时返回 null */
+    public SftpEntry stat(String remotePath) throws JSchException, SftpException {
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            com.jcraft.jsch.SftpATTRS attrs = sftp.stat(remotePath);
+            String name = remotePath;
+            int slash = remotePath.lastIndexOf('/');
+            if (slash >= 0 && slash < remotePath.length() - 1) {
+                name = remotePath.substring(slash + 1);
+            }
+            return new SftpEntry(name, attrs.isDir(), attrs.getSize(), attrs.getMTime());
+        } catch (SftpException e) {
+            if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                return null;
+            }
+            throw e;
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    public void mkdir(String remoteDir) throws JSchException, SftpException {
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            sftp.mkdir(remoteDir);
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    public void rename(String fromPath, String toPath) throws JSchException, SftpException {
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            sftp.rename(fromPath, toPath);
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    public void uploadBytes(String remotePath, byte[] content) throws JSchException, SftpException, IOException {
+        if (content == null) {
+            content = new byte[0];
+        }
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            int lastSlash = remotePath.lastIndexOf('/');
+            if (lastSlash > 0) {
+                ensureRemoteDir(remotePath.substring(0, lastSlash));
+            }
+            try (java.io.ByteArrayInputStream in = new java.io.ByteArrayInputStream(content)) {
+                sftp.put(in, remotePath);
+            }
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    /** 删除文件或递归删除目录 */
+    public void deleteRecursive(String remotePath) throws JSchException, SftpException {
+        ChannelSftp sftp = null;
+        try {
+            sftp = (ChannelSftp) session.openChannel("sftp");
+            sftp.connect(CONNECT_TIMEOUT_MS);
+            deleteRecursiveInternal(sftp, remotePath);
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect();
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void deleteRecursiveInternal(ChannelSftp sftp, String remotePath) throws SftpException {
+        com.jcraft.jsch.SftpATTRS attrs = sftp.stat(remotePath);
+        if (attrs.isDir()) {
+            java.util.Vector<ChannelSftp.LsEntry> vector = sftp.ls(remotePath);
+            if (vector != null) {
+                for (ChannelSftp.LsEntry entry : vector) {
+                    String name = entry.getFilename();
+                    if (".".equals(name) || "..".equals(name)) {
+                        continue;
+                    }
+                    String child = remotePath.endsWith("/") ? remotePath + name : remotePath + "/" + name;
+                    deleteRecursiveInternal(sftp, child);
+                }
+            }
+            sftp.rmdir(remotePath);
+        } else {
+            sftp.rm(remotePath);
+        }
+    }
+
     @Override
     public void close() {
         if (session != null && session.isConnected()) {
             session.disconnect();
+        }
+    }
+
+    public static final class SftpEntry {
+        public final String name;
+        public final boolean directory;
+        public final long size;
+        /** unix epoch seconds */
+        public final long mtimeSec;
+
+        public SftpEntry(String name, boolean directory, long size, long mtimeSec) {
+            this.name = name;
+            this.directory = directory;
+            this.size = size;
+            this.mtimeSec = mtimeSec;
         }
     }
 

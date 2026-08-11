@@ -19,6 +19,7 @@ from cluster_storage import (  # noqa: E402
     get_snaps_dir,
     is_cluster_mode,
     resolve_container_path,
+    verify_ceph_mount,
 )
 
 
@@ -58,6 +59,12 @@ class ClusterStorageTest(unittest.TestCase):
         os.environ.pop('CLUSTER_MODE', None)
         os.environ.pop('MEDIA_HOST_DATA_ROOT', None)
         self.assertFalse(is_cluster_mode())
+
+    def test_cluster_mode_rejects_unmounted_writable_dir(self):
+        os.environ['CLUSTER_MODE'] = 'true'
+        os.environ['MEDIA_HOST_DATA_ROOT'] = '/tmp/easyaiot-not-a-real-mount-xyz'
+        # 目录不存在 → False
+        self.assertFalse(verify_ceph_mount('/tmp/easyaiot-not-a-real-mount-xyz'))
 
 
 if __name__ == '__main__':

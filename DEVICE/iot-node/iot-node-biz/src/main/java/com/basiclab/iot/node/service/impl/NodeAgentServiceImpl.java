@@ -273,7 +273,7 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         }
     }
 
-    /** 将 Agent 上报的 Ceph 挂载状态写入节点 tags，供调度器过滤 */
+    /** 将 Agent 上报的挂载状态写入节点 tags，供调度器与拓扑使用 */
     private void syncCephMountFromHeartbeat(ComputeNodeDO node, NodeAgentHeartbeatReqVO reqVO) {
         if (reqVO.getCephMountReady() == null && StrUtil.isBlank(reqVO.getCephMountRoot())) {
             return;
@@ -281,10 +281,14 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         Map<String, String> tags = node.getTags() != null
                 ? new HashMap<>(node.getTags()) : new HashMap<>();
         if (reqVO.getCephMountReady() != null) {
-            tags.put("ceph_mount_ready", Boolean.TRUE.equals(reqVO.getCephMountReady()) ? "true" : "false");
+            String ready = Boolean.TRUE.equals(reqVO.getCephMountReady()) ? "true" : "false";
+            tags.put("ceph_mount_ready", ready);
+            tags.put("nfs_mount_ready", ready);
         }
         if (StrUtil.isNotBlank(reqVO.getCephMountRoot())) {
-            tags.put("ceph_mount_path", reqVO.getCephMountRoot().trim());
+            String root = reqVO.getCephMountRoot().trim();
+            tags.put("ceph_mount_path", root);
+            tags.put("media_mount_path", root);
         }
         if (reqVO.getClusterMode() != null) {
             tags.put("cluster_mode", Boolean.TRUE.equals(reqVO.getClusterMode()) ? "true" : "false");

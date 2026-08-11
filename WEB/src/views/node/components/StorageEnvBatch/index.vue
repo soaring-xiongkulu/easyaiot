@@ -12,10 +12,24 @@
           v-if="innerTab === 'topology'"
           embedded-in-storage
           @open-ops="openBatchOps"
+          @summary-change="onTopologySummary"
         />
       </TabPane>
 
       <TabPane key="ops" :tab="NODE_TERM.storageBatchOps">
+        <Alert
+          v-if="coverageSummary"
+          class="mb-3"
+          type="info"
+          show-icon
+          :message="coverageMessage"
+        />
+        <Space wrap class="mb-3">
+          <Button type="primary" ghost :loading="refreshLoading" @click="runBatchRefresh">
+            刷新现状
+          </Button>
+          <Button :loading="coverageLoading" @click="loadCoverage">刷新覆盖率</Button>
+        </Space>
         <ClusterScopeBar @lane-change="handleLaneChange" />
 
         <CollapseContainer title="① NFS 服务端（storage 角色）" :canExpan="true" :defaultExpan="true" class="mb-4">
@@ -80,23 +94,30 @@
           <BatchNodeResults :results="clientResults" />
         </CollapseContainer>
       </TabPane>
+
+      <TabPane key="files" :tab="NODE_TERM.storageFileOps">
+        <NfsFileBrowser v-if="innerTab === 'files'" />
+      </TabPane>
     </Tabs>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Alert, Space, TabPane, Tabs } from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import { CollapseContainer } from '@/components/Container';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
+  batchRefreshNfsBySsh,
   checkStorageMountBySsh,
   checkStorageStackBySsh,
   deployStorageClientBySsh,
   deployStorageOsdBySsh,
   deployStoragePoolBySsh,
+  getCephTopology,
+  type CephTopologySummaryVO,
   type WorkloadBundleNodeResult,
 } from '@/api/device/node';
 import { NODE_TERM } from '../../utils/constants';
@@ -105,6 +126,7 @@ import BatchNodeResults from '../BatchNodeResults/index.vue';
 import CephTopologyPanel from '../CephTopologyPanel/index.vue';
 import ClusterNodeSelector from '../ClusterNodeSelector/index.vue';
 import ClusterScopeBar from '../ClusterScopeBar/index.vue';
+import NfsFileBrowser from '../NfsFileBrowser/index.vue';
 
 defineOptions({ name: 'StorageEnvBatch' });
 
@@ -116,15 +138,16 @@ const { createMessage } = useMessage();
 const route = useRoute();
 const router = useRouter();
 
-function resolveStorageTab(): 'topology' | 'ops' {
+function resolveStorageTab(): 'topology' | 'ops' | 'files' {
   const raw = String(route.query.storageTab || '');
   if (raw === 'ops') return 'ops';
+  if (raw === 'files') return 'files';
   // 兼容旧链接 mediaTab=ceph
   if (String(route.query.mediaTab || '') === 'ceph') return 'topology';
   return 'topology';
 }
 
-const innerTab = ref<'topology' | 'ops'>(resolveStorageTab());
+const innerTab = ref<'topology' | 'ops' | 'files'>(resolveStorageTab());
 
 const osdSelectorRef = ref<InstanceType<typeof ClusterNodeSelector>>();
 const poolSelectorRef = ref<InstanceType<typeof ClusterNodeSelector>>();
@@ -137,10 +160,54 @@ const clientNodeIds = ref<number[]>([]);
 const osdLoading = ref<'check' | 'deploy' | null>(null);
 const poolLoading = ref(false);
 const clientLoading = ref<'check' | 'deploy' | null>(null);
+const refreshLoading = ref(false);
+const coverageLoading = ref(false);
+const coverageSummary = ref<CephTopologySummaryVO | null>(null);
 
 const osdResults = ref<WorkloadBundleNodeResult[]>([]);
 const poolResults = ref<WorkloadBundleNodeResult[]>([]);
 const clientResults = ref<WorkloadBundleNodeResult[]>([]);
+
+const coverageMessage = computed(() => {
+  const s = coverageSummary.value;
+  if (!s) return '尚未加载 NFS 覆盖率';
+  const pct = s.coveragePercent ?? 0;
+  const unprobed = s.unprobedCount ?? 0;
+  let msg = `客户端挂载覆盖 ${pct}%（就绪 ${s.mountReadyCount ?? 0} / 客户端 ${s.clientNodes ?? 0}）`;
+  if (unprobed > 0) msg += `；未探测 ${unprobed}，请点「刷新现状」`;
+  if (s.lastProbeAt) msg += `；最近探测 ${s.lastProbeAt}`;
+  return msg;
+});
+
+function onTopologySummary(s: CephTopologySummaryVO | null) {
+  coverageSummary.value = s;
+}
+
+async function loadCoverage() {
+  coverageLoading.value = true;
+  try {
+    const data = await getCephTopology();
+    coverageSummary.value = data.summary || null;
+  } catch {
+    coverageSummary.value = null;
+  } finally {
+    coverageLoading.value = false;
+  }
+}
+
+async function runBatchRefresh() {
+  refreshLoading.value = true;
+  try {
+    const data = await batchRefreshNfsBySsh({});
+    coverageSummary.value = data.topology?.summary || null;
+    if (data.success) createMessage.success(data.message || '现状已刷新');
+    else createMessage.warning(data.message || '部分节点刷新失败');
+  } catch (e: unknown) {
+    createMessage.error(e instanceof Error ? e.message : '刷新现状失败');
+  } finally {
+    refreshLoading.value = false;
+  }
+}
 
 watch(
   () => [route.query.storageTab, route.query.mediaTab] as const,
@@ -149,9 +216,14 @@ watch(
   },
 );
 
+onMounted(() => {
+  loadCoverage();
+});
+
 watch(innerTab, (tab) => {
   const q: Record<string, any> = { ...route.query };
   if (tab === 'ops') q.storageTab = 'ops';
+  else if (tab === 'files') q.storageTab = 'files';
   else q.storageTab = 'topology';
   delete q.mediaTab;
   router.replace({ query: q }).catch(() => undefined);

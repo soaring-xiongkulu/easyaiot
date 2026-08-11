@@ -50,6 +50,12 @@ public class NodeCephTopologyRespVO {
         private String nfsExportPath;
         /** nfs | local_bind（未指定 NFS 服务端时本机 export） */
         private String storageBackend;
+        /** 最近一次 SSH/探针时间（ISO 或可解析字符串） */
+        private String nfsProbeAt;
+        /** 最近一次探针摘要 */
+        private String nfsProbeSummary;
+        /** 实际挂载源，如 host:/export */
+        private String nfsMountSource;
         private String alertImagesDir;
         private String playbacksDir;
         private String snapsDir;
@@ -74,5 +80,11 @@ public class NodeCephTopologyRespVO {
         private int mountReadyCount;
         private int mountNotReadyCount;
         private int offlineCount;
+        /** 客户端挂载覆盖率 0-100；clientNodes=0 时为 0 */
+        private Integer coveragePercent;
+        /** 节点中最新探针时间 */
+        private String lastProbeAt;
+        /** 尚无 nfs_probe_at 的关联节点数 */
+        private int unprobedCount;
     }
 }

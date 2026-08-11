@@ -27,12 +27,12 @@ const overall = computed(() => {
     return { tone: 'error' as OverallTone, badge: '检测失败', title: r.message || '无法完成远程检测' };
   }
   if (r.deployed) {
-    return { tone: 'success' as OverallTone, badge: '已就绪', title: r.message || 'Ceph 集群与挂载均已就绪' };
+    return { tone: 'success' as OverallTone, badge: '已就绪', title: r.message || 'NFS 服务端与挂载均已就绪' };
   }
-  if (r.cephHealthy || r.osdRunning || r.mountReady) {
+  if (r.cephHealthy || r.nfsHealthy || r.osdRunning || r.mountReady) {
     return { tone: 'warning' as OverallTone, badge: '部分就绪', title: r.message || `${NODE_TERM.storageService}未完整就绪` };
   }
-  return { tone: 'info' as OverallTone, badge: '未部署', title: r.message || `可进行 Ceph ${NODE_TERM.deploy}` };
+  return { tone: 'info' as OverallTone, badge: '未部署', title: r.message || `可进行 ${NODE_TERM.storageService} ${NODE_TERM.deploy}` };
 });
 
 const badgeClass = computed(() => {
@@ -45,11 +45,12 @@ const badgeClass = computed(() => {
 
 const serviceCards = computed(() => {
   const r = props.result;
+  const nfsHealthy = !!(r.nfsHealthy ?? r.cephHealthy);
+  const portOk = !!(r.nfsPortOk ?? r.osdRunning);
   return [
-    { key: 'ceph', label: '集群健康', ok: !!r.cephHealthy },
-    { key: 'osd', label: 'OSD 在线', ok: !!r.osdRunning },
-    { key: 'pool', label: '存储池', ok: !!r.poolExists },
-    { key: 'cephfs', label: 'CephFS', ok: !!r.cephfsReady },
+    { key: 'server', label: 'NFS 服务端', ok: nfsHealthy },
+    { key: 'port', label: '2049 端口', ok: portOk },
+    { key: 'export', label: 'Export / 子目录', ok: !!r.poolExists },
     { key: 'mount', label: '客户端挂载', ok: !!r.mountReady },
   ];
 });
@@ -75,7 +76,7 @@ function handleCopyLog() {
     </div>
 
     <div class="media-check__section">
-      <div class="media-check__section-title">Ceph 组件</div>
+      <div class="media-check__section-title">NFS 组件</div>
       <div class="media-check__grid media-check__grid--services">
         <div
           v-for="item in serviceCards"
