@@ -47,29 +47,24 @@ public class CameraFlighthubService {
     }
 
     public Map<String, Object> startLiveStream(Map<String, Object> data) {
-        String apiHost = FlighthubSourceSupport.normalizeHost(firstNonBlank(
-                data,
-                "api_host",
-                "platform_host",
+        String apiHost = FlighthubSourceSupport.normalizeHost(coalesce(
+                firstNonBlank(data, "api_host", "platform_host"),
                 env("FLIGHTHUB_OPENAPI_HOST", "")
         ));
-        String apiPath = firstNonBlank(data, "api_path") != null
-                ? firstNonBlank(data, "api_path")
-                : FlighthubSourceSupport.env("FLIGHTHUB_LIVE_START_PATH", FlighthubSourceSupport.DEFAULT_LIVE_START_PATH);
-        String projectUuid = firstNonBlank(
-                data,
-                "project_uuid",
-                "workspace_id",
+        String apiPath = coalesce(
+                firstNonBlank(data, "api_path"),
+                FlighthubSourceSupport.env("FLIGHTHUB_LIVE_START_PATH", FlighthubSourceSupport.DEFAULT_LIVE_START_PATH)
+        );
+        String projectUuid = coalesce(
+                firstNonBlank(data, "project_uuid", "workspace_id"),
                 env("FLIGHTHUB_WORKSPACE_ID", "")
         );
-        String userToken = firstNonBlank(
-                data,
-                "user_token",
-                "skylink_token",
+        String userToken = coalesce(
+                firstNonBlank(data, "user_token", "skylink_token"),
                 env("FLIGHTHUB_USER_TOKEN", "")
         );
 
-        if (apiHost.isBlank() || apiPath.isBlank() || projectUuid == null || userToken == null) {
+        if (apiHost.isBlank() || apiPath.isBlank() || projectUuid.isBlank() || userToken.isBlank()) {
             return failure(400, "api_host, api_path, project_uuid and user_token are required", null);
         }
 
@@ -250,6 +245,13 @@ public class CameraFlighthubService {
             }
         }
         return null;
+    }
+
+    private static String coalesce(String primary, String fallback) {
+        if (primary != null && !primary.isBlank()) {
+            return primary;
+        }
+        return fallback != null ? fallback : "";
     }
 
     private static String str(Object value) {
