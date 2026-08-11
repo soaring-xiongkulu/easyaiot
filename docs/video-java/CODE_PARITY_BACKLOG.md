@@ -78,10 +78,10 @@
 | **D-01** | ~~告警 Kafka 失败 → `direct_persist` fallback 仍可 success~~ **CP-1 PASS** — fallback removed; honest `code=500` | `AlertHookService.java`；证据 `logs/cp-1-no-fallback.json` | Part1 → **CP-1** ✓ |
 | **D-02** | `plateMatchingConsumerEnabled=false`：publish 通但 video 内 consume 默认关 | `VideoProperties.Matching` L74；A7 报告注明 consumer disabled | Part1 → **CP-2** |
 | **D-03** | `iot-video` **无** Face matching Kafka consumer（消费在 `iot-sink`；本机未接线则链断） | 无 `FaceMatching*Consumer` in iot-video；sink `FaceMatchingConsumer` → HTTP process | Part1 接线 **CP-2/CP-3**；引擎 **Part2** |
-| **D-04** | `iot-sink` local 库端口未对齐 **15432** / 未纳入可复现启动 | `iot-sink/.../application-local.yaml` → `jdbc:postgresql://localhost:5432/iot-video20`；A6 `:48092` refused | Part1 → **CP-3** |
+| **D-04** | ~~`iot-sink` local 库端口未对齐 **15432** / 未纳入可复现启动~~ **CP-3 PASS** — PG 15432 + sink `:48092` runbook | `application-local.yaml`；证据 `logs/cp-3-sink-enqueue.json` | Part1 → **CP-3** ✓ |
 | **D-05** | `services/status`：进程已死仍可因 DB `is_enabled`+`run_status=running` 报 running（certify heuristic） | `AlgorithmTaskLifecycleService.resolveServiceStatus` L153–158 | Part1 → **CP-5**（`extractor`/`sorter`/`pusher` 为 null **与 Python 同形**，非缺口） |
 | **D-06** | Snap 调度与 Python `init_all_tasks` **缺证据级对齐**（代码已有 `SnapTaskSchedulerService.initAllTasks`） | Python `snap_task_service.init_all_tasks`；Java scheduler 已实现但无 CP 证据 | Part1 → **CP-4** |
-| **D-07** | Post-process：代码路径已有，缺 sink 进程 → A6 `enqueue_ok=false` | `phase2-a6-postprocess.json` | Part1 → **CP-3** |
+| **D-07** | ~~Post-process：代码路径已有，缺 sink 进程 → A6 `enqueue_ok=false`~~ **CP-3 PASS** — sink UP, `enqueue_ok=true` | `logs/cp-3-sink-enqueue.json` | Part1 → **CP-3** ✓ |
 | **D-08** | Matching：plate process 可 DB 命中；face process 诚实 bypass；缺「consume→process」本机闭环证据 | A7；sink consumers 默认依赖 sink UP | Part1 闭环 **CP-2**；InsightFace/Milvus **Part2** |
 | **D-09** | Patrol / AudioTalk：**控制器已有**，相对 Python 行为/SSE/进程语义需证据级收口 | `PatrolController` / `AudioTalkController` vs `patrol.py` / `audio_talk.py` | Part1 → **CP-6 / CP-7** |
 | **D-10** | GB28181 / FlightHub / directory：**Java 支持类已有**，缺与 Python 关键路径的代码证据（真机归 Part2） | `Gb28181*` / `CameraFlighthubService` / `camera.py` routes | Part1 → **CP-8 / CP-9** |
@@ -102,7 +102,7 @@
 |----|----|-------------|-----------|------|--------|--------|
 | G-01 | Alert | `_fallback_persist_on_kafka_failure` | ~~`fallbackPersistOnKafkaFailure`~~ **已移除（CP-1 PASS）** | Part1 禁用兜底；Kafka 失败诚实失败 | CP-1 | P0 ✓ |
 | G-02 | Matching consume | sink/VIDEO process 链路 | plate consumer 默认 false；face 仅 sink | local 默认消费链完备 + 可测到 process/诚实缺引擎 | CP-2 | P0 |
-| G-03 | Post-process / sink | `post_process_sink_client.py` | Client 已有；sink PG:5432；未进栈 | 15432 + runbook + `enqueue_ok=true` | CP-3 | P0 |
+| G-03 | Post-process / sink | `post_process_sink_client.py` | Client 已有；sink **15432 + :48092** + `enqueue_ok=true` | **CP-3 PASS** | CP-3 | P0 ✓ |
 | G-04 | Snap schedule | `init_all_tasks` | `initAllTasks` 已有，缺证据 | 启动后调度条目可核对 | CP-4 | P1 |
 | G-05 | Algo status | `services/status` + 真进程 | certify heuristic 假 running | 去掉假 running；字段与 Python 对齐 | CP-5 | P1 |
 | G-06 | Patrol | `patrol.py` | `PatrolController` 等 | 行为/SSE 证据收口 | CP-6 | P2 |
@@ -120,5 +120,6 @@
 | Part1/Part2 分类 + 零 Fallback 纪律 | **已文档化** |
 | CP 任务包索引 + briefs | **已建立** |
 | **CP-1** 告警 Kafka fallback 清除 | **PASS** — `logs/cp-1-no-fallback.json` |
-| CP-2…CP-10 | **待 W2+** |
+| **CP-3** iot-sink 15432 + enqueue | **PASS** — `logs/cp-3-sink-enqueue.json` |
+| CP-2…CP-10 | **待 W2+**（CP-2 next） |
 | 功能实现 / 长联调 / FR-B / COMPLETE / 删 Python | **禁止** |

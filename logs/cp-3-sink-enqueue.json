@@ -1,0 +1,89 @@
+{
+  "pack": "CP-3",
+  "title": "iot-sink local 15432 + real HTTP enqueue_ok=true",
+  "generated_at": "2026-08-11T21:56:00+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432 (iot-video20, iot-device20, iot-node20)",
+    "kafka": "127.0.0.1:9092",
+    "redis": "127.0.0.1:16379",
+    "nacos": "127.0.0.1:8848",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096",
+    "iot_sink": "127.0.0.1:48092 (UP)"
+  },
+  "config_changes": [
+    {
+      "file": "DEVICE/iot-sink/iot-sink-biz/src/main/resources/application-local.yaml",
+      "change": "PG master/video/node → 127.0.0.1:15432; Redis 16379; tdengine lazy; disable EMQX/Modbus/OPC UA for local commercial stack"
+    },
+    {
+      "file": "DEVICE/iot-sink/iot-sink-biz/src/main/resources/bootstrap-local.yaml",
+      "change": "Nacos discovery on; config center disabled (mirrors video-server bootstrap-local)"
+    }
+  ],
+  "sink_start": {
+    "jar": "DEVICE/iot-sink/iot-sink-biz/target/iot-sink-biz.jar",
+    "profile": "local",
+    "port": 48092,
+    "health": "GET http://127.0.0.1:48092/actuator/health → {\"status\":\"UP\"}"
+  },
+  "kafka_topics_created": [
+    "iot-post-process-request (64 partitions)",
+    "iot-post-process-result (64 partitions)"
+  ],
+  "direct_enqueue": {
+    "method": "POST",
+    "endpoint": "http://127.0.0.1:48092/post-process/enqueue",
+    "correlation_id": "cp-3-enqueue-ok-test",
+    "http_status": 200,
+    "api_code": 0,
+    "data": true,
+    "latency_seconds_warm": 3.1,
+    "status": "pass"
+  },
+  "alert_hook_enqueue": {
+    "correlation_id": "cp-3-evidence-20260811215606",
+    "hook_endpoint": "POST http://127.0.0.1:48080/admin-api/video/alert/hook",
+    "hook_response": {
+      "code": 0,
+      "status": "success",
+      "mode": "kafka",
+      "topic": "iot-alert-notification",
+      "partition": 48,
+      "offset": 12253
+    },
+    "status_endpoint": "GET http://127.0.0.1:48080/admin-api/video/algorithm/task/61/post-process/status",
+    "enqueue_url": "post-process/enqueue",
+    "enqueue_ok": true,
+    "use_stub_enqueue": false,
+    "status": "pass"
+  },
+  "fixture": {
+    "task_id": 61,
+    "task_name": "frb26_alert_e2e",
+    "device_id": "frb26_device",
+    "device_name": "FR-B26 Pure Kafka DVR + Alert E2E"
+  },
+  "acceptance": {
+    "sink_listening_48092": true,
+    "pg_15432_aligned": true,
+    "real_http_enqueue_code_0": true,
+    "enqueue_ok_true_no_stub": true,
+    "overall": "PASS"
+  },
+  "notes_for_cp2": {
+    "sink_consumers": "FaceMatchingConsumer, PlateMatchingConsumer, PostProcessRequestConsumer active on sink",
+    "kafka_topics_still_missing": [
+      "iot-face-matching",
+      "iot-plate-matching",
+      "iot-snapshot-alert"
+    ],
+    "post_process_worker": "http://127.0.0.1:19680 not running (expected Part2/local worker)",
+    "pg": "sink datasources on 127.0.0.1:15432 for master/video/node"
+  },
+  "nested_subagents": "none"
+}

@@ -43,29 +43,30 @@ spring:
       datasource:
         master:
           driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://localhost:5432/iot-device20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+          url: jdbc:postgresql://127.0.0.1:15432/iot-device20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
           username: postgres
           password: iot45722414822
         tdengine:
+          lazy: true # local stack 无 TDengine；延迟初始化避免启动失败
           driver-class-name: com.taosdata.jdbc.rs.RestfulDriver
           url: jdbc:TAOS-RS://localhost:6041/iot_device?user=root&password=taosdata&useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
           username: root
           password: taosdata
         video: # VIDEO数据库数据源（用于访问Alert表）
           driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://localhost:5432/iot-video20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+          url: jdbc:postgresql://127.0.0.1:15432/iot-video20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
           username: postgres
           password: iot45722414822
         node: # iot-node 数据库（后处理 Worker 地址解析）
           driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://localhost:5432/iot-node20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+          url: jdbc:postgresql://127.0.0.1:15432/iot-node20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
           username: postgres
           password: iot45722414822
 
   # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
   redis:
-    host: localhost # 地址
-    port: 6379 # 端口
+    host: 127.0.0.1 # 地址（docker 映射 16379→6379，见 .scripts/docker）
+    port: 16379 # 端口
     database: 0 # 数据库索引
     password: basiclab@iot975248395 # 密码，建议生产环境开启
     lettuce:
@@ -229,7 +230,7 @@ basiclab:
           ssl-cert-path: # SSL 证书路径
           auth-enabled: true # 是否开启鉴权（默认开启，设置为 false 则不进行鉴权）
         emqx:
-          enabled: true # 是否开启 EMQX 协议（订阅外部 MQTT Broker；设备上报 /iot/#）
+          enabled: false # local 商业栈无 EMQX；CP-3 后处理入队走 HTTP+Kafka
           http-port: 8090 # EMQX HTTP 服务端口（用于认证和事件回调）
           mqtt-host: localhost # MQTT 服务器地址
           mqtt-port: 1883 # MQTT 服务器端口（1883 非 SSL，8883 SSL）
@@ -270,17 +271,17 @@ basiclab:
           ssl-cert-path: # SSL 证书路径
           ssl-key-path: # SSL 私钥路径
         modbus:
-          enabled: true # 是否开启 Modbus TCP 主动采集
+          enabled: false # local 无 Modbus 采集依赖
           scan-interval-ms: 1000
           request-timeout-ms: 5000
           worker-threads: 4
         modbus-rtu:
-          enabled: true # 是否开启 Modbus RTU 主动采集
+          enabled: false # local 无 Modbus RTU 采集依赖
           scan-interval-ms: 1000
           request-timeout-ms: 5000
           worker-threads: 2
         opcua:
-          enabled: true # 是否开启 OPC UA 主动采集
+          enabled: false # local 无 OPC UA 采集依赖
           scan-interval-ms: 1000
           request-timeout-ms: 5000
           worker-threads: 4

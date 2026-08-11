@@ -11,8 +11,10 @@
 | Nacos | `docker compose up -d Nacos` in `.scripts/docker` (+ admin init) | `127.0.0.1:8848` | **UP** |
 | Kafka | Docker `kafka-server` (auto-started with Docker Desktop) | `127.0.0.1:9092` | **UP** |
 | MinIO | Docker `minio-server` | `127.0.0.1:9000` | **UP** |
+| Redis | Docker `redis-server` (host map **16379**→6379) | `127.0.0.1:16379` | **UP** |
 | Gateway (`iot-gateway`) | `java -jar …/iot-gateway.jar --spring.profiles.active=local` | `127.0.0.1:48080` | **UP** |
 | video-server | `java -jar …/iot-video-biz.jar --spring.profiles.active=local` | `127.0.0.1:48096` | **UP** |
+| iot-sink (`sink-server`) | `java -jar …/iot-sink-biz.jar --spring.profiles.active=local` | `127.0.0.1:48092` | **UP** (CP-3) |
 
 **Notes**
 
@@ -74,6 +76,17 @@ java -jar DEVICE/iot-video/iot-video-biz/target/iot-video-biz.jar --spring.profi
 
 # gateway (profile local)
 java -jar DEVICE/iot-gateway/target/iot-gateway.jar --spring.profiles.active=local
+
+# iot-sink (profile local — post-process enqueue :48092, CP-3)
+# PG datasources use docker map 127.0.0.1:15432; Redis 16379; Nacos config center disabled in bootstrap-local.yaml
+$env:NACOS_PASSWORD = "<from VIDEO/.env>"
+java -jar DEVICE/iot-sink/iot-sink-biz/target/iot-sink-biz.jar --spring.profiles.active=local
+
+# Kafka topics for sink post-process (first boot or if auto-create missed)
+docker exec kafka-server /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+  --create --if-not-exists --topic iot-post-process-request --partitions 64 --replication-factor 1
+docker exec kafka-server /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+  --create --if-not-exists --topic iot-post-process-result --partitions 64 --replication-factor 1
 ```
 
 ## Phase 2 readiness
