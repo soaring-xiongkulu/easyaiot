@@ -37,7 +37,7 @@
 | CP-7 AudioTalk | W4 | **PASS** | [cp-7-brief.md](./briefs/cp-7-brief.md) | [cp-7-report.md](./briefs/cp-7-report.md) | `logs/cp-7-audiotalk.json` | `1672696` |
 | CP-8 GB28181 code | W4 | **PASS** | [cp-8-brief.md](./briefs/cp-8-brief.md) | [cp-8-report.md](./briefs/cp-8-report.md) | `logs/cp-8-gb28181-code.json` | `9781e81` |
 | CP-9 FlightHub+directory | W4 | **PASS** | [cp-9-brief.md](./briefs/cp-9-brief.md) | [cp-9-report.md](./briefs/cp-9-report.md) | `logs/cp-9-flighthub-directory.json` | `5fd7ba9` |
-| CP-10 Boot daemons | W5 | **PASS** | [cp-10-brief.md](./briefs/cp-10-brief.md) | [cp-10-report.md](./briefs/cp-10-report.md) | `logs/cp-10-boot-daemons.json` | `ecb6737` |
+| CP-10 Boot daemons | W5 | **PASS** | [cp-10-brief.md](./briefs/cp-10-brief.md) | [cp-10-report.md](./briefs/cp-10-report.md) | `logs/cp-10-boot-daemons.json` | `3e48344` |
 
 > **Part1 A-series CP (CP-1…CP-10) closed** — code-path packs complete; Part2 engines remain; no COMPLETE; Python Oracle retained.
 
