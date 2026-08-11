@@ -85,11 +85,8 @@ public class AlertHookService {
             out.put("mode", "kafka");
             return out;
         } catch (Exception ex) {
-            log.warn("Kafka alert hook send failed, falling back to direct persist: deviceId={}, error={}", deviceId, ex.getMessage());
-            Map<String, Object> fallback = fallbackPersistOnKafkaFailure(alertData, taskRow, detectionSwitches, ex.getMessage());
-            if ("success".equals(fallback.get("status"))) {
-                return fallback;
-            }
+            // Part1 zero-fallback: commercial local must not silent-persist on Kafka failure.
+            log.error("Kafka alert hook send failed: deviceId={}, error={}", deviceId, ex.getMessage());
             Map<String, Object> failed = new HashMap<>();
             failed.put("status", "failed");
             failed.put("error", ex.getMessage());
@@ -117,26 +114,6 @@ public class AlertHookService {
         result.put("alert_id", alertId);
         result.put("mode", "direct_persist");
         return result;
-    }
-
-    private Map<String, Object> fallbackPersistOnKafkaFailure(
-            Map<String, Object> alertData,
-            Map<String, Object> taskRow,
-            Map<String, Boolean> detectionSwitches,
-            String kafkaError
-    ) {
-        try {
-            Map<String, Object> result = persistDirectly(alertData, taskRow, detectionSwitches);
-            result.put("kafka_fallback", true);
-            result.put("kafka_error", kafkaError);
-            return result;
-        } catch (Exception persistEx) {
-            log.error("alert direct persist fallback failed: deviceId={}, error={}", alertData.get("device_id"), persistEx.getMessage());
-            Map<String, Object> failed = new HashMap<>();
-            failed.put("status", "failed");
-            failed.put("error", kafkaError);
-            return failed;
-        }
     }
 
     private static int resolveAlertEventSuppressSeconds(Map<String, Object> taskRow) {
