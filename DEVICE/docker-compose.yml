@@ -392,6 +392,9 @@ services:
       - MINIO_DOWNLOAD_URL=http://MinIO:9001 # Minio下载地址（使用Docker服务名）
       - MINIO_ACCESS_KEY=minioadmin # Minio访问密钥
       - MINIO_SECRET_KEY=basiclab@iot975248395 # Minio秘密密钥
+      # NFS 共享媒体（容器内固定挂载点 /mnt/easyaiot-media，与 volume 目标路径一致）
+      - BASICLAB_MEDIA_MOUNT_ROOT=/mnt/easyaiot-media
+      - ALERT_IMAGES_BASE_DIR=/mnt/easyaiot-media/alert_images
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-sink
@@ -399,10 +402,8 @@ services:
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
       - ../.build-cache/device/logs:/root/logs/
-      # 告警图片目录（与VIDEO/算法进程共享，用于读取告警 JPG 并上传 MinIO）
-      # 算法侧须挂载同一宿主机目录且设置 ALERT_IMAGES_DIR=/app/alert_images（见 VIDEO/app/utils/alert_images_paths.py）
-      # 注意：使用相对路径，从DEVICE目录指向VIDEO目录下的alert_images
-      - ../VIDEO/alert_images:/app/alert_images
+      # NFS 共享媒体根（唯一存储；与 VIDEO ALERT_IMAGES_DIR / playbacks 一致）
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}:/mnt/easyaiot-media:rw
       # full 形态工业协议演示：宿主机 /tmp 虚拟串口 + pts（.scripts/modbus-rtu-virtual-serial）
       - /tmp:/tmp
       - /dev/pts:/dev/pts
