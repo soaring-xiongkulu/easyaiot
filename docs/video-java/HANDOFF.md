@@ -1,7 +1,8 @@
 # VIDEO Python → Java — HANDOFF
 
-> **阶段 0 已落地：** 规矩与商业默认已切换；完整替换进行中；Python 仍为对照，禁止删除。  
-> **禁止 COMPLETE / 禁止 FR-B46+ 本地取证流水线。**
+> **话术：** CODE-PARITY 波次 0：Part1/Part2 清单与任务包已建立；功能实现另令；Python 仍为对照，禁止删除。  
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** 现进入 **CODE-PARITY Part1**（文档已建，**实现另令 CP-1**）。  
+> **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标
 
@@ -60,29 +61,27 @@
 
 ## 7. 阅读清单
 
-1. [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md) — **商业默认**  
-2. [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) — **本机验收阻塞**  
-3. [FULL_REPLACEMENT_GAP.md](./FULL_REPLACEMENT_GAP.md)  
-4. [PLAN_FULL_REPLACEMENT.md](./PLAN_FULL_REPLACEMENT.md)  
-5. `F:/acme/VIDEO/`（Oracle）+ Candidate controllers
+1. [CODE_PARITY_BACKLOG.md](./CODE_PARITY_BACKLOG.md) — **Part1 唯一进度表 + 零 Fallback 纪律**  
+2. [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md) — **Part2 依赖/引擎只读清单**  
+3. [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md) — **CP-1…CP-10 任务包**  
+4. [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md) / [PHASE1_STACK.md](./PHASE1_STACK.md) / [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)  
+5. [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) / [FULL_REPLACEMENT_GAP.md](./FULL_REPLACEMENT_GAP.md)  
+6. `F:/acme/VIDEO/`（Oracle）+ Candidate controllers  
+7. `.superpowers/sdd/CODE_PARITY_INDEX.md`
 
-## 8. 现状摘要（阶段 2 A7 — 2026-08-11，A-series 收官）
+## 8. 现状摘要（CODE-PARITY 波次 0 — 2026-08-11）
 
-- **话术：** 阶段 1 本机完整栈接线完成（0.1/0.2/0.3 PASS）；**阶段 2 pack A1 PASS** — alert hook Kafka；**A2 PASS** — algo RUNTIME 生命周期；**A3 PASS** — ViewForward / stream-forward 真实 ffmpeg 子进程生命周期；**A4 PASS** — media DVR/Snap hook Kafka → consumer → MinIO + DB 路径可解释；**A5 PASS** — camera list/get/register/update 关键字段与 Python Oracle 同库对齐；**A6 ⛔缺 sink** — `use-stub-enqueue=false` 下真实 HTTP 入队已触发（`enqueue_count=1`，`enqueue_ok=false`），但本机 `iot-sink` 未监听 `:48092`；**A7 ⛔缺 Milvus/InsightFace** — `use-direct-process=false` 下 face/plate publish 走真实 Kafka，plate process hit/miss PASS，face process 诚实 `status=bypassed`（无 InsightFace/Milvus）。**阶段 2 A-series 已关闭**；Python Oracle 保留；禁止 COMPLETE。  
-- **A1 证据：** `logs/phase2-a1-alert-kafka.json`；`profile=local`，`use-direct-persist=false`，`POST /admin-api/video/alert/hook` → `mode=kafka`（topic/partition/offset），broker 消息已消费验证。  
-- **A2 证据：** `logs/phase2-a2-runtime-lifecycle.json`；task 61 `frb26_alert_e2e`：`POST .../algorithm/task/61/start` → RUNTIME PID 存活 → `services/status` running → `stop` 干净。  
-- **A3 证据：** `logs/phase2-a3-forward.json`；device `frb26_device` ViewForward：`stream/start` → ffmpeg PID 存活 → `stream/status` running → `stop` 干净；stream-forward task 63 同路径验证。  
-- **A4 证据：** `logs/phase2-a4-media-minio.json`；`upload-mode=kafka`，`minio.enabled=true`：`POST .../media/hook/snap/completed` → `media.snap.completed` → MinIO `snap-space` + `snap_image`；`POST .../media/hook/srs/on_dvr` → `media.dvr.completed` → MinIO `record-space` + `record_file`/`playback`。  
-- **A5 证据：** `logs/phase2-a5-camera.json`；`GET /admin-api/video/camera/list` + `GET .../device/frb26_device` 关键字段与 Python `_to_dict` 同库一致；`POST .../register/device` 登记 `p2a5_cam_20260811184235` + snap/record space；`PUT` 更新 name/model。见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
-- **A6 证据：** `logs/phase2-a6-postprocess.json`；`use-stub-enqueue=false`；`POST .../algorithm/task/61/post-process/init` 启用后处理；`POST .../alert/hook`（显式 `task_id` + `detections`）→ `enqueue_count=1`、`enqueue_ok=false`（真实 HTTP 非 stub）；`127.0.0.1:48092` 连接拒绝。见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
-- **A7 证据：** `logs/phase2-a7-matching.json`；`use-direct-process=false`；face/plate publish → `iot-face-matching` / `iot-plate-matching`（broker 已验证）；plate process `P2A7HIT01` hit + `P2A7MISS99` miss；face process `status=bypassed`（InsightFace/Milvus 不可用，未伪造 PASS）。见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
-- **HTTP 契约面：** 14 前缀 inventory diff≈0（历史）。  
-- **默认配置：** `local` / `application.yaml` / `VideoProperties` 商业默认；`bootstrap-local` Nacos discovery 已启用；`application-local` datasource 对齐 **15432**（共享 `iot-video20`）。见 [PHASE0_DEFAULTS.md](./PHASE0_DEFAULTS.md)、[PHASE1_STACK.md](./PHASE1_STACK.md)。  
-- **禁止：** COMPLETE、FR-B46+、矩阵刷绿、删 main Python VIDEO、「等线上」叙事。
+- **阶段 2 A-series 已关闭**（A1–A5 PASS；A6 ⛔缺 sink；A7 ⛔缺 Milvus/InsightFace）。证据见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
+- **现进入 CODE-PARITY Part1：** 文档与 CP 任务包已建立；**本波未实现功能**。  
+- **Part1 纪律：** 商业 `local` **零 Fallback**（禁用告警 Kafka→`direct_persist` 成功兜底，严于 Python `_fallback_persist_on_kafka_failure`）。  
+- **已知违约降级（待 CP）：** `AlertHookService.fallbackPersistOnKafkaFailure`；`plateMatchingConsumerEnabled=false`；face 消费在 `iot-sink` 未接线；sink PG 仍 `:5432`；`services/status` certify 假 running heuristic。  
+- **禁止：** COMPLETE、FR-B、矩阵刷绿、删 main Python、「等线上」、用 mini/direct/stub 冒充 Part1。
 
-## 9. 下一步（阶段 2 A-series 已关闭）
+## 9. 下一步（等令）
 
-阶段 2 A1–A7 主路径对标已完成（A1–A5 PASS；A6 ⛔缺 sink；A7 ⛔缺 Milvus/InsightFace）。按 [CUTOVER_BLOCKERS.md](./CUTOVER_BLOCKERS.md) 继续 cutover 阻塞项。**可选重跑：** 启动本机 `iot-sink`（`:48092`）→ A6 PASS；启动 face inference + Milvus → A7 face hit/miss PASS。Python Oracle 仍保留。
+1. **等令执行 CP-1**（清除 Fallback）— 见 [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md)、`.superpowers/sdd/briefs/cp-1-brief.md`。  
+2. 其后按序 CP-2…CP-10；Part2 引擎（InsightFace/Milvus/真机）**不开工直至 Part1 代码路径收口**。  
+3. Python Oracle 仍保留；**禁止删除**。
 
 ## 10. 历史约束
 
