@@ -28,7 +28,7 @@
 
 | Pack | Wave | Status | Brief | Report | Evidence | Commit |
 |------|------|--------|-------|--------|----------|--------|
-| CP-1 No Fallback | W1 | **PASS** | [cp-1-brief.md](./briefs/cp-1-brief.md) | [cp-1-report.md](./briefs/cp-1-report.md) | `logs/cp-1-no-fallback.json` | *(this commit)* |
+| CP-1 No Fallback | W1 | **PASS** | [cp-1-brief.md](./briefs/cp-1-brief.md) | [cp-1-report.md](./briefs/cp-1-report.md) | `logs/cp-1-no-fallback.json` | `e7ee0c9` |
 | CP-3 iot-sink enqueue | W2-first | pending | [cp-3-brief.md](./briefs/cp-3-brief.md) | — | `logs/cp-3-sink-enqueue.json` | — |
 | CP-2 Matching consume | W2-second | pending | [cp-2-brief.md](./briefs/cp-2-brief.md) | — | `logs/cp-2-matching-consume.json` | — |
 | CP-4 Snap scheduler | W3 | pending | [cp-4-brief.md](./briefs/cp-4-brief.md) | — | `logs/cp-4-snap-scheduler.json` | — |
