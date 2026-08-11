@@ -6,21 +6,3 @@ spring:
       datasource:
         tdengine:
           lazy: true
-
---- #################### mini 形态：无 Nacos，Feign 静态指向 iot-system 容器 ####################
-
-spring:
-  cloud:
-    discovery:
-      client:
-        simple:
-          enabled: true
-          instances:
-            system-server:
-              - uri: http://iot-system:48099
-                instance-id: system-server-iot-system
-    openfeign:
-      client:
-        config:
-          system-server:
-            url: http://iot-system:48099

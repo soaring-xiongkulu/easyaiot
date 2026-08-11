@@ -2,7 +2,9 @@ package com.basiclab.iot.sink.service.impl;
 
 import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
 import com.basiclab.iot.common.utils.json.JsonUtils;
+import com.basiclab.iot.sink.domain.model.AlertNotificationMessage;
 import com.basiclab.iot.sink.domain.model.PostProcessRequestMessage;
+import com.basiclab.iot.sink.service.AlertService;
 import com.basiclab.iot.sink.service.PostProcessService;
 import com.basiclab.iot.sink.service.PostProcessWorkerResolver;
 import com.basiclab.iot.sink.util.AlertClassFilter;
@@ -37,6 +39,9 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class PostProcessServiceImpl implements PostProcessService {
+
+    @Autowired(required = false)
+    private AlertService alertService;
 
     @Autowired(required = false)
     private KafkaTemplate<String, String> iotKafkaTemplate;
@@ -394,17 +399,53 @@ public class PostProcessServiceImpl implements PostProcessService {
     }
 
     private void postAlertHook(Map<String, Object> alertData) {
-        if (restTemplate == null) {
-            restTemplate = new RestTemplate();
+        // VIDEO /video/alert/hook 已移除；后处理告警直接走本模块 AlertService
+        if (alertService == null) {
+            log.warn("AlertService 不可用，后处理告警无法落库 deviceId={}",
+                    alertData != null ? alertData.get("device_id") : null);
+            return;
         }
-        String url = normalizeBaseUrl(videoServiceUrl) + normalizeApiPrefix(videoApiPrefix) + "/alert/hook";
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(alertData, headers);
-            restTemplate.postForEntity(url, entity, String.class);
+            AlertNotificationMessage msg = new AlertNotificationMessage();
+            msg.setDeviceId(stringValue(alertData.get("device_id"), null));
+            msg.setDeviceName(stringValue(alertData.get("device_name"), null));
+            Object taskId = alertData.get("task_id");
+            if (taskId == null) {
+                taskId = alertData.get("taskId");
+            }
+            if (taskId instanceof Number) {
+                msg.setTaskId(((Number) taskId).intValue());
+            } else if (taskId != null && StringUtils.hasText(String.valueOf(taskId))) {
+                try {
+                    msg.setTaskId(Integer.parseInt(String.valueOf(taskId)));
+                } catch (Exception ignored) {
+                    // keep null
+                }
+            }
+            msg.setTaskName(stringValue(alertData.get("task_name"), alertData.get("event")));
+            msg.setCorrelationId(stringValue(alertData.get("correlation_id"), alertData.get("correlationId")));
+            msg.setTimestamp(stringValue(alertData.get("time"), alertData.get("timestamp")));
+
+            AlertNotificationMessage.AlertInfo alert = new AlertNotificationMessage.AlertInfo();
+            alert.setObject(stringValue(alertData.get("object"), null));
+            alert.setEvent(stringValue(alertData.get("event"), null));
+            alert.setRegion(stringValue(alertData.get("region"), null));
+            alert.setInformation(alertData.get("information"));
+            alert.setImagePath(stringValue(alertData.get("image_path"), alertData.get("imagePath")));
+            alert.setTime(stringValue(alertData.get("time"), null));
+            alert.setTaskType(stringValue(alertData.get("task_type"), "realtime"));
+            msg.setAlert(alert);
+
+            String taskType = alert.getTaskType();
+            if ("snap".equalsIgnoreCase(taskType) || "snapshot".equalsIgnoreCase(taskType)) {
+                alertService.processSnapshotAlert(msg);
+            } else {
+                alertService.processAlert(msg);
+            }
+            log.info("后处理告警已落库(AlertService) deviceId={}", msg.getDeviceId());
         } catch (Exception e) {
-            log.warn("后处理告警投递失败 deviceId={}: {}", alertData.get("device_id"), e.getMessage());
+            log.warn("后处理告警落库失败 deviceId={}: {}",
+                    alertData != null ? alertData.get("device_id") : null, e.getMessage());
         }
     }
 

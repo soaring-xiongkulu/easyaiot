@@ -204,6 +204,11 @@ basiclab:
   video:
     service-url: http://localhost:48080
     api-prefix: /admin-api/video
+  media:
+    mount-root: /mnt/easyaiot-media
+    container-data-root: /data
+    nfs-only: true
+    remove-local-after-upload: true
   post-process:
     worker-http-port: 19680
     local-worker-url: http://127.0.0.1:19680
@@ -238,7 +243,9 @@ iot:
       - /rpc-api/system/tenant/id-list # 获得租户列表的时候，无需传递租户编号
       - /rpc-api/system/oauth2/token/check # 访问令牌校验时，无需传递租户编号；主要解决上传文件的场景，前端不会传递 tenant-id！
       - /admin-api/sink/post-process/enqueue # VIDEO 算法侧后处理入队（内网服务调用）
+      - /admin-api/sink/media/hook/** # SRS/ZLM DVR Hook（内网回调）
       - /post-process/enqueue
+      - /media/hook/**
     ignore-tables:
       - system_tenant
       - system_tenant_package
@@ -264,10 +271,10 @@ iot:
     begin-code: 9999 # 这里配置 9999 的原因是，测试方便。
     end-code: 9999 # 这里配置 9999 的原因是，测试方便。
 
-# 告警图片路径解析（与算法容器 ALERT_IMAGES_DIR=/app/alert_images、docker 挂载对齐）
+# 告警图片路径解析（NFS 挂载根下 alert_images）
 alert:
   images:
-    base-dir: /app
+    base-dir: /mnt/easyaiot-media
 
 debug: false
 
