@@ -1,7 +1,7 @@
 # VIDEO Python → Java — HANDOFF
 
 > **话术：** CODE-PARITY 波次 0：Part1/Part2 清单与任务包已建立；功能实现另令；Python 仍为对照，禁止删除。  
-> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **CODE-PARITY W1 CP-1 PASS**；**W2 CP-3 + CP-2 PASS**；**W3 CP-4 + CP-5 PASS**；**W4 CP-6 + CP-9 PASS**；下一步 **W4 CP-7/8** 与 **W5 CP-10**。  
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **CODE-PARITY W1 CP-1 PASS**；**W2 CP-3 + CP-2 PASS**；**W3 CP-4 + CP-5 PASS**；**W4 CP-6 + CP-7 + CP-9 PASS**；下一步 **W4 CP-8** 与 **W5 CP-10**。  
 > **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标
@@ -80,11 +80,12 @@
 - **CP-4 PASS（W3）：** `initAllTasks` ↔ Python `init_all_tasks`；修复 `listEnabled` pusher join 启动崩溃；DB 10 启用任务全部入调度；缺 RTSP/源 → 诚实 `status=1`。证据：`logs/cp-4-snap-scheduler.json`、`.superpowers/sdd/briefs/cp-4-report.md`。
 - **CP-9 PASS（W4）：** FlightHub config 11 字段可读；缺凭证 `live-stream/start` → `code=400` 诚实失败；directory 树/详情/monitor-tree/CRUD 关键字段与共享 DB 可对。证据：`logs/cp-9-flighthub-directory.json`、`.superpowers/sdd/briefs/cp-9-report.md`。
 - **CP-6 PASS（W4）：** patrol main-path create→start→stats/events/stop 与 Python 关键语义对齐；26-key session + stats 扩展；SSE initial progress；stop HTTP/code parity；`countAlive` 会话上限。证据：`logs/cp-6-patrol.json`、`.superpowers/sdd/briefs/cp-6-report.md`。
+- **CP-7 PASS（W4）：** AudioTalk capabilities/start/stop/health HTTP+code 与 Python 对齐；缺设备 400/404 诚实；fixture 无 IP → capabilities `supported=false`、start HTTP 500 `success=false`。证据：`logs/cp-7-audiotalk.json`、`.superpowers/sdd/briefs/cp-7-report.md`。
 - **禁止：** COMPLETE、FR-B、矩阵刷绿、删 main Python、「等线上」、用 mini/direct/stub 冒充 Part1。
 
 ## 9. 下一步（等令）
 
-1. **W4：CP-7 ∥ CP-8**（CP-6 ✓、CP-9 ✓）— 见 [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md)。**W5：CP-10** after CP-4/5。  
+1. **W4：CP-8**（CP-6 ✓、CP-7 ✓、CP-9 ✓）— 见 [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md)。**W5：CP-10** after CP-4/5。  
 2. Part2 引擎（InsightFace/Milvus/真机）**不开工直至 Part1 代码路径收口**。  
 3. Python Oracle 仍保留；**禁止删除**。
 

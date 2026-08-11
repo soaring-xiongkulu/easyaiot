@@ -49,7 +49,7 @@ public class AudioTalkService {
         capabilities.put("codecs", List.of("PCMU", "PCMA"));
         capabilities.put("sample_rate", 8000);
         capabilities.put("channels", 1);
-        capabilities.put("onvif_supported", true);
+        capabilities.put("onvif_supported", isOnvifAudioAvailable());
         capabilities.put("audio_tracks", probe.getOrDefault("audio_tracks", List.of()));
         return Map.of(
                 "status", 200,
@@ -60,6 +60,9 @@ public class AudioTalkService {
     }
 
     public Map<String, Object> startSession(Map<String, Object> body) {
+        if (!isAudioTalkAvailable()) {
+            return error(500, "ONVIF 语音对讲服务未安装");
+        }
         String deviceId = firstString(body, "device_id", "camera_id");
         if (deviceId.isEmpty()) {
             return error(400, "缺少设备 ID");
@@ -69,12 +72,7 @@ public class AudioTalkService {
             return error(404, "设备不存在");
         }
         if (camera.getIp() == null || camera.getIp().isBlank()) {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("status", 200);
-            payload.put("code", 500);
-            payload.put("msg", "Audio Back Channel 建立失败，设备可能不支持");
-            payload.put("data", Map.of("success", false));
-            return payload;
+            return actionFailure("Audio Back Channel 建立失败，设备可能不支持");
         }
         String sessionId = "audio_talk_" + deviceId + "_" + UUID.randomUUID().toString().substring(0, 8);
         int rtspPort = camera.getPort() != null && camera.getPort() > 0 ? camera.getPort() : 554;
@@ -104,12 +102,7 @@ public class AudioTalkService {
         sessions.put(sessionId, session);
         if (!session.start()) {
             sessions.remove(sessionId);
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("status", 200);
-            payload.put("code", 500);
-            payload.put("msg", "Audio Back Channel 建立失败，设备可能不支持");
-            payload.put("data", Map.of("success", false));
-            return payload;
+            return actionFailure("Audio Back Channel 建立失败，设备可能不支持");
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("status", 200);
@@ -141,12 +134,7 @@ public class AudioTalkService {
         }
         AudioTalkSession session = sessions.get(sessionId);
         if (session == null || !session.sendAudio(java.util.Base64.getDecoder().decode(audioB64))) {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("status", 200);
-            payload.put("code", 500);
-            payload.put("msg", "发送失败");
-            payload.put("data", Map.of("success", false));
-            return payload;
+            return actionFailure("发送失败");
         }
         return Map.of(
                 "status", 200,
@@ -157,15 +145,29 @@ public class AudioTalkService {
     }
 
     public Map<String, Object> health() {
+        boolean onvifAvailable = isOnvifAudioAvailable();
         return Map.of(
                 "status", 200,
                 "code", 0,
                 "data", Map.of(
                         "status", "ok",
-                        "onvif_available", true,
-                        "audio_talk_available", true
+                        "onvif_available", onvifAvailable,
+                        "audio_talk_available", onvifAvailable && isAudioTalkAvailable()
                 )
         );
+    }
+
+    private boolean isOnvifAudioAvailable() {
+        try {
+            Class.forName("com.basiclab.iot.video.service.talk.OnvifAudioBackchannelClient");
+            return true;
+        } catch (ClassNotFoundException ex) {
+            return false;
+        }
+    }
+
+    private boolean isAudioTalkAvailable() {
+        return isOnvifAudioAvailable();
     }
 
     private Map<String, Object> probeCapabilities(String cameraIp, int cameraPort, String username, String password) {
@@ -193,6 +195,15 @@ public class AudioTalkService {
 
     private Map<String, Object> error(int code, String msg) {
         return Map.of("status", code, "code", code, "msg", msg);
+    }
+
+    private Map<String, Object> actionFailure(String msg) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("status", 500);
+        payload.put("code", 500);
+        payload.put("msg", msg);
+        payload.put("data", Map.of("success", false));
+        return payload;
     }
 
     private String firstString(Map<String, Object> body, String... keys) {

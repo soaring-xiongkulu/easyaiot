@@ -23,8 +23,8 @@ public class AudioTalkController {
 
     @GetMapping("/capabilities")
     public ResponseEntity<VideoApiResponse<Map<String, Object>>> capabilities(
-            @RequestParam(required = false) String device_id,
-            @RequestParam(required = false) String camera_id) {
+            @RequestParam(value = "device_id", required = false) String device_id,
+            @RequestParam(value = "camera_id", required = false) String camera_id) {
         String deviceId = device_id != null && !device_id.isBlank() ? device_id : camera_id;
         if (deviceId == null || deviceId.isBlank()) {
             return response(400, 400, "缺少设备 ID", null);
@@ -62,6 +62,7 @@ public class AudioTalkController {
 
     @SuppressWarnings("unchecked")
     private ResponseEntity<VideoApiResponse<Map<String, Object>>> fromServiceResult(Map<String, Object> result) {
+        int httpStatus = ((Number) result.getOrDefault("status", 200)).intValue();
         int code = ((Number) result.getOrDefault("code", 0)).intValue();
         String msg = String.valueOf(result.getOrDefault("msg", ""));
         Map<String, Object> data = (Map<String, Object>) result.get("data");
@@ -70,7 +71,10 @@ public class AudioTalkController {
         body.setMsg(msg);
         body.setMessage(msg);
         body.setData(data);
-        return ResponseEntity.ok(body);
+        HttpStatus status = httpStatus >= 400 && httpStatus < 600
+                ? HttpStatus.valueOf(httpStatus)
+                : HttpStatus.OK;
+        return ResponseEntity.status(status).body(body);
     }
 
     private ResponseEntity<VideoApiResponse<Map<String, Object>>> response(
