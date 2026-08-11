@@ -1,0 +1,81 @@
+{
+  "pack": "CP-4",
+  "title": "Snap scheduler initAllTasks ↔ Python init_all_tasks",
+  "generated_at": "2026-08-11T22:48:00+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "prior_reports": [
+    "cp-1-report.md (PASS e7ee0c9)",
+    "cp-3-report.md (PASS 2b995e3)",
+    "cp-2-report.md (PASS 9dfd2b3)"
+  ],
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "video_server": "127.0.0.1:48096 (UP, restarted for CP-4)",
+    "gateway": "127.0.0.1:48080"
+  },
+  "oracle": {
+    "file": "F:/acme/VIDEO/app/services/snap_task_service.py",
+    "function": "init_all_tasks",
+    "behavior": "SnapTask.query.filter_by(is_enabled=True).all() → add_task_to_scheduler(task.id) for each"
+  },
+  "java": {
+    "startup_hook": "SnapTaskScheduler.initOnStartup @ ApplicationReadyEvent",
+    "service": "SnapTaskSchedulerService.initAllTasks",
+    "query": "SnapTaskRepository.listEnabled WHERE is_enabled=TRUE ORDER BY id",
+    "schedule": "ThreadPoolTaskScheduler + CronTrigger per task → SnapTaskExecutionService.execute"
+  },
+  "code_changes": [
+    {
+      "file": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/dal/SnapTaskRepository.java",
+      "change": "listEnabled(): add LEFT JOIN pusher (matches findById/list row shape); fixes initAllTasks crash on missing pusher_name column"
+    },
+    {
+      "file": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/snap/SnapTaskSchedulerService.java",
+      "change": "Log scheduled_task_ids on init; add getScheduledTaskIds() for parity with Python _running_tasks"
+    }
+  ],
+  "bug_found_and_fixed": {
+    "symptom": "initAllTasks failed at boot: ResultSet 中找不到栏位名称 pusher_name (listEnabled SELECT lacked pusher join while taskRow reads pusher_name)",
+    "evidence_pre_fix": "logs/cp-1-video-server.log L805-839, logs/phase2-a7-video-server.log L1062-1097",
+    "fix": "Align listEnabled SQL with findById/list (LEFT JOIN pusher p ON p.id = t.pusher_id)"
+  },
+  "init_all_tasks_parity": {
+    "db_enabled_count": 10,
+    "db_enabled_task_ids": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "java_scheduled_count": 10,
+    "java_scheduled_task_ids": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "sets_match": true,
+    "log_line": "logs/cp-4-video-server.log:1151 — 抓拍任务调度器初始化完成: enabled=10, scheduled=10, scheduled_task_ids=[7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+    "startup_hook_log": "logs/cp-4-video-server.log:1152 — 抓拍任务调度器初始化成功: scheduled=10"
+  },
+  "honest_fail_no_fake_snap": {
+    "fixture_task_id": 16,
+    "fixture_device_id": "vj_p2_device",
+    "device_source": "file://F:/acme/RUNTIME/testdata/sample.mp4 (not live RTSP; file missing on host)",
+    "trigger": "Fast cron */10 * * * * * via POST /snap/task/16/restart after PUT cron",
+    "capture_result": {
+      "status": 1,
+      "exception_reason": "抓拍失败",
+      "total_captures_increased": true,
+      "last_success_time": null
+    },
+    "log_evidence": "logs/cp-4-video-server.log — SnapTaskCaptureService WARN: 设备 vj_p2_device RTSP/RTMP 抓拍失败: Error opening input: No such file or directory",
+    "note": "Aligned with Python capture_image returning False and setting status=1 / exception_reason when RTSP read fails — not fake success"
+  },
+  "acceptance": {
+    "boot_init_schedules_enabled_tasks": true,
+    "java_set_equals_db_enabled_set": true,
+    "missing_rtsp_honest_fail": true,
+    "zero_fallback_local": true,
+    "overall": "PASS"
+  },
+  "notes_for_cp5": {
+    "video_server_restarted": "PID 43592, logs/cp-4-video-server.log",
+    "task_16_cron_restored": "0 */5 * * * * after fast-cron probe",
+    "do_not_touch": "AlgorithmTaskLifecycleService — CP-5 scope"
+  },
+  "nested_subagents": "none"
+}

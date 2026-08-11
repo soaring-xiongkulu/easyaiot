@@ -32,7 +32,7 @@
 | CP-3 iot-sink enqueue | W2-first | **PASS** | [cp-3-brief.md](./briefs/cp-3-brief.md) | [cp-3-report.md](./briefs/cp-3-report.md) | `logs/cp-3-sink-enqueue.json` | `a3faeec` |
 | CP-2 Matching consume | W2-second | **PASS** | [cp-2-brief.md](./briefs/cp-2-brief.md) | [cp-2-report.md](./briefs/cp-2-report.md) | `logs/cp-2-matching-consume.json` | `9dfd2b3` |
 | CP-4 Snap scheduler | W3 | **PASS** | [cp-4-brief.md](./briefs/cp-4-brief.md) | [cp-4-report.md](./briefs/cp-4-report.md) | `logs/cp-4-snap-scheduler.json` | — |
-| CP-5 services/status | W3 | **PASS** | [cp-5-brief.md](./briefs/cp-5-brief.md) | [cp-5-report.md](./briefs/cp-5-report.md) | `logs/cp-5-services-status.json` | `343c6ca` |
+| CP-5 services/status | W3 | **PASS** | [cp-5-brief.md](./briefs/cp-5-brief.md) | [cp-5-report.md](./briefs/cp-5-report.md) | `logs/cp-5-services-status.json` | `14c725d` |
 | CP-6 Patrol | W4 | pending | [cp-6-brief.md](./briefs/cp-6-brief.md) | — | `logs/cp-6-patrol.json` | — |
 | CP-7 AudioTalk | W4 | pending | [cp-7-brief.md](./briefs/cp-7-brief.md) | — | `logs/cp-7-audiotalk.json` | — |
 | CP-8 GB28181 code | W4 | pending | [cp-8-brief.md](./briefs/cp-8-brief.md) | — | `logs/cp-8-gb28181-code.json` | — |

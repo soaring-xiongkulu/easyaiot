@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,8 +60,18 @@ public class SnapTaskSchedulerService {
                 scheduled++;
             }
         }
-        log.info("抓拍任务调度器初始化完成: enabled={}, scheduled={}", tasks.size(), scheduled);
+        List<Integer> scheduledIds = new ArrayList<>(runningTasks.keySet());
+        scheduledIds.sort(Integer::compareTo);
+        log.info("抓拍任务调度器初始化完成: enabled={}, scheduled={}, scheduled_task_ids={}",
+                tasks.size(), scheduled, scheduledIds);
         return scheduled;
+    }
+
+    /** Scheduled task ids for diagnostics / code-parity evidence (Python {@code _running_tasks}). */
+    public List<Integer> getScheduledTaskIds() {
+        List<Integer> ids = new ArrayList<>(runningTasks.keySet());
+        ids.sort(Integer::compareTo);
+        return ids;
     }
 
     public boolean addTaskToScheduler(int taskId) {

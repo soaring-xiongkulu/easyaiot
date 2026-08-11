@@ -143,10 +143,11 @@ public class SnapTaskRepository {
     public List<Map<String, Object>> listEnabled() {
         return jdbc.query(
                 """
-                SELECT t.*, d.name AS device_name, s.space_name
+                SELECT t.*, d.name AS device_name, s.space_name, p.pusher_name AS pusher_name
                 FROM snap_task t
                 LEFT JOIN device d ON d.id = t.device_id
                 LEFT JOIN snap_space s ON s.id = t.space_id
+                LEFT JOIN pusher p ON p.id = t.pusher_id
                 WHERE t.is_enabled = TRUE
                 ORDER BY t.id
                 """,
