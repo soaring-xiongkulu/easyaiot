@@ -50,11 +50,18 @@ public class PatrolController {
     }
 
     @PostMapping("/session/{sessionId}/stop")
-    public VideoApiResponse<Map<String, Object>> stopSession(@PathVariable long sessionId) {
+    public ResponseEntity<VideoApiResponse<Map<String, Object>>> stopSession(@PathVariable long sessionId) {
         Map<String, Object> result = patrolSessionService.stopSession(sessionId);
+        boolean ok = Boolean.TRUE.equals(result.get("ok"));
+        String message = String.valueOf(result.get("message"));
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) result.get("data");
-        return VideoApiResponse.success(String.valueOf(result.get("message")), data);
+        VideoApiResponse<Map<String, Object>> body = new VideoApiResponse<>();
+        body.setCode(ok ? 0 : 400);
+        body.setMsg(message);
+        body.setMessage(message);
+        body.setData(data);
+        return ResponseEntity.status(ok ? HttpStatus.OK : HttpStatus.BAD_REQUEST).body(body);
     }
 
     @GetMapping("/session/{sessionId}/stats")

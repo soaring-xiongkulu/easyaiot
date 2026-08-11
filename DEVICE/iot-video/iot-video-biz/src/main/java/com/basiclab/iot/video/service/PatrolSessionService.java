@@ -26,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -44,6 +45,8 @@ public class PatrolSessionService {
     private final PatrolSupervisor supervisor;
     private final VideoProperties videoProperties;
     private final Gb28181SyncService gb28181SyncService;
+
+    private final Set<Long> startingSessions = ConcurrentHashMap.newKeySet();
 
     public Map<String, Object> createSession(Map<String, Object> data) {
         List<String> deviceIds = validateDevices(extractStringList(data.get("device_ids")));
@@ -108,22 +111,30 @@ public class PatrolSessionService {
             return Map.of("ok", true, "message", "巡检已在运行", "data", session.toMap());
         }
 
-        if (sessionRepository.countRunning() >= maxSessions()) {
+        if (supervisor.countAlive() >= maxSessions()) {
             return Map.of("ok", false, "message", "同时运行的巡检会话不能超过 " + maxSessions() + " 个", "data", session.toMap());
         }
 
-        stopSession(sessionId, false);
-        Path logDir = Path.of(videoProperties.getRuntime().getLogsDir(), "patrol_" + sessionId);
+        if (!startingSessions.add(sessionId)) {
+            return Map.of("ok", true, "message", "巡检正在启动中", "data", session.toMap());
+        }
+
         try {
-            supervisor.start(sessionId, logDir);
-            sessionRepository.updateRunning(sessionId, logDir.toString());
-            broadcast(sessionId, "status");
-            PatrolSessionRow updated = sessionRepository.findById(sessionId).orElse(session);
-            return Map.of("ok", true, "message", "巡检已启动", "data", updated.toMap());
-        } catch (Exception e) {
-            sessionRepository.updateError(sessionId, e.getMessage());
-            PatrolSessionRow updated = sessionRepository.findById(sessionId).orElse(session);
-            return Map.of("ok", false, "message", e.getMessage(), "data", updated.toMap());
+            stopSession(sessionId, false);
+            Path logDir = Path.of(videoProperties.getRuntime().getLogsDir(), "patrol_" + sessionId);
+            try {
+                supervisor.start(sessionId, logDir);
+                sessionRepository.updateRunning(sessionId, logDir.toString());
+                broadcast(sessionId, "status");
+                PatrolSessionRow updated = sessionRepository.findById(sessionId).orElse(session);
+                return Map.of("ok", true, "message", "巡检已启动", "data", updated.toMap());
+            } catch (Exception e) {
+                sessionRepository.updateError(sessionId, e.getMessage());
+                PatrolSessionRow updated = sessionRepository.findById(sessionId).orElse(session);
+                return Map.of("ok", false, "message", e.getMessage(), "data", updated.toMap());
+            }
+        } finally {
+            startingSessions.remove(sessionId);
         }
     }
 
@@ -174,7 +185,8 @@ public class PatrolSessionService {
             return false;
         }
         long sessionId = Long.parseLong(String.valueOf(rawId));
-        if (sessionRepository.findById(sessionId).isEmpty()) {
+        PatrolSessionRow session = sessionRepository.findById(sessionId).orElse(null);
+        if (session == null) {
             return false;
         }
 
@@ -186,7 +198,7 @@ public class PatrolSessionService {
         }
         Integer totalPatrols = toIntOrNull(data.get("total_patrols"));
         Integer totalDetections = toIntOrNull(data.get("total_detections"));
-        String status = "running";
+        String status = "stopped".equals(session.getStatus()) ? null : "running";
 
         sessionRepository.updateHeartbeat(
                 sessionId, serverIp, processId, progressJson, totalPatrols, totalDetections, status

@@ -83,7 +83,7 @@
 | **D-06** | ~~Snap 调度与 Python `init_all_tasks` **缺证据级对齐**~~ **CP-4 PASS** — boot schedules all `is_enabled` tasks; set parity + honest RTSP fail | Python `snap_task_service.init_all_tasks`；证据 `logs/cp-4-snap-scheduler.json` | Part1 → **CP-4** ✓ |
 | **D-07** | ~~Post-process：代码路径已有，缺 sink 进程 → A6 `enqueue_ok=false`~~ **CP-3 PASS** — sink UP, `enqueue_ok=true` | `logs/cp-3-sink-enqueue.json` | Part1 → **CP-3** ✓ |
 | **D-08** | ~~Matching：缺 consume→process 本机闭环证据~~ **CP-2 PASS** — sink consumers → process; plate hit/miss; face honest bypass | `logs/cp-2-matching-consume.json` | Part1 **CP-2** ✓；InsightFace/Milvus **Part2** |
-| **D-09** | Patrol / AudioTalk：**控制器已有**，相对 Python 行为/SSE/进程语义需证据级收口 | `PatrolController` / `AudioTalkController` vs `patrol.py` / `audio_talk.py` | Part1 → **CP-6 / CP-7** |
+| **D-09** | Patrol / AudioTalk：**控制器已有**，相对 Python 行为/SSE/进程语义需证据级收口 | ~~Patrol~~ **CP-6 PASS** — main-path create/start/stats/events/stop; AudioTalk → CP-7 | Part1 → **CP-6** ✓ / **CP-7** |
 | **D-10** | GB28181 / FlightHub / directory：**Java 支持类已有**，缺与 Python 关键路径的代码证据（真机归 Part2） | `Gb28181*` / `CameraFlighthubService` / `camera.py` routes | Part1 → **CP-8 / CP-9** |
 | **D-10a** | ~~FlightHub + directory 代码证据~~ **CP-9 PASS** — config shape + missing-creds honest fail + directory fields on shared DB | 证据 `logs/cp-9-flighthub-directory.json` | Part1 → **CP-9** ✓ |
 | **D-11** | `run.py` 后台项 vs Java schedulers：多项已移植，缺总表证据 | Python `run.py`；Java `*Scheduler` / AutoStart / Janitor | Part1 → **CP-10** |
@@ -106,7 +106,7 @@
 | G-03 | Post-process / sink | `post_process_sink_client.py` | Client 已有；sink **15432 + :48092** + `enqueue_ok=true` | **CP-3 PASS** | CP-3 | P0 ✓ |
 | G-04 | Snap schedule | `init_all_tasks` | **CP-4 PASS** — `listEnabled` fix + boot schedules 10/10 enabled ids | **CP-4 PASS** | CP-4 | P1 ✓ |
 | G-05 | Algo status | `services/status` + 真进程 | **CP-5 PASS** — no DB-only fake running; legacy null fields documented | **CP-5 PASS** | CP-5 | P1 ✓ |
-| G-06 | Patrol | `patrol.py` | `PatrolController` 等 | 行为/SSE 证据收口 | CP-6 | P2 |
+| G-06 | Patrol | `patrol.py` | **CP-6 PASS** — main-path semantics + SSE + honest validation | **CP-6 PASS** | CP-6 | P2 ✓ |
 | G-07 | AudioTalk | `audio_talk.py` | `AudioTalkService` | 启停/capabilities 证据 | CP-7 | P2 |
 | G-08 | GB28181 code | `gb28181_*` / camera | `Gb28181SourceSupport` / Sync | 源解析+同步 API 代码证据（无真机要求） | CP-8 | P2 |
 | G-09 | FlightHub + directory | `flighthub_*` / directory routes | **CP-9 PASS** — config/live honest fail + directory key fields | **CP-9 PASS** | CP-9 | P2 ✓ |

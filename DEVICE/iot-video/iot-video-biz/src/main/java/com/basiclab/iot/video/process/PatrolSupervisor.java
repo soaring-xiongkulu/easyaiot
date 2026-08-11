@@ -46,6 +46,21 @@ public class PatrolSupervisor {
         return process != null && process.isAlive();
     }
 
+    /** Align Python {@code _running_session_count}: alive daemon processes only, not DB status. */
+    public int countAlive() {
+        int count = 0;
+        for (ManagedSession managed : sessions.values()) {
+            if (managed.stopping) {
+                continue;
+            }
+            Process process = managed.process;
+            if (process != null && process.isAlive()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public Integer currentPid(long sessionId) {
         ManagedSession managed = sessions.get(sessionId);
         if (managed == null || managed.process == null || !managed.process.isAlive()) {
@@ -119,9 +134,9 @@ public class PatrolSupervisor {
                 env.put("PYTHONUNBUFFERED", "1");
                 env.put("PATROL_SESSION_ID", String.valueOf(sessionId));
                 env.put("LOG_PATH", logDir.toString());
-                String heartbeatBase = videoProperties.getRuntime().getHeartbeatBaseUrl();
-                env.put("VIDEO_CONTROL_URL", heartbeatBase);
-                env.put("VIDEO_HEARTBEAT_URL", heartbeatBase + "/video/patrol/heartbeat");
+                String controlUrl = resolveVideoControlUrl();
+                env.put("VIDEO_CONTROL_URL", controlUrl);
+                env.put("VIDEO_HEARTBEAT_URL", resolveHeartbeatUrl(controlUrl));
 
                 managed.process = builder.start();
                 int exit = managed.process.waitFor();
@@ -151,6 +166,31 @@ public class PatrolSupervisor {
         } catch (IOException ignored) {
             // non-fatal
         }
+    }
+
+    private String resolveVideoControlUrl() {
+        String gateway = System.getenv("JAVA_BACKEND_URL");
+        if (gateway == null || gateway.isBlank()) {
+            gateway = System.getenv("GATEWAY_URL");
+        }
+        if (gateway == null || gateway.isBlank()) {
+            gateway = videoProperties.getPostProcess().getGatewayUrl();
+        }
+        if (gateway != null && !gateway.isBlank()) {
+            return gateway.replaceAll("/+$", "") + "/admin-api/video";
+        }
+        String heartbeatBase = videoProperties.getRuntime().getHeartbeatBaseUrl();
+        if (heartbeatBase != null && !heartbeatBase.isBlank()) {
+            return heartbeatBase.replaceAll("/+$", "");
+        }
+        return "http://127.0.0.1:48096";
+    }
+
+    private static String resolveHeartbeatUrl(String controlUrl) {
+        if (controlUrl.contains("/admin-api/video")) {
+            return controlUrl + "/patrol/heartbeat";
+        }
+        return controlUrl.replaceAll("/+$", "") + "/video/patrol/heartbeat";
     }
 
     private void propagatePatrolEnv(Map<String, String> env, long sessionId, Path logDir) {
