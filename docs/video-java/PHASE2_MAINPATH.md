@@ -152,6 +152,59 @@ Prove Java `video-server` under `profile=local` can start/stop device preview fo
 
 ---
 
+## Pack A4 — Media DVR/Snap → Kafka → MinIO
+
+| Field | Value |
+|-------|-------|
+| **Status** | **PASS** |
+| **Date** | 2026-08-11 |
+| **Evidence** | `logs/phase2-a4-media-minio.json` |
+
+### Goal
+
+Prove Java `video-server` under `profile=local` with `upload-mode=kafka` and MinIO enabled: media hook enqueue → Kafka consumer → MinIO object + explainable DB path — aligned with Python non-mini `media_hook_service` + upload workers.
+
+### Oracle reference (Python)
+
+| Item | Location |
+|------|----------|
+| Upload mode gate | `media_kafka_service.py` → `is_kafka_upload_mode()` |
+| Snap hook | `media_hook.py` → `publish_snap_event` when kafka mode |
+| DVR hook | `media_hook.py` → `enqueue_srs_dvr_hook` when kafka mode |
+| DVR consumer | `services/media_upload_worker/run_worker.py` → `process_dvr_event` |
+| Snap consumer | `services/media_upload_worker/run_snap_worker.py` → `process_snap_event` |
+| MinIO + metadata | `dvr_upload_service.py` / `snap_upload_service.py` |
+
+### Java candidate
+
+| Item | Location |
+|------|----------|
+| Config | `application-local.yaml` → `video.media.upload-mode: kafka`, `video.minio.enabled: true` |
+| Hook | `MediaHookController` → `MediaHookService` → `MediaKafkaProducer` |
+| DVR consumer | `DvrUploadKafkaConsumerRunner` → `DvrUploadService` |
+| Snap consumer | `SnapUploadKafkaConsumerRunner` → `SnapUploadService` |
+| MinIO | `VideoMinioService` |
+
+### Acceptance results
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `upload-mode=kafka` + `minio.enabled=true` (local) | **PASS** |
+| 2 | Snap hook → `media.snap.completed` (not sync primary) | **PASS** |
+| 3 | Snap consumer → MinIO object + `snap_image.url` | **PASS** — 115674 bytes |
+| 4 | DVR hook → `media.dvr.completed` | **PASS** |
+| 5 | DVR consumer → MinIO + `record_file` + `playback` | **PASS** — 748898 bytes |
+
+### Fixture
+
+- Device `frb26_device` (snap space 15 `snap-space`, record space 14 `record-space`, task 61 from A1)
+
+### Code fixes (A4)
+
+- None (evidence-only pack; consumers from FR-B15/B16, MinIO from FR-B2)
+
+---
+
 ## Next pack
 
-**A4** — Media MinIO path (`logs/phase2-a4-media-minio.json`).
+**A5** — Camera (`logs/phase2-a5-camera.json`).

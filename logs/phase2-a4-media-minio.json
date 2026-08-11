@@ -1,0 +1,178 @@
+{
+  "pack": "P2-A4",
+  "title": "Media DVR/Snap hook → Kafka → consumer → MinIO + DB path parity (local full stack)",
+  "generated_at": "2026-08-11T18:35:30+08:00",
+  "status": "PASS",
+  "profile": "local",
+  "worktree": "F:/acme/.worktrees/video-java",
+  "branch": "feat/video-java",
+  "stack": {
+    "postgresql": "127.0.0.1:15432/iot-video20",
+    "kafka": "127.0.0.1:9092",
+    "nacos": "127.0.0.1:8848",
+    "minio": "127.0.0.1:9000",
+    "gateway": "127.0.0.1:48080",
+    "video_server": "127.0.0.1:48096"
+  },
+  "config_checks": [
+    {
+      "check": "video.media.upload-mode",
+      "expected": "kafka",
+      "source": "application-local.yaml + application.yaml (VideoProperties default)",
+      "actual": "kafka",
+      "status": "pass",
+      "note": "Hook enqueues to broker; sync path not used as primary success"
+    },
+    {
+      "check": "video.minio.enabled",
+      "expected": true,
+      "source": "application-local.yaml",
+      "actual": true,
+      "status": "pass"
+    },
+    {
+      "check": "video.kafka.bootstrap-servers",
+      "expected": "127.0.0.1:9092",
+      "source": "application-local.yaml",
+      "status": "pass"
+    }
+  ],
+  "oracle_python": {
+    "media_hook": "VIDEO/_retired_python_video/app/blueprints/media_hook.py → is_kafka_upload_mode() → publish_dvr_event / publish_snap_event",
+    "kafka_topics": "VIDEO/_retired_python_video/app/services/media_kafka_service.py → media.dvr.completed / media.snap.completed",
+    "dvr_consumer": "VIDEO/_retired_python_video/services/media_upload_worker/run_worker.py → process_dvr_event",
+    "snap_consumer": "VIDEO/_retired_python_video/services/media_upload_worker/run_snap_worker.py → process_snap_event",
+    "minio_upload": "dvr_upload_service.py / snap_upload_service.py → MinIO + record_file/snap_image/playback metadata"
+  },
+  "java_candidate": {
+    "hook_controller": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/controller/MediaHookController.java",
+    "hook_service": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/MediaHookService.java",
+    "kafka_producer": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/media/MediaKafkaProducer.java",
+    "dvr_consumer": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/kafka/DvrUploadKafkaConsumerRunner.java",
+    "snap_consumer": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/kafka/SnapUploadKafkaConsumerRunner.java",
+    "dvr_upload": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/media/DvrUploadService.java",
+    "snap_upload": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/media/SnapUploadService.java",
+    "minio": "DEVICE/iot-video/iot-video-biz/src/main/java/com/basiclab/iot/video/service/minio/VideoMinioService.java"
+  },
+  "fixture": {
+    "device_id": "frb26_device",
+    "snap_space_id": 15,
+    "snap_bucket": "snap-space",
+    "record_space_id": 14,
+    "record_bucket": "record-space",
+    "task_id": 61,
+    "prior_packs": "A1/A2/A3 (same device)"
+  },
+  "snap_path": {
+    "correlation_id": "phase2-a4-20260811183253",
+    "local_file": "C:/Users/g/.video-java/phase2-a4/frb26_snap_20260811183253.jpg",
+    "local_file_size_bytes": 115674,
+    "hook": {
+      "method": "POST",
+      "endpoint": "http://127.0.0.1:48080/admin-api/video/media/hook/snap/completed",
+      "http_status": 200,
+      "code": 0,
+      "payload": {
+        "device_id": "frb26_device",
+        "file_path": "C:/Users/g/.video-java/phase2-a4/frb26_snap_20260811183253.jpg",
+        "source": "phase2_a4_kafka_parity",
+        "task_id": 61,
+        "space_id": 15,
+        "correlation_id": "phase2-a4-20260811183253"
+      }
+    },
+    "kafka_topic": "media.snap.completed",
+    "kafka_message_sample": {
+      "event_id": "2c101959-d3cf-4ee7-ae38-cde890271e7a",
+      "device_id": "frb26_device",
+      "file_path": "C:/Users/g/.video-java/phase2-a4/frb26_snap_20260811183253.jpg",
+      "source": "phase2_a4_kafka_parity",
+      "task_id": 61,
+      "space_id": 15
+    },
+    "consumer_result": {
+      "local_file_deleted": true,
+      "minio_object": "snap-space/frb26_device/frb26_snap_20260811183253.jpg",
+      "minio_verified": "docker exec minio-server ls /data/snap-space/frb26_device/",
+      "db_snap_image": {
+        "id": 12,
+        "object_name": "frb26_device/frb26_snap_20260811183253.jpg",
+        "bucket_name": "snap-space",
+        "url": "/api/v1/buckets/snap-space/objects/download?prefix=frb26_device%2Ffrb26_snap_20260811183253.jpg",
+        "file_size": 115674,
+        "source": "phase2_a4_kafka_parity",
+        "task_id": 61
+      },
+      "status": "pass"
+    }
+  },
+  "dvr_path": {
+    "correlation_id": "phase2-a4-dvr-20260811183345",
+    "local_file": "C:/Users/g/.video-java/phase2-a4/dvr/20260811183345.mp4",
+    "local_file_size_bytes": 748898,
+    "hook": {
+      "method": "POST",
+      "endpoint": "http://127.0.0.1:48080/admin-api/video/media/hook/srs/on_dvr",
+      "http_status": 200,
+      "code": 0,
+      "payload": {
+        "stream": "frb26_device",
+        "file": "C:/Users/g/.video-java/phase2-a4/dvr/20260811183345.mp4",
+        "app": "live",
+        "correlation_id": "phase2-a4-dvr-20260811183345"
+      }
+    },
+    "kafka_topic": "media.dvr.completed",
+    "kafka_message_sample": {
+      "event_id": "fedd325d-7d6a-4cf7-92e1-c7cc81f183d2",
+      "device_id": "frb26_device",
+      "stream": "frb26_device",
+      "file_path": "C:/Users/g/.video-java/phase2-a4/dvr/20260811183345.mp4",
+      "source": "srs",
+      "segment_start_ms": 20260811183345
+    },
+    "consumer_result": {
+      "local_file_deleted": true,
+      "minio_object": "record-space/frb26_device/2026/08/11/20260811183345.mp4",
+      "minio_verified": "docker exec minio-server ls /data/record-space/frb26_device/2026/08/11/",
+      "db_record_file": {
+        "id": 14,
+        "object_name": "frb26_device/2026/08/11/20260811183345.mp4",
+        "bucket_name": "record-space",
+        "url": "/api/v1/buckets/record-space/objects/download?prefix=frb26_device%2F2026%2F08%2F11%2F20260811183345.mp4",
+        "file_size": 748898
+      },
+      "db_playback": {
+        "id": 52,
+        "file_path": "/api/v1/buckets/record-space/objects/download?prefix=frb26_device%2F2026%2F08%2F11%2F20260811183345.mp4",
+        "file_size": 748898
+      },
+      "status": "pass"
+    }
+  },
+  "vs_python": {
+    "upload_mode_kafka": "align — Java upload-mode=kafka; hook enqueues without sync primary path",
+    "topics": "align — media.dvr.completed / media.snap.completed",
+    "consumer_groups": "align — upload-worker-dvr / upload-worker-snap (JVM embedded vs Python worker process)",
+    "minio_object_layout": "align — device_id/date/filename (DVR) and device_id/filename (snap)",
+    "db_url_shape": "align — /api/v1/buckets/{bucket}/objects/download?prefix=...",
+    "local_cleanup": "align — local file removed after successful MinIO upload"
+  },
+  "acceptance": {
+    "upload_mode_kafka": true,
+    "minio_enabled": true,
+    "hook_enqueue_kafka": true,
+    "consumer_minio_object": true,
+    "db_path_explainable": true,
+    "sync_not_primary": true,
+    "overall": "PASS"
+  },
+  "code_changes": [],
+  "concerns": [
+    "DVR date_dir derived from file mtime when filename stem is numeric timestamp (segment_start_ms parsed but date path uses mtime fallback for non-SRS layout paths)",
+    "Evidence uses gateway only; direct :48096 hook not re-run (A1 pattern allows either)"
+  ],
+  "ready_for_a5": true,
+  "nested_subagents": "none",
+  "disclaimer": "Local full-stack evidence only — not COMPLETE. Profile local; upload-mode not flipped to sync; MinIO enabled."
+}
