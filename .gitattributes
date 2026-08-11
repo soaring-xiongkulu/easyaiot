@@ -89,6 +89,10 @@ CMakeLists.txt text eol=lf
 *.onnx binary
 *.bin binary
 
+# apt 离线 .deb（体积大，本地/download 产物，不参与 diff；COMPILE/dist 已单独忽略目录）
+*.deb binary -diff
+.offline-debs/** -diff
+
 # Node Agent 离线 pip wheel（体积大，本地/export 下载，不参与 diff）
 NODE/pip-wheels/** -diff
 NODE/get-pip.py -diff

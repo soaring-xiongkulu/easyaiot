@@ -188,4 +188,9 @@ AI/yolov*.names.json
 /WEB/logs/*
 !/WEB/logs/.gitkeep
 *.zip
+# apt 离线下载包（install 脚本走 apt-get install；勿在仓库根目录 apt download 后误提交）
+*.deb
+# apt 离线包缓存目录（apt download / 离线装机用，统一放这里）
+.offline-debs/
+
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
