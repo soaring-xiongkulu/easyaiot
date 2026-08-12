@@ -494,7 +494,7 @@ check_gpu() {
         if docker info --format '{{.Runtimes}}' 2>/dev/null | grep -q "nvidia"; then
             print_success "检测到 Docker 支持 NVIDIA runtime"
             # 再测试实际运行
-            if docker run --rm --gpus all nvidia/cuda:11.7.0-base-ubuntu22.04 nvidia-smi >/dev/null 2>&1; then
+            if docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi >/dev/null 2>&1; then
                 print_success "NVIDIA Container Toolkit 已正确配置"
                 GPU_AVAILABLE=true
             else

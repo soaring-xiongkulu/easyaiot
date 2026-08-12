@@ -150,6 +150,7 @@ TRANSFORM/dist/
 TRANSFORM/.env.docker
 TRANSFORM/.idea/
 venv
+**/.venv
 # VIDEO 运行日志与告警截图（任务运行时生成）
 VIDEO/logs/
 # VIDEO 运行时生成的 RUNTIME/推流转发 ini（含设备凭证，勿提交）
