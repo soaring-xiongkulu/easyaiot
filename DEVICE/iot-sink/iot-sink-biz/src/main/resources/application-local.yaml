@@ -271,17 +271,17 @@ basiclab:
           ssl-key-path: # SSL 私钥路径
         modbus:
           enabled: true # 是否开启 Modbus TCP 主动采集
-          scan-interval-ms: 1000
+          scan-interval-ms: 5000
           request-timeout-ms: 5000
           worker-threads: 4
         modbus-rtu:
           enabled: true # 是否开启 Modbus RTU 主动采集
-          scan-interval-ms: 1000
+          scan-interval-ms: 5000
           request-timeout-ms: 5000
           worker-threads: 2
         opcua:
           enabled: true # 是否开启 OPC UA 主动采集
-          scan-interval-ms: 1000
+          scan-interval-ms: 5000
           request-timeout-ms: 5000
           worker-threads: 4
         mqtt:

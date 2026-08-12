@@ -368,7 +368,7 @@ private RpcProperties rpc;
         /**
          * 扫描数据库中协议设备的周期
          */
-        private Long scanIntervalMs = 1000L;
+        private Long scanIntervalMs = 5000L;
 
         /**
          * 单次连接或读取超时

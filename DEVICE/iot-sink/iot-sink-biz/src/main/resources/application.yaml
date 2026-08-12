@@ -161,8 +161,8 @@ spring:
             age:
               ms: 300000
       listener:
-        # 告警消费并发（建议 <= 主题分区数 64；单实例 16 可并行处理 16 个分区）
-        concurrency: 16
+        # 告警消费并发（建议 <= 主题分区数；过高会放大 DB/MinIO/日志 CPU）
+        concurrency: 4
         # 自动提交关闭，需要设置手动消息确认
         ack-mode: manual_immediate
         # 消费监听接口监听的主题不存在时，默认会报错，所以设置为false忽略错误
@@ -276,6 +276,12 @@ alert:
   images:
     base-dir: /mnt/easyaiot-media
 
+# 抓拍告警去重窗口（过短会导致重复告警反复走重路径）
+snapshot:
+  alert:
+    dedup:
+      retention-ms: 3000
+
 debug: false
 
 --- #################### 日志配置 ####################
@@ -291,3 +297,11 @@ logging:
     # 保持其他 Kafka 相关日志为 INFO 级别
     org.apache.kafka: INFO
     org.springframework.kafka: INFO
+    # 热路径业务日志降级，避免高频消息打满 CPU
+    com.basiclab.iot.sink.protocol.emqx.router: WARN
+    com.basiclab.iot.sink.consumer: WARN
+    com.basiclab.iot.sink.messagebus.subscriber.listener: WARN
+    com.basiclab.iot.sink.messagebus.publisher.event.listener: WARN
+    com.basiclab.iot.sink.protocol.polling: INFO
+    com.basiclab.iot.sink.protocol.modbus: INFO
+    com.basiclab.iot.sink.protocol.opcua: INFO
