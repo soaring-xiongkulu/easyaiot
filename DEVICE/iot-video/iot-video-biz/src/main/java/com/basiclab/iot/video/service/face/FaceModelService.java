@@ -2,6 +2,8 @@ package com.basiclab.iot.video.service.face;
 
 import com.basiclab.iot.video.inference.PythonInferenceWorker;
 import com.basiclab.iot.video.inference.PythonInferenceWorker.WorkerResult;
+import com.basiclab.iot.video.inference.milvus.MilvusFaceVectorStore;
+import com.basiclab.iot.video.inference.onnx.FaceOnnxEngine;
 import com.basiclab.iot.video.support.VideoModelPaths;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,34 +23,38 @@ public class FaceModelService {
 
     private final VideoModelPaths videoModelPaths;
     private final PythonInferenceWorker pythonInferenceWorker;
+    private final MilvusFaceVectorStore milvusFaceVectorStore;
+    private final FaceOnnxEngine faceOnnxEngine;
 
-    /**
-     * Python {@code face.py} L83-90: {@code get_face_vector_store().ping()} +
-     * {@code recognition_model_loaded}/{@code recognition_model_downloading}.
-     */
     public Map<String, Object> health() {
         Map<String, Object> data = new LinkedHashMap<>();
-        WorkerResult ping = pythonInferenceWorker.faceVectorStorePing();
-        if (ping.ok()) {
-            putIfPresent(data, ping.data(), "milvus_uri");
-            putIfPresent(data, ping.data(), "collection_name");
-            putIfPresent(data, ping.data(), "collection_exists");
-            if (ping.data().get("error") != null) {
-                data.put("error", String.valueOf(ping.data().get("error")));
-            }
+        Map<String, Object> javaPing = milvusFaceVectorStore.pingDetail();
+        if (Boolean.TRUE.equals(javaPing.get("ok"))) {
+            data.putAll(javaPing);
         } else {
-            data.put("milvus_uri", videoModelPaths.milvusUri());
-            data.put("collection_name", videoModelPaths.faceMilvusCollection());
-            data.put("collection_exists", false);
-            data.put("error", ping.error() != null ? ping.error() : "Milvus ping failed");
+            WorkerResult ping = pythonInferenceWorker.faceVectorStorePing();
+            if (ping.ok()) {
+                putIfPresent(data, ping.data(), "milvus_uri");
+                putIfPresent(data, ping.data(), "collection_name");
+                putIfPresent(data, ping.data(), "collection_exists");
+                if (ping.data().get("error") != null) {
+                    data.put("error", String.valueOf(ping.data().get("error")));
+                }
+            } else {
+                data.put("milvus_uri", videoModelPaths.milvusUri());
+                data.put("collection_name", videoModelPaths.faceMilvusCollection());
+                data.put("collection_exists", false);
+                data.put("error", javaPing.getOrDefault("error",
+                        ping.error() != null ? ping.error() : "Milvus ping failed"));
+            }
         }
-        boolean modelReady = videoModelPaths.isFaceRecModelReady();
+        boolean modelReady = videoModelPaths.isFaceRecModelReady() || faceOnnxEngine.isAvailable();
         data.put("recognition_model_loaded", modelReady);
         data.put("recognition_model_downloading", false);
+        data.put("onnx_java", faceOnnxEngine.isAvailable());
         return data;
     }
 
-    /** Python {@code get_face_rec_model_status()} keys. */
     public Map<String, Object> modelStatus() {
         Path modelPath = videoModelPaths.faceRecModelPath();
         boolean exists = videoModelPaths.isFaceRecModelReady();

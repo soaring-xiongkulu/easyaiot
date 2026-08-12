@@ -51,3 +51,10 @@
 | [DEP_ENGINE_BACKLOG.md](../../docs/video-java/DEP_ENGINE_BACKLOG.md) | Part2 read-only |
 | [CODE_PARITY_PACKS.md](../../docs/video-java/CODE_PARITY_PACKS.md) | Pack definitions |
 | [HANDOFF.md](../../docs/video-java/HANDOFF.md) | Current status / next |
+
+## Part2 packs
+
+| Pack | Status | Brief | Report | Evidence |
+|------|--------|-------|--------|----------|
+| Wave-A face+plate ORT/Milvus | **PASS** | [part2-wave-a-brief.md](./briefs/part2-wave-a-brief.md) | [part2-wave-a-report.md](./briefs/part2-wave-a-report.md) | logs/p2a-*.json / evidence/ |
+

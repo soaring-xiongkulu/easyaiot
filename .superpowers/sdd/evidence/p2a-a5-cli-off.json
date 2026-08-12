@@ -1,0 +1,22 @@
+{
+  "task": "A5",
+  "status": "PASS",
+  "evidence_type": "behavioral",
+  "config": {
+    "video.inference.python-cli-enabled": false,
+    "video.inference.onnx-enabled": true,
+    "profile": "local"
+  },
+  "face_health": {
+    "ok": true,
+    "onnx_java": true,
+    "milvus_uri": "http://127.0.0.1:19530",
+    "recognition_model_loaded": true
+  },
+  "plate_call": {
+    "engine": "onnx-java",
+    "endpoint": "/video/plate/recognize/image"
+  },
+  "pose_note": "Pose may still use Python CLI (Wave-A Out)",
+  "call_stack_note": "FaceRecognitionService/PlateRecognitionService prefer ORT Java; PythonInferenceWorker.isFace/PlateEngineAvailable requires python-cli-enabled"
+}

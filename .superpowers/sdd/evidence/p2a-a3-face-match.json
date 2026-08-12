@@ -1,0 +1,19 @@
+{
+  "task": "A3",
+  "status": "PASS",
+  "engine": "onnx-milvus-java",
+  "bypassed": false,
+  "library_id": 900012,
+  "milvus_id": 468327090836168460,
+  "hit": {
+    "person_name": "p2a-person",
+    "top_score": 1.0,
+    "matched": true
+  },
+  "miss": {
+    "matched": false,
+    "top_score": 0.00371789
+  },
+  "evidence_type": "behavioral",
+  "gate": "non-bypass hit/miss"
+}

@@ -1,0 +1,23 @@
+{
+  "task": "A4",
+  "status": "PASS",
+  "evidence_type": "behavioral",
+  "image": "F:/acme/.worktrees/video-java/testdata/p2a_plate_synth.jpg",
+  "http": {
+    "url": "POST /video/plate/recognize/image",
+    "response": {
+      "code": 0,
+      "data": [
+        {
+          "plate_no": "A12345",
+          "plate_color": "白色",
+          "detect_conf": 0.9022782,
+          "engine": "onnx-java"
+        }
+      ]
+    }
+  },
+  "engine": "onnx-java",
+  "python_cli_enabled": false,
+  "note": "Java PlateOnnxEngine via video-server; python-cli-enabled=false"
+}

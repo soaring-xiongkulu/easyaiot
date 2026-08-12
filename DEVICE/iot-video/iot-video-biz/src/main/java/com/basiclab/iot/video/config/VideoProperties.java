@@ -234,16 +234,39 @@ public class VideoProperties {
     @Data
     public static class Inference {
         /**
-         * When true, Java delegates face/plate/pose inference to Python CLI workers under
-         * {@code VIDEO/scripts/inference_workers}. Disabled in mini when models unavailable.
+         * Master switch for any Python inference CLI (face/plate/pose).
+         * Part2 Wave-A: commercial {@code local} defaults this off for face/plate Java engines;
+         * pose may still use CLI when {@link #pythonCliEnabled} is true.
          */
         private boolean enabled = true;
+        /**
+         * When false (Part2 Wave-A local default), face/plate must use Java ORT+Milvus;
+         * Python {@code face_inference_cli.py}/{@code plate_inference_cli.py} are not called.
+         * Pose CLI may still run when this is true.
+         */
+        private boolean pythonCliEnabled = false;
+        /** Prefer ONNX Runtime Java engines when models exist. */
+        private boolean onnxEnabled = true;
         /** Python interpreter; env VIDEO_PYTHON / PYTHON wins when set. */
         private String pythonExecutable = "";
         /** Optional override; default {@code $ACME_ROOT/VIDEO/scripts/inference_workers}. */
         private String workersDir = "";
         /** Subprocess timeout (model cold-start may need 60–120s). */
         private int timeoutSeconds = 120;
+        /** Absolute or repo-relative path to {@code face_rec.onnx}. */
+        private String faceRecModelPath = "";
+        /** Absolute or repo-relative path to {@code face_det.onnx}. */
+        private String faceDetModelPath = "";
+        /** Absolute or repo-relative path to {@code plate_detect.onnx}. */
+        private String plateDetectModelPath = "";
+        /** Absolute or repo-relative path to {@code plate_rec.onnx}. */
+        private String plateRecModelPath = "";
+        /** Milvus URI, e.g. {@code http://127.0.0.1:19530}. */
+        private String milvusUri = "http://127.0.0.1:19530";
+        /** Face embedding collection name. */
+        private String faceMilvusCollection = "face_embeddings";
+        /** Face similarity threshold (IP / cosine on L2-normalized vectors). */
+        private double faceSimilarityThreshold = 0.55;
     }
 
     @Data

@@ -32,15 +32,24 @@ public class PythonInferenceWorker {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public boolean isFaceEngineAvailable() {
-        return isWorkerHealthy("face_inference_cli.py");
+        return isPythonCliWorkerHealthy("face_inference_cli.py");
     }
 
     public boolean isPlateEngineAvailable() {
-        return isWorkerHealthy("plate_inference_cli.py");
+        return isPythonCliWorkerHealthy("plate_inference_cli.py");
     }
 
     public boolean isPoseEngineAvailable() {
+        // Pose remains CLI-capable in Wave-A (Out of Java ORT scope).
         return isWorkerHealthy("pose_inference_cli.py");
+    }
+
+    /** Face/plate CLI health — requires {@code python-cli-enabled}. */
+    public boolean isPythonCliWorkerHealthy(String scriptName) {
+        if (!videoProperties.getInference().isEnabled() || !videoProperties.getInference().isPythonCliEnabled()) {
+            return false;
+        }
+        return isWorkerHealthy(scriptName);
     }
 
     public boolean isWorkerHealthy(String scriptName) {

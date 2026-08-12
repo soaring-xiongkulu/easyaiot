@@ -1,7 +1,7 @@
 # VIDEO Python → Java — HANDOFF
 
-> **话术：** CODE-PARITY + **CP-12 门控修正（2026-08-12）**：U4 交叉验证 PASS；**U3 PARTIAL**；Overall **PARTIAL**（非「必做项已齐」）；Python 仍为对照，禁止删除。
-> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **Part1 CP-12 Overall PARTIAL**（U4 gate-fix PASS / U3 PARTIAL / U8 SKIPPED）；Part2 引擎另令。
+> **话术：** Part2 Wave-A（2026-08-12）face+plate Java ORT+Milvus 本机 PASS；Pose/Patrol/post_process 仍 Out；**禁止 COMPLETE / 禁止删 Python**。
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** Part1 CP-12 Overall PARTIAL；**Part2 Wave-A PASS**（face/plate）；姿态/巡检/后处理仍绑 py。
 > **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标
@@ -87,12 +87,13 @@
 - **CP-12 PARTIAL（W7 + gate-fix）：** U4 PASS（专用 log + HTTP + Kafka dump 三方一致，`gate_fix=2026-08-12-u4-integrity`）；**U3 PARTIAL**（接线完成、runtime 未测）；U8 SKIPPED。旧 U4 伪证据 **superseded**。证据：`.superpowers/sdd/evidence/cp-12-u4-notify-template.json`、`logs/cp-12-u4-rerun-video.log`、`.superpowers/sdd/briefs/cp-12-report.md`。
 - **Part1 非完美收口全绿**（U3 PARTIAL 阻塞「U1–U7 全 PASS」话术）；**非** COMPLETE / **非** 删 Python。
 - **禁止：** COMPLETE、FR-B、矩阵刷绿、删 main Python、「等线上」、用 mini/direct/stub 冒充 Part1。
+- **Part2 Wave-A PASS（2026-08-12）：** face ORT 余弦≥0.99；Milvus Java hit/miss；plate `engine=onnx-java` 出号；`python-cli-enabled=false`。证据：`logs/p2a-*.json`、`.superpowers/sdd/briefs/part2-wave-a-report.md`。
 
 ## 9. 下一步（等令）
 
-1. （可选）U3 runtime：构造 GB 主拉流失败→alternate 降级日志后升 PASS。  
-2. **Part2 引擎** — InsightFace/Milvus/RUNTIME；见 [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md)。  
-3. Python Oracle 仍保留；**禁止删除**。
+1. 讨论 X1/X2：Patrol/post_process 是否长期 Python sidecar（γ-1）还是迁出 RUNTIME/Java（γ-2）。  
+2. （按需）Wave δ 姿态 ORT；真机联调 Wave ε。  
+3. Python Oracle 仍保留；**禁止删除 `VIDEO/`**。
 
 ## 10. 历史约束
 

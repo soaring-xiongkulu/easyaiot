@@ -1,0 +1,34 @@
+{
+  "task": "A0",
+  "status": "PASS",
+  "models": {
+    "face_rec.onnx": {
+      "exists": true,
+      "size": 174383860,
+      "path": "F:\\acme\\.worktrees\\video-java\\VIDEO\\face_rec.onnx"
+    },
+    "face_det.onnx": {
+      "exists": true,
+      "size": 44718796,
+      "path": "F:\\acme\\.worktrees\\video-java\\VIDEO\\face_det.onnx"
+    },
+    "plate_detect.onnx": {
+      "exists": true,
+      "size": 39429742,
+      "path": "F:\\acme\\.worktrees\\video-java\\VIDEO\\plate_detect.onnx"
+    },
+    "plate_rec.onnx": {
+      "exists": true,
+      "size": 52127,
+      "path": "F:\\acme\\.worktrees\\video-java\\VIDEO\\plate_rec.onnx"
+    }
+  },
+  "milvus": {
+    "ok": true,
+    "collections": [
+      "face_embeddings"
+    ],
+    "uri": "http://127.0.0.1:19530"
+  },
+  "face_sample": "F:/acme/.worktrees/video-java/testdata/fr-b41/face_sample.jpg"
+}

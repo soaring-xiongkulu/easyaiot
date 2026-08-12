@@ -1,0 +1,13 @@
+{
+  "task": "A1",
+  "status": "PASS",
+  "cosine": 0.9999457597690214,
+  "dim_python": 512,
+  "dim_java": 512,
+  "python_elapsed_ms": 2977.919101715088,
+  "java_elapsed_ms": 2749,
+  "image": "F:/acme/.worktrees/video-java/testdata/fr-b41/face_sample.jpg",
+  "model": "F:/acme/.worktrees/video-java/VIDEO/face_rec.onnx",
+  "gate": "reuse_old_milvus_ok",
+  "evidence_type": "behavioral"
+}

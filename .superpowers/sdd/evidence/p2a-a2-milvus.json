@@ -1,0 +1,14 @@
+{
+  "task": "A2",
+  "status": "PASS",
+  "evidence_type": "behavioral",
+  "milvus_uri": "http://127.0.0.1:19530",
+  "collection_name": "face_embeddings",
+  "collection_exists": true,
+  "collections": [
+    "face_embeddings"
+  ],
+  "sdk": "milvus-sdk-java-2.4.4",
+  "note": "Java SDK ping+search exercised in p2a-a3; pymilvus confirms collection loaded",
+  "cross_ref": "logs/p2a-a3-face-match.json"
+}
