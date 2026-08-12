@@ -23,7 +23,7 @@
 #   verify     - 验证所有服务是否启动成功
 #   verify-alert - 告警事件面验收（共享盘挂载 + MQTT→iot-sink→入库）
 #   verify-dvr   - DVR/NFS 链路验收（NFS 写盘 → sink → MinIO）
-#   ceph|verify-ceph - 节点 Ceph/共享媒体：list|status|probe|verify（告警图+录像目录）
+#   nfs|verify-nfs|ceph|verify-ceph - 节点 NFS 共享媒体：list|status|probe|verify（告警图+录像目录）
 #   check      - 检查 Docker 和 Docker Compose 安装状态
 #   profile    - 显示当前部署形态与服务范围
 #   site [子命令] - 官方网站 SITE 独立部署
@@ -1914,8 +1914,8 @@ show_help() {
     echo "  verify          - 验证所有服务是否启动成功（含告警/DVR 事件面验收）"
     echo "  verify-alert    - 告警事件面验收（控制面共享盘 + MQTT→iot-sink→入库）"
     echo "  verify-dvr      - DVR/NFS 链路验收（NFS → sink Hook → MinIO → playback）"
-    echo "  ceph|verify-ceph - 节点 Ceph/共享媒体管理与验收"
-    echo "      ceph list | status [id|host|all] | probe [id|host|all] | verify [--mount-only]"
+    echo "  nfs|verify-nfs  - 节点 NFS 共享媒体管理与验收（兼容旧命令名 ceph|verify-ceph）"
+    echo "      nfs list | status [id|host|all] | probe [id|host|all] | verify [--mount-only]"
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
@@ -2066,8 +2066,8 @@ main() {
         verify-dvr|verify-dvr-nfs|verify-nfs-dvr)
             verify_dvr_nfs_chain "${@:2}"
             ;;
-        ceph|verify-ceph|ceph-nodes)
-            if [ "$cmd" = "verify-ceph" ] && [ -z "${2:-}" ]; then
+        nfs|verify-nfs|ceph|verify-ceph|ceph-nodes)
+            if { [ "$cmd" = "verify-ceph" ] || [ "$cmd" = "verify-nfs" ]; } && [ -z "${2:-}" ]; then
                 run_ceph_cmd verify
             else
                 run_ceph_cmd "${2:-verify}" "${@:3}"

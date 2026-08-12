@@ -12,12 +12,13 @@ NFS_EXPORT="${NFS_EXPORT:-}"
 NFS_MOUNT_OPTS="${NFS_MOUNT_OPTS:-vers=3,tcp,nolock,_netdev}"
 
 run_priv() {
+    # 仅用 sudo -n，避免 IDEA/无人值守启动时卡在密码提示
     if [ "${EUID:-$(id -u)}" -eq 0 ]; then
         "$@"
-    elif command -v sudo >/dev/null 2>&1; then
-        sudo "$@"
+    elif can_run_privileged; then
+        sudo -n "$@"
     else
-        "$@"
+        return 1
     fi
 }
 

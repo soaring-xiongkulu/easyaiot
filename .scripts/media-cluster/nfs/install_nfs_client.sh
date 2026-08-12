@@ -3,9 +3,14 @@
 set -euo pipefail
 
 MOUNT_ROOT="${MOUNT_ROOT:-/mnt/easyaiot-media}"
-NFS_SERVER="${NFS_SERVER:-127.0.0.1}"
+NFS_SERVER="${NFS_SERVER:-}"
 NFS_EXPORT="${NFS_EXPORT:-${MOUNT_ROOT}}"
 NFS_MOUNT_OPTS="${NFS_MOUNT_OPTS:-vers=3,tcp,nolock,_netdev}"
+
+if [ -z "${NFS_SERVER}" ]; then
+  echo "错误: NFS_SERVER 未设置。请先在「NFS 拓扑」分配主服务端，或 export NFS_SERVER=<主节点IP>" >&2
+  exit 1
+fi
 
 export DEBIAN_FRONTEND=noninteractive
 if ! command -v mount.nfs >/dev/null 2>&1; then

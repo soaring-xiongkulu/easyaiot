@@ -437,7 +437,7 @@ apply_middleware_deploy_env() {
     local env_file="${root}/.scripts/docker/.env"
     local mount_root
     mount_root="$(resolve_easyaiot_media_root)"
-    local nfs_export="${NFS_EXPORT:-/mnt/easyaiot-media}"
+    local nfs_export="${NFS_EXPORT:-$mount_root}"
     mkdir -p "$(dirname "$env_file")"
     touch "$env_file"
     _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$mount_root"
