@@ -191,11 +191,19 @@ services:
       # 容器内 iot-node 纳管控制面节点时使用宿主机 IP（避免探测到容器网桥地址）
       - EASYAIOT_PLATFORM_HOST=${EASYAIOT_PLATFORM_HOST:-${HOST_IP:-}}
       - EASYAIOT_AGENT_CONTROL_PLANE_URL=${EASYAIOT_AGENT_CONTROL_PLANE_URL:-}
+      # 容器内媒体根固定为挂载点（与 volume 目标路径一致）
+      - EASYAIOT_EDGE_MEDIA_ROOT=/mnt/easyaiot-media
+      - EASYAIOT_MEDIA_CLUSTER_PATH=/opt/easyaiot/.scripts/media-cluster/nfs
+      - EASYAIOT_STORAGE_CLUSTER_PATH=/opt/easyaiot/.scripts/media-cluster/nfs
     volumes:
       - ../.build-cache/device/node-logs:/root/logs/
       # Agent 源码目录（含 run_agent.py、install.sh 等，供控制面远程部署 Agent 使用）
       - ../NODE:/opt/easyaiot/NODE
       - ../VIDEO:/opt/easyaiot/VIDEO
+      # NFS 共享媒体根（控制面本机文件浏览与宿主机一致）
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}:/mnt/easyaiot-media:rw
+      # NFS 部署脚本源（同步到工作节点）
+      - ../.scripts/media-cluster/nfs:/opt/easyaiot/.scripts/media-cluster/nfs:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:48094/actuator/health"]
       interval: 30s
