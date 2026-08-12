@@ -1,7 +1,7 @@
 # VIDEO Python → Java — HANDOFF
 
-> **话术：** CODE-PARITY 波次 0 + **CP-12（2026-08-12）**：Part1 完美收口必做项行为 PASS（U4 template→`notifyUsers` 已证）；U8 可选 SKIPPED；Python 仍为对照，禁止删除。  
-> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **Part1 CODE-PARITY** CP-1…CP-12 PASS（必做）；Part2 引擎另令。  
+> **话术：** CODE-PARITY + **CP-12 门控修正（2026-08-12）**：U4 交叉验证 PASS；**U3 PARTIAL**；Overall **PARTIAL**（非「必做项已齐」）；Python 仍为对照，禁止删除。
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **Part1 CP-12 Overall PARTIAL**（U4 gate-fix PASS / U3 PARTIAL / U8 SKIPPED）；Part2 引擎另令。
 > **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标
@@ -73,7 +73,7 @@
 
 - **阶段 2 A-series 已关闭**（A1–A5 PASS；A6 ⛔缺 sink；A7 ⛔缺 Milvus/InsightFace）。证据见 [PHASE2_MAINPATH.md](./PHASE2_MAINPATH.md)。  
 - **CP-1 PASS（W1）：** 已移除 `AlertHookService.fallbackPersistOnKafkaFailure`；Kafka 失败 → API `code=500`，无 `direct_persist` 成功兜底。证据：`logs/cp-1-no-fallback.json`、`.superpowers/sdd/briefs/cp-1-report.md`。  
-- **Part1 纪律：** 商业 `local` **零 Fallback**（告警路径已收口；严于 Python `_fallback_persist_on_kafka_failure`）。  
+- **Part1 非完美收口全绿**（U3 PARTIAL 阻塞「U1–U7 全 PASS」话术）；**非** COMPLETE / **非** 删 Python。
 - **CP-3 PASS（W2-first）：** `iot-sink` PG **15432**、`:48092` 可复现启动、`enqueue_ok=true`（无 stub）。证据：`logs/cp-3-sink-enqueue.json`、`.superpowers/sdd/briefs/cp-3-report.md`。
 - **CP-2 PASS（W2-second）：** matching consume→process via **iot-sink** `PlateMatchingConsumer` / `FaceMatchingConsumer` → gateway `/matching/process`；plate hit/miss DB；face honest `bypassed`。证据：`logs/cp-2-matching-consume.json`、`.superpowers/sdd/briefs/cp-2-report.md`。
 - **CP-5 PASS（W3）：** 移除 `resolveServiceStatus` DB-only 假 `running` heuristic；`extractor`/`sorter`/`pusher=null` 与 Python 同形。证据：`logs/cp-5-services-status.json`、`.superpowers/sdd/briefs/cp-5-report.md`。
@@ -84,14 +84,14 @@
 - **CP-8 PASS（W4）：** `Gb28181SourceResolver` + fixture map + sync payload + virtual device ensure；WVP 不可达时 `resolved_source=null` 诚实失败。证据：`logs/cp-8-gb28181-code.json`、`.superpowers/sdd/briefs/cp-8-report.md`。
 - **CP-10 PASS（W5）：** `run.py` 后台块 ↔ Java `*Scheduler`/AutoStart/Janitor 对照表；抽样 view-forward auto-resume（4/4）、space cleanup、media janitor、snap init（CP-4 交叉）。证据：`logs/cp-10-boot-daemons.json`、`.superpowers/sdd/briefs/cp-10-report.md`。
 - **CP-11 PASS（W6）：** 深对齐清理 T1–T12（证据多为 compile；**superseded by CP-12**）。证据：`logs/cp-11-*.json`、`.superpowers/sdd/briefs/cp-11-report.md`。
-- **CP-12 PASS（W7）：** 完美收口必做 U1–U7+U9 行为重证；**U4 PASS**（template-only → Kafka `shouldNotify` + `notifyUsers`；message API mock + `MESSAGE_SERVICE_URL`）。U8 optional SKIPPED。证据：`logs/cp-12-u*.json`、`.superpowers/sdd/briefs/cp-12-report.md`。
-- **Part1 必做项已收口**；**非** COMPLETE / **非** 删 Python；Part2 引擎另令。
+- **CP-12 PARTIAL（W7 + gate-fix）：** U4 PASS（专用 log + HTTP + Kafka dump 三方一致，`gate_fix=2026-08-12-u4-integrity`）；**U3 PARTIAL**（接线完成、runtime 未测）；U8 SKIPPED。旧 U4 伪证据 **superseded**。证据：`.superpowers/sdd/evidence/cp-12-u4-notify-template.json`、`logs/cp-12-u4-rerun-video.log`、`.superpowers/sdd/briefs/cp-12-report.md`。
+- **Part1 非完美收口全绿**（U3 PARTIAL 阻塞「U1–U7 全 PASS」话术）；**非** COMPLETE / **非** 删 Python。
 - **禁止：** COMPLETE、FR-B、矩阵刷绿、删 main Python、「等线上」、用 mini/direct/stub 冒充 Part1。
 
 ## 9. 下一步（等令）
 
-1. **Part2 引擎** — InsightFace/Milvus/RUNTIME 真机/模型安装；见 [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md)。  
-2. （可选）Boot SRS auto `fix_srs.sh`（U8）；或启动真实 `message-server`（yaml 已对齐 15432/16379）替换 mock。  
+1. （可选）U3 runtime：构造 GB 主拉流失败→alternate 降级日志后升 PASS。  
+2. **Part2 引擎** — InsightFace/Milvus/RUNTIME；见 [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md)。  
 3. Python Oracle 仍保留；**禁止删除**。
 
 ## 10. 历史约束

@@ -1,6 +1,6 @@
 # CODE-PARITY — Part 1 Backlog（代码可完美复刻）
 
-> **话术：** CODE-PARITY 波次 0 + **CP-12 完美收口（2026-08-12）**：Part1 必做项行为 PASS（含 U4 template→notifyUsers）；U8 可选 SKIPPED；Python 仍为对照，禁止删除。  
+> **话术：** CODE-PARITY + **CP-12 门控修正（2026-08-12）**：U4 交叉验证 PASS；U3 PARTIAL；Overall PARTIAL；旧 U4 伪证据 superseded；Python 仍为对照，禁止删除。
 > **进度表角色：** 本文件是 **Part 1 唯一进度表**。Part 2 见 [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md)。任务包见 [CODE_PARITY_PACKS.md](./CODE_PARITY_PACKS.md)。  
 > **唯一环境：** 本机完整栈（PG `127.0.0.1:15432` / Kafka / MinIO / Nacos / 网关 / `video-server` `local`）。**禁止「等线上」叙事。**
 
@@ -112,8 +112,8 @@
 | G-08 | GB28181 code | `gb28181_*` / camera | **CP-8 PASS** — `Gb28181SourceResolver` + fixture map + sync + honest WVP null | **CP-8 PASS** | CP-8 | P2 ✓ |
 | G-09 | FlightHub + directory | `flighthub_*` / directory routes | **CP-9 PASS** — config/live honest fail + directory key fields | **CP-9 PASS** | CP-9 | P2 ✓ |
 | G-10 | Boot daemons | `run.py` 后台块 | **CP-10 PASS** — 19-row map; view-forward/space/janitor/snap sampled | **CP-10 PASS** | CP-10 | P2 ✓ |
-| G-11 | Deep gap cleanup | alert notify / post-matching / sink fail / FlightHub / AudioTalk / GB / directory / boot | **CP-11 PASS** (superseded evidence) | **CP-12** re-proof closed | CP-12 | P0 **PASS** |
-| G-12 | Perfect gap | auto-enroll tick / FlightHub 409 flat / GB alternate wire / template notify / sink ack / matching no-plate / remote HB | **CP-12 PASS** — see `CODE_PARITY_PERFECT_GAP_PACK.md` | U4 Kafka notifyUsers proven; U8 SKIPPED | CP-12 | P0 **PASS** |
+| G-11 | Deep gap cleanup | alert notify / post-matching / sink fail / FlightHub / AudioTalk / GB / directory / boot | **CP-11 PASS** (superseded evidence) | CP-12 gate-fix in progress | CP-12 | P0 **PARTIAL** |
+| G-12 | Perfect gap | auto-enroll tick / FlightHub 409 flat / GB alternate wire / template notify / sink ack / matching no-plate / remote HB | **CP-12 PARTIAL** — gate-fix | U4 PASS cross-checked; U3 PARTIAL; U8 SKIPPED | CP-12 | P0 **PARTIAL** |
 
 ---
 
@@ -134,5 +134,5 @@
 | **CP-7** AudioTalk main-path | **PASS** — `logs/cp-7-audiotalk.json` |
 | **CP-10** boot daemons map | **PASS** — `logs/cp-10-boot-daemons.json` |
 | **Part1 CP-1…CP-10** | **全部 PASS** — A-series code packs closed |
-| **CP-12** perfect gap | **PASS** — `logs/cp-12-u*.json`; U4 template→notifyUsers Kafka; U8 SKIPPED |
+| **CP-12** perfect gap | **PARTIAL** — U4 gate-fix PASS (`cp-12-u4-notify-template.json`); U3 PARTIAL; U8 SKIPPED |
 | Part2 引擎 / 长联调 / FR-B / COMPLETE / 删 Python | **禁止 / 另令** |

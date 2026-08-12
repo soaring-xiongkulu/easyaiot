@@ -1,12 +1,28 @@
 {
   "task": "U4",
   "status": "PASS",
+  "evidence_type": "behavioral_cross_checked",
+  "gate_fix": "2026-08-12-u4-integrity",
   "profile": "local",
-  "evidence_type": "behavioral",
+  "supersedes": {
+    "reason": "prior U4 evidence failed gate integrity (English pseudo excerpt / offset mismatch)",
+    "prior_paths": [
+      "logs/cp-12-u4-notify-template.json",
+      ".superpowers/sdd/evidence/cp-12-u4-notify-template.json"
+    ],
+    "prior_claimed": {
+      "partition": 23,
+      "offset": 7067,
+      "pseudo_excerpt_en": true
+    }
+  },
   "message_service": {
     "MESSAGE_SERVICE_URL": "http://127.0.0.1:48190",
-    "note": "local mock implementing same /admin-api/message/template|preview paths as iot-message; application-local.yaml PG→15432 + redis→16379 fixed for real boot",
+    "mode": "mock",
     "mock_hits_sample": [
+      "/admin-api/message/preview/user/group/query?id=43785cb5-c36a-429c-824b-fc32ee7a3df5",
+      "/admin-api/message/preview/user/query?id=b1ff9e5a-7a0c-42d0-a27b-645291eb03e3&msgType=3",
+      "/admin-api/message/template/get?id=cp12-u4-mail-tpl&msgType=3",
       "/admin-api/message/preview/user/group/query?id=43785cb5-c36a-429c-824b-fc32ee7a3df5",
       "/admin-api/message/preview/user/query?id=b1ff9e5a-7a0c-42d0-a27b-645291eb03e3&msgType=3",
       "/admin-api/message/template/get?id=cp12-u4-mail-tpl&msgType=3",
@@ -24,17 +40,15 @@
   "fixture": {
     "task_id": 139,
     "device_id": "frb45_device",
-    "alert_notification_config": {
-      "channels": [
-        {
-          "method": "email",
-          "template_id": "cp12-u4-mail-tpl",
-          "template_name": "CP12 U4 mail template"
-        }
-      ]
-    },
+    "unique_event": "cp12-u4-rerun-1786518438",
     "db_notify_users": null,
-    "unique_event": "cp12-u4-1786511508"
+    "channels": [
+      {
+        "method": "email",
+        "template_id": "cp12-u4-mail-tpl",
+        "template_name": "CP12 U4 mail template"
+      }
+    ]
   },
   "hook_http": {
     "code": 0,
@@ -44,37 +58,67 @@
       "mode": "kafka",
       "partition": 23,
       "shouldNotify": true,
-      "offset": 7067,
+      "offset": 9734,
       "topic": "iot-alert-notification",
       "status": "success"
     }
   },
-  "kafka": {
+  "video_log": {
+    "file": "logs/cp-12-u4-rerun-video.log",
+    "pid": 28588,
+    "excerpt_verbatim": "2026-08-12 15:07:19.914  INFO 28588 --- [o-48096-exec-10] i.v.s.n.MessageTemplateNotifyUserService : 告警触发时从消息模板提取到 1 个通知人",
+    "grep_hint": "告警触发时从消息模板提取到",
+    "source_format_string": "log.info(\"告警触发时从消息模板提取到 {} 个通知人\", allUsers.size());",
+    "log_byte_offset_before_hook": 443702
+  },
+  "kafka_dump": {
+    "tool": "kafka-python KafkaConsumer seek(partition,offset)",
     "topic": "iot-alert-notification",
     "partition": 23,
-    "offset": 7067,
-    "shouldNotify": true,
-    "notifyUsers": [
-      {
-        "id": "b1ff9e5a-7a0c-42d0-a27b-645291eb03e3",
-        "msgType": 3,
-        "previewUser": "xxxxx@163.com",
-        "email": "xxxxx@163.com",
-        "mail": "xxxxx@163.com",
-        "name": "cp12-u4-user"
-      }
-    ],
-    "notifyMethods": [
-      "email"
-    ],
-    "channels": [
-      {
-        "method": "email",
-        "template_id": "cp12-u4-mail-tpl",
-        "template_name": "CP12 U4 mail template"
-      }
-    ],
-    "event": "cp12-u4-1786511508"
+    "offset": 9734,
+    "raw_value_json": {
+      "shouldNotify": true,
+      "notifyUsers": [
+        {
+          "id": "b1ff9e5a-7a0c-42d0-a27b-645291eb03e3",
+          "msgType": 3,
+          "previewUser": "xxxxx@163.com",
+          "email": "xxxxx@163.com",
+          "mail": "xxxxx@163.com",
+          "name": "cp12-u4-user"
+        }
+      ],
+      "notifyMethods": [
+        "email"
+      ],
+      "channels": [
+        {
+          "method": "email",
+          "template_id": "cp12-u4-mail-tpl",
+          "template_name": "CP12 U4 mail template"
+        }
+      ],
+      "alert": {
+        "object": "person",
+        "event": "cp12-u4-rerun-1786518438",
+        "region": "zone-gate-fix",
+        "information": "U4 gate-fix cross-check",
+        "imagePath": "C:/tmp/cp12-u4-rerun.jpg",
+        "recordPath": null,
+        "time": "2026-08-12 15:07:18",
+        "taskType": "realtime"
+      },
+      "event": "cp12-u4-rerun-1786518438",
+      "deviceId": "frb45_device"
+    }
   },
-  "video_log_excerpt": "MessageTemplateNotifyUserService extracted 1 notify user for frb45_device"
+  "cross_check": {
+    "http_partition_offset_match_dump": true,
+    "unique_event_match": true,
+    "log_excerpt_exists_in_log_file": true,
+    "log_excerpt_matches_source_format": true,
+    "http_shouldNotify": true,
+    "kafka_shouldNotify": true,
+    "notifyUsers_count": 1
+  }
 }

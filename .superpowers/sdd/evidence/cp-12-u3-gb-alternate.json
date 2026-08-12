@@ -1,0 +1,23 @@
+﻿{
+  "task": "U3",
+  "status": "PARTIAL",
+  "approach": "B",
+  "profile": "local",
+  "evidence_type": "code_wiring_only_not_behavioral",
+  "gate_fix": "2026-08-12-u3-honesty",
+  "java_call_sites": [
+    "CameraHardwareService.captureSnapshot — on Ffmpeg failure calls gb28181SourceResolver.resolveAlternatePullUrl",
+    "AutoEnrollTickService.captureFrame — same alternate retry path",
+    "Gb28181SourceResolver.resolveAlternatePullUrl logs: GB28181 OpenCV 拉流降级"
+  ],
+  "runtime": {
+    "status": "BLOCKED",
+    "reason": "本机无法构造可复核的「主拉流失败 → alternate RTSP 成功」场景（需 WVP 同时返回不同 scheme 的 RTMP/RTSP 且 ffmpeg 主 URL 失败）；未伪造降级日志"
+  },
+  "notes": "接线完成；非行为 PASS。Overall 不得宣称 U1–U7 全 PASS。",
+  "supersedes": {
+    "prior_status": "PASS",
+    "prior_evidence_type": "code_wiring_plus_edge_reference",
+    "reason": "gate rejected wiring-only as behavioral PASS"
+  }
+}
