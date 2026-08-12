@@ -7,6 +7,7 @@ import com.basiclab.iot.video.dal.FaceMatchRecordRepository;
 import com.basiclab.iot.video.dal.PlateMatchRecordRepository;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -28,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AlertService {
 
     private static final ZoneId SHANGHAI = ZoneId.of("Asia/Shanghai");
@@ -72,13 +74,11 @@ public class AlertService {
             statsCacheTs = now;
             return result;
         } catch (Exception ex) {
-            Map<String, Object> fallback = new LinkedHashMap<>();
-            fallback.put("alarm_count", 0);
-            fallback.put("today_alarm_count", 0);
-            fallback.put("camera_count", 0);
-            fallback.put("algorithm_count", 0);
-            fallback.put("model_count", 0);
-            return fallback;
+            log.warn("告警统计查询失败，返回 degraded: {}", ex.getMessage());
+            Map<String, Object> degraded = new LinkedHashMap<>();
+            degraded.put("degraded", true);
+            degraded.put("error", ex.getMessage());
+            return degraded;
         }
     }
 

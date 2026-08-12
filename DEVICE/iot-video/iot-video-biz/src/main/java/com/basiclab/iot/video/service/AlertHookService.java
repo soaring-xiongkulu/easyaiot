@@ -25,6 +25,7 @@ public class AlertHookService {
     private final AlertKafkaProducer alertKafkaProducer;
     private final AlertKafkaMessageBuilder alertKafkaMessageBuilder;
     private final AlertEventKafkaSuppressor alertEventKafkaSuppressor;
+    private final AlertNotificationConfigService alertNotificationConfigService;
 
     public Map<String, Object> processHook(Map<String, Object> alertData) {
         if (alertData == null || alertData.isEmpty()) {
@@ -45,7 +46,7 @@ public class AlertHookService {
             try {
                 alertPostOrchestratorService.schedulePostAlertOrchestration(alertData, taskRow);
             } catch (Exception ex) {
-                // non-blocking — mirror Python alert hook orchestration
+                log.warn("告警后编排调度失败 deviceId={}: {}", deviceId, ex.getMessage());
             }
         }
         if (alertTask.isEmpty()) {
@@ -73,19 +74,38 @@ public class AlertHookService {
             String deviceId,
             String taskType
     ) {
-        Map<String, Object> message = alertKafkaMessageBuilder.buildMinimal(alertData, taskRow, detectionSwitches);
+        Optional<Map<String, Object>> notificationConfig = alertNotificationConfigService.queryConfig(deviceId, taskType);
+        Map<String, Object> message;
+        if (notificationConfig.isPresent()) {
+            Map<String, Object> config = notificationConfig.get();
+            if (Boolean.TRUE.equals(config.get("notification_suppressed"))) {
+                message = alertKafkaMessageBuilder.buildMinimal(alertData, taskRow, detectionSwitches);
+            } else {
+                message = alertKafkaMessageBuilder.buildNotificationMessage(alertData, config, detectionSwitches);
+                if (message == null) {
+                    log.warn("告警通知消息构建失败，回退 minimal: deviceId={}", deviceId);
+                    message = alertKafkaMessageBuilder.buildMinimal(alertData, taskRow, detectionSwitches);
+                }
+            }
+        } else {
+            message = alertKafkaMessageBuilder.buildMinimal(alertData, taskRow, detectionSwitches);
+        }
+
         String topic = alertKafkaProducer.resolveTopic(taskType);
         try {
             SendResult<String, String> result = alertKafkaProducer.send(topic, deviceId, message);
+            if (Boolean.TRUE.equals(message.get("shouldNotify")) && notificationConfig.isPresent()) {
+                alertNotificationConfigService.markNotificationSent(notificationConfig.get());
+            }
             Map<String, Object> out = new HashMap<>();
             out.put("status", "success");
             out.put("topic", result.getRecordMetadata().topic());
             out.put("partition", result.getRecordMetadata().partition());
             out.put("offset", result.getRecordMetadata().offset());
             out.put("mode", "kafka");
+            out.put("shouldNotify", message.getOrDefault("shouldNotify", false));
             return out;
         } catch (Exception ex) {
-            // Part1 zero-fallback: commercial local must not silent-persist on Kafka failure.
             log.error("Kafka alert hook send failed: deviceId={}, error={}", deviceId, ex.getMessage());
             Map<String, Object> failed = new HashMap<>();
             failed.put("status", "failed");

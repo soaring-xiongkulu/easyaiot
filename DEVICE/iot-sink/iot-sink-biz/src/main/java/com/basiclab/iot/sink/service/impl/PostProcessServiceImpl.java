@@ -203,8 +203,7 @@ public class PostProcessServiceImpl implements PostProcessService {
 
     private void publishKafka(String topic, String key, Object payload) {
         if (iotKafkaTemplate == null) {
-            log.warn("KafkaTemplate 不可用，跳过后处理投递 topic={}", topic);
-            return;
+            throw new IllegalStateException("KafkaTemplate 不可用，无法投递后处理消息 topic=" + topic);
         }
         try {
             String json = JsonUtils.toJsonString(payload);

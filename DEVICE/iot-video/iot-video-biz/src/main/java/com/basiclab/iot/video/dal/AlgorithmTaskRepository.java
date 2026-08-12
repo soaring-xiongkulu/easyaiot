@@ -465,11 +465,49 @@ public class AlgorithmTaskRepository {
         );
     }
 
-    public Optional<Map<String, Object>> findAlertEventTask(String deviceId, String taskType) {
+    public Optional<Map<String, Object>> findAlertNotificationConfig(String deviceId, String taskType) {
+        String tt = normalizeTaskType(taskType);
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                """
+                SELECT t.id AS task_id, t.task_name, t.task_type,
+                       t.alert_notification_config, t.alarm_suppress_time, t.last_notify_time,
+                       t.face_detection_enabled, t.plate_detection_enabled
+                FROM algorithm_task t
+                JOIN algorithm_task_device atd ON atd.task_id = t.id
+                WHERE atd.device_id = ?
+                  AND t.alert_event_enabled = true
+                  AND t.alert_notification_enabled = true
+                  AND t.is_enabled = true
+                  AND t.task_type = ?
+                ORDER BY t.id ASC
+                LIMIT 1
+                """,
+                deviceId,
+                tt
+        );
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+    }
+
+    public void updateLastNotifyTime(long taskId) {
+        jdbc.update("UPDATE algorithm_task SET last_notify_time = NOW(), updated_at = NOW() WHERE id = ?", taskId);
+    }
+
+    public int resetAllAutoEnrollRunning() {
+        int face = jdbc.update("UPDATE face_auto_enroll_task SET is_running = false, updated_at = NOW() WHERE is_running = true");
+        int plate = jdbc.update("UPDATE plate_auto_enroll_task SET is_running = false, updated_at = NOW() WHERE is_running = true");
+        return face + plate;
+    }
+
+    private static String normalizeTaskType(String taskType) {
         String tt = taskType != null ? taskType : "realtime";
         if ("snapshot".equals(tt)) {
             tt = "snap";
         }
+        return tt;
+    }
+
+    public Optional<Map<String, Object>> findAlertEventTask(String deviceId, String taskType) {
+        String tt = normalizeTaskType(taskType);
         List<Map<String, Object>> rows = jdbc.queryForList(
                 """
                 SELECT t.id AS task_id, t.task_name, t.task_type,
