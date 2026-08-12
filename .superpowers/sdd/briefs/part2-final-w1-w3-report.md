@@ -20,3 +20,6 @@ EDGE / AI train / SAM / 远程推流 py / 真机联调 — 清出清单，不排
 ## Honest
 
 中控 face/plate/pose + patrol RUNTIME + 后处理 YAML 已本机证。**禁止 COMPLETE / 禁止删 VIDEO** 直至产品签字。
+
+
+> W2 gate-fix（2026-08-12）：见 part2-w2-gate-fix-report.md。

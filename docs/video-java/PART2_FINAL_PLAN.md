@@ -133,6 +133,6 @@ AI 标注/训练 worker   → 不迁，留 Python（iot-node）
 |----|------|
 | Wave-A face/plate | **PASS** |
 | W1 Pose ORT | **PASS** |
-| W2 Patrol → RUNTIME | **PASS** |
+| W2 Patrol → RUNTIME | **PASS**（gate-fix 会话证据 2026-08-12） |
 | W3 Post-process YAML | **PASS** |
 | 清出项 | **已锁定，不排期** |

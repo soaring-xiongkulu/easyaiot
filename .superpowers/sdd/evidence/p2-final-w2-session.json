@@ -1,0 +1,326 @@
+{
+  "task": "W2-gate-fix",
+  "evidence_type": "session_behavioral",
+  "supersedes": "F:/acme/.worktrees/video-java/logs/p2-final-w2-patrol.json",
+  "supersedes_reason": "prior evidence was handwritten ini smoke; this is real PatrolSession API path",
+  "started_at": "2026-08-12T12:14:58.789596+00:00",
+  "alert_path": "OUT — alert_event_enabled=false; alarm not exercised this pack",
+  "rotate_hybrid": "OUT — only pool mode exercised; rotate/hybrid not required this pack",
+  "python_run_deploy": false,
+  "session_id": 51,
+  "runtime_processes_after_start": [
+    {
+      "PID": 31228,
+      "CMD": "F:\\acme\\.worktrees\\video-java\\RUNTIME\\build-win\\Release\\RUNTIME.exe C:\\Users\\g\\.video-java\\runtime-config\\patrol_session_51.ini"
+    }
+  ],
+  "heartbeat_seen": true,
+  "progress_seen": true,
+  "stats_samples": [
+    {
+      "http": 200,
+      "stats": {
+        "id": 51,
+        "session_name": "p2w2-gate-fix",
+        "patrol_mode": "pool",
+        "interval_sec": 3,
+        "pool_size": 1,
+        "device_ids": [
+          "frb23_device"
+        ],
+        "device_names": [
+          "FR-B23 frb23 camera"
+        ],
+        "model_ids": [
+          1
+        ],
+        "focus_device_id": null,
+        "algorithm_task_id": null,
+        "alert_event_enabled": false,
+        "alert_event_suppress_time": 5,
+        "face_detection_enabled": true,
+        "plate_detection_enabled": true,
+        "status": "running",
+        "exception_reason": null,
+        "service_server_ip": "127.0.0.1",
+        "service_process_id": 31228,
+        "service_last_heartbeat": "2026-08-12T12:15:04.679984Z",
+        "service_log_path": "C:\\Users\\g\\.video-java\\logs\\patrol_51",
+        "progress": {
+          "frb23_device": {
+            "detection_count": "8",
+            "last_patrol_at": "2026-08-12T12:15:02Z",
+            "last_result": "detected"
+          }
+        },
+        "total_patrols": 2,
+        "total_detections": 16,
+        "last_patrol_time": "2026-08-12T12:15:04.679984Z",
+        "created_at": "2026-08-12T12:14:58.890073Z",
+        "updated_at": "2026-08-12T12:15:04.679984Z",
+        "completed_devices": 1,
+        "total_devices": 1,
+        "completion_ratio": 1.0
+      }
+    }
+  ],
+  "final_session_before_stop": {
+    "id": 51,
+    "session_name": "p2w2-gate-fix",
+    "patrol_mode": "pool",
+    "interval_sec": 3,
+    "pool_size": 1,
+    "device_ids": [
+      "frb23_device"
+    ],
+    "device_names": [
+      "FR-B23 frb23 camera"
+    ],
+    "model_ids": [
+      1
+    ],
+    "focus_device_id": null,
+    "algorithm_task_id": null,
+    "alert_event_enabled": false,
+    "alert_event_suppress_time": 5,
+    "face_detection_enabled": true,
+    "plate_detection_enabled": true,
+    "status": "running",
+    "exception_reason": null,
+    "service_server_ip": "127.0.0.1",
+    "service_process_id": 31228,
+    "service_last_heartbeat": "2026-08-12T12:15:04.679984Z",
+    "service_log_path": "C:\\Users\\g\\.video-java\\logs\\patrol_51",
+    "progress": {
+      "frb23_device": {
+        "detection_count": "8",
+        "last_patrol_at": "2026-08-12T12:15:02Z",
+        "last_result": "detected"
+      }
+    },
+    "total_patrols": 2,
+    "total_detections": 16,
+    "last_patrol_time": "2026-08-12T12:15:04.679984Z",
+    "created_at": "2026-08-12T12:14:58.890073Z",
+    "updated_at": "2026-08-12T12:15:04.679984Z"
+  },
+  "ini_path": "C:\\Users\\g\\.video-java\\runtime-config\\patrol_session_51.ini",
+  "ini_exists": true,
+  "ini_generated_by_session": true,
+  "ini_has_task_type_patrol": true,
+  "ini_has_devices_json": true,
+  "ini_engine_note": "PatrolRuntimeIniService",
+  "ini_excerpt": [
+    "# Auto-generated for patrol session → RUNTIME PatrolScheduler",
+    "[video]",
+    "rtsp_url=F:/acme/RUNTIME/testdata/sample.mp4",
+    "rtmp_url=",
+    "width=1920",
+    "height=1080",
+    "fps=25",
+    "devices_json=[{\"device_id\":\"frb23_device\",\"device_name\":\"FR-B23 frb23 camera\",\"rtsp_url\":\"F:/acme/RUNTIME/testdata/sample.mp4\"}]",
+    "",
+    "[ai]",
+    "enable=true",
+    "model_path=F:/acme/RUNTIME/models/yolov11n.onnx",
+    "classes_path=F:/acme/RUNTIME/models/coco.names",
+    "threads=2",
+    "frame_skip=12",
+    "prefer_gpu=true",
+    "force_cpu=false",
+    "gpu_device_id=0",
+    "",
+    "[alarm]",
+    "enable=false",
+    "hook_url=http://127.0.0.1:48096/video/alert/hook",
+    "confidence_threshold=0.5",
+    "cooldown_time=5",
+    "image_dir=C:/Users/g/.video-java/logs/patrol_51/alerts",
+    "",
+    "[task]",
+    "id=51",
+    "control_port=9051",
+    "",
+    "[video_task]",
+    "device_id=frb23_device",
+    "device_name=FR-B23 frb23 camera",
+    "task_type=patrol",
+    "algorithm_name=patrol"
+  ],
+  "runtime_process_ok": true,
+  "runtime_processes_after_stop": [],
+  "session_runtime_exited": true,
+  "timeline": [
+    {
+      "t": 1786536898.9108424,
+      "step": "create",
+      "http": 200,
+      "body": {
+        "code": 0,
+        "msg": "success",
+        "message": "success",
+        "data": {
+          "id": 51,
+          "session_name": "p2w2-gate-fix",
+          "patrol_mode": "pool",
+          "interval_sec": 3,
+          "pool_size": 1,
+          "device_ids": [
+            "frb23_device"
+          ],
+          "device_names": [
+            "FR-B23 frb23 camera"
+          ],
+          "model_ids": [
+            1
+          ],
+          "focus_device_id": null,
+          "algorithm_task_id": null,
+          "alert_event_enabled": false,
+          "alert_event_suppress_time": 5,
+          "face_detection_enabled": true,
+          "plate_detection_enabled": true,
+          "status": "stopped",
+          "exception_reason": null,
+          "service_server_ip": null,
+          "service_process_id": null,
+          "service_last_heartbeat": null,
+          "service_log_path": null,
+          "progress": {
+            "frb23_device": {}
+          },
+          "total_patrols": 0,
+          "total_detections": 0,
+          "last_patrol_time": null,
+          "created_at": "2026-08-12T12:14:58.890073Z",
+          "updated_at": "2026-08-12T12:14:58.890073Z"
+        }
+      }
+    },
+    {
+      "t": 1786536898.93373,
+      "step": "start",
+      "http": 200,
+      "body": {
+        "code": 0,
+        "msg": "巡检已启动",
+        "message": "巡检已启动",
+        "data": {
+          "id": 51,
+          "session_name": "p2w2-gate-fix",
+          "patrol_mode": "pool",
+          "interval_sec": 3,
+          "pool_size": 1,
+          "device_ids": [
+            "frb23_device"
+          ],
+          "device_names": [
+            "FR-B23 frb23 camera"
+          ],
+          "model_ids": [
+            1
+          ],
+          "focus_device_id": null,
+          "algorithm_task_id": null,
+          "alert_event_enabled": false,
+          "alert_event_suppress_time": 5,
+          "face_detection_enabled": true,
+          "plate_detection_enabled": true,
+          "status": "running",
+          "exception_reason": null,
+          "service_server_ip": null,
+          "service_process_id": null,
+          "service_last_heartbeat": null,
+          "service_log_path": "C:\\Users\\g\\.video-java\\logs\\patrol_51",
+          "progress": {
+            "frb23_device": {}
+          },
+          "total_patrols": 0,
+          "total_detections": 0,
+          "last_patrol_time": null,
+          "created_at": "2026-08-12T12:14:58.890073Z",
+          "updated_at": "2026-08-12T12:14:58.925105Z"
+        }
+      }
+    },
+    {
+      "t": 1786536901.7913465,
+      "step": "runtime_after_start",
+      "processes": [
+        {
+          "PID": 31228,
+          "CMD": "F:\\acme\\.worktrees\\video-java\\RUNTIME\\build-win\\Release\\RUNTIME.exe C:\\Users\\g\\.video-java\\runtime-config\\patrol_session_51.ini"
+        }
+      ]
+    },
+    {
+      "t": 1786536904.8241763,
+      "step": "poll_0",
+      "status": "running",
+      "service_last_heartbeat": "2026-08-12T12:15:04.679984Z",
+      "service_process_id": 31228,
+      "total_patrols": 2,
+      "total_detections": 16,
+      "progress_keys": [
+        "frb23_device"
+      ]
+    },
+    {
+      "t": 1786536904.893647,
+      "step": "stop",
+      "http": 200,
+      "body": {
+        "code": 0,
+        "msg": "巡检已停止",
+        "message": "巡检已停止",
+        "data": {
+          "id": 51,
+          "session_name": "p2w2-gate-fix",
+          "patrol_mode": "pool",
+          "interval_sec": 3,
+          "pool_size": 1,
+          "device_ids": [
+            "frb23_device"
+          ],
+          "device_names": [
+            "FR-B23 frb23 camera"
+          ],
+          "model_ids": [
+            1
+          ],
+          "focus_device_id": null,
+          "algorithm_task_id": null,
+          "alert_event_enabled": false,
+          "alert_event_suppress_time": 5,
+          "face_detection_enabled": true,
+          "plate_detection_enabled": true,
+          "status": "stopped",
+          "exception_reason": null,
+          "service_server_ip": "127.0.0.1",
+          "service_process_id": null,
+          "service_last_heartbeat": "2026-08-12T12:15:04.679984Z",
+          "service_log_path": "C:\\Users\\g\\.video-java\\logs\\patrol_51",
+          "progress": {
+            "frb23_device": {
+              "detection_count": "8",
+              "last_patrol_at": "2026-08-12T12:15:02Z",
+              "last_result": "detected"
+            }
+          },
+          "total_patrols": 2,
+          "total_detections": 16,
+          "last_patrol_time": "2026-08-12T12:15:04.679984Z",
+          "created_at": "2026-08-12T12:14:58.890073Z",
+          "updated_at": "2026-08-12T12:15:04.882624Z"
+        }
+      }
+    },
+    {
+      "t": 1786536907.440962,
+      "step": "runtime_after_stop",
+      "processes": []
+    }
+  ],
+  "ended_at": "2026-08-12T12:15:07.440962+00:00",
+  "status": "PASS"
+}
