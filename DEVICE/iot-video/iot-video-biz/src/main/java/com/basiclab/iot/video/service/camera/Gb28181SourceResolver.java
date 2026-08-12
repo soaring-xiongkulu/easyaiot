@@ -204,6 +204,59 @@ public class Gb28181SourceResolver {
         return new ExtractResult(chosen, meta);
     }
 
+    /**
+     * OpenCV RTMP pull failed — try alternate RTSP (Python {@code resolve_gb28181_alternate_pull_url}).
+     */
+    public String resolveAlternatePullUrl(String source, String currentUrl) {
+        if (!isGb28181Source(source) || currentUrl == null || currentUrl.isBlank()) {
+            return null;
+        }
+        if (isDisabledEnv("GB28181_OPENCV_RTMP_FALLBACK_RTSP", true)) {
+            return null;
+        }
+        Optional<ParsedSource> parsed = parseGb28181Source(source);
+        if (parsed.isEmpty()) {
+            return null;
+        }
+        for (String baseUrl : Gb28181SourceSupport.candidateBases()) {
+            try {
+                String playUrl = buildPlayUrl(baseUrl, parsed.get().deviceId(), parsed.get().channelId());
+                ResponseEntity<String> response = restTemplate.exchange(playUrl, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
+                Map<String, Object> payload = JSON.readValue(response.getBody(), MAP_TYPE);
+                UnwrapResult unwrap = unwrapWvpPlayBody(payload);
+                Map<String, Object> body = unwrap.body();
+                if (body == null) {
+                    continue;
+                }
+                String current = currentUrl.strip();
+                String currentScheme = URI.create(current).getScheme().toLowerCase(Locale.ROOT);
+                for (String candidate : allPlayUrlsFromBody(body)) {
+                    if (candidate == null || candidate.isBlank() || candidate.equals(current)) {
+                        continue;
+                    }
+                    String scheme = URI.create(candidate).getScheme().toLowerCase(Locale.ROOT);
+                    if ("rtsp".equals(scheme) || "rtsps".equals(scheme)) {
+                        if (!scheme.equals(currentScheme)) {
+                            log.warn(
+                                    "GB28181 OpenCV 拉流降级: {}/{} {} -> {} | {} -> {}",
+                                    parsed.get().deviceId(),
+                                    parsed.get().channelId(),
+                                    currentScheme,
+                                    scheme,
+                                    current,
+                                    candidate
+                            );
+                            return candidate;
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+                // try next base
+            }
+        }
+        return null;
+    }
+
     private static UnwrapResult unwrapWvpPlayBody(Map<String, Object> payload) {
         if (payload == null || payload.isEmpty()) {
             return new UnwrapResult(null, "invalid payload");

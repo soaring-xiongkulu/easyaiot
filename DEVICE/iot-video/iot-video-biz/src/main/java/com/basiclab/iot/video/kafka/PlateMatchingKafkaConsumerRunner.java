@@ -59,6 +59,14 @@ public class PlateMatchingKafkaConsumerRunner implements SmartLifecycle {
             );
             return;
         }
+        VideoProperties.Matching matching = videoProperties.getMatching();
+        String group = matching.getPlateMatchingConsumerGroup();
+        if (!"iot-sink-plate-matching-consumer".equals(group)) {
+            log.warn(
+                    "Plate matching consumer group {} differs from sink default; enable only one consumer per group",
+                    group
+            );
+        }
         running = true;
         consumerThread = new Thread(this::consumeLoop, "video-plate-matching-consumer");
         consumerThread.setDaemon(true);

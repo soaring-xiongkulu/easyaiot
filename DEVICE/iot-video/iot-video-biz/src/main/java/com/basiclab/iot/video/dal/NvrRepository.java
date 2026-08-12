@@ -154,4 +154,15 @@ public class NvrRepository {
         );
         return count != null ? count : 0L;
     }
+
+    public java.util.Map<String, Integer> buildIpIndex() {
+        java.util.Map<String, Integer> index = new java.util.LinkedHashMap<>();
+        for (NvrRow nvr : listAll()) {
+            String ip = nvr.getIp() != null ? nvr.getIp().strip() : "";
+            if (!ip.isEmpty() && nvr.getId() != null) {
+                index.put(ip, nvr.getId());
+            }
+        }
+        return index;
+    }
 }

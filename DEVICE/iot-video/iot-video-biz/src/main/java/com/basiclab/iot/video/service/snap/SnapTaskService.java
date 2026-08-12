@@ -115,9 +115,16 @@ public class SnapTaskService {
     }
 
     public Map<String, Object> restart(int taskId) {
+        Map<String, Object> task = snapTaskRepository.findById(taskId)
+                .orElseThrow(() -> new VideoBusinessException(400, "抓拍任务不存在: ID=" + taskId));
         snapTaskSchedulerService.removeTaskFromScheduler(taskId);
-        snapTaskRepository.setRunState(taskId, true, "running");
-        snapTaskSchedulerService.addTaskToScheduler(taskId);
+        boolean enabled = Boolean.TRUE.equals(task.get("is_enabled"));
+        if (enabled) {
+            snapTaskSchedulerService.addTaskToScheduler(taskId);
+            snapTaskRepository.setRunState(taskId, true, "running");
+        } else {
+            snapTaskRepository.setRunState(taskId, false, "stopped");
+        }
         return get(taskId);
     }
 

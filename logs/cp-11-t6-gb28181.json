@@ -1,0 +1,1 @@
+{"task":"T6","status":"PASS","summary":"resolveAlternatePullUrl RTMP->RTSP; GB channel attrs in sync upsert","files":["Gb28181SourceResolver.java","Gb28181SyncService.java"]}

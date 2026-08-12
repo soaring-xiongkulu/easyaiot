@@ -1,0 +1,1 @@
+{"task":"T8","status":"PASS","summary":"AutoEnrollBootResetScheduler + NvrRepairBootScheduler on ApplicationReady","files":["AutoEnrollBootResetScheduler.java","NvrRepairBootScheduler.java","NvrLinkRepairService.java"]}

@@ -216,9 +216,11 @@ public class CameraController {
     public VideoApiResponse<Object> startFlighthubLive(@RequestBody(required = false) Map<String, Object> body) {
         Map<String, Object> result = cameraFlighthubService.startLiveStream(body != null ? body : Map.of());
         if (!Boolean.TRUE.equals(result.get("ok"))) {
+            Object payload = result.get("payload");
             return VideoApiResponse.error(
                     ((Number) result.getOrDefault("code", 500)).intValue(),
-                    String.valueOf(result.get("msg"))
+                    String.valueOf(result.get("msg")),
+                    payload
             );
         }
         return VideoApiResponse.success("success", result.get("data"));

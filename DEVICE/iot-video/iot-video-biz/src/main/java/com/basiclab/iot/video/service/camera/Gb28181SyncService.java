@@ -229,7 +229,7 @@ public class Gb28181SyncService {
             sipIds.add(sip);
             channelsSeen++;
             try {
-                NormalizedChannel normalized = new NormalizedChannel(sip, chId, name);
+                NormalizedChannel normalized = new NormalizedChannel(sip, chId, name, extractChannelAttributes(channel));
                 if (upsertGbDevice(normalized, defaultDirId, extractLocation(channel))) {
                     created++;
                 }
@@ -293,7 +293,8 @@ public class Gb28181SyncService {
             NormalizedChannel normalized = new NormalizedChannel(
                     channel.deviceId(),
                     channel.channelId(),
-                    displayName
+                    displayName,
+                    Map.of()
             );
             upsertGbDevice(normalized, defaultDirId, Location.empty());
             return deviceRepository.findById(deviceId)
@@ -358,6 +359,7 @@ public class Gb28181SyncService {
                 fields.put("ai_http_stream", streams[3]);
             }
             applyLocationFields(existing, location, fields);
+            applyGbAttributes(existing, channel.attributes(), fields);
             if (!fields.isEmpty()) {
                 deviceRepository.updateFields(mappedId, fields);
             }
@@ -384,9 +386,29 @@ public class Gb28181SyncService {
                 row.setLocationSource("gb28181");
                 row.setLocationUpdatedAt(Instant.now());
             }
+            applyGbAttributesToRow(row, channel.attributes());
             deviceRepository.insert(row);
+            if (!channel.attributes().isEmpty()) {
+                deviceRepository.updateFields(mappedId, channel.attributes());
+            }
             return true;
         });
+    }
+
+    private void applyGbAttributes(DeviceRow device, Map<String, Object> attributes, Map<String, Object> fields) {
+        if (attributes == null || attributes.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+            fields.put(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void applyGbAttributesToRow(DeviceRow row, Map<String, Object> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return;
+        }
+        // attributes stored via insert columns in updateFields on existing path only for now
     }
 
     private void applyLocationFields(DeviceRow device, Location location, Map<String, Object> fields) {
@@ -487,7 +509,40 @@ public class Gb28181SyncService {
                 item.get("gbName"),
                 channelId
         );
-        return new NormalizedChannel(parent, channelId, name != null ? name : channelId);
+        return new NormalizedChannel(parent, channelId, name != null ? name : channelId, extractChannelAttributes(item));
+    }
+
+    private Map<String, Object> extractChannelAttributes(Map<String, Object> item) {
+        Map<String, Object> attrs = new LinkedHashMap<>();
+        for (String[] spec : new String[][]{
+                {"ptz_type", "gbPtzType", "ptzType"},
+                {"direction_type", "gbDirectionType", "directionType"},
+                {"position_type", "gbPositionType", "positionType"},
+                {"room_type", "gbRoomType", "roomType"},
+                {"use_type", "gbUseType", "useType"},
+                {"supply_light_type", "gbSupplyLightType", "supplyLightType"}
+        }) {
+            Integer parsed = parseIntAttr(firstNonBlank(item.get(spec[1]), item.get(spec[2])));
+            if (parsed != null) {
+                attrs.put(spec[0], parsed);
+            }
+        }
+        String resolution = firstNonBlank(item.get("gbResolution"), item.get("resolution"));
+        if (resolution != null) {
+            attrs.put("resolution", resolution.length() > 100 ? resolution.substring(0, 100) : resolution);
+        }
+        return attrs;
+    }
+
+    private static Integer parseIntAttr(Object raw) {
+        if (raw == null || String.valueOf(raw).isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(raw));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -657,7 +712,7 @@ public class Gb28181SyncService {
         }
     }
 
-    private record NormalizedChannel(String parentId, String channelId, String name) {
+    private record NormalizedChannel(String parentId, String channelId, String name, Map<String, Object> attributes) {
     }
 
     private record Location(Double longitude, Double latitude, String address) {

@@ -448,6 +448,18 @@ public class DeviceRepository {
         );
     }
 
+    public List<DeviceRow> listNvrChannelCandidatesWithoutNvrId() {
+        return jdbc.query(
+                """
+                SELECT %s FROM device
+                WHERE nvr_id IS NULL
+                  AND source IS NOT NULL
+                  AND LOWER(source) LIKE 'rtsp://%%'
+                """.formatted(SELECT_COLUMNS),
+                ROW_MAPPER
+        );
+    }
+
     public int assignUnassignedToDefaultDirectory(int defaultDirectoryId) {
         return jdbc.update(
                 "UPDATE device SET directory_id = ?, updated_at = NOW() WHERE directory_id IS NULL",

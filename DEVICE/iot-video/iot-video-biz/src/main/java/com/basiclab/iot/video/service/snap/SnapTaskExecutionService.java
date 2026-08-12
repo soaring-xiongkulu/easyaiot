@@ -1,5 +1,7 @@
 package com.basiclab.iot.video.service.snap;
 
+import com.basiclab.iot.video.dal.DeviceRepository;
+import com.basiclab.iot.video.dal.SnapSpaceRepository;
 import com.basiclab.iot.video.dal.SnapTaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,8 @@ public class SnapTaskExecutionService {
 
     private final SnapTaskRepository snapTaskRepository;
     private final SnapTaskCaptureService snapTaskCaptureService;
+    private final DeviceRepository deviceRepository;
+    private final SnapSpaceRepository snapSpaceRepository;
     private final ConcurrentHashMap<Integer, Object> taskLocks = new ConcurrentHashMap<>();
 
     public void execute(int taskId) {
@@ -39,6 +43,13 @@ public class SnapTaskExecutionService {
             String deviceId = task.get("device_id") != null ? String.valueOf(task.get("device_id")) : "";
             int spaceId = task.get("space_id") instanceof Number n ? n.intValue() : 0;
 
+            if (deviceId.isBlank()
+                    || deviceRepository.findById(deviceId).isEmpty()
+                    || snapSpaceRepository.findById(spaceId).isEmpty()) {
+                log.error("任务 {} 关联的设备或空间不存在", task.get("id"));
+                return;
+            }
+
             boolean success;
             String failureReason = null;
             try {
@@ -50,6 +61,12 @@ public class SnapTaskExecutionService {
                 log.error("执行抓拍任务失败 taskId={}: {}", taskId, e.getMessage(), e);
                 success = false;
                 failureReason = e.getMessage();
+            }
+
+            if ("关联的设备或空间不存在".equals(failureReason)
+                    || (failureReason != null && failureReason.contains("设备或空间不存在"))) {
+                log.warn("抓拍任务 {} 跳过统计更新: {}", taskId, failureReason);
+                return;
             }
 
             try {

@@ -37,11 +37,15 @@ public class VideoApiResponse<T> {
     }
 
     public static <T> VideoApiResponse<T> error(int code, String msg) {
+        return error(code, msg, null);
+    }
+
+    public static <T> VideoApiResponse<T> error(int code, String msg, T data) {
         VideoApiResponse<T> response = new VideoApiResponse<>();
         response.setCode(code);
         response.setMsg(msg);
         response.setMessage(msg);
-        response.setData(null);
+        response.setData(data);
         return response;
     }
 }

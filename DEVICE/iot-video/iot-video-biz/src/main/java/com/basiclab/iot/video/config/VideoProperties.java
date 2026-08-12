@@ -72,8 +72,8 @@ public class VideoProperties {
          * (mirrors iot-sink {@code PlateMatchingConsumer} → VIDEO /plate/matching/process).
          */
         private boolean plateMatchingConsumerEnabled = false;
-        /** Dedicated group avoids backlog on shared {@code iot-sink-plate-matching-consumer}. */
-        private String plateMatchingConsumerGroup = "video-plate-matching-consumer";
+        /** Must match iot-sink {@code PlateMatchingConsumer} group when enabled to avoid duplicate consume. */
+        private String plateMatchingConsumerGroup = "iot-sink-plate-matching-consumer";
         private long plateMatchingPollTimeoutMs = 1_000L;
     }
 

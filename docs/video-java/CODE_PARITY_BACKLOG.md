@@ -86,7 +86,8 @@
 | **D-09** | Patrol / AudioTalk：**控制器已有**，相对 Python 行为/SSE/进程语义需证据级收口 | **CP-6 PASS** + **CP-7 PASS** — patrol main-path + AudioTalk capabilities/start/stop/health | Part1 → **CP-6** ✓ / **CP-7** ✓ |
 | **D-10** | ~~GB28181 代码证据~~ **CP-8 PASS** — fixture resolve + sync payload + virtual ensure + WVP-down honest null | `Gb28181SourceResolver` / `Gb28181SyncService`；证据 `logs/cp-8-gb28181-code.json` | Part1 → **CP-8** ✓ |
 | **D-10a** | ~~FlightHub + directory 代码证据~~ **CP-9 PASS** — config shape + missing-creds honest fail + directory fields on shared DB | 证据 `logs/cp-9-flighthub-directory.json` | Part1 → **CP-9** ✓ |
-| **D-11** | ~~`run.py` 后台项 vs Java schedulers：缺总表证据~~ **CP-10 PASS** — mapping table + 4 sampled boot daemons | 证据 `logs/cp-10-boot-daemons.json`；gap 项已文档化（camera search / SRS boot / legacy heartbeat job） | Part1 → **CP-10** ✓ |
+| **D-11** | ~~`run.py` 后台项 vs Java schedulers：缺总表证据~~ **CP-10 PASS** — mapping table + 4 sampled boot daemons | 证据 `logs/cp-10-boot-daemons.json` | Part1 → **CP-10** ✓ |
+| **D-12** | 深对齐 gap（通知载荷、matching 触发、sink 假绿、FlightHub data、AudioTalk、GB attrs、directory、boot reset/NVR、status 心跳） | **CP-11 PASS** — `logs/cp-11-*.json` | Part1 → **CP-11** ✓ |
 
 **相对门卡审查增删说明**
 
@@ -111,6 +112,7 @@
 | G-08 | GB28181 code | `gb28181_*` / camera | **CP-8 PASS** — `Gb28181SourceResolver` + fixture map + sync + honest WVP null | **CP-8 PASS** | CP-8 | P2 ✓ |
 | G-09 | FlightHub + directory | `flighthub_*` / directory routes | **CP-9 PASS** — config/live honest fail + directory key fields | **CP-9 PASS** | CP-9 | P2 ✓ |
 | G-10 | Boot daemons | `run.py` 后台块 | **CP-10 PASS** — 19-row map; view-forward/space/janitor/snap sampled | **CP-10 PASS** | CP-10 | P2 ✓ |
+| G-11 | Deep gap cleanup | alert notify / post-matching / sink fail / FlightHub / AudioTalk / GB / directory / boot | **CP-11 PASS** — `CODE_PARITY_DEEP_GAP_PACK.md` T1–T12 | **CP-11 PASS** | CP-11 | P0 ✓ |
 
 ---
 

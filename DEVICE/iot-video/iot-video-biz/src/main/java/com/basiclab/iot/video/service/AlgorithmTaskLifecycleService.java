@@ -87,7 +87,6 @@ public class AlgorithmTaskLifecycleService {
         int port = task.getRuntimeControlPort() != null ? task.getRuntimeControlPort() : 8000 + (int) (id % 1000);
         // Align Python: after start, task is enabled and run_status=running (process may still be coming up).
         taskRepository.updateRunState(id, true, "running", logDir.toString(), port, pid);
-        taskRepository.updateHeartbeat(id, "127.0.0.1", port, pid, logDir.toString(), "running");
         AlgorithmTaskRow updated = taskRepository.findById(id).orElse(task);
         PostProcessLauncherService.LaunchResult pp = postProcessLauncherService.startPostProcessWorkers(updated);
         if (!pp.success() && pp.remoteAttempted()) {

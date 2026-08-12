@@ -6,7 +6,9 @@ import com.basiclab.iot.video.domain.DeviceDirectoryRow;
 import com.basiclab.iot.video.domain.DeviceRow;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.service.CameraService;
+import com.basiclab.iot.video.service.DeviceSpaceSyncService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneOffset;
@@ -18,6 +20,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CameraDirectoryService {
 
     private static final String DEFAULT_DIRECTORY_NAME = "默认分组";
@@ -28,8 +31,15 @@ public class CameraDirectoryService {
     private final CameraService cameraService;
     private final Gb28181SyncService gb28181SyncService;
     private final DirectoryJsonSyncService directoryJsonSyncService;
+    private final DeviceSpaceSyncService deviceSpaceSyncService;
 
     public List<Map<String, Object>> listTree() {
+        gb28181SyncService.ensureDirectoryLayout();
+        try {
+            gb28181SyncService.syncFromWvp(false, null, null);
+        } catch (Exception e) {
+            log.warn("目录列表加载前国标同步失败: {}", e.getMessage());
+        }
         directoryRepository.ensureDefaultDirectory();
         return buildTree(null);
     }
@@ -128,6 +138,16 @@ public class CameraDirectoryService {
             directory.setRecordSaveTime(intOr(data.get("record_save_time"), 1));
         }
         directoryRepository.update(directory);
+        if (data.containsKey("snap_save_time") || data.containsKey("record_save_time")) {
+            int cascaded = deviceSpaceSyncService.propagateDirectorySaveTime(
+                    directoryId,
+                    data.containsKey("snap_save_time") ? directory.getSnapSaveTime() : null,
+                    data.containsKey("record_save_time") ? directory.getRecordSaveTime() : null
+            );
+            if (cascaded > 0) {
+                log.info("目录 {} 保存时间级联更新 {} 个空间", directoryId, cascaded);
+            }
+        }
         Map<String, Object> result = directoryToMap(directory);
         result.put("snap_save_time", directory.getSnapSaveTime());
         result.put("record_save_time", directory.getRecordSaveTime());
@@ -153,8 +173,14 @@ public class CameraDirectoryService {
     }
 
     public Map<String, Object> listDirectoryDevices(int directoryId, int pageNo, int pageSize, String search) {
-        if (directoryRepository.findById(directoryId).isEmpty()) {
-            throw new VideoBusinessException(400, "目录不存在: ID=" + directoryId);
+        DeviceDirectoryRow directory = directoryRepository.findById(directoryId)
+                .orElseThrow(() -> new VideoBusinessException(400, "目录不存在: ID=" + directoryId));
+        if (isDefaultDirectory(directory)) {
+            try {
+                gb28181SyncService.syncFromWvp(false, null, null);
+            } catch (Exception e) {
+                log.warn("目录设备列表前国标同步失败: {}", e.getMessage());
+            }
         }
         if (pageNo < 1 || pageSize < 1) {
             throw new VideoBusinessException(400, "参数错误：pageNo和pageSize必须为正整数");
@@ -162,6 +188,12 @@ public class CameraDirectoryService {
         List<Map<String, Object>> items = deviceRepository.listByDirectory(directoryId, pageNo, pageSize, search).stream()
                 .map(cameraService::toDeviceMap)
                 .toList();
+        for (Map<String, Object> item : items) {
+            Object deviceId = item.get("id");
+            if (deviceId != null) {
+                deviceSpaceSyncService.ensureDeviceSpaces(String.valueOf(deviceId));
+            }
+        }
         return Map.of("items", items, "total", deviceRepository.countByDirectory(directoryId, search));
     }
 
@@ -178,6 +210,7 @@ public class CameraDirectoryService {
             targetDir = directoryId;
         }
         deviceRepository.updateDirectoryId(deviceId, targetDir);
+        deviceSpaceSyncService.syncDeviceSpacesToDirectory(deviceId, targetDir);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("device_id", deviceId);
         data.put("directory_id", targetDir);

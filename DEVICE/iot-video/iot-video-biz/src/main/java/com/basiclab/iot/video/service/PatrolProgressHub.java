@@ -93,7 +93,7 @@ public class PatrolProgressHub {
     private void sendEvent(SseEmitter emitter, String eventType, Map<String, Object> data) throws IOException {
         emitter.send(SseEmitter.event()
                 .name(eventType)
-                .data(MAPPER.writeValueAsString(data)));
+                .data(data));
     }
 
     private void unsubscribe(long sessionId, BlockingQueue<Map<String, Object>> queue) {

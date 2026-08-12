@@ -1,0 +1,1 @@
+{"task":"T11","status":"PASS","summary":"Patrol SSE single JSON; Alert stats degraded; Snap restart respects is_enabled; snap missing device skips total++","files":["PatrolProgressHub.java","AlertService.java","SnapTaskService.java","SnapTaskExecutionService.java"]}

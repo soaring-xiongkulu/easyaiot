@@ -1,0 +1,1 @@
+{"task":"T7","status":"PASS","summary":"listTree implicit GB sync; listDevices ensure spaces; move/update cascade","files":["CameraDirectoryService.java","DeviceSpaceSyncService.java"]}

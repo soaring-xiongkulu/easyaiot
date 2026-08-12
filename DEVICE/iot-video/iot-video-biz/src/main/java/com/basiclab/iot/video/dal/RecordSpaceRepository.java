@@ -90,6 +90,21 @@ public class RecordSpaceRepository {
         jdbc.update("DELETE FROM record_space WHERE id = ?", spaceId);
     }
 
+    public int updateSaveTimeForDirectory(int directoryId, int saveTimeHours) {
+        return jdbc.update(
+                """
+                UPDATE record_space s
+                SET save_time = ?, updated_at = NOW()
+                FROM device d
+                WHERE s.device_id = d.id
+                  AND d.directory_id = ?
+                  AND COALESCE(s.save_time_custom, false) = false
+                """,
+                saveTimeHours,
+                directoryId
+        );
+    }
+
     public List<Map<String, Object>> listAllSpaces() {
         return jdbc.query("SELECT * FROM record_space", (rs, rowNum) -> spaceDetailRow(rs));
     }

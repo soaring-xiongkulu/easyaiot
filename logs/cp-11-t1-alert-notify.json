@@ -1,0 +1,1 @@
+{"task":"T1","status":"PASS","summary":"AlertNotificationConfigService + buildNotificationMessage; shouldNotify/channels/users when config present","files":["AlertNotificationConfigService.java","AlertKafkaMessageBuilder.java","AlertHookService.java","AlgorithmTaskRepository.java"],"verify":"mvn compile iot-video-biz BUILD SUCCESS"}

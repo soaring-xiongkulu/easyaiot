@@ -1,0 +1,1 @@
+{"task":"T3","status":"PASS","summary":"PostProcessServiceImpl throws when KafkaTemplate null; controller returns CommonResult.error","files":["PostProcessServiceImpl.java","PostProcessController.java"],"verify":"iot-sink mvn compile BUILD SUCCESS"}

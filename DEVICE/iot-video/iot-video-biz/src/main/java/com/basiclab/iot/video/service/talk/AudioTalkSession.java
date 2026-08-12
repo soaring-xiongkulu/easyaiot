@@ -78,7 +78,9 @@ class AudioTalkSession {
             return false;
         }
         try {
-            rtpSocket = new DatagramSocket(5000);
+            rtpSocket = new DatagramSocket(0);
+            int localPort = rtpSocket.getLocalPort();
+            log.info("AudioTalk RTP socket bound sessionId={} localPort={}", sessionId, localPort);
             active = true;
             return true;
         } catch (Exception ex) {
@@ -132,6 +134,18 @@ class AudioTalkSession {
     }
 
     private byte[] pcmToG711(byte[] pcmData) {
+        if (noiseSuppression && pcmData.length >= 2) {
+            ByteBuffer filtered = ByteBuffer.allocate(pcmData.length).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer in = ByteBuffer.wrap(pcmData).order(ByteOrder.LITTLE_ENDIAN);
+            while (in.remaining() >= 2) {
+                short sample = in.getShort();
+                if (Math.abs(sample) < 500) {
+                    sample = 0;
+                }
+                filtered.putShort(sample);
+            }
+            pcmData = filtered.array();
+        }
         if (volumeGain != 1.0f && pcmData.length >= 2) {
             ByteBuffer scaled = ByteBuffer.allocate(pcmData.length).order(ByteOrder.LITTLE_ENDIAN);
             ByteBuffer in = ByteBuffer.wrap(pcmData).order(ByteOrder.LITTLE_ENDIAN);

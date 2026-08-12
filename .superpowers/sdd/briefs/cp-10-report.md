@@ -36,7 +36,7 @@
 | M-01 | `VIDEO_SKIP_BACKGROUND_TASKS` gate | `video.skip-background-tasks` + `@ConditionalOnProperty` | ✓ |
 | M-02 | Nacos register + heartbeat thread | Spring Cloud Nacos (`bootstrap-local.yaml`) | ✓ (framework) |
 | M-03 | `maybe_fix_srs_on_startup` | — | **gap** |
-| M-04 | `_start_search` (camera discovery) | — | **gap** |
+| M-04 | `_start_search` → `_init_all_cameras` + `repair_nvr_channel_links` + IP monitor | `NvrRepairBootScheduler` + `IpReachabilityBootScheduler` | **CP-11 closed** (was mislabeled ONVIF search) |
 | M-05 | `auto_start_streaming()` | `ViewForwardAutoResumeScheduler` | ✓ **sample-1** |
 | M-06 | `auto_cleanup_snap_spaces` 30m + boot | `SpaceCleanupScheduler` → `SnapSpaceCleanupService` | ✓ **sample-2** |
 | M-07 | `auto_cleanup_record_spaces` 30m + boot | `SpaceCleanupScheduler` → `RecordSpaceCleanupService` | ✓ **sample-2** |
@@ -68,10 +68,10 @@ Correlation: `cp-10-evidence-20260812001608` — profile `local`, boot log `logs
 
 ## Gaps (documented, not Part1 blockers for CP-10)
 
-1. **ONVIF camera search thread** — Python `_start_search`; no Java boot equivalent.  
-2. **SRS startup self-check** — Python `maybe_fix_srs_on_startup`; no Java hook.  
+1. ~~**ONVIF camera search thread**~~ — **Corrected:** Python `_start_search` is NVR repair + IP monitor, not ONVIF discovery (CP-11).  
+2. ~~**SRS startup self-check**~~ — **CP-11:** `SrsStartupGuardScheduler` (honest log, no fake healthy).  
 3. **Legacy heartbeat timeout job** — Python updates FrameExtractor/Sorter/Pusher + AlgorithmTask every 1m; Java relies on supervisor + per-request heartbeat semantics (CP-5).  
-4. **Auto-enroll boot reset** — Python clears stale `is_running`; Java only on explicit stop API.
+4. ~~**Auto-enroll boot reset**~~ — **CP-11:** `AutoEnrollBootResetScheduler` clears stale `is_running`.
 
 ## Part1 closure
 

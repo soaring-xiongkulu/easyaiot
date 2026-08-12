@@ -218,6 +218,7 @@ public class CameraFlighthubService {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("provider", null);
         payload.put("url_type", null);
+        payload.put("suggestion", msg);
         payload.put("raw", raw);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("ok", false);
