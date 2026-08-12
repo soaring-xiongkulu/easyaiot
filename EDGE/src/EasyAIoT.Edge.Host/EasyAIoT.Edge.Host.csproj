@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>EasyAIoT.Edge.Host</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EasyAIoT.Edge.Core\EasyAIoT.Edge.Core.csproj" />
+    <ProjectReference Include="..\EasyAIoT.Edge.Collectors.Modbus\EasyAIoT.Edge.Collectors.Modbus.csproj" />
+    <ProjectReference Include="..\EasyAIoT.Edge.Collectors.OpcUa\EasyAIoT.Edge.Collectors.OpcUa.csproj" />
+    <ProjectReference Include="..\EasyAIoT.Edge.Collectors.Demo\EasyAIoT.Edge.Collectors.Demo.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="data/device-jobs.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

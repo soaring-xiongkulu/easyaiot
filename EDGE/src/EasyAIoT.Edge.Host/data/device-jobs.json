@@ -1,0 +1,31 @@
+[
+  {
+    "jobId": "demo-temp-humidity",
+    "deviceIdentification": "sensor-temp-001",
+    "subDeviceIdentification": "sensor-temp-001",
+    "collectorId": "modbus-rtu",
+    "agreementType": "rs485",
+    "enabled": false,
+    "intervalSeconds": 30,
+    "connection": {
+      "portName": "/dev/ttyS3",
+      "baudRate": 9600,
+      "slaveId": 4
+    },
+    "points": [
+      {
+        "key": "temperature",
+        "name": "温度",
+        "function": 3,
+        "address": 0,
+        "length": 1,
+        "parse": {
+          "offset": 3,
+          "length": 2,
+          "type": "uint16",
+          "scale": 0.1
+        }
+      }
+    ]
+  }
+]
