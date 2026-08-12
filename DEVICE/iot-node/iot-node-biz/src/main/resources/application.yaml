@@ -86,6 +86,8 @@ iot:
       - device_media_binding
       - control_plane_peer
       - node_storage_op_log
+      - nfs_cluster
+      - nfs_cluster_bridge
 
 easyaiot:
   scheduler:
