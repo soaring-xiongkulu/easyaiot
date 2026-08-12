@@ -1,0 +1,81 @@
+[
+  {
+    "jobId": "demo-simulator-local",
+    "deviceIdentification": "sensor-demo-001",
+    "subDeviceIdentification": "sensor-demo-001",
+    "collectorId": "demo-simulator",
+    "agreementType": "demo",
+    "enabled": true,
+    "intervalSeconds": 10,
+    "connection": {},
+    "points": []
+  },
+  {
+    "jobId": "modbus-rtu-example",
+    "deviceIdentification": "sensor-temp-001",
+    "subDeviceIdentification": "sensor-temp-001",
+    "collectorId": "modbus-rtu",
+    "agreementType": "rs485",
+    "enabled": false,
+    "intervalSeconds": 30,
+    "connection": {
+      "portName": "/dev/ttyS3",
+      "baudRate": 9600,
+      "slaveId": 4
+    },
+    "points": [
+      {
+        "key": "temperature",
+        "name": "温度",
+        "function": 3,
+        "address": 0,
+        "length": 1,
+        "parse": { "offset": 3, "length": 2, "type": "uint16", "scale": 0.1 }
+      }
+    ]
+  },
+  {
+    "jobId": "modbus-tcp-example",
+    "deviceIdentification": "sensor-plc-001",
+    "subDeviceIdentification": "sensor-plc-001",
+    "collectorId": "modbus-tcp",
+    "agreementType": "tcp",
+    "enabled": false,
+    "intervalSeconds": 15,
+    "connection": {
+      "host": "192.168.1.10",
+      "port": 502,
+      "slaveId": 1
+    },
+    "points": [
+      {
+        "key": "pressure",
+        "name": "压力",
+        "function": 3,
+        "address": 10,
+        "length": 1,
+        "parse": { "offset": 3, "length": 2, "type": "uint16", "scale": 0.01 }
+      }
+    ]
+  },
+  {
+    "jobId": "opc-ua-example",
+    "deviceIdentification": "sensor-opc-001",
+    "subDeviceIdentification": "sensor-opc-001",
+    "collectorId": "opc-ua",
+    "agreementType": "opc-ua",
+    "enabled": false,
+    "intervalSeconds": 30,
+    "connection": {
+      "endpointUrl": "opc.tcp://127.0.0.1:4840"
+    },
+    "points": [
+      {
+        "key": "temperature",
+        "name": "温度",
+        "nodeId": "ns=2;s=Temperature",
+        "parse": { "offset": 0, "length": 0, "type": "float" }
+      }
+    ]
+  }
+]

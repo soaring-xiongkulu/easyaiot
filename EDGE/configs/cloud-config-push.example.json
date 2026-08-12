@@ -1,0 +1,63 @@
+{
+  "id": "cfg-push-001",
+  "method": "thing.config.push",
+  "params": {
+    "edgeJobs": [
+      {
+        "jobId": "modbus-tcp-demo",
+        "deviceIdentification": "sensor-plc-001",
+        "subDeviceIdentification": "sensor-plc-001",
+        "subProductIdentification": "edge-subset-product",
+        "collectorId": "modbus-tcp",
+        "enabled": true,
+        "intervalSeconds": 15,
+        "protocolConfig": {
+          "type": "modbus-tcp",
+          "enabled": true,
+          "host": "192.168.1.10",
+          "port": 502,
+          "unitId": 1,
+          "pollIntervalMs": 15000,
+          "points": [
+            {
+              "propertyCode": "temperature",
+              "function": "HOLDING_REGISTER",
+              "address": 0,
+              "quantity": 1,
+              "dataType": "UINT16",
+              "scale": 0.1
+            },
+            {
+              "propertyCode": "pressure",
+              "function": "HOLDING_REGISTER",
+              "address": 1,
+              "quantity": 1,
+              "dataType": "UINT16",
+              "scale": 0.01
+            }
+          ]
+        }
+      },
+      {
+        "jobId": "opc-ua-demo",
+        "deviceIdentification": "sensor-opc-001",
+        "subDeviceIdentification": "sensor-opc-001",
+        "subProductIdentification": "edge-subset-product",
+        "collectorId": "opc-ua",
+        "enabled": false,
+        "intervalSeconds": 30,
+        "protocolConfig": {
+          "type": "opc-ua",
+          "endpointUrl": "opc.tcp://127.0.0.1:4840",
+          "pollIntervalMs": 30000,
+          "points": [
+            {
+              "propertyCode": "temperature",
+              "nodeId": "ns=2;s=Temperature"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

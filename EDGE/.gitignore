@@ -1,0 +1,7 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+appsettings.local.json
+configs/devices.local.json
