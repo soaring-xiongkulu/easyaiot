@@ -17,8 +17,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
@@ -30,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 算法后处理：Kafka 入队/分发/落库/告警（全部由 iot-sink Java 承载）
@@ -58,6 +61,9 @@ public class PostProcessServiceImpl implements PostProcessService {
 
     @Value("${spring.kafka.post-process.result-topic:iot-post-process-result}")
     private String resultTopic;
+
+    @Value("${spring.kafka.producer.properties.request.timeout.ms:5000}")
+    private long kafkaSendTimeoutMs;
 
     @Value("${basiclab.video.service-url:http://localhost:48080}")
     private String videoServiceUrl;
@@ -207,7 +213,14 @@ public class PostProcessServiceImpl implements PostProcessService {
         }
         try {
             String json = JsonUtils.toJsonString(payload);
-            iotKafkaTemplate.send(topic, key, json);
+            ListenableFuture<SendResult<String, String>> future = iotKafkaTemplate.send(topic, key, json);
+            SendResult<String, String> result = future.get(kafkaSendTimeoutMs, TimeUnit.MILLISECONDS);
+            log.info(
+                    "后处理 Kafka 投递成功 topic={} partition={} offset={}",
+                    result.getRecordMetadata().topic(),
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset()
+            );
         } catch (Exception e) {
             log.error("后处理 Kafka 投递失败 topic={}: {}", topic, e.getMessage(), e);
             throw new IllegalStateException("Kafka 投递失败: " + e.getMessage(), e);
