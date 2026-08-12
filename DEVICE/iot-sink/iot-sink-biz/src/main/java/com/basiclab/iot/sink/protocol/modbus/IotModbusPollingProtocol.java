@@ -25,16 +25,22 @@ import com.digitalpetri.modbus.pdu.WriteSingleRegisterRequest;
 import com.digitalpetri.modbus.pdu.WriteMultipleRegistersRequest;
 import com.digitalpetri.modbus.tcp.client.NettyClientTransportConfig;
 import com.digitalpetri.modbus.tcp.client.NettyTcpClientTransport;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class IotModbusPollingProtocol extends AbstractIndustrialPollingProtocol {
 
     public static final String PROTOCOL_TYPE = "MODBUS_TCP";
+
+    private final Map<String, ModbusTcpClient> clients = new ConcurrentHashMap<>();
+    private final Map<String, Object> clientLocks = new ConcurrentHashMap<>();
 
     public IotModbusPollingProtocol(IotGatewayProperties.PollingProtocolProperties properties,
                                     DeviceMapper deviceMapper,
@@ -53,19 +59,12 @@ public class IotModbusPollingProtocol extends AbstractIndustrialPollingProtocol 
         }
         int port = config.getPort() == null ? 502 : config.getPort();
         int unitId = config.getUnitId() == null ? 1 : config.getUnitId();
-
-        NettyClientTransportConfig transportConfig = NettyClientTransportConfig.create(builder -> {
-            builder.hostname = host;
-            builder.port = port;
-            builder.connectTimeout = Duration.ofMillis(requestTimeoutMs());
-            builder.connectPersistent = false;
-        });
-        ModbusTcpClient client = ModbusTcpClient.create(new NettyTcpClientTransport(transportConfig),
-                builder -> builder.requestTimeout = Duration.ofMillis(requestTimeoutMs()));
-
-        Map<String, Object> values = new LinkedHashMap<>();
-        Map<String, String> rawValues = new LinkedHashMap<>();
-        try (var ignored = client.open()) {
+        String key = clientKey(host, port);
+        Object lock = clientLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            ModbusTcpClient client = acquireClientLocked(host, port, key);
+            Map<String, Object> values = new LinkedHashMap<>();
+            Map<String, String> rawValues = new LinkedHashMap<>();
             for (IndustrialDeviceConfig.Point point : config.getPoints()) {
                 if (point == null || !point.hasResolvedPropertyCode() || point.getAddress() == null) {
                     continue;
@@ -75,11 +74,11 @@ public class IotModbusPollingProtocol extends AbstractIndustrialPollingProtocol 
                 values.put(propertyCode, result.value());
                 rawValues.put(propertyCode, result.rawPayload());
             }
+            if (!rawValues.isEmpty()) {
+                values.put("_raw", rawValues);
+            }
+            return values;
         }
-        if (!rawValues.isEmpty()) {
-            values.put("_raw", rawValues);
-        }
-        return values;
     }
 
     @Override
@@ -90,8 +89,10 @@ public class IotModbusPollingProtocol extends AbstractIndustrialPollingProtocol 
         }
         int port = config.getPort() == null ? 502 : config.getPort();
         int unitId = config.getUnitId() == null ? 1 : config.getUnitId();
-        ModbusTcpClient client = createClient(host, port);
-        try (var ignored = client.open()) {
+        String key = clientKey(host, port);
+        Object lock = clientLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            ModbusTcpClient client = acquireClientLocked(host, port, key);
             for (IndustrialDeviceConfig.Point point : config.getPoints()) {
                 if (point == null || !Boolean.TRUE.equals(point.getWritable()) || point.getAddress() == null
                         || !point.hasResolvedPropertyCode()) {
@@ -118,15 +119,68 @@ public class IotModbusPollingProtocol extends AbstractIndustrialPollingProtocol 
         }
     }
 
+    private ModbusTcpClient acquireClientLocked(String host, int port, String key) throws Exception {
+        ModbusTcpClient existing = clients.get(key);
+        if (existing != null && existing.isConnected()) {
+            return existing;
+        }
+        if (existing != null) {
+            disconnectQuietly(existing);
+            clients.remove(key, existing);
+        }
+        ModbusTcpClient client = createClient(host, port);
+        client.connect();
+        clients.put(key, client);
+        return client;
+    }
+
     private ModbusTcpClient createClient(String host, int port) {
         NettyClientTransportConfig transportConfig = NettyClientTransportConfig.create(builder -> {
             builder.hostname = host;
             builder.port = port;
             builder.connectTimeout = Duration.ofMillis(requestTimeoutMs());
-            builder.connectPersistent = false;
+            builder.connectPersistent = true;
         });
         return ModbusTcpClient.create(new NettyTcpClientTransport(transportConfig),
                 builder -> builder.requestTimeout = Duration.ofMillis(requestTimeoutMs()));
+    }
+
+    @Override
+    protected void invalidateConnection(DeviceDO device, IndustrialDeviceConfig config) {
+        String host = StrUtil.blankToDefault(config.getHost(), device.getIpAddress());
+        if (StrUtil.isBlank(host)) {
+            return;
+        }
+        int port = config.getPort() == null ? 502 : config.getPort();
+        String key = clientKey(host, port);
+        Object lock = clientLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            ModbusTcpClient client = clients.remove(key);
+            disconnectQuietly(client);
+        }
+    }
+
+    @Override
+    protected void closeConnections() {
+        for (Map.Entry<String, ModbusTcpClient> entry : clients.entrySet()) {
+            disconnectQuietly(entry.getValue());
+        }
+        clients.clear();
+    }
+
+    private static void disconnectQuietly(ModbusTcpClient client) {
+        if (client == null) {
+            return;
+        }
+        try {
+            client.disconnect();
+        } catch (Exception e) {
+            log.debug("[disconnectQuietly][modbus tcp disconnect failed]", e);
+        }
+    }
+
+    private static String clientKey(String host, int port) {
+        return host + ":" + port;
     }
 
     private PointReadResult readPoint(ModbusTcpClient client, int unitId,

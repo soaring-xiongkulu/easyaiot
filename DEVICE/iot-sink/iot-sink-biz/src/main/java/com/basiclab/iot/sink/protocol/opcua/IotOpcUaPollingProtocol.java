@@ -11,6 +11,7 @@ import com.basiclab.iot.sink.protocol.polling.AbstractIndustrialPollingProtocol;
 import com.basiclab.iot.sink.protocol.polling.IndustrialDeviceConfig;
 import com.basiclab.iot.sink.service.DeviceServerIdService;
 import com.basiclab.iot.sink.util.IotDeviceMessageUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.sdk.client.identity.AnonymousProvider;
 import org.eclipse.milo.opcua.sdk.client.identity.UsernameProvider;
@@ -28,11 +29,16 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class IotOpcUaPollingProtocol extends AbstractIndustrialPollingProtocol {
 
     public static final String PROTOCOL_TYPE = "OPCUA";
+
+    private final Map<String, OpcUaClient> clients = new ConcurrentHashMap<>();
+    private final Map<String, Object> clientLocks = new ConcurrentHashMap<>();
 
     public IotOpcUaPollingProtocol(IotGatewayProperties.PollingProtocolProperties properties,
                                    DeviceMapper deviceMapper,
@@ -45,19 +51,11 @@ public class IotOpcUaPollingProtocol extends AbstractIndustrialPollingProtocol {
 
     @Override
     protected Map<String, Object> poll(DeviceDO device, IndustrialDeviceConfig config) throws Exception {
-        String endpointUrl = config.getEndpointUrl();
-        if (StrUtil.isBlank(endpointUrl)) {
-            String host = StrUtil.blankToDefault(config.getHost(), device.getIpAddress());
-            if (StrUtil.isBlank(host)) {
-                throw new IllegalArgumentException("OPC UA endpoint URL is missing");
-            }
-            endpointUrl = "opc.tcp://" + host + ":" + (config.getPort() == null ? 4840 : config.getPort());
-        }
-
-        OpcUaClient client = createClient(endpointUrl, config);
-
-        try {
-            client.connectAsync().get(requestTimeoutMs(), TimeUnit.MILLISECONDS);
+        String endpointUrl = resolveEndpointUrl(device, config);
+        String key = clientKey(endpointUrl, config);
+        Object lock = clientLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            OpcUaClient client = acquireClientLocked(endpointUrl, config, key);
             List<IndustrialDeviceConfig.Point> configuredPoints = config.getPoints().stream()
                     .filter(point -> point != null && point.hasResolvedPropertyCode()
                             && StrUtil.isNotBlank(point.getNodeId()))
@@ -77,21 +75,16 @@ public class IotOpcUaPollingProtocol extends AbstractIndustrialPollingProtocol {
                 values.put(configuredPoints.get(index).resolvedPropertyCode(), toJsonValue(value));
             }
             return values;
-        } finally {
-            try {
-                client.disconnectAsync().get(requestTimeoutMs(), TimeUnit.MILLISECONDS);
-            } catch (Exception ignored) {
-                // The connection may already be closed after a failed read.
-            }
         }
     }
 
     @Override
     protected void write(DeviceDO device, IndustrialDeviceConfig config, IotDeviceMessage message) throws Exception {
         String endpointUrl = resolveEndpointUrl(device, config);
-        OpcUaClient client = createClient(endpointUrl, config);
-        try {
-            client.connectAsync().get(requestTimeoutMs(), TimeUnit.MILLISECONDS);
+        String key = clientKey(endpointUrl, config);
+        Object lock = clientLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            OpcUaClient client = acquireClientLocked(endpointUrl, config, key);
             for (IndustrialDeviceConfig.Point point : config.getPoints()) {
                 if (point == null || !Boolean.TRUE.equals(point.getWritable()) || StrUtil.isBlank(point.getNodeId())
                         || !point.hasResolvedPropertyCode()) {
@@ -110,13 +103,25 @@ public class IotOpcUaPollingProtocol extends AbstractIndustrialPollingProtocol {
                     throw new IllegalStateException("OPC UA write failed for " + point.getNodeId() + ": " + statusCode);
                 }
             }
-        } finally {
+        }
+    }
+
+    private OpcUaClient acquireClientLocked(String endpointUrl, IndustrialDeviceConfig config, String key)
+            throws Exception {
+        OpcUaClient existing = clients.get(key);
+        if (existing != null) {
             try {
-                client.disconnectAsync().get(requestTimeoutMs(), TimeUnit.MILLISECONDS);
-            } catch (Exception ignored) {
-                // The connection may already be closed after a failed write.
+                existing.connectAsync().get(requestTimeoutMs(), TimeUnit.MILLISECONDS);
+                return existing;
+            } catch (Exception e) {
+                disconnectQuietly(existing);
+                clients.remove(key, existing);
             }
         }
+        OpcUaClient client = createClient(endpointUrl, config);
+        client.connectAsync().get(requestTimeoutMs(), TimeUnit.MILLISECONDS);
+        clients.put(key, client);
+        return client;
     }
 
     private OpcUaClient createClient(String endpointUrl, IndustrialDeviceConfig config) throws Exception {
@@ -131,6 +136,45 @@ public class IotOpcUaPollingProtocol extends AbstractIndustrialPollingProtocol {
                 clientConfig -> clientConfig.setIdentityProvider(hasCredentials
                         ? new UsernameProvider(config.getUsername(), StrUtil.nullToEmpty(config.getPassword()))
                         : new AnonymousProvider()));
+    }
+
+    @Override
+    protected void invalidateConnection(DeviceDO device, IndustrialDeviceConfig config) {
+        String endpointUrl;
+        try {
+            endpointUrl = resolveEndpointUrl(device, config);
+        } catch (Exception e) {
+            return;
+        }
+        String key = clientKey(endpointUrl, config);
+        Object lock = clientLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            OpcUaClient client = clients.remove(key);
+            disconnectQuietly(client);
+        }
+    }
+
+    @Override
+    protected void closeConnections() {
+        for (OpcUaClient client : clients.values()) {
+            disconnectQuietly(client);
+        }
+        clients.clear();
+    }
+
+    private void disconnectQuietly(OpcUaClient client) {
+        if (client == null) {
+            return;
+        }
+        try {
+            client.disconnectAsync().get(Math.min(requestTimeoutMs(), 3000L), TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.debug("[disconnectQuietly][opcua disconnect failed]", e);
+        }
+    }
+
+    private static String clientKey(String endpointUrl, IndustrialDeviceConfig config) {
+        return endpointUrl + "|" + StrUtil.nullToEmpty(config.getUsername());
     }
 
     private Object toOpcUaValue(Object value, String dataType) {
