@@ -1,11 +1,11 @@
 <template>
   <div class="nfs-file-ops">
-    <div class="ops-card">
-      <div class="ops-card__title">
-        <span class="step">1</span>
-        选择节点
-        <span class="ops-card__hint">仅管理该节点媒体挂载根内的文件</span>
-      </div>
+    <CollapseContainer
+      title="选择节点"
+      :can-expan="false"
+      help-message="仅管理该节点媒体挂载根内的文件"
+      class="mb-3"
+    >
       <ClusterNodeSelector
         v-model:selected-node-ids="selectedIds"
         role-filter="cephClient"
@@ -13,19 +13,18 @@
         :multiple="false"
         placeholder="选择已配置 SSH 的 NFS 客户端节点"
       />
-    </div>
+    </CollapseContainer>
 
-    <div v-if="!currentNodeId" class="ops-empty">
-      <div class="ops-empty__title">先选一个节点</div>
-      <div class="ops-empty__desc">选中后即可浏览、上传、新建目录、重命名和删除</div>
-    </div>
+    <Empty
+      v-if="!currentNodeId"
+      class="ops-empty"
+      description="先选择一个已挂载 NFS 的客户端节点，即可浏览与管理媒体文件"
+    />
 
     <template v-else>
-      <div class="ops-card">
-        <div class="ops-card__title">
-          <span class="step">2</span>
-          当前位置
-          <Tag v-if="list?.mountRoot" color="blue">挂载根 {{ list.mountRoot }}</Tag>
+      <CollapseContainer title="当前位置" :can-expan="false" class="mb-3">
+        <div v-if="list?.mountRoot" class="mount-tag-row">
+          <Tag color="blue">挂载根 {{ list.mountRoot }}</Tag>
         </div>
 
         <div class="path-row">
@@ -72,12 +71,11 @@
             class="filter-input"
           />
         </div>
-      </div>
+      </CollapseContainer>
 
-      <div v-if="uploadJobs.length" class="ops-card upload-panel">
-        <div class="ops-card__title">
-          上传进度
-          <span class="ops-card__hint">
+      <CollapseContainer v-if="uploadJobs.length" title="上传进度" :can-expan="false" class="mb-3">
+        <div class="upload-head">
+          <span class="ops-hint">
             {{ uploadDoneCount }}/{{ uploadJobs.length }}
             <template v-if="uploadFailCount"> · 失败 {{ uploadFailCount }}</template>
           </span>
@@ -95,10 +93,10 @@
             <span v-if="job.message" class="upload-item__msg" :title="job.message">{{ job.message }}</span>
           </div>
         </div>
-      </div>
+      </CollapseContainer>
 
       <div
-        class="ops-card drop-zone"
+        class="drop-zone"
         :class="{ 'drop-zone--active': dragOver }"
         @dragover.prevent="dragOver = true"
         @dragleave.prevent="onDragLeave"
@@ -228,6 +226,7 @@
 import { computed, ref, watch } from 'vue';
 import {
   Breadcrumb,
+  Empty,
   Input,
   Modal,
   Progress,
@@ -238,6 +237,7 @@ import {
 } from 'ant-design-vue';
 import type { TableProps } from 'ant-design-vue';
 import { Button } from '@/components/Button';
+import { CollapseContainer } from '@/components/Container';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
   deleteNfsMediaPath,
@@ -694,54 +694,31 @@ watch(relativePath, () => reload());
 
 <style scoped lang="less">
 .nfs-file-ops {
-  .ops-card {
+  .mb-3 {
     margin-bottom: 12px;
-    padding: 12px 14px;
-    background: #fafafa;
-    border: 1px solid #f0f0f0;
-    border-radius: 8px;
   }
-  .ops-card__title {
+
+  .ops-hint {
+    font-size: 12px;
+    color: #8c8c8c;
+    margin-right: 8px;
+  }
+
+  .mount-tag-row {
+    margin-bottom: 8px;
+  }
+
+  .upload-head {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-    font-weight: 600;
-    color: #262626;
+    justify-content: space-between;
+    margin-bottom: 8px;
   }
-  .ops-card__hint {
-    font-weight: 400;
-    font-size: 12px;
-    color: #8c8c8c;
-  }
-  .step {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #1677ff;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-  }
+
   .ops-empty {
-    padding: 48px 16px;
-    text-align: center;
-    color: #8c8c8c;
-    border: 1px dashed #d9d9d9;
-    border-radius: 8px;
+    margin-top: 48px;
   }
-  .ops-empty__title {
-    font-size: 16px;
-    color: #595959;
-    margin-bottom: 6px;
-  }
-  .ops-empty__desc {
-    font-size: 13px;
-  }
+
   .path-row {
     display: flex;
     align-items: center;
@@ -749,10 +726,12 @@ watch(relativePath, () => reload());
     gap: 12px;
     flex-wrap: wrap;
   }
+
   .path-row__crumb {
     flex: 1;
     min-width: 200px;
   }
+
   .path-abs {
     margin-top: 6px;
     margin-bottom: 10px;
@@ -761,6 +740,7 @@ watch(relativePath, () => reload());
     color: #595959;
     word-break: break-all;
   }
+
   .action-row {
     display: flex;
     align-items: center;
@@ -768,17 +748,25 @@ watch(relativePath, () => reload());
     gap: 12px;
     flex-wrap: wrap;
   }
+
   .filter-input {
     width: 240px;
     max-width: 100%;
   }
+
   .drop-zone {
+    padding: 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    background: #fff;
     transition: border-color 0.15s ease, background 0.15s ease;
   }
+
   .drop-zone--active {
-    border-color: #1677ff !important;
-    background: rgba(22, 119, 255, 0.06) !important;
+    border-color: #1677ff;
+    background: rgba(22, 119, 255, 0.06);
   }
+
   .drop-banner {
     margin-bottom: 10px;
     padding: 8px 10px;
@@ -787,19 +775,19 @@ watch(relativePath, () => reload());
     color: #8c8c8c;
     font-size: 12px;
     text-align: center;
-    background: #fff;
+    background: #fafafa;
   }
+
   .name-link {
     font-weight: 500;
   }
-  .upload-panel {
-    background: #fff;
-  }
+
   .upload-list {
     margin-top: 8px;
     max-height: 160px;
     overflow: auto;
   }
+
   .upload-item {
     display: flex;
     align-items: center;
@@ -807,6 +795,7 @@ watch(relativePath, () => reload());
     padding: 4px 0;
     font-size: 12px;
   }
+
   .upload-item__name {
     min-width: 140px;
     max-width: 40%;
@@ -814,12 +803,14 @@ watch(relativePath, () => reload());
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .upload-item__msg {
     color: #8c8c8c;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .modal-hint {
     margin-bottom: 8px;
     color: #666;
@@ -827,6 +818,7 @@ watch(relativePath, () => reload());
     word-break: break-all;
     white-space: pre-wrap;
   }
+
   .conflict-actions {
     display: flex;
     flex-wrap: wrap;
