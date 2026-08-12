@@ -33,11 +33,18 @@ public interface ErrorCodeConstants {
     ErrorCode STORAGE_CLUSTER_SOURCE_NOT_FOUND = new ErrorCode(1_005_006_000, "控制面未找到 Ceph storage-cluster 源目录");
     ErrorCode STORAGE_NODE_ROLE_INVALID = new ErrorCode(1_005_006_001, "当前节点角色不支持该 Ceph 存储操作");
     ErrorCode STORAGE_FILE_PATH_INVALID = new ErrorCode(1_005_006_002, "文件路径非法或超出媒体挂载根");
+    ErrorCode STORAGE_MEDIA_ROOT_UNUSABLE = new ErrorCode(1_005_006_008,
+            "本机媒体根不可用（无权限或无法创建）: {}。IDEA 无 sudo 时可设 EASYAIOT_EDGE_MEDIA_ROOT=$HOME/easyaiot/media 后重启");
     ErrorCode STORAGE_FILE_TOO_LARGE = new ErrorCode(1_005_006_003, "文件超过允许大小限制");
     ErrorCode STORAGE_FILE_NOT_FOUND = new ErrorCode(1_005_006_004, "远程文件不存在或不是普通文件");
     ErrorCode STORAGE_FILE_NAME_INVALID = new ErrorCode(1_005_006_005, "文件或目录名非法");
     ErrorCode STORAGE_FILE_ROOT_FORBIDDEN = new ErrorCode(1_005_006_006, "禁止删除媒体挂载根目录");
     ErrorCode STORAGE_FILE_EXISTS = new ErrorCode(1_005_006_007, "目标文件或目录已存在");
+    ErrorCode NFS_CLUSTER_NOT_EXISTS = new ErrorCode(1_005_006_010, "NFS 集群不存在");
+    ErrorCode NFS_BRIDGE_INVALID = new ErrorCode(1_005_006_011, "NFS 桥接配置非法");
+    ErrorCode NFS_BRIDGE_SOURCE_NOT_ACTIVE = new ErrorCode(1_005_006_012, "桥接源必须是当前主集群");
+    ErrorCode NFS_CLUSTER_SWITCH_BLOCKED = new ErrorCode(1_005_006_013, "请先停止主集群关联的桥接后再切换");
+    ErrorCode NFS_BRIDGE_RUNNING = new ErrorCode(1_005_006_014, "桥接任务正在执行中");
 
     ErrorCode MQTT_CLUSTER_SOURCE_NOT_FOUND = new ErrorCode(1_005_008_000, "控制面未找到 mqtt-cluster 源目录");
     ErrorCode MQTT_NODE_ROLE_INVALID = new ErrorCode(1_005_008_001, "仅 MQTT 网关节点支持 EMQX 集群部署");

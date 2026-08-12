@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Schema(description = "NFS 共享媒体节点拓扑（中心 ↔ 存储服务端/客户端）")
+@Schema(description = "NFS 共享媒体节点拓扑（主/备服务端 ↔ 客户端）")
 @Data
 public class NodeCephTopologyRespVO {
 
@@ -31,9 +31,14 @@ public class NodeCephTopologyRespVO {
         private String nodeRole;
         private String status;
         private Integer agentPort;
-        /** platform | storage_nfs | nfs_client */
+        /**
+         * platform | nfs_primary | nfs_standby | nfs_client | nfs_candidate
+         * 兼容旧值：storage_nfs≈nfs_primary/candidate，ceph_client≈nfs_client
+         */
         private String kind;
         private Boolean isPlatform;
+        /** primary | standby | client | candidate */
+        private String nfsClusterRole;
         /** @deprecated 兼容旧前端，等同 nfsMountReady */
         private Boolean cephMountReady;
         /** @deprecated 兼容旧前端，等同 nfsMountPath */
@@ -45,10 +50,12 @@ public class NodeCephTopologyRespVO {
         /** @deprecated 保留字段 */
         private String cephfsName;
         private Boolean nfsMountReady;
+        /** 真 NFS Export（exportfs + :2049）是否就绪；与本机目录可写无关 */
+        private Boolean nfsExportReady;
         private String nfsMountPath;
         private String nfsServerHost;
         private String nfsExportPath;
-        /** nfs | local_bind（未指定 NFS 服务端时本机 export） */
+        /** 唯一存储通路：nfs（历史 local_bind 已废弃，拓扑不再返回） */
         private String storageBackend;
         /** 最近一次 SSH/探针时间（ISO 或可解析字符串） */
         private String nfsProbeAt;
@@ -65,18 +72,30 @@ public class NodeCephTopologyRespVO {
 
     @Data
     public static class TopologyLinkVO {
-        /** 源节点 ID；中心可用 nodeId，或约定 sourceKind=platform */
         private Long sourceNodeId;
         private Long targetNodeId;
-        /** mon | client_mount | platform */
+        /** nfs_mount | nfs_standby | platform */
         private String relation;
     }
 
     @Data
     public static class TopologySummaryVO {
         private int totalNodes;
+        /** 主+备服务端数量（兼容旧字段） */
         private int storageNodes;
         private int clientNodes;
+        /** 主服务端数量（0 或 1） */
+        private int primaryCount;
+        /** 备服务端数量 */
+        private int standbyCount;
+        /** 未分配的存储候选 */
+        private int candidateCount;
+        /** 主服务端 Export 是否就绪 */
+        private Boolean primaryReady;
+        private Long primaryNodeId;
+        private String primaryHost;
+        private Long standbyNodeId;
+        private String standbyHost;
         private int mountReadyCount;
         private int mountNotReadyCount;
         private int offlineCount;
