@@ -53,6 +53,15 @@ public class ModelPathResolver {
         );
     }
 
+    public Path poseModel() {
+        return firstExisting(
+                env("POSE_MODEL_PATH"),
+                configured(videoProperties.getInference().getPoseModelPath()),
+                underVideo("yolo26n-pose.onnx"),
+                underVideo("models/yolo26n-pose.onnx")
+        );
+    }
+
     public Path videoRoot() {
         List<Path> candidates = new ArrayList<>();
         Path cwd = Paths.get("").toAbsolutePath();

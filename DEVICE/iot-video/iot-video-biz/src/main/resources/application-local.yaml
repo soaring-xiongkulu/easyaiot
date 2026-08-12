@@ -28,7 +28,9 @@ video:
     use-direct-process: false
   post-process:
     use-stub-enqueue: false
+    java-rules-enabled: true
     workspace-root: ${user.home}/.video-java/post-process-workspaces
+    rules-dir: ${user.home}/.video-java/post-process-workspaces/rules
     sink-host: 127.0.0.1
     sink-port: "48092"
     sink-use-gateway: false
@@ -52,6 +54,7 @@ video:
     face-det-model-path: F:/acme/.worktrees/video-java/VIDEO/face_det.onnx
     plate-detect-model-path: F:/acme/.worktrees/video-java/VIDEO/plate_detect.onnx
     plate-rec-model-path: F:/acme/.worktrees/video-java/VIDEO/plate_rec.onnx
+    pose-model-path: F:/acme/.worktrees/video-java/VIDEO/yolo26n-pose.onnx
     milvus-uri: http://127.0.0.1:19530
     face-milvus-collection: face_embeddings
     face-similarity-threshold: 0.55

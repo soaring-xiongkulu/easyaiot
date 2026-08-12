@@ -1,0 +1,17 @@
+{
+  "log_proof": [
+    "[PATROL] starting scheduler for 1 device(s) mode=pool interval=3s pool_size=1",
+    "[PATROL] loop started",
+    "[PATROL] pool batch size=1",
+    "[YOLO] Detected: person (90%)"
+  ],
+  "evidence_type": "patrol_runtime_process",
+  "task": "W2",
+  "runtime_bin": "F:/acme/.worktrees/video-java/RUNTIME/build-win/Release/RUNTIME.exe",
+  "note": "RUNTIME PatrolScheduler short-connect patrol on file source; no run_deploy.py",
+  "python_run_deploy": false,
+  "status": "PASS",
+  "process_was_alive_10s": true,
+  "ini": "C:/Users/g/.video-java/runtime-config/patrol_session_p2_final_w2.ini",
+  "engine": "RUNTIME.exe PatrolScheduler"
+}

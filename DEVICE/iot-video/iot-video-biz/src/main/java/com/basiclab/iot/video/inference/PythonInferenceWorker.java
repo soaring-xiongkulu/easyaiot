@@ -40,8 +40,8 @@ public class PythonInferenceWorker {
     }
 
     public boolean isPoseEngineAvailable() {
-        // Pose remains CLI-capable in Wave-A (Out of Java ORT scope).
-        return isWorkerHealthy("pose_inference_cli.py");
+        // Part2 W1: pose CLI only when python-cli-enabled (commercial local defaults off).
+        return isPythonCliWorkerHealthy("pose_inference_cli.py");
     }
 
     /** Face/plate CLI health — requires {@code python-cli-enabled}. */

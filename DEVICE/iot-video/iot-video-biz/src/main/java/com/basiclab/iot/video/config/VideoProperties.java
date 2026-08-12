@@ -85,6 +85,13 @@ public class VideoProperties {
          */
         private boolean useStubEnqueue = false;
         private String workspaceRoot = System.getProperty("user.home") + "/.video-java/post-process-workspaces";
+        /**
+         * Part2 W3: prefer Java YAML rules over Python {@code run_worker.py}.
+         * Env {@code VIDEO_POST_PROCESS_JAVA_RULES} wins when set.
+         */
+        private boolean javaRulesEnabled = true;
+        /** Directory of shared YAML rule packs (per-camera calibration files). */
+        private String rulesDir = System.getProperty("user.home") + "/.video-java/post-process-workspaces/rules";
         private String sinkHost = "127.0.0.1";
         private String sinkPort = "48092";
         /** When set, overrides host/port (e.g. http://127.0.0.1:48092). Env IOT_SINK_API_URL wins. */
@@ -261,6 +268,8 @@ public class VideoProperties {
         private String plateDetectModelPath = "";
         /** Absolute or repo-relative path to {@code plate_rec.onnx}. */
         private String plateRecModelPath = "";
+        /** Absolute or repo-relative path to {@code yolo26n-pose.onnx}. */
+        private String poseModelPath = "";
         /** Milvus URI, e.g. {@code http://127.0.0.1:19530}. */
         private String milvusUri = "http://127.0.0.1:19530";
         /** Face embedding collection name. */

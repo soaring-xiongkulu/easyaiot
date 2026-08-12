@@ -1,8 +1,10 @@
 package com.basiclab.iot.video.service.pose;
 
+import com.basiclab.iot.video.config.VideoProperties;
 import com.basiclab.iot.video.exception.VideoBusinessException;
 import com.basiclab.iot.video.inference.PythonInferenceWorker;
 import com.basiclab.iot.video.inference.PythonInferenceWorker.WorkerResult;
+import com.basiclab.iot.video.inference.onnx.PoseOnnxEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,12 +20,17 @@ import java.util.Map;
 public class PoseAnalysisService {
 
     private static final String NO_ENGINE_MSG =
-            "YOLO pose 引擎未安装或加载失败: 需 Python worker + yolo26n-pose.pt";
+            "YOLO pose 引擎未安装或加载失败: 需 ORT Java + yolo26n-pose.onnx（或 python-cli-enabled + pose CLI）";
 
+    private final PoseOnnxEngine poseOnnxEngine;
     private final PythonInferenceWorker pythonInferenceWorker;
+    private final VideoProperties videoProperties;
 
     public boolean isEngineAvailable() {
-        return pythonInferenceWorker.isPoseEngineAvailable();
+        if (videoProperties.getInference().isOnnxEnabled() && poseOnnxEngine.isAvailable()) {
+            return true;
+        }
+        return pythonCliAllowed() && pythonInferenceWorker.isPoseEngineAvailable();
     }
 
     public void validateImageBytes(byte[] imageBytes) {
@@ -34,7 +41,21 @@ public class PoseAnalysisService {
 
     public List<Map<String, Object>> extractPersons(byte[] imageBytes, double conf) {
         validateImageBytes(imageBytes);
-        if (!isEngineAvailable()) {
+        if (videoProperties.getInference().isOnnxEnabled() && poseOnnxEngine.isAvailable()) {
+            try {
+                return poseOnnxEngine.extractPersonsBytes(imageBytes, conf);
+            } catch (Exception ex) {
+                log.warn("pose ORT extract failed: {}", ex.getMessage());
+                if (!pythonCliAllowed()) {
+                    return List.of();
+                }
+            }
+        }
+        if (!pythonCliAllowed()) {
+            log.debug("pose extract skipped: {}", NO_ENGINE_MSG);
+            return List.of();
+        }
+        if (!pythonInferenceWorker.isPoseEngineAvailable()) {
             log.debug("pose extract skipped: {}", NO_ENGINE_MSG);
             return List.of();
         }
@@ -44,6 +65,11 @@ public class PoseAnalysisService {
             return List.of();
         }
         return castPersonList(worker.data().get("persons"));
+    }
+
+    private boolean pythonCliAllowed() {
+        return videoProperties.getInference().isEnabled()
+                && videoProperties.getInference().isPythonCliEnabled();
     }
 
     @SuppressWarnings("unchecked")

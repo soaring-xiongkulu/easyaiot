@@ -177,9 +177,13 @@ public class PatrolSessionService {
         if (data == null) {
             return false;
         }
+        // RUNTIME PatrolScheduler heartbeats use task_id (= session id in our ini).
         Object rawId = data.get("session_id");
         if (rawId == null) {
             rawId = data.get("patrol_session_id");
+        }
+        if (rawId == null) {
+            rawId = data.get("task_id");
         }
         if (rawId == null) {
             return false;
