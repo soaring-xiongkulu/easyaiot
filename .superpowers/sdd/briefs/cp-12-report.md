@@ -23,7 +23,7 @@ CP-11 marked PASS with compile-heavy evidence; orchestrator review superseded `l
 | U7 | **PASS** | `logs/cp-12-u7-remote-hb-robot.json` | `ab741d0` | Remote deploy no pre-seed HB; robot channel via template metadata |
 | U8 | **SKIPPED** | — | — | Optional SRS autofix not attempted (no Docker/SRS proof run) |
 | U9 | **PASS** | `logs/cp-12-u9-stack-smoke.json` | — | PG/Kafka/video-server/sink UP; behavioral smoke summary |
-| U10 | **PASS** | this file + INDEX/BACKLOG/HANDOFF | — | Honest Part1 verdict below |
+| U10 | **PASS** | this file + INDEX/BACKLOG/HANDOFF | `0985339` | Honest Part1 verdict below |
 
 ## Verification
 
