@@ -18,7 +18,7 @@ CP-1…CP-10 PASS per [CODE_PARITY_INDEX.md](../CODE_PARITY_INDEX.md).
 | T2 | PASS | `logs/cp-11-t2-post-matching.json` | Face/plate publish path in post-alert orchestration |
 | T3 | PASS | `logs/cp-11-t3-sink-enqueue-fail.json` | Kafka unavailable → HTTP error, no silent success |
 | T4 | PASS | `logs/cp-11-t4-flighthub-data.json` | Failure responses include `data` with suggestion |
-| T5 | PASS | `logs/cp-11-t5-audiotalk.json` | Dynamic RTP port + noise gate threshold 500 |
+| T5 | PASS | `logs/cp-11-t5-audiotalk.json` | Dynamic RTP bind **before** SETUP; Transport `client_port` uses real ports (review fixed leftover `5000-5001`); noise gate 500 |
 | T6 | PASS | `logs/cp-11-t6-gb28181.json` | Alternate RTSP pull + channel attribute sync |
 | T7 | PASS | `logs/cp-11-t7-directory.json` | Implicit GB sync, ensure spaces, cascade save_time |
 | T8 | PASS | `logs/cp-11-t8-boot-reset-nvr.json` | Auto-enroll reset + NVR link repair on boot |
@@ -31,6 +31,7 @@ CP-1…CP-10 PASS per [CODE_PARITY_INDEX.md](../CODE_PARITY_INDEX.md).
 
 - `mvn compile -pl iot-video/iot-video-biz,iot-sink/iot-sink-biz -am` → **BUILD SUCCESS**
 - Profile: `local`, zero Fallback, no mini/stub as PASS
+- **Orchestrator review (2026-08-12):** T5 SETUP still advertised `client_port=5000-5001` and bound UDP **after** SETUP — fixed to bind-first + pass local port into SETUP. Other T1–T11 code anchors spot-checked; several evidence JSONs are compile/summary-level (stack was down during review) — not COMPLETE.
 
 ## Part2 leftovers (honest gaps)
 

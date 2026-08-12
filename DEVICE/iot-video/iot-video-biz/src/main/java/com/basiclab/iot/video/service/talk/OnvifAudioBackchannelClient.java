@@ -99,16 +99,25 @@ public class OnvifAudioBackchannelClient implements AutoCloseable {
         return parseSdp(response);
     }
 
-    public boolean setupAudioBackchannel(Map<String, Object> audioTrack) {
+    /**
+     * SETUP with actual local RTP/RTCP ports. Callers must bind a UDP socket first and pass its local port
+     * (CP-11 T5 — no hardcoded 5000; multi-session safe).
+     */
+    public boolean setupAudioBackchannel(Map<String, Object> audioTrack, int clientRtpPort) {
         if (socket == null || audioTrack == null) {
             return false;
         }
+        if (clientRtpPort <= 0 || clientRtpPort > 65534) {
+            return false;
+        }
+        int clientRtcpPort = clientRtpPort + 1;
+        String transport = "RTP/AVP;unicast;client_port=" + clientRtpPort + "-" + clientRtcpPort + ";mode=record";
         String trackId = String.valueOf(audioTrack.getOrDefault("track_id", "1"));
         String controlUrl = String.valueOf(audioTrack.getOrDefault("track_id", ""));
         String rtspUri = buildSetupUri(trackId, controlUrl);
         String response = sendRtsp("SETUP", rtspUri, Map.of(
                 "Require", "www.onvif.org/ver20/backchannel",
-                "Transport", "RTP/AVP;unicast;client_port=5000-5001;mode=record"
+                "Transport", transport
         ), true);
         if (response.contains("401")) {
             String authInfo = extractHeader(response, "WWW-Authenticate");
@@ -117,7 +126,7 @@ public class OnvifAudioBackchannelClient implements AutoCloseable {
                 response = sendRtsp("SETUP", rtspUri, Map.of(
                         "Require", "www.onvif.org/ver20/backchannel",
                         "Authorization", authHeader,
-                        "Transport", "RTP/AVP;unicast;client_port=5000-5001;mode=record"
+                        "Transport", transport
                 ), false);
             }
         }

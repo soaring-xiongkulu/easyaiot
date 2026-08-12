@@ -1,1 +1,22 @@
-{"task":"T5","status":"PASS","summary":"DatagramSocket(0) dynamic bind; noise_suppression PCM threshold 500","files":["AudioTalkSession.java"]}
+{
+  "task": "T5",
+  "status": "PASS",
+  "summary": "Bind before SETUP; Transport client_port uses real local RTP/RTCP ports; noise gate abs(sample)<500; orchestrator review fixed SETUP still hardcoding 5000",
+  "files": [
+    "AudioTalkSession.java",
+    "OnvifAudioBackchannelClient.java"
+  ],
+  "verify": {
+    "no_hardcoded_client_port_5000": true,
+    "bind_before_setup": true,
+    "noise_threshold": 500,
+    "two_concurrent_udp_binds": {
+      "ports": [
+        62464,
+        62466
+      ],
+      "distinct": true
+    }
+  },
+  "review_note": "CP-11 leaf left SETUP Transport as 5000-5001 and bound socket after SETUP; fixed in follow-up commit"
+}

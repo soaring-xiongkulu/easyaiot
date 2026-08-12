@@ -73,21 +73,40 @@ class AudioTalkSession {
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> audioTrack = (Map<String, Object>) sdpInfo.get("selected_backchannel_track");
-        if (audioTrack == null || !client.setupAudioBackchannel(audioTrack) || !client.play()) {
+        if (audioTrack == null) {
             closeClient();
             return false;
         }
+        // Bind RTP socket BEFORE SETUP so Transport client_port matches the real local port
+        // (CP-11 T5: no hardcoded 5000; multi-session must not collide).
         try {
-            rtpSocket = new DatagramSocket(0);
+            rtpSocket = bindEphemeralRtpSocket();
             int localPort = rtpSocket.getLocalPort();
             log.info("AudioTalk RTP socket bound sessionId={} localPort={}", sessionId, localPort);
+            if (!client.setupAudioBackchannel(audioTrack, localPort) || !client.play()) {
+                stop();
+                return false;
+            }
             active = true;
             return true;
         } catch (Exception ex) {
-            log.warn("RTP socket init failed for {}: {}", sessionId, ex.getMessage());
-            closeClient();
+            log.warn("RTP socket/SETUP failed for {}: {}", sessionId, ex.getMessage());
+            stop();
             return false;
         }
+    }
+
+    /** Bind UDP; prefer even port so RTCP can use port+1 (RTP/RTCP pair convention). */
+    private static DatagramSocket bindEphemeralRtpSocket() throws Exception {
+        for (int attempt = 0; attempt < 32; attempt++) {
+            DatagramSocket candidate = new DatagramSocket(0);
+            int port = candidate.getLocalPort();
+            if ((port % 2) == 0 && port < 65535) {
+                return candidate;
+            }
+            candidate.close();
+        }
+        return new DatagramSocket(0);
     }
 
     void stop() {
