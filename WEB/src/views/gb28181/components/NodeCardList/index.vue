@@ -1,9 +1,9 @@
 <template>
-  <div class="device-card-list-wrapper p-2">
-    <div class="p-4 bg-white" style="margin-bottom: 10px">
+  <div class="device-card-list-wrapper">
+    <div class="node-card-filter bg-white">
       <BasicForm @register="registerForm" @reset="handleSubmit"/>
     </div>
-    <div class="p-2 bg-white">
+    <div class="node-card-list bg-white">
       <Spin :spinning="state.loading">
         <List
           :grid="{ gutter: 12, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 4 }"
@@ -11,10 +11,9 @@
           :pagination="paginationProp"
         >
           <template #header>
-            <div
-              style="display: flex;align-items: center;justify-content: space-between;flex-direction: row;">
-              <span style="padding-left: 7px;font-size: 16px;font-weight: 500;line-height: 24px;">媒体节点列表</span>
-              <div style="display: flex; gap: 8px;">
+            <div class="node-card-list__header">
+              <span class="node-card-list__title">媒体节点列表</span>
+              <div class="node-card-list__actions">
                 <slot name="header"></slot>
               </div>
             </div>
@@ -207,19 +206,65 @@ async function handleDelete(record: object) {
 </script>
 
 <style lang="less" scoped>
-.device-card-list-wrapper {
+@node-gutter: 16px;
 
-  :deep(.ant-list-header) {
-    border-block-end: 0;
+.device-card-list-wrapper {
+  height: 100%;
+  background: #fff;
+  padding: 12px @node-gutter 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .node-card-filter {
+    width: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .node-card-list {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    padding: 12px 16px 16px;
+    box-sizing: border-box;
+  }
+
+  .node-card-list__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .node-card-list__title {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+    color: #181818;
+  }
+
+  .node-card-list__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    :deep(.ant-btn) {
+      display: inline-flex;
+      align-items: center;
+    }
   }
 
   :deep(.ant-list-header) {
+    border-block-end: 0;
     padding-top: 0;
     padding-bottom: 8px;
   }
 
   :deep(.ant-list) {
-    padding: 6px;
+    padding: 0;
   }
 
   :deep(.ant-list-item) {

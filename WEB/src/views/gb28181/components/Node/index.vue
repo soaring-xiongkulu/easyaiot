@@ -51,11 +51,10 @@
                     @get-method="getMethod" @delete="handleDel"
                     @edit="handleEdit">
         <template #header>
-          <Button type="primary" @click="openAddModal(true, { type: 'add' })"
-                    preIcon="ant-design:plus-outlined">
+          <Button type="primary" preIcon="ant-design:plus-outlined" @click="openAddModal(true, { type: 'add' })">
             添加代理
           </Button>
-          <Button type="default" @click="handleClickSwap" preIcon="ant-design:swap-outlined">
+          <Button type="default" preIcon="ant-design:swap-outlined" @click="handleClickSwap">
             切换视图
           </Button>
         </template>
@@ -67,7 +66,7 @@
 <script setup lang="ts">
 import {reactive, ref} from 'vue';
 import {BasicTable, TableAction, useTable} from "@/components/Table";
-import {PopConfirmButton} from "@/components/Button";
+import { Button, PopConfirmButton } from '@/components/Button';
 import moment from "moment/moment";
 import {getBasicColumns, getFormConfig} from "./Data";
 import NodeCardList from "@/views/gb28181/components/NodeCardList/index.vue";
@@ -289,7 +288,7 @@ function handleSuccess() {
 
 .node-wrapper {
   height: 100%;
-  background-color: #f0f2f5;
+  background-color: #fff;
 
   :deep(.ant-tabs-nav) {
     padding: 5px 0 0 25px;

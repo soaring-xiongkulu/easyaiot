@@ -198,8 +198,33 @@
         <TabPane key="11" v-if="facePlateLibraryEnabled" tab="车牌库">
           <PlateLibrary ref="plateLibraryRef"/>
         </TabPane>
-        <TabPane key="13" v-if="scenarioPoseLibraryEnabled" tab="场景姿态库">
-          <ScenarioPoseLibrary ref="scenarioPoseLibraryRef"/>
+        <TabPane :key="CAMERA_TAB_KEYS.NFS_MANAGE" :tab="NODE_PAGE.clusterEnvStorage">
+          <StorageEnvBatch
+            section="manage"
+            :initial-node-ids="nfsInitialNodeIds"
+            :focus-node-id="nfsFocusNodeId"
+          />
+        </TabPane>
+        <TabPane :key="CAMERA_TAB_KEYS.NFS_TOPOLOGY" :tab="NODE_PAGE.clusterEnvStorageTopology">
+          <StorageEnvBatch
+            section="topology"
+            :initial-node-ids="nfsInitialNodeIds"
+            :focus-node-id="nfsFocusNodeId"
+          />
+        </TabPane>
+        <TabPane :key="CAMERA_TAB_KEYS.NFS_DEPLOY" :tab="NODE_PAGE.clusterEnvStorageDeploy">
+          <StorageEnvBatch
+            section="ops"
+            :initial-node-ids="nfsInitialNodeIds"
+            :focus-node-id="nfsFocusNodeId"
+          />
+        </TabPane>
+        <TabPane :key="CAMERA_TAB_KEYS.NFS_FILES" :tab="NODE_PAGE.clusterEnvStorageFiles">
+          <StorageEnvBatch
+            section="files"
+            :initial-node-ids="nfsInitialNodeIds"
+            :focus-node-id="nfsFocusNodeId"
+          />
         </TabPane>
       </Tabs>
     </div>
@@ -209,7 +234,7 @@
 
 <script lang="ts" setup>
 import {nextTick, onMounted, onUnmounted, reactive, ref, watch, computed} from 'vue';
-import {useRoute} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import {TabPane, Tabs, Checkbox} from 'ant-design-vue';
 import { SwapOutlined } from '@ant-design/icons-vue';
 import {BasicTable, TableAction, useTable} from '@/components/Table';
@@ -240,7 +265,6 @@ import AlgorithmTask from "./components/AlgorithmTask/index.vue";
 import EdgeNodeManage from "./components/EdgeNodeManage/index.vue";
 import FaceLibrary from "./components/FaceLibrary/index.vue";
 import PlateLibrary from "./components/PlateLibrary/index.vue";
-import ScenarioPoseLibrary from "./components/ScenarioPoseLibrary/index.vue";
 import DeviceMixedCardList from './components/DeviceMixedCardList/index.vue';
 import Gb28181DeviceDetail from './components/Gb28181DeviceDetail/index.vue';
 import NvrDeviceDetail from './components/NvrDeviceDetail/index.vue';
@@ -281,17 +305,18 @@ import {
   isEdgeNodeEnabled,
   isFacePlateLibraryEnabled,
   isGb28181Enabled,
-  isScenarioPoseLibraryEnabled,
 } from '@/utils/deployProfile';
+import StorageEnvBatch from '@/views/node/components/StorageEnvBatch/index.vue';
+import { CAMERA_NFS_TAB, NODE_PAGE } from '@/views/node/utils/constants';
 
 defineOptions({name: 'CAMERA'})
 
 const gb28181Enabled = isGb28181Enabled();
 const edgeNodeEnabled = isEdgeNodeEnabled();
 const facePlateLibraryEnabled = isFacePlateLibraryEnabled();
-const scenarioPoseLibraryEnabled = isScenarioPoseLibraryEnabled();
 
 const route = useRoute();
+const router = useRouter();
 
 const {createMessage} = useMessage();
 const [registerAddModel, {openModal}] = useModal();
@@ -400,7 +425,6 @@ const algorithmTaskRef = ref();
 const edgeNodeManageRef = ref();
 const faceLibraryRef = ref();
 const plateLibraryRef = ref();
-const scenarioPoseLibraryRef = ref();
 
 // 推流转发组件引用
 const streamForwardRef = ref();
@@ -408,7 +432,7 @@ const streamForwardRef = ref();
 // 节点管理组件引用
 const gb28181NodeRef = ref();
 
-/** 一级 Tab key（与模板 TabPane 从左到右顺序一致） */
+/** 一级 Tab key（与模板 TabPane 从左到右顺序一致；NFS 置于最右侧） */
 const CAMERA_TAB_KEYS = {
   CAMERA_MAP: '1',
   SPLIT_MONITOR: '2',
@@ -420,16 +444,39 @@ const CAMERA_TAB_KEYS = {
   GB_NODE: '9',
   FACE_LIBRARY: '10',
   PLATE_LIBRARY: '11',
-  SCENARIO_POSE_LIBRARY: '13',
+  NFS_MANAGE: CAMERA_NFS_TAB.manage,
+  NFS_TOPOLOGY: CAMERA_NFS_TAB.topology,
+  NFS_DEPLOY: CAMERA_NFS_TAB.ops,
+  NFS_FILES: CAMERA_NFS_TAB.files,
 } as const;
 
 const CAMERA_TAB_ID_SET = new Set<string>(Object.values(CAMERA_TAB_KEYS));
+
+const nfsFocusNodeId = computed(() => {
+  const id = Number(route.query.nodeId);
+  return Number.isFinite(id) && id > 0 ? id : undefined;
+});
+
+const nfsInitialNodeIds = computed(() => {
+  const raw = String(route.query.nodeIds || '');
+  if (!raw) {
+    return nfsFocusNodeId.value ? [nfsFocusNodeId.value] : undefined;
+  }
+  const ids = raw
+    .split(',')
+    .map((item) => Number(item.trim()))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  if (ids.length) return ids;
+  return nfsFocusNodeId.value ? [nfsFocusNodeId.value] : undefined;
+});
 
 /** 旧版 tab 编号兼容（已移除的 Tab 或历史编号） */
 const LEGACY_CAMERA_TAB_MAP: Record<string, string> = {
   '5': CAMERA_TAB_KEYS.STORAGE,
   '8': CAMERA_TAB_KEYS.CAMERA_MAP,
   '12': CAMERA_TAB_KEYS.DEVICE_LIST,
+  '13': CAMERA_TAB_KEYS.CAMERA_MAP, // 原场景姿态库
+  '21': CAMERA_TAB_KEYS.NFS_MANAGE, // 原 NFS 集群桥接 → 合并到集群管理
 };
 
 /** 路由 ?tab=：优先匹配当前编号；旧编号通过 LEGACY_CAMERA_TAB_MAP 映射 */
@@ -444,9 +491,6 @@ function normalizeCameraRouteTab(tab: string): string {
     !facePlateLibraryEnabled
     && (tab === CAMERA_TAB_KEYS.FACE_LIBRARY || tab === CAMERA_TAB_KEYS.PLATE_LIBRARY)
   ) {
-    return CAMERA_TAB_KEYS.CAMERA_MAP;
-  }
-  if (!scenarioPoseLibraryEnabled && tab === CAMERA_TAB_KEYS.SCENARIO_POSE_LIBRARY) {
     return CAMERA_TAB_KEYS.CAMERA_MAP;
   }
   if (CAMERA_TAB_ID_SET.has(tab)) return tab;
@@ -481,9 +525,6 @@ const handleTabClick = (activeKey: string) => {
   }
   if (activeKey === CAMERA_TAB_KEYS.PLATE_LIBRARY && plateLibraryRef.value) {
     plateLibraryRef.value.refresh?.();
-  }
-  if (activeKey === CAMERA_TAB_KEYS.SCENARIO_POSE_LIBRARY && scenarioPoseLibraryRef.value) {
-    scenarioPoseLibraryRef.value.refresh?.();
   }
   // 切换到推流转发标签页时，刷新数据
   if (activeKey === CAMERA_TAB_KEYS.STREAM_FORWARD && streamForwardRef.value) {
@@ -1243,24 +1284,49 @@ onUnmounted(() => {
 
 <style lang="less" scoped>
 .camera-container {
+  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+
   :deep(.ant-form-item) {
     margin-bottom: 10px;
   }
 
   .camera-tab {
+    flex: 1;
+    min-height: 0;
     padding: 0;
     background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    :deep(.ant-tabs) {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background-color: #FFFFFF;
+    }
 
     :deep(.ant-tabs-nav) {
       padding: 5px 0 0 25px;
+      flex-shrink: 0;
+      margin-bottom: 0;
     }
 
-    :deep(.ant-tabs) {
-      background-color: #FFFFFF;
+    :deep(.ant-tabs-content-holder) {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
 
-      :deep(.ant-tabs-nav) {
-        padding: 5px 0 0 25px;
-      }
+    :deep(.ant-tabs-content),
+    :deep(.ant-tabs-tabpane) {
+      height: 100%;
     }
   }
 
