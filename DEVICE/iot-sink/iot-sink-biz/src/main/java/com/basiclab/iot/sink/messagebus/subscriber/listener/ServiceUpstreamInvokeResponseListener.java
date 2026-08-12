@@ -33,7 +33,7 @@ public class ServiceUpstreamInvokeResponseListener {
                 return;
             }
 
-            log.info("[handleServiceUpstreamInvokeResponseEvent][处理服务调用响应上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleServiceUpstreamInvokeResponseEvent][处理服务调用响应上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

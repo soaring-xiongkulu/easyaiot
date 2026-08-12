@@ -33,7 +33,7 @@ public class NtpUpstreamRequestListener {
                 return;
             }
 
-            log.info("[handleNtpUpstreamRequestEvent][处理NTP同步请求上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleNtpUpstreamRequestEvent][处理NTP同步请求上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

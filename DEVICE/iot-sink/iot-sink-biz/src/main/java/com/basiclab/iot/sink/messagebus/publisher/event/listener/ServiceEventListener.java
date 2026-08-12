@@ -22,7 +22,7 @@ public class ServiceEventListener {
     @EventListener
     public void handleServiceEvent(ServiceEvent event) {
         try {
-            log.info("[handleServiceEvent][处理服务调用消息，topic: {}, 类型: {}, 描述: {}]",
+            log.debug("[handleServiceEvent][处理服务调用消息，topic: {}, 类型: {}, 描述: {}]",
                     event.getMessage().getTopic(), event.getTopicEnum().name(), event.getTopicEnum().getDescription());
             // TODO: 实现服务调用消息处理逻辑
         } catch (Exception e) {

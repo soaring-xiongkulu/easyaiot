@@ -27,7 +27,7 @@ public class OtaDownstreamUpgradeTaskListener {
                 return;
             }
 
-            log.info("[handleOtaDownstreamUpgradeTaskEvent][处理OTA升级任务下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleOtaDownstreamUpgradeTaskEvent][处理OTA升级任务下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现OTA升级任务下行消息的业务逻辑

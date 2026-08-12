@@ -38,7 +38,7 @@ public class PropertyDownstreamDesiredSetListener {
             }
 
             IotDeviceMessage message = event.getMessage();
-            log.info("[handlePropertyDownstreamDesiredSetEvent][处理属性期望值设置下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handlePropertyDownstreamDesiredSetEvent][处理属性期望值设置下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     message.getId(), message.getTopic(), message.getDeviceId());
 
             // 已带 serverId 说明调用方已路由到网关 Topic，此处无需再转发
@@ -73,7 +73,7 @@ public class PropertyDownstreamDesiredSetListener {
 
             message.setServerId(serverId);
             producer.sendDeviceMessageToGateway(serverId, message);
-            log.info("[handlePropertyDownstreamDesiredSetEvent][已转发到网关 Topic，deviceId: {}, serverId: {}]",
+            log.debug("[handlePropertyDownstreamDesiredSetEvent][已转发到网关 Topic，deviceId: {}, serverId: {}]",
                     deviceId, serverId);
         } catch (Exception e) {
             log.error("[handlePropertyDownstreamDesiredSetEvent][处理属性期望值设置下行消息失败，messageId: {}, topic: {}]",

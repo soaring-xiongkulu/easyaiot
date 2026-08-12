@@ -33,7 +33,7 @@ public class DeviceTagUpstreamDeleteListener {
                 return;
             }
 
-            log.info("[handleDeviceTagUpstreamDeleteEvent][处理设备标签删除上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleDeviceTagUpstreamDeleteEvent][处理设备标签删除上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

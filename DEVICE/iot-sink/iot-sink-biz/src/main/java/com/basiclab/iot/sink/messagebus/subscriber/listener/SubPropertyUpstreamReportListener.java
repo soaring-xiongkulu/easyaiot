@@ -39,7 +39,7 @@ public class SubPropertyUpstreamReportListener {
             if (event.getTopicEnum() != IotDeviceTopicEnum.SUB_PROPERTY_UPSTREAM_REPORT) {
                 return;
             }
-            log.info("[handleSubPropertyUpstreamReportEvent][网关代报属性 messageId={} deviceId={}]",
+            log.debug("[handleSubPropertyUpstreamReportEvent][网关代报属性 messageId={} deviceId={}]",
                     event.getMessage().getId(), event.getMessage().getDeviceId());
             // 已在 sendDeviceMessage 中改写为子设备 deviceId + 纯 properties
             deviceDataStorageService.storeDeviceData(event.getMessage(),
@@ -69,7 +69,7 @@ public class SubPropertyUpstreamReportListener {
             param.setProperties(properties);
             R<Integer> result = remoteDeviceService.evaluatePropertyThreshold(param);
             if (result != null && result.getData() != null && result.getData() > 0) {
-                log.info("[evaluateThreshold] 子设备阈值告警 {} 条 device={}", result.getData(), deviceIdentification);
+                log.debug("[evaluateThreshold] 子设备阈值告警 {} 条 device={}", result.getData(), deviceIdentification);
             }
         } catch (Exception e) {
             log.warn("[evaluateThreshold] 子设备阈值评估失败 messageId={}", message.getId(), e);

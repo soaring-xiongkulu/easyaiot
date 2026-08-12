@@ -27,7 +27,7 @@ public class ShadowDownstreamDesiredListener {
                 return;
             }
 
-            log.info("[handleShadowDownstreamDesiredEvent][处理影子期望值下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleShadowDownstreamDesiredEvent][处理影子期望值下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现影子期望值下行消息的业务逻辑

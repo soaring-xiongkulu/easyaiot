@@ -27,7 +27,7 @@ public class EventDownstreamReportAckListener {
                 return;
             }
 
-            log.info("[handleEventDownstreamReportAckEvent][处理事件上报确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleEventDownstreamReportAckEvent][处理事件上报确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现事件上报确认下行消息的业务逻辑

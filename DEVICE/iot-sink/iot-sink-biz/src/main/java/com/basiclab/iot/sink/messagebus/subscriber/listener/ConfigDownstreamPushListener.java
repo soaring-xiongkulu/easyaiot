@@ -27,7 +27,7 @@ public class ConfigDownstreamPushListener {
                 return;
             }
 
-            log.info("[handleConfigDownstreamPushEvent][处理配置推送下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleConfigDownstreamPushEvent][处理配置推送下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现配置推送下行消息的业务逻辑

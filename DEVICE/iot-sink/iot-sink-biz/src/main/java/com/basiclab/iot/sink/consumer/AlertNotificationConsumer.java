@@ -60,7 +60,7 @@ public class AlertNotificationConsumer {
             Acknowledgment acknowledgment) {
         
         try {
-            log.info("收到告警通知消息: topic={}, partition={}, offset={}", topic, partition, offset);
+            log.debug("收到告警通知消息: topic={}, partition={}, offset={}", topic, partition, offset);
             
             if (messageJson == null || messageJson.isEmpty()) {
                 log.error("告警通知消息为空");
@@ -90,7 +90,7 @@ public class AlertNotificationConsumer {
                 return;
             }
 
-            log.info("开始处理告警: deviceId={}, deviceName={}, taskId={}, taskName={}", 
+            log.debug("开始处理告警: deviceId={}, deviceName={}, taskId={}, taskName={}", 
                     message.getDeviceId(), message.getDeviceName(), message.getTaskId(), message.getTaskName());
 
             // 记录通知配置信息
@@ -99,7 +99,7 @@ public class AlertNotificationConsumer {
             List<String> notifyMethods = message.getNotifyMethods();
             Boolean shouldNotify = message.getShouldNotify();
             
-            log.info("📊 告警通知配置信息: deviceId={}, taskId={}, shouldNotify={}, " +
+            log.debug("📊 告警通知配置信息: deviceId={}, taskId={}, shouldNotify={}, " +
                     "channels数量={}, notifyUsers数量={}, notifyMethods={}", 
                     message.getDeviceId(), message.getTaskId(), shouldNotify,
                     (channels != null ? channels.size() : 0),
@@ -114,7 +114,7 @@ public class AlertNotificationConsumer {
                 // 如果存储成功，更新消息中的alertId
                 if (alertId != null) {
                     message.setAlertId(alertId);
-                    log.info("✅ 告警处理成功: alertId={}, deviceId={}", alertId, message.getDeviceId());
+                    log.debug("✅ 告警处理成功: alertId={}, deviceId={}", alertId, message.getDeviceId());
                 } else {
                     log.warn("⚠️  告警处理失败，未返回alertId: deviceId={}", message.getDeviceId());
                 }
@@ -134,7 +134,7 @@ public class AlertNotificationConsumer {
                     shouldNotify = hasNotificationConfig;
                 }
                 
-                log.info("📋 告警通知判断: deviceId={}, alertId={}, shouldNotify={}, " +
+                log.debug("📋 告警通知判断: deviceId={}, alertId={}, shouldNotify={}, " +
                         "hasNotificationConfig={}", 
                         message.getDeviceId(), alertIdRef[0], shouldNotify, hasNotificationConfig);
                 
@@ -147,7 +147,7 @@ public class AlertNotificationConsumer {
                             String notificationMessageJson = JsonUtils.toJsonString(message);
                             final Integer finalAlertId = alertIdRef[0];
                             
-                            log.info("📤 准备发送告警通知消息到通知主题: alertId={}, deviceId={}, topic={}, " +
+                            log.debug("📤 准备发送告警通知消息到通知主题: alertId={}, deviceId={}, topic={}, " +
                                     "notifyUsers数量={}, notifyMethods={}, channels数量={}", 
                                     finalAlertId, message.getDeviceId(), notificationSendTopic,
                                     (notifyUsers != null ? notifyUsers.size() : 0),
@@ -159,7 +159,7 @@ public class AlertNotificationConsumer {
                                     .addCallback(
                                             result -> {
                                                 if (result != null) {
-                                                    log.info("✅ 告警通知消息已发送到通知主题: alertId={}, topic={}, partition={}, offset={}, " +
+                                                    log.debug("✅ 告警通知消息已发送到通知主题: alertId={}, topic={}, partition={}, offset={}, " +
                                                             "notifyUsers数量={}, notifyMethods={}", 
                                                             finalAlertId,
                                                             result.getRecordMetadata().topic(),
@@ -183,13 +183,13 @@ public class AlertNotificationConsumer {
                                 alertIdRef[0], message.getDeviceId());
                     }
                 } else if (shouldNotify && hasNotificationConfig && alertIdRef[0] == null) {
-                    log.info("ℹ️  告警未落库（可能不在布防时段内），跳过发送通知: " +
+                    log.debug("ℹ️  告警未落库（可能不在布防时段内），跳过发送通知: " +
                             "deviceId={}, shouldNotify={}, channels数量={}, notifyUsers数量={}",
                             message.getDeviceId(), shouldNotify,
                             (channels != null ? channels.size() : 0),
                             (notifyUsers != null ? notifyUsers.size() : 0));
                 } else {
-                    log.info("ℹ️  告警消息中没有通知配置或shouldNotify=false，跳过发送通知: " +
+                    log.debug("ℹ️  告警消息中没有通知配置或shouldNotify=false，跳过发送通知: " +
                             "deviceId={}, alertId={}, shouldNotify={}, channels数量={}, notifyUsers数量={}", 
                             message.getDeviceId(), alertIdRef[0], shouldNotify,
                             (channels != null ? channels.size() : 0),

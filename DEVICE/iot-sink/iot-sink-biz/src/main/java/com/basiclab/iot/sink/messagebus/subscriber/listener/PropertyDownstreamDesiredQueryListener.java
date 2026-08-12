@@ -27,7 +27,7 @@ public class PropertyDownstreamDesiredQueryListener {
                 return;
             }
 
-            log.info("[handlePropertyDownstreamDesiredQueryEvent][处理属性期望值查询下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handlePropertyDownstreamDesiredQueryEvent][处理属性期望值查询下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现属性期望值查询下行消息的业务逻辑

@@ -22,7 +22,7 @@ public class DeviceInfoEventListener {
     @EventListener
     public void handleDeviceInfoEvent(DeviceInfoEvent event) {
         try {
-            log.info("[handleDeviceInfoEvent][处理设备标签消息，topic: {}, 类型: {}, 描述: {}]",
+            log.debug("[handleDeviceInfoEvent][处理设备标签消息，topic: {}, 类型: {}, 描述: {}]",
                     event.getMessage().getTopic(), event.getTopicEnum().name(), event.getTopicEnum().getDescription());
             // TODO: 实现设备标签消息处理逻辑
         } catch (Exception e) {

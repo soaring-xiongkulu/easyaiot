@@ -27,7 +27,7 @@ public class SubEventUpstreamReportListener {
             if (event.getTopicEnum() != IotDeviceTopicEnum.SUB_EVENT_UPSTREAM_REPORT) {
                 return;
             }
-            log.info("[handleSubEventUpstreamReportEvent][网关代报事件 messageId={} deviceId={}]",
+            log.debug("[handleSubEventUpstreamReportEvent][网关代报事件 messageId={} deviceId={}]",
                     event.getMessage().getId(), event.getMessage().getDeviceId());
             deviceDataStorageService.storeDeviceData(event.getMessage(),
                     IotDeviceTopicEnum.EVENT_UPSTREAM_REPORT);

@@ -42,16 +42,16 @@ public class GatewayTopoUpstreamListener {
             if (topicEnum == IotDeviceTopicEnum.TOPO_UPSTREAM_ADD) {
                 List<Device> devices = gatewaySubDeviceSupport.processTopoAdd(
                         gatewayIdentification, message.getParams(), message.getTenantId());
-                log.info("[handleTopoEvent][拓扑添加完成 gateway={} count={}]",
+                log.debug("[handleTopoEvent][拓扑添加完成 gateway={} count={}]",
                         gatewayIdentification, devices.size());
             } else if (topicEnum == IotDeviceTopicEnum.TOPO_UPSTREAM_DELETE) {
                 int n = gatewaySubDeviceSupport.processTopoDelete(
                         gatewayIdentification, message.getParams());
-                log.info("[handleTopoEvent][拓扑删除完成 gateway={} count={}]", gatewayIdentification, n);
+                log.debug("[handleTopoEvent][拓扑删除完成 gateway={} count={}]", gatewayIdentification, n);
             } else if (topicEnum == IotDeviceTopicEnum.TOPO_UPSTREAM_STATUS) {
                 int n = gatewaySubDeviceSupport.processTopoStatus(
                         gatewayIdentification, message.getParams());
-                log.info("[handleTopoEvent][拓扑状态更新完成 gateway={} count={}]", gatewayIdentification, n);
+                log.debug("[handleTopoEvent][拓扑状态更新完成 gateway={} count={}]", gatewayIdentification, n);
             }
         } catch (Exception e) {
             log.error("[handleTopoEvent][处理拓扑上行失败 topic={}]",

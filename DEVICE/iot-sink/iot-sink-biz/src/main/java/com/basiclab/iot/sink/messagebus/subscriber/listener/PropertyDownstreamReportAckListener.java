@@ -27,7 +27,7 @@ public class PropertyDownstreamReportAckListener {
                 return;
             }
 
-            log.info("[handlePropertyDownstreamReportAckEvent][处理属性上报确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handlePropertyDownstreamReportAckEvent][处理属性上报确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现属性上报确认下行消息的业务逻辑

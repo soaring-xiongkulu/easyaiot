@@ -22,7 +22,7 @@ public class NtpEventListener {
     @EventListener
     public void handleNtpEvent(NtpEvent event) {
         try {
-            log.info("[handleNtpEvent][处理 NTP 消息，topic: {}, 类型: {}, 描述: {}]",
+            log.debug("[handleNtpEvent][处理 NTP 消息，topic: {}, 类型: {}, 描述: {}]",
                     event.getMessage().getTopic(), event.getTopicEnum().name(), event.getTopicEnum().getDescription());
             // TODO: 实现 NTP 消息处理逻辑
         } catch (Exception e) {

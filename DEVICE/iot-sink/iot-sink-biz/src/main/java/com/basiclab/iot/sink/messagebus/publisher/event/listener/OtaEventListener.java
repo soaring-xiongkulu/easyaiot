@@ -22,7 +22,7 @@ public class OtaEventListener {
     @EventListener
     public void handleOtaEvent(OtaEvent event) {
         try {
-            log.info("[handleOtaEvent][处理 OTA 消息，topic: {}, 类型: {}, 描述: {}]",
+            log.debug("[handleOtaEvent][处理 OTA 消息，topic: {}, 类型: {}, 描述: {}]",
                     event.getMessage().getTopic(), event.getTopicEnum().name(), event.getTopicEnum().getDescription());
             // TODO: 实现 OTA 消息处理逻辑
         } catch (Exception e) {

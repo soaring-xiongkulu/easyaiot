@@ -27,7 +27,7 @@ public class DeviceTagDownstreamReportAckListener {
                 return;
             }
 
-            log.info("[handleDeviceTagDownstreamReportAckEvent][处理设备标签上报确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleDeviceTagDownstreamReportAckEvent][处理设备标签上报确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现设备标签上报确认下行消息的业务逻辑

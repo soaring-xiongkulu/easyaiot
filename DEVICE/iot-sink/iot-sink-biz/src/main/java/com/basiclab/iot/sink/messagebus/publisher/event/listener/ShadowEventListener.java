@@ -22,7 +22,7 @@ public class ShadowEventListener {
     @EventListener
     public void handleShadowEvent(ShadowEvent event) {
         try {
-            log.info("[handleShadowEvent][处理设备影子消息，topic: {}, 类型: {}, 描述: {}]",
+            log.debug("[handleShadowEvent][处理设备影子消息，topic: {}, 类型: {}, 描述: {}]",
                     event.getMessage().getTopic(), event.getTopicEnum().name(), event.getTopicEnum().getDescription());
             // TODO: 实现设备影子消息处理逻辑
         } catch (Exception e) {

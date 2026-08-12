@@ -33,7 +33,7 @@ public class OtaUpstreamProgressReportListener {
                 return;
             }
 
-            log.info("[handleOtaUpstreamProgressReportEvent][处理OTA进度上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleOtaUpstreamProgressReportEvent][处理OTA进度上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

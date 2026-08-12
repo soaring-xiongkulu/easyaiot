@@ -33,7 +33,7 @@ public class DeviceTagUpstreamReportListener {
                 return;
             }
 
-            log.info("[handleDeviceTagUpstreamReportEvent][处理设备标签上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleDeviceTagUpstreamReportEvent][处理设备标签上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

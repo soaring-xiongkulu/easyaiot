@@ -27,7 +27,7 @@ public class NtpDownstreamResponseListener {
                 return;
             }
 
-            log.info("[handleNtpDownstreamResponseEvent][处理NTP同步响应下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleNtpDownstreamResponseEvent][处理NTP同步响应下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现NTP同步响应下行消息的业务逻辑

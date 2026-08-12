@@ -22,7 +22,7 @@ public class EventMessageEventListener {
     @EventListener
     public void handleEventMessageEvent(EventMessageEvent event) {
         try {
-            log.info("[handleEventMessageEvent][处理事件上报消息，topic: {}, 类型: {}, 描述: {}]",
+            log.debug("[handleEventMessageEvent][处理事件上报消息，topic: {}, 类型: {}, 描述: {}]",
                     event.getMessage().getTopic(), event.getTopicEnum().name(), event.getTopicEnum().getDescription());
             // TODO: 实现事件上报消息处理逻辑
         } catch (Exception e) {

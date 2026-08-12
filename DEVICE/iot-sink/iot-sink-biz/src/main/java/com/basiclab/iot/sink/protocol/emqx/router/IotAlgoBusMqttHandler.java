@@ -143,7 +143,7 @@ public class IotAlgoBusMqttHandler {
             msg.setAlertId(alertId);
         }
         maybeForwardNotification(msg, alertId);
-        log.info("[IotAlgoBusMqttHandler] 告警已处理 alertId={} deviceId={} snapshot={}",
+        log.debug("[IotAlgoBusMqttHandler] 告警已处理 alertId={} deviceId={} snapshot={}",
                 alertId, msg.getDeviceId(), snapshot);
     }
 
@@ -154,7 +154,7 @@ public class IotAlgoBusMqttHandler {
         }
         PostProcessRequestMessage req = objectMapper.treeToValue(payload, PostProcessRequestMessage.class);
         postProcessService.enqueue(req);
-        log.info("[IotAlgoBusMqttHandler] 后处理已入队 taskId={} deviceId={}",
+        log.debug("[IotAlgoBusMqttHandler] 后处理已入队 taskId={} deviceId={}",
                 req.getTaskId(), req.getDeviceId());
     }
 
@@ -323,7 +323,7 @@ public class IotAlgoBusMqttHandler {
                         + "AND at.is_enabled = true AND at.task_type = ? LIMIT 1";
                 List<Map<String, Object>> eventRows = jdbcTemplate.queryForList(eventSql, deviceId, taskType);
                 if (eventRows == null || eventRows.isEmpty()) {
-                    log.info("[IotAlgoBusMqttHandler] 设备未关联告警事件任务，仍尝试落库: deviceId={} taskType={}",
+                    log.debug("[IotAlgoBusMqttHandler] 设备未关联告警事件任务，仍尝试落库: deviceId={} taskType={}",
                             deviceId, taskType);
                 }
                 msg.setShouldNotify(false);
@@ -383,7 +383,7 @@ public class IotAlgoBusMqttHandler {
             msg.setNotifyMethods(notifyMethods);
             boolean hasConfig = hasAlertNotificationConfig(channels, notifyUsers);
             msg.setShouldNotify(hasConfig);
-            log.info("[IotAlgoBusMqttHandler] 已从 VIDEO 库补齐通知配置 deviceId={} channels={} users={}",
+            log.debug("[IotAlgoBusMqttHandler] 已从 VIDEO 库补齐通知配置 deviceId={} channels={} users={}",
                     deviceId, channels.size(), notifyUsers.size());
         } catch (Exception e) {
             log.warn("[IotAlgoBusMqttHandler] 通知 enrichment 失败 deviceId={}: {}", deviceId, e.getMessage());
@@ -420,7 +420,7 @@ public class IotAlgoBusMqttHandler {
         try {
             String json = JsonUtils.toJsonString(msg);
             kafkaTemplate.send(notificationSendTopic, msg.getDeviceId(), json);
-            log.info("[IotAlgoBusMqttHandler] 通知已转发 topic={} alertId={} deviceId={}",
+            log.debug("[IotAlgoBusMqttHandler] 通知已转发 topic={} alertId={} deviceId={}",
                     notificationSendTopic, alertId, msg.getDeviceId());
         } catch (Exception e) {
             log.error("[IotAlgoBusMqttHandler] 通知转发失败 alertId={}: {}", alertId, e.getMessage(), e);

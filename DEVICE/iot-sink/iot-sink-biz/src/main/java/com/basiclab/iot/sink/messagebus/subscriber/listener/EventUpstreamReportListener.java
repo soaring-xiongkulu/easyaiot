@@ -33,7 +33,7 @@ public class EventUpstreamReportListener {
                 return;
             }
 
-            log.info("[handleEventUpstreamReportEvent][处理事件上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleEventUpstreamReportEvent][处理事件上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

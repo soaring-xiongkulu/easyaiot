@@ -27,7 +27,7 @@ public class ServiceDownstreamInvokeListener {
                 return;
             }
 
-            log.info("[handleServiceDownstreamInvokeEvent][处理服务调用下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleServiceDownstreamInvokeEvent][处理服务调用下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现服务调用下行消息的业务逻辑

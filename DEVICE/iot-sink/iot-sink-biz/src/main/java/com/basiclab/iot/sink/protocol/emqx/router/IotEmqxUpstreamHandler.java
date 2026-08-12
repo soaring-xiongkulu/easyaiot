@@ -43,7 +43,7 @@ public class IotEmqxUpstreamHandler {
      * 处理 MQTT 发布消息
      */
     public void handle(MqttPublishMessage mqttMessage) {
-        log.info("[handle][收到 MQTT 消息, topic: {}, payloadLen: {}]",
+        log.debug("[handle][收到 MQTT 消息, topic: {}, payloadLen: {}]",
                 mqttMessage.topicName(),
                 mqttMessage.payload() != null ? mqttMessage.payload().length() : 0);
         String topic = mqttMessage.topicName();

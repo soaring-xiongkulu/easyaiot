@@ -27,7 +27,7 @@ public class ConfigDownstreamQueryAckListener {
                 return;
             }
 
-            log.info("[handleConfigDownstreamQueryAckEvent][处理配置查询确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleConfigDownstreamQueryAckEvent][处理配置查询确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现配置查询确认下行消息的业务逻辑

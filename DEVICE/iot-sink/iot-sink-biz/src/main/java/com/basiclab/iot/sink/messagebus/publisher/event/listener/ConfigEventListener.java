@@ -22,7 +22,7 @@ public class ConfigEventListener {
     @EventListener
     public void handleConfigEvent(ConfigEvent event) {
         try {
-            log.info("[handleConfigEvent][处理配置消息，topic: {}, 类型: {}, 描述: {}]",
+            log.debug("[handleConfigEvent][处理配置消息，topic: {}, 类型: {}, 描述: {}]",
                     event.getMessage().getTopic(), event.getTopicEnum().name(), event.getTopicEnum().getDescription());
             // TODO: 实现配置消息处理逻辑
         } catch (Exception e) {

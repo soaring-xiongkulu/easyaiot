@@ -27,7 +27,7 @@ public class DeviceTagDownstreamDeleteAckListener {
                 return;
             }
 
-            log.info("[handleDeviceTagDownstreamDeleteAckEvent][处理设备标签删除确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleDeviceTagDownstreamDeleteAckEvent][处理设备标签删除确认下行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // TODO: 实现设备标签删除确认下行消息的业务逻辑

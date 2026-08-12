@@ -34,7 +34,7 @@ public class PlateMatchingConsumer {
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
         try {
-            log.info("收到车牌匹配消息: topic={}, partition={}, offset={}", topic, partition, offset);
+            log.debug("收到车牌匹配消息: topic={}, partition={}, offset={}", topic, partition, offset);
             if (messageJson == null || messageJson.isEmpty()) {
                 if (acknowledgment != null) {
                     acknowledgment.acknowledge();

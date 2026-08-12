@@ -33,7 +33,7 @@ public class ConfigUpstreamQueryListener {
                 return;
             }
 
-            log.info("[handleConfigUpstreamQueryEvent][处理配置查询上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handleConfigUpstreamQueryEvent][处理配置查询上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

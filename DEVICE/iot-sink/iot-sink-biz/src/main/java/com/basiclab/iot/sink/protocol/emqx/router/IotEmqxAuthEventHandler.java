@@ -73,14 +73,14 @@ public class IotEmqxAuthEventHandler {
             String password = body.getString("password");
             log.debug("[handleAuth][设备认证请求: clientId={}, username={}]", clientId, username);
             if (StrUtil.hasEmpty(clientId, username, password)) {
-                log.info("[handleAuth][认证参数不完整: clientId={}, username={}]", clientId, username);
+                log.debug("[handleAuth][认证参数不完整: clientId={}, username={}]", clientId, username);
                 sendAuthResponse(context, RESULT_DENY);
                 return;
             }
 
             // 2. 执行认证
             boolean authResult = handleDeviceAuth(clientId, username, password);
-            log.info("[handleAuth][设备认证结果: {} -> {}]", username, authResult);
+            log.debug("[handleAuth][设备认证结果: {} -> {}]", username, authResult);
             if (authResult) {
                 sendAuthResponse(context, RESULT_ALLOW);
             } else {
@@ -158,7 +158,7 @@ public class IotEmqxAuthEventHandler {
         try {
             JsonObject body = context.body().asJsonObject();
             if (body == null) {
-                log.info("[parseRequestBody][请求体为空]");
+                log.debug("[parseRequestBody][请求体为空]");
                 sendAuthResponse(context, RESULT_IGNORE);
                 return null;
             }

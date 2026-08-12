@@ -58,8 +58,8 @@ public class SnapshotAlertConsumer {
     /**
      * 告警记录保留时间（毫秒），默认1毫秒
      */
-    @Value("${snapshot.alert.dedup.retention-ms:1}")
-    private long retentionMs = 1;
+    @Value("${snapshot.alert.dedup.retention-ms:3000}")
+    private long retentionMs = 3000;
     
     /**
      * 初始化定时清理任务
@@ -198,7 +198,7 @@ public class SnapshotAlertConsumer {
             Acknowledgment acknowledgment) {
         
         try {
-            log.info("收到抓拍算法任务告警消息: topic={}, partition={}, offset={}", topic, partition, offset);
+            log.debug("收到抓拍算法任务告警消息: topic={}, partition={}, offset={}", topic, partition, offset);
             
             if (messageJson == null || messageJson.isEmpty()) {
                 log.error("抓拍算法任务告警消息为空");
@@ -228,7 +228,7 @@ public class SnapshotAlertConsumer {
                 return;
             }
 
-            log.info("开始处理抓拍算法任务告警: deviceId={}, deviceName={}, taskId={}, taskName={}", 
+            log.debug("开始处理抓拍算法任务告警: deviceId={}, deviceName={}, taskId={}, taskName={}", 
                     message.getDeviceId(), message.getDeviceName(), message.getTaskId(), message.getTaskName());
 
             // 检查告警时间
@@ -239,7 +239,7 @@ public class SnapshotAlertConsumer {
             
             // 去重检查：同一设备、同一时间只处理第一条
             if (isAlreadyProcessed(message.getDeviceId(), alertTime)) {
-                log.info("⏭️  抓拍算法任务告警已处理过（同一时间），跳过: deviceId={}, alertTime={}, taskId={}", 
+                log.debug("⏭️  抓拍算法任务告警已处理过（同一时间），跳过: deviceId={}, alertTime={}, taskId={}", 
                         message.getDeviceId(), alertTime, message.getTaskId());
                 // 确认消息已处理（即使跳过，也要确认，避免重复投递）
                 if (acknowledgment != null) {
@@ -254,7 +254,7 @@ public class SnapshotAlertConsumer {
             List<String> notifyMethods = message.getNotifyMethods();
             Boolean shouldNotify = message.getShouldNotify();
             
-            log.info("📊 抓拍算法任务告警通知配置信息: deviceId={}, taskId={}, alertTime={}, shouldNotify={}, " +
+            log.debug("📊 抓拍算法任务告警通知配置信息: deviceId={}, taskId={}, alertTime={}, shouldNotify={}, " +
                     "channels数量={}, notifyUsers数量={}, notifyMethods={}", 
                     message.getDeviceId(), message.getTaskId(), alertTime, shouldNotify,
                     (channels != null ? channels.size() : 0),
@@ -272,7 +272,7 @@ public class SnapshotAlertConsumer {
                     message.setAlertId(alertId);
                     // 确认标记为已处理（虽然已经在isAlreadyProcessed中标记，但这里确认一下）
                     markAsProcessed(message.getDeviceId(), alertTime);
-                    log.info("✅ 抓拍算法任务告警处理成功: alertId={}, deviceId={}, alertTime={}", 
+                    log.debug("✅ 抓拍算法任务告警处理成功: alertId={}, deviceId={}, alertTime={}", 
                             alertId, message.getDeviceId(), alertTime);
                 } else {
                     log.warn("⚠️  抓拍算法任务告警处理失败，未返回alertId: deviceId={}, alertTime={}", 
@@ -300,7 +300,7 @@ public class SnapshotAlertConsumer {
                     shouldNotify = hasNotificationConfig;
                 }
                 
-                log.info("📋 抓拍算法任务告警通知判断: deviceId={}, alertId={}, shouldNotify={}, " +
+                log.debug("📋 抓拍算法任务告警通知判断: deviceId={}, alertId={}, shouldNotify={}, " +
                         "hasNotificationConfig={}", 
                         message.getDeviceId(), alertIdRef[0], shouldNotify, hasNotificationConfig);
                 
@@ -313,7 +313,7 @@ public class SnapshotAlertConsumer {
                             String notificationMessageJson = JsonUtils.toJsonString(message);
                             final Integer finalAlertId = alertIdRef[0];
                             
-                            log.info("📤 准备发送抓拍算法任务告警通知消息到通知主题: alertId={}, deviceId={}, topic={}, " +
+                            log.debug("📤 准备发送抓拍算法任务告警通知消息到通知主题: alertId={}, deviceId={}, topic={}, " +
                                     "notifyUsers数量={}, notifyMethods={}, channels数量={}", 
                                     finalAlertId, message.getDeviceId(), snapshotNotificationSendTopic,
                                     (notifyUsers != null ? notifyUsers.size() : 0),
@@ -325,7 +325,7 @@ public class SnapshotAlertConsumer {
                                     .addCallback(
                                             result -> {
                                                 if (result != null) {
-                                                    log.info("✅ 抓拍算法任务告警通知消息已发送到通知主题: alertId={}, topic={}, partition={}, offset={}, " +
+                                                    log.debug("✅ 抓拍算法任务告警通知消息已发送到通知主题: alertId={}, topic={}, partition={}, offset={}, " +
                                                             "notifyUsers数量={}, notifyMethods={}", 
                                                             finalAlertId,
                                                             result.getRecordMetadata().topic(),
@@ -349,13 +349,13 @@ public class SnapshotAlertConsumer {
                                 alertIdRef[0], message.getDeviceId());
                     }
                 } else if (shouldNotify && hasNotificationConfig && alertIdRef[0] == null) {
-                    log.info("ℹ️  抓拍算法任务告警未落库（可能不在布防时段内），跳过发送通知: " +
+                    log.debug("ℹ️  抓拍算法任务告警未落库（可能不在布防时段内），跳过发送通知: " +
                             "deviceId={}, shouldNotify={}, channels数量={}, notifyUsers数量={}",
                             message.getDeviceId(), shouldNotify,
                             (channels != null ? channels.size() : 0),
                             (notifyUsers != null ? notifyUsers.size() : 0));
                 } else {
-                    log.info("ℹ️  抓拍算法任务告警消息中没有通知配置或shouldNotify=false，跳过发送通知: " +
+                    log.debug("ℹ️  抓拍算法任务告警消息中没有通知配置或shouldNotify=false，跳过发送通知: " +
                             "deviceId={}, alertId={}, shouldNotify={}, channels数量={}, notifyUsers数量={}", 
                             message.getDeviceId(), alertIdRef[0], shouldNotify,
                             (channels != null ? channels.size() : 0),

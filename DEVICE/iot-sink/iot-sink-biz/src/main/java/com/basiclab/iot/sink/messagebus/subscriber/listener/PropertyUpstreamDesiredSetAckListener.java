@@ -33,7 +33,7 @@ public class PropertyUpstreamDesiredSetAckListener {
                 return;
             }
 
-            log.info("[handlePropertyUpstreamDesiredSetAckEvent][处理属性期望值设置确认上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handlePropertyUpstreamDesiredSetAckEvent][处理属性期望值设置确认上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis

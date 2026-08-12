@@ -45,7 +45,7 @@ public class PropertyUpstreamReportListener {
                 return;
             }
 
-            log.info("[handlePropertyUpstreamReportEvent][处理属性上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
+            log.debug("[handlePropertyUpstreamReportEvent][处理属性上报上行消息，messageId: {}, topic: {}, deviceId: {}]",
                     event.getMessage().getId(), event.getMessage().getTopic(), event.getMessage().getDeviceId());
 
             // 存储数据到TDEngine和Redis
@@ -78,7 +78,7 @@ public class PropertyUpstreamReportListener {
             param.setProperties(properties);
             R<Integer> result = remoteDeviceService.evaluatePropertyThreshold(param);
             if (result != null && result.getData() != null && result.getData() > 0) {
-                log.info("[evaluateThreshold] 触发阈值告警 {} 条 device={}", result.getData(), deviceIdentification);
+                log.debug("[evaluateThreshold] 触发阈值告警 {} 条 device={}", result.getData(), deviceIdentification);
             }
         } catch (Exception e) {
             log.warn("[evaluateThreshold] 阈值评估失败 messageId={}", message.getId(), e);
