@@ -74,7 +74,7 @@ EDGE / AI 训练标注 / SAM / 真机联调 / 远程推流节点 py：**不进�
 | R-18 | SAM | **清出** | RUNTIME **已 product-veto**；Java 不实现；清单曾因 VIDEO 旁路字段误显眼 |
 | R-11…R-16 | ONVIF/对讲/国标/司空/Ceph 等真机 | **归档按需** | **代码面多已有**；缺环境验证；有项目再联调 |
 | — | 自研网络 / 重写 RUNTIME·ffmpeg·WVP | **永久不做** | — |
-| R-19 | 删 `VIDEO/` 目录 | **禁止（直至 W1–W3 验收+签字）** | — |
+| R-19 | 删 `VIDEO/` 目录 | **切仓 Phase 5**（见 [REPO_CUTOVER_PLAN.md](./REPO_CUTOVER_PLAN.md)） | W1–W3 已 PASS；删树另开 PR |
 
 ---
 
@@ -136,3 +136,4 @@ AI 标注/训练 worker   → 不迁，留 Python（iot-node）
 | W2 Patrol → RUNTIME | **PASS**（gate-fix 会话证据 2026-08-12） |
 | W3 Post-process YAML | **PASS** |
 | 清出项 | **已锁定，不排期** |
+

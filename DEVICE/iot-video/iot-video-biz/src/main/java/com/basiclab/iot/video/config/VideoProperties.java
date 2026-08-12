@@ -254,6 +254,11 @@ public class VideoProperties {
         private boolean pythonCliEnabled = false;
         /** Prefer ONNX Runtime Java engines when models exist. */
         private boolean onnxEnabled = true;
+        /**
+         * Canonical ONNX directory after cutover Phase1.
+         * Default resolution: DEVICE/iot-video/models (env VIDEO_MODELS_DIR wins).
+         */
+        private String modelsDir = "";
         /** Python interpreter; env VIDEO_PYTHON / PYTHON wins when set. */
         private String pythonExecutable = "";
         /** Optional override; default {@code $ACME_ROOT/VIDEO/scripts/inference_workers}. */
@@ -295,7 +300,7 @@ public class VideoProperties {
         private Boolean remoteDeployEnabled;
         /** Gateway / JAVA_BACKEND_URL for {@code /admin-api/node/*}. */
         private String gatewayUrl = "http://localhost:48080";
-        /** Remote VIDEO tree on compute nodes ({@code NODE_REMOTE_VIDEO_ROOT}). */
+        /** Remote node media root ({@code NODE_REMOTE_VIDEO_ROOT}). Legacy default; mid-control no longer requires repo VIDEO/. */
         private String remoteVideoRoot = "/opt/easyaiot/VIDEO";
         /** Remote RUNTIME binary ({@code REMOTE_RUNTIME_BIN}). */
         private String remoteRuntimeBin = "/opt/easyaiot/RUNTIME/bin/RUNTIME";

@@ -181,3 +181,8 @@ VIDEO/ffmpeg-master-*.tar.xz
 # local acme env overlays (secrets)
 **/.env.acme
 
+# VIDEO cutover Phase1 — large ONNX live under DEVICE/iot-video/models (not committed)
+DEVICE/iot-video/models/*.onnx
+DEVICE/iot-video/models/*.pt
+data/alert_images/**
+!data/alert_images/.gitkeep

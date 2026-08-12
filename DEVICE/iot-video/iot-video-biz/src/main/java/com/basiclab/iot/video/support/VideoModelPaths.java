@@ -8,7 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Mirrors Python {@code face_model_paths.py} / {@code plate_model_paths.py} fixed VIDEO/*.onnx paths.
+ * Face/plate model path helpers. Prefer {@code DEVICE/iot-video/models} (Phase1 cutover);
+ * fall back to legacy {@code VIDEO/*.onnx} until Phase5 deletes the tree.
  */
 @Component
 @RequiredArgsConstructor
@@ -25,21 +26,40 @@ public class VideoModelPaths {
         if (configured != null && !configured.isBlank()) {
             return Path.of(configured.trim());
         }
-        String envRoot = firstNonBlank(System.getenv("ACME_ROOT"), System.getenv("RUNTIME_ROOT"));
+        String envRoot = firstNonBlank(
+                System.getenv("ACME_CANDIDATE_ROOT"),
+                System.getenv("ACME_ROOT"),
+                System.getenv("RUNTIME_ROOT")
+        );
         if (envRoot != null) {
             return Path.of(envRoot.trim());
         }
         Path cwd = Path.of(System.getProperty("user.dir"));
-        if (Files.isDirectory(cwd.resolve("VIDEO"))) {
+        if (Files.isDirectory(cwd.resolve("DEVICE")) || Files.isDirectory(cwd.resolve("VIDEO"))) {
             return cwd;
         }
         Path parent = cwd.getParent();
-        if (parent != null && Files.isDirectory(parent.resolve("VIDEO"))) {
+        if (parent != null && (Files.isDirectory(parent.resolve("DEVICE")) || Files.isDirectory(parent.resolve("VIDEO")))) {
             return parent;
         }
         return cwd;
     }
 
+    public Path modelsRoot() {
+        String configured = videoProperties.getInference() != null
+                ? videoProperties.getInference().getModelsDir()
+                : null;
+        if (configured != null && !configured.isBlank()) {
+            return Path.of(configured.trim());
+        }
+        String env = envOrNull("VIDEO_MODELS_DIR");
+        if (env != null) {
+            return Path.of(env);
+        }
+        return repoRoot().resolve("DEVICE/iot-video/models");
+    }
+
+    /** @deprecated Prefer {@link #modelsRoot()}; kept for callers during cutover. */
     public Path videoRoot() {
         return repoRoot().resolve("VIDEO");
     }
@@ -49,6 +69,10 @@ public class VideoModelPaths {
         if (env != null) {
             return Path.of(env);
         }
+        Path primary = modelsRoot().resolve("face_rec.onnx");
+        if (Files.isRegularFile(primary)) {
+            return primary;
+        }
         return videoRoot().resolve("face_rec.onnx");
     }
 
@@ -57,6 +81,10 @@ public class VideoModelPaths {
         if (env != null) {
             return Path.of(env);
         }
+        Path primary = modelsRoot().resolve("plate_detect.onnx");
+        if (Files.isRegularFile(primary)) {
+            return primary;
+        }
         return videoRoot().resolve("plate_detect.onnx");
     }
 
@@ -64,6 +92,10 @@ public class VideoModelPaths {
         String env = envOrNull("PLATE_REC_MODEL_PATH");
         if (env != null) {
             return Path.of(env);
+        }
+        Path primary = modelsRoot().resolve("plate_rec.onnx");
+        if (Files.isRegularFile(primary)) {
+            return primary;
         }
         return videoRoot().resolve("plate_rec.onnx");
     }

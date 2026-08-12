@@ -299,14 +299,22 @@ public class PostProcessLauncherService {
             return Path.of(explicit);
         }
         Path cwd = Path.of(System.getProperty("user.dir"));
-        if (Files.isDirectory(cwd.resolve("VIDEO"))) {
-            return cwd.resolve("VIDEO");
+        for (Path base : new Path[]{cwd, cwd.getParent()}) {
+            if (base == null) {
+                continue;
+            }
+            Path retiredWorker = base.resolve("VIDEO/_retired_python_video/services/post_process_worker/run_worker.py");
+            if (Files.isRegularFile(retiredWorker)) {
+                return base.resolve("VIDEO/_retired_python_video");
+            }
+            if (Files.isDirectory(base.resolve("VIDEO"))) {
+                return base.resolve("VIDEO");
+            }
         }
-        Path parent = cwd.getParent();
-        if (parent != null && Files.isDirectory(parent.resolve("VIDEO"))) {
-            return parent.resolve("VIDEO");
-        }
-        throw new IOException("无法定位本地 VIDEO 根目录（设置 VIDEO_ROOT 或从含 VIDEO/ 的工作目录启动）");
+        throw new IOException(
+                "无法定位后处理 Python worker（商业默认请开 java-rules-enabled；"
+                        + "或设置 VIDEO_ROOT / 保留 _retired_python_video）"
+        );
     }
 
     private static String resolveLocalPython() {

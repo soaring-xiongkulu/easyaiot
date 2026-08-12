@@ -51,7 +51,7 @@ public final class Part2WaveAEvidenceMain {
     }
 
     private static void embed(Path image, Path out) throws Exception {
-        Path model = Path.of("F:/acme/.worktrees/video-java/VIDEO/face_rec.onnx");
+        Path model = Path.of("F:/acme/.worktrees/video-java/DEVICE/iot-video/models/face_rec.onnx");
         long t0 = System.currentTimeMillis();
         float[] emb = embedImage(model, image);
         long ms = System.currentTimeMillis() - t0;
@@ -104,7 +104,7 @@ public final class Part2WaveAEvidenceMain {
     }
 
     private static void matchCycle(Path image, Path out) throws Exception {
-        Path model = Path.of("F:/acme/.worktrees/video-java/VIDEO/face_rec.onnx");
+        Path model = Path.of("F:/acme/.worktrees/video-java/DEVICE/iot-video/models/face_rec.onnx");
         float[] emb = embedImage(model, image);
         MilvusServiceClient client = client();
         client.loadCollection(LoadCollectionParam.newBuilder()
@@ -186,8 +186,8 @@ public final class Part2WaveAEvidenceMain {
     }
 
     private static void plate(Path image, Path out) throws Exception {
-        Path det = Path.of("F:/acme/.worktrees/video-java/VIDEO/plate_detect.onnx");
-        Path rec = Path.of("F:/acme/.worktrees/video-java/VIDEO/plate_rec.onnx");
+        Path det = Path.of("F:/acme/.worktrees/video-java/DEVICE/iot-video/models/plate_detect.onnx");
+        Path rec = Path.of("F:/acme/.worktrees/video-java/DEVICE/iot-video/models/plate_rec.onnx");
         // Use PlateOnnxEngine via reflection-free minimal path: detect+rec through same classes on classpath
         com.basiclab.iot.video.inference.onnx.PlateOnnxEngine engine =
                 new com.basiclab.iot.video.inference.onnx.PlateOnnxEngine(null);

@@ -63,9 +63,12 @@ video:
     use-direct-process: false
   inference:
     enabled: true
+    python-cli-enabled: false
+    onnx-enabled: true
     timeout-seconds: 120
   post-process:
     use-stub-enqueue: false
+    java-rules-enabled: true
     workspace-root: ${user.home}/.video-java/post-process-workspaces
     sink-host: 127.0.0.1
     sink-port: "48092"

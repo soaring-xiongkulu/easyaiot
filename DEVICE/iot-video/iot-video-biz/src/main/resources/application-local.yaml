@@ -45,16 +45,18 @@ video:
     secret-key: ${MINIO_SECRET_KEY:minioadmin}
   ffmpeg-path: F:/biofactory/ResearchStudioInstall/tools/bin/ffmpeg.cmd
   runtime:
-    repo-root: F:/acme
+    # Candidate worktree root (RUNTIME + DEVICE/iot-video/models live here).
+    repo-root: F:/acme/.worktrees/video-java
   inference:
     enabled: true
     python-cli-enabled: false
     onnx-enabled: true
-    face-rec-model-path: F:/acme/.worktrees/video-java/VIDEO/face_rec.onnx
-    face-det-model-path: F:/acme/.worktrees/video-java/VIDEO/face_det.onnx
-    plate-detect-model-path: F:/acme/.worktrees/video-java/VIDEO/plate_detect.onnx
-    plate-rec-model-path: F:/acme/.worktrees/video-java/VIDEO/plate_rec.onnx
-    pose-model-path: F:/acme/.worktrees/video-java/VIDEO/yolo26n-pose.onnx
+    models-dir: F:/acme/.worktrees/video-java/DEVICE/iot-video/models
+    face-rec-model-path: F:/acme/.worktrees/video-java/DEVICE/iot-video/models/face_rec.onnx
+    face-det-model-path: F:/acme/.worktrees/video-java/DEVICE/iot-video/models/face_det.onnx
+    plate-detect-model-path: F:/acme/.worktrees/video-java/DEVICE/iot-video/models/plate_detect.onnx
+    plate-rec-model-path: F:/acme/.worktrees/video-java/DEVICE/iot-video/models/plate_rec.onnx
+    pose-model-path: F:/acme/.worktrees/video-java/DEVICE/iot-video/models/yolo26n-pose.onnx
     milvus-uri: http://127.0.0.1:19530
     face-milvus-collection: face_embeddings
     face-similarity-threshold: 0.55

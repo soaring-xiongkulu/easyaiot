@@ -1,8 +1,8 @@
 # VIDEO Python → Java — HANDOFF
 
-> **话术：** Part2 Final W1–W3（2026-08-12）pose ORT + Patrol→RUNTIME + YAML 规则 本机 PASS；清出项不排期；**禁止 COMPLETE / 禁止删 VIDEO**。
+> **话术：** Part2 Final W1–W3（2026-08-12）本机 PASS；清出项不排期；**下一阶段 = 仓库切仓**（见 [REPO_CUTOVER_PLAN.md](./REPO_CUTOVER_PLAN.md)）。
 > **阶段 0/1 已落地；阶段 2 A-series 已关闭。** Part1 CP-12 Overall PARTIAL；**Part2 Wave-A + Final W1–W3 PASS**；EDGE/AI/SAM/真机仍清出。
-> **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
+> **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO**，直至切仓 Phase 5 产品签字。
 
 ## 1. 一句话目标
 
@@ -24,7 +24,7 @@
 
 **禁止：** 归档或删除 `F:/acme` @ `main` 上的 `VIDEO/`（Python Oracle）。分支上 `_retired_python_video` 只是副本，**不等于 Python 已退役**。
 
-执行方案：[`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md)。商业默认：[`PHASE0_DEFAULTS.md`](./PHASE0_DEFAULTS.md)。本机验收阻塞：[`CUTOVER_BLOCKERS.md`](./CUTOVER_BLOCKERS.md)。
+执行方案：[`PLAN_FULL_REPLACEMENT.md`](./PLAN_FULL_REPLACEMENT.md)。商业默认：[`PHASE0_DEFAULTS.md`](./PHASE0_DEFAULTS.md)。本机验收阻塞：[`CUTOVER_BLOCKERS.md`](./CUTOVER_BLOCKERS.md)。 **仓库切仓：** [REPO_CUTOVER_PLAN.md](./REPO_CUTOVER_PLAN.md)。
 
 ## 3. 门禁角色
 

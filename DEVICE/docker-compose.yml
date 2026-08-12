@@ -399,10 +399,10 @@ services:
       # - SW_AGENT_COLLECTOR_BACKEND_SERVICES=[YOUR_SKYWALKING_ADDR]
     volumes:
       - ../.build-cache/device/logs:/root/logs/
-      # 告警图片目录（与VIDEO/算法进程共享，用于读取告警 JPG 并上传 MinIO）
-      # 算法侧须挂载同一宿主机目录且设置 ALERT_IMAGES_DIR=/app/alert_images（见 VIDEO/app/utils/alert_images_paths.py）
-      # 注意：使用相对路径，从DEVICE目录指向VIDEO目录下的alert_images
-      - ../VIDEO/alert_images:/app/alert_images
+      # 告警图片目录（中立 data/alert_images；与算法/Java 进程共享，上传 MinIO）
+      # 算法侧须挂载同一宿主机目录且设置 ALERT_IMAGES_DIR=/app/alert_images
+      # 相对路径：从 DEVICE/ 指向仓库根 data/alert_images（cutover Phase1）
+      - ../data/alert_images:/app/alert_images
       # full 形态工业协议演示：宿主机 /tmp 虚拟串口 + pts（.scripts/modbus-rtu-virtual-serial）
       - /tmp:/tmp
       - /dev/pts:/dev/pts
