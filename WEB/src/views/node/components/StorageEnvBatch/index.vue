@@ -1,22 +1,27 @@
 <template>
   <div class="storage-env-batch">
-    <Tabs v-model:activeKey="innerTab" class="storage-inner-tabs">
-      <TabPane key="topology" :tab="NODE_TERM.storageCephTopology">
-        <Alert
-          class="mb-3"
-          type="info"
-          show-icon
-          message="中心关联的 NFS 共享媒体节点拓扑。点击节点可检测挂载状态并执行 NFS 服务端/客户端运维；批量表单式操作请切换至「批量运维」。"
-        />
-        <CephTopologyPanel
-          v-if="innerTab === 'topology'"
-          embedded-in-storage
-          @open-ops="openBatchOps"
-          @summary-change="onTopologySummary"
-        />
-      </TabPane>
+    <Tabs
+      class="storage-tabs-bar"
+      :activeKey="innerTab"
+      :animated="{ inkBar: true, tabPane: false }"
+      :tabBarGutter="32"
+      @tabClick="handleTabClick"
+    >
+      <TabPane key="topology" :tab="NODE_TERM.storageCephTopology" />
+      <TabPane key="ops" :tab="NODE_TERM.storageBatchOps" />
+      <TabPane key="files" :tab="NODE_TERM.storageFileOps" />
+    </Tabs>
 
-      <TabPane key="ops" :tab="NODE_TERM.storageBatchOps">
+    <div class="storage-tab-content">
+      <CephTopologyPanel
+        v-if="tabMounted.topology"
+        v-show="innerTab === 'topology'"
+        embedded-in-storage
+        @open-ops="openBatchOps"
+        @summary-change="onTopologySummary"
+      />
+
+      <div v-if="tabMounted.ops" v-show="innerTab === 'ops'" class="storage-ops">
         <Alert
           v-if="coverageSummary"
           class="mb-3"
@@ -32,33 +37,48 @@
         </Space>
         <ClusterScopeBar @lane-change="handleLaneChange" />
 
-        <CollapseContainer title="① NFS 服务端（storage 角色）" :canExpan="true" :defaultExpan="true" class="mb-4">
+        <CollapseContainer
+          title="① NFS 服务端（storage 角色）"
+          :canExpan="true"
+          :defaultExpan="true"
+          class="mb-4"
+        >
           <ClusterNodeSelector
             ref="osdSelectorRef"
             v-model:selected-node-ids="osdNodeIds"
             role-filter="storage"
             :show-scope-bar="false"
-            :initial-node-ids="initialNodeIds"
+            :initial-node-ids="opsInitialNodeIds"
             placeholder="选择 storage 节点安装 NFS 服务端"
           />
           <Space wrap class="mb-3">
             <Button :loading="osdLoading === 'check'" :disabled="!osdNodeIds.length" @click="runOsdCheck">
               检测 NFS 服务端
             </Button>
-            <Button type="primary" :loading="osdLoading === 'deploy'" :disabled="!osdNodeIds.length" @click="runOsdDeploy">
+            <Button
+              type="primary"
+              :loading="osdLoading === 'deploy'"
+              :disabled="!osdNodeIds.length"
+              @click="runOsdDeploy"
+            >
               安装 NFS 服务端
             </Button>
           </Space>
           <BatchNodeResults :results="osdResults" />
         </CollapseContainer>
 
-        <CollapseContainer title="② Export 初始化（storage 节点）" :canExpan="true" :defaultExpan="true" class="mb-4">
+        <CollapseContainer
+          title="② Export 初始化（storage 节点）"
+          :canExpan="true"
+          :defaultExpan="true"
+          class="mb-4"
+        >
           <ClusterNodeSelector
             ref="poolSelectorRef"
             v-model:selected-node-ids="poolNodeIds"
             role-filter="storage"
             :show-scope-bar="false"
-            :initial-node-ids="initialNodeIds"
+            :initial-node-ids="opsInitialNodeIds"
             placeholder="选择 NFS 服务端节点（通常单选）"
           />
           <Space wrap class="mb-3">
@@ -69,17 +89,26 @@
           <BatchNodeResults :results="poolResults" />
         </CollapseContainer>
 
-        <CollapseContainer title="③ NFS 客户端挂载" :canExpan="true" :defaultExpan="true" class="mb-4">
+        <CollapseContainer
+          title="③ NFS 客户端挂载"
+          :canExpan="true"
+          :defaultExpan="true"
+          class="mb-4"
+        >
           <ClusterNodeSelector
             ref="clientSelectorRef"
             v-model:selected-node-ids="clientNodeIds"
             role-filter="cephClient"
             :show-scope-bar="false"
-            :initial-node-ids="initialNodeIds"
+            :initial-node-ids="opsInitialNodeIds"
             placeholder="选择 compute / gpu / hybrid / media 节点挂载 NFS"
           />
           <Space wrap class="mb-3">
-            <Button :loading="clientLoading === 'check'" :disabled="!clientNodeIds.length" @click="runClientCheck">
+            <Button
+              :loading="clientLoading === 'check'"
+              :disabled="!clientNodeIds.length"
+              @click="runClientCheck"
+            >
               检测挂载
             </Button>
             <Button
@@ -93,18 +122,16 @@
           </Space>
           <BatchNodeResults :results="clientResults" />
         </CollapseContainer>
-      </TabPane>
+      </div>
 
-      <TabPane key="files" :tab="NODE_TERM.storageFileOps">
-        <NfsFileBrowser v-if="innerTab === 'files'" />
-      </TabPane>
-    </Tabs>
+      <NfsFileBrowser v-if="tabMounted.files" v-show="innerTab === 'files'" />
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { Alert, Space, TabPane, Tabs } from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import { CollapseContainer } from '@/components/Container';
@@ -122,6 +149,10 @@ import {
 } from '@/api/device/node';
 import { NODE_TERM } from '../../utils/constants';
 import { runSequentialNodeOps, summarizeBatchResults } from '../../utils/batchNodeOps';
+import {
+  useNodePageTabRequest,
+  type StorageSubTabKey,
+} from '../../utils/useNodePageTab';
 import BatchNodeResults from '../BatchNodeResults/index.vue';
 import CephTopologyPanel from '../CephTopologyPanel/index.vue';
 import ClusterNodeSelector from '../ClusterNodeSelector/index.vue';
@@ -136,18 +167,34 @@ const props = defineProps<{
 
 const { createMessage } = useMessage();
 const route = useRoute();
-const router = useRouter();
+const tabRequest = useNodePageTabRequest();
 
-function resolveStorageTab(): 'topology' | 'ops' | 'files' {
+function resolveStorageTab(): StorageSubTabKey {
+  const fromReq = tabRequest.value?.storageTab;
+  if (fromReq === 'ops' || fromReq === 'files' || fromReq === 'topology') return fromReq;
   const raw = String(route.query.storageTab || '');
-  if (raw === 'ops') return 'ops';
-  if (raw === 'files') return 'files';
-  // 兼容旧链接 mediaTab=ceph
+  if (raw === 'ops' || raw === 'files') return raw;
   if (String(route.query.mediaTab || '') === 'ceph') return 'topology';
   return 'topology';
 }
 
-const innerTab = ref<'topology' | 'ops' | 'files'>(resolveStorageTab());
+const innerTab = ref<StorageSubTabKey>(resolveStorageTab());
+const tabMounted = reactive({
+  topology: innerTab.value === 'topology',
+  ops: innerTab.value === 'ops',
+  files: innerTab.value === 'files',
+});
+
+function ensureTabMounted(tab: StorageSubTabKey) {
+  tabMounted[tab] = true;
+}
+
+function handleTabClick(key: string | number) {
+  const tab = String(key) as StorageSubTabKey;
+  if (tab !== 'topology' && tab !== 'ops' && tab !== 'files') return;
+  innerTab.value = tab;
+  ensureTabMounted(tab);
+}
 
 const osdSelectorRef = ref<InstanceType<typeof ClusterNodeSelector>>();
 const poolSelectorRef = ref<InstanceType<typeof ClusterNodeSelector>>();
@@ -156,6 +203,7 @@ const clientSelectorRef = ref<InstanceType<typeof ClusterNodeSelector>>();
 const osdNodeIds = ref<number[]>([]);
 const poolNodeIds = ref<number[]>([]);
 const clientNodeIds = ref<number[]>([]);
+const opsFocusNodeId = ref<number | undefined>();
 
 const osdLoading = ref<'check' | 'deploy' | null>(null);
 const poolLoading = ref(false);
@@ -167,6 +215,11 @@ const coverageSummary = ref<CephTopologySummaryVO | null>(null);
 const osdResults = ref<WorkloadBundleNodeResult[]>([]);
 const poolResults = ref<WorkloadBundleNodeResult[]>([]);
 const clientResults = ref<WorkloadBundleNodeResult[]>([]);
+
+const opsInitialNodeIds = computed(() => {
+  if (opsFocusNodeId.value) return [opsFocusNodeId.value];
+  return props.initialNodeIds;
+});
 
 const coverageMessage = computed(() => {
   const s = coverageSummary.value;
@@ -209,29 +262,32 @@ async function runBatchRefresh() {
   }
 }
 
-watch(
-  () => [route.query.storageTab, route.query.mediaTab] as const,
-  () => {
-    innerTab.value = resolveStorageTab();
-  },
-);
-
-onMounted(() => {
-  loadCoverage();
+watch(tabRequest, (req) => {
+  if (!req?.storageTab) return;
+  if (req.storageTab === 'ops' || req.storageTab === 'files' || req.storageTab === 'topology') {
+    innerTab.value = req.storageTab;
+    ensureTabMounted(req.storageTab);
+  }
+  if (req.nodeId) {
+    opsFocusNodeId.value = req.nodeId;
+    if (req.storageTab === 'ops') {
+      osdNodeIds.value = [req.nodeId];
+      poolNodeIds.value = [req.nodeId];
+      clientNodeIds.value = [req.nodeId];
+    }
+  }
 });
 
-watch(innerTab, (tab) => {
-  const q: Record<string, any> = { ...route.query };
-  if (tab === 'ops') q.storageTab = 'ops';
-  else if (tab === 'files') q.storageTab = 'files';
-  else q.storageTab = 'topology';
-  delete q.mediaTab;
-  router.replace({ query: q }).catch(() => undefined);
+onMounted(() => {
+  ensureTabMounted(innerTab.value);
+  loadCoverage();
 });
 
 function openBatchOps(nodeId?: number) {
   innerTab.value = 'ops';
+  ensureTabMounted('ops');
   if (nodeId) {
+    opsFocusNodeId.value = nodeId;
     osdNodeIds.value = [nodeId];
     poolNodeIds.value = [nodeId];
     clientNodeIds.value = [nodeId];
@@ -242,7 +298,7 @@ watch(
   () => props.initialNodeIds,
   (ids) => {
     if (!ids?.length) return;
-    if (innerTab.value === 'ops' && !osdNodeIds.value.length) {
+    if (innerTab.value === 'ops' && !osdNodeIds.value.length && !opsFocusNodeId.value) {
       clientNodeIds.value = [...ids];
     }
   },
@@ -253,6 +309,7 @@ function handleLaneChange() {
   osdNodeIds.value = [];
   poolNodeIds.value = [];
   clientNodeIds.value = [];
+  opsFocusNodeId.value = undefined;
 }
 
 const osdNodes = computed(() => osdSelectorRef.value?.selectedNodes ?? []);
@@ -368,13 +425,23 @@ async function runClientDeploy() {
 
 <style scoped lang="less">
 .storage-env-batch {
-  padding: 16px 20px 24px;
   min-height: 480px;
 
-  .storage-inner-tabs {
+  .storage-tabs-bar {
+    background: #fff;
+    padding: 0 20px;
+
     :deep(.ant-tabs-nav) {
-      margin-bottom: 16px;
+      margin-bottom: 0;
     }
+
+    :deep(.ant-tabs-content-holder) {
+      display: none;
+    }
+  }
+
+  .storage-tab-content {
+    padding: 16px 20px 24px;
   }
 
   .mb-3 {

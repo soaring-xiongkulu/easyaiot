@@ -111,6 +111,10 @@ function resolveRouteTab(): string {
   if (String(route.query.mediaTab || '') === 'ceph') {
     return NODE_SERVICE_TAB.storage;
   }
+  // 仅带 storageTab 的深链也进入分布式存储
+  if (route.query.storageTab && !route.query.tab) {
+    return NODE_SERVICE_TAB.storage;
+  }
   const raw = String(route.query.tab || '1');
   if (!showTransformTab && raw === '11') {
     return '1';
@@ -176,7 +180,16 @@ function applyNodeSelection(nodeIds?: number[], nodeId?: number) {
 }
 
 function applyFromRouteQuery() {
-  if (!route.query.tab && !route.query.bundle && !route.query.nodeId && !route.query.nodeIds) return;
+  if (
+    !route.query.tab &&
+    !route.query.bundle &&
+    !route.query.nodeId &&
+    !route.query.nodeIds &&
+    !route.query.storageTab &&
+    !route.query.mediaTab
+  ) {
+    return;
+  }
   state.activeKey = resolveRouteTab();
   ensureTabMounted(state.activeKey);
   const routeIds = parseRouteNodeIds();
@@ -192,7 +205,15 @@ function handleTabClick(activeKey: string) {
 }
 
 watch(
-  () => [route.query.tab, route.query.bundle, route.query.nodeId, route.query.nodeIds] as const,
+  () =>
+    [
+      route.query.tab,
+      route.query.bundle,
+      route.query.nodeId,
+      route.query.nodeIds,
+      route.query.storageTab,
+      route.query.mediaTab,
+    ] as const,
   () => applyFromRouteQuery(),
 );
 
