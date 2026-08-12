@@ -58,3 +58,5 @@
 |------|--------|-------|--------|----------|
 | Wave-A face+plate ORT/Milvus | **PASS** | [part2-wave-a-brief.md](./briefs/part2-wave-a-brief.md) | [part2-wave-a-report.md](./briefs/part2-wave-a-report.md) | logs/p2a-*.json / evidence/ |
 
+| Final W1–W3 pose/patrol/YAML | **PASS** | — | [part2-final-w1-w3-report.md](./briefs/part2-final-w1-w3-report.md) | logs/p2-final-*.json |
+

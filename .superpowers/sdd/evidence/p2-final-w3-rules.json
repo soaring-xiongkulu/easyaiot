@@ -1,0 +1,31 @@
+{
+  "task" : "W3",
+  "evidence_type" : "yaml_java_rules",
+  "rules_dir" : "F:\\acme\\.worktrees\\video-java\\testdata\\p2-final-rules",
+  "java_rules_enabled" : true,
+  "python_worker" : false,
+  "eval" : {
+    "engine" : "java-yaml",
+    "python_worker" : false,
+    "rule_count" : 2,
+    "hits" : [ {
+      "rule" : "region_intrusion",
+      "event" : "conveyor_left_drift",
+      "intrusion_ratio" : 1.0,
+      "threshold" : 0.2,
+      "camera_id" : "cam_demo",
+      "detection" : {
+        "class_name" : "person",
+        "confidence" : 0.9,
+        "bbox" : [ 120, 120, 180, 200 ]
+      }
+    }, {
+      "rule" : "region_count",
+      "event" : "area_person_count",
+      "count" : 1,
+      "camera_id" : "cam_demo"
+    } ],
+    "triggered" : true
+  },
+  "status" : "PASS"
+}

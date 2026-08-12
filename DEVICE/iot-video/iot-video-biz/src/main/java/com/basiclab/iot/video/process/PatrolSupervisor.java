@@ -15,7 +15,6 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,8 +26,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class PatrolSupervisor {
-
-    private static final long RESTART_BACKOFF_MS = 5_000L;
 
     private final Map<Long, ManagedSession> sessions = new ConcurrentHashMap<>();
     private final Map<Long, Object> sessionLocks = new ConcurrentHashMap<>();

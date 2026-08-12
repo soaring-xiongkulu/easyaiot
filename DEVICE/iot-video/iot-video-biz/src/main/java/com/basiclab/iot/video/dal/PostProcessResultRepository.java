@@ -68,4 +68,28 @@ public class PostProcessResultRepository {
         result.put("page_size", pageSize);
         return result;
     }
+
+    /** Best-effort persist for Java YAML rule evaluations (Part2 W3). */
+    public void insertIfSupported(Map<String, Object> row) {
+        if (row == null || row.isEmpty()) {
+            return;
+        }
+        try {
+            jdbc.update(
+                    """
+                    INSERT INTO algorithm_post_process_result
+                      (task_id, device_id, frame_number, correlation_id, payload, event_time, created_at)
+                    VALUES (?, ?, ?, ?, ?::jsonb, NOW(), NOW())
+                    """,
+                    row.get("task_id"),
+                    row.get("device_id"),
+                    row.get("frame_number"),
+                    row.get("correlation_id"),
+                    new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(row.get("result"))
+            );
+        } catch (Exception ex) {
+            // Schema variants across envs — evaluation still counted in logs/evidence.
+            throw new IllegalStateException(ex.getMessage(), ex);
+        }
+    }
 }

@@ -1,0 +1,15 @@
+rule: region_intrusion
+camera_id: cam_demo
+regions:
+  roller_left:
+    type: box
+    x: 100
+    y: 100
+    w: 200
+    h: 150
+params:
+  classes: [person]
+  intrusion_ratio_threshold: 0.2
+  min_confidence: 0.4
+alarm:
+  event: conveyor_left_drift

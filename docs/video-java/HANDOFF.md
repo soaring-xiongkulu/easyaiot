@@ -1,7 +1,7 @@
 # VIDEO Python → Java — HANDOFF
 
-> **话术：** Part2 Wave-A（2026-08-12）face+plate Java ORT+Milvus 本机 PASS；Pose/Patrol/post_process 仍 Out；**禁止 COMPLETE / 禁止删 Python**。
-> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** Part1 CP-12 Overall PARTIAL；**Part2 Wave-A PASS**（face/plate）；姿态/巡检/后处理仍绑 py。
+> **话术：** Part2 Final W1–W3（2026-08-12）pose ORT + Patrol→RUNTIME + YAML 规则 本机 PASS；清出项不排期；**禁止 COMPLETE / 禁止删 VIDEO**。
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** Part1 CP-12 Overall PARTIAL；**Part2 Wave-A + Final W1–W3 PASS**；EDGE/AI/SAM/真机仍清出。
 > **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标

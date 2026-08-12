@@ -1,0 +1,15 @@
+rule: region_count
+camera_id: cam_demo
+regions:
+  zone_a:
+    type: box
+    x: 0
+    y: 0
+    w: 640
+    h: 480
+params:
+  classes: [person]
+  min_confidence: 0.4
+  min_count: 1
+alarm:
+  event: area_person_count

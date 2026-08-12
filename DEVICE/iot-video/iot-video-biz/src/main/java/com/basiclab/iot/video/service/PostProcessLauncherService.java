@@ -38,6 +38,10 @@ public class PostProcessLauncherService {
     public record LaunchResult(boolean success, String message, boolean remoteAttempted) {}
 
     public LaunchResult startPostProcessWorkers(AlgorithmTaskRow task) {
+        // Part2 W3: Java YAML rules replace Python run_worker as commercial default.
+        if (javaRulesPrefer()) {
+            return new LaunchResult(true, "后处理走 Java YAML 规则引擎（未拉起 Python worker）", false);
+        }
         if (!postProcessWorkersGloballyEnabled()) {
             return new LaunchResult(true, "后处理 Worker 全局未启用（EASYAIOT_ENABLE_POST_PROCESS_WORKER=1 可开启）", false);
         }
@@ -100,6 +104,14 @@ public class PostProcessLauncherService {
             return isTruthy(env);
         }
         return false;
+    }
+
+    private boolean javaRulesPrefer() {
+        String env = trimToNull(System.getenv("VIDEO_POST_PROCESS_JAVA_RULES"));
+        if (env != null) {
+            return isTruthy(env);
+        }
+        return videoProperties.getPostProcess().isJavaRulesEnabled();
     }
 
     private boolean spreadReplicasEnabled() {
