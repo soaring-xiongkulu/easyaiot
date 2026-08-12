@@ -306,15 +306,19 @@ export interface CephTopologyNodeVO {
   nodeRole?: string;
   status?: string;
   agentPort?: number;
-  /** platform | storage_nfs | nfs_client（兼容 storage_osd / ceph_client） */
+  /** platform | nfs_primary | nfs_standby | nfs_client | nfs_candidate（兼容 storage_nfs / ceph_client） */
   kind?: string;
   isPlatform?: boolean;
+  /** primary | standby | client | candidate */
+  nfsClusterRole?: string;
   cephMountReady?: boolean;
   cephMountPath?: string;
   cephMonHost?: string;
   cephPool?: string;
   cephfsName?: string;
   nfsMountReady?: boolean;
+  /** 真 NFS Export（exportfs）是否就绪 */
+  nfsExportReady?: boolean;
   nfsMountPath?: string;
   nfsServerHost?: string;
   nfsExportPath?: string;
@@ -339,6 +343,14 @@ export interface CephTopologySummaryVO {
   totalNodes?: number;
   storageNodes?: number;
   clientNodes?: number;
+  primaryCount?: number;
+  standbyCount?: number;
+  candidateCount?: number;
+  primaryReady?: boolean;
+  primaryNodeId?: number;
+  primaryHost?: string;
+  standbyNodeId?: number;
+  standbyHost?: string;
   mountReadyCount?: number;
   mountNotReadyCount?: number;
   offlineCount?: number;
@@ -434,11 +446,19 @@ export interface PortCheckResult {
   steps?: MediaDeployStepVO[];
 }
 
-/** 解析 isTransformResponse:false 时的 { code, data } 信封 */
+/** 解析 isTransformResponse:false 时的 AxiosResponse / { code, data } 信封 */
 function unwrapNodeApiData<T>(res: unknown): T {
+  // isTransformResponse:false 时 axios 返回完整 AxiosResponse，业务在 res.data
   const body = (res as { data?: unknown })?.data ?? res;
-  if (body && typeof body === 'object' && body !== null && 'code' in body && 'data' in body) {
-    return (body as { data: T }).data;
+  if (body && typeof body === 'object' && body !== null && 'code' in body) {
+    const envelope = body as { code?: number; data?: T; msg?: string; message?: string };
+    const code = envelope.code;
+    if (code !== undefined && code !== 0 && code !== 200) {
+      throw new Error(envelope.msg || envelope.message || `请求失败(code=${code})`);
+    }
+    if ('data' in envelope) {
+      return envelope.data as T;
+    }
   }
   return body as T;
 }
@@ -593,18 +613,27 @@ export const checkStorageStackBySsh = async (nodeId: number): Promise<StorageSta
 /** NFS 共享媒体节点拓扑（原 getCephTopology，字段兼容） */
 export const getCephTopology = async (): Promise<CephTopologyResult> => {
   const res = await commonApi('get', `${Api.Node}/storage/topology`, {}, { isTransformResponse: false });
-  return unwrapNodeApiData<CephTopologyResult>(res);
+  const data = unwrapNodeApiData<CephTopologyResult | null>(res);
+  if (!data || typeof data !== 'object') {
+    return { nodes: [], links: [] };
+  }
+  return {
+    ...data,
+    nodes: Array.isArray(data.nodes) ? data.nodes : [],
+    links: Array.isArray(data.links) ? data.links : [],
+  };
 };
 
 export interface NfsClusterAssignPayload {
   serverNodeId?: number;
+  standbyNodeId?: number;
   clientNodeIds?: number[];
   mountRoot?: string;
   nfsExport?: string;
   nfsMountOpts?: string;
 }
 
-/** 分配/切换 NFS 集群（服务端 + 客户端 tags） */
+/** 分配/切换 NFS 集群（主/备 + 客户端 tags） */
 export const assignNfsCluster = async (payload: NfsClusterAssignPayload): Promise<CephTopologyResult> => {
   const res = await commonApi(
     'post',
@@ -613,6 +642,135 @@ export const assignNfsCluster = async (payload: NfsClusterAssignPayload): Promis
     { isTransformResponse: false, timeout: 2 * 60 * 1000 },
   );
   return unwrapNodeApiData<CephTopologyResult>(res);
+};
+
+/** 软 HA：升主 NFS 服务端 */
+export const promoteNfsPrimary = async (nodeId: number): Promise<CephTopologyResult> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/promote-nfs-primary?nodeId=${nodeId}`,
+    {},
+    { isTransformResponse: false, timeout: 2 * 60 * 1000 },
+  );
+  return unwrapNodeApiData<CephTopologyResult>(res);
+};
+
+export interface NfsClusterVO {
+  id?: number;
+  name?: string;
+  laneKey?: string;
+  controlPlaneId?: number;
+  primaryNodeId?: number;
+  primaryHost?: string;
+  primaryName?: string;
+  standbyNodeId?: number;
+  standbyHost?: string;
+  standbyName?: string;
+  mountRoot?: string;
+  nfsExport?: string;
+  isActive?: boolean;
+  status?: string;
+  primaryReady?: boolean;
+  clientCount?: number;
+  clientReadyCount?: number;
+}
+
+export interface NfsBridgeVO {
+  id?: number;
+  name?: string;
+  sourceClusterId?: number;
+  sourceClusterName?: string;
+  targetClusterId?: number;
+  targetClusterName?: string;
+  sourceRelPaths?: string;
+  targetRelPath?: string;
+  scheduleCron?: string;
+  enabled?: boolean;
+  status?: string;
+  lastRunAt?: string;
+  lastSuccess?: boolean;
+  lastMessage?: string;
+  createTime?: string;
+}
+
+export interface NfsMultiClusterOverview {
+  activeClusterId?: number;
+  activeClusterName?: string;
+  clusters?: NfsClusterVO[];
+  bridges?: NfsBridgeVO[];
+}
+
+export const getNfsMultiClusterOverview = async (): Promise<NfsMultiClusterOverview> => {
+  const res = await commonApi(
+    'get',
+    `${Api.Node}/storage/multi-cluster/overview`,
+    {},
+    { isTransformResponse: false },
+  );
+  return normalizeNfsMultiClusterOverview(unwrapNodeApiData<NfsMultiClusterOverview | null>(res));
+};
+
+function normalizeNfsMultiClusterOverview(
+  raw: NfsMultiClusterOverview | null | undefined,
+): NfsMultiClusterOverview {
+  if (!raw || typeof raw !== 'object') {
+    return { clusters: [], bridges: [] };
+  }
+  return {
+    ...raw,
+    clusters: Array.isArray(raw.clusters) ? raw.clusters : [],
+    bridges: Array.isArray(raw.bridges) ? raw.bridges : [],
+  };
+}
+
+export const activateNfsCluster = async (payload: {
+  clusterId: number;
+  forceStopBridges?: boolean;
+}): Promise<NfsMultiClusterOverview> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/multi-cluster/activate`,
+    payload,
+    { isTransformResponse: false, timeout: 2 * 60 * 1000 },
+  );
+  return normalizeNfsMultiClusterOverview(unwrapNodeApiData<NfsMultiClusterOverview | null>(res));
+};
+
+export const createNfsBridge = async (payload: {
+  name?: string;
+  sourceClusterId: number;
+  targetClusterId: number;
+  sourceRelPaths?: string;
+  targetRelPath?: string;
+  scheduleCron?: string;
+}): Promise<NfsMultiClusterOverview> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/multi-cluster/bridge/create`,
+    payload,
+    { isTransformResponse: false, timeout: 2 * 60 * 1000 },
+  );
+  return normalizeNfsMultiClusterOverview(unwrapNodeApiData<NfsMultiClusterOverview | null>(res));
+};
+
+export const stopNfsBridge = async (bridgeId: number): Promise<NfsMultiClusterOverview> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/multi-cluster/bridge/stop?bridgeId=${bridgeId}`,
+    {},
+    { isTransformResponse: false },
+  );
+  return normalizeNfsMultiClusterOverview(unwrapNodeApiData<NfsMultiClusterOverview | null>(res));
+};
+
+export const runNfsBridge = async (bridgeId: number): Promise<NfsMultiClusterOverview> => {
+  const res = await commonApi(
+    'post',
+    `${Api.Node}/storage/multi-cluster/bridge/run?bridgeId=${bridgeId}`,
+    {},
+    { isTransformResponse: false, timeout: 30 * 60 * 1000 },
+  );
+  return normalizeNfsMultiClusterOverview(unwrapNodeApiData<NfsMultiClusterOverview | null>(res));
 };
 
 /** 批量 SSH 刷新 NFS 现状并落库 */
