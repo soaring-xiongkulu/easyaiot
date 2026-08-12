@@ -1,0 +1,8 @@
+{
+  "id": "e2e-property-set",
+  "method": "thing.property.set",
+  "params": {
+    "temperature": 26.5,
+    "humidity": 55
+  }
+}

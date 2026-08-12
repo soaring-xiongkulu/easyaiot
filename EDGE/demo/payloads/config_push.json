@@ -1,0 +1,24 @@
+{
+  "id": "e2e-config-push",
+  "method": "thing.config.push",
+  "params": {
+    "edgeJobs": [
+      {
+        "jobId": "e2e-demo-simulator",
+        "deviceIdentification": "sensor-demo-001",
+        "subDeviceIdentification": "sensor-demo-001",
+        "subProductIdentification": "edge-subset-product",
+        "collectorId": "demo-simulator",
+        "agreementType": "demo",
+        "enabled": true,
+        "intervalSeconds": 3,
+        "protocolConfig": {
+          "type": "demo",
+          "enabled": true,
+          "pollIntervalMs": 3000,
+          "points": []
+        }
+      }
+    ]
+  }
+}

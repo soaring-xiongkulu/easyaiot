@@ -1,0 +1,9 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: easyaiot-edge-demo-mqtt
+    ports:
+      - "${MQTT_PORT:-18883}:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
