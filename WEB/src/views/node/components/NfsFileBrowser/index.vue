@@ -1,33 +1,82 @@
 <template>
-  <div class="nfs-file-ops">
-    <CollapseContainer
-      title="选择节点"
-      :can-expan="false"
-      help-message="仅管理该节点媒体挂载根内的文件"
-      class="mb-3"
-    >
-      <ClusterNodeSelector
-        v-model:selected-node-ids="selectedIds"
-        role-filter="cephClient"
-        :show-scope-bar="false"
-        :multiple="false"
-        placeholder="选择已配置 SSH 的 NFS 客户端节点"
-      />
-    </CollapseContainer>
+  <div class="nfs-file-ops" :class="{ 'nfs-file-ops--manager': isManager }">
+    <aside class="node-picker">
+      <div class="node-picker__head">
+        <div class="node-picker__title">选择节点</div>
+        <Button
+          type="default"
+          size="small"
+          preIcon="ant-design:reload-outlined"
+          :loading="nodesLoading"
+          @click="loadMountableNodes"
+        >
+          刷新
+        </Button>
+      </div>
 
-    <Empty
-      v-if="!currentNodeId"
-      class="ops-empty"
-      description="先选择一个已挂载 NFS 的客户端节点，即可浏览与管理媒体文件"
-    />
+      <Empty v-if="!nodesLoading && !mountableNodes.length" description="暂无节点" />
 
-    <template v-else>
-      <CollapseContainer title="当前位置" :can-expan="false" class="mb-3">
-        <div v-if="list?.mountRoot" class="mount-tag-row">
-          <Tag color="blue">挂载根 {{ list.mountRoot }}</Tag>
+      <ScrollContainer v-else class="node-chips-scroll">
+        <div class="node-chips">
+          <Card
+            v-for="node in mountableNodes"
+            :key="node.nodeId"
+            size="small"
+            hoverable
+            class="node-chip"
+            :class="{
+              'is-active': currentNodeId === node.nodeId,
+              'is-disabled': !canBrowseNode(node),
+            }"
+            @click="selectNode(node.nodeId)"
+          >
+            <div class="node-chip__name" :title="nodeChipTitle(node)">{{ node.name || node.host }}</div>
+            <div class="node-chip__meta">
+              <Tag :color="kindColor(node.kind)" class="node-chip__tag">{{ kindLabel(node) }}</Tag>
+              <Tag :color="mountTone(node)" class="node-chip__tag">{{ mountLabel(node) }}</Tag>
+            </div>
+            <div class="node-chip__host">
+              {{ node.host }} · {{ node.nfsMountPath || node.cephMountPath || '-' }}
+            </div>
+          </Card>
         </div>
+      </ScrollContainer>
+    </aside>
 
-        <div class="path-row">
+    <section class="file-main">
+      <Empty v-if="!currentNodeId" class="ops-empty" description="请选择节点" />
+
+      <template v-else>
+        <div class="path-panel">
+          <div class="path-panel__top">
+            <div class="path-panel__info">
+              <Tag color="blue">挂载根 {{ list?.mountRoot || currentNode?.nfsMountPath || '…' }}</Tag>
+              <Tag>{{ kindLabel(currentNode) }}</Tag>
+              <span class="path-panel__node">{{ currentNode?.name }} ({{ currentNode?.host }})</span>
+            </div>
+            <Space wrap :size="8">
+              <Button
+                type="default"
+                preIcon="ant-design:arrow-up-outlined"
+                :disabled="!relativePath"
+                @click="goUp"
+              >
+                上级目录
+              </Button>
+              <Button type="default" preIcon="ant-design:copy-outlined" @click="copyCurrentPath">
+                复制路径
+              </Button>
+              <Button
+                type="default"
+                preIcon="ant-design:reload-outlined"
+                :loading="loading"
+                @click="reload"
+              >
+                刷新
+              </Button>
+            </Space>
+          </div>
+
           <Breadcrumb class="path-row__crumb">
             <Breadcrumb.Item>
               <a @click.prevent="goPath('')">媒体根</a>
@@ -36,141 +85,141 @@
               <a @click.prevent="goPath(breadcrumbs.slice(0, idx + 1).join('/'))">{{ seg }}</a>
             </Breadcrumb.Item>
           </Breadcrumb>
-          <Space wrap size="small">
-            <Button size="small" :disabled="!relativePath" @click="goUp">上级目录</Button>
-            <Button size="small" @click="copyCurrentPath">复制路径</Button>
-            <Button size="small" :loading="loading" @click="reload">刷新</Button>
-          </Space>
-        </div>
-        <div class="path-abs">{{ absolutePathDisplay }}</div>
+          <div class="path-abs">{{ absolutePathDisplay }}</div>
 
-        <div class="action-row">
-          <Space wrap>
-            <Button type="primary" ghost @click="openMkdir">新建目录</Button>
-            <Upload
-              :show-upload-list="false"
-              :before-upload="beforeUpload"
-              :disabled="uploading"
-              multiple
+          <div class="action-row">
+            <Space wrap :size="8">
+              <Button type="default" preIcon="ant-design:folder-add-outlined" @click="openMkdir">
+                新建目录
+              </Button>
+              <Upload
+                :show-upload-list="false"
+                :before-upload="beforeUpload"
+                :disabled="uploading"
+                multiple
+              >
+                <Button type="primary" preIcon="ant-design:upload-outlined" :loading="uploading">
+                  上传文件
+                </Button>
+              </Upload>
+              <PopConfirmButton
+                placement="topRight"
+                type="primary"
+                color="error"
+                preIcon="ant-design:delete-outlined"
+                :disabled="!selectedRows.length"
+                :loading="batchDeleting"
+                :title="batchDeleteTitle"
+                @confirm="runBatchDelete"
+              >
+                删除所选{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}
+              </PopConfirmButton>
+            </Space>
+            <Input
+              v-model:value="keyword"
+              allow-clear
+              placeholder="过滤当前目录（名称）"
+              class="filter-input"
             >
-              <Button type="primary" :loading="uploading">上传文件</Button>
-            </Upload>
-            <Button
-              danger
-              :disabled="!selectedRows.length"
-              :loading="batchDeleting"
-              @click="confirmBatchDelete"
-            >
-              删除所选（{{ selectedRows.length }}）
-            </Button>
-          </Space>
-          <Input
-            v-model:value="keyword"
-            allow-clear
-            placeholder="过滤当前目录（名称）"
-            class="filter-input"
-          />
-        </div>
-      </CollapseContainer>
-
-      <CollapseContainer v-if="uploadJobs.length" title="上传进度" :can-expan="false" class="mb-3">
-        <div class="upload-head">
-          <span class="ops-hint">
-            {{ uploadDoneCount }}/{{ uploadJobs.length }}
-            <template v-if="uploadFailCount"> · 失败 {{ uploadFailCount }}</template>
-          </span>
-          <Button v-if="!uploading" type="link" size="small" @click="uploadJobs = []">清除</Button>
-        </div>
-        <Progress
-          :percent="uploadPercent"
-          :status="uploadFailCount ? 'exception' : uploading ? 'active' : 'success'"
-          size="small"
-        />
-        <div class="upload-list">
-          <div v-for="job in uploadJobs" :key="job.id" class="upload-item">
-            <span class="upload-item__name" :title="job.name">{{ job.name }}</span>
-            <Tag :color="jobStatusColor(job.status)">{{ jobStatusText(job.status) }}</Tag>
-            <span v-if="job.message" class="upload-item__msg" :title="job.message">{{ job.message }}</span>
+              <template #prefix>
+                <Icon icon="ant-design:search-outlined" :size="14" />
+              </template>
+            </Input>
           </div>
         </div>
-      </CollapseContainer>
 
-      <div
-        class="drop-zone"
-        :class="{ 'drop-zone--active': dragOver }"
-        @dragover.prevent="dragOver = true"
-        @dragleave.prevent="onDragLeave"
-        @drop.prevent="onDrop"
-      >
-        <div class="drop-banner">
-          拖拽文件到此处即可上传（单文件 ≤50MB；同名会先确认是否覆盖）
+        <div v-if="uploadJobs.length" class="upload-panel">
+          <div class="upload-head">
+            <span class="ops-hint">
+              上传进度 {{ uploadDoneCount }}/{{ uploadJobs.length }}
+              <template v-if="uploadFailCount"> · 失败 {{ uploadFailCount }}</template>
+            </span>
+            <Button
+              v-if="!uploading"
+              type="link"
+              size="small"
+              preIcon="ant-design:close-outlined"
+              @click="uploadJobs = []"
+            >
+              清除
+            </Button>
+          </div>
+          <Progress
+            :percent="uploadPercent"
+            :status="uploadFailCount ? 'exception' : uploading ? 'active' : 'success'"
+            size="small"
+          />
+          <div class="upload-list">
+            <div v-for="job in uploadJobs" :key="job.id" class="upload-item">
+              <span class="upload-item__name" :title="job.name">{{ job.name }}</span>
+              <Tag :color="jobStatusColor(job.status)">{{ jobStatusText(job.status) }}</Tag>
+              <span v-if="job.message" class="upload-item__msg" :title="job.message">{{ job.message }}</span>
+            </div>
+          </div>
         </div>
 
-        <Table
-          size="middle"
-          row-key="relativePath"
-          :loading="loading"
-          :pagination="tablePagination"
-          :data-source="filteredEntries"
-          :columns="columns"
-          :row-selection="rowSelection"
-          :locale="{ emptyText: emptyText }"
+        <div
+          class="drop-zone"
+          :class="{ 'drop-zone--active': dragOver }"
+          @dragover.prevent="dragOver = true"
+          @dragleave.prevent="onDragLeave"
+          @drop.prevent="onDrop"
         >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'name'">
-              <a v-if="record.directory" class="name-link" @click.prevent="goPath(record.relativePath)">
-                {{ record.name }}/
-              </a>
-              <span v-else>{{ record.name }}</span>
-            </template>
-            <template v-else-if="column.key === 'size'">
-              {{ record.directory ? '-' : formatSize(record.size) }}
-            </template>
-            <template v-else-if="column.key === 'mtime'">
-              {{ formatMtime(record.mtime) }}
-            </template>
-            <template v-else-if="column.key === 'action'">
-              <Space :size="0">
-                <Button
-                  v-if="record.directory"
-                  type="link"
-                  size="small"
-                  @click="goPath(record.relativePath)"
-                >
-                  打开
-                </Button>
-                <Button
-                  v-else
-                  type="link"
-                  size="small"
-                  :loading="downloading === record.relativePath"
-                  @click="download(record)"
-                >
-                  下载
-                </Button>
-                <Button type="link" size="small" @click="openRename(record)">重命名</Button>
-                <Button
-                  type="link"
-                  size="small"
-                  danger
-                  :loading="deleting === record.relativePath"
-                  @click="confirmDelete(record)"
-                >
-                  删除
-                </Button>
-              </Space>
-            </template>
-          </template>
-        </Table>
-      </div>
-    </template>
+          <div class="drop-banner">
+            <Icon icon="ant-design:cloud-upload-outlined" :size="18" />
+            <span>拖拽文件到此处上传</span>
+          </div>
 
-    <Modal
-      v-model:open="mkdirOpen"
+          <div class="table-wrap">
+            <Table
+              size="middle"
+              row-key="relativePath"
+              :loading="loading"
+              :pagination="tablePagination"
+              :data-source="filteredEntries"
+              :columns="columns"
+              :row-selection="rowSelection"
+              :scroll="tableScroll"
+              :locale="{ emptyText: emptyText }"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'name'">
+                  <a
+                    v-if="record.directory"
+                    class="name-link"
+                    @click.prevent="goPath(record.relativePath)"
+                  >
+                    <Icon icon="ant-design:folder-filled" :size="15" class="name-link__icon" />
+                    {{ record.name }}/
+                  </a>
+                  <span v-else class="name-file">
+                    <Icon icon="ant-design:file-outlined" :size="14" class="name-link__icon" />
+                    {{ record.name }}
+                  </span>
+                </template>
+                <template v-else-if="column.key === 'size'">
+                  {{ record.directory ? '-' : formatSize(record.size) }}
+                </template>
+                <template v-else-if="column.key === 'mtime'">
+                  {{ formatMtime(record.mtime) }}
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <TableAction :actions="buildRowActions(record)" />
+                </template>
+              </template>
+            </Table>
+          </div>
+        </div>
+      </template>
+    </section>
+
+    <BasicModal
+      @register="registerMkdirModal"
       title="新建目录"
       ok-text="创建"
       cancel-text="取消"
-      :confirm-loading="mkdirLoading"
+      :min-height="120"
+      :can-fullscreen="false"
       destroy-on-close
       @ok="submitMkdir"
     >
@@ -181,14 +230,15 @@
         allow-clear
         @pressEnter="submitMkdir"
       />
-    </Modal>
+    </BasicModal>
 
-    <Modal
-      v-model:open="renameOpen"
+    <BasicModal
+      @register="registerRenameModal"
       title="重命名"
       ok-text="确定"
       cancel-text="取消"
-      :confirm-loading="renameLoading"
+      :min-height="120"
+      :can-fullscreen="false"
       destroy-on-close
       @ok="submitRename"
     >
@@ -199,13 +249,14 @@
         allow-clear
         @pressEnter="submitRename"
       />
-    </Modal>
+    </BasicModal>
 
-    <Modal
-      v-model:open="conflictOpen"
+    <BasicModal
+      @register="registerConflictModal"
       title="发现同名文件"
       :footer="null"
-      :closable="true"
+      :min-height="120"
+      :can-fullscreen="false"
       destroy-on-close
       @cancel="resolveConflict('cancel')"
     >
@@ -214,21 +265,30 @@
         }}{{ conflictNames.length > 10 ? '…' : '' }}
       </div>
       <div class="conflict-actions">
-        <Button danger type="primary" @click="resolveConflict('overwrite')">覆盖这些文件</Button>
-        <Button @click="resolveConflict('skip')">跳过同名，只传新文件</Button>
-        <Button @click="resolveConflict('cancel')">取消全部</Button>
+        <Button
+          type="primary"
+          color="error"
+          preIcon="ant-design:swap-outlined"
+          @click="resolveConflict('overwrite')"
+        >
+          覆盖这些文件
+        </Button>
+        <Button type="default" preIcon="ant-design:forward-outlined" @click="resolveConflict('skip')">
+          跳过同名，只传新文件
+        </Button>
+        <Button type="default" @click="resolveConflict('cancel')">取消全部</Button>
       </div>
-    </Modal>
+    </BasicModal>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import {
   Breadcrumb,
+  Card,
   Empty,
   Input,
-  Modal,
   Progress,
   Space,
   Table,
@@ -236,22 +296,38 @@ import {
   Upload,
 } from 'ant-design-vue';
 import type { TableProps } from 'ant-design-vue';
-import { Button } from '@/components/Button';
-import { CollapseContainer } from '@/components/Container';
+import { Button, PopConfirmButton } from '@/components/Button';
+import { ScrollContainer } from '@/components/Container';
+import { Icon } from '@/components/Icon';
+import { BasicModal, useModal } from '@/components/Modal';
+import { TableAction } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
   deleteNfsMediaPath,
   downloadNfsMediaFile,
+  getCephTopology,
   listNfsMediaFiles,
   mkdirNfsMediaDir,
   renameNfsMediaPath,
   uploadNfsMediaFile,
+  type CephTopologyNodeVO,
   type NfsFileEntry,
   type NfsFileListResult,
 } from '@/api/device/node';
-import ClusterNodeSelector from '../ClusterNodeSelector/index.vue';
 
 defineOptions({ name: 'NfsFileBrowser' });
+
+const props = withDefaults(
+  defineProps<{
+    initialNodeId?: number;
+    /** stack=页内堆叠；manager=大抽屉左右分栏 */
+    layout?: 'stack' | 'manager';
+  }>(),
+  { layout: 'stack' },
+);
+
+const isManager = computed(() => props.layout === 'manager');
+const tableScroll = computed(() => (isManager.value ? { y: 'calc(100vh - 380px)' } : undefined));
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
@@ -265,25 +341,29 @@ interface UploadJob {
 }
 
 const { createMessage } = useMessage();
+const [registerMkdirModal, { openModal: openMkdirModal, setModalProps: setMkdirProps, closeModal: closeMkdirModal }] =
+  useModal();
+const [
+  registerRenameModal,
+  { openModal: openRenameModal, setModalProps: setRenameProps, closeModal: closeRenameModal },
+] = useModal();
+const [registerConflictModal, { openModal: openConflictModal, closeModal: closeConflictModal }] = useModal();
+
 const selectedIds = ref<number[]>([]);
+const mountableNodes = ref<CephTopologyNodeVO[]>([]);
+const nodesLoading = ref(false);
 const relativePath = ref('');
 const keyword = ref('');
 const loading = ref(false);
 const uploading = ref(false);
 const batchDeleting = ref(false);
 const dragOver = ref(false);
-const mkdirOpen = ref(false);
-const mkdirLoading = ref(false);
 const mkdirName = ref('');
-const renameOpen = ref(false);
-const renameLoading = ref(false);
 const renameName = ref('');
 const renameTarget = ref<NfsFileEntry | null>(null);
-const conflictOpen = ref(false);
 const conflictNames = ref<string[]>([]);
 let conflictResolve: ((v: 'overwrite' | 'skip' | 'cancel') => void) | null = null;
 const downloading = ref<string | null>(null);
-const deleting = ref<string | null>(null);
 const list = ref<NfsFileListResult | null>(null);
 const selectedRowKeys = ref<string[]>([]);
 const selectedRows = ref<NfsFileEntry[]>([]);
@@ -292,13 +372,152 @@ const pendingUploadFiles = ref<File[]>([]);
 let uploadFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 const currentNodeId = computed(() => selectedIds.value[0] || null);
+const currentNode = computed(
+  () => mountableNodes.value.find((n) => n.nodeId === currentNodeId.value) || null,
+);
+
+const batchDeleteTitle = computed(() => {
+  const names = selectedRows.value.map((r) => r.name).slice(0, 8);
+  return `删除所选 ${selectedRows.value.length} 项：${names.join('、')}${
+    selectedRows.value.length > 8 ? '…' : ''
+  }。目录会递归删除，不可恢复。`;
+});
+
+function clusterRoleOf(node?: CephTopologyNodeVO | null) {
+  if (!node) return '';
+  if (node.nfsClusterRole) return node.nfsClusterRole;
+  if (node.kind === 'nfs_primary' || node.kind === 'storage_nfs' || node.kind === 'storage_osd') return 'primary';
+  if (node.kind === 'nfs_standby') return 'standby';
+  if (node.kind === 'nfs_client' || node.kind === 'ceph_client') return 'client';
+  if (node.kind === 'nfs_candidate') return 'candidate';
+  if (node.kind === 'platform') return isNfsServerNode(node) ? 'primary' : 'client';
+  return '';
+}
+
+function isNfsServerNode(node?: CephTopologyNodeVO | null) {
+  return clusterRoleOf(node) === 'primary';
+}
+
+function kindLabel(node?: CephTopologyNodeVO | null) {
+  if (!node) return '-';
+  const role = clusterRoleOf(node);
+  if (node.kind === 'platform' || node.isPlatform) {
+    if (role === 'primary') return '控制面·主服务端';
+    if (role === 'standby') return '控制面·备服务端';
+    if (role === 'client') return '控制面·客户端';
+    return '控制面';
+  }
+  if (role === 'primary') return '主服务端';
+  if (role === 'standby') return '备服务端';
+  if (role === 'candidate') return '存储候选';
+  if (role === 'client') return '客户端';
+  return node.kind || '-';
+}
+
+function kindColor(kind?: string) {
+  if (kind === 'platform') return 'blue';
+  if (kind === 'nfs_primary' || kind === 'storage_nfs' || kind === 'storage_osd') return 'purple';
+  if (kind === 'nfs_standby') return 'geekblue';
+  if (kind === 'nfs_candidate') return 'default';
+  return 'cyan';
+}
+
+function mountLabel(node: CephTopologyNodeVO) {
+  const ready = !!(node.nfsMountReady ?? node.cephMountReady);
+  const role = clusterRoleOf(node);
+  if (role === 'primary') {
+    if (node.nfsExportReady) return 'Export就绪';
+    if (ready) return '本机目录就绪';
+    return 'Export未就绪';
+  }
+  if (role === 'standby') return ready ? '备机就绪' : '备机未就绪';
+  if (role === 'candidate') return '未分配';
+  return ready ? '已挂载' : '未挂载';
+}
+
+function mountTone(node: CephTopologyNodeVO) {
+  if (clusterRoleOf(node) === 'candidate') return 'default';
+  if (clusterRoleOf(node) === 'primary') {
+    if (node.nfsExportReady) return 'success';
+    if (node.nfsMountReady ?? node.cephMountReady) return 'processing';
+    return 'warning';
+  }
+  return (node.nfsMountReady ?? node.cephMountReady) ? 'success' : 'warning';
+}
+
+function canBrowseNode(node?: CephTopologyNodeVO | null) {
+  if (!node) return false;
+  return !!node.sshCredentialConfigured || !!node.isPlatform || node.kind === 'platform';
+}
+
+function nodeChipTitle(node: CephTopologyNodeVO) {
+  const parts = [
+    kindLabel(node),
+    node.host,
+    node.nfsMountPath || node.cephMountPath || '-',
+    canBrowseNode(node) ? (node.kind === 'platform' || node.isPlatform ? '本机可操作' : 'SSH 已配置') : 'SSH 未配置',
+  ];
+  return parts.join(' · ');
+}
+
+function pickDefaultNodeId(nodes: CephTopologyNodeVO[], preferred?: number) {
+  const browsable = nodes.filter((n) => canBrowseNode(n));
+  if (preferred && browsable.some((n) => n.nodeId === preferred)) {
+    return preferred;
+  }
+  const platform = browsable.find((n) => n.kind === 'platform' || n.isPlatform);
+  if (platform?.nodeId) return platform.nodeId;
+  const readyClient = browsable.find(
+    (n) =>
+      (n.kind === 'nfs_client' || n.kind === 'ceph_client') &&
+      (n.nfsMountReady ?? n.cephMountReady),
+  );
+  if (readyClient?.nodeId) return readyClient.nodeId;
+  const anyClient = browsable.find((n) => n.kind === 'nfs_client' || n.kind === 'ceph_client');
+  if (anyClient?.nodeId) return anyClient.nodeId;
+  const storage = browsable.find((n) => n.kind === 'storage_nfs' || n.kind === 'storage_osd');
+  if (storage?.nodeId) return storage.nodeId;
+  return browsable[0]?.nodeId;
+}
+
+async function loadMountableNodes() {
+  nodesLoading.value = true;
+  try {
+    const data = await getCephTopology();
+    const nodes = (data.nodes || []).filter((n) => !!n.nodeId);
+    mountableNodes.value = nodes;
+    const nextId = pickDefaultNodeId(nodes, props.initialNodeId || currentNodeId.value || undefined);
+    if (nextId && selectedIds.value[0] !== nextId) {
+      selectedIds.value = [nextId];
+    } else if (!nextId) {
+      selectedIds.value = [];
+    }
+  } catch (e: any) {
+    mountableNodes.value = [];
+    createMessage.error(e?.message || '加载可管理节点失败');
+  } finally {
+    nodesLoading.value = false;
+  }
+}
+
+function selectNode(nodeId?: number) {
+  if (!nodeId) return;
+  const node = mountableNodes.value.find((n) => n.nodeId === nodeId);
+  if (!canBrowseNode(node)) {
+    createMessage.warning('该节点暂不可浏览文件');
+    return;
+  }
+  selectedIds.value = [nodeId];
+}
 
 const breadcrumbs = computed(() =>
   relativePath.value ? relativePath.value.split('/').filter(Boolean) : [],
 );
 
 const absolutePathDisplay = computed(() => {
-  const root = (list.value?.mountRoot || '').replace(/\/+$/, '') || '（加载中…）';
+  const root =
+    (list.value?.mountRoot || currentNode.value?.nfsMountPath || currentNode.value?.cephMountPath || '')
+      .replace(/\/+$/, '') || '（加载中…）';
   if (!relativePath.value) return root || '/';
   return `${root}/${relativePath.value}`;
 });
@@ -319,8 +538,8 @@ const filteredEntries = computed(() => {
 });
 
 const emptyText = computed(() => {
-  if (keyword.value.trim()) return '没有匹配的文件，试试清空过滤条件';
-  return '当前目录为空，可新建目录或拖拽/上传文件';
+  if (keyword.value.trim()) return '无匹配';
+  return '空目录';
 });
 
 const columns = [
@@ -397,8 +616,44 @@ function clearSelection() {
   selectedRows.value = [];
 }
 
+function buildRowActions(record: NfsFileEntry) {
+  const actions: Array<Record<string, unknown>> = [];
+  if (record.directory) {
+    actions.push({
+      label: '打开',
+      icon: 'ant-design:folder-open-outlined',
+      onClick: () => goPath(record.relativePath),
+    });
+  } else {
+    actions.push({
+      label: '下载',
+      icon: 'ant-design:download-outlined',
+      loading: downloading.value === record.relativePath,
+      onClick: () => download(record),
+    });
+  }
+  actions.push({
+    label: '重命名',
+    icon: 'ant-design:edit-outlined',
+    onClick: () => openRename(record),
+  });
+  actions.push({
+    label: '删除',
+    icon: 'material-symbols:delete-outline-rounded',
+    danger: true,
+    popConfirm: {
+      placement: 'topRight',
+      title: record.directory
+        ? `确认删除目录「${record.name}」及其全部内容？不可恢复。`
+        : `确认删除文件「${record.name}」？不可恢复。`,
+      confirm: () => runDelete(record),
+    },
+  });
+  return actions;
+}
+
 function resolveConflict(v: 'overwrite' | 'skip' | 'cancel') {
-  conflictOpen.value = false;
+  closeConflictModal();
   const resolver = conflictResolve;
   conflictResolve = null;
   resolver?.(v);
@@ -406,7 +661,7 @@ function resolveConflict(v: 'overwrite' | 'skip' | 'cancel') {
 
 function waitConflict(names: string[]) {
   conflictNames.value = names;
-  conflictOpen.value = true;
+  openConflictModal(true);
   return new Promise<'overwrite' | 'skip' | 'cancel'>((resolve) => {
     conflictResolve = resolve;
   });
@@ -453,7 +708,7 @@ async function copyCurrentPath() {
 
 function openMkdir() {
   mkdirName.value = '';
-  mkdirOpen.value = true;
+  openMkdirModal(true);
 }
 
 async function submitMkdir() {
@@ -463,23 +718,23 @@ async function submitMkdir() {
     createMessage.warning('请输入目录名');
     return;
   }
-  mkdirLoading.value = true;
+  setMkdirProps({ confirmLoading: true });
   try {
     const r = await mkdirNfsMediaDir(currentNodeId.value, name, relativePath.value);
     createMessage.success(r.message || '目录已创建');
-    mkdirOpen.value = false;
+    closeMkdirModal();
     await reload();
   } catch (e: any) {
     createMessage.error(e?.message || '创建失败');
   } finally {
-    mkdirLoading.value = false;
+    setMkdirProps({ confirmLoading: false });
   }
 }
 
 function openRename(record: NfsFileEntry) {
   renameTarget.value = record;
   renameName.value = record.name || '';
-  renameOpen.value = true;
+  openRenameModal(true);
 }
 
 async function submitRename() {
@@ -490,19 +745,19 @@ async function submitRename() {
     return;
   }
   if (name === renameTarget.value.name) {
-    renameOpen.value = false;
+    closeRenameModal();
     return;
   }
-  renameLoading.value = true;
+  setRenameProps({ confirmLoading: true });
   try {
     const r = await renameNfsMediaPath(currentNodeId.value, renameTarget.value.relativePath, name);
     createMessage.success(r.message || '已重命名');
-    renameOpen.value = false;
+    closeRenameModal();
     await reload();
   } catch (e: any) {
     createMessage.error(e?.message || '重命名失败');
   } finally {
-    renameLoading.value = false;
+    setRenameProps({ confirmLoading: false });
   }
 }
 
@@ -622,64 +877,38 @@ async function download(record: NfsFileEntry) {
   }
 }
 
-function confirmDelete(record: NfsFileEntry) {
+async function runDelete(record: NfsFileEntry) {
   if (!currentNodeId.value || !record.relativePath) return;
-  const tip = record.directory
-    ? `确认删除目录「${record.name}」及其全部内容？不可恢复。`
-    : `确认删除文件「${record.name}」？不可恢复。`;
-  Modal.confirm({
-    title: '确认删除',
-    content: tip,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
-    onOk: async () => {
-      deleting.value = record.relativePath || null;
-      try {
-        const r = await deleteNfsMediaPath(currentNodeId.value!, record.relativePath!);
-        createMessage.success(r.message || '已删除');
-        await reload();
-      } catch (e: any) {
-        createMessage.error(e?.message || '删除失败');
-        throw e;
-      } finally {
-        deleting.value = null;
-      }
-    },
-  });
+  try {
+    const r = await deleteNfsMediaPath(currentNodeId.value, record.relativePath);
+    createMessage.success(r.message || '已删除');
+    await reload();
+  } catch (e: any) {
+    createMessage.error(e?.message || '删除失败');
+  }
 }
 
-function confirmBatchDelete() {
+async function runBatchDelete() {
   if (!currentNodeId.value || !selectedRows.value.length) return;
-  const names = selectedRows.value.map((r) => r.name).slice(0, 8);
-  Modal.confirm({
-    title: `删除所选 ${selectedRows.value.length} 项`,
-    content: `${names.join('、')}${selectedRows.value.length > 8 ? '…' : ''}。目录会递归删除，不可恢复。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
-    onOk: async () => {
-      batchDeleting.value = true;
-      let ok = 0;
-      let fail = 0;
+  batchDeleting.value = true;
+  let ok = 0;
+  let fail = 0;
+  try {
+    for (const row of selectedRows.value) {
+      if (!row.relativePath) continue;
       try {
-        for (const row of selectedRows.value) {
-          if (!row.relativePath) continue;
-          try {
-            await deleteNfsMediaPath(currentNodeId.value!, row.relativePath);
-            ok += 1;
-          } catch {
-            fail += 1;
-          }
-        }
-        if (fail) createMessage.warning(`删除结束：成功 ${ok}，失败 ${fail}`);
-        else createMessage.success(`已删除 ${ok} 项`);
-        await reload();
-      } finally {
-        batchDeleting.value = false;
+        await deleteNfsMediaPath(currentNodeId.value!, row.relativePath);
+        ok += 1;
+      } catch {
+        fail += 1;
       }
-    },
-  });
+    }
+    if (fail) createMessage.warning(`删除结束：成功 ${ok}，失败 ${fail}`);
+    else createMessage.success(`已删除 ${ok} 项`);
+    await reload();
+  } finally {
+    batchDeleting.value = false;
+  }
 }
 
 watch(currentNodeId, () => {
@@ -690,51 +919,143 @@ watch(currentNodeId, () => {
 });
 
 watch(relativePath, () => reload());
+
+watch(
+  () => props.initialNodeId,
+  (id) => {
+    if (!id) return;
+    const hit = mountableNodes.value.find((n) => n.nodeId === id && canBrowseNode(n));
+    if (hit) selectedIds.value = [id];
+  },
+);
+
+onMounted(() => {
+  loadMountableNodes();
+});
 </script>
 
 <style scoped lang="less">
 .nfs-file-ops {
-  .mb-3 {
-    margin-bottom: 12px;
+  .node-picker {
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    background: #fafafa;
   }
 
-  .ops-hint {
-    font-size: 12px;
-    color: #8c8c8c;
-    margin-right: 8px;
-  }
-
-  .mount-tag-row {
-    margin-bottom: 8px;
-  }
-
-  .upload-head {
+  .node-picker__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .node-picker__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #262626;
+  }
+
+  .node-chips-scroll {
+    max-height: 280px;
+  }
+
+  .node-chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+
+  .node-chip {
+    cursor: pointer;
+    border-color: #e8e8e8;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    :deep(.ant-card-body) {
+      padding: 12px;
+    }
+  }
+
+  .node-chip:hover:not(.is-disabled) {
+    border-color: #91caff;
+  }
+
+  .node-chip.is-active {
+    border-color: #1677ff;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.12);
+  }
+
+  .node-chip.is-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .node-chip__name {
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 6px;
+  }
+
+  .node-chip__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .node-chip__tag {
+    margin: 0;
+  }
+
+  .node-chip__host {
+    font-size: 12px;
+    color: #8c8c8c;
+    word-break: break-all;
   }
 
   .ops-empty {
-    margin-top: 48px;
+    margin-top: 40px;
   }
 
-  .path-row {
+  .path-panel {
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .path-panel__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .path-panel__info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .path-panel__node {
+    margin-left: 8px;
+    color: #595959;
+    font-size: 13px;
   }
 
   .path-row__crumb {
-    flex: 1;
-    min-width: 200px;
+    margin-bottom: 6px;
   }
 
   .path-abs {
-    margin-top: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
     color: #595959;
@@ -750,14 +1071,34 @@ watch(relativePath, () => reload());
   }
 
   .filter-input {
-    width: 240px;
+    width: 260px;
     max-width: 100%;
+  }
+
+  .upload-panel {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .upload-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .ops-hint {
+    font-size: 12px;
+    color: #8c8c8c;
   }
 
   .drop-zone {
     padding: 12px;
     border: 1px solid #f0f0f0;
-    border-radius: 6px;
+    border-radius: 10px;
     background: #fff;
     transition: border-color 0.15s ease, background 0.15s ease;
   }
@@ -768,18 +1109,35 @@ watch(relativePath, () => reload());
   }
 
   .drop-banner {
-    margin-bottom: 10px;
-    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 14px 12px;
     border: 1px dashed #d9d9d9;
-    border-radius: 6px;
+    border-radius: 8px;
     color: #8c8c8c;
-    font-size: 12px;
+    font-size: 13px;
     text-align: center;
     background: #fafafa;
   }
 
-  .name-link {
+  .name-link,
+  .name-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 500;
+  }
+
+  .name-link__icon {
+    color: #1677ff;
+    flex-shrink: 0;
+  }
+
+  .name-file .name-link__icon {
+    color: #8c8c8c;
   }
 
   .upload-list {
@@ -824,6 +1182,95 @@ watch(relativePath, () => reload());
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 16px;
+  }
+
+  &.nfs-file-ops--manager {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+
+    .node-picker {
+      margin-bottom: 0;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .node-chips-scroll {
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+    }
+
+    .node-chips {
+      grid-template-columns: 1fr;
+      padding-right: 2px;
+      padding-bottom: 4px;
+    }
+
+    .file-main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .path-panel,
+    .upload-panel {
+      flex: none;
+    }
+
+    .drop-zone {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .table-wrap {
+      flex: 1;
+      min-height: 320px;
+      overflow: hidden;
+
+      :deep(.ant-table-placeholder) {
+        min-height: 280px;
+      }
+
+      :deep(.vben-basic-table-action) {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+    }
+
+    .ops-empty {
+      margin: auto;
+    }
+
+    .filter-input {
+      width: 280px;
+    }
+  }
+}
+
+@media (max-width: 960px) {
+  .nfs-file-ops.nfs-file-ops--manager {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: calc(100vh - 180px);
+
+    .node-picker {
+      max-height: 240px;
+    }
+
+    .node-chips {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
   }
 }
 </style>
