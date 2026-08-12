@@ -1,7 +1,7 @@
 # VIDEO Python → Java — HANDOFF
 
-> **话术：** CODE-PARITY 波次 0 + **CP-12（2026-08-12）**：Part1 深对齐后行为重证；**U4 PARTIAL** 阻塞完美收口；Python 仍为对照，禁止删除。  
-> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **Part1 CODE-PARITY** CP-1…CP-11 PASS；**CP-12 PARTIAL**；Part2 引擎另令。  
+> **话术：** CODE-PARITY 波次 0 + **CP-12（2026-08-12）**：Part1 完美收口必做项行为 PASS（U4 template→`notifyUsers` 已证）；U8 可选 SKIPPED；Python 仍为对照，禁止删除。  
+> **阶段 0/1 已落地；阶段 2 A-series 已关闭。** **Part1 CODE-PARITY** CP-1…CP-12 PASS（必做）；Part2 引擎另令。  
 > **禁止 COMPLETE / 禁止 FR-B46+ / 禁止删 main Python VIDEO。**
 
 ## 1. 一句话目标
@@ -84,16 +84,15 @@
 - **CP-8 PASS（W4）：** `Gb28181SourceResolver` + fixture map + sync payload + virtual device ensure；WVP 不可达时 `resolved_source=null` 诚实失败。证据：`logs/cp-8-gb28181-code.json`、`.superpowers/sdd/briefs/cp-8-report.md`。
 - **CP-10 PASS（W5）：** `run.py` 后台块 ↔ Java `*Scheduler`/AutoStart/Janitor 对照表；抽样 view-forward auto-resume（4/4）、space cleanup、media janitor、snap init（CP-4 交叉）。证据：`logs/cp-10-boot-daemons.json`、`.superpowers/sdd/briefs/cp-10-report.md`。
 - **CP-11 PASS（W6）：** 深对齐清理 T1–T12（证据多为 compile；**superseded by CP-12**）。证据：`logs/cp-11-*.json`、`.superpowers/sdd/briefs/cp-11-report.md`。
-- **CP-12 PARTIAL（W7）：** 完美收口 U1–U7+U9 行为重证；auto-enroll tick、FlightHub 409 扁平、GB alternate 接线、sink Kafka ack、matching 无号 publish、远程无预种 HB；**U4 PARTIAL**（iot-message 网关 503）。证据：`logs/cp-12-u*.json`、`.superpowers/sdd/briefs/cp-12-report.md`；提交 `ab741d0`、`197448e`。
-- **Part1 未完美收口**（U4 阻塞）；**非** COMPLETE / **非** 删 Python。
+- **CP-12 PASS（W7）：** 完美收口必做 U1–U7+U9 行为重证；**U4 PASS**（template-only → Kafka `shouldNotify` + `notifyUsers`；message API mock + `MESSAGE_SERVICE_URL`）。U8 optional SKIPPED。证据：`logs/cp-12-u*.json`、`.superpowers/sdd/briefs/cp-12-report.md`。
+- **Part1 必做项已收口**；**非** COMPLETE / **非** 删 Python；Part2 引擎另令。
 - **禁止：** COMPLETE、FR-B、矩阵刷绿、删 main Python、「等线上」、用 mini/direct/stub 冒充 Part1。
 
 ## 9. 下一步（等令）
 
-1. **U4 收口** — 启动/注册 `iot-message` 经网关；重跑 template→`notifyUsers` Kafka 证据。  
-2. **Part2 引擎** — InsightFace/Milvus/RUNTIME 真机/模型安装；见 [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md)。  
-3. Boot **剩余 gap** — SRS auto `fix_srs.sh`（U8 optional）。  
-4. Python Oracle 仍保留；**禁止删除**。
+1. **Part2 引擎** — InsightFace/Milvus/RUNTIME 真机/模型安装；见 [DEP_ENGINE_BACKLOG.md](./DEP_ENGINE_BACKLOG.md)。  
+2. （可选）Boot SRS auto `fix_srs.sh`（U8）；或启动真实 `message-server`（yaml 已对齐 15432/16379）替换 mock。  
+3. Python Oracle 仍保留；**禁止删除**。
 
 ## 10. 历史约束
 

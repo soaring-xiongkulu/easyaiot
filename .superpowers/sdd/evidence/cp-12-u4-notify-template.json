@@ -1,0 +1,80 @@
+{
+  "task": "U4",
+  "status": "PASS",
+  "profile": "local",
+  "evidence_type": "behavioral",
+  "message_service": {
+    "MESSAGE_SERVICE_URL": "http://127.0.0.1:48190",
+    "note": "local mock implementing same /admin-api/message/template|preview paths as iot-message; application-local.yaml PG→15432 + redis→16379 fixed for real boot",
+    "mock_hits_sample": [
+      "/admin-api/message/preview/user/group/query?id=43785cb5-c36a-429c-824b-fc32ee7a3df5",
+      "/admin-api/message/preview/user/query?id=b1ff9e5a-7a0c-42d0-a27b-645291eb03e3&msgType=3",
+      "/admin-api/message/template/get?id=cp12-u4-mail-tpl&msgType=3",
+      "/admin-api/message/preview/user/group/query?id=43785cb5-c36a-429c-824b-fc32ee7a3df5",
+      "/admin-api/message/preview/user/query?id=b1ff9e5a-7a0c-42d0-a27b-645291eb03e3&msgType=3",
+      "/admin-api/message/template/get?id=cp12-u4-mail-tpl&msgType=3",
+      "/admin-api/message/preview/user/group/query?id=43785cb5-c36a-429c-824b-fc32ee7a3df5",
+      "/admin-api/message/preview/user/query?id=b1ff9e5a-7a0c-42d0-a27b-645291eb03e3&msgType=3",
+      "/admin-api/message/template/get?id=cp12-u4-mail-tpl&msgType=3",
+      "/admin-api/message/preview/user/group/query?id=43785cb5-c36a-429c-824b-fc32ee7a3df5",
+      "/admin-api/message/preview/user/query?id=b1ff9e5a-7a0c-42d0-a27b-645291eb03e3&msgType=3",
+      "/__hits"
+    ]
+  },
+  "fixture": {
+    "task_id": 139,
+    "device_id": "frb45_device",
+    "alert_notification_config": {
+      "channels": [
+        {
+          "method": "email",
+          "template_id": "cp12-u4-mail-tpl",
+          "template_name": "CP12 U4 mail template"
+        }
+      ]
+    },
+    "db_notify_users": null,
+    "unique_event": "cp12-u4-1786511508"
+  },
+  "hook_http": {
+    "code": 0,
+    "msg": "告警事件已发送",
+    "message": "告警事件已发送",
+    "data": {
+      "mode": "kafka",
+      "partition": 23,
+      "shouldNotify": true,
+      "offset": 7067,
+      "topic": "iot-alert-notification",
+      "status": "success"
+    }
+  },
+  "kafka": {
+    "topic": "iot-alert-notification",
+    "partition": 23,
+    "offset": 7067,
+    "shouldNotify": true,
+    "notifyUsers": [
+      {
+        "id": "b1ff9e5a-7a0c-42d0-a27b-645291eb03e3",
+        "msgType": 3,
+        "previewUser": "xxxxx@163.com",
+        "email": "xxxxx@163.com",
+        "mail": "xxxxx@163.com",
+        "name": "cp12-u4-user"
+      }
+    ],
+    "notifyMethods": [
+      "email"
+    ],
+    "channels": [
+      {
+        "method": "email",
+        "template_id": "cp12-u4-mail-tpl",
+        "template_name": "CP12 U4 mail template"
+      }
+    ],
+    "event": "cp12-u4-1786511508"
+  },
+  "video_log_excerpt": "MessageTemplateNotifyUserService extracted 1 notify user for frb45_device"
+}

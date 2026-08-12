@@ -39,9 +39,9 @@
 | CP-9 FlightHub+directory | W4 | **PASS** | [cp-9-brief.md](./briefs/cp-9-brief.md) | [cp-9-report.md](./briefs/cp-9-report.md) | `logs/cp-9-flighthub-directory.json` | `5fd7ba9` |
 | CP-10 Boot daemons | W5 | **PASS** | [cp-10-brief.md](./briefs/cp-10-brief.md) | [cp-10-report.md](./briefs/cp-10-report.md) | `logs/cp-10-boot-daemons.json` | `3e48344` |
 | CP-11 Deep gap cleanup | W6 | **PASS** | [cp-11-deep-parity-brief.md](./briefs/cp-11-deep-parity-brief.md) | [cp-11-report.md](./briefs/cp-11-report.md) | `logs/cp-11-*.json` (superseded) | `687edd1` (`bda0cd7` T1–T3) |
-| CP-12 Perfect gap cleanup | W7 | **PARTIAL** | [cp-12-perfect-gap-brief.md](./briefs/cp-12-perfect-gap-brief.md) | [cp-12-report.md](./briefs/cp-12-report.md) | `logs/cp-12-u*.json` | `ab741d0`, `197448e` |
+| CP-12 Perfect gap cleanup | W7 | **PASS** | [cp-12-perfect-gap-brief.md](./briefs/cp-12-perfect-gap-brief.md) | [cp-12-report.md](./briefs/cp-12-report.md) | `logs/cp-12-u*.json` | `ab741d0`, `197448e`, U4 follow-up |
 
-> **Part1 A-series CP (CP-1…CP-11) closed**; **CP-12** behavioral re-proof — U4 PARTIAL (message API 503); **not** perfect closure; Part2 engines remain; no COMPLETE; Python Oracle retained.
+> **Part1 A-series CP (CP-1…CP-12) closed** for required perfect-gap items (U8 optional SKIPPED); Part2 engines remain; **no COMPLETE**; Python Oracle retained.
 
 ## Master docs
 
