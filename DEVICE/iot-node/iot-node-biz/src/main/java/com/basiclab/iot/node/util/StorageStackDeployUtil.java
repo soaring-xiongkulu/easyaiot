@@ -8,7 +8,8 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * NFS 共享媒体栈远程部署（唯一存储方式；未指定 NFS 服务端时默认本机 export）。
+ * NFS 共享媒体栈远程部署（唯一产品存储通路）。
+ * 未配置 nfs_server_host 时：storage 角色用本机 host；其它角色不得静默回退为 local_bind。
  */
 public final class StorageStackDeployUtil {
 
@@ -49,7 +50,12 @@ public final class StorageStackDeployUtil {
     }
 
     /**
-     * 未配置 nfs_server_host 时：storage 角色用本机；其他角色默认 127.0.0.1（本机 export 回退）。
+     * 解析 NFS 服务端地址（唯一 NFS 通路）。
+     * <ul>
+     *   <li>优先 tags.nfs_server_host / 兼容 ceph_mon_host</li>
+     *   <li>storage 角色未配置时用本机 host（本机即 Export 服务端）</li>
+     *   <li>客户端未配置时不得回退为本机 IP（否则会挂到自己），需先「分配默认角色」</li>
+     * </ul>
      */
     public static String resolveNfsServerHost(ComputeNodeDO node, Map<String, String> tags) {
         String explicit = tagString(tags, "nfs_server_host", null);
@@ -60,10 +66,24 @@ public final class StorageStackDeployUtil {
         if (StrUtil.isNotBlank(legacy)) {
             return legacy.trim();
         }
-        if (isStorageRole(node.getNodeRole()) && StrUtil.isNotBlank(node.getHost())) {
-            return node.getHost().trim();
+        String role = node != null ? node.getNodeRole() : null;
+        if (isStorageRole(role)) {
+            if (node != null && StrUtil.isNotBlank(node.getHost())) {
+                return node.getHost().trim();
+            }
+            return "127.0.0.1";
         }
-        return "127.0.0.1";
+        // 拓扑主/备服务端：即使 nodeRole 不是 storage，也应作为 Export 端
+        String clusterRole = tagString(tags, "nfs_cluster_role", null);
+        if ("primary".equalsIgnoreCase(clusterRole) || "standby".equalsIgnoreCase(clusterRole)
+                || "server".equalsIgnoreCase(tagString(tags, "nfs_role", null))) {
+            if (node != null && StrUtil.isNotBlank(node.getHost())) {
+                return node.getHost().trim();
+            }
+            return "127.0.0.1";
+        }
+        // 客户端：缺省标签时返回空，由安装脚本显式失败，避免误挂本机
+        return "";
     }
 
     public static String buildDeployEnvScript(ComputeNodeDO node) {

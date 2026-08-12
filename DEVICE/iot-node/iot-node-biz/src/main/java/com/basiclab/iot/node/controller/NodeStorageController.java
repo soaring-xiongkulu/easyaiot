@@ -1,7 +1,11 @@
 package com.basiclab.iot.node.controller;
 
+import com.basiclab.iot.common.core.aop.TenantIgnore;
 import com.basiclab.iot.common.domain.CommonResult;
 import com.basiclab.iot.common.domain.PageResult;
+import com.basiclab.iot.node.domain.vo.NfsBridgeCreateReqVO;
+import com.basiclab.iot.node.domain.vo.NfsClusterActivateReqVO;
+import com.basiclab.iot.node.domain.vo.NfsMultiClusterOverviewRespVO;
 import com.basiclab.iot.node.domain.vo.NodeCephTopologyRespVO;
 import com.basiclab.iot.node.domain.vo.NodeMediaRemoteDeployRespVO;
 import com.basiclab.iot.node.domain.vo.NodeNfsBatchRefreshReqVO;
@@ -15,6 +19,7 @@ import com.basiclab.iot.node.domain.vo.NodeStorageOpLogPageReqVO;
 import com.basiclab.iot.node.domain.vo.NodeStorageOpLogRespVO;
 import com.basiclab.iot.node.domain.vo.NodeStorageStackCheckRespVO;
 import com.basiclab.iot.node.service.NodeStorageService;
+import com.basiclab.iot.node.service.NfsMultiClusterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +50,8 @@ public class NodeStorageController {
 
     @Resource
     private NodeStorageService nodeStorageService;
+    @Resource
+    private NfsMultiClusterService nfsMultiClusterService;
 
     @GetMapping("/topology")
     @Operation(summary = "NFS 共享媒体节点拓扑")
@@ -53,9 +60,59 @@ public class NodeStorageController {
     }
 
     @PostMapping("/assign-nfs-cluster")
-    @Operation(summary = "分配/切换 NFS 集群（服务端 + 客户端 tags）")
+    @Operation(summary = "分配/切换 NFS 集群（主/备服务端 + 客户端 tags）")
     public CommonResult<NodeCephTopologyRespVO> assignNfsCluster(@RequestBody NodeNfsClusterAssignReqVO req) {
         return success(nodeStorageService.assignNfsCluster(req));
+    }
+
+    @PostMapping("/promote-nfs-primary")
+    @Operation(summary = "软 HA：升主 NFS 服务端（改 tags；客户端需重新挂载）")
+    public CommonResult<NodeCephTopologyRespVO> promoteNfsPrimary(@RequestParam("nodeId") Long nodeId) {
+        return success(nodeStorageService.promoteNfsPrimary(nodeId));
+    }
+
+    @TenantIgnore
+    @GetMapping("/multi-cluster/overview")
+    @Operation(summary = "NFS 多集群与桥接总览（泳道=集群）")
+    public CommonResult<NfsMultiClusterOverviewRespVO> multiClusterOverview() {
+        return success(nfsMultiClusterService.getOverview());
+    }
+
+    @TenantIgnore
+    @PostMapping("/multi-cluster/activate")
+    @Operation(summary = "切换生效主 NFS 集群（默认需先停桥接；forceStopBridges=true 可强制停）")
+    public CommonResult<NfsMultiClusterOverviewRespVO> activateCluster(@RequestBody NfsClusterActivateReqVO req) {
+        return success(nfsMultiClusterService.activateCluster(req));
+    }
+
+    @TenantIgnore
+    @PostMapping("/multi-cluster/bridge/create")
+    @Operation(summary = "创建主集群→从集群单向桥接（目标必须落在 _bridge/ 下）")
+    public CommonResult<NfsMultiClusterOverviewRespVO> createBridge(@RequestBody NfsBridgeCreateReqVO req) {
+        return success(nfsMultiClusterService.createBridge(req));
+    }
+
+    @TenantIgnore
+    @PostMapping("/multi-cluster/bridge/stop")
+    @Operation(summary = "停止桥接")
+    public CommonResult<NfsMultiClusterOverviewRespVO> stopBridge(@RequestParam("bridgeId") Long bridgeId) {
+        return success(nfsMultiClusterService.stopBridge(bridgeId));
+    }
+
+    @TenantIgnore
+    @PostMapping("/multi-cluster/bridge/enable")
+    @Operation(summary = "启用/停用桥接")
+    public CommonResult<NfsMultiClusterOverviewRespVO> enableBridge(
+            @RequestParam("bridgeId") Long bridgeId,
+            @RequestParam("enabled") Boolean enabled) {
+        return success(nfsMultiClusterService.enableBridge(bridgeId, Boolean.TRUE.equals(enabled)));
+    }
+
+    @TenantIgnore
+    @PostMapping("/multi-cluster/bridge/run")
+    @Operation(summary = "立即执行单向同步（首次全量含历史，后续增量；不覆盖客户业务目录）")
+    public CommonResult<NfsMultiClusterOverviewRespVO> runBridge(@RequestParam("bridgeId") Long bridgeId) {
+        return success(nfsMultiClusterService.runBridge(bridgeId));
     }
 
     @PostMapping("/batch-refresh-ssh")

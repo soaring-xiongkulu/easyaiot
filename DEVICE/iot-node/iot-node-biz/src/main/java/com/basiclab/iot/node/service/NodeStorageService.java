@@ -20,8 +20,11 @@ public interface NodeStorageService {
     /** 中心关联的 NFS 共享媒体节点拓扑 */
     NodeCephTopologyRespVO getCephTopology();
 
-    /** 分配/切换 NFS 集群：指定服务端与客户端，更新节点 tags */
+    /** 分配/切换 NFS 集群：指定主/备服务端与客户端，更新节点 tags */
     NodeCephTopologyRespVO assignNfsCluster(NodeNfsClusterAssignReqVO req);
+
+    /** 软 HA：将指定节点升为 NFS 主服务端，原主降为备，客户端改挂载目标标签 */
+    NodeCephTopologyRespVO promoteNfsPrimary(Long nodeId);
 
     /** 批量 SSH 刷新 NFS 现状并落库 */
     NodeNfsBatchRefreshRespVO batchRefreshBySsh(NodeNfsBatchRefreshReqVO req);
