@@ -98,6 +98,8 @@ easyaiot:
     nfs-probe-enabled: ${EASYAIOT_NFS_PROBE_ENABLED:true}
     nfs-probe-interval-ms: ${EASYAIOT_NFS_PROBE_INTERVAL_MS:900000}
     cluster-source-path: ${EASYAIOT_STORAGE_CLUSTER_PATH:}
+    # IDEA/宿主机本地启动：自动创建媒体目录 + 尽量拉起本机 NFS，并为控制面补齐主角色
+    local-nfs-bootstrap: ${EASYAIOT_LOCAL_NFS_BOOTSTRAP:true}
   media:
     cluster-source-path: ${EASYAIOT_MEDIA_CLUSTER_PATH:}
     # Hook 回调目标（SRS/ZLM on_publish 等）；默认自动探测，无需手动配置
