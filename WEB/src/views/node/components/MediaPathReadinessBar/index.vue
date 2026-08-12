@@ -1,38 +1,28 @@
 <template>
-  <Alert class="media-path-readiness" type="info" show-icon>
-    <template #message>媒体存储路径</template>
-    <template #description>
-      <div class="desc">
+  <div v-if="selectedHint || summary" class="media-path-readiness">
+    <Space wrap align="center">
+      <template v-if="selectedHint">
+        <span>{{ selectedHint.name }}</span>
+        <Tag :color="selectedHint.ready ? 'success' : 'warning'">
+          {{ selectedHint.ready ? '挂载就绪' : '挂载未就绪' }}
+        </Tag>
+        <span v-if="selectedHint.mountPath" class="path">{{ selectedHint.mountPath }}</span>
+      </template>
+      <template v-else-if="summary">
         <span>
-          告警图与录像写入同一挂载根下的 <code>alert_images</code> / <code>playbacks</code>。
-          NFS 集群运维与拓扑请前往「分布式存储」。
+          覆盖 {{ coverageReady }}/{{ coverageTotal }}（{{ coveragePercent }}%）
         </span>
-        <div v-if="selectedHint" class="node-hint">
-          当前节点 {{ selectedHint.name }}（{{ selectedHint.host }}）：
-          <Tag :color="selectedHint.ready ? 'success' : 'warning'">
-            {{ selectedHint.ready ? '挂载就绪' : '挂载未就绪' }}
-          </Tag>
-          <span v-if="selectedHint.mountPath" class="path">{{ selectedHint.mountPath }}</span>
-        </div>
-        <div v-else-if="summary" class="cluster-hint">
-          客户端挂载覆盖 {{ coverageReady }} / {{ coverageTotal }}（{{ coveragePercent }}%）
-          <span v-if="(summary.unprobedCount ?? 0) > 0"> · 未探测 {{ summary.unprobedCount }}</span>
-        </div>
-        <Space wrap class="actions">
-          <Button type="link" size="small" :loading="loading" @click="reload">刷新</Button>
-          <Button type="link" size="small" @click="goStorageTopology">
-            查看 NFS 集群拓扑
-          </Button>
-        </Space>
-      </div>
-    </template>
-  </Alert>
+      </template>
+      <Button type="link" size="small" :loading="loading" @click="reload">刷新</Button>
+      <Button type="link" size="small" @click="goStorageTopology">NFS 集群管理</Button>
+    </Space>
+  </div>
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { Alert, Space, Tag } from 'ant-design-vue';
+import { Space, Tag } from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import { getCephTopology, type CephTopologySummaryVO, type ComputeNodeVO } from '@/api/device/node';
 import { readCephMountFromTags } from '../../utils/constants';
@@ -52,7 +42,6 @@ const coverageTotal = computed(() => summary.value?.clientNodes ?? 0);
 const coverageReady = computed(() => {
   const s = summary.value;
   if (!s) return 0;
-  // mountReadyCount 含非客户端；覆盖展示优先用 coveragePercent 反推
   if (s.coveragePercent != null && coverageTotal.value > 0) {
     return Math.round((s.coveragePercent * coverageTotal.value) / 100);
   }
@@ -64,11 +53,10 @@ const selectedHint = computed(() => {
   const node = props.selectedNode;
   if (!node?.id) return null;
   const mount = readCephMountFromTags(node.tags);
-  const ready = mount.status === 'ready';
   return {
     name: node.name || `#${node.id}`,
     host: node.host || '-',
-    ready,
+    ready: mount.status === 'ready',
     mountPath: mount.mountPath,
   };
 });
@@ -86,7 +74,7 @@ async function reload() {
 }
 
 function goStorageTopology() {
-  navigateToStorageSubTab(router, 'topology', props.selectedNode?.id);
+  navigateToStorageSubTab(router, 'manage', props.selectedNode?.id);
 }
 
 onMounted(() => reload());
@@ -100,32 +88,15 @@ watch(
 <style scoped lang="less">
 .media-path-readiness {
   margin-bottom: 16px;
-
-  .desc {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .node-hint,
-  .cluster-hint {
-    color: #666;
-    font-size: 13px;
-  }
+  padding: 8px 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  background: #fafafa;
+  font-size: 13px;
+  color: #595959;
 
   .path {
-    margin-left: 6px;
-    color: #999;
-  }
-
-  code {
-    padding: 0 4px;
-    background: #f5f5f5;
-    border-radius: 3px;
-  }
-
-  .actions {
-    margin-top: 4px;
+    color: #8c8c8c;
   }
 }
 </style>

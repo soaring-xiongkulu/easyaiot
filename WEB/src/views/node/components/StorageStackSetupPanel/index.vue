@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { Alert, Form, FormItem, Radio, Space } from 'ant-design-vue';
+import { Form, FormItem, Radio, Space } from 'ant-design-vue';
 import { CodeEditor } from '@/components/CodeEditor';
 import { CollapseContainer } from '@/components/Container';
 import { Button } from '@/components/Button';
@@ -24,7 +24,6 @@ import {
   SETUP_COPY,
   SETUP_FORM_LABEL_COL,
   SETUP_FORM_WRAPPER_COL,
-  NODE_TERM,
   type StorageStackScriptParams,
 } from '../../utils/constants';
 import { resolveDeployMessage, type DeployResultState } from '../../utils/deployLog';
@@ -72,18 +71,6 @@ const canOperate = computed(
     !!props.formValues?.nodeId &&
     (!!props.formValues?.sshUsername?.trim() || props.formValues?.sshCredentialConfigured === true),
 );
-
-const disabledReason = computed(() => {
-  if (!guide.value.isReady) return '请先在节点配置中填写主机地址与 Ceph 参数';
-  if (!props.formValues?.nodeId) return '请先保存节点信息';
-  if (!props.formValues?.sshUsername?.trim() && props.formValues?.sshCredentialConfigured !== true) {
-    return '请先在节点配置中填写 SSH 用户名及认证凭据';
-  }
-  if (props.formValues?.sshLastTestOk === false) {
-    return 'SSH 连通性检测未通过，请先在概览页检测 SSH';
-  }
-  return '';
-});
 
 const manualContent = computed(() => {
   if (!guide.value.isReady) return '';
@@ -218,18 +205,6 @@ watch(
 
 <template>
   <SetupStepShell v-if="guide.isStorageRole">
-    <template v-if="!guide.isReady" #intro>
-      <Alert type="warning" show-icon :message="`${NODE_TERM.storageService}配置不完整`">
-        <template #description>
-          <ul class="pending-list">
-            <li v-for="item in guide.pendingItems" :key="item.key" :class="{ done: item.done }">
-              {{ item.label }}<span v-if="item.hint"> — {{ item.hint }}</span>
-            </li>
-          </ul>
-        </template>
-      </Alert>
-    </template>
-
     <CollapseContainer v-if="guide.isReady" :title="SETUP_COPY.deployConfig" :can-expan="false">
       <Form :label-col="SETUP_FORM_LABEL_COL" :wrapper-col="SETUP_FORM_WRAPPER_COL" class="setup-resource-form">
         <FormItem :label="SETUP_COPY.deployMode">
@@ -248,12 +223,10 @@ watch(
               检测 NFS 挂载
             </Button>
           </Space>
-          <div v-if="!canOperate" class="form-hint">{{ disabledReason || '请先保存节点并配置 SSH' }}</div>
-          <StorageStackCheckResult v-else-if="checkResult" :result="checkResult" @close="checkResult = null" />
+          <StorageStackCheckResult v-if="canOperate && checkResult" :result="checkResult" @close="checkResult = null" />
           <div v-else-if="mountCheckResult" class="form-hint">
             {{ mountCheckResult.message || (mountCheckResult.mountReady ? 'NFS 已挂载' : 'NFS 未挂载') }}
           </div>
-          <div v-else class="form-hint">通过 SSH 探测 NFS 服务端、Export、端口与挂载状态</div>
         </FormItem>
 
         <template v-if="deployMode === 'auto'">
@@ -270,11 +243,6 @@ watch(
               </Button>
               <Button v-if="deploying" danger @click="handleStopDeploy">停止部署</Button>
             </Space>
-            <div v-if="disabledReason" class="form-hint">{{ disabledReason }}</div>
-            <div v-else-if="guide.readySummary" class="form-hint">{{ guide.readySummary }}</div>
-            <div v-else class="form-hint">
-              建议顺序：① 安装 NFS 服务端并初始化 Export ② 客户端节点挂载
-            </div>
           </FormItem>
 
           <FormItem :label="SETUP_COPY.ops">
