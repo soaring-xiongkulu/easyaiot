@@ -17,8 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -39,10 +41,17 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
 
     /** 同一设备连续失败时，完整堆栈仅首次打印；之后按该间隔汇总，避免刷屏 */
     private static final long FAIL_LOG_INTERVAL_MS = 60_000L;
+    /** ONLINE 心跳写库最小间隔，避免每次成功 poll 都 UPDATE */
+    private static final long ONLINE_WRITE_INTERVAL_MS = 30_000L;
+    /** 失败退避上限 */
+    private static final long MAX_FAIL_BACKOFF_MS = 60_000L;
 
     private final Map<Long, Long> nextPollTimes = new ConcurrentHashMap<>();
     private final Set<Long> inFlight = ConcurrentHashMap.newKeySet();
     private final Map<Long, DeviceFailLogState> failLogStates = new ConcurrentHashMap<>();
+    private final Map<Long, CachedDeviceConfig> configCache = new ConcurrentHashMap<>();
+    private final Map<Long, String> lastConnectStatus = new ConcurrentHashMap<>();
+    private final Map<Long, Long> lastOnlineWriteTimes = new ConcurrentHashMap<>();
     private ScheduledExecutorService scanner;
     private ExecutorService workers;
 
@@ -50,6 +59,16 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
         private long consecutiveFails;
         private long lastWarnAt;
         private long suppressedSinceLastWarn;
+    }
+
+    private static final class CachedDeviceConfig {
+        private final String extension;
+        private final IndustrialDeviceConfig config;
+
+        private CachedDeviceConfig(String extension, IndustrialDeviceConfig config) {
+            this.extension = extension;
+            this.config = config;
+        }
     }
 
     protected AbstractIndustrialPollingProtocol(String protocolType,
@@ -90,8 +109,10 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
         try {
             List<DeviceDO> devices = deviceMapper.selectPollingDevices(protocolType);
             long now = System.currentTimeMillis();
+            Set<Long> seen = new HashSet<>(devices.size());
             for (DeviceDO device : devices) {
-                IndustrialDeviceConfig config = IndustrialDeviceConfig.parse(device.getExtension());
+                seen.add(device.getId());
+                IndustrialDeviceConfig config = resolveConfig(device);
                 if (config == null || !config.isEnabled() || config.getPoints() == null || config.getPoints().isEmpty()) {
                     continue;
                 }
@@ -102,9 +123,29 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
                 nextPollTimes.put(device.getId(), now + config.pollingInterval());
                 workers.submit(() -> pollSafely(device, config));
             }
+            pruneStaleDeviceState(seen);
         } catch (Exception e) {
             log.error("[scanDevices][failed to scan {} devices]", protocolType, e);
         }
+    }
+
+    private IndustrialDeviceConfig resolveConfig(DeviceDO device) {
+        String extension = device.getExtension();
+        CachedDeviceConfig cached = configCache.get(device.getId());
+        if (cached != null && Objects.equals(cached.extension, extension)) {
+            return cached.config;
+        }
+        IndustrialDeviceConfig config = IndustrialDeviceConfig.parse(extension);
+        configCache.put(device.getId(), new CachedDeviceConfig(extension, config));
+        return config;
+    }
+
+    private void pruneStaleDeviceState(Set<Long> seen) {
+        nextPollTimes.keySet().removeIf(id -> !seen.contains(id));
+        configCache.keySet().removeIf(id -> !seen.contains(id));
+        failLogStates.keySet().removeIf(id -> !seen.contains(id));
+        lastConnectStatus.keySet().removeIf(id -> !seen.contains(id));
+        lastOnlineWriteTimes.keySet().removeIf(id -> !seen.contains(id));
     }
 
     private void pollSafely(DeviceDO device, IndustrialDeviceConfig config) {
@@ -115,15 +156,28 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
                     markPollSuccess(device.getId());
                     if (values != null && !values.isEmpty()) {
                         reportProperties(device, values);
+                    } else {
+                        updateConnectStatusThrottled(device.getId(), device.getTenantId(), "ONLINE");
                     }
                 } catch (Exception e) {
-                    deviceMapper.updatePollingDeviceStatus(device.getId(), device.getTenantId(), "OFFLINE", null);
+                    invalidateConnection(device, config);
+                    updateConnectStatusThrottled(device.getId(), device.getTenantId(), "OFFLINE");
                     logPollFailure(device, config, e);
+                    scheduleFailBackoff(device.getId(), config);
                 }
             });
         } finally {
             inFlight.remove(device.getId());
         }
+    }
+
+    private void scheduleFailBackoff(Long deviceId, IndustrialDeviceConfig config) {
+        DeviceFailLogState state = failLogStates.get(deviceId);
+        long fails = state == null ? 1L : Math.max(1L, state.consecutiveFails);
+        long base = config.pollingInterval();
+        long multiplier = 1L << Math.min(fails - 1, 4);
+        long backoff = Math.min(base * multiplier, MAX_FAIL_BACKOFF_MS);
+        nextPollTimes.put(deviceId, System.currentTimeMillis() + Math.max(base, backoff));
     }
 
     private void markPollSuccess(Long deviceId) {
@@ -190,7 +244,30 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
         messageService.sendDeviceMessage(message, device.getProductIdentification(),
                 device.getDeviceIdentification(), serverId);
         deviceServerIdService.saveDeviceServerId(device.getId(), serverId);
-        deviceMapper.updatePollingDeviceStatus(device.getId(), device.getTenantId(), "ONLINE", LocalDateTime.now());
+        updateConnectStatusThrottled(device.getId(), device.getTenantId(), "ONLINE");
+    }
+
+    /**
+     * 仅在状态变化时写库；ONLINE 心跳最多每 {@link #ONLINE_WRITE_INTERVAL_MS} 刷新一次 last_online_time。
+     */
+    private void updateConnectStatusThrottled(Long deviceId, Long tenantId, String status) {
+        String previous = lastConnectStatus.get(deviceId);
+        long now = System.currentTimeMillis();
+        if (Objects.equals(previous, status)) {
+            if (!"ONLINE".equals(status)) {
+                return;
+            }
+            Long lastWrite = lastOnlineWriteTimes.get(deviceId);
+            if (lastWrite != null && now - lastWrite < ONLINE_WRITE_INTERVAL_MS) {
+                return;
+            }
+        }
+        lastConnectStatus.put(deviceId, status);
+        LocalDateTime onlineTime = "ONLINE".equals(status) ? LocalDateTime.now() : null;
+        if ("ONLINE".equals(status)) {
+            lastOnlineWriteTimes.put(deviceId, now);
+        }
+        deviceMapper.updatePollingDeviceStatus(deviceId, tenantId, status, onlineTime);
     }
 
     @Override
@@ -225,7 +302,7 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
         }
         TenantUtils.execute(message.getTenantId(), () -> {
             DeviceDO device = deviceMapper.selectById(deviceId);
-            IndustrialDeviceConfig config = device == null ? null : IndustrialDeviceConfig.parse(device.getExtension());
+            IndustrialDeviceConfig config = device == null ? null : resolveConfig(device);
             if (device == null || config == null || !config.isEnabled()) {
                 return;
             }
@@ -236,6 +313,7 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
                 write(device, config, message);
                 replyDesiredSetAck(device, message, true, "ok");
             } catch (Exception e) {
+                invalidateConnection(device, config);
                 log.error("[onMessage][{} device write failed, deviceId: {}]", protocolType, deviceId, e);
                 replyDesiredSetAck(device, message, false,
                         e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
@@ -269,6 +347,20 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
 
     protected abstract String connectionAddress(DeviceDO device, IndustrialDeviceConfig config);
 
+    /**
+     * 采集/写入失败后使缓存连接失效，子类按需覆盖。
+     */
+    protected void invalidateConnection(DeviceDO device, IndustrialDeviceConfig config) {
+        // default no-op
+    }
+
+    /**
+     * 关闭协议侧缓存的长连接，子类按需覆盖。
+     */
+    protected void closeConnections() {
+        // default no-op
+    }
+
     protected long requestTimeoutMs() {
         return Math.max(1000L, properties.getRequestTimeoutMs());
     }
@@ -280,6 +372,11 @@ public abstract class AbstractIndustrialPollingProtocol implements IotMessageSub
         }
         if (workers != null) {
             workers.shutdownNow();
+        }
+        try {
+            closeConnections();
+        } catch (Exception e) {
+            log.warn("[stop][{} close connections failed]", protocolType, e);
         }
     }
 }
