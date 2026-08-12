@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，並由 <strong>EDGE C# 邊緣採集運行時</strong>在現場以插件化採集器承接 Modbus RTU/TCP、OPC UA 等工業協議採集、本地調度與 MQTT 云邊對接，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -121,6 +121,56 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
 📖 詳細接入文檔見 <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RTC 模組 README</a>。
+</p>
+
+### 🔌 EDGE：C# 邊緣採集運行時，讓工業現場「採得準、上得去」
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+工控與樓宇現場常見「PLC、電錶、傳感器掛在 RS-485 或以太網側，雲平臺卻要另配一套數採軟體、協議各寫各的、配置改一次要派人到現場」——接入鏈路長、運維割裂、云邊對不上口徑。EasyAIoT 新增獨立 <strong>EDGE 模組</strong>（C#），作為<strong>可獨立部署的邊緣採集運行時</strong>：多協議採集器插件、本地調度、配置驅動解析、MQTT 對接 EasyAIoT 雲平臺，把 Modbus RTU/TCP、OPC UA 等現場測點收成統一物模型上行，雲端配置下發與屬性寫值也能直達邊緣執行。
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+<strong>為何選用 C# 做邊緣物聯網採集？</strong>
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>工業現場親和</strong>：C# 在工控、SCADA、上位機領域生態成熟，Modbus、OPC UA、串口通信等協議庫與工程實踐豐富，集成商與自動化工程師上手成本低</li>
+  <li><strong>強類型 + 結構化工程</strong>：測點映射、寄存器解析、配置校驗在編譯期即可發現錯誤，長期維護多協議採集器時比腳本語言更穩、更可測</li>
+  <li><strong>異步併發不阻塞</strong>：<code>async/await</code> 天然適合多設備輪詢、串口/網路 I/O 併發——同一網關可同時調度數十路子設備採集，避免 Python GIL 等解釋型鏈路在高頻輪詢下的吞吐瓶頸</li>
+  <li><strong>長駐服務穩定</strong>：.NET 運行時適合邊緣網關 7×24 常駐進程，記憶體與 GC 行為可預期，配合依賴注入與插件化架構，採集器熱插拔、版本迭代不必重啟整站</li>
+  <li><strong>跨平臺可交付</strong>：同一套 C# 源碼可發佈至 Linux x86_64 / ARM64 工控機與邊緣盒子，單文件/自包含部署，現場裝機不必再配 Python 虛擬環境或 JVM</li>
+  <li><strong>與雲平臺分工清晰</strong>：邊緣側專注「採、解、發」，DEVICE 側專注物模型與設備生命週期——C# 不承擔平臺重業務與 AI 推理，資源佔用更輕，適合掛在 RS-485 總線側或弱算力網關上獨立運行</li>
+</ul>
+
+<table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px;">
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50; width: 18%;">採集器</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; color: #2c3e50;">協議 / 場景</td>
+</tr>
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;"><code>modbus-rtu</code></td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">Modbus RTU（RS485/串口）——電錶、儀表、PLC 等總線側設備</td>
+</tr>
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;"><code>modbus-tcp</code></td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">Modbus TCP——以太網側工控設備、變頻器、網關</td>
+</tr>
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444;"><code>opc-ua</code></td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; vertical-align: top; color: #444; line-height: 1.7;">OPC UA——現代化工控與上位系統互聯</td>
+</tr>
+</table>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>插件化採集架構</strong>：實現 <code>ICollector</code> 即可擴展新協議；Host 統一註冊、調度與結果上報，採集邏輯與運行時解耦</li>
+  <li><strong>配置雙通道</strong>：本地 <code>device-jobs.json</code> 可離線運行；雲端 MQTT <code>config/downstream/push</code> 可遠程覆蓋採集任務，現場改配置不必再派人</li>
+  <li><strong>MQTT 云邊一體</strong>：網關屬性上報、子設備代報、雲端屬性寫值下行，經 EMQX 對接 DEVICE/<strong>iot-sink</strong>，子設備自動創建與影子入庫</li>
+  <li><strong>獨立打包交付</strong>：<code>pack_linux.sh</code> 產出 x86_64 / ARM64 Linux 部署包，可裝於工控機、邊緣網關，與平臺主棧解耦部署</li>
+  <li><strong>E2E 聯調開箱即用</strong>：<code>bash EDGE/demo/run_e2e.sh</code> 一鍵驗證採集 → MQTT 上行 → 雲端入庫全鏈路</li>
+</ul>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+📖 詳細文檔見 <a href="EDGE/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">EDGE 模組 README</a>、<a href="EDGE/docs/PLATFORM_INTEGRATION.md" style="color: #3498db; text-decoration: none; font-weight: 600;">雲平臺對接指南</a>。
 </p>
 
 ### 🎯 三檔硬體，一套平臺
@@ -227,6 +277,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>Modbus-TCP 工業以太網接入</strong>：面向電錶、PLC、變頻器等以太網側工控設備，平臺內置 Modbus-TCP 主站採集能力，按產品/設備配置接入參數與測點即可上線——讀數自動匯入設備影子與在線狀態，寫值與屬性下發貫通，讓工業測點與物聯網物模型、規則引擎、告警聯動同一套閉環，不必再外掛獨立數採軟體</li>
   <li><strong>Modbus-RTU 串口現場接入</strong>：大量現場儀表仍掛在 RS-485 總線，若只能走 TCP 網關轉換，接入成本與故障點都會翻倍。平臺支持 Modbus-RTU 串口主站採集，適配虛擬串口與真實串口場景——總線側設備同樣納入統一納管與上下行控制，補齊「以太網進不了、串口又管不住」的現場空白</li>
   <li><strong>OPC UA 工業互聯接入</strong>：面向現代化工控與上位系統互聯場景，平臺支持 OPC UA 客戶端接入，完成訂閱/讀寫配置——複雜設備模型可映射爲平臺物模型屬性，上行採集與下行寫點與現有設備影子、規則鏈、消息推送無縫銜接，讓 OPC UA 現場資產真正進入「看得見、控得住、可聯動」的 AIoT 運營體系</li>
+  <li><strong>EDGE C# 邊緣採集運行時</strong>：面向工控現場可獨立部署的邊緣採集模組——以 C# 插件化採集器承接 Modbus RTU、Modbus TCP、OPC UA 等協議，本地調度採集、配置驅動解析，經 MQTT 與 DEVICE/<strong>iot-sink</strong> 雲平臺對接；支持網關屬性上報、子設備代報、雲端配置下發與屬性寫值，可打包發佈至 x86_64 / ARM64 Linux 工控機與邊緣網關，實現「現場採得準、雲端管得住」的云邊協同閉環</li>
   <li><strong>物模型屬性定義</strong>：大屏、規則、告警若各寫一套測點名，後期必然互相聽不懂。平臺先把設備能上報、能讀寫的測點定清楚，支持標準模板與自定義，草稿改完再發布——大屏、規則、告警從此認同一套字段，「能看哪些量」有統一語義，測點名各說各話的返工從根上被掐掉</li>
   <li><strong>物模型服務定義</strong>：遠程啓停、復位若每做一個動作就寫一次性接口，控制面必然碎片化。平臺把設備可被遠程調用的服務及入參出參寫成契約，草稿編輯、發佈後生效——「能遠程做什麼」按契約填參即可，不必再爲每個動作堆一次性接口，控制能力可複用、可審計</li>
   <li><strong>物模型事件定義</strong>：設備會上報哪些業務事件若不事先約定，告警口徑必然前後打架。平臺先約定事件類型，草稿發佈後統一生效——事件日誌與規則觸發共用同一語義，「會發生哪些事」有統一口徑，告警不會各說各話</li>
@@ -311,11 +362,11 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 ### 💡 技術理念
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-我們認爲沒有任何一個編程語言能夠擅長所有事情，但通過五種編程語言的深度融合，EasyAIoT將發揮各自優勢，構建強大的技術生態。
+我們認爲沒有任何一個編程語言能夠擅長所有事情。EasyAIoT 用六種編程語言混編，按場景分工：Java 負責平臺架構、Python 負責 AI 算法、C++ 負責視頻執行、Go 負責協議網關、TypeScript 負責管控界面、C# 負責邊緣工業數採，云管、算法、執行、協議、界面與現場採集各歸其位，構成完整的云邊端技術閉環。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Java擅長構建穩定可靠的平臺架構，卻不適合網路編程與AI開發；Python擅長網路編程與AI算法，卻在高路數、低時延的幀級執行上容易碰到 GIL 與進程開銷瓶頸；C++擅長高性能任務執行，卻不宜承擔平臺架構與算法編排——因此平臺把<strong>拉流解碼、推理、帶框推流與多路原畫轉發</strong>下沉到 <strong>RUNTIME</strong>，WEB/VIDEO 繼續做編排與業務面。Go擅長高併發網路編程與協議實現，卻不宜承擔平臺管控與AI算法；TypeScript擅長複雜前端交互與類型安全的工程化界面，卻不宜承擔後端高性能計算與AI推理。EasyAIoT採用五合一語言混編架構，讓各語言各司其職，構建一個實現頗具挑戰、使用卻極其便捷的AIoT平臺。
+Java擅長構建穩定可靠的平臺架構，卻不適合網路編程與AI開發；Python擅長網路編程與AI算法，卻在高路數、低時延的幀級執行上容易碰到 GIL 與進程開銷瓶頸；C++擅長高性能任務執行，卻不宜承擔平臺架構與算法編排；Go擅長高併發網路編程與協議實現，卻不宜承擔平臺管控與AI算法；TypeScript擅長複雜前端交互與類型安全的工程化界面，卻不宜承擔後端高性能計算與AI推理；C#擅長工業協議採集與邊緣運行時編排，強類型保障測點映射與協議解析可靠，<code>async/await</code> 支撐多設備併發輪詢，.NET 跨平臺發佈適配 x86/ARM 工控現場，工控/SCADA 生態成熟、集成商上手快，卻不適合承擔雲平臺核心業務與AI算法。六種語言各司其職、揚長避短，實現頗具挑戰，使用卻極其便捷。
 </p>
 
 ![EasyAIoT平臺架構.jpg](.image/iframe2.jpg)
@@ -335,7 +386,7 @@ Java擅長構建穩定可靠的平臺架構，卻不適合網路編程與AI開�
 ### 🏗️ 項目架構特點
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-EasyAIoT其實不是一個項目，而是多個可獨立部署的子項目（含 WEB、DEVICE、VIDEO、RTC、AI 等）。
+EasyAIoT其實不是一個項目，而是多個可獨立部署的子項目（含 WEB、DEVICE、EDGE、VIDEO、RTC、AI 等）。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -373,6 +424,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 <h4 style="margin-top: 0; color: white; font-size: 18px;">📱 邊緣端支持</h4>
 <ul style="font-size: 14px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
   <li>普通開發板也可就地承擔智能值守</li>
+  <li><strong>EDGE</strong> C# 邊緣採集可獨立部署於工控機與 RS485 現場</li>
   <li>現場輕裝上陣，無需爲每處網點堆疊重存儲</li>
   <li>開箱即可智能化，縮短邊緣上線週期</li>
   <li>算力隨點位鋪開，告警與證據自動匯聚上雲</li>
@@ -398,7 +450,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
+EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -454,6 +506,20 @@ EasyAIoT 由 WEB、APP、DEVICE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE�
     <li><strong>數據採集</strong>：設備數據採集、存儲、查詢與分析</li>
     <li><strong>節點編排</strong>：計算/媒體節點納管、連通檢測、工作負載調度與媒體節點池分配</li>
     <li><strong>可視化後臺</strong>：統一管理大屏/組態項目、模板、素材、數據源與服務部署，為可視化編輯器與工藝組態提供工程管理與發佈能力</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>EDGE模組</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>為何選用 C#</strong>：強類型測點映射、異步多設備併發輪詢、7×24 長駐穩定、Linux x86/ARM 跨平臺自包含發佈，工控生態成熟、集成商上手快</li>
+    <li><strong>C# 邊緣採集運行時</strong>：獨立部署的邊緣側採集服務，插件化採集器 + 本地調度 + 配置驅動解析</li>
+    <li><strong>多協議採集器</strong>：內置 Modbus RTU（RS485/串口）、Modbus TCP、OPC UA 採集器，可按任務擴展 <code>ICollector</code> 插件</li>
+    <li><strong>MQTT 云邊對接</strong>：屬性上報、子設備代報、雲端配置下發（<code>config/downstream/push</code>）與屬性寫值下行，對接 DEVICE/<strong>iot-sink</strong></li>
+    <li><strong>配置雙通道</strong>：本地 <code>device-jobs.json</code> 與雲端 MQTT 配置推送均可驅動採集任務</li>
+    <li><strong>Linux 打包發佈</strong>：<code>pack_linux.sh</code> 產出 x86_64 / ARM64 獨立部署包，適配工控機與邊緣網關</li>
+    <li><strong>聯調與文檔</strong>：內置 E2E Demo 與雲平臺對接指南（見 <a href="EDGE/README.md">EDGE/README.md</a>、<a href="EDGE/docs/PLATFORM_INTEGRATION.md">平臺對接文檔</a>）</li>
   </ul>
 </td>
 </tr>
@@ -633,7 +699,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流作業系統上部署，爲不
 平臺支持即時、抓拍與巡檢等類型的算法任務：三類任務均可默認走 <strong>RUNTIME 高速執行層</strong>（<code>executor=cpp</code>）——以原生二進制完成長連接拉流、解碼、YOLO 推理與結果回傳，即時任務<strong>默認推帶框 AI 檢測流</strong>；抓拍按 Cron 採幀識別；巡檢多路輪巡覆蓋；推流轉發亦可走同一高性能路徑把多路原畫省資源上牆。相對 Python 兼容後端，高性能路徑更吃得住高路數與低時延。告警與心跳統一回 VIDEO。通過算法任務管理實現靈活的抽幀與排序策略，結合模型服務集羣推理，確保毫秒級響應與高可用。同時提供全防 / 半防兩種佈防策略，按時段精準監控與告警。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-在物聯網設備管理方面，EasyAIoT提供完整的設備生命週期管理能力，支持多種物聯網與工業協議（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA），實現設備的快速接入、安全認證、即時監控和智能控制。通過規則引擎實現設備數據的智能流轉與處理，結合AI能力對設備數據進行深度分析，實現從設備接入、數據採集、智能分析到決策執行的全流程自動化，真正實現萬物互聯、萬物智控。
+在物聯網設備管理方面，EasyAIoT提供完整的設備生命週期管理能力，支持多種物聯網與工業協議（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA），並由 <strong>EDGE</strong> C# 邊緣採集運行時在現場承接工業協議採集與 MQTT 云邊對接，實現設備的快速接入、安全認證、即時監控和智能控制。通過規則引擎實現設備數據的智能流轉與處理，結合AI能力對設備數據進行深度分析，實現從設備接入、數據採集、智能分析到決策執行的全流程自動化，真正實現萬物互聯、萬物智控。
 </p>
 </div>
 
