@@ -41,9 +41,10 @@ export const NODE_THEME = {
  * - 验证上线（纳管末步，不写 上线检查）
  * - 接入诊断（连通性排查，与纳管前检查区分）
  *
- * 页面 Tab 命名（按部署链路排序，不写 VIDEO / AI 等模块代号）：
- * 集群概览 → 节点管理 → 监测代理 → 分布式存储 → 流媒体引擎 → MQTT 网关
+ * 页面 Tab 命名（集群管理按部署链路；NFS 在「流媒体管理」最右侧）：
+ * 集群概览 → 节点管理 → 监测代理 → 流媒体引擎 → MQTT 网关
  * → 音视频转码 → 视频分析运行时 → 模型推理与训练
+ * 流媒体管理最右侧：NFS 集群管理 → 集群拓扑 → 节点部署 → 文件目录
  */
 export const NODE_TERM = {
   agent: '监测代理',
@@ -51,9 +52,12 @@ export const NODE_TERM = {
   agentPort: '监测代理端口',
   mediaService: '流媒体引擎',
   mqttService: 'MQTT 网关',
-  storageCephTopology: 'NFS 集群拓扑',
-  storageBatchOps: '批量运维',
-  storageFileOps: '文件运维',
+  storageCephTopology: 'NFS 集群管理',
+  storageClusterTopology: 'NFS 集群拓扑',
+  storageClusterRelation: '多集群切换与同步',
+  storageBatchOps: 'NFS 节点部署',
+  storageFileOps: 'NFS 文件目录',
+  storageFileOpsDrawer: 'NFS 文件目录',
   storageService: 'NFS 共享存储',
   mediaPort: '流媒体端口',
   mqttPort: 'MQTT 端口',
@@ -74,7 +78,11 @@ export const NODE_TERM = {
   clusterOverview: '集群概览',
   workloadBundleDistribute: '运行时分发',
   clusterEnvAgent: '监测代理',
-  clusterEnvStorage: '分布式存储',
+  clusterEnvStorage: 'NFS 集群管理',
+  clusterEnvStorageTopology: 'NFS 集群拓扑',
+  clusterEnvStorageRelation: '多集群切换与同步',
+  clusterEnvStorageDeploy: 'NFS 节点部署',
+  clusterEnvStorageFiles: 'NFS 文件目录',
   clusterEnvMedia: '流媒体引擎',
   clusterEnvMqtt: 'MQTT 网关',
   clusterEnvFfmpeg: '音视频转码',
@@ -101,9 +109,10 @@ export const NODE_TERM = {
   controlPlaneNodeReadonly: '控制面节点仅可查看，不可编辑',
   centralNode: '中心节点',
   workerNode: '工作节点',
-  swimlaneView: '泳道视图',
+  swimlaneView: '卡片视图',
   tableView: '表格视图',
   cardView: '卡片视图',
+  switchView: '切换视图',
   addCentralNode: '添加中心节点',
   syncCentralNode: '同步互联',
   currentCentralNode: '当前中心节点',
@@ -112,7 +121,7 @@ export const NODE_TERM = {
   laneBatchMaintenanceOn: '批量维护',
   laneBatchMaintenanceOff: '退出维护',
   laneBatchAgent: '批量部署监测代理',
-  laneBatchStorage: '批量部署分布式存储',
+  laneBatchStorage: '批量部署 NFS',
   laneBatchMedia: '批量部署流媒体引擎',
   laneBatchMqtt: '批量部署 MQTT 网关',
   laneBatchFfmpeg: '批量分发音视频转码',
@@ -153,7 +162,7 @@ export const NODE_ROLE_DESC: Record<string, string> = {
   gpu: '配备 GPU，用于模型推理、深度学习算法等算力密集型任务',
   media: '用于 SRS/ZLM 流媒体集群，设备拉流/推流',
   mqtt: '用于 EMQX MQTT 集群，设备物联网协议接入',
-  storage: 'NFS 存储节点，export 共享媒体目录（录像/抓拍/告警图）',
+  storage: 'NFS 存储节点；NFS 安装与挂载请在流媒体管理完成',
   hybrid: '同时承担计算与媒体调度',
 };
 
@@ -296,9 +305,9 @@ export const NODE_DETAIL = {
 } as const;
 
 /**
- * 页面级 Tab（index.vue 顺序即推荐部署链路）
- * 1 集群概览 → 2 节点管理 → 3 监测代理 → 4 分布式存储 → 5 流媒体引擎
- * → 6 音视频转码 → 7 视频分析运行时 → 8 模型推理与训练
+ * 页面级 Tab（集群管理）；NFS 能力已迁至「流媒体管理」一级 Tab
+ * 1 集群概览 → 2 节点管理 → 3 监测代理 → 5 流媒体引擎 → 10 MQTT
+ * → 6 音视频转码 → 7 视频分析运行时 → 8/9 推理
  */
 export const NODE_PAGE = {
   clusterOverview: NODE_TERM.clusterOverview,
@@ -306,6 +315,10 @@ export const NODE_PAGE = {
   workloadBundleDistribute: NODE_TERM.workloadBundleDistribute,
   clusterEnvAgent: NODE_TERM.clusterEnvAgent,
   clusterEnvStorage: NODE_TERM.clusterEnvStorage,
+  clusterEnvStorageTopology: NODE_TERM.clusterEnvStorageTopology,
+  clusterEnvStorageRelation: NODE_TERM.clusterEnvStorageRelation,
+  clusterEnvStorageDeploy: NODE_TERM.clusterEnvStorageDeploy,
+  clusterEnvStorageFiles: NODE_TERM.clusterEnvStorageFiles,
   clusterEnvMedia: NODE_TERM.clusterEnvMedia,
   clusterEnvMqtt: NODE_TERM.clusterEnvMqtt,
   clusterEnvFfmpeg: NODE_TERM.clusterEnvFfmpeg,
@@ -315,10 +328,21 @@ export const NODE_PAGE = {
   clusterEnvTransform: NODE_TERM.clusterEnvTransform,
 } as const;
 
-/** 服务部署 Tab 键（与 index.vue TabPane key 一致） */
+/** 流媒体管理页 — NFS 一级 Tab key（置于最右侧；展示顺序：管理 → 拓扑 → 部署 → 文件） */
+export const CAMERA_NFS_TAB = {
+  manage: '20',
+  ops: '22',
+  files: '23',
+  topology: '24',
+  /** @deprecated 已并入 manage 抽屉，仅兼容旧链接 */
+  clusters: '21',
+} as const;
+
+/** 服务部署 Tab 键（与集群管理 index.vue TabPane key 一致） */
 export const NODE_SERVICE_TAB = {
   agent: '3',
-  storage: '4',
+  /** 兼容：存储角色跳转 NFS 部署（流媒体管理） */
+  storage: CAMERA_NFS_TAB.ops,
   media: '5',
   ffmpeg: '6',
   video: '7',
@@ -327,10 +351,21 @@ export const NODE_SERVICE_TAB = {
   mqtt: '10',
 } as const;
 
+/** NFS 子能力 → 流媒体管理一级 Tab */
+export const STORAGE_SUB_TAB_TO_PAGE = {
+  manage: CAMERA_NFS_TAB.manage,
+  /** 桥接能力已并入管理页抽屉，导航落到管理 Tab */
+  clusters: CAMERA_NFS_TAB.manage,
+  ops: CAMERA_NFS_TAB.ops,
+  files: CAMERA_NFS_TAB.files,
+  topology: CAMERA_NFS_TAB.topology,
+} as const;
+
+export type StoragePageTabKey = (typeof STORAGE_SUB_TAB_TO_PAGE)[keyof typeof STORAGE_SUB_TAB_TO_PAGE];
+
 /** 泳道批量「组件分发」跳转（按部署链路排序） */
 export const LANE_BATCH_DEPLOY_ACTIONS = [
   { tab: NODE_SERVICE_TAB.agent, label: NODE_TERM.laneBatchAgent, icon: 'ant-design:cloud-upload-outlined' },
-  { tab: NODE_SERVICE_TAB.storage, label: NODE_TERM.laneBatchStorage, icon: 'ant-design:database-outlined' },
   { tab: NODE_SERVICE_TAB.media, label: NODE_TERM.laneBatchMedia, icon: 'ant-design:play-circle-outlined' },
   { tab: NODE_SERVICE_TAB.mqtt, label: NODE_TERM.laneBatchMqtt, icon: 'ant-design:api-outlined' },
   { tab: NODE_SERVICE_TAB.ffmpeg, label: NODE_TERM.laneBatchFfmpeg, icon: 'ant-design:video-camera-outlined' },
@@ -343,10 +378,14 @@ export type NodeServiceTabKey = keyof typeof NODE_SERVICE_TAB;
 
 /** 待纳管节点应跳转的服务部署 Tab */
 export function resolveOnboardServiceTab(nodeRole?: string | null): string {
-  if (nodeRole === 'storage') return NODE_SERVICE_TAB.storage;
+  if (nodeRole === 'storage') return CAMERA_NFS_TAB.ops;
   if (nodeRole === 'media' || nodeRole === 'hybrid') return NODE_SERVICE_TAB.media;
   if (nodeRole === 'mqtt') return NODE_SERVICE_TAB.mqtt;
   return NODE_SERVICE_TAB.agent;
+}
+
+export function isCameraNfsTab(tab: string): boolean {
+  return (Object.values(CAMERA_NFS_TAB) as string[]).includes(tab);
 }
 
 /** 集群环境初始化 — 节点角色筛选 */
@@ -363,8 +402,12 @@ export const CLUSTER_NODE_ROLE_FILTERS = {
   mqtt: ['mqtt'] as const,
   /** NFS 存储/MON 节点 */
   storage: ['storage'] as const,
+  /** NFS 主/备服务端候选（storage；控制面另用 includePlatform） */
+  nfsServer: ['storage'] as const,
   /** 需挂载 NFS 的节点（兼容键名 cephClient） */
   cephClient: ['compute', 'gpu', 'hybrid', 'media'] as const,
+  /** NFS 客户端（同 cephClient） */
+  nfsClient: ['compute', 'gpu', 'hybrid', 'media'] as const,
 } as const;
 
 export type ClusterNodeRoleFilterKey = keyof typeof CLUSTER_NODE_ROLE_FILTERS;
@@ -1571,6 +1614,7 @@ export const SETUP_COPY = {
   flowMedia: `部署${NODE_TERM.mediaService} → 部署${NODE_TERM.agent} → ${NODE_TERM.verifyOnline}`,
   flowMqtt: `部署${NODE_TERM.mqttService} → 部署${NODE_TERM.agent} → ${NODE_TERM.verifyOnline}`,
   flowStorage: `部署${NODE_TERM.storageService} → 部署${NODE_TERM.agent} → ${NODE_TERM.verifyOnline}`,
+  flowStorageLite: `部署${NODE_TERM.agent} → ${NODE_TERM.verifyOnline}（NFS 请前往流媒体管理）`,
   flowCompute: `部署${NODE_TERM.agent} → ${NODE_TERM.verifyOnline}`,
   readinessReady: '可以开始部署',
   readinessPending: '请先完善配置',

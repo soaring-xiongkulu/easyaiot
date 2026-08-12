@@ -1,0 +1,125 @@
+@import './theme.less';
+
+@node-gutter: 16px;
+
+.node-manage {
+  flex: 1;
+  min-height: 0;
+  padding: 12px @node-gutter 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.node-manage__panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.node-manage__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 0 0 12px;
+  flex-shrink: 0;
+}
+
+.node-manage__header-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.node-manage__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: @node-text-primary;
+  line-height: 1.35;
+}
+
+.node-manage__sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: @node-text-muted;
+  line-height: 1.5;
+}
+
+.node-manage__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.node-chipbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: @node-text-secondary;
+    background: #f5f7fa;
+    border: 1px solid fade(@node-border, 80%);
+
+    b {
+      font-weight: 600;
+      color: @node-text-primary;
+    }
+
+    &.is-ok {
+      background: #f6ffed;
+      border-color: #b7eb8f;
+      color: #389e0d;
+    }
+
+    &.is-warn {
+      background: #fffbe6;
+      border-color: #ffe58f;
+      color: #d48806;
+    }
+
+    &.is-bad {
+      background: #fff2f0;
+      border-color: #ffccc7;
+      color: #cf1322;
+    }
+
+    &.chip--muted b {
+      color: @node-text-secondary;
+    }
+  }
+}
+
+.node-manage__body {
+  flex: 1;
+  min-height: 0;
+}
+
+.node-manage__table {
+  :deep(.xingyuv-basic-table) {
+    .ant-table-wrapper {
+      border: 1px solid @node-border;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .ant-table-title {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .node-manage__header {
+    flex-direction: column;
+  }
+}

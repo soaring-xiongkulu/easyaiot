@@ -1,14 +1,12 @@
 import { shallowRef } from 'vue';
 
-export type StorageSubTabKey = 'topology' | 'ops' | 'files';
+export type StorageSubTabKey = 'manage' | 'topology' | 'clusters' | 'ops' | 'files';
 
 export interface NodePageTabRequest {
   tab: string;
   nodeIds?: number[];
   nodeId?: number;
   bundle?: string;
-  /** 分布式存储子 Tab（页内切换，不写 URL） */
-  storageTab?: StorageSubTabKey;
 }
 
 const tabRequest = shallowRef<NodePageTabRequest | null>(null);

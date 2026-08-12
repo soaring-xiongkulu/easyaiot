@@ -78,14 +78,8 @@
       <p v-if="metaText" class="node-item-card__meta" :title="metaText">
         {{ metaText }}
       </p>
-      <div v-if="footerBadges.length" class="node-item-card__tags">
-        <NodeMetaBadge
-          v-for="badge in footerBadges"
-          :key="badge.key"
-          :type="badge.type"
-          :ceph-status="badge.cephStatus"
-          size="xs"
-        />
+      <div v-if="isPlatformNode(item)" class="node-item-card__tags">
+        <NodeMetaBadge type="scope" size="xs" />
       </div>
     </div>
   </div>
@@ -98,8 +92,6 @@ import { DeleteOutlined, EditOutlined, EyeOutlined, RocketOutlined } from '@ant-
 import type { ComputeNodeVO } from '@/api/device/node';
 import {
   NODE_TERM,
-  isClusterComputeRole,
-  readCephMountFromTags,
 } from '../../utils/constants';
 import { getNodeRoleVisual } from '../../utils/nodeAssets';
 import { isPlatformNode } from '../../utils/platformNode';
@@ -149,24 +141,6 @@ const metaText = computed(() => {
   if (props.item.host) parts.push(props.item.host);
   if (!parts.length) return props.item.id != null ? `ID: ${props.item.id}` : '';
   return parts.join('  |  ');
-});
-
-const footerBadges = computed(() => {
-  const badges: Array<{
-    key: string;
-    type: 'scope' | 'ceph';
-    cephStatus?: 'ready' | 'not_ready' | 'unknown';
-  }> = [];
-  if (isPlatformNode(props.item)) {
-    badges.push({ key: 'scope', type: 'scope' });
-  } else if (isClusterComputeRole(props.item.nodeRole)) {
-    badges.push({
-      key: 'ceph',
-      type: 'ceph',
-      cephStatus: readCephMountFromTags(props.item.tags).status,
-    });
-  }
-  return badges;
 });
 </script>
 

@@ -7,7 +7,7 @@ import { CollapseContainer } from '@/components/Container';
 import { Button } from '@/components/Button';
 import type { ComputeNodeVO } from '@/api/device/node';
 import { nodeSetupSummarySchema } from '../../Data';
-import { getMediaStackGuideState, getMqttStackGuideState, getStorageStackGuideState, NODE_ROLE_DESC, SETUP_COPY, readMediaPortsFromTags, readMqttPortsFromTags, readStorageTagsFromTags } from '../../utils/constants';
+import { getMediaStackGuideState, getMqttStackGuideState, NODE_ROLE_DESC, SETUP_COPY, readMediaPortsFromTags, readMqttPortsFromTags } from '../../utils/constants';
 import { formatSshUsername, isSshUsernameConfigured } from '../../utils/nodeDisplay';
 import SetupStepShell from '../SetupStepShell/index.vue';
 import NodeMetaBadge from '../NodeMetaBadge/index.vue';
@@ -37,8 +37,6 @@ const isMediaNode = computed(
 
 const isMqttNode = computed(() => props.node?.nodeRole === 'mqtt');
 
-const isStorageNode = computed(() => props.node?.nodeRole === 'storage');
-
 const mediaParams = computed(() => {
   const node = props.node;
   if (!node) return undefined;
@@ -52,19 +50,6 @@ const mediaParams = computed(() => {
 });
 
 const mediaGuide = computed(() => getMediaStackGuideState(mediaParams.value));
-
-const storageParams = computed(() => {
-  const node = props.node;
-  if (!node) return undefined;
-  return {
-    nodeRole: node.nodeRole,
-    host: node.host,
-    name: node.name,
-    ...readStorageTagsFromTags(node.tags),
-  };
-});
-
-const storageGuide = computed(() => getStorageStackGuideState(storageParams.value));
 
 const mqttParams = computed(() => {
   const node = props.node;
@@ -110,17 +95,6 @@ const checklist = computed(() => {
     },
   ];
 
-  if (isStorageNode.value) {
-    items.push({
-      key: 'storageConfig',
-      label: 'Ceph 存储配置',
-      ok: storageGuide.value.isReady,
-      hint: storageGuide.value.isReady
-        ? 'Ceph 参数完整'
-        : `待完善：${storageGuide.value.pendingItems.filter((i) => !i.done).map((i) => i.label).join('、') || '存储配置'}`,
-    });
-  }
-
   if (isMediaNode.value) {
     items.push({
       key: 'mediaPorts',
@@ -150,12 +124,12 @@ const allReady = computed(() => checklist.value.every((item) => item.ok));
 const roleDesc = computed(() => NODE_ROLE_DESC[props.node?.nodeRole || ''] || '');
 
 const flowSummary = computed(() => {
-  const steps = isStorageNode.value
-    ? SETUP_COPY.flowStorage
-    : isMqttNode.value
-      ? SETUP_COPY.flowMqtt
-      : isMediaNode.value
-        ? SETUP_COPY.flowMedia
+  const steps = isMqttNode.value
+    ? SETUP_COPY.flowMqtt
+    : isMediaNode.value
+      ? SETUP_COPY.flowMedia
+      : props.node?.nodeRole === 'storage'
+        ? SETUP_COPY.flowStorageLite
         : SETUP_COPY.flowCompute;
   return roleDesc.value ? `${steps} · ${roleDesc.value}` : steps;
 });

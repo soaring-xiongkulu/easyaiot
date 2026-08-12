@@ -1,44 +1,45 @@
 <script lang="ts" setup>
-import { onMounted } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Empty, Pagination, Spin } from 'ant-design-vue';
-import { IconEnum } from '@/enums/appEnum';
-import { Button } from '@/components/Button';
-import { deleteNode, type ComputeNodeVO } from '@/api/device/node';
+import type { ClusterLaneVO, ComputeNodeVO } from '@/api/device/node';
+import { deleteNode } from '@/api/device/node';
 import { useMessage } from '@/hooks/web/useMessage';
 import ClusterLaneRow from './ClusterLaneRow.vue';
-import ControlPlanePeerDrawer from '../ControlPlanePeerModal/index.vue';
-import { useClusterLanes } from './useClusterLanes';
-import { NODE_TERM } from '../../utils/constants';
-import { useDrawer } from '@/components/Drawer';
 import { navigateToNodeBatchTab, navigateToOnboardService } from '../../utils/nodeNavigation';
 import { isPlatformNode } from '../../utils/platformNode';
 
 defineOptions({ name: 'ClusterSwimlane' });
 
+const props = defineProps<{
+  lanes: ClusterLaneVO[];
+  loading?: boolean;
+}>();
+
 const emit = defineEmits<{
   view: [node: ComputeNodeVO];
   edit: [node: ComputeNodeVO];
-  created: [node: ComputeNodeVO];
   refresh: [];
 }>();
 
-const props = defineProps<{
-  onCreate?: () => void;
-}>();
+const PAGE_SIZE = 4;
 
 const router = useRouter();
 const { createMessage, createConfirm } = useMessage();
-const [registerPeerDrawer, { openDrawer: openPeerDrawer }] = useDrawer();
-const { loading, lanes, laneTotal, page, pageSize, loadLanes, changePage } = useClusterLanes();
+const page = ref(1);
 
-function handleCreateWorker() {
-  props.onCreate?.();
-}
+const pagedLanes = computed(() => {
+  const start = (page.value - 1) * PAGE_SIZE;
+  return props.lanes.slice(start, start + PAGE_SIZE);
+});
 
-function handleAddCentral() {
-  openPeerDrawer(true);
-}
+watch(
+  () => props.lanes,
+  (list) => {
+    const maxPage = Math.max(1, Math.ceil(list.length / PAGE_SIZE) || 1);
+    if (page.value > maxPage) page.value = maxPage;
+  },
+);
 
 function handleBatchNavigate(tab: string, nodeIds: number[]) {
   navigateToNodeBatchTab(router, tab, nodeIds);
@@ -52,166 +53,69 @@ async function handleDelete(node: ComputeNodeVO) {
     onOk: async () => {
       await deleteNode(node.id!);
       createMessage.success('删除成功');
-      await loadLanes();
       emit('refresh');
     },
   });
 }
-
-async function handlePeerSuccess() {
-  await loadLanes(1);
-  emit('refresh');
-}
-
-function handlePageChange(nextPage: number, nextPageSize?: number) {
-  changePage(nextPage, nextPageSize);
-}
-
-onMounted(() => {
-  loadLanes();
-});
-
-defineExpose({ loadLanes });
 </script>
 
 <template>
-  <div class="node-swimlane-wrapper">
-    <div class="list-panel">
-      <Spin :spinning="loading">
-        <div class="list-header">
-          <div class="list-header__left">
-            <span class="list-title">{{ NODE_TERM.swimlaneView }}</span>
-            <span class="list-subtitle">每行左侧为中心节点，右侧横向展示其工作节点；本机泳道可批量操控</span>
-          </div>
-          <div class="list-actions">
-            <Button type="primary" :preIcon="IconEnum.ADD" @click="handleCreateWorker">
-              {{ NODE_TERM.addNode }}
-            </Button>
-            <Button
-              type="default"
-              preIcon="ant-design:cluster-outlined"
-              @click="handleAddCentral"
-            >
-              {{ NODE_TERM.addCentralNode }}
-            </Button>
-            <Button :loading="loading" preIcon="ant-design:redo-outlined" @click="loadLanes">
-              刷新
-            </Button>
-          </div>
-        </div>
-
-        <div v-if="lanes.length" class="cluster-swimlane__lanes">
-          <ClusterLaneRow
-            v-for="lane in lanes"
-            :key="lane.laneKey"
-            :lane="lane"
-            @view="(node) => emit('view', node)"
-            @edit="(node) => emit('edit', node)"
-            @delete="handleDelete"
-            @continue-setup="(node) => navigateToOnboardService(router, node)"
-            @batch-navigate="handleBatchNavigate"
-            @refresh="loadLanes"
-          />
-        </div>
-
-        <div v-if="laneTotal > pageSize" class="cluster-swimlane__pagination">
-          <Pagination
-            :current="page"
-            :page-size="pageSize"
-            :total="laneTotal"
-            :show-size-changer="true"
-            :show-quick-jumper="true"
-            :page-size-options="['5', '10', '20', '50']"
-            :show-total="(total) => `共 ${total} 个中心节点`"
-            @change="handlePageChange"
-            @show-size-change="handlePageChange"
-          />
-        </div>
-
-        <Empty
-          v-if="!loading && !lanes.length"
-          class="cluster-swimlane__empty"
-          description="暂无泳道数据，请确认中心节点已纳管"
-        />
-      </Spin>
+  <Spin :spinning="!!loading">
+    <div v-if="lanes.length" class="node-cards__grid">
+      <ClusterLaneRow
+        v-for="lane in pagedLanes"
+        :key="lane.laneKey"
+        :lane="lane"
+        @view="(node) => emit('view', node)"
+        @edit="(node) => emit('edit', node)"
+        @delete="handleDelete"
+        @continue-setup="(node) => navigateToOnboardService(router, node)"
+        @batch-navigate="handleBatchNavigate"
+        @refresh="emit('refresh')"
+      />
     </div>
 
-    <ControlPlanePeerDrawer @register="registerPeerDrawer" @success="handlePeerSuccess" />
-  </div>
+    <div v-if="lanes.length > PAGE_SIZE" class="node-cards__pager">
+      <Pagination
+        v-model:current="page"
+        :total="lanes.length"
+        :page-size="PAGE_SIZE"
+        size="small"
+        :show-size-changer="false"
+        :show-total="(total) => `共 ${total} 个中心节点`"
+      />
+    </div>
+
+    <Empty
+      v-if="!loading && !lanes.length"
+      class="node-cards__empty"
+      description="暂无中心节点，请先添加中心节点或纳管工作节点"
+    />
+  </Spin>
 </template>
 
 <style lang="less" scoped>
 @import '../../utils/theme.less';
-.node-swimlane-wrapper {
-  background: #fff;
-  min-height: 100%;
+
+.node-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.list-panel {
-  background: #fff;
-  padding: 0 8px 20px;
+.node-cards__pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
 
-  :deep(.ant-spin-nested-loading),
-  :deep(.ant-spin-container) {
-    background: transparent;
+.node-cards__empty {
+  padding: 48px 0;
+}
+
+@media (max-width: 900px) {
+  .node-cards__grid {
+    grid-template-columns: minmax(0, 1fr);
   }
-}
-
-.list-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 12px 16px 20px;
-  flex-wrap: wrap;
-}
-
-.list-header__left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.list-title {
-  padding-left: 4px;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
-  color: #181818;
-}
-
-.list-subtitle {
-  padding-left: 4px;
-  font-size: 13px;
-  color: #999;
-  line-height: 1.5;
-}
-
-.list-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.cluster-swimlane__lanes {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 0 4px;
-}
-
-.cluster-swimlane__lanes > :deep(.cluster-lane + .cluster-lane) {
-  border-top: 1px solid @node-border;
-}
-
-.cluster-swimlane__empty {
-  padding: 48px 16px;
-}
-
-.cluster-swimlane__pagination {
-  display: flex;
-  justify-content: center;
-  padding: 24px 16px 8px;
 }
 </style>

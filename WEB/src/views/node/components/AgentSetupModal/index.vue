@@ -7,10 +7,9 @@ import { Icon } from '@/components/Icon';
 import { Button } from '@/components/Button';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getAgentSetup, testNodeSsh, type ComputeNodeVO } from '@/api/device/node';
-import { SETUP_COPY, SETUP_STEP_LABELS, NODE_TERM, loadNodeControlPlaneUrlAsync, saveNodeControlPlaneUrl, readMediaPortsFromTags, readStorageTagsFromTags, readMqttPortsFromTags } from '../../utils/constants';
+import { SETUP_COPY, SETUP_STEP_LABELS, NODE_TERM, loadNodeControlPlaneUrlAsync, saveNodeControlPlaneUrl, readMediaPortsFromTags, readMqttPortsFromTags } from '../../utils/constants';
 import NodeMetaBadge from '../NodeMetaBadge/index.vue';
 import SetupOverviewPanel from '../SetupOverviewPanel/index.vue';
-import StorageStackSetupPanel from '../StorageStackSetupPanel/index.vue';
 import MediaStackSetupPanel from '../MediaStackSetupPanel/index.vue';
 import MqttStackSetupPanel from '../MqttStackSetupPanel/index.vue';
 import AgentDeployPanel from '../AgentDeployPanel/index.vue';
@@ -18,7 +17,7 @@ import SetupVerifyPanel from '../SetupVerifyPanel/index.vue';
 
 defineOptions({ name: 'AgentSetupDrawer' });
 
-type SetupStepKey = 'overview' | 'storage' | 'media' | 'mqtt' | 'agent' | 'verify';
+type SetupStepKey = 'overview' | 'media' | 'mqtt' | 'agent' | 'verify';
 
 interface SetupStep {
   key: SetupStepKey;
@@ -35,7 +34,6 @@ const agentToken = ref('');
 const currentStep = ref(0);
 const mediaDeployed = ref(false);
 const mqttDeployed = ref(false);
-const storageDeployed = ref(false);
 const agentDeployed = ref(false);
 const verifyOnline = ref(false);
 const testingSsh = ref(false);
@@ -53,15 +51,10 @@ const isMediaNode = computed(
 
 const isMqttNode = computed(() => nodeInfo.value?.nodeRole === 'mqtt');
 
-const isStorageNode = computed(() => nodeInfo.value?.nodeRole === 'storage');
-
 const steps = computed<SetupStep[]>(() => {
   const list: SetupStep[] = [
     { key: 'overview', ...SETUP_STEP_LABELS.overview },
   ];
-  if (isStorageNode.value) {
-    list.push({ key: 'storage', ...SETUP_STEP_LABELS.storage });
-  }
   if (isMediaNode.value) {
     list.push({ key: 'media', ...SETUP_STEP_LABELS.media });
   }
@@ -96,23 +89,6 @@ const mediaFormValues = computed(() => {
   };
 });
 
-const storageFormValues = computed(() => {
-  const node = nodeInfo.value;
-  if (!node) return undefined;
-  const tags = node.tags || {};
-  return {
-    nodeRole: node.nodeRole,
-    nodeId: node.id,
-    name: node.name,
-    host: node.host,
-    sshUsername: node.sshUsername,
-    sshCredentialConfigured: node.sshCredentialConfigured,
-    sshLastTestOk: node.sshLastTestOk,
-    sshPort: node.sshPort,
-    ...readStorageTagsFromTags(tags),
-  };
-});
-
 const mqttFormValues = computed(() => {
   const node = nodeInfo.value;
   if (!node) return undefined;
@@ -143,7 +119,6 @@ function getStepStatus(key: SetupStepKey, index: number): 'wait' | 'process' | '
   if (index === currentStep.value) return 'process';
   if (key === 'media' && mediaDeployed.value && index > currentStep.value) return 'finish';
   if (key === 'mqtt' && mqttDeployed.value && index > currentStep.value) return 'finish';
-  if (key === 'storage' && storageDeployed.value && index > currentStep.value) return 'finish';
   if (key === 'agent' && agentDeployed.value && index > currentStep.value) return 'finish';
   if (key === 'verify' && verifyOnline.value) return 'finish';
   return 'wait';
@@ -153,7 +128,6 @@ function resetState() {
   currentStep.value = 0;
   mediaDeployed.value = false;
   mqttDeployed.value = false;
-  storageDeployed.value = false;
   agentDeployed.value = false;
   verifyOnline.value = false;
 }
@@ -211,14 +185,6 @@ async function handleTestSsh() {
 
 function handleEdit() {
   if (nodeInfo.value) emit('edit', nodeInfo.value);
-}
-
-function handleStorageDeployed(success: boolean) {
-  if (success) {
-    storageDeployed.value = true;
-    createMessage.success(`${NODE_TERM.storageService}${NODE_TERM.deploy}完成，请继续${NODE_TERM.deploy}${SETUP_COPY.agentName}`);
-    if (activeStepKey.value === 'storage' && !isLastStep.value) currentStep.value += 1;
-  }
 }
 
 function handleMediaDeployed(success: boolean) {
@@ -294,7 +260,6 @@ function handleVerifyOnline() {
             {{
               (activeStepKey === 'media' && !mediaDeployed)
                 || (activeStepKey === 'mqtt' && !mqttDeployed)
-                || (activeStepKey === 'storage' && !storageDeployed)
                 ? '下一步（可跳过）'
                 : '下一步'
             }}
@@ -320,13 +285,6 @@ function handleVerifyOnline() {
           :testing-ssh="testingSsh"
           @edit="handleEdit"
           @test-ssh="handleTestSsh"
-        />
-
-        <StorageStackSetupPanel
-          v-show="activeStepKey === 'storage'"
-          :active="activeStepKey === 'storage'"
-          :form-values="storageFormValues"
-          @deployed="handleStorageDeployed"
         />
 
         <MediaStackSetupPanel

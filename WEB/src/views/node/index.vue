@@ -11,7 +11,6 @@
         <TabPane key="1" :tab="NODE_PAGE.clusterOverview" />
         <TabPane key="2" :tab="NODE_PAGE.nodeInventory" />
         <TabPane key="3" :tab="NODE_PAGE.clusterEnvAgent" />
-        <TabPane key="4" :tab="NODE_PAGE.clusterEnvStorage" />
         <TabPane key="5" :tab="NODE_PAGE.clusterEnvMedia" />
         <TabPane key="10" :tab="NODE_PAGE.clusterEnvMqtt" />
         <TabPane key="6" :tab="NODE_PAGE.clusterEnvFfmpeg" />
@@ -28,11 +27,6 @@
           v-if="tabMounted['3']"
           v-show="state.activeKey === '3'"
           :initial-node-id="selectedNodeId"
-          :initial-node-ids="selectedNodeIds"
-        />
-        <StorageEnvBatch
-          v-if="tabMounted['4']"
-          v-show="state.activeKey === '4'"
           :initial-node-ids="selectedNodeIds"
         />
         <MediaEnvBatch
@@ -89,32 +83,23 @@ import LlmDeployInit from './components/LlmDeployInit/index.vue';
 import MediaEnvBatch from './components/MediaEnvBatch/index.vue';
 import MqttEnvBatch from './components/MqttEnvBatch/index.vue';
 import NodeManage from './components/NodeManage/index.vue';
-import StorageEnvBatch from './components/StorageEnvBatch/index.vue';
 import TransformWorkloadInit from './components/TransformWorkloadInit/index.vue';
 import VideoWorkloadInit from './components/VideoWorkloadInit/index.vue';
 import { isTransformEnabled } from '@/utils/deployProfile';
-import { NODE_PAGE, NODE_SERVICE_TAB, resolveLegacyWorkloadTab } from './utils/constants';
+import { NODE_PAGE, resolveLegacyWorkloadTab } from './utils/constants';
 import { useNodePageTabRequest } from './utils/useNodePageTab';
 
 defineOptions({ name: 'ComputeNodeIndex' });
 
 const showTransformTab = isTransformEnabled();
 const NODE_TAB_KEYS = (showTransformTab
-  ? ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']
-  : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']) as const;
+  ? ['1', '2', '3', '5', '6', '7', '8', '9', '10', '11']
+  : ['1', '2', '3', '5', '6', '7', '8', '9', '10']) as const;
 
 const route = useRoute();
 const tabRequest = useNodePageTabRequest();
 
 function resolveRouteTab(): string {
-  // 兼容旧链接：流媒体子 Tab mediaTab=ceph → 分布式存储拓扑
-  if (String(route.query.mediaTab || '') === 'ceph') {
-    return NODE_SERVICE_TAB.storage;
-  }
-  // 仅带 storageTab 的深链也进入分布式存储
-  if (route.query.storageTab && !route.query.tab) {
-    return NODE_SERVICE_TAB.storage;
-  }
   const raw = String(route.query.tab || '1');
   if (!showTransformTab && raw === '11') {
     return '1';
@@ -180,14 +165,7 @@ function applyNodeSelection(nodeIds?: number[], nodeId?: number) {
 }
 
 function applyFromRouteQuery() {
-  if (
-    !route.query.tab &&
-    !route.query.bundle &&
-    !route.query.nodeId &&
-    !route.query.nodeIds &&
-    !route.query.storageTab &&
-    !route.query.mediaTab
-  ) {
+  if (!route.query.tab && !route.query.bundle && !route.query.nodeId && !route.query.nodeIds) {
     return;
   }
   state.activeKey = resolveRouteTab();
@@ -205,15 +183,7 @@ function handleTabClick(activeKey: string) {
 }
 
 watch(
-  () =>
-    [
-      route.query.tab,
-      route.query.bundle,
-      route.query.nodeId,
-      route.query.nodeIds,
-      route.query.storageTab,
-      route.query.mediaTab,
-    ] as const,
+  () => [route.query.tab, route.query.bundle, route.query.nodeId, route.query.nodeIds] as const,
   () => applyFromRouteQuery(),
 );
 

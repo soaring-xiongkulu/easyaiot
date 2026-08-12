@@ -7,7 +7,7 @@ import {
   writeActiveLaneKey,
 } from '../../utils/clusterLanes';
 
-const DEFAULT_LANE_PAGE_SIZE = 5;
+const DEFAULT_LANE_PAGE_SIZE = 100;
 
 export function useClusterLanes() {
   const loading = ref(false);

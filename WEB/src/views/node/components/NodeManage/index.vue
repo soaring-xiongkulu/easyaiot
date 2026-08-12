@@ -1,82 +1,109 @@
 <template>
-  <div>
-    <ClusterSwimlane
-      v-if="state.viewMode === 'swimlane'"
-      ref="swimlaneRef"
-      :on-create="handleCreate"
-      @view="handleView"
-      @edit="handleEdit"
-      @refresh="handleSuccess"
-    />
-
-    <BasicTable v-else-if="state.viewMode === 'table'" @register="registerTable">
-      <template #toolbar>
-        <Button type="primary" :preIcon="IconEnum.ADD" @click="handleCreate">{{ NODE_TERM.addNode }}</Button>
-        <Button type="default" preIcon="ant-design:swap-outlined" @click="cycleViewMode">
-          切换视图
-        </Button>
-      </template>
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'name'">
-          <a class="node-link" @click="handleView(record)">{{ record.name }}</a>
-        </template>
-        <template v-else-if="column.dataIndex === 'action'">
-          <TableAction
-            :actions="[
-              ...(record.status === 'pending'
-                ? [{
-                    icon: 'ant-design:rocket-outlined',
-                    tooltip: { title: NODE_TERM.continueOnboard, placement: 'top' },
-                    onClick: handleContinueOnboard.bind(null, record),
-                  }]
-                : []),
-              {
-                icon: IconEnum.VIEW,
-                tooltip: { title: NODE_TERM.viewDetail, placement: 'top' },
-                onClick: handleView.bind(null, record),
-              },
-              ...(isPlatformNode(record)
-                ? []
-                : [{
-                    icon: IconEnum.EDIT,
-                    tooltip: { title: NODE_TERM.editNode, placement: 'top' },
-                    onClick: handleEdit.bind(null, record),
-                  }]),
-              ...(isPlatformNode(record)
-                ? []
-                : [{
-                    icon: IconEnum.DELETE,
-                    tooltip: { title: '删除', placement: 'top' },
-                    popConfirm: {
-                      placement: 'topRight',
-                      title: '确认删除该节点？',
-                      confirm: handleDelete.bind(null, record),
-                    },
-                  }]),
-            ]"
-          />
-        </template>
-      </template>
-    </BasicTable>
-
-    <div v-else>
-      <NodeGridPanel
-        :params="params"
-        :api="getNodePage"
-        @get-method="getMethod"
-        @view="handleView"
-        @edit="handleEdit"
-        @delete="handleDel"
-        @continue-setup="handleContinueOnboard"
-      >
-        <template #header>
-          <Button type="primary" :preIcon="IconEnum.ADD" @click="handleCreate">{{ NODE_TERM.addNode }}</Button>
-          <Button type="default" preIcon="ant-design:swap-outlined" @click="cycleViewMode">
-            切换视图
+  <div class="node-manage">
+    <div class="node-manage__panel">
+      <div class="node-manage__header">
+        <div class="node-manage__header-left">
+          <div class="node-manage__title">{{ NODE_TERM.nodeInventory }}</div>
+          <div class="node-manage__sub">
+            <template v-if="state.viewMode === 'cards'">
+              一个中心节点一张卡片；本机卡片可批量维护与组件分发，NFS 请前往流媒体管理
+            </template>
+            <template v-else>
+              平铺查看全部节点；筛选与批量操作请切回卡片视图
+            </template>
+          </div>
+          <div v-if="stats.total" class="node-chipbar">
+            <span class="chip">节点 <b>{{ stats.total }}</b></span>
+            <span class="chip is-ok">在线 <b>{{ stats.online }}</b></span>
+            <span v-if="stats.pending" class="chip is-warn">待纳管 <b>{{ stats.pending }}</b></span>
+            <span v-if="stats.offline" class="chip is-bad">离线 <b>{{ stats.offline }}</b></span>
+            <span v-if="stats.maintenance" class="chip is-warn">维护 <b>{{ stats.maintenance }}</b></span>
+            <span class="chip chip--muted">中心 <b>{{ stats.central }}</b></span>
+          </div>
+        </div>
+        <div class="node-manage__actions">
+          <Button type="primary" :preIcon="IconEnum.ADD" @click="handleCreate">
+            {{ NODE_TERM.addNode }}
           </Button>
-        </template>
-      </NodeGridPanel>
+          <Button type="default" preIcon="ant-design:cluster-outlined" @click="handleAddCentral">
+            {{ NODE_TERM.addCentralNode }}
+          </Button>
+          <Button
+            :loading="refreshing || lanesLoading"
+            preIcon="ant-design:reload-outlined"
+            @click="handleRefreshAll"
+          >
+            刷新
+          </Button>
+          <Button
+            type="default"
+            preIcon="ant-design:swap-outlined"
+            @click="toggleViewMode"
+          >
+            {{ NODE_TERM.switchView }}
+          </Button>
+        </div>
+      </div>
+
+      <div class="node-manage__body">
+        <ClusterSwimlane
+          v-if="state.viewMode === 'cards'"
+          :lanes="lanes"
+          :loading="lanesLoading"
+          @view="handleView"
+          @edit="handleEdit"
+          @refresh="handleSuccess"
+        />
+
+        <div v-else class="node-manage__table">
+          <BasicTable @register="registerTable">
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'name'">
+                <a class="node-link" @click="handleView(record)">{{ record.name }}</a>
+              </template>
+              <template v-else-if="column.dataIndex === 'action'">
+                <TableAction
+                  :actions="[
+                    ...(record.status === 'pending'
+                      ? [{
+                          icon: 'ant-design:rocket-outlined',
+                          tooltip: { title: NODE_TERM.continueOnboard, placement: 'top' },
+                          onClick: handleContinueOnboard.bind(null, record),
+                        }]
+                      : []),
+                    {
+                      icon: IconEnum.VIEW,
+                      tooltip: { title: NODE_TERM.viewDetail, placement: 'top' },
+                      onClick: handleView.bind(null, record),
+                    },
+                    ...(isPlatformNode(record)
+                      ? []
+                      : [{
+                          icon: IconEnum.EDIT,
+                          tooltip: { title: NODE_TERM.editNode, placement: 'top' },
+                          onClick: handleEdit.bind(null, record),
+                        }]),
+                    ...(isPlatformNode(record)
+                      ? []
+                      : [{
+                          icon: IconEnum.DELETE,
+                          tooltip: { title: '删除', placement: 'top' },
+                          popConfirm: {
+                            placement: 'topRight',
+                            title: '确认删除该节点？',
+                            confirm: handleDelete.bind(null, record),
+                          },
+                        }]),
+                  ]"
+                />
+              </template>
+            </template>
+          </BasicTable>
+        </div>
+      </div>
     </div>
+
+    <ControlPlanePeerDrawer @register="registerPeerDrawer" @success="handlePeerSuccess" />
 
     <NodeModal
       @register="registerNodeDrawer"
@@ -97,13 +124,15 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { columns, getNodeFormConfig } from '../../Data';
 import NodeModal from '../NodeModal/index.vue';
 import NodeDetailDrawer from '../NodeDetailDrawer/index.vue';
-import NodeGridPanel from '../NodeGridPanel/index.vue';
 import ClusterSwimlane from '../ClusterSwimlane/index.vue';
+import ControlPlanePeerDrawer from '../ControlPlanePeerModal/index.vue';
+import { useClusterLanes } from '../ClusterSwimlane/useClusterLanes';
+import { flattenLaneNodes } from '../../utils/clusterLanes';
 import { useMessage } from '@/hooks/web/useMessage';
 import { useDrawer } from '@/components/Drawer';
 import { IconEnum } from '@/enums/appEnum';
@@ -121,49 +150,77 @@ import { isPlatformNode } from '../../utils/platformNode';
 
 defineOptions({ name: 'ComputeNodeManage' });
 
-type ViewMode = 'swimlane' | 'card' | 'table';
+type ViewMode = 'cards' | 'table';
 
 const router = useRouter();
 const { createMessage, createConfirm } = useMessage();
 const detailDrawerRef = ref<InstanceType<typeof NodeDetailDrawer> | null>(null);
-const swimlaneRef = ref<InstanceType<typeof ClusterSwimlane> | null>(null);
 const [registerNodeDrawer, { openDrawer: openNodeDrawer }] = useDrawer();
 const [registerDetailDrawer, { openDrawer: openDetailDrawer }] = useDrawer();
+const [registerPeerDrawer, { openDrawer: openPeerDrawer }] = useDrawer();
+
+const { loading: lanesLoading, lanes, loadLanes } = useClusterLanes();
 
 const state = reactive<{ viewMode: ViewMode }>({
-  viewMode: 'swimlane',
+  viewMode: 'cards',
 });
 
-const params = {};
-let cardListReload = () => {};
+const stats = computed(() => {
+  const seen = new Set<number>();
+  let total = 0;
+  let online = 0;
+  let pending = 0;
+  let offline = 0;
+  let maintenance = 0;
 
-function getMethod(m: () => void) {
-  cardListReload = m;
+  for (const lane of lanes.value) {
+    for (const node of flattenLaneNodes(lane)) {
+      if (node.id == null || seen.has(node.id)) continue;
+      seen.add(node.id);
+      total += 1;
+      if (node.status === 'online') online += 1;
+      else if (node.status === 'pending') pending += 1;
+      else if (node.status === 'offline') offline += 1;
+      else if (node.status === 'maintenance') maintenance += 1;
+    }
+  }
+
+  return { total, online, pending, offline, maintenance, central: lanes.value.length };
+});
+
+function toggleViewMode() {
+  state.viewMode = state.viewMode === 'cards' ? 'table' : 'cards';
 }
 
-function cycleViewMode() {
-  if (state.viewMode === 'swimlane') {
-    state.viewMode = 'card';
-    return;
+function handleAddCentral() {
+  openPeerDrawer(true);
+}
+
+async function handlePeerSuccess() {
+  await loadLanes(1);
+  await handleSuccess();
+}
+
+const refreshing = ref(false);
+
+async function handleRefreshAll() {
+  refreshing.value = true;
+  try {
+    await loadLanes();
+    if (state.viewMode === 'table') await reload();
+  } finally {
+    refreshing.value = false;
   }
-  if (state.viewMode === 'card') {
-    state.viewMode = 'table';
-    return;
-  }
-  state.viewMode = 'swimlane';
 }
 
 async function handleSuccess() {
-  reload();
-  cardListReload();
-  await swimlaneRef.value?.loadLanes?.();
+  await loadLanes();
+  if (state.viewMode === 'table') await reload();
   await detailDrawerRef.value?.reloadDetail?.();
 }
 
 function handleDrawerClosed() {
-  reload();
-  cardListReload();
-  swimlaneRef.value?.loadLanes?.();
+  void handleSuccess();
 }
 
 function handleCreate() {
@@ -180,16 +237,11 @@ function handleEdit(record: Recordable) {
 
 function handleView(record: Recordable) {
   openDetailDrawer(true, { record });
-  reload();
-  cardListReload();
-}
-
-function handleDel(record: Recordable) {
-  handleDelete(record);
+  if (state.viewMode === 'table') reload();
 }
 
 function handleCreated(record: ComputeNodeVO) {
-  handleSuccess();
+  void handleSuccess();
   navigateToOnboardService(router, record);
 }
 
@@ -205,7 +257,7 @@ async function handleHostExists(host: string) {
   } catch {
     // ignore
   }
-  handleSuccess();
+  await handleSuccess();
 
   if (!existing) {
     createConfirm({
@@ -243,7 +295,7 @@ async function handleDelete(record: Recordable) {
   }
   await deleteNode(record.id);
   createMessage.success('删除成功');
-  handleSuccess();
+  await handleSuccess();
 }
 
 async function handleMaintenance(record: Recordable, enabled: boolean) {
@@ -259,7 +311,7 @@ async function handleMaintenance(record: Recordable, enabled: boolean) {
 const [registerTable, { reload }] = useTable({
   canResize: true,
   showIndexColumn: false,
-  title: NODE_TERM.nodeInventory,
+  title: '',
   api: getNodePage,
   columns,
   useSearchForm: true,
@@ -280,9 +332,15 @@ const [registerTable, { reload }] = useTable({
   },
   rowKey: 'id',
 });
+
+onMounted(() => {
+  void loadLanes(1);
+});
 </script>
 
 <style lang="less" scoped>
+@import '../../utils/node-manage.less';
+
 .node-link {
   color: #266cfb;
   cursor: pointer;

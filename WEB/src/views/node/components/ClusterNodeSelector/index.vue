@@ -33,7 +33,9 @@
         </Select>
       </label>
       <div class="node-select-row__actions">
-        <Button @click="loadNodes" :loading="nodesLoading">刷新</Button>
+        <Button @click="loadNodes" :loading="nodesLoading" preIcon="ant-design:reload-outlined">
+          刷新
+        </Button>
         <Button v-if="multiple" type="link" @click="selectAllEligible">全选可用</Button>
       </div>
     </div>
@@ -64,6 +66,10 @@ const props = withDefaults(
     showScopeBar?: boolean;
     /** 默认隐藏本机控制面（platform）节点：分发目标不含本机默认实例 */
     excludePlatform?: boolean;
+    /** 在角色过滤之外仍允许选择控制面（NFS 服务端/客户端场景） */
+    includePlatform?: boolean;
+    /** 强制排除的节点（如当前 NFS 主服务端不可再选为客户端） */
+    excludeNodeIds?: number[];
     /** 是否多选；文件管理等场景建议单选 */
     multiple?: boolean;
   }>(),
@@ -72,6 +78,7 @@ const props = withDefaults(
     placeholder: '选择目标节点（需已配置 SSH 凭据）',
     showScopeBar: true,
     excludePlatform: true,
+    includePlatform: false,
     multiple: true,
   },
 );
@@ -116,7 +123,11 @@ const allowedRoles = computed(() => {
   return new Set<string>(CLUSTER_NODE_ROLE_FILTERS[props.roleFilter]);
 });
 
-const scopedNodeList = computed(() => scopeNodes(nodeList.value));
+/** 未展示泳道选择时不再静默按泳道过滤，否则批量/文件运维会「看起来没节点」 */
+const scopedNodeList = computed(() => {
+  if (!props.showScopeBar) return nodeList.value;
+  return scopeNodes(nodeList.value);
+});
 
 function filterNode(input: string, option: { label?: string }) {
   return (option.label || '').toLowerCase().includes(input.toLowerCase());
@@ -134,15 +145,15 @@ function resolveNodeHost(value: number | string) {
 }
 
 function isEligibleNode(node: ComputeNodeVO) {
-  if (props.excludePlatform && isPlatformNode(node)) return false;
+  if (node.id != null && (props.excludeNodeIds || []).includes(node.id)) {
+    return false;
+  }
+  if (isPlatformNode(node)) {
+    if (props.includePlatform) return true;
+    if (props.excludePlatform) return false;
+  }
   const roles = allowedRoles.value;
   if (roles && !roles.has(node.nodeRole || '')) return false;
-  return true;
-}
-
-function isListedNode(node: ComputeNodeVO) {
-  // 分发场景：本机 platform 默认不出现在列表，避免误选
-  if (props.excludePlatform && isPlatformNode(node)) return false;
   return true;
 }
 
@@ -151,10 +162,11 @@ function hasSshCredential(node: ComputeNodeVO) {
 }
 
 function rebuildNodeOptions() {
-  nodeOptions.value = scopedNodeList.value.filter(isListedNode).map((node) => ({
+  // 只列出可操作节点，避免把 storage 等无关角色混进客户端下拉
+  nodeOptions.value = scopedNodeList.value.filter(isEligibleNode).map((node) => ({
     label: `${node.name} (${node.host}) — ${node.nodeRole || '?'} / ${node.status || 'unknown'}${hasSshCredential(node) ? '' : ' / 未配置 SSH'}`,
     value: node.id!,
-    disabled: !isEligibleNode(node),
+    disabled: !hasSshCredential(node) && !isPlatformNode(node),
   }));
 }
 
@@ -202,7 +214,7 @@ watch(
 );
 
 watch(
-  () => props.excludePlatform,
+  () => [props.excludePlatform, props.includePlatform, props.excludeNodeIds] as const,
   () => {
     rebuildNodeOptions();
     syncSelectedNodeIds();
@@ -242,11 +254,9 @@ watch(
 );
 
 watch(activeLaneKey, (laneKey, prevLaneKey) => {
-  if (!laneReady.value || laneKey === prevLaneKey) return;
-  if (!props.showScopeBar) {
-    selectedNodeIds.value = [];
-    rebuildNodeOptions();
-  }
+  if (!laneReady.value || laneKey === prevLaneKey || !props.showScopeBar) return;
+  selectedNodeIds.value = [];
+  rebuildNodeOptions();
 });
 
 watch(scopedNodeList, () => {
