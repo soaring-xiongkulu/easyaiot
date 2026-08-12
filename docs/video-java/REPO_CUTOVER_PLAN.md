@@ -1,7 +1,7 @@
 # VIDEO 仓库切仓与 Python 移除计划（Repo Cutover）
 
 > **日期：** 2026-08-12  
-> **状态：** Phase1 进行中（模型已复制到 DEVICE/iot-video/models；路径解耦已落地）；**尚未授权执行删除 VIDEO/**。  
+> **状态：** Phase1 已提交；Phase2 draft PR [#143](https://github.com/soaring-xiongkulu/easyaiot/pull/143)（**不删 VIDEO/**）。  
 > **分支：** `feat/video-java` @ `9cf6e65e`（以落地时 HEAD 为准）  
 > **工作树：** `F:/acme/.worktrees/video-java`  
 > **Oracle（对照，勿先删）：** `F:/acme` @ `main` 的 `VIDEO/`；建议保留 tag `video-java-oracle-baseline`  
