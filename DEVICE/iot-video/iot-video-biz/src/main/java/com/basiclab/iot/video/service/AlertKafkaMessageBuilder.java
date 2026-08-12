@@ -1,5 +1,7 @@
 package com.basiclab.iot.video.service;
 
+import com.basiclab.iot.video.service.notify.MessageTemplateNotifyUserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -18,7 +20,10 @@ import java.util.Set;
  * and iot-sink {@code AlertNotificationMessage}.
  */
 @Component
+@RequiredArgsConstructor
 public class AlertKafkaMessageBuilder {
+
+    private final MessageTemplateNotifyUserService messageTemplateNotifyUserService;
 
     private static final ZoneId SHANGHAI = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter WALL = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -96,14 +101,15 @@ public class AlertKafkaMessageBuilder {
             }
         }
 
-        List<Map<String, Object>> notifyUsers = extractNotifyUsers(notificationConfig, alertNotificationConfig);
+        List<Map<String, Object>> notifyUsers = extractNotifyUsers(notificationConfig, alertNotificationConfig, channels);
         boolean hasChannels = !channels.isEmpty() || !notifyMethods.isEmpty();
         boolean hasUsers = !notifyUsers.isEmpty();
         boolean hasUserless = hasUserlessChannel(channels);
         boolean shouldNotify = hasChannels && (hasUsers || hasUserless);
 
         if (!shouldNotify && hasChannels && !hasUsers && !hasUserless) {
-            List<Map<String, Object>> robotChannels = channels.stream().filter(this::isRobotFallbackChannel).toList();
+            List<Map<String, Object>> robotChannels = channels.stream()
+                    .filter(messageTemplateNotifyUserService::isRobotFallbackChannel).toList();
             if (!robotChannels.isEmpty()) {
                 shouldNotify = true;
                 for (Map<String, Object> ch : robotChannels) {
@@ -196,9 +202,10 @@ public class AlertKafkaMessageBuilder {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> extractNotifyUsers(
+    private List<Map<String, Object>> extractNotifyUsers(
             Map<String, Object> notificationConfig,
-            Map<String, Object> alertNotificationConfig
+            Map<String, Object> alertNotificationConfig,
+            List<Map<String, Object>> channels
     ) {
         Object raw = notificationConfig.get("notify_users");
         if (raw instanceof List<?> list && !list.isEmpty()) {
@@ -207,6 +214,10 @@ public class AlertKafkaMessageBuilder {
         Object fromConfig = alertNotificationConfig.get("notify_users");
         if (fromConfig instanceof List<?> list && !list.isEmpty()) {
             return (List<Map<String, Object>>) (List<?>) list;
+        }
+        List<Map<String, Object>> fromTemplates = messageTemplateNotifyUserService.extractNotifyUsersFromTemplates(channels);
+        if (!fromTemplates.isEmpty()) {
+            return fromTemplates;
         }
         return List.of();
     }
@@ -241,15 +252,6 @@ public class AlertKafkaMessageBuilder {
         }
         return false;
     }
-
-    private boolean isRobotFallbackChannel(Map<String, Object> channel) {
-        if (channel == null) {
-            return false;
-        }
-        String method = channel.get("method") != null ? String.valueOf(channel.get("method")).toLowerCase() : "";
-        return "ding".equals(method) || "feishu".equals(method) || "webhook".equals(method) || "http".equals(method);
-    }
-
     @SuppressWarnings("unchecked")
     private static Map<String, Object> castMap(Map<?, ?> map) {
         Map<String, Object> out = new LinkedHashMap<>();

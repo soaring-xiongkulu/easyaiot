@@ -204,8 +204,14 @@ public class PlateLibraryService {
     }
 
     public Map<String, Object> startAutoEnroll(int libraryId) {
-        if (getAutoEnroll(libraryId) == null) {
+        Map<String, Object> task = getAutoEnroll(libraryId);
+        if (task == null) {
             throw new VideoBusinessException(400, "请先配置自动录入参数");
+        }
+        @SuppressWarnings("unchecked")
+        List<Object> deviceIds = (List<Object>) task.getOrDefault("device_ids", List.of());
+        if (deviceIds.isEmpty()) {
+            throw new VideoBusinessException(400, "请至少绑定一个摄像头后再开启");
         }
         autoEnrollRepository.updateRunning(libraryId, true);
         return getAutoEnroll(libraryId);

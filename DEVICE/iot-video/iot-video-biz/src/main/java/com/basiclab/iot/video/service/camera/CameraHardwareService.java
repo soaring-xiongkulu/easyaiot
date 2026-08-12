@@ -298,6 +298,17 @@ public class CameraHardwareService {
             byte[] jpeg = FfmpegFrameCapture.captureJpeg(source, 10);
             return cameraScreenshotService.persistJpeg(deviceId, jpeg, 0, 0);
         } catch (FfmpegFrameCapture.CaptureException ex) {
+            if (Gb28181SourceResolver.isGb28181Source(device.getSource().trim())) {
+                String alternate = gb28181SourceResolver.resolveAlternatePullUrl(device.getSource().trim(), source);
+                if (alternate != null && !alternate.isBlank()) {
+                    try {
+                        byte[] jpeg = FfmpegFrameCapture.captureJpeg(alternate.trim(), 10);
+                        return cameraScreenshotService.persistJpeg(deviceId, jpeg, 0, 0);
+                    } catch (FfmpegFrameCapture.CaptureException retryEx) {
+                        throw new VideoBusinessException(500, retryEx.getMessage());
+                    }
+                }
+            }
             throw new VideoBusinessException(500, ex.getMessage());
         }
     }

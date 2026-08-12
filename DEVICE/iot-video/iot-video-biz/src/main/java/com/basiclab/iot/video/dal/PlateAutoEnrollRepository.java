@@ -56,7 +56,8 @@ public class PlateAutoEnrollRepository {
                     UPDATE plate_auto_enroll_task
                     SET is_running = true, started_at = NOW(),
                         expires_at = NOW() + (duration_minutes || ' minutes')::interval,
-                        updated_at = NOW()
+                        enrolled_count = 0, skipped_count = 0, last_device_index = 0,
+                        last_tick_at = NULL, updated_at = NOW()
                     WHERE library_id = ?
                     """,
                     libraryId
@@ -64,6 +65,44 @@ public class PlateAutoEnrollRepository {
         } else {
             jdbc.update(
                     "UPDATE plate_auto_enroll_task SET is_running = false, updated_at = NOW() WHERE library_id = ?",
+                    libraryId
+            );
+        }
+    }
+
+    public List<Map<String, Object>> findAllRunning() {
+        return jdbc.query(
+                "SELECT * FROM plate_auto_enroll_task WHERE is_running = true ORDER BY library_id",
+                this::mapTask
+        );
+    }
+
+    public void stopRunning(int libraryId) {
+        jdbc.update(
+                "UPDATE plate_auto_enroll_task SET is_running = false, updated_at = NOW() WHERE library_id = ?",
+                libraryId
+        );
+    }
+
+    public void recordTickOutcome(int libraryId, int lastDeviceIndex, boolean enrolled) {
+        if (enrolled) {
+            jdbc.update(
+                    """
+                    UPDATE plate_auto_enroll_task
+                    SET last_device_index = ?, last_tick_at = NOW(), enrolled_count = enrolled_count + 1, updated_at = NOW()
+                    WHERE library_id = ?
+                    """,
+                    lastDeviceIndex,
+                    libraryId
+            );
+        } else {
+            jdbc.update(
+                    """
+                    UPDATE plate_auto_enroll_task
+                    SET last_device_index = ?, last_tick_at = NOW(), skipped_count = skipped_count + 1, updated_at = NOW()
+                    WHERE library_id = ?
+                    """,
+                    lastDeviceIndex,
                     libraryId
             );
         }

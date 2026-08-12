@@ -82,22 +82,25 @@ public class AlertMatchingTriggerService {
             return;
         }
         String plateNo = extractPlateNo(detections);
-        if (plateNo == null || plateNo.isBlank()) {
-            log.warn("告警帧后编排：detections 无车牌号，跳过车牌匹配 taskId={} frame={}", task.getId(), frameNumber);
-            return;
-        }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("taskId", task.getId());
         payload.put("taskName", task.getTaskName());
         payload.put("taskType", task.getTaskType() != null ? task.getTaskType() : "realtime");
         payload.put("deviceId", deviceId);
         payload.put("deviceName", deviceName);
-        payload.put("plateNo", plateNo);
+        if (plateNo != null && !plateNo.isBlank()) {
+            payload.put("plateNo", plateNo);
+        }
         payload.put("plateImagePath", imagePath);
         payload.put("correlationId", correlationId);
         try {
             plateMatchingService.publish(payload);
-            log.info("cpp 告警 hook 已尝试车牌匹配 publish: taskId={} deviceId={} plateNo={}", task.getId(), deviceId, plateNo);
+            log.info(
+                    "cpp 告警 hook 已尝试车牌匹配 publish: taskId={} deviceId={} plateNo={}",
+                    task.getId(),
+                    deviceId,
+                    plateNo != null && !plateNo.isBlank() ? plateNo : "(ocr-path)"
+            );
         } catch (Exception ex) {
             log.warn("cpp 告警 hook 车牌匹配 publish 失败 taskId={}: {}", task.getId(), ex.getMessage());
         }

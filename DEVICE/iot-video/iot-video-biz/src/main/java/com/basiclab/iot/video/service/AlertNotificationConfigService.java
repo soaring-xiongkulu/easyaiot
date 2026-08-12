@@ -1,6 +1,7 @@
 package com.basiclab.iot.video.service;
 
 import com.basiclab.iot.video.dal.AlgorithmTaskRepository;
+import com.basiclab.iot.video.service.notify.MessageTemplateNotifyUserService;
 import com.basiclab.iot.video.support.JsonFields;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,7 @@ import java.util.Optional;
 public class AlertNotificationConfigService {
 
     private final AlgorithmTaskRepository taskRepository;
+    private final MessageTemplateNotifyUserService messageTemplateNotifyUserService;
 
     public Optional<Map<String, Object>> queryConfig(String deviceId, String taskType) {
         if (deviceId == null || deviceId.isBlank()) {
@@ -40,6 +43,22 @@ public class AlertNotificationConfigService {
 
         Map<String, Object> notificationConfigData = parseConfigMap(configRaw);
         List<Map<String, Object>> notifyUsers = extractNotifyUsers(notificationConfigData, row);
+        if (notifyUsers.isEmpty()) {
+            Object channelsObj = notificationConfigData.get("channels");
+            if (channelsObj instanceof List<?> channelList && !channelList.isEmpty()) {
+                List<Map<String, Object>> channels = new ArrayList<>();
+                for (Object item : channelList) {
+                    if (item instanceof Map<?, ?> map) {
+                        Map<String, Object> ch = new LinkedHashMap<>();
+                        for (Map.Entry<?, ?> entry : map.entrySet()) {
+                            ch.put(String.valueOf(entry.getKey()), entry.getValue());
+                        }
+                        channels.add(ch);
+                    }
+                }
+                notifyUsers = messageTemplateNotifyUserService.extractNotifyUsersFromTemplates(channels);
+            }
+        }
 
         Map<String, Object> config = new LinkedHashMap<>();
         config.put("task_id", row.get("task_id"));

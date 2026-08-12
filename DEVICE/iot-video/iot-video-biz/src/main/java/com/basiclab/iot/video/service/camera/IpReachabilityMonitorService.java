@@ -30,8 +30,8 @@ public class IpReachabilityMonitorService {
         int registered = 0;
         for (DeviceRow device : devices) {
             String ip = resolveIp(device);
-            if (ip != null) {
-                lastOnline.put(device.getId(), null);
+            if (ip != null && device.getId() != null) {
+                lastOnline.put(device.getId(), Boolean.FALSE);
                 registered++;
             }
         }

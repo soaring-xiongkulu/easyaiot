@@ -113,11 +113,7 @@ public class CameraFlighthubService {
                         "请在司空侧切换为 RTMP/HTTP-FLV/HLS 等可直拉供应商，"
                                 + "或由前端 SDK / 直播桥接服务接入后再转本地 SRS。");
                 payload.put("raw", body);
-                Map<String, Object> result = failure(409, "FlightHub returned SDK live provider", payload);
-                result.put("provider", provider);
-                result.put("url_type", payload.get("url_type"));
-                result.put("suggestion", payload.get("suggestion"));
-                return result;
+                return failure(409, "FlightHub returned SDK live provider", payload);
             }
 
             Map<String, Object> registerInfo = FlighthubSourceSupport.buildRegisterInfo(data, playUrl);
@@ -215,17 +211,35 @@ public class CameraFlighthubService {
     }
 
     private static Map<String, Object> failure(int code, String msg, Object raw) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("provider", null);
-        payload.put("url_type", null);
-        payload.put("suggestion", msg);
-        payload.put("raw", raw);
+        Map<String, Object> payload = buildFailurePayload(code, msg, raw);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("ok", false);
         result.put("code", code);
         result.put("msg", msg);
         result.put("payload", payload);
         return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> buildFailurePayload(int code, String msg, Object raw) {
+        if (raw instanceof Map<?, ?> map && isFlatFailureData(map)) {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("provider", map.get("provider"));
+            payload.put("url_type", map.get("url_type"));
+            payload.put("suggestion", map.get("suggestion"));
+            payload.put("raw", map.get("raw"));
+            return payload;
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("provider", null);
+        payload.put("url_type", null);
+        payload.put("suggestion", null);
+        payload.put("raw", raw);
+        return payload;
+    }
+
+    private static boolean isFlatFailureData(Map<?, ?> map) {
+        return map.containsKey("provider") || map.containsKey("url_type") || map.containsKey("suggestion");
     }
 
     private static void putIfPresent(Map<String, Object> fields, String key, Object value) {

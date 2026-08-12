@@ -39,8 +39,9 @@ public class PlateMatchingService {
             throw new VideoBusinessException(400, "taskId 不能为空");
         }
         String plateNo = plateNoRaw != null ? String.valueOf(plateNoRaw).trim() : "";
-        if (plateNo.isEmpty()) {
-            throw new VideoBusinessException(400, "plateNo 不能为空");
+        String plateImagePath = stringOrNull(firstNonNull(data, "plateImagePath", "plate_image_path"));
+        if (plateNo.isEmpty() && (plateImagePath == null || plateImagePath.isBlank())) {
+            throw new VideoBusinessException(400, "plateNo 或 plateImagePath 不能为空");
         }
 
         Map<String, Object> message = buildMessage(data, Long.parseLong(String.valueOf(taskIdRaw)), plateNo);

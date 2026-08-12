@@ -108,7 +108,6 @@ public class AlgorithmRemoteDeployService {
             taskRepository.updateRemoteRunState(
                     taskId, true, "running", logDir, port, pid, nodeId, host
             );
-            taskRepository.updateHeartbeat(taskId, host, port, pid, logDir, "running");
 
             log.info(
                     "算法任务远程部署成功 task_id={} node_id={} host={} pid={}",
