@@ -768,7 +768,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 | ![配置](.image/banner/banner1100.png) | ![详情](.image/banner/banner1101.png) | ![调用](.image/banner/banner1102.png) |
 | ![训练](.image/banner/banner1019.jpg) | ![任务](.image/banner/banner1020.jpg) | ![列表](.image/banner/banner1023.jpg) |
 | ![进度](.image/banner/banner1024.jpg) | ![参数](.image/banner/banner1017.jpg) | ![评估](.image/banner/banner1018.jpg) |
-| ![详情](.image/banner/banner1021.jpg) | ![日志](.image/banner/banner1022.jpg) | ![管理](.image/banner/banner1097.png) |
+| ![详情](.image/banner/banner1021.png) | ![日志](.image/banner/banner1022.jpg) | ![管理](.image/banner/banner1097.png) |
 | ![仓库](.image/banner/banner1098.png) | ![版本](.image/banner/banner1039.jpg) | ![资产](.image/banner/banner1061.jpg) |
 | ![推理](.image/banner/banner1040.jpg) | ![配置](.image/banner/banner1042.jpg) | ![结果](.image/banner/banner1043.jpg) |
 | ![在线](.image/banner/banner1044.jpg) | ![批量](.image/banner/banner1047.jpg) | ![监控](.image/banner/banner1048.jpg) |

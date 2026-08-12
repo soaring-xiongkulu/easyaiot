@@ -701,7 +701,7 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![구성](.image/banner/banner1100.png) | ![상세](.image/banner/banner1101.png) | ![호출](.image/banner/banner1102.png) |
 | ![학습](.image/banner/banner1019.jpg) | ![작업](.image/banner/banner1020.jpg) | ![목록](.image/banner/banner1023.jpg) |
 | ![진행](.image/banner/banner1024.jpg) | ![파라미터](.image/banner/banner1017.jpg) | ![평가](.image/banner/banner1018.jpg) |
-| ![상세](.image/banner/banner1021.jpg) | ![로그](.image/banner/banner1022.jpg) | ![관리](.image/banner/banner1097.png) |
+| ![상세](.image/banner/banner1021.png) | ![로그](.image/banner/banner1022.jpg) | ![관리](.image/banner/banner1097.png) |
 | ![저장소](.image/banner/banner1098.png) | ![버전](.image/banner/banner1039.jpg) | ![자산](.image/banner/banner1061.jpg) |
 | ![추론](.image/banner/banner1040.jpg) | ![구성](.image/banner/banner1042.jpg) | ![결과](.image/banner/banner1043.jpg) |
 | ![온라인](.image/banner/banner1044.jpg) | ![일괄](.image/banner/banner1047.jpg) | ![모니터링](.image/banner/banner1048.jpg) |

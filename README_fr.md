@@ -702,7 +702,7 @@ EasyAIoT est un projet d'apprentissage open source, sans lien avec des activité
 | ![Configuration](.image/banner/banner1100.png) | ![Détails](.image/banner/banner1101.png) | ![Appel](.image/banner/banner1102.png) |
 | ![Entraînement](.image/banner/banner1019.jpg) | ![Tâche](.image/banner/banner1020.jpg) | ![Liste](.image/banner/banner1023.jpg) |
 | ![Progression](.image/banner/banner1024.jpg) | ![Paramètres](.image/banner/banner1017.jpg) | ![Évaluation](.image/banner/banner1018.jpg) |
-| ![Détails](.image/banner/banner1021.jpg) | ![Journaux](.image/banner/banner1022.jpg) | ![Gestion](.image/banner/banner1097.png) |
+| ![Détails](.image/banner/banner1021.png) | ![Journaux](.image/banner/banner1022.jpg) | ![Gestion](.image/banner/banner1097.png) |
 | ![Dépôt](.image/banner/banner1098.png) | ![Version](.image/banner/banner1039.jpg) | ![Actifs](.image/banner/banner1061.jpg) |
 | ![Inférence](.image/banner/banner1040.jpg) | ![Configuration](.image/banner/banner1042.jpg) | ![Résultats](.image/banner/banner1043.jpg) |
 | ![En ligne](.image/banner/banner1044.jpg) | ![Lot](.image/banner/banner1047.jpg) | ![Surveillance](.image/banner/banner1048.jpg) |

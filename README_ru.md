@@ -702,7 +702,7 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Конфигурация](.image/banner/banner1100.png) | ![Детали](.image/banner/banner1101.png) | ![Вызов](.image/banner/banner1102.png) |
 | ![Обучение](.image/banner/banner1019.jpg) | ![Задача](.image/banner/banner1020.jpg) | ![Список](.image/banner/banner1023.jpg) |
 | ![Прогресс](.image/banner/banner1024.jpg) | ![Параметры](.image/banner/banner1017.jpg) | ![Оценка](.image/banner/banner1018.jpg) |
-| ![Детали](.image/banner/banner1021.jpg) | ![Журналы](.image/banner/banner1022.jpg) | ![Управление](.image/banner/banner1097.png) |
+| ![Детали](.image/banner/banner1021.png) | ![Журналы](.image/banner/banner1022.jpg) | ![Управление](.image/banner/banner1097.png) |
 | ![Репозиторий](.image/banner/banner1098.png) | ![Версия](.image/banner/banner1039.jpg) | ![Активы](.image/banner/banner1061.jpg) |
 | ![Инференс](.image/banner/banner1040.jpg) | ![Конфигурация](.image/banner/banner1042.jpg) | ![Результаты](.image/banner/banner1043.jpg) |
 | ![Онлайн](.image/banner/banner1044.jpg) | ![Пакет](.image/banner/banner1047.jpg) | ![Мониторинг](.image/banner/banner1048.jpg) |

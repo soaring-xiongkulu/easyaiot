@@ -726,7 +726,7 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 | ![Configuration](.image/banner/banner1100.png) | ![Details](.image/banner/banner1101.png) | ![Invocation](.image/banner/banner1102.png) |
 | ![Training](.image/banner/banner1019.jpg) | ![Task](.image/banner/banner1020.jpg) | ![List](.image/banner/banner1023.jpg) |
 | ![Progress](.image/banner/banner1024.jpg) | ![Parameters](.image/banner/banner1017.jpg) | ![Evaluation](.image/banner/banner1018.jpg) |
-| ![Details](.image/banner/banner1021.jpg) | ![Logs](.image/banner/banner1022.jpg) | ![Management](.image/banner/banner1097.png) |
+| ![Details](.image/banner/banner1021.png) | ![Logs](.image/banner/banner1022.jpg) | ![Management](.image/banner/banner1097.png) |
 | ![Repository](.image/banner/banner1098.png) | ![Version](.image/banner/banner1039.jpg) | ![Assets](.image/banner/banner1061.jpg) |
 | ![Inference](.image/banner/banner1040.jpg) | ![Configuration](.image/banner/banner1042.jpg) | ![Results](.image/banner/banner1043.jpg) |
 | ![Online](.image/banner/banner1044.jpg) | ![Batch](.image/banner/banner1047.jpg) | ![Monitoring](.image/banner/banner1048.jpg) |
