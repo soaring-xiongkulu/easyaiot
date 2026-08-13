@@ -176,6 +176,9 @@ AI/yolo*.names.json
 AI/yolov*.names.json
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 .vscode/
+# IDEA 工作区模板的 VS Code 配置需要入库（覆盖上面的 .vscode/）
+!IDEA/workspace-template/.vscode/
+!IDEA/workspace-template/.vscode/**
 *.war
 # WEB 日志目录（与 WEB/.gitignore 中 logs/*、!logs/.gitkeep 一致）
 # WEB 预构建前端缓存（runtime_image.sh 提取，体积大，勿提交）
@@ -199,5 +202,13 @@ AI/yolov*.names.json
 
 # 安装脚本生成的本地 docker env（模板见 .env.docker）
 .scripts/docker/.env
+
+# IDEA 运行时数据、本地配置与虚拟环境（与 IDEA/.gitignore 对齐；工作区 clone / git-reference 体积大，勿提交）
+IDEA/.data/
+IDEA/.venv/
+IDEA/idea.env
+IDEA/logs/
+IDEA/workspaces/
+IDEA/__pycache__/
 
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据

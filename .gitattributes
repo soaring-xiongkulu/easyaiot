@@ -50,6 +50,9 @@ env.example    text eol=lf
 *.nsi          text eol=lf
 panel.env      text eol=lf
 panel.env.*    text eol=lf
+# IDEA 门户环境文件（install.sh 会 cp idea.env.example → idea.env；CRLF 会污染 TOKEN / OAuth 回调地址）
+idea.env       text eol=lf
+idea.env.*     text eol=lf
 # deb 维护脚本无扩展名，CRLF 会导致 dpkg 钩子失败
 COMPILE/platforms/ubuntu/deb/postinst  text eol=lf
 COMPILE/platforms/ubuntu/deb/postrm    text eol=lf
@@ -153,6 +156,8 @@ SITE/.pnpm-store/** -diff
 
 # IDE / 包管理器缓存 / 测试缓存：不参与 diff
 .vscode/** -diff
+# IDEA 工作区模板的 VS Code 配置需要参与 diff（覆盖上面的 .vscode/** -diff）
+IDEA/workspace-template/.vscode/** text eol=lf
 .pnpm-store/** -diff
 **/.pytest_cache/** -diff
 
@@ -178,3 +183,9 @@ COMPILE/work/** -diff
 COMPILE/.venv-build/** -diff
 COMPILE/.venv-build-*/** -diff
 COMPILE/.panel-version -diff
+
+# IDEA 运行时数据 / 虚拟环境（工作区全仓 clone 与 git-reference 体积大；与 .gitignore 对齐，防误加入仓库）
+IDEA/.data/** -diff
+IDEA/.venv/** -diff
+IDEA/workspaces/** -diff
+IDEA/logs/** -diff
