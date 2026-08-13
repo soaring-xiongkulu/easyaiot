@@ -1,0 +1,12 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+logs
+idea.env
+workspaces
+.data
+.idea
+*.md
+!README.md
