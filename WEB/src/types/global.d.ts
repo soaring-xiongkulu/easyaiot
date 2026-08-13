@@ -97,6 +97,10 @@ declare global {
     VITE_GLOB_FUXA_URL?: string
     /** EasyAIoT PANEL 运维控制台（留空则使用当前访问域名 + 9200 端口） */
     VITE_PANEL_URL?: string
+    /** EasyAIoT IDEA 门户（留空则使用当前访问域名 + 9300 端口） */
+    VITE_IDEA_URL?: string
+    /** IDEA 门户令牌（与 IDEA_TOKEN 一致；浏览器可见，仅作轻量防护） */
+    VITE_IDEA_TOKEN?: string
   }
 
   declare function parseInt(s: string | number, radix?: number): number
