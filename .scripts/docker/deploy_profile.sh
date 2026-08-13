@@ -125,6 +125,7 @@ is_full_deploy_profile() {
 #   PANEL — 源码/Docker 部署默认启用；安装包（deb/桌面端）本身即为 PANEL，
 #           由 systemd/二进制托管，部署时不应再拉 Docker PANEL（EASYAIOT_ENABLE_PANEL=0）。
 #           无源码 runtime 未显式开启时也默认跳过。
+#   IDEA — 社区贡献在线 IDE，mini/standard/full 三种形态均启用（部署失败则中止后续模块）
 module_enabled_for_deploy_profile() {
     case "$1" in
         APP|VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
@@ -138,6 +139,12 @@ module_enabled_for_deploy_profile() {
                 return 1
             fi
             [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ]
+            ;;
+        IDEA)
+            case "${EASYAIOT_ENABLE_IDEA:-}" in
+                0|false|FALSE|no|NO|off|OFF) return 1 ;;
+                *) return 0 ;;
+            esac
             ;;
         *) return 0 ;;
     esac
@@ -275,6 +282,7 @@ print_deploy_profile_summary() {
     mini)
       echo "  业务: iot-gateway + iot-system + iot-sink + VIDEO/AI/RTC/WEB（告警/DVR 统一经 Gateway→sink）"
       echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
+      echo "  贡献: IDEA 在线 IDE（:9300，所有形态优先部署；失败则中止后续模块）"
       echo "  中间件: PostgreSQL, Redis, SRS, Nacos, MinIO, EMQX, Kafka"
       echo "  不启动: TDengine, Milvus, ZLMediaKit, NodeRED, FUXA、iot-device/iot-node/iot-visualize/TRANSFORM 等"
       echo "  API 路由: nginx → Gateway:48080 → Nacos LB（含 /admin-api/sink/**）"
@@ -282,11 +290,13 @@ print_deploy_profile_summary() {
     standard)
       echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE、TRANSFORM（相关菜单不启用）"
       echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
+      echo "  贡献: IDEA 在线 IDE（:9300，所有形态优先部署；失败则中止后续模块）"
       echo "  其余模块与中间件全部启动（含 EMQX、RTC）"
       ;;
     full)
       echo "  启动全部业务模块与中间件（含 APP 移动端 H5、iot-visualize/VISUALIZE、TRANSFORM、FUXA、RTC，推荐宿主机内存 ≥ 20 GB）"
       echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
+      echo "  贡献: IDEA 在线 IDE（:9300，所有形态优先部署；失败则中止后续模块）"
       ;;
   esac
 }
