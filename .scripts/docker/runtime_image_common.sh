@@ -37,6 +37,8 @@ DEVICE_COMPOSE_SERVICES=(
 )
 
 INDEPENDENT_MODULES=(
+    "aiot-idea-portal|easyaiot/idea-portal|IDEA"
+    "aiot-idea-workspace|easyaiot/idea-workspace|IDEA"
     "aiot-ai|ai-service|AI"
     "aiot-rtc|rtc-service|RTC"
     "aiot-video|video-service|VIDEO"
@@ -104,8 +106,8 @@ runtime_is_single_arch_build() {
     [ -n "$a" ] && [ "$a" != "all" ]
 }
 
-# build-runtime 可选单模块（PANEL 全形态；APP/VISUALIZE/TRANSFORM 仅 full）
-ALL_RUNTIME_BUILD_MODULES=(DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+# build-runtime 可选单模块（IDEA/PANEL 全形态；APP/VISUALIZE/TRANSFORM 仅 full）
+ALL_RUNTIME_BUILD_MODULES=(IDEA DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
 
 # 规范化 build-runtime 目标模块（空/all=全部；无效返回 INVALID）
 runtime_normalize_build_module() {
@@ -113,6 +115,7 @@ runtime_normalize_build_module() {
     raw="${raw,,}"
     case "$raw" in
         ""|all) echo "" ;;
+        idea|aiot-idea|aiot-idea-portal|aiot-idea-workspace|easyaiot/idea-portal|easyaiot/idea-workspace) echo "IDEA" ;;
         device) echo "DEVICE" ;;
         ai|aiot-ai) echo "AI" ;;
         rtc|aiot-rtc) echo "RTC" ;;
@@ -145,7 +148,7 @@ runtime_apply_build_module_arg() {
     local normalized
     normalized=$(runtime_normalize_build_module "$arg")
     if [ "$normalized" = "INVALID" ]; then
-        runtime_img_msg error "无效的运行时模块: ${arg}，可选: all | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+        runtime_img_msg error "无效的运行时模块: ${arg}，可选: all | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
         return 1
     fi
     if [ -n "$normalized" ]; then
@@ -529,7 +532,7 @@ runtime_interactive_select_build_module() {
     if [ -n "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" ]; then
         normalized=$(runtime_normalize_build_module "$EASYAIOT_RUNTIME_BUILD_MODULE")
         if [ "$normalized" = "INVALID" ]; then
-            runtime_img_msg error "无效的运行时模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+            runtime_img_msg error "无效的运行时模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}，可选: all | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
             exit 1
         fi
         if [ -n "$normalized" ]; then
@@ -546,11 +549,12 @@ runtime_interactive_select_build_module() {
 
     echo ""
     echo "请选择要构建/推送的运行时模块："
-    echo "  1) 全部     — DEVICE + AI + RTC + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL（默认）"
+    echo "  1) 全部     — IDEA + DEVICE + AI + RTC + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL（默认）"
     idx=2
     declare -A _MODULE_CHOICES=()
     for mod in "${ALL_RUNTIME_BUILD_MODULES[@]}"; do
         case "$mod" in
+            IDEA)   echo "  ${idx}) IDEA      — 社区贡献在线 IDE（portal + workspace，全形态）" ;;
             DEVICE) echo "  ${idx}) DEVICE    — Device 微服务（含 aiot-visualize 后台）" ;;
             AI)     echo "  ${idx}) AI        — AI 服务" ;;
             RTC)    echo "  ${idx}) RTC       — RTC / go2rtc 摄像头桥接（全形态）" ;;
@@ -858,6 +862,8 @@ runtime_images_collect_check_refs() {
     local profile="${2:-${EASYAIOT_DEPLOY_PROFILE:-full}}"
     local tag="${3:-latest}"
     _out=(
+        "easyaiot/idea-portal:${tag}"
+        "easyaiot/idea-workspace:${tag}"
         "ai-service:${tag}"
         "rtc-service:${tag}"
         "video-service:${tag}"
@@ -1251,7 +1257,7 @@ runtime_print_install_local_build_help() {
     runtime_img_msg info "  bash ${install_script} start     # 镜像就绪后启动"
     echo ""
     if [ "$install_script" = ".scripts/docker/install_business_linux.sh" ]; then
-        runtime_img_msg info "（当前脚本仅含业务模块 DEVICE/AI/RTC/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件）"
+        runtime_img_msg info "（当前脚本仅含业务模块 IDEA/DEVICE/AI/RTC/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件）"
     else
         runtime_img_msg info "方案 3：仅构建/安装单个模块（示例 DEVICE）"
         runtime_img_msg info "  bash DEVICE/install_linux.sh build"
@@ -1506,13 +1512,13 @@ runtime_images_invoke() {
 # 显示运行时镜像管理用法摘要
 runtime_images_usage() {
     cat <<EOF
-运行时镜像管理（业务模块 DEVICE/AI/RTC/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
+运行时镜像管理（业务模块 IDEA/DEVICE/AI/RTC/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件；IDEA/PANEL 全形态；APP/VISUALIZE/TRANSFORM 仅 full）
 
 pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   mini     — 仅拉 aiot-system（1/12）
   standard — 跳过 aiot-device、aiot-tdengine、aiot-visualize（9/12）
   full     — 拉全部 DEVICE（12/12，含 aiot-visualize）
-  build-runtime 默认构建/推送全部模块；可指定单模块 DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL
+  build-runtime 默认构建/推送全部模块；可指定单模块 IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL
   全量 build-runtime 仍构建/推送全量 DEVICE，供各形态共用远程仓库
 
 本地安装（含本地构建）:
@@ -1529,6 +1535,7 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
 远程镜像拉取/推送（交互式，默认部署形态 full）:
   bash .scripts/docker/install_linux.sh pull
   bash .scripts/docker/install_linux.sh build-runtime
+  bash .scripts/docker/install_linux.sh build-runtime IDEA # 仅构建/推送 IDEA（portal+workspace）
   bash .scripts/docker/install_linux.sh build-runtime AI    # 仅构建/推送 AI 模块
   bash .scripts/docker/install_business_linux.sh pull
   bash .scripts/docker/install_business_linux.sh build-runtime
@@ -1544,7 +1551,7 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   EASYAIOT_RUNTIME_PUSH=1      构建后推送（仅 build-runtime）
   EASYAIOT_RUNTIME_BUILD_ALL_PROFILES=1  构建全部形态（仅 build-runtime）
   EASYAIOT_RUNTIME_BUILD_ARCH=all|amd64|arm64  目标架构（默认 all=全部；单架构时跳过 manifest）
-  EASYAIOT_RUNTIME_BUILD_MODULE=all|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL  目标模块（默认 all=全部）
+  EASYAIOT_RUNTIME_BUILD_MODULE=all|IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL  目标模块（默认 all=全部）
   EASYAIOT_RUNTIME_FORCE_REBUILD=1       强制重建全部镜像（忽略本地缓存）
   EASYAIOT_RUNTIME_FORCE_REBUILD=0       复用本地镜像（已存在则跳过构建，直接推送）
   EASYAIOT_SKIP_REGISTRY_AUTH_CHECK=1     跳过 build-runtime 前的远程仓库登录/推送权限检查
