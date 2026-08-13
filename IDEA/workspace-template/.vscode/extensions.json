@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "ms-python.python",
+    "dbaeumer.vscode-eslint",
+    "vue.volar",
+    "golang.go",
+    "ms-azuretools.vscode-docker",
+    "Continue.continue",
+    "eamodio.gitlens"
+  ]
+}

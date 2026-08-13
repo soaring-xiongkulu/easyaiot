@@ -1,0 +1,132 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "IDEA: 贡献状态",
+      "type": "shell",
+      "command": "bash scripts/idea/contrib-status.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 绑定个人 fork",
+      "type": "shell",
+      "command": "bash scripts/idea/setup-fork.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 配置 Git Token",
+      "type": "shell",
+      "command": "bash scripts/idea/setup-git-auth.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: Copilot 登录说明",
+      "type": "shell",
+      "command": "bash scripts/idea/setup-copilot.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 配置 AI（可选·自备 Key）",
+      "type": "shell",
+      "command": "bash scripts/idea/setup-ai.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 清除 AI 凭据（Continue）",
+      "type": "shell",
+      "command": "bash scripts/idea/clear-ai.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 发布到本机（打开门户说明）",
+      "type": "shell",
+      "command": "bash scripts/idea/publish-local.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 推送并提示 PR",
+      "type": "shell",
+      "command": "bash scripts/idea/push-pr.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 清除 Git 凭据",
+      "type": "shell",
+      "command": "bash scripts/idea/clear-git-auth.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDEA: 显示模块目录",
+      "type": "shell",
+      "command": "ls -la",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "WEB: 安装依赖 (pnpm)",
+      "type": "shell",
+      "command": "pnpm install",
+      "options": {
+        "cwd": "${workspaceFolder}/WEB"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "WEB: 开发模式",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": {
+        "cwd": "${workspaceFolder}/WEB"
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Git: 查看状态",
+      "type": "shell",
+      "command": "git status -sb && git remote -v",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Git: fetch upstream",
+      "type": "shell",
+      "command": "git fetch upstream || git fetch origin",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
