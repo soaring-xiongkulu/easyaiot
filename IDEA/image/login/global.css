@@ -1,0 +1,125 @@
+:root {
+  color-scheme: light;
+  --idea-text: #0f172a;
+  --idea-muted: #64748b;
+  --idea-line: #e2e8f0;
+  --idea-card: rgba(255, 255, 255, 0.92);
+  --idea-accent: #2563eb;
+  --idea-accent-2: #0891b2;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: #f4f7fb;
+  color: var(--idea-text);
+  margin: 0;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial,
+    sans-serif;
+  overflow: hidden;
+}
+
+body.idea-login {
+  overflow: auto;
+}
+
+input,
+button {
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1rem;
+}
+
+.-button {
+  background: linear-gradient(135deg, var(--idea-accent), var(--idea-accent-2));
+  border-radius: 10px;
+  border: none;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  padding: 15px 22px;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.-button:hover {
+  filter: brightness(1.05);
+}
+
+.-button:active {
+  transform: translateY(1px);
+}
+
+.center-container {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+  padding: 28px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.card-box {
+  background: var(--idea-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 18px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 18px 50px rgba(15, 23, 42, 0.08);
+  max-width: 520px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.card-box > .header {
+  border-bottom: 1px solid var(--idea-line);
+  color: var(--idea-text);
+  padding: 32px 32px 24px;
+  text-align: center;
+}
+
+.card-box > .header > .main {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 650;
+  line-height: 1.5;
+  color: #0f172a;
+}
+
+.card-box > .header > .sub {
+  color: var(--idea-muted);
+  margin-top: 12px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.card-box > .content {
+  padding: 28px 32px 32px;
+}
+
+.card-box > .content > .none {
+  margin: 2px 0;
+}
+
+.card-box + .card-box {
+  margin-top: 26px;
+}
+
+canvas {
+  top: 0;
+  left: 0;
+}

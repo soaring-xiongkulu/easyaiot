@@ -1,0 +1,119 @@
+body.idea-login {
+  min-height: 568px;
+  min-width: 320px;
+  overflow: auto;
+}
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #eef3f9;
+  background-image: url("../media/login-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.bg-layer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(241, 245, 249, 0.42) 45%,
+    rgba(226, 232, 240, 0.5) 100%
+  );
+}
+
+.bg-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(37, 99, 235, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 15%, transparent 78%);
+}
+
+.brand-logo {
+  display: block;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  margin: 0 auto 16px;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
+}
+
+.login-form > .field {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .login-form > .field {
+    flex-direction: column;
+  }
+}
+
+.login-form > .error {
+  color: #e11d48;
+  margin-top: 16px;
+}
+
+.login-form > .field > .password {
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #dbe3ee;
+  box-sizing: border-box;
+  flex: 1;
+  padding: 15px 16px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.login-form > .field > .password::placeholder {
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+}
+
+.login-form > .field > .password:focus {
+  background: #fff;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.login-form > .user {
+  display: none;
+}
+
+.login-form > .field > .submit {
+  margin-left: 0;
+  min-width: 112px;
+}
+
+@media (max-width: 600px) {
+  .login-form > .field > .submit {
+    width: 100%;
+  }
+}
+
+input {
+  -webkit-appearance: none;
+}
