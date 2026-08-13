@@ -56,6 +56,7 @@ if [ -f "${PROJECT_ROOT}/.scripts/node/ensure_platform_agent_invoke.sh" ]; then
 fi
 
 MODULES=(
+  "IDEA"
   ".scripts/docker"
   "DEVICE"
   "AI"
@@ -96,6 +97,7 @@ apply_deploy_scope
 # bash 3.2 兼容：用函数代替关联数组
 module_name() {
   case "$1" in
+    "IDEA") echo "IDEA在线IDE" ;;
     ".scripts/docker") echo "基础服务" ;;
     "DEVICE") echo "Device服务" ;;
     "AI") echo "AI服务" ;;
@@ -112,6 +114,7 @@ module_name() {
 
 module_port() {
   case "$1" in
+    "IDEA") echo "9300" ;;
     ".scripts/docker") echo "8848" ;;
     "DEVICE") echo "48080" ;;
     "AI") echo "5000" ;;
@@ -128,6 +131,7 @@ module_port() {
 
 module_health() {
   case "$1" in
+    "IDEA") echo "/health" ;;
     ".scripts/docker") echo "/nacos/actuator/health" ;;
     "DEVICE") echo "/actuator/health" ;;
     "AI") echo "/actuator/health" ;;
@@ -1144,6 +1148,10 @@ execute_module_command() {
         print_info "未检测到 ${module} 目录，跳过"
         return 0
         ;;
+      IDEA)
+        print_error "未检测到 IDEA 目录，无法部署在线 IDE"
+        return 1
+        ;;
     esac
     print_warning "模块 $module 不存在，跳过"
     return 1
@@ -1370,6 +1378,12 @@ desktop_install() {
         wait_for_device_gateway || print_warning "iot-gateway 未就绪，WEB /dev-api 可能暂时 503"
       fi
     else
+      if [ "$module" = "IDEA" ]; then
+        print_error "IDEA 部署失败，中止后续模块安装"
+        echo ""
+        print_info "完整日志文件: ${LOG_FILE}"
+        return 1
+      fi
       failed_modules+=("$(module_name "$module")")
     fi
     _n=$((_n + 1))
@@ -1408,6 +1422,16 @@ desktop_start() {
   sync_deploy_profile_to_modules
   prepare_desktop_environment
 
+  # IDEA 优先启动（全形态；失败则中止后续模块）
+  if module_enabled_for_deploy_profile "IDEA"; then
+    print_section "启动 IDEA 在线 IDE"
+    if ! execute_module_command "IDEA" "start"; then
+      print_error "IDEA 启动失败，中止后续模块启动"
+      return 1
+    fi
+    echo ""
+  fi
+
   print_section "启动基础服务"
   if ! execute_module_command ".scripts/docker" "start"; then
     print_error "基础服务启动失败"
@@ -1417,11 +1441,16 @@ desktop_start() {
   echo ""
 
   collect_biz_modules
+  local -a start_modules=()
   local module
-  if [ "${PARALLEL_MODULES:-true}" = "true" ] && [ ${#BIZ_MODULES[@]} -gt 0 ]; then
-    print_info "并行启动业务模块: ${BIZ_MODULES[*]}"
+  for module in "${BIZ_MODULES[@]}"; do
+    [ "$module" = "IDEA" ] && continue
+    start_modules+=("$module")
+  done
+  if [ "${PARALLEL_MODULES:-true}" = "true" ] && [ ${#start_modules[@]} -gt 0 ]; then
+    print_info "并行启动业务模块: ${start_modules[*]}"
     local pids=() mods=() mlog rc fail=0 i
-    for module in "${BIZ_MODULES[@]}"; do
+    for module in "${start_modules[@]}"; do
       mlog="${LOG_DIR}/start_$(echo "$module" | tr '/' '_')_$$.log"
       : > "$mlog"
       (
@@ -1448,7 +1477,7 @@ desktop_start() {
     done
     [ "$fail" -eq 0 ] || print_warning "有 ${fail} 个模块启动失败"
   else
-    for module in "${BIZ_MODULES[@]}"; do
+    for module in "${start_modules[@]}"; do
       execute_module_command "$module" "start" || print_warning "$(module_name "$module") 启动失败"
       echo ""
     done
@@ -1515,12 +1544,22 @@ desktop_update() {
     return 1
   fi
 
+  # IDEA 优先更新（全形态；失败则中止后续模块）
+  if module_enabled_for_deploy_profile "IDEA"; then
+    print_section "更新 IDEA 在线 IDE"
+    if ! execute_module_command "IDEA" "update"; then
+      print_error "IDEA 更新失败，中止后续模块更新"
+      return 1
+    fi
+  fi
+
   execute_module_command ".scripts/docker" "update" || print_warning "基础服务更新失败"
   wait_for_base_services
 
   collect_biz_modules
   local module
   for module in "${BIZ_MODULES[@]}"; do
+    [ "$module" = "IDEA" ] && continue
     print_info "更新 $(module_name "$module")（跳过本地构建）"
     execute_module_command "$module" "update" || print_warning "$(module_name "$module") 更新失败"
   done
@@ -1582,6 +1621,7 @@ print_access_urls() {
   ensure_deploy_profile
   echo ""
   echo -e "${GREEN}访问地址：${NC}"
+  echo -e "  IDEA 在线 IDE:          http://localhost:9300"
   echo -e "  Web 控制台:              http://localhost:8888"
   echo -e "  API 网关:                http://localhost:48080"
   echo -e "  Nacos:                   http://localhost:8848/nacos"
