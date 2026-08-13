@@ -42,7 +42,7 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
+平台由 <strong>WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -383,6 +383,18 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>持续在线</strong>：登录状态自动保持，少被打断、少重复登录，让「云边端智能管控」真正触达手机与小程序</li>
 </ul>
 
+#### 💻 IDEA 在线 IDE
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>浏览器即开发</strong>：基于 code-server 提供 VS Code 风格在线 IDE，默认 clone 完整 EasyAIoT 仓库，贡献者不必先配本机环境即可改代码、跑模块级验证、提交 PR</li>
+  <li><strong>独立门户与多人在线</strong>：操作台独立运行于 <code>:9300</code>，与 WEB 管控台解耦；一人一 Docker 工作区，端口池 13338–13437 支持多人同时在线；管控台悬浮球一键跳转门户</li>
+  <li><strong>六语言工具链对齐本机</strong>：预装 <strong>JDK 21</strong>、Node 22、Python、Go、CMake/C++、.NET 8，覆盖 WEB / DEVICE / AI / NODE / RUNTIME / EDGE 的阅读、轻改与模块级验证</li>
+  <li><strong>AI 共创</strong>：预装 GitHub Copilot（用自己的 GitHub 账号登录，平台不代持密钥）；无 Copilot 订阅时可自备 OpenAI 兼容 API Key，经 Continue 辅助改代码</li>
+  <li><strong>本机发布</strong>：按工作区改动路径建议待发模块，一键执行构建并替换本机正在跑的同名容器，刷新现网即可验收，缩短「改完—看到效果」的闭环</li>
+  <li><strong>OAuth 与闲置回收</strong>：支持 Gitee / GitHub 登录（可强制），一人一区绑定账号；闲置默认 8 小时自动停机，心跳与打开 IDE 会刷新活跃时间，避免算力空转</li>
+  <li><strong>贡献闭环</strong>：绑定个人 fork → 开分支改代码 → 推送到 fork → 向官方仓提交 PR（详见 <a href="IDEA/README.md">IDEA/README.md</a>）</li>
+</ul>
+
 ### 📦 内置 AI 模型
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -495,7 +507,7 @@ EasyAIoT积极响应本土化战略，全面支持本土化硬件和操作系统
 ## 🧩 项目结构
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、SITE 等核心模块组成，并配套 COMPILE 多平台打包交付能力：
+EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、SITE 等核心模块组成，并配套 COMPILE 多平台打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -685,6 +697,19 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
 </td>
 </tr>
 <tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>IDEA模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>社区贡献在线 IDE</strong>：基于 code-server，浏览器即可打开 VS Code 风格工作区，默认 clone 完整 EasyAIoT 仓库，改代码不必先配本机环境</li>
+    <li><strong>独立门户 :9300</strong>：操作台与 WEB 解耦，一人一 Docker 工作区；端口池 13338–13437 支持多人同时在线；管控台悬浮球一键跳转</li>
+    <li><strong>六语言工具链对齐</strong>：预装 JDK 21、Node 22、Python、Go、CMake/C++、.NET 8，覆盖 WEB / DEVICE / AI / NODE / RUNTIME / EDGE 模块级改动与验证</li>
+    <li><strong>AI 共创</strong>：预装 GitHub Copilot（账号登录、平台不代持密钥）；无订阅时可自备 OpenAI 兼容 API，经 Continue 辅助改代码</li>
+    <li><strong>本机发布与闲置回收</strong>：按改动模块一键构建并替换本机容器，刷新即可验收；支持 Gitee/GitHub OAuth，闲置自动停机回收算力</li>
+    <li><strong>贡献闭环</strong>：改代码 → 推送到个人 fork → 向官方提交 PR（详见 <a href="IDEA/README.md">IDEA/README.md</a>）</li>
+  </ul>
+</td>
+</tr>
+<tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>COMPILE打包</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
@@ -828,6 +853,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 | | | |
 |:---:|:---:|:---:|
+| ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
 | ![多集群同步](.image/banner/banner1200.png) | ![NFS集群拓扑](.image/banner/banner1198.png) | ![NFS集群管理](.image/banner/banner1197.png) |
 | ![节点管理](.image/banner/banner1199.png) | ![NFS文件目录](.image/banner/banner1201.png) | ![NFS目录浏览](.image/banner/banner1202.png) |
 | ![Qwen](.image/banner/banner1093.jpg) | ![视觉模型](.image/banner/banner1094.jpg) | ![列表](.image/banner/banner1099.png) |
