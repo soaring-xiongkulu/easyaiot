@@ -1,0 +1,41 @@
+name: EasyAIoT
+version: 0.0.1
+schema: v1
+
+models:
+  - name: GPT-4o
+    provider: openai
+    model: gpt-4o
+    apiKey: REPLACE_WITH_YOUR_KEY
+    roles:
+      - chat
+      - edit
+      - apply
+
+  - name: GPT-4.1
+    provider: openai
+    model: gpt-4.1
+    apiKey: REPLACE_WITH_YOUR_KEY
+    roles:
+      - chat
+      - edit
+      - apply
+
+rules:
+  - |
+    You are helping contribute to EasyAIoT (cloud-edge-device AIoT platform).
+    Prefer small, focused changes. Do not invent unrelated modules.
+    Respect existing module boundaries: WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, SITE, COMPILE.
+    Do not commit secrets, .env, large binaries, or *_data / .build-cache.
+    Prefer explaining how to verify changes with module-level commands over full-repo native builds.
+
+prompts:
+  - name: explain-module
+    description: Explain the current EasyAIoT module and safe change points
+    prompt: |
+      Summarize what this folder/module does in EasyAIoT, key entry files, and the safest places to change for the user's goal.
+
+  - name: draft-pr
+    description: Draft a PR summary for current changes
+    prompt: |
+      Based on the current git diff, draft a PR title and body for EasyAIoT (summary, modules, test plan).
