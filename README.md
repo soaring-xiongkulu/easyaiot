@@ -42,7 +42,7 @@ Many smart IoT projects hit the same wall at deployment: video systems, device p
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery (including Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, packages per el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>RTC consumer-camera P2P bridging</strong> (based on go2rtc, covering <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, and Roborock</strong>—store Tapo fill-in, Tuya white-label onboarding, overseas Ring/Nest doorbells, Xiaomi reuse, Wyze low-cost scale-out, DoorBird intercom, GoPro mobile views, Roborock vacuum cameras—with one-click Web onboarding into unified video and AI judgment), <strong>DJI dock and drone aerial view access</strong>, real-time / snapshot / patrol algorithm tasks, <strong>RUNTIME native high-speed execution layer</strong> (compiled binary owns pull/decode, YOLO inference, boxed push, and multi-channel raw forward—lower CPU/memory and steadier latency than interpreted paths; one binary covers realtime / snap / patrol / forward), YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, with the <strong>EDGE C# edge collection runtime</strong> handling Modbus RTU/TCP, OPC UA, and other on-site industrial protocols via pluggable collectors, local scheduling, and MQTT cloud-edge integration, plus <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, three hardware tiers, and installer entry—so visitors understand first, then download and deploy. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
+The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery (including Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, packages per el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>RTC consumer-camera P2P bridging</strong> (based on go2rtc, covering <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, and Roborock</strong>—store Tapo fill-in, Tuya white-label onboarding, overseas Ring/Nest doorbells, Xiaomi reuse, Wyze low-cost scale-out, DoorBird intercom, GoPro mobile views, Roborock vacuum cameras—with one-click Web onboarding into unified video and AI judgment), <strong>DJI dock and drone aerial view access</strong>, real-time / snapshot / patrol algorithm tasks, <strong>RUNTIME native high-speed execution layer</strong> (compiled binary owns pull/decode, YOLO inference, boxed push, and multi-channel raw forward—lower CPU/memory and steadier latency than interpreted paths; one binary covers realtime / snap / patrol / forward), YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, with the <strong>EDGE C# edge collection runtime</strong> handling Modbus RTU/TCP, OPC UA, and other on-site industrial protocols via pluggable collectors, local scheduling, and MQTT cloud-edge integration, plus <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, three hardware tiers, and installer entry—so visitors understand first, then download and deploy; and <strong>IDEA community cloud IDE</strong> so contributors can open the full repo in a browser, co-create with GitHub Copilot, publish local changes, and submit PRs—turning open-source collaboration from “set up the environment first” into “open and edit”. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -338,6 +338,18 @@ Many projects reduce IoT to a "device ledger + message relay"—devices connect 
   <li><strong>Stay Connected</strong>: Sessions stay active with less re-login—bringing cloud-edge-device intelligent control to phones and mini programs</li>
 </ul>
 
+#### 💻 IDEA Cloud IDE
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Develop in the browser</strong>: VS Code–style online IDE on code-server; clones the full EasyAIoT repo by default—contributors can edit, run module-level checks, and open PRs without setting up a local toolchain first</li>
+  <li><strong>Standalone portal and multi-user</strong>: Ops console on <code>:9300</code>, decoupled from the WEB admin; one Docker workspace per person; port pool 13338–13437 for concurrent users; console floating ball jumps to the portal</li>
+  <li><strong>Six-language toolchain aligned with the host</strong>: Preinstalled <strong>JDK 21</strong>, Node 22, Python, Go, CMake/C++, and .NET 8—covers reading, light edits, and module-level checks for WEB / DEVICE / AI / NODE / RUNTIME / EDGE</li>
+  <li><strong>AI co-creation</strong>: GitHub Copilot preinstalled (sign in with your own GitHub account; the platform never holds keys); without a Copilot subscription, bring your own OpenAI-compatible API key via Continue</li>
+  <li><strong>Local publish</strong>: Suggests modules from workspace diffs, one-click build and replace running containers on the host—refresh to verify, shortening the edit-to-see loop</li>
+  <li><strong>OAuth and idle reclaim</strong>: Gitee / GitHub login (can be required), one account per workspace; idle auto-stop after 8 hours by default; heartbeat and opening the IDE refresh activity so compute is not left spinning</li>
+  <li><strong>Contribution loop</strong>: Bind your fork → branch → edit → push to the fork → open a PR to upstream (see <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+</ul>
+
 ### 📦 Built-in AI Models
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -450,7 +462,7 @@ EasyAIoT actively responds to localization strategies, providing comprehensive s
 ## 🧩 Project Structure
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, and SITE, plus COMPILE multi-platform packaging and delivery:
+EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, and SITE, plus COMPILE multi-platform packaging and delivery:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -640,6 +652,19 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, NODE, VIDEO, R
 </td>
 </tr>
 <tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>IDEA Module</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>Community cloud IDE</strong>: VS Code–style workspace in the browser on code-server; clones the full EasyAIoT repo by default—no local environment setup first</li>
+    <li><strong>Standalone portal :9300</strong>: Ops console decoupled from WEB; one Docker workspace per person; port pool 13338–13437 for concurrent users; console floating ball one-click jump</li>
+    <li><strong>Six-language toolchain</strong>: JDK 21, Node 22, Python, Go, CMake/C++, .NET 8—module-level edits and checks for WEB / DEVICE / AI / NODE / RUNTIME / EDGE</li>
+    <li><strong>AI co-creation</strong>: GitHub Copilot preinstalled (account login, platform never holds keys); optional OpenAI-compatible API via Continue</li>
+    <li><strong>Local publish and idle reclaim</strong>: One-click build and replace host containers from changed modules; Gitee/GitHub OAuth; idle auto-stop reclaims compute</li>
+    <li><strong>Contribution loop</strong>: Edit → push to your fork → open a PR (see <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+  </ul>
+</td>
+</tr>
+<tr>
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>COMPILE Packaging</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
@@ -786,6 +811,7 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 
 | | | |
 |:---:|:---:|:---:|
+| ![IDEA Login](.image/banner/banner1203.png) | ![IDEA Workspace](.image/banner/banner1204.png) | ![IDEA Development](.image/banner/banner1205.png) |
 | ![Multi-cluster Sync](.image/banner/banner1200.png) | ![NFS Cluster Topology](.image/banner/banner1198.png) | ![NFS Cluster Management](.image/banner/banner1197.png) |
 | ![Node Management](.image/banner/banner1199.png) | ![NFS File Directory](.image/banner/banner1201.png) | ![NFS Directory Browser](.image/banner/banner1202.png) |
 | ![Qwen](.image/banner/banner1093.jpg) | ![Vision Model](.image/banner/banner1094.jpg) | ![List](.image/banner/banner1099.png) |
