@@ -1,0 +1,63 @@
+# EasyAIoT IDEA
+# 门户编排 code-server 工作区；贡献者镜像需先 build-workspace
+# 注意：IDEA_DATA_DIR_HOST 必须是宿主机绝对路径（install.sh start 会自动写入）
+
+services:
+  idea-portal:
+    image: ${IDEA_PORTAL_IMAGE:-easyaiot/idea-portal:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: easyaiot-idea-portal
+    restart: unless-stopped
+    ports:
+      - "${IDEA_LISTEN_PORT:-9300}:9300"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${IDEA_DATA_DIR_HOST}:/data/idea-workspaces
+      - ${IDEA_GIT_REFERENCE_DIR:-./.data/git-reference}:/opt/git-reference:ro
+      # 同路径挂载：发布时 docker build 上下文必须是宿主机路径
+      - ${IDEA_DATA_DIR_HOST}:${IDEA_DATA_DIR_HOST}
+      - ${IDEA_HOST_PROJECT_ROOT}:${IDEA_HOST_PROJECT_ROOT}
+    environment:
+      IDEA_LISTEN_HOST: 0.0.0.0
+      IDEA_LISTEN_PORT: "9300"
+      IDEA_TOKEN: ${IDEA_TOKEN:-}
+      IDEA_WORKSPACE_IMAGE: ${IDEA_WORKSPACE_IMAGE:-easyaiot/idea-workspace:latest}
+      IDEA_GIT_URL: ${IDEA_GIT_URL:-https://gitee.com/volara/easyaiot.git}
+      IDEA_GIT_DEPTH: ${IDEA_GIT_DEPTH:-}
+      IDEA_GIT_REFERENCE: ${IDEA_GIT_REFERENCE:-}
+      IDEA_GIT_REFERENCE_HOST: ${IDEA_GIT_REFERENCE_HOST:-}
+      IDEA_PUBLIC_HOST: ${IDEA_PUBLIC_HOST:-}
+      IDEA_PUBLIC_SCHEME: ${IDEA_PUBLIC_SCHEME:-http}
+      IDEA_PORT_START: ${IDEA_PORT_START:-13338}
+      IDEA_PORT_END: ${IDEA_PORT_END:-13437}
+      IDEA_CPUS: ${IDEA_CPUS:-2}
+      IDEA_MEMORY: ${IDEA_MEMORY:-4g}
+      IDEA_MAX_WORKSPACES_PER_USER: ${IDEA_MAX_WORKSPACES_PER_USER:-1}
+      IDEA_MAX_WORKSPACES: ${IDEA_MAX_WORKSPACES:-50}
+      IDEA_IDLE_TIMEOUT_HOURS: ${IDEA_IDLE_TIMEOUT_HOURS:-8}
+      IDEA_IDLE_CHECK_SECONDS: ${IDEA_IDLE_CHECK_SECONDS:-600}
+      IDEA_OAUTH_REDIRECT_BASE: ${IDEA_OAUTH_REDIRECT_BASE:-}
+      IDEA_WEB_CALLBACK: ${IDEA_WEB_CALLBACK:-}
+      IDEA_SESSION_SECRET: ${IDEA_SESSION_SECRET:-}
+      IDEA_OAUTH_REQUIRED: ${IDEA_OAUTH_REQUIRED:-0}
+      IDEA_GITEE_CLIENT_ID: ${IDEA_GITEE_CLIENT_ID:-}
+      IDEA_GITEE_CLIENT_SECRET: ${IDEA_GITEE_CLIENT_SECRET:-}
+      IDEA_GITEE_SCOPE: ${IDEA_GITEE_SCOPE:-user_info}
+      IDEA_GITHUB_CLIENT_ID: ${IDEA_GITHUB_CLIENT_ID:-}
+      IDEA_GITHUB_CLIENT_SECRET: ${IDEA_GITHUB_CLIENT_SECRET:-}
+      IDEA_GITHUB_SCOPE: ${IDEA_GITHUB_SCOPE:-read:user user:email}
+      # 容器内工作目录；创建子容器时使用 IDEA_DATA_DIR_HOST
+      IDEA_DATA_DIR: /data/idea-workspaces
+      IDEA_DATA_DIR_HOST: ${IDEA_DATA_DIR_HOST}
+      IDEA_HOST_PROJECT_ROOT: ${IDEA_HOST_PROJECT_ROOT}
+      IDEA_ALLOW_LOCAL_PUBLISH: ${IDEA_ALLOW_LOCAL_PUBLISH:-1}
+      IDEA_LIVE_URL: ${IDEA_LIVE_URL:-}
+      IDEA_PUBLISH_TIMEOUT_SECONDS: ${IDEA_PUBLISH_TIMEOUT_SECONDS:-3600}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9300/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
