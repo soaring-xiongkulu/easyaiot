@@ -1,0 +1,17 @@
+# 一行一个扩展 ID；构建时预装（失败忽略）
+GitHub.copilot
+GitHub.copilot-chat
+ms-python.python
+ms-python.vscode-pylance
+dbaeumer.vscode-eslint
+esbenp.prettier-vscode
+vue.volar
+golang.go
+vscjava.vscode-java-pack
+ms-vscode.cpptools
+ms-dotnettools.csharp
+ms-azuretools.vscode-docker
+eamodio.gitlens
+Continue.continue
+saoudrizwan.claude-dev
+llvm-vs-code-extensions.vscode-clangd

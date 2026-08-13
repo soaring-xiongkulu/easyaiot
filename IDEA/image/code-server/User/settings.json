@@ -1,0 +1,45 @@
+{
+  "workbench.startupEditor": "readme",
+  "window.title": "EasyAIoT${separator}${activeEditorShort}",
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "editor.formatOnSave": false,
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/node_modules/**": true,
+    "**/.build-cache/**": true,
+    "**/.scripts/docker/**_data/**": true,
+    "**/dist/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.build-cache": true,
+    "**/.scripts/docker/**_data": true,
+    "**/dist": true,
+    "**/*.min.js": true
+  },
+  "files.exclude": {
+    "**/.scripts/docker/db_data": true,
+    "**/.scripts/docker/redis_data": true,
+    "**/.scripts/docker/milvus_data": true,
+    "**/.scripts/docker/minio_data": true
+  },
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "scminput": false
+  },
+  "extensions.verifySignature": false,
+  "continue.telemetryEnabled": false,
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "/usr/lib/jvm/java-21-openjdk-amd64",
+      "default": true
+    }
+  ],
+  "java.jdt.ls.java.home": "/usr/lib/jvm/java-21-openjdk-amd64",
+  "java.configuration.updateBuildConfiguration": "automatic"
+}
