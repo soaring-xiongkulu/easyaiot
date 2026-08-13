@@ -86,8 +86,9 @@ echo "命令: $*" >> "$LOG_FILE"
 echo "=========================================" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
 
-# 模块列表（按依赖顺序）
+# 模块列表（按依赖顺序：IDEA 优先；失败则中止后续模块）
 MODULES=(
+    "IDEA"             # 社区贡献在线 IDE（全形态优先部署）
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
     "AI"               # AI服务
@@ -102,6 +103,7 @@ MODULES=(
 
 # 模块名称映射
 declare -A MODULE_NAMES
+MODULE_NAMES["IDEA"]="IDEA在线IDE"
 MODULE_NAMES[".scripts/docker"]="基础服务"
 MODULE_NAMES["DEVICE"]="Device服务"
 MODULE_NAMES["AI"]="AI服务"
@@ -115,6 +117,7 @@ MODULE_NAMES["PANEL"]="运维控制台"
 
 # 模块端口映射
 declare -A MODULE_PORTS
+MODULE_PORTS["IDEA"]="9300"
 MODULE_PORTS[".scripts/docker"]="8848"  # Nacos端口
 MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
 MODULE_PORTS["AI"]="5000"
@@ -128,6 +131,7 @@ MODULE_PORTS["PANEL"]="9200"
 
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
+MODULE_HEALTH_ENDPOINTS["IDEA"]="/health"
 MODULE_HEALTH_ENDPOINTS[".scripts/docker"]="/nacos/actuator/health"
 MODULE_HEALTH_ENDPOINTS["DEVICE"]="/actuator/health"  # Gateway健康检查
 MODULE_HEALTH_ENDPOINTS["AI"]="/actuator/health"
@@ -754,6 +758,10 @@ execute_module_command() {
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（runtime 无 PANEL 目录）"
             return 0
         fi
+        if [ "$module" = "IDEA" ]; then
+            print_error "未检测到 IDEA 目录，无法部署在线 IDE"
+            return 1
+        fi
         print_warning "模块 $module 不存在，跳过"
         return 1
     fi
@@ -767,6 +775,10 @@ execute_module_command() {
         if [ "$module" = "PANEL" ]; then
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（无 install_linux.sh）"
             return 0
+        fi
+        if [ "$module" = "IDEA" ]; then
+            print_error "未检测到 IDEA/install_linux.sh，无法部署在线 IDE"
+            return 1
         fi
         print_warning "模块 $module 没有 $install_file 文件，跳过"
         return 1
@@ -940,6 +952,12 @@ install_linux() {
             fi
         else
             print_error "${MODULE_NAMES[$module]} 安装失败"
+            if [ "$module" = "IDEA" ]; then
+                print_error "IDEA 部署失败，中止后续模块安装"
+                echo ""
+                print_info "完整日志文件: ${LOG_FILE}"
+                exit 1
+            fi
             failed_modules+=("${MODULE_NAMES[$module]}")
         fi
         _n=$((_n + 1))
@@ -990,6 +1008,11 @@ install_linux() {
                     print_info "  - Web前端服务：检查 pnpm install/build 和 nginx 镜像构建"
                     print_info "    docker images | grep web-service"
                     print_info "    cat WEB/docker-build-logs/pnpm-build.log | tail -50"
+                    ;;
+                "IDEA在线IDE")
+                    print_info "  - IDEA：检查 idea-workspace / idea-portal 镜像构建"
+                    print_info "    docker images | grep idea"
+                    print_info "    bash IDEA/install.sh status"
                     ;;
             esac
         done
@@ -1101,6 +1124,16 @@ start_all() {
     configure_docker_mirror
     prepare_runtime_environment
     create_network
+
+    # IDEA 优先启动（全形态；失败则中止后续模块）
+    if module_enabled_for_deploy_profile "IDEA"; then
+        print_section "启动 IDEA 在线 IDE"
+        if ! execute_module_command "IDEA" "start"; then
+            print_error "IDEA 启动失败，中止后续模块启动"
+            return 1
+        fi
+        echo ""
+    fi
     
     # 先启动基础服务（.scripts/docker）
     print_section "启动基础服务"
@@ -1117,11 +1150,19 @@ start_all() {
     # 再启动其他服务。DEVICE/AI/VIDEO/WEB 启动期互不依赖（各自只连基础服务），
     # 默认并行启动（仅 compose up，无构建负载）；PARALLEL_MODULES=false 可回退串行。
     collect_biz_modules
+    local -a start_modules=()
+    local module
+    for module in "${BIZ_MODULES[@]}"; do
+        [ "$module" = "IDEA" ] && continue
+        start_modules+=("$module")
+    done
     if [ "${PARALLEL_MODULES:-true}" = "true" ]; then
-        print_info "并行启动业务模块: ${BIZ_MODULES[*]}（PARALLEL_MODULES=false 可回退串行）"
-        run_modules_parallel "start" "${BIZ_MODULES[@]}" || print_warning "部分模块启动失败，详见上方日志"
+        if [ ${#start_modules[@]} -gt 0 ]; then
+            print_info "并行启动业务模块: ${start_modules[*]}（PARALLEL_MODULES=false 可回退串行）"
+            run_modules_parallel "start" "${start_modules[@]}" || print_warning "部分模块启动失败，详见上方日志"
+        fi
     else
-        for module in "${BIZ_MODULES[@]}"; do
+        for module in "${start_modules[@]}"; do
             execute_module_command "$module" "start" || print_warning "${MODULE_NAMES[$module]} 启动失败，继续其余模块"
             echo ""
         done
@@ -1161,6 +1202,7 @@ stop_runtime_modules() {
         module="${stop_modules[$idx]}"
         # build-runtime 清理业务镜像时保留运维控制台
         [ "$module" = "PANEL" ] && continue
+        [ "$module" = "IDEA" ] && continue
         execute_module_command "$module" "stop" || print_warning "${MODULE_NAMES[$module]} 停止失败，继续其余模块"
         echo ""
     done
@@ -1191,6 +1233,10 @@ restart_all() {
                 wait_for_base_services
             fi
         else
+            if [ "$module" = "IDEA" ]; then
+                print_error "IDEA 重启失败，中止后续模块重启"
+                return 1
+            fi
             print_warning "${MODULE_NAMES[$module]} 重启失败，继续其余模块"
         fi
         echo ""
@@ -1362,6 +1408,17 @@ update_all() {
         print_info "将进行本地重建更新（各模块 docker build，耗时较长）"
     fi
     
+    # IDEA 优先更新（全形态；失败则中止后续模块）
+    collect_biz_modules
+    if module_enabled_for_deploy_profile "IDEA"; then
+        print_section "更新 IDEA 在线 IDE"
+        if ! execute_module_command "IDEA" "update"; then
+            print_error "IDEA 更新失败，中止后续模块更新"
+            return 1
+        fi
+        echo ""
+    fi
+
     # 基础服务先更新并等就绪，业务模块随后
     if execute_module_command ".scripts/docker" "update"; then
         wait_for_base_services
@@ -1372,12 +1429,19 @@ update_all() {
 
     # 业务模块更新：update 可能包含重建镜像（构建内存峰值高），默认串行；
     # 机器内存充裕时可 PARALLEL_MODULES=true 并行提速
-    collect_biz_modules
+    local -a update_modules=()
+    local module
+    for module in "${BIZ_MODULES[@]}"; do
+        [ "$module" = "IDEA" ] && continue
+        update_modules+=("$module")
+    done
     if [ "${PARALLEL_MODULES:-false}" = "true" ]; then
-        print_info "并行更新业务模块: ${BIZ_MODULES[*]}"
-        run_modules_parallel "update" "${BIZ_MODULES[@]}" || print_warning "部分模块更新失败，详见上方日志"
+        if [ ${#update_modules[@]} -gt 0 ]; then
+            print_info "并行更新业务模块: ${update_modules[*]}"
+            run_modules_parallel "update" "${update_modules[@]}" || print_warning "部分模块更新失败，详见上方日志"
+        fi
     else
-        for module in "${BIZ_MODULES[@]}"; do
+        for module in "${update_modules[@]}"; do
             execute_module_command "$module" "update" || print_warning "${MODULE_NAMES[$module]} 更新失败，继续其余模块"
             echo ""
         done
@@ -1414,6 +1478,7 @@ verify_all() {
         print_success "所有服务运行正常！"
         echo ""
         echo -e "${GREEN}服务访问地址:${NC}"
+        echo -e "  IDEA 在线 IDE:         http://localhost:9300"
         echo -e "  基础服务 (Nacos):     http://localhost:8848/nacos"
         echo -e "  基础服务 (MinIO):     http://localhost:9000 (API), http://localhost:9001 (Console)"
         echo -e "  基础服务 (Milvus):    http://localhost:9091 (Health), localhost:19530 (gRPC)"
@@ -1534,7 +1599,7 @@ show_help() {
     echo "  logs            - 查看所有服务日志"
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
-    echo "  build-runtime [模块] - 构建/推送运行时镜像到远程仓库（可选 DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
+    echo "  build-runtime [模块] - 构建/推送运行时镜像到远程仓库（可选 IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
@@ -1571,7 +1636,7 @@ show_help() {
     echo "  FORCE_NETWORK_RECREATE=true  - 启动时强制重建 easyaiot-network（宿主机 IP 变更后使用）"
     echo "  HOST_IP=<ip>                 - 跳过自动探测，强制指定宿主机 IP"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
     echo ""
 }
