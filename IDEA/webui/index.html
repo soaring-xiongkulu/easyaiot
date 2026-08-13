@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EasyAIoT IDEA</title>
+  <style>
+    :root {
+      --bar-h: 30px;
+      --icon: 15px;
+      --hit: 26px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #eef1f4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    #app { position: relative; width: 100%; height: 100%; }
+
+    /* 隐藏提示：顶中细灰线，不抢眼 */
+    #glow {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 2px;
+      z-index: 48;
+      border-radius: 0 0 2px 2px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        #c5ccd6 18%,
+        #e8ebf0 50%,
+        #c5ccd6 82%,
+        transparent 100%);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+    body.bar-hidden #glow { opacity: 1; }
+
+    #hotzone {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 260px;
+      height: 14px;
+      z-index: 50;
+    }
+
+    #toolbar {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, calc(-100% - 2px));
+      z-index: 40;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 5px 0 7px;
+      background: linear-gradient(180deg, #fafbfc 0%, #f0f2f5 100%);
+      border: 1px solid #d8dee6;
+      border-top: none;
+      border-radius: 0 0 7px 7px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.85) inset,
+        0 4px 14px rgba(15, 23, 42, 0.1);
+      transition: transform .18s ease;
+    }
+    body.bar-open #toolbar,
+    body.bar-pinned #toolbar {
+      transform: translate(-50%, 0);
+    }
+
+    .led {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin: 0 4px 0 2px;
+      background: #16a34a;
+      flex-shrink: 0;
+    }
+    .led.off { background: #cbd5e1; }
+
+    .ws-chip {
+      position: relative;
+      height: 20px;
+      max-width: 118px;
+      display: flex;
+      align-items: center;
+    }
+    .ws-chip select {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+      height: 20px;
+      padding: 0 14px 0 2px;
+      border: 0;
+      background: transparent;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+    .ws-chip::after {
+      content: "";
+      position: absolute;
+      right: 2px;
+      top: 50%;
+      width: 5px;
+      height: 5px;
+      border-right: 1.3px solid #94a3b8;
+      border-bottom: 1.3px solid #94a3b8;
+      transform: translateY(-70%) rotate(45deg);
+      pointer-events: none;
+    }
+
+    .sep {
+      width: 1px;
+      height: 12px;
+      margin: 0 4px;
+      background: #d5dbe3;
+      flex-shrink: 0;
+    }
+
+    .ibtn {
+      width: var(--hit);
+      height: var(--hit);
+      border: 0;
+      background: transparent;
+      border-radius: 4px;
+      color: #64748b;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .ibtn svg {
+      width: var(--icon);
+      height: var(--icon);
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.55;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .ibtn:hover { background: rgba(15, 23, 42, 0.05); color: #1e293b; }
+    .ibtn:active { background: rgba(15, 23, 42, 0.09); }
+    .ibtn:disabled { opacity: .3; cursor: default; }
+    .ibtn.pinned { color: #334155; background: rgba(15, 23, 42, 0.06); }
+
+    .ibtn[data-tip]::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 7px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #334155;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1;
+      padding: 5px 7px;
+      border-radius: 3px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .1s;
+      z-index: 60;
+    }
+    .ibtn:hover::after { opacity: 1; }
+
+    #auth-box { display: flex; align-items: center; }
+    #auth-box a.ibtn { text-decoration: none; color: inherit; }
+
+    #frame-wrap { position: absolute; inset: 0; background: #f8fafc; }
+    #ide { width: 100%; height: 100%; border: 0; background: #fff; }
+
+    #empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #64748b;
+      text-align: center;
+      z-index: 5;
+    }
+    #empty h2 { margin: 0; color: #0f172a; font-size: 16px; font-weight: 600; }
+    #empty p { margin: 0; max-width: 360px; line-height: 1.6; font-size: 13px; }
+    #empty button {
+      margin-top: 8px;
+      height: 30px;
+      padding: 0 14px;
+      border: 0;
+      background: #334155;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .panel {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(420px, calc(100vw - 24px));
+      max-height: min(70vh, 520px);
+      overflow: auto;
+      z-index: 45;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      display: none;
+      color: #0f172a;
+    }
+    .panel.open { display: block; }
+    .panel h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+    .panel .muted { color: #64748b; font-size: 12px; line-height: 1.55; }
+    .mods { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0; font-size: 12px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .row button, .row .btn, .row input[type=text] {
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      font-size: 12px;
+      padding: 0 10px;
+    }
+    .row button.primary { background: #334155; border-color: #334155; color: #fff; cursor: pointer; }
+    .row button, .row .btn { cursor: pointer; }
+    .row input[type=text] { flex: 1; min-width: 180px; }
+    pre.job {
+      margin: 10px 0 0;
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      max-height: 180px;
+      overflow: auto;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body class="bar-open">
+  <div id="app">
+    <div id="glow"></div>
+    <div id="hotzone" title="显示控制条"></div>
+    <div id="toolbar">
+      <span class="led off" id="status-dot"></span>
+      <div class="ws-chip">
+        <select id="ws-select" title="选择编辑器实例"></select>
+      </div>
+      <span class="sep"></span>
+      <button class="ibtn" id="btn-copy-pwd" data-tip="复制登录密码" aria-label="复制登录密码">
+        <svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="3"/><path d="M11 15h8v-2a2 2 0 0 0-2-2h-1"/><path d="M16 11V8.5"/></svg>
+      </button>
+      <button class="ibtn" id="btn-refresh" data-tip="刷新编辑器" aria-label="刷新编辑器">
+        <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v6h-6"/></svg>
+      </button>
+      <button class="ibtn" id="btn-enter" data-tip="启动编辑器" aria-label="启动编辑器">
+        <svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>
+      </button>
+      <span class="sep"></span>
+      <button class="ibtn" id="btn-publish-panel" data-tip="部署到本机" aria-label="部署到本机">
+        <svg viewBox="0 0 24 24"><path d="M12 16V5"/><path d="M7.5 9.5 12 5l4.5 4.5"/><path d="M5 19h14"/></svg>
+      </button>
+      <button class="ibtn" id="btn-live" data-tip="打开本机网站" aria-label="打开本机网站">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16"/><path d="M12 4c2.2 2.3 3.3 5.1 3.3 8S14.2 17.7 12 20C9.8 17.7 8.7 14.9 8.7 12S9.8 6.3 12 4z"/></svg>
+      </button>
+      <button class="ibtn" id="btn-contrib-panel" data-tip="推送代码 / 提合并请求" aria-label="推送代码">
+        <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="12" cy="18" r="1.8"/><path d="M7.8 7.3C9 10 10.1 13.4 11.1 16M16.2 7.3C15 10 13.9 13.4 12.9 16"/></svg>
+      </button>
+      <span class="sep"></span>
+      <div id="auth-box"></div>
+      <button class="ibtn" id="btn-pin" data-tip="固定工具栏" aria-label="固定工具栏">
+        <svg viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 3.8h6l-.8 6.2h2.6L12 16.4 7.2 10H9.8L9 3.8z"/></svg>
+      </button>
+    </div>
+
+    <div id="frame-wrap">
+      <div id="empty">
+        <h2>编辑器尚未启动</h2>
+        <p>将鼠标移到顶部中间细线，唤出工具栏，再点「启动编辑器」。</p>
+        <button id="btn-enter-empty">启动编辑器</button>
+      </div>
+      <iframe id="ide" title="IDEA workspace" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+    </div>
+
+    <div class="panel" id="panel-publish">
+      <h3>部署到本机</h3>
+      <p class="muted" id="suggest-line">根据本地改动建议模块；确认后会构建镜像并替换本机正在运行的服务。</p>
+      <div class="mods" id="mod-list"></div>
+      <div class="row">
+        <button class="primary" id="btn-publish">部署所选模块</button>
+        <button id="btn-restart">只重启服务</button>
+        <button id="btn-close-pub">关闭</button>
+      </div>
+      <p class="muted" id="job-status"></p>
+      <pre class="job" id="job-log">等待任务…</pre>
+    </div>
+
+    <div class="panel" id="panel-contrib">
+      <h3>推送代码 / 提合并请求</h3>
+      <p class="muted">填写你的个人仓库地址（Gitee / GitHub / GitLab）。登录令牌请在编辑器终端里配置。</p>
+      <div class="row">
+        <input type="text" id="origin-url" placeholder="https://gitee.com/你的账号/easyaiot.git" />
+      </div>
+      <div class="row">
+        <button class="primary" id="btn-save-origin">保存仓库地址</button>
+        <a class="btn" id="btn-pr" href="#" target="_blank" rel="noopener">打开合并请求页</a>
+        <button id="btn-close-contrib">关闭</button>
+      </div>
+      <p class="muted" id="remote-info"></p>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const PIN_KEY = 'easyaiot.idea.shell.pinned';
+    let session = localStorage.getItem('easyaiot.idea.session') || '';
+    let workspaces = [];
+    let current = null;
+    let hideTimer = null;
+    let jobTimer = null;
+    let pinned = localStorage.getItem(PIN_KEY) === '1';
+    let barOpen = true;
+
+    const ICO = {
+      login: '<svg viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l4-4-4-4"/><path d="M14 12H3"/></svg>',
+      logout: '<svg viewBox="0 0 24 24"><path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4"/><path d="M16 16l4-4-4-4"/><path d="M20 12H9"/></svg>',
+    };
+
+    function headers() {
+      const h = { 'Content-Type': 'application/json' };
+      if (session) h['X-IDEA-Session'] = session;
+      return h;
+    }
+    async function api(path, opt = {}) {
+      const resp = await fetch(path, { ...opt, headers: { ...headers(), ...(opt.headers || {}) } });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || json.ok === false) throw new Error(json.error || resp.statusText);
+      return json.data;
+    }
+
+    function applyBar() {
+      document.body.classList.toggle('bar-pinned', pinned);
+      document.body.classList.toggle('bar-open', barOpen || pinned);
+      document.body.classList.toggle('bar-hidden', !pinned && !barOpen);
+      $('btn-pin').classList.toggle('pinned', pinned);
+      $('btn-pin').setAttribute('data-tip', pinned ? '取消固定' : '固定工具栏');
+      localStorage.setItem(PIN_KEY, pinned ? '1' : '0');
+    }
+    function showBar() {
+      barOpen = true;
+      applyBar();
+    }
+    function scheduleHide(delay) {
+      if (pinned) return;
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        if (!pinned) {
+          barOpen = false;
+          applyBar();
+        }
+      }, delay == null ? 480 : delay);
+    }
+
+    function consumeOauth() {
+      const u = new URL(location.href);
+      const token = u.searchParams.get('idea_token');
+      const err = u.searchParams.get('idea_error');
+      if (token) {
+        session = token;
+        localStorage.setItem('easyaiot.idea.session', token);
+      }
+      if (token || err) {
+        u.searchParams.delete('idea_token');
+        u.searchParams.delete('idea_error');
+        history.replaceState({}, '', u.pathname + u.search);
+      }
+      if (err) alert('登录失败：' + err);
+    }
+
+    async function renderAuth() {
+      const box = $('auth-box');
+      const me = await api('/api/auth/me').catch(() => null);
+      const providers = await api('/api/auth/providers').catch(() => ({ providers: [] }));
+      if (me) {
+        box.innerHTML = `<button class="ibtn" id="btn-logout" data-tip="退出 ${me.login || me.workspace_user}">${ICO.logout}</button>`;
+        $('btn-logout').onclick = async () => {
+          await api('/api/auth/logout', { method: 'POST' });
+          localStorage.removeItem('easyaiot.idea.session');
+          session = '';
+          location.reload();
+        };
+      } else {
+        box.innerHTML = (providers.providers || []).filter(p => p.enabled).map(p =>
+          `<a class="ibtn" href="/api/auth/login/${p.id}" data-tip="${p.name} 登录">${ICO.login}</a>`
+        ).join('');
+      }
+    }
+
+    function paintSelect() {
+      const sel = $('ws-select');
+      const curId = current && current.id;
+      sel.innerHTML = workspaces.length
+        ? workspaces.map(w => `<option value="${w.id}">${w.user} · ${w.port}</option>`).join('')
+        : '<option value="">暂无实例</option>';
+      if (curId) sel.value = curId;
+    }
+
+    function loadIde(ws) {
+      current = ws;
+      paintSelect();
+      const empty = $('empty');
+      const ide = $('ide');
+      if (!ws || !ws.url || ws.status !== 'running') {
+        ide.removeAttribute('src');
+        empty.style.display = 'flex';
+        $('status-dot').classList.add('off');
+        return;
+      }
+      empty.style.display = 'none';
+      $('status-dot').classList.remove('off');
+      if (ide.getAttribute('src') !== ws.url) ide.src = ws.url;
+      api(`/api/workspaces/${ws.id}/heartbeat`, { method: 'POST' }).catch(() => {});
+    }
+
+    async function loadWs(preferId) {
+      workspaces = await api('/api/workspaces').catch(() => []);
+      let pick = null;
+      if (preferId) pick = workspaces.find(w => w.id === preferId);
+      if (!pick) pick = workspaces.find(w => w.status === 'running') || workspaces[0] || null;
+      paintSelect();
+      loadIde(pick);
+    }
+
+    async function enterIde() {
+      // 已有运行中工作区：直接载入，不重复创建
+      const running = workspaces.find(w => w.status === 'running');
+      if (running) {
+        loadIde(running);
+        return;
+      }
+      $('btn-enter').disabled = true;
+      try {
+        const ws = await api('/api/workspaces', { method: 'POST', body: '{}' });
+        await loadWs(ws.id);
+        loadIde(ws);
+      } catch (e) {
+        alert(e.message);
+      }
+      $('btn-enter').disabled = false;
+    }
+
+    function selectedMods() {
+      return [...document.querySelectorAll('#mod-list input:checked')].map(i => i.value);
+    }
+
+    async function loadPublish() {
+      const [sug, live] = await Promise.all([
+        api('/api/publish/suggest').catch(() => ({ suggested: [], modules: [] })),
+        api('/api/publish/meta').catch(() => ({ live_url: '' })),
+      ]);
+      if (live && live.live_url) $('btn-live').dataset.url = live.live_url;
+      const suggested = new Set((sug.suggested || []).map(s => s.id));
+      const line = (sug.suggested || []).map(s => `${s.id}(${s.files})`).join('、');
+      $('suggest-line').textContent = line
+        ? '检测到改动模块：' + line
+        : '未检测到模块改动，请手动勾选。部署会替换本机正在运行的对应服务。';
+      const mods = (sug.modules || []).filter(m => m.publishable);
+      $('mod-list').innerHTML = mods.map(m => {
+        const checked = suggested.has(m.id) ? 'checked' : '';
+        const dis = m.host_ready ? '' : 'disabled';
+        return `<label><input type="checkbox" value="${m.id}" ${checked} ${dis}/> ${m.id}</label>`;
+      }).join('');
+    }
+
+    async function startPublish(action) {
+      const modules = selectedMods();
+      if (!modules.length) { alert('请先勾选模块'); return; }
+      const msg = action === 'publish'
+        ? `将用编辑器里的代码部署到本机：${modules.join(', ')}。继续？`
+        : `只重启本机服务：${modules.join(', ')}。继续？`;
+      if (!confirm(msg)) return;
+      try {
+        const job = await api('/api/publish', {
+          method: 'POST',
+          body: JSON.stringify({ modules, action }),
+        });
+        pollJob(job.id);
+      } catch (e) { alert(e.message); }
+    }
+
+    async function pollJob(id) {
+      if (jobTimer) clearInterval(jobTimer);
+      const tick = async () => {
+        try {
+          const job = await api('/api/publish/jobs/' + id);
+          $('job-status').textContent = `${job.id} · ${job.status}`;
+          $('job-log').textContent = job.log || '';
+          $('job-log').scrollTop = $('job-log').scrollHeight;
+          if (job.status === 'success' || job.status === 'error') clearInterval(jobTimer);
+        } catch (e) {
+          $('job-status').textContent = e.message;
+        }
+      };
+      await tick();
+      jobTimer = setInterval(tick, 2000);
+    }
+
+    async function loadRemotes() {
+      const r = await api('/api/git/remotes').catch(() => null);
+      if (!r) { $('remote-info').textContent = '编辑器尚未就绪'; return; }
+      $('origin-url').value = r.origin || '';
+      $('remote-info').textContent = `官方仓库：${r.upstream || '-'} · 当前分支：${r.branch || '-'}`;
+      if (r.pr_url) $('btn-pr').href = r.pr_url;
+    }
+
+    function closePanels() {
+      $('panel-publish').classList.remove('open');
+      $('panel-contrib').classList.remove('open');
+    }
+
+    $('btn-pin').onclick = () => { pinned = !pinned; applyBar(); if (!pinned) scheduleHide(); };
+    $('hotzone').onmouseenter = () => { showBar(); };
+    $('toolbar').onmouseenter = () => { clearTimeout(hideTimer); showBar(); };
+    $('toolbar').onmouseleave = () => scheduleHide();
+    $('btn-enter').onclick = enterIde;
+    $('btn-enter-empty').onclick = enterIde;
+    $('btn-refresh').onclick = () => {
+      if (current && current.url) {
+        $('ide').src = current.url;
+      } else {
+        loadWs(current && current.id);
+      }
+    };
+    $('ws-select').onchange = () => {
+      const w = workspaces.find(x => x.id === $('ws-select').value);
+      loadIde(w || null);
+    };
+    $('btn-copy-pwd').onclick = async () => {
+      try {
+        let pwd = current && current.password;
+        if ((!pwd || !String(pwd).trim()) && current && current.id) {
+          const detail = await api('/api/workspaces/' + current.id);
+          if (detail && detail.password) {
+            pwd = detail.password;
+            current.password = pwd;
+            const idx = workspaces.findIndex(w => w.id === current.id);
+            if (idx >= 0) workspaces[idx].password = pwd;
+          }
+        }
+        if (!pwd) {
+          alert('当前没有登录密码，请先启动编辑器');
+          return;
+        }
+        await navigator.clipboard.writeText(pwd);
+        $('btn-copy-pwd').setAttribute('data-tip', '已复制');
+        setTimeout(() => $('btn-copy-pwd').setAttribute('data-tip', '复制登录密码'), 1200);
+      } catch (e) {
+        if (current && current.password) {
+          prompt('登录密码', current.password);
+        } else {
+          alert(e.message || '复制失败');
+        }
+      }
+    };
+    $('btn-live').onclick = () => {
+      window.open($('btn-live').dataset.url || 'http://127.0.0.1:8888', '_blank', 'noopener');
+    };
+    $('btn-publish-panel').onclick = async () => {
+      closePanels();
+      $('panel-publish').classList.add('open');
+      showBar();
+      await loadPublish();
+    };
+    $('btn-contrib-panel').onclick = async () => {
+      closePanels();
+      $('panel-contrib').classList.add('open');
+      showBar();
+      await loadRemotes();
+    };
+    $('btn-close-pub').onclick = () => $('panel-publish').classList.remove('open');
+    $('btn-close-contrib').onclick = () => $('panel-contrib').classList.remove('open');
+    $('btn-publish').onclick = () => startPublish('publish');
+    $('btn-restart').onclick = () => startPublish('restart');
+    $('btn-save-origin').onclick = async () => {
+      try {
+        const r = await api('/api/git/remotes', {
+          method: 'PUT',
+          body: JSON.stringify({ origin: $('origin-url').value.trim() }),
+        });
+        if (r.pr_url) $('btn-pr').href = r.pr_url;
+        $('remote-info').textContent = '已保存个人仓库：' + r.origin;
+      } catch (e) { alert(e.message); }
+    };
+
+    consumeOauth();
+    applyBar();
+    if (!pinned) scheduleHide(5000);
+    renderAuth()
+      .then(() => loadWs())
+      .then(() => loadPublish().catch(() => {}));
+    setInterval(() => {
+      if (current && current.id) {
+        api(`/api/workspaces/${current.id}/heartbeat`, { method: 'POST' }).catch(() => {});
+      }
+    }, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
