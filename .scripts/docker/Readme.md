@@ -29,6 +29,9 @@ sudo .scripts/docker/install_linux_centos_arm.sh --upgrade-docker-only
 sudo .scripts/docker/install_linux_openeuler.sh --upgrade-docker-only
 ```
 
+一键安装顺序：`IDEA`（:9300，全形态优先；失败则中止）→ 中间件 → DEVICE/AI/RTC/VIDEO/WEB… → PANEL。
+可用 `EASYAIOT_ENABLE_IDEA=0` 临时跳过 IDEA。
+
 单独中间件（CentOS 7.9）：`start_postgresql_centos7.sh` / `start_minio_centos7.sh` / `start_nodered_centos7.sh` / `start_fuxa_centos7.sh`
 
 ## 1 建立基础环境目录
