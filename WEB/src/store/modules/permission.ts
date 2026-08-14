@@ -17,7 +17,7 @@ import {filter} from '@/utils/helper/treeHelper'
 import projectSetting from '@/settings/projectSetting'
 import {PageEnum} from '@/enums/pageEnum'
 import {PermissionModeEnum} from '@/enums/appEnum'
-import {isMenuHiddenByDeployProfile} from '@/utils/deployProfile'
+import {isHarnessEnabled, isMenuHiddenByDeployProfile} from '@/utils/deployProfile'
 
 interface PermissionState {
   // Permission code list
@@ -134,7 +134,11 @@ export const usePermissionStore = defineStore('app-permission', {
       /** 按部署形态裁剪后端菜单/路由（mini、standard 隐藏 IoT 平台未部署模块） */
       const filterRoutesByDeployProfile = (routes: AppRouteRecordRaw[]): AppRouteRecordRaw[] => {
         return routes
-          .filter(route => !isMenuHiddenByDeployProfile(route.name))
+          .filter((route) => {
+            if (route.name === 'HarnessManage' && !isHarnessEnabled())
+              return false
+            return !isMenuHiddenByDeployProfile(route.name)
+          })
           .map((route) => {
             if (!route.children?.length)
               return route
