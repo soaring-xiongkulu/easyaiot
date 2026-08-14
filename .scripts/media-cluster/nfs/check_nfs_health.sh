@@ -57,10 +57,43 @@ else
   fi
 fi
 
+_run_with_timeout() {
+  local secs="$1"
+  shift
+  if ! command -v timeout >/dev/null 2>&1; then
+    "$@"
+    return $?
+  fi
+  if timeout --help 2>&1 | grep -q -- '--foreground'; then
+    timeout --foreground -k 3 "${secs}" "$@"
+  else
+    timeout -k 3 "${secs}" "$@"
+  fi
+}
+
+_is_mountpoint_safe() {
+  local path="$1"
+  if command -v findmnt >/dev/null 2>&1; then
+    [ "$(findmnt -n -o TARGET "$path" 2>/dev/null || true)" = "$path" ]
+    return $?
+  fi
+  awk -v p="$path" '$5 == p { found=1 } END { exit found ? 0 : 1 }' /proc/self/mountinfo 2>/dev/null
+}
+
+_probe_rw() {
+  local probe_file="${MOUNT_ROOT}/.nfs_probe_$$"
+  if _run_with_timeout 8 touch "${probe_file}" 2>/dev/null; then
+    _run_with_timeout 5 rm -f "${probe_file}" 2>/dev/null || true
+    echo MOUNT_RW_OK
+  else
+    echo MOUNT_RW_FAIL
+  fi
+}
+
 EXPECTED_SRC="${NFS_SERVER}:${NFS_EXPORT}"
-if mountpoint -q "${MOUNT_ROOT}" 2>/dev/null; then
+if _is_mountpoint_safe "${MOUNT_ROOT}"; then
   echo MOUNT_ROOT_OK
-  df -h "${MOUNT_ROOT}" 2>/dev/null || true
+  _run_with_timeout 8 df -h "${MOUNT_ROOT}" 2>/dev/null || true
   findmnt "${MOUNT_ROOT}" 2>/dev/null | head -n 2 || true
 
   CURRENT_SRC="$(findmnt -n -o SOURCE "${MOUNT_ROOT}" 2>/dev/null || true)"
@@ -115,31 +148,20 @@ if mountpoint -q "${MOUNT_ROOT}" 2>/dev/null; then
     echo MOUNT_SOURCE_MISMATCH
   fi
 
-  probe_file="${MOUNT_ROOT}/.nfs_probe_$$"
-  if touch "${probe_file}" 2>/dev/null; then
-    rm -f "${probe_file}" 2>/dev/null || true
-    echo MOUNT_RW_OK
-  else
-    echo MOUNT_RW_FAIL
-  fi
+  _probe_rw
 else
   echo MOUNT_ROOT_MISSING
   # 未挂载时：本机若目录可写且存在（local_bind 回退），仍给 LOCAL_BIND 提示
   if _is_local_nfs_server "${NFS_SERVER}" && [ -d "${MOUNT_ROOT}" ] && [ -w "${MOUNT_ROOT}" ]; then
     echo MOUNT_LOCAL_BIND_OK
-    probe_file="${MOUNT_ROOT}/.nfs_probe_$$"
-    if touch "${probe_file}" 2>/dev/null; then
-      rm -f "${probe_file}" 2>/dev/null || true
-      echo MOUNT_RW_OK
-    else
-      echo MOUNT_RW_FAIL
-    fi
+    _probe_rw
   fi
 fi
 
 for sub in alert_images playbacks snaps; do
   sub_upper="$(echo "$sub" | tr '[:lower:]' '[:upper:]')"
-  if [[ -d "${MOUNT_ROOT}/${sub}" ]]; then
+  # 目录探测也加超时，避免僵死 NFS 卡住验收
+  if _run_with_timeout 5 test -d "${MOUNT_ROOT}/${sub}"; then
     echo "MOUNT_${sub_upper}_OK"
   else
     echo "MOUNT_${sub_upper}_MISSING"

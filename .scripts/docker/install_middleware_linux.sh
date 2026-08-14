@@ -2642,32 +2642,87 @@ wait_for_zlmediakit() {
 }
 
 # 在安装 SRS 之前确保 NFS 媒体栈（单机默认本机 export；集群挂载远程 NFS_SERVER）
+# NFS 挂载有超时与单机本地回退，避免服务端不可达时一键部署无限卡死
 ensure_nfs_media_before_srs() {
     local nfs_script="${SCRIPT_DIR}/../media-cluster/nfs/ensure_nfs_media_stack.sh"
     local resolve_helper="${SCRIPT_DIR}/../media-cluster/nfs/resolve_media_root.sh"
     local mount_root
+    local nfs_stack_timeout="${NFS_STACK_TIMEOUT:-180}"
+    local ensure_log
     # shellcheck source=/dev/null
     [ -f "$resolve_helper" ] && source "$resolve_helper"
     mount_root="$(resolve_easyaiot_media_root 2>/dev/null || echo "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}")"
     export EASYAIOT_MEDIA_ROOT="$mount_root"
-    print_info "安装 SRS 前准备 NFS 媒体栈（挂载点 ${mount_root}）..."
+    print_info "安装 SRS 前准备 NFS 媒体栈（挂载点 ${mount_root}，超时 ${nfs_stack_timeout}s）..."
+    print_info "若 NFS 不可用将自动回退本地目录，可用 EASYAIOT_MEDIA_LOCAL_BIND=1 强制跳过 NFS"
     if [ ! -f "$nfs_script" ]; then
         print_error "未找到 NFS 脚本: ${nfs_script}"
         return 1
     fi
-    if run_priv env \
-        EASYAIOT_MEDIA_ROOT="$mount_root" \
-        NFS_SERVER="${NFS_SERVER:-}" \
-        NFS_EXPORT="${NFS_EXPORT:-}" \
-        bash "$nfs_script"; then
-        mount_root="$(resolve_easyaiot_media_root 2>/dev/null || echo "$mount_root")"
-        export EASYAIOT_MEDIA_ROOT="$mount_root"
+
+    ensure_log="$(mktemp /tmp/easyaiot-nfs-ensure.XXXXXX 2>/dev/null || echo /tmp/easyaiot-nfs-ensure.$$)"
+    local ensure_rc=0
+    set +e
+    if command -v timeout >/dev/null 2>&1; then
+        if timeout --help 2>&1 | grep -q -- '--foreground'; then
+            timeout --foreground -k 10 "${nfs_stack_timeout}" env \
+                EASYAIOT_MEDIA_ROOT="$mount_root" \
+                NFS_SERVER="${NFS_SERVER:-}" \
+                NFS_EXPORT="${NFS_EXPORT:-}" \
+                NFS_STACK_TIMEOUT="$nfs_stack_timeout" \
+                NFS_MOUNT_TIMEOUT="${NFS_MOUNT_TIMEOUT:-45}" \
+                bash "$nfs_script" >"$ensure_log" 2>&1
+        else
+            timeout -k 10 "${nfs_stack_timeout}" env \
+                EASYAIOT_MEDIA_ROOT="$mount_root" \
+                NFS_SERVER="${NFS_SERVER:-}" \
+                NFS_EXPORT="${NFS_EXPORT:-}" \
+                NFS_STACK_TIMEOUT="$nfs_stack_timeout" \
+                NFS_MOUNT_TIMEOUT="${NFS_MOUNT_TIMEOUT:-45}" \
+                bash "$nfs_script" >"$ensure_log" 2>&1
+        fi
+        ensure_rc=$?
+    else
+        env \
+            EASYAIOT_MEDIA_ROOT="$mount_root" \
+            NFS_SERVER="${NFS_SERVER:-}" \
+            NFS_EXPORT="${NFS_EXPORT:-}" \
+            bash "$nfs_script" >"$ensure_log" 2>&1
+        ensure_rc=$?
+    fi
+    set -e
+    if [ -s "$ensure_log" ]; then
+        cat "$ensure_log"
+    fi
+
+    local parsed_root
+    parsed_root="$(grep -E '^MEDIA_ROOT_FINAL=' "$ensure_log" 2>/dev/null | tail -1 | cut -d= -f2- || true)"
+    if [ -z "$parsed_root" ]; then
+        parsed_root="$(grep -E '^LOCAL_BIND_FALLBACK mount=' "$ensure_log" 2>/dev/null | tail -1 | sed -n 's/^LOCAL_BIND_FALLBACK mount=\([^ ]*\).*/\1/p' || true)"
+    fi
+    rm -f "$ensure_log" 2>/dev/null || true
+    if [ -n "$parsed_root" ]; then
+        mount_root="$parsed_root"
+    fi
+    export EASYAIOT_MEDIA_ROOT="$mount_root"
+
+    if [ "$ensure_rc" -eq 0 ]; then
         run_priv chmod 777 "$mount_root" "${mount_root}/playbacks" 2>/dev/null || true
         print_success "媒体栈已就绪: ${mount_root}"
-    else
-        print_error "媒体栈准备失败（集群模式需 sudo mount；单机无 sudo 时应 fallback 到 \$HOME/easyaiot/media）"
-        return 1
+        return 0
     fi
+
+    if [ "$ensure_rc" -eq 124 ]; then
+        print_warning "NFS 媒体栈准备超时（${nfs_stack_timeout}s），尝试本地目录回退…"
+    else
+        print_warning "NFS 媒体栈准备失败（exit=${ensure_rc}），尝试本地目录回退…"
+    fi
+    local fallback_root="${HOME}/easyaiot/media"
+    mkdir -p "${fallback_root}/playbacks/live" "${fallback_root}/alert_images" \
+        "${fallback_root}/snaps" "${fallback_root}/logs" 2>/dev/null || true
+    chmod 777 "${fallback_root}" "${fallback_root}/playbacks" 2>/dev/null || true
+    export EASYAIOT_MEDIA_ROOT="$fallback_root"
+    print_success "已回退本地媒体目录: ${fallback_root}（可稍后手动修复 NFS）"
 }
 
 # 兼容旧名（内部仍可能被引用）
