@@ -119,10 +119,6 @@ In homes, retail stores, and light-security deployments, many devices already in
   <li><strong>Docker all-in-one</strong>: <code>bash RTC/install_linux.sh start</code> runs go2rtc + management API; host network for P2P LAN</li>
 </ul>
 
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 See <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RTC module README</a> for details.
-</p>
-
 ### 🔌 EDGE: C# Edge Collection Runtime
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -168,10 +164,6 @@ On industrial and building sites, PLCs, meters, and sensors often hang on RS-485
   <li><strong>Standalone packaging</strong>: <code>pack_linux.sh</code> produces x86_64 / ARM64 Linux deployment packages for industrial PCs and edge gateways—decoupled from the main platform stack</li>
   <li><strong>E2E integration out of the box</strong>: <code>bash EDGE/demo/run_e2e.sh</code> validates the full chain—collection → MQTT uplink → cloud persistence</li>
 </ul>
-
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 See <a href="EDGE/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">EDGE module README</a> and <a href="EDGE/docs/PLATFORM_INTEGRATION.md" style="color: #3498db; text-decoration: none; font-weight: 600;">cloud platform integration guide</a> for details.
-</p>
 
 ### 🎯 Three Hardware Tiers, One Platform
 
@@ -347,7 +339,7 @@ Many projects reduce IoT to a "device ledger + message relay"—devices connect 
   <li><strong>AI co-creation</strong>: GitHub Copilot preinstalled (sign in with your own GitHub account; the platform never holds keys); without a Copilot subscription, bring your own OpenAI-compatible API key via Continue</li>
   <li><strong>Local publish</strong>: Suggests modules from workspace diffs, one-click build and replace running containers on the host—refresh to verify, shortening the edit-to-see loop</li>
   <li><strong>OAuth and idle reclaim</strong>: Gitee / GitHub login (can be required), one account per workspace; idle auto-stop after 8 hours by default; heartbeat and opening the IDE refresh activity so compute is not left spinning</li>
-  <li><strong>Contribution loop</strong>: Bind your fork → branch → edit → push to the fork → open a PR to upstream (see <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+  <li><strong>Contribution loop</strong>: Bind your fork → branch → edit → push to the fork → open a PR to upstream</li>
 </ul>
 
 ### 📦 Built-in AI Models
@@ -531,7 +523,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, NODE, VIDEO, R
     <li><strong>MQTT cloud-edge integration</strong>: Property reporting, sub-device proxy reporting, cloud config push (<code>config/downstream/push</code>) and property write downlink—integrated with DEVICE/<strong>iot-sink</strong></li>
     <li><strong>Dual config channels</strong>: Local <code>device-jobs.json</code> and cloud MQTT config push both drive collection jobs</li>
     <li><strong>Linux packaging</strong>: <code>pack_linux.sh</code> produces x86_64 / ARM64 standalone deployment packages for industrial PCs and edge gateways</li>
-    <li><strong>Integration & docs</strong>: Built-in E2E demo and cloud platform integration guide (see <a href="EDGE/README.md">EDGE/README.md</a>, <a href="EDGE/docs/PLATFORM_INTEGRATION.md">platform integration docs</a>)</li>
+    <li><strong>Out-of-box integration</strong>: Built-in E2E demo validates collection → MQTT uplink → cloud persistence; cloud platform integration included</li>
   </ul>
 </td>
 </tr>
@@ -655,12 +647,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, NODE, VIDEO, R
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>IDEA Module</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Community cloud IDE</strong>: VS Code–style workspace in the browser on code-server; clones the full EasyAIoT repo by default—no local environment setup first</li>
-    <li><strong>Standalone portal :9300</strong>: Ops console decoupled from WEB; one Docker workspace per person; port pool 13338–13437 for concurrent users; console floating ball one-click jump</li>
-    <li><strong>Six-language toolchain</strong>: JDK 21, Node 22, Python, Go, CMake/C++, .NET 8—module-level edits and checks for WEB / DEVICE / AI / NODE / RUNTIME / EDGE</li>
-    <li><strong>AI co-creation</strong>: GitHub Copilot preinstalled (account login, platform never holds keys); optional OpenAI-compatible API via Continue</li>
-    <li><strong>Local publish and idle reclaim</strong>: One-click build and replace host containers from changed modules; Gitee/GitHub OAuth; idle auto-stop reclaims compute</li>
-    <li><strong>Contribution loop</strong>: Edit → push to your fork → open a PR (see <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+    <li><strong>Community cloud IDE</strong>: Open a VS Code–style workspace in the browser, clones the full repo by default; one Docker workspace per person, with local publish and idle reclaim—turning open-source contribution from “set up an environment first” into “open and edit”</li>
   </ul>
 </td>
 </tr>

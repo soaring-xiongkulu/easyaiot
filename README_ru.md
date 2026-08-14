@@ -110,10 +110,6 @@ EasyAIoT — это интеллектуальная платформа Инте
   <li><strong>Docker all-in-one</strong>: <code>bash RTC/install_linux.sh start</code> запускает go2rtc + сервис управления; host network для P2P LAN</li>
 </ul>
 
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 Подробнее: <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">README модуля RTC</a>.
-</p>
-
 ### 🔌 EDGE: C# среда сбора на периферии — «точный сбор на объекте, надёжная передача в облако»
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -159,10 +155,6 @@ EasyAIoT — это интеллектуальная платформа Инте
   <li><strong>Автономная упаковка</strong>: <code>pack_linux.sh</code> создаёт пакеты развёртывания Linux x86_64 / ARM64 для промышленных ПК и edge-шлюзов — отделено от основного стека платформы</li>
   <li><strong>E2E интеграция из коробки</strong>: <code>bash EDGE/demo/run_e2e.sh</code> проверяет полную цепочку — сбор → MQTT uplink → сохранение в облаке</li>
 </ul>
-
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 Подробнее: <a href="EDGE/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">README модуля EDGE</a> и <a href="EDGE/docs/PLATFORM_INTEGRATION.md" style="color: #3498db; text-decoration: none; font-weight: 600;">руководство по интеграции с облачной платформой</a>.
-</p>
 
 ### 🎯 Три уровня оборудования, одна платформа
 
@@ -339,7 +331,7 @@ EasyAIoT — это интеллектуальная платформа Инте
   <li><strong>Совместное творчество с ИИ</strong>: Предустановлен GitHub Copilot (вход своим аккаунтом GitHub; платформа не хранит ключи); без подписки Copilot — свой OpenAI-совместимый API-ключ через Continue</li>
   <li><strong>Локальная публикация</strong>: Предлагает модули по diff рабочей области, сборка и замена запущенных контейнеров на хосте одним кликом — обновите инстанс для приёмки, короче цикл «правил → увидел»</li>
   <li><strong>OAuth и возврат простоя</strong>: Вход Gitee / GitHub (можно обязать), одна зона на аккаунт; автоостанов после 8 ч простоя по умолчанию; heartbeat и открытие IDE обновляют активность, чтобы не крутить вычисления вхолостую</li>
-  <li><strong>Цикл вклада</strong>: Привязать свой fork → ветка → правки → push в fork → PR в официальный репозиторий (см. <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+  <li><strong>Цикл вклада</strong>: Привязать свой fork → ветка → правки → push в fork → PR в официальный репозиторий</li>
 </ul>
 
 ### 📦 Встроенные модели ИИ
@@ -523,7 +515,7 @@ EasyAIoT включает основные модули WEB, APP, DEVICE, EDGE, 
     <li><strong>MQTT cloud-edge интеграция</strong>: Отчёт свойств шлюза, прокси подустройств, push конфигурации из облака (<code>config/downstream/push</code>) и downlink записи свойств — интеграция с DEVICE/<strong>iot-sink</strong></li>
     <li><strong>Двойной канал конфигурации</strong>: Локальный <code>device-jobs.json</code> и облачный MQTT push конфигурации оба управляют заданиями сбора</li>
     <li><strong>Linux-упаковка</strong>: <code>pack_linux.sh</code> создаёт автономные пакеты развёртывания x86_64 / ARM64 для промышленных ПК и edge-шлюзов</li>
-    <li><strong>Интеграция и документация</strong>: Встроенная E2E-демо и руководство по интеграции с облачной платформой (см. <a href="EDGE/README.md">EDGE/README.md</a>, <a href="EDGE/docs/PLATFORM_INTEGRATION.md">документация по интеграции платформы</a>)</li>
+    <li><strong>Готовая интеграция</strong>: Встроенная E2E-демо проверяет сбор → MQTT-аплинк → облачное сохранение; интеграция с облачной платформой включена</li>
   </ul>
 </td>
 </tr>
@@ -635,12 +627,7 @@ EasyAIoT включает основные модули WEB, APP, DEVICE, EDGE, 
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Модуль IDEA</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>Облачная IDE сообщества</strong>: Рабочее пространство VS Code в браузере на code-server; по умолчанию полный репозиторий EasyAIoT — без предварительной настройки локальной среды</li>
-    <li><strong>Автономный портал :9300</strong>: Консоль операций отделена от WEB; одно Docker-пространство на человека; пул 13338–13437 для одновременных пользователей; плавающий шар консоли в один клик</li>
-    <li><strong>Шесть языков инструментов</strong>: JDK 21, Node 22, Python, Go, CMake/C++, .NET 8 — модульные правки и проверки WEB / DEVICE / AI / NODE / RUNTIME / EDGE</li>
-    <li><strong>Совместное творчество с ИИ</strong>: GitHub Copilot предустановлен (вход в аккаунт, платформа не хранит ключи); опционально OpenAI-совместимый API через Continue</li>
-    <li><strong>Локальная публикация и возврат простоя</strong>: Сборка и замена контейнеров хоста одним кликом по изменённым модулям; OAuth Gitee/GitHub; автоостанов простоя возвращает вычислительные ресурсы</li>
-    <li><strong>Цикл вклада</strong>: Править → push в свой fork → открыть PR (см. <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+    <li><strong>Облачная IDE сообщества</strong>: Откройте рабочее пространство VS Code в браузере, по умолчанию полный репозиторий; одно Docker-пространство на человека, локальная публикация и возврат простоя — вклад в open source из «сначала настроить среду» в «открыл и правишь»</li>
   </ul>
 </td>
 </tr>

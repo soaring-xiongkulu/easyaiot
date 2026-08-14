@@ -110,10 +110,6 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>Docker 올인원</strong>: <code>bash RTC/install_linux.sh start</code>로 go2rtc + Python 관리 서비스 실행; P2P LAN용 host network</li>
 </ul>
 
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 자세한 내용: <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RTC 모듈 README</a>
-</p>
-
 ### 🔌 EDGE: C# 엣지 수집 런타임 — 산업 현장에서 「정확히 수집, 안정적으로 업링크」
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -159,10 +155,6 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>독립 패키징·납품</strong>: <code>pack_linux.sh</code>로 x86_64 / ARM64 Linux 배포 패키지 생성 — 공업용 PC·엣지 게이트웨이에 설치, 플랫폼 메인 스택과 분리 배포</li>
   <li><strong>E2E 연동 즉시 사용</strong>: <code>bash EDGE/demo/run_e2e.sh</code>로 수집 → MQTT 업링크 → 클라우드 입고 전체 체인을 원클릭 검증</li>
 </ul>
-
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 자세한 문서: <a href="EDGE/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">EDGE 모듈 README</a>, <a href="EDGE/docs/PLATFORM_INTEGRATION.md" style="color: #3498db; text-decoration: none; font-weight: 600;">클라우드 플랫폼 연동 가이드</a>
-</p>
 
 ### 🎯 세 가지 하드웨어, 하나의 플랫폼
 
@@ -338,7 +330,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>AI 공동 창작</strong>: GitHub Copilot 사전 설치(본인 GitHub 계정 로그인, 플랫폼이 키를 보관하지 않음); Copilot 구독이 없으면 OpenAI 호환 API Key를 Continue로 사용</li>
   <li><strong>로컬 배포</strong>: 워크스페이스 변경 경로로 대상 모듈을 제안하고, 원클릭으로 빌드 후 호스트에서 실행 중인 동일 컨테이너를 교체 — 새로고침으로 검증해 「수정 → 확인」 루프를 단축</li>
   <li><strong>OAuth와 유휴 회수</strong>: Gitee / GitHub 로그인(필수화 가능), 1인 1존 계정 바인딩; 기본 8시간 유휴 시 자동 중지, 하트비트와 IDE 열기가 활성 시간을 갱신해 연산 낭비 방지</li>
-  <li><strong>기여 루프</strong>: 개인 fork 연결 → 브랜치 → 코드 수정 → fork로 푸시 → 공식 저장소에 PR (자세한 내용 <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+  <li><strong>기여 루프</strong>: 개인 fork 연결 → 브랜치 → 코드 수정 → fork로 푸시 → 공식 저장소에 PR</li>
 </ul>
 
 ### 📦 내장 AI 모델
@@ -521,7 +513,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TR
     <li><strong>MQTT 클라우드-엣지 연동</strong>: 게이트웨이 속성 보고, 하위 장치 대리 보고, 클라우드 설정 하행(<code>config/downstream/push</code>)·속성 쓰기 — DEVICE/<strong>iot-sink</strong> 연동</li>
     <li><strong>설정 이중 채널</strong>: 로컬 <code>device-jobs.json</code>과 클라우드 MQTT 설정 푸시 모두 수집 작업을 구동</li>
     <li><strong>Linux 패키징</strong>: <code>pack_linux.sh</code>로 x86_64 / ARM64 독립 배포 패키지 생성 — 공업용 PC·엣지 게이트웨이용</li>
-    <li><strong>연동·문서</strong>: 내장 E2E Demo와 클라우드 플랫폼 연동 가이드(<a href="EDGE/README.md">EDGE/README.md</a>, <a href="EDGE/docs/PLATFORM_INTEGRATION.md">플랫폼 연동 문서</a>)</li>
+    <li><strong>연동 바로 사용</strong>: 내장 E2E Demo로 수집 → MQTT 업링크 → 클라우드 저장 검증; 클라우드 플랫폼 연동 지원</li>
   </ul>
 </td>
 </tr>
@@ -633,12 +625,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TR
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>IDEA 모듈</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>커뮤니티 온라인 IDE</strong>: code-server 기반 브라우저 VS Code 워크스페이스, 기본적으로 EasyAIoT 전체 저장소를 clone — 로컬 환경 선행 구성 없이 코드 수정</li>
-    <li><strong>독립 포털 :9300</strong>: 운영 콘솔을 WEB과 분리, 1인 1 Docker 워크스페이스; 포트 풀 13338–13437로 다중 동시 접속; 콘솔 플로팅 볼 원클릭 이동</li>
-    <li><strong>6개 언어 도구 체인</strong>: JDK 21, Node 22, Python, Go, CMake/C++, .NET 8 — WEB / DEVICE / AI / NODE / RUNTIME / EDGE 모듈 수정·검증</li>
-    <li><strong>AI 공동 창작</strong>: GitHub Copilot 사전 설치(계정 로그인, 플랫폼이 키를 보관하지 않음); 구독이 없으면 Continue로 OpenAI 호환 API 사용</li>
-    <li><strong>로컬 배포와 유휴 회수</strong>: 변경 모듈을 원클릭 빌드해 호스트 컨테이너 교체, 새로고침으로 검증; Gitee/GitHub OAuth; 유휴 자동 중지로 연산 회수</li>
-    <li><strong>기여 루프</strong>: 코드 수정 → 개인 fork로 푸시 → 공식 저장소에 PR (자세한 내용 <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+    <li><strong>커뮤니티 온라인 IDE</strong>: 브라우저에서 VS Code 스타일 워크스페이스를 열고 기본적으로 전체 저장소를 clone; 1인 1 Docker 존, 로컬 배포와 유휴 회수 지원 — 오픈소스 기여를 「먼저 환경 구성」에서 「열면 바로 수정」으로</li>
   </ul>
 </td>
 </tr>

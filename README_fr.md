@@ -110,10 +110,6 @@ Les projets IoT intelligents butent le plus souvent sur le « dernier kilomètre
   <li><strong>Docker tout-en-un</strong> : <code>bash RTC/install_linux.sh start</code> lance go2rtc + API de gestion ; host network pour P2P LAN</li>
 </ul>
 
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 Voir <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">README du module RTC</a>.
-</p>
-
 ### 🔌 EDGE : Runtime de collecte edge C# — « collecter avec précision, remonter efficacement » sur le terrain industriel
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -159,10 +155,6 @@ Sur les sites industriels et de bâtiment, PLC, compteurs et capteurs sont souve
   <li><strong>Packaging autonome</strong> : <code>pack_linux.sh</code> produit des paquets Linux x86_64 / ARM64 pour PC industriels et passerelles edge — découplé de la stack principale</li>
   <li><strong>Intégration E2E prête à l'emploi</strong> : <code>bash EDGE/demo/run_e2e.sh</code> valide la chaîne complète — collecte → uplink MQTT → persistance cloud</li>
 </ul>
-
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 Voir <a href="EDGE/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">README du module EDGE</a> et le <a href="EDGE/docs/PLATFORM_INTEGRATION.md" style="color: #3498db; text-decoration: none; font-weight: 600;">guide d'intégration plateforme cloud</a>.
-</p>
 
 ### 🎯 Trois profils matériels, une plateforme
 
@@ -338,7 +330,7 @@ Beaucoup de projets réduisent l'IoT à un « registre d'appareils + relais de m
   <li><strong>Co-création IA</strong> : GitHub Copilot préinstallé (connexion avec votre compte GitHub ; la plateforme ne détient jamais les clés) ; sans abonnement Copilot, apportez une clé API compatible OpenAI via Continue</li>
   <li><strong>Publication locale</strong> : Suggère les modules d'après le diff du workspace, build et remplacement des conteneurs locaux en un clic — rafraîchir l'instance pour valider, raccourcir le cycle « modifier → voir »</li>
   <li><strong>OAuth et récupération d'inactivité</strong> : Connexion Gitee / GitHub (peut être obligatoire), un compte par espace ; arrêt auto après 8 h d'inactivité par défaut ; le heartbeat et l'ouverture de l'IDE rafraîchissent l'activité pour éviter le gaspillage de calcul</li>
-  <li><strong>Boucle de contribution</strong> : Lier votre fork → branche → éditer → pousser vers le fork → ouvrir une PR vers l'officiel (voir <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+  <li><strong>Boucle de contribution</strong> : Lier votre fork → branche → éditer → pousser vers le fork → ouvrir une PR vers l'officiel</li>
 </ul>
 
 ### 📦 Modèles IA intégrés
@@ -521,7 +513,7 @@ EasyAIoT comprend notamment WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIM
     <li><strong>Intégration MQTT cloud-edge</strong> : Remontée propriétés passerelle, proxy sous-appareils, push config cloud (<code>config/downstream/push</code>) et écriture propriétés descendante — intégré avec DEVICE/<strong>iot-sink</strong></li>
     <li><strong>Double canal de configuration</strong> : <code>device-jobs.json</code> local et push config MQTT cloud pilotent tous deux les tâches de collecte</li>
     <li><strong>Packaging Linux</strong> : <code>pack_linux.sh</code> produit des paquets de déploiement autonomes x86_64 / ARM64 pour PC industriels et passerelles edge</li>
-    <li><strong>Intégration & documentation</strong> : Démo E2E intégrée et guide d'intégration plateforme cloud (voir <a href="EDGE/README.md">EDGE/README.md</a>, <a href="EDGE/docs/PLATFORM_INTEGRATION.md">docs d'intégration plateforme</a>)</li>
+    <li><strong>Intégration prête à l'emploi</strong> : Démo E2E intégrée pour valider collecte → uplink MQTT → persistance cloud ; intégration plateforme cloud incluse</li>
   </ul>
 </td>
 </tr>
@@ -633,12 +625,7 @@ EasyAIoT comprend notamment WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIM
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>Module IDEA</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>IDE communautaire en ligne</strong> : Espace VS Code dans le navigateur via code-server ; clone le dépôt EasyAIoT complet par défaut, sans d'abord configurer l'environnement local</li>
-    <li><strong>Portail autonome :9300</strong> : Console d'ops découplée de WEB ; un espace Docker par personne ; plage 13338–13437 pour plusieurs utilisateurs ; bille flottante de la console en un clic</li>
-    <li><strong>Chaîne d'outils six langages</strong> : JDK 21, Node 22, Python, Go, CMake/C++, .NET 8 — retouches et validations module pour WEB / DEVICE / AI / NODE / RUNTIME / EDGE</li>
-    <li><strong>Co-création IA</strong> : GitHub Copilot préinstallé (connexion compte, la plateforme ne détient pas les clés) ; clé API compatible OpenAI optionnelle via Continue</li>
-    <li><strong>Publication locale et récupération d'inactivité</strong> : Build et remplacement des conteneurs locaux en un clic selon les modules modifiés ; OAuth Gitee/GitHub ; arrêt auto pour récupérer le calcul</li>
-    <li><strong>Boucle de contribution</strong> : Éditer → pousser vers votre fork → ouvrir une PR (voir <a href="IDEA/README.md">IDEA/README.md</a>)</li>
+    <li><strong>IDE communautaire en ligne</strong> : Ouvrez un espace VS Code dans le navigateur, clone le dépôt complet par défaut ; un espace Docker par personne, publication locale et récupération d'inactivité — passer de « configurer d'abord l'environnement » à « ouvrir et éditer »</li>
   </ul>
 </td>
 </tr>

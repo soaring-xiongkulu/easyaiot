@@ -119,10 +119,6 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>Docker 一體化</strong>：<code>bash RTC/install_linux.sh start</code> 同時運行 go2rtc 核心與 Python 管理服務，host 網路適配 P2P 局域網直連</li>
 </ul>
 
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 詳細接入文檔見 <a href="RTC/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">RTC 模組 README</a>。
-</p>
-
 ### 🔌 EDGE：C# 邊緣採集運行時，讓工業現場「採得準、上得去」
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -168,10 +164,6 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>獨立打包交付</strong>：<code>pack_linux.sh</code> 產出 x86_64 / ARM64 Linux 部署包，可裝於工控機、邊緣網關，與平臺主棧解耦部署</li>
   <li><strong>E2E 聯調開箱即用</strong>：<code>bash EDGE/demo/run_e2e.sh</code> 一鍵驗證採集 → MQTT 上行 → 雲端入庫全鏈路</li>
 </ul>
-
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-📖 詳細文檔見 <a href="EDGE/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">EDGE 模組 README</a>、<a href="EDGE/docs/PLATFORM_INTEGRATION.md" style="color: #3498db; text-decoration: none; font-weight: 600;">雲平臺對接指南</a>。
-</p>
 
 ### 🎯 三檔硬體，一套平臺
 
@@ -347,7 +339,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>AI 共創</strong>：預裝 GitHub Copilot（用自己的 GitHub 帳號登入，平臺不代持密鑰）；無 Copilot 訂閱時可自備 OpenAI 兼容 API Key，經 Continue 輔助改代碼</li>
   <li><strong>本機發佈</strong>：按工作區改動路徑建議待發模組，一鍵執行構建並替換本機正在跑的同名容器，刷新現網即可驗收，縮短「改完—看到效果」的閉環</li>
   <li><strong>OAuth 與閒置回收</strong>：支持 Gitee / GitHub 登入（可強制），一人一區綁定帳號；閒置默認 8 小時自動停機，心跳與打開 IDE 會刷新活躍時間，避免算力空轉</li>
-  <li><strong>貢獻閉環</strong>：綁定個人 fork → 開分支改代碼 → 推送到 fork → 向官方倉提交 PR（詳見 <a href="IDEA/README.md">IDEA/README.md</a>）</li>
+  <li><strong>貢獻閉環</strong>：綁定個人 fork → 開分支改代碼 → 推送到 fork → 向官方倉提交 PR</li>
 </ul>
 
 ### 📦 內置 AI 模型
@@ -531,7 +523,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
     <li><strong>MQTT 云邊對接</strong>：屬性上報、子設備代報、雲端配置下發（<code>config/downstream/push</code>）與屬性寫值下行，對接 DEVICE/<strong>iot-sink</strong></li>
     <li><strong>配置雙通道</strong>：本地 <code>device-jobs.json</code> 與雲端 MQTT 配置推送均可驅動採集任務</li>
     <li><strong>Linux 打包發佈</strong>：<code>pack_linux.sh</code> 產出 x86_64 / ARM64 獨立部署包，適配工控機與邊緣網關</li>
-    <li><strong>聯調與文檔</strong>：內置 E2E Demo 與雲平臺對接指南（見 <a href="EDGE/README.md">EDGE/README.md</a>、<a href="EDGE/docs/PLATFORM_INTEGRATION.md">平臺對接文檔</a>）</li>
+    <li><strong>聯調開箱</strong>：內置 E2E Demo，一鍵驗證採集 → MQTT 上行 → 雲端入庫；配套雲平臺對接能力</li>
   </ul>
 </td>
 </tr>
@@ -643,12 +635,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
 <td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>IDEA模組</strong></td>
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>社區貢獻在線 IDE</strong>：基於 code-server，瀏覽器即可打開 VS Code 風格工作區，默認 clone 完整 EasyAIoT 倉庫，改代碼不必先配本機環境</li>
-    <li><strong>獨立門戶 :9300</strong>：操作臺與 WEB 解耦，一人一 Docker 工作區；端口池 13338–13437 支持多人同時在線；管控臺懸浮球一鍵跳轉</li>
-    <li><strong>六語言工具鏈對齊</strong>：預裝 JDK 21、Node 22、Python、Go、CMake/C++、.NET 8，覆蓋 WEB / DEVICE / AI / NODE / RUNTIME / EDGE 模組級改動與驗證</li>
-    <li><strong>AI 共創</strong>：預裝 GitHub Copilot（帳號登入、平臺不代持密鑰）；無訂閱時可自備 OpenAI 兼容 API，經 Continue 輔助改代碼</li>
-    <li><strong>本機發佈與閒置回收</strong>：按改動模組一鍵構建並替換本機容器，刷新即可驗收；支持 Gitee/GitHub OAuth，閒置自動停機回收算力</li>
-    <li><strong>貢獻閉環</strong>：改代碼 → 推送到個人 fork → 向官方提交 PR（詳見 <a href="IDEA/README.md">IDEA/README.md</a>）</li>
+    <li><strong>社區貢獻在線 IDE</strong>：瀏覽器打開 VS Code 風格工作區，默認 clone 全倉；一人一 Docker 區，支持本機發佈與閒置回收，把開源共建從「先配環境」變成「打開即改」</li>
   </ul>
 </td>
 </tr>
