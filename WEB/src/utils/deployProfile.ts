@@ -89,6 +89,11 @@ export function isTransformEnabled(): boolean {
   return getDeployProfile() === 'full';
 }
 
+/** 各部署形态均启用 HARNESS（与 IDEA 一致；install 侧可用 EASYAIOT_ENABLE_HARNESS=0 关闭） */
+export function isHarnessEnabled(): boolean {
+  return true;
+}
+
 function getHiddenMenuNamesForDeployProfile(): Set<string> {
   const profile = getDeployProfile();
   if (profile === 'mini') return MINI_HIDDEN_MENU_NAMES;

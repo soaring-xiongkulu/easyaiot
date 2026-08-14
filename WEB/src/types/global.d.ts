@@ -101,6 +101,8 @@ declare global {
     VITE_IDEA_URL?: string
     /** IDEA 门户令牌（与 IDEA_TOKEN 一致；浏览器可见，仅作轻量防护） */
     VITE_IDEA_TOKEN?: string
+    /** EasyAIoT HARNESS AI 助手（留空则使用当前访问域名 + 3080 端口） */
+    VITE_HARNESS_URL?: string
   }
 
   declare function parseInt(s: string | number, radix?: number): number
