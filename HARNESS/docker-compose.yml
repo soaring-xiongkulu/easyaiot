@@ -1,0 +1,41 @@
+# EasyAIoT HARNESS — DeepSeek Harness Sidecar
+# 工作区挂载宿主机 EasyAIoT 根目录；dsh 数据持久化在 named volume
+
+services:
+  harness:
+    image: ${HARNESS_IMAGE:-easyaiot/harness:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DSH_VERSION: ${DSH_VERSION:-0.1.0-rc.6}
+    container_name: easyaiot-harness
+    restart: unless-stopped
+    ports:
+      - "${HARNESS_LISTEN_PORT:-3080}:3080"
+    volumes:
+      - ${HARNESS_WORKSPACE_HOST}:${HARNESS_WORKSPACE:-/workspace/easyaiot}
+      - ./ontology:/harness/ontology:ro
+      - ./cordis.patch.yml:/harness/cordis.patch.yml:ro
+      - harness-dsh-home:/data/dsh-home
+    environment:
+      DSH_HOME: /data/dsh-home
+      NODE_PATH: /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules
+      HARNESS_LISTEN_PORT: "3080"
+      HARNESS_WORKSPACE: ${HARNESS_WORKSPACE:-/workspace/easyaiot}
+      HARNESS_TRUSTED_HOSTS: ${HARNESS_TRUSTED_HOSTS:-}
+      EASYAIOT_GATEWAY_URL: ${EASYAIOT_GATEWAY_URL:-http://host.docker.internal:48080}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+volumes:
+  harness-dsh-home:

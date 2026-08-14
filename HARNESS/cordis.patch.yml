@@ -1,0 +1,6 @@
+# EasyAIoT HARNESS Cordis 补丁层
+# 挂载平台 Tool 插件（TypeScript，由 dsh 经 tsx 加载）
+
+- insert:
+    - id: easyaiot-platform-tools
+      name: '/harness/plugins/easyaiot-platform-tools.ts'
