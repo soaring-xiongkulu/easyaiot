@@ -1344,7 +1344,7 @@ wait_for_device_gateway() {
 }
 
 # 业务模块清单（MODULES 去掉基础服务，并按部署形态过滤），结果写入全局数组 BIZ_MODULES
-# PANEL 纳入启停/更新；stop_runtime_modules 单独排除（build-runtime 清理不关控制台）
+# PANEL/IDEA 纳入启停/更新；stop_runtime_modules（clean-build-runtime）一并停止以释放镜像
 collect_biz_modules() {
     ensure_deploy_profile
     BIZ_MODULES=()
@@ -1489,15 +1489,15 @@ stop_runtime_modules() {
     local idx module
     for ((idx=${#stop_modules[@]}-1 ; idx>=0 ; idx--)); do
         module="${stop_modules[$idx]}"
-        # build-runtime 清理业务镜像时保留运维控制台与 IDEA 门户
-        [ "$module" = "PANEL" ] && continue
-        [ "$module" = "IDEA" ] && continue
+        # 含 IDEA / PANEL，便于 clean-build-runtime 释放对应运行时镜像
         execute_module_command "$module" "stop" || print_warning "${MODULE_NAMES[$module]} 停止失败，继续其余模块"
         echo ""
     done
 
-    # PANEL 不在 MODULES 列表中，单独停止以便释放 easyaiot/panel 镜像
-    if [ -f "${PROJECT_ROOT}/PANEL/install.sh" ] && [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ]; then
+    # 兜底：若形态未纳入 PANEL 但仍有独立 install.sh，尝试停止以释放 easyaiot/panel 镜像
+    if [[ " ${stop_modules[*]} " != *" PANEL "* ]] \
+        && [ -f "${PROJECT_ROOT}/PANEL/install.sh" ] \
+        && [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ]; then
         print_info "停止 PANEL 独立运维控制台..."
         bash "${PROJECT_ROOT}/PANEL/install.sh" stop || print_warning "PANEL 停止失败，继续清理"
         echo ""

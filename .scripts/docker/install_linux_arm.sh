@@ -1200,9 +1200,7 @@ stop_runtime_modules() {
     local idx module
     for ((idx=${#stop_modules[@]}-1 ; idx>=0 ; idx--)); do
         module="${stop_modules[$idx]}"
-        # build-runtime 清理业务镜像时保留运维控制台
-        [ "$module" = "PANEL" ] && continue
-        [ "$module" = "IDEA" ] && continue
+        # 含 IDEA / PANEL，便于 clean-build-runtime 释放对应运行时镜像
         execute_module_command "$module" "stop" || print_warning "${MODULE_NAMES[$module]} 停止失败，继续其余模块"
         echo ""
     done
