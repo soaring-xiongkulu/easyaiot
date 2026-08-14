@@ -170,6 +170,10 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 工控与楼宇现场常见「PLC、电表、传感器挂在 RS-485 或以太网侧，云平台却要另配一套数采软件、协议各写各的、配置改一次要派人到现场」——接入链路长、运维割裂、云边对不上口径。EasyAIoT 新增独立 <strong>EDGE 模块</strong>（C#），作为<strong>可独立部署的边缘采集运行时</strong>：多协议采集器插件、本地调度、配置驱动解析、MQTT 对接 EasyAIoT 云平台，把 Modbus RTU/TCP、OPC UA 等现场测点收成统一物模型上行，云端配置下发与属性写值也能直达边缘执行。
 </p>
 
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+<strong>与设备管理「网关」的区别：</strong>设备管理里的网关是云上的产品/设备类型（GATEWAY + 子设备 SUBSET 拓扑），负责建档、影子、绑定与下发；EDGE 没有单独设备页面，而是现场去<strong>当这台网关</strong>的采集进程——采上来的数落在同一套设备管理里。另有一条路径是 iot-sink <strong>在云端直接轮询</strong> Modbus/OPC UA（平台须能访问现场设备）；EDGE 则在现场采完只走 MQTT 上云，适合 OT 隔离与 RS-485。当前已对齐网关属性上下行、子设备属性代报与配置下发，可作为现场工业网关使用；拓扑主动申报、子设备事件/服务透传、OTA 等完整网关协议面仍在演进。
+</p>
+
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
 <strong>为何选用 C# 做边缘物联网采集？</strong>
 </p>
@@ -205,7 +209,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>插件化采集架构</strong>：实现 <code>ICollector</code> 即可扩展新协议；Host 统一注册、调度与结果上报，采集逻辑与运行时解耦</li>
   <li><strong>配置双通道</strong>：本地 <code>device-jobs.json</code> 可离线运行；云端 MQTT <code>config/downstream/push</code> 可远程覆盖采集任务，现场改配置不必再派人</li>
-  <li><strong>MQTT 云边一体</strong>：网关属性上报、子设备代报、云端属性写值下行，经 EMQX 对接 DEVICE/<strong>iot-sink</strong>，子设备自动创建与影子入库</li>
+  <li><strong>MQTT 云边一体</strong>：以平台 GATEWAY 身份接入——网关属性上报、子设备属性代报、云端属性写值下行，经 EMQX 对接 DEVICE/<strong>iot-sink</strong>，子设备自动创建与影子入库，数据在「设备管理」展现</li>
   <li><strong>独立打包交付</strong>：<code>pack_linux.sh</code> 产出 x86_64 / ARM64 Linux 部署包，可装于工控机、边缘网关，与平台主栈解耦部署</li>
   <li><strong>E2E 联调开箱即用</strong>：<code>bash EDGE/demo/run_e2e.sh</code> 一键验证采集 → MQTT 上行 → 云端入库全链路</li>
 </ul>
@@ -314,7 +318,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>Modbus-TCP 工业以太网接入</strong>：面向电表、PLC、变频器等以太网侧工控设备，平台内置 Modbus-TCP 主站采集能力，按产品/设备配置接入参数与测点即可上线——读数自动汇入设备影子与在线状态，写值与属性下发贯通，让工业测点与物联网物模型、规则引擎、告警联动同一套闭环，不必再外挂独立数采软件</li>
   <li><strong>Modbus-RTU 串口现场接入</strong>：大量现场仪表仍挂在 RS-485 总线，若只能走 TCP 网关转换，接入成本与故障点都会翻倍。平台支持 Modbus-RTU 串口主站采集，适配虚拟串口与真实串口场景——总线侧设备同样纳入统一纳管与上下行控制，补齐「以太网进不了、串口又管不住」的现场空白</li>
   <li><strong>OPC UA 工业互联接入</strong>：面向现代化工控与上位系统互联场景，平台支持 OPC UA 客户端接入，完成订阅/读写配置——复杂设备模型可映射为平台物模型属性，上行采集与下行写点与现有设备影子、规则链、消息推送无缝衔接，让 OPC UA 现场资产真正进入「看得见、控得住、可联动」的 AIoT 运营体系</li>
-  <li><strong>EDGE C# 边缘采集运行时</strong>：面向工控现场可独立部署的边缘采集模块——以 C# 插件化采集器承接 Modbus RTU、Modbus TCP、OPC UA 等协议，本地调度采集、配置驱动解析，经 MQTT 与 DEVICE/<strong>iot-sink</strong> 云平台对接；支持网关属性上报、子设备代报、云端配置下发与属性写值，可打包发布至 x86_64 / ARM64 Linux 工控机与边缘网关，实现「现场采得准、云端管得住」的云边协同闭环</li>
+  <li><strong>EDGE C# 边缘采集运行时</strong>：面向工控现场可独立部署的边缘采集模块——以 C# 插件化采集器承接 Modbus RTU、Modbus TCP、OPC UA 等协议，本地调度采集、配置驱动解析，经 MQTT 与 DEVICE/<strong>iot-sink</strong> 云平台对接。它对应设备管理中的 GATEWAY 角色（而非另开一套设备页）：现场汇聚、云上纳管；已覆盖网关/子设备属性上下行与配置下发，拓扑与子设备事件/服务透传等仍在演进。可打包发布至 x86_64 / ARM64 Linux 工控机与边缘网关，实现「现场采得准、云端管得住」的云边协同闭环</li>
   <li><strong>物模型属性定义</strong>：大屏、规则、告警若各写一套测点名，后期必然互相听不懂。平台先把设备能上报、能读写的测点定清楚，支持标准模板与自定义，草稿改完再发布——大屏、规则、告警从此认同一套字段，「能看哪些量」有统一语义，测点名各说各话的返工从根上被掐掉</li>
   <li><strong>物模型服务定义</strong>：远程启停、复位若每做一个动作就写一次性接口，控制面必然碎片化。平台把设备可被远程调用的服务及入参出参写成契约，草稿编辑、发布后生效——「能远程做什么」按契约填参即可，不必再为每个动作堆一次性接口，控制能力可复用、可审计</li>
   <li><strong>物模型事件定义</strong>：设备会上报哪些业务事件若不事先约定，告警口径必然前后打架。平台先约定事件类型，草稿发布后统一生效——事件日志与规则触发共用同一语义，「会发生哪些事」有统一口径，告警不会各说各话</li>
@@ -565,7 +569,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
     <li><strong>为何选用 C#</strong>：强类型测点映射、异步多设备并发轮询、7×24 长驻稳定、Linux x86/ARM 跨平台自包含发布，工控生态成熟、集成商上手快</li>
     <li><strong>C# 边缘采集运行时</strong>：独立部署的边缘侧采集服务，插件化采集器 + 本地调度 + 配置驱动解析</li>
     <li><strong>多协议采集器</strong>：内置 Modbus RTU（RS485/串口）、Modbus TCP、OPC UA 采集器，可按任务扩展 <code>ICollector</code> 插件</li>
-    <li><strong>MQTT 云边对接</strong>：属性上报、子设备代报、云端配置下发（<code>config/downstream/push</code>）与属性写值下行，对接 DEVICE/<strong>iot-sink</strong></li>
+    <li><strong>MQTT 云边对接</strong>：以设备管理 GATEWAY 身份接入，属性上报、子设备属性代报、云端配置下发（<code>config/downstream/push</code>）与属性写值下行，对接 DEVICE/<strong>iot-sink</strong>；数据在同一套设备管理展现，与云端工业轮询（平台直连现场设备）互补——EDGE 适合 OT 隔离与 RS-485 现场</li>
     <li><strong>配置双通道</strong>：本地 <code>device-jobs.json</code> 与云端 MQTT 配置推送均可驱动采集任务</li>
     <li><strong>Linux 打包发布</strong>：<code>pack_linux.sh</code> 产出 x86_64 / ARM64 独立部署包，适配工控机与边缘网关</li>
     <li><strong>联调开箱</strong>：内置 E2E Demo，一键验证采集 → MQTT 上行 → 云端入库；配套云平台对接能力</li>
@@ -768,7 +772,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流操作系统上部署，为不
 平台支持实时、抓拍与巡检等类型的算法任务：三类任务均可默认走 <strong>RUNTIME 高速执行层</strong>（<code>executor=cpp</code>）——以原生二进制完成长连接拉流、解码、YOLO 推理与结果回传，实时任务<strong>默认推带框 AI 检测流</strong>；抓拍按 Cron 采帧识别；巡检多路轮巡覆盖；推流转发亦可走同一高性能路径把多路原画省资源上墙。相对 Python 兼容后端，高性能路径更吃得住高路数与低时延。告警与心跳统一回 VIDEO。通过算法任务管理实现灵活的抽帧与排序策略，结合模型服务集群推理，确保毫秒级响应与高可用。同时提供全防 / 半防两种布防策略，按时段精准监控与告警。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-在物联网设备管理方面，EasyAIoT提供完整的设备生命周期管理能力，支持多种物联网与工业协议（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA），并由 <strong>EDGE</strong> C# 边缘采集运行时在现场承接工业协议采集与 MQTT 云边对接，实现设备的快速接入、安全认证、实时监控和智能控制。通过规则引擎实现设备数据的智能流转与处理，结合AI能力对设备数据进行深度分析，实现从设备接入、数据采集、智能分析到决策执行的全流程自动化，真正实现万物互联、万物智控。
+在物联网设备管理方面，EasyAIoT提供完整的设备生命周期管理能力，支持多种物联网与工业协议（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA）。设备管理中的网关是云上的 GATEWAY / 子设备拓扑；<strong>EDGE</strong> C# 边缘采集运行时在现场扮演该网关，承接工业协议采集与 MQTT 云边对接，数据回落到同一套设备管理，实现设备的快速接入、安全认证、实时监控和智能控制。通过规则引擎实现设备数据的智能流转与处理，结合AI能力对设备数据进行深度分析，实现从设备接入、数据采集、智能分析到决策执行的全流程自动化，真正实现万物互联、万物智控。
 </p>
 </div>
 

@@ -125,6 +125,10 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 工控與樓宇現場常見「PLC、電錶、傳感器掛在 RS-485 或以太網側，雲平臺卻要另配一套數採軟體、協議各寫各的、配置改一次要派人到現場」——接入鏈路長、運維割裂、云邊對不上口徑。EasyAIoT 新增獨立 <strong>EDGE 模組</strong>（C#），作為<strong>可獨立部署的邊緣採集運行時</strong>：多協議採集器插件、本地調度、配置驅動解析、MQTT 對接 EasyAIoT 雲平臺，把 Modbus RTU/TCP、OPC UA 等現場測點收成統一物模型上行，雲端配置下發與屬性寫值也能直達邊緣執行。
 </p>
 
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+<strong>與設備管理「網關」的區別：</strong>設備管理裡的網關是雲上的產品/設備類型（GATEWAY + 子設備 SUBSET 拓撲），負責建檔、影子、綁定與下發；EDGE 沒有單獨設備頁面，而是現場去<strong>當這台網關</strong>的採集進程——採上來的數落在同一套設備管理裡。另有一條路徑是 iot-sink <strong>在雲端直接輪詢</strong> Modbus/OPC UA（平臺須能訪問現場設備）；EDGE 則在現場採完只走 MQTT 上雲，適合 OT 隔離與 RS-485。當前已對齊網關屬性上下行、子設備屬性代報與配置下發，可作為現場工業網關使用；拓撲主動申報、子設備事件/服務透傳、OTA 等完整網關協議面仍在演進。
+</p>
+
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
 <strong>為何選用 C# 做邊緣物聯網採集？</strong>
 </p>
@@ -160,7 +164,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>插件化採集架構</strong>：實現 <code>ICollector</code> 即可擴展新協議；Host 統一註冊、調度與結果上報，採集邏輯與運行時解耦</li>
   <li><strong>配置雙通道</strong>：本地 <code>device-jobs.json</code> 可離線運行；雲端 MQTT <code>config/downstream/push</code> 可遠程覆蓋採集任務，現場改配置不必再派人</li>
-  <li><strong>MQTT 云邊一體</strong>：網關屬性上報、子設備代報、雲端屬性寫值下行，經 EMQX 對接 DEVICE/<strong>iot-sink</strong>，子設備自動創建與影子入庫</li>
+  <li><strong>MQTT 云邊一體</strong>：以平臺 GATEWAY 身份接入——網關屬性上報、子設備屬性代報、雲端屬性寫值下行，經 EMQX 對接 DEVICE/<strong>iot-sink</strong>，子設備自動創建與影子入庫，數據在「設備管理」展現</li>
   <li><strong>獨立打包交付</strong>：<code>pack_linux.sh</code> 產出 x86_64 / ARM64 Linux 部署包，可裝於工控機、邊緣網關，與平臺主棧解耦部署</li>
   <li><strong>E2E 聯調開箱即用</strong>：<code>bash EDGE/demo/run_e2e.sh</code> 一鍵驗證採集 → MQTT 上行 → 雲端入庫全鏈路</li>
 </ul>
@@ -269,7 +273,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>Modbus-TCP 工業以太網接入</strong>：面向電錶、PLC、變頻器等以太網側工控設備，平臺內置 Modbus-TCP 主站採集能力，按產品/設備配置接入參數與測點即可上線——讀數自動匯入設備影子與在線狀態，寫值與屬性下發貫通，讓工業測點與物聯網物模型、規則引擎、告警聯動同一套閉環，不必再外掛獨立數採軟體</li>
   <li><strong>Modbus-RTU 串口現場接入</strong>：大量現場儀表仍掛在 RS-485 總線，若只能走 TCP 網關轉換，接入成本與故障點都會翻倍。平臺支持 Modbus-RTU 串口主站採集，適配虛擬串口與真實串口場景——總線側設備同樣納入統一納管與上下行控制，補齊「以太網進不了、串口又管不住」的現場空白</li>
   <li><strong>OPC UA 工業互聯接入</strong>：面向現代化工控與上位系統互聯場景，平臺支持 OPC UA 客戶端接入，完成訂閱/讀寫配置——複雜設備模型可映射爲平臺物模型屬性，上行採集與下行寫點與現有設備影子、規則鏈、消息推送無縫銜接，讓 OPC UA 現場資產真正進入「看得見、控得住、可聯動」的 AIoT 運營體系</li>
-  <li><strong>EDGE C# 邊緣採集運行時</strong>：面向工控現場可獨立部署的邊緣採集模組——以 C# 插件化採集器承接 Modbus RTU、Modbus TCP、OPC UA 等協議，本地調度採集、配置驅動解析，經 MQTT 與 DEVICE/<strong>iot-sink</strong> 雲平臺對接；支持網關屬性上報、子設備代報、雲端配置下發與屬性寫值，可打包發佈至 x86_64 / ARM64 Linux 工控機與邊緣網關，實現「現場採得準、雲端管得住」的云邊協同閉環</li>
+  <li><strong>EDGE C# 邊緣採集運行時</strong>：面向工控現場可獨立部署的邊緣採集模組——以 C# 插件化採集器承接 Modbus RTU、Modbus TCP、OPC UA 等協議，本地調度採集、配置驅動解析，經 MQTT 與 DEVICE/<strong>iot-sink</strong> 雲平臺對接。它對應設備管理中的 GATEWAY 角色（而非另開一套設備頁）：現場匯聚、雲上納管；已覆蓋網關/子設備屬性上下行與配置下發，拓撲與子設備事件/服務透傳等仍在演進。可打包發佈至 x86_64 / ARM64 Linux 工控機與邊緣網關，實現「現場採得準、雲端管得住」的云邊協同閉環</li>
   <li><strong>物模型屬性定義</strong>：大屏、規則、告警若各寫一套測點名，後期必然互相聽不懂。平臺先把設備能上報、能讀寫的測點定清楚，支持標準模板與自定義，草稿改完再發布——大屏、規則、告警從此認同一套字段，「能看哪些量」有統一語義，測點名各說各話的返工從根上被掐掉</li>
   <li><strong>物模型服務定義</strong>：遠程啓停、復位若每做一個動作就寫一次性接口，控制面必然碎片化。平臺把設備可被遠程調用的服務及入參出參寫成契約，草稿編輯、發佈後生效——「能遠程做什麼」按契約填參即可，不必再爲每個動作堆一次性接口，控制能力可複用、可審計</li>
   <li><strong>物模型事件定義</strong>：設備會上報哪些業務事件若不事先約定，告警口徑必然前後打架。平臺先約定事件類型，草稿發佈後統一生效——事件日誌與規則觸發共用同一語義，「會發生哪些事」有統一口徑，告警不會各說各話</li>
@@ -520,7 +524,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
     <li><strong>為何選用 C#</strong>：強類型測點映射、異步多設備併發輪詢、7×24 長駐穩定、Linux x86/ARM 跨平臺自包含發佈，工控生態成熟、集成商上手快</li>
     <li><strong>C# 邊緣採集運行時</strong>：獨立部署的邊緣側採集服務，插件化採集器 + 本地調度 + 配置驅動解析</li>
     <li><strong>多協議採集器</strong>：內置 Modbus RTU（RS485/串口）、Modbus TCP、OPC UA 採集器，可按任務擴展 <code>ICollector</code> 插件</li>
-    <li><strong>MQTT 云邊對接</strong>：屬性上報、子設備代報、雲端配置下發（<code>config/downstream/push</code>）與屬性寫值下行，對接 DEVICE/<strong>iot-sink</strong></li>
+    <li><strong>MQTT 云邊對接</strong>：以設備管理 GATEWAY 身份接入，屬性上報、子設備屬性代報、雲端配置下發（<code>config/downstream/push</code>）與屬性寫值下行，對接 DEVICE/<strong>iot-sink</strong>；數據在同一套設備管理展現，與雲端工業輪詢（平臺直連現場設備）互補——EDGE 適合 OT 隔離與 RS-485 現場</li>
     <li><strong>配置雙通道</strong>：本地 <code>device-jobs.json</code> 與雲端 MQTT 配置推送均可驅動採集任務</li>
     <li><strong>Linux 打包發佈</strong>：<code>pack_linux.sh</code> 產出 x86_64 / ARM64 獨立部署包，適配工控機與邊緣網關</li>
     <li><strong>聯調開箱</strong>：內置 E2E Demo，一鍵驗證採集 → MQTT 上行 → 雲端入庫；配套雲平臺對接能力</li>
@@ -711,7 +715,7 @@ EasyAIoT支持在Linux、Mac、Windows三大主流作業系統上部署，爲不
 平臺支持即時、抓拍與巡檢等類型的算法任務：三類任務均可默認走 <strong>RUNTIME 高速執行層</strong>（<code>executor=cpp</code>）——以原生二進制完成長連接拉流、解碼、YOLO 推理與結果回傳，即時任務<strong>默認推帶框 AI 檢測流</strong>；抓拍按 Cron 採幀識別；巡檢多路輪巡覆蓋；推流轉發亦可走同一高性能路徑把多路原畫省資源上牆。相對 Python 兼容後端，高性能路徑更吃得住高路數與低時延。告警與心跳統一回 VIDEO。通過算法任務管理實現靈活的抽幀與排序策略，結合模型服務集羣推理，確保毫秒級響應與高可用。同時提供全防 / 半防兩種佈防策略，按時段精準監控與告警。
 </p>
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0;">
-在物聯網設備管理方面，EasyAIoT提供完整的設備生命週期管理能力，支持多種物聯網與工業協議（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA），並由 <strong>EDGE</strong> C# 邊緣採集運行時在現場承接工業協議採集與 MQTT 云邊對接，實現設備的快速接入、安全認證、即時監控和智能控制。通過規則引擎實現設備數據的智能流轉與處理，結合AI能力對設備數據進行深度分析，實現從設備接入、數據採集、智能分析到決策執行的全流程自動化，真正實現萬物互聯、萬物智控。
+在物聯網設備管理方面，EasyAIoT提供完整的設備生命週期管理能力，支持多種物聯網與工業協議（MQTT、TCP、HTTP、Modbus-TCP、Modbus-RTU、OPC UA）。設備管理中的網關是雲上的 GATEWAY / 子設備拓撲；<strong>EDGE</strong> C# 邊緣採集運行時在現場扮演該網關，承接工業協議採集與 MQTT 云邊對接，數據回落到同一套設備管理，實現設備的快速接入、安全認證、即時監控和智能控制。通過規則引擎實現設備數據的智能流轉與處理，結合AI能力對設備數據進行深度分析，實現從設備接入、數據採集、智能分析到決策執行的全流程自動化，真正實現萬物互聯、萬物智控。
 </p>
 </div>
 
