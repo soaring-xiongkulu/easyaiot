@@ -15,7 +15,7 @@
 #   status     - 查看所有服务状态
 #   logs       - 查看服务日志
 #   build           - 重新构建所有镜像（各模块本地构建）
-#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
+#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 IDEA|HARNESS|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
 #   clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件）
@@ -33,9 +33,9 @@
 #   analyze-disk   - 项目关键目录磁盘占用分析
 #
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
-#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件（无 TDengine/可视化/iot-node 等）；IDEA 全形态优先
-#   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/NodeRED/iot-visualize（含 EMQX）；IDEA 全形态优先
-#   full(3)     - 全量（默认，约 20G）；含 iot-visualize/VISUALIZE、TRANSFORM；启动后自动拉起工业协议演示；PANEL/IDEA 全形态启用
+#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件（无 TDengine/可视化/iot-node 等）
+#   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/NodeRED/iot-visualize（含 EMQX）
+#   full(3)     - 全量（默认，约 20G）；含 iot-visualize/VISUALIZE、TRANSFORM；启动后自动拉起工业协议演示
 # ============================================
 
 set -e
@@ -161,9 +161,10 @@ echo "命令: $*" >> "$LOG_FILE"
 echo "=========================================" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
 
-# 模块列表（按依赖顺序：IDEA 优先；失败则中止后续模块）
+# 模块列表（按依赖顺序）
 MODULES=(
-    "IDEA"             # 社区贡献在线 IDE（全形态优先部署）
+    "IDEA"             # 社区贡献在线 IDE
+    "HARNESS"          # DeepSeek Harness AI Agent
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
     "AI"               # AI服务
@@ -176,6 +177,14 @@ MODULES=(
     "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
 
+# 编排前置模块（install/start/restart/build/update 失败时终止后续步骤）
+is_bootstrap_module() {
+    case "$1" in
+        IDEA|HARNESS) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # 模块名称映射
 declare -A MODULE_NAMES
 MODULE_NAMES["IDEA"]="IDEA在线IDE"
@@ -185,6 +194,7 @@ MODULE_NAMES["AI"]="AI服务"
 MODULE_NAMES["RTC"]="RTC服务"
 MODULE_NAMES["VIDEO"]="Video服务"
 MODULE_NAMES["WEB"]="Web前端服务"
+MODULE_NAMES["HARNESS"]="HARNESS AI助手"
 MODULE_NAMES["APP"]="App移动端H5"
 MODULE_NAMES["VISUALIZE"]="可视化编辑器"
 MODULE_NAMES["TRANSFORM"]="数据转发"
@@ -199,6 +209,7 @@ MODULE_PORTS["AI"]="5000"
 MODULE_PORTS["RTC"]="6100"
 MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
+MODULE_PORTS["HARNESS"]="3080"
 MODULE_PORTS["APP"]="9010"
 MODULE_PORTS["VISUALIZE"]="8002"
 MODULE_PORTS["TRANSFORM"]="48096"
@@ -213,6 +224,7 @@ MODULE_HEALTH_ENDPOINTS["AI"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["RTC"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
+MODULE_HEALTH_ENDPOINTS["HARNESS"]="/"
 MODULE_HEALTH_ENDPOINTS["APP"]="/health"
 MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
 MODULE_HEALTH_ENDPOINTS["TRANSFORM"]="/actuator/health"
@@ -824,6 +836,10 @@ execute_module_command() {
             print_info "未检测到 TRANSFORM 目录，跳过系统对接部署"
             return 0
         fi
+        if [ "$module" = "HARNESS" ]; then
+            print_error "未检测到 HARNESS 目录，无法部署 AI 助手"
+            return 1
+        fi
         if [ "$module" = "PANEL" ]; then
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（runtime 无 PANEL 目录）"
             return 0
@@ -841,6 +857,10 @@ execute_module_command() {
         if [ "$module" = "TRANSFORM" ]; then
             print_info "未检测到 TRANSFORM/install_linux.sh，跳过系统对接部署"
             return 0
+        fi
+        if [ "$module" = "HARNESS" ]; then
+            print_error "未检测到 HARNESS/install_linux.sh，无法部署 AI 助手"
+            return 1
         fi
         if [ "$module" = "PANEL" ]; then
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（无 install_linux.sh）"
@@ -1028,8 +1048,7 @@ install_linux() {
             fi
         else
             print_error "${MODULE_NAMES[$module]} 安装失败"
-            if [ "$module" = "IDEA" ]; then
-                print_error "IDEA 部署失败，中止后续模块安装"
+            if is_bootstrap_module "$module"; then
                 echo ""
                 print_info "完整日志文件: ${LOG_FILE}"
                 exit 1
@@ -1091,6 +1110,11 @@ install_linux() {
                     print_info "  - IDEA：检查 idea-workspace / idea-portal 镜像构建与 docker.sock 挂载"
                     print_info "    docker images | grep idea"
                     print_info "    bash IDEA/install.sh status"
+                    ;;
+                "HARNESS AI助手")
+                    print_info "  - HARNESS：检查 easyaiot/harness 镜像与 :3080 端口"
+                    print_info "    docker images | grep harness"
+                    print_info "    bash HARNESS/install.sh status"
                     ;;
             esac
         done
@@ -1401,20 +1425,22 @@ start_all() {
     prepare_runtime_environment
     create_network
 
-    # IDEA 优先启动（全形态；失败则中止后续模块）
-    if module_enabled_for_deploy_profile "IDEA"; then
-        print_section "启动 IDEA 在线 IDE"
-        if ! execute_module_command "IDEA" "start"; then
-            print_error "IDEA 启动失败，中止后续模块启动"
-            return 1
+    local module
+    for module in IDEA HARNESS; do
+        if module_enabled_for_deploy_profile "$module"; then
+            print_section "启动 ${MODULE_NAMES[$module]}"
+            if ! execute_module_command "$module" "start"; then
+                print_error "${MODULE_NAMES[$module]} 启动失败"
+                return 1
+            fi
+            echo ""
         fi
-        echo ""
-    fi
+    done
     
     # 再启动基础服务（.scripts/docker）
     print_section "启动基础服务"
     if ! execute_module_command ".scripts/docker" "start"; then
-        print_error "基础服务启动失败，中止后续模块启动"
+        print_error "基础服务启动失败"
         return 1
     fi
     echo ""
@@ -1429,7 +1455,7 @@ start_all() {
     local -a start_modules=()
     local module
     for module in "${BIZ_MODULES[@]}"; do
-        [ "$module" = "IDEA" ] && continue
+        is_bootstrap_module "$module" && continue
         start_modules+=("$module")
     done
     if [ "${PARALLEL_MODULES:-true}" = "true" ]; then
@@ -1532,8 +1558,8 @@ restart_all() {
                 wait_for_device_gateway || print_warning "iot-gateway 未就绪，WEB 服务 /dev-api/ 接口可能返回 503"
             fi
         else
-            if [ "$module" = "IDEA" ]; then
-                print_error "IDEA 重启失败，中止后续模块重启"
+            if is_bootstrap_module "$module"; then
+                print_error "${MODULE_NAMES[$module]} 重启失败"
                 return 1
             fi
             print_warning "${MODULE_NAMES[$module]} 重启失败，继续其余模块"
@@ -1611,8 +1637,8 @@ build_all() {
         for module in "${MODULES[@]}"; do
             module_enabled_for_deploy_profile "$module" || continue
             if ! execute_module_command "$module" "build"; then
-                if [ "$module" = "IDEA" ]; then
-                    print_error "IDEA 构建失败，中止后续模块构建"
+                if is_bootstrap_module "$module"; then
+                    print_error "${MODULE_NAMES[$module]} 构建失败"
                     exit 1
                 fi
                 print_warning "${MODULE_NAMES[$module]} 构建失败，继续其余模块"
@@ -1713,16 +1739,17 @@ update_all() {
         print_info "将进行本地重建更新（各模块 docker build，耗时较长）"
     fi
     
-    # IDEA 优先更新（全形态；失败则中止后续模块）
-    collect_biz_modules
-    if module_enabled_for_deploy_profile "IDEA"; then
-        print_section "更新 IDEA 在线 IDE"
-        if ! execute_module_command "IDEA" "update"; then
-            print_error "IDEA 更新失败，中止后续模块更新"
-            return 1
+    local module
+    for module in IDEA HARNESS; do
+        if module_enabled_for_deploy_profile "$module"; then
+            print_section "更新 ${MODULE_NAMES[$module]}"
+            if ! execute_module_command "$module" "update"; then
+                print_error "${MODULE_NAMES[$module]} 更新失败"
+                return 1
+            fi
+            echo ""
         fi
-        echo ""
-    fi
+    done
 
     # 基础服务先更新并等就绪，业务模块随后
     if execute_module_command ".scripts/docker" "update"; then
@@ -1732,12 +1759,11 @@ update_all() {
     fi
     echo ""
 
-    # 业务模块更新：update 可能包含重建镜像（构建内存峰值高），默认串行；
-    # 机器内存充裕时可 PARALLEL_MODULES=true 并行提速
+    collect_biz_modules
     local -a update_modules=()
     local module
     for module in "${BIZ_MODULES[@]}"; do
-        [ "$module" = "IDEA" ] && continue
+        is_bootstrap_module "$module" && continue
         update_modules+=("$module")
     done
     if [ "${PARALLEL_MODULES:-false}" = "true" ]; then
@@ -1796,6 +1822,9 @@ verify_all() {
         echo ""
         echo -e "${GREEN}服务访问地址:${NC}"
         echo -e "  IDEA 在线 IDE:         http://localhost:9300"
+        if module_enabled_for_deploy_profile HARNESS; then
+            echo -e "  AI 助手 (HARNESS):      http://localhost:3080"
+        fi
         echo -e "  基础服务 (Nacos):     http://localhost:8848/nacos"
         echo -e "  基础服务 (MinIO):     http://localhost:9000 (API), http://localhost:9001 (Console)"
         echo -e "  基础服务 (Milvus):    http://localhost:9091 (Health), localhost:19530 (gRPC)"
@@ -1977,7 +2006,7 @@ show_help() {
     echo "  logs            - 查看所有服务日志"
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
-    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
+    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 IDEA|HARNESS|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
@@ -2017,7 +2046,7 @@ show_help() {
     echo "  EASYAIOT_APPLY_INDUSTRIAL_SEED=0   - 启动演示时不写入/刷新工业协议演示设备种子"
     echo "  EASYAIOT_RUNTIME_REGISTRY    - 运行时镜像仓库（默认见 runtime_registry.conf）"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | IDEA | HARNESS | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
     echo "  VIDEO_BASE_URL               - runtime 原子模式：中心 VIDEO 汇聚地址（如 http://192.168.1.10:6000）"
     echo "  EASYAIOT_RUNTIME_INSTALL_DIR - runtime 原子模式安装目录（默认 /opt/easyaiot/RUNTIME）"

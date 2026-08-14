@@ -99,10 +99,11 @@ ensure_industrial_demo_after_business_stack() {
 }
 
 # 业务模块（按依赖顺序：IDEA 优先 -> 网关/微服务 -> AI/RTC/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(IDEA DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+ALL_MODULES=(IDEA HARNESS DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
 
 declare -A MODULE_NAMES=(
     [IDEA]="IDEA 在线 IDE"
+    [HARNESS]="HARNESS AI 助手"
     [DEVICE]="Device 服务"
     [AI]="AI 服务"
     [RTC]="RTC 服务"
@@ -116,6 +117,7 @@ declare -A MODULE_NAMES=(
 
 declare -A MODULE_PORTS=(
     [IDEA]="9300"
+    [HARNESS]="3080"
     [DEVICE]="48080"
     [AI]="5000"
     [RTC]="6100"
@@ -129,6 +131,7 @@ declare -A MODULE_PORTS=(
 
 declare -A MODULE_HEALTH_ENDPOINTS=(
     [IDEA]="/health"
+    [HARNESS]="/"
     [DEVICE]="/actuator/health"
     [AI]="/actuator/health"
     [RTC]="/actuator/health"
@@ -481,6 +484,10 @@ execute_module() {
             print_error "未检测到 IDEA 目录，无法部署在线 IDE"
             return 1
         fi
+        if [ "$module" = "HARNESS" ]; then
+            print_error "未检测到 HARNESS 目录，无法部署 AI 助手"
+            return 1
+        fi
         print_warning "目录不存在，跳过: $module"
         return 1
     fi
@@ -498,7 +505,10 @@ execute_module() {
             print_error "未检测到 IDEA/install_linux.sh，无法部署在线 IDE"
             return 1
         fi
-        print_warning "未找到 $install_script，跳过 $module"
+        if [ "$module" = "HARNESS" ]; then
+            print_error "未检测到 HARNESS/install_linux.sh，无法部署 AI 助手"
+            return 1
+        fi
         return 1
     fi
 
@@ -566,8 +576,8 @@ run_on_modules() {
             :
         else
             failed+=("$module")
-            if [ "$module" = "IDEA" ]; then
-                print_error "IDEA 部署失败，中止后续模块"
+            if [ "$module" = "IDEA" ] || [ "$module" = "HARNESS" ]; then
+                print_error "${MODULE_NAMES[$module]:-$module} 失败，已停止后续模块"
                 break
             fi
             if $STOP_ON_ERROR; then
@@ -674,7 +684,7 @@ usage() {
     cat <<EOF
 EasyAIoT 业务系统统一管理脚本
 
-管理模块: IDEA、DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含 Nacos/PostgreSQL 等中间件；IDEA 全形态优先；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
+管理模块: IDEA、HARNESS、DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE/TRANSFORM 仅 full）
 
 用法:
   $0 <命令> [选项] [模块...]
@@ -703,7 +713,7 @@ EasyAIoT 业务系统统一管理脚本
   --continue-on-error    某模块失败后继续执行其余模块
 
 模块:
-  未指定时默认全部（按部署形态过滤），顺序为 IDEA -> DEVICE -> AI -> RTC -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
+  未指定时默认全部（按部署形态过滤），顺序为 IDEA -> HARNESS -> DEVICE -> AI -> RTC -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
   stop / clean / clean-all 时自动逆序执行
   IDEA 失败时强制中止后续模块（不受 --continue-on-error 影响）
 
@@ -723,7 +733,7 @@ EasyAIoT 业务系统统一管理脚本
   运行时镜像仓库配置: .scripts/docker/runtime_registry.conf
   环境变量 EASYAIOT_DEPLOY_PROFILE: mini(1) | standard(2) | full(3，默认)
   build-runtime 可选 EASYAIOT_RUNTIME_BUILD_ARCH: all(默认) | amd64 | arm64（单架构时跳过 manifest）
-  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: all(默认) | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL
+  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: all(默认) | IDEA | HARNESS | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL
   日志: $LOG_DIR/
 EOF
 }
