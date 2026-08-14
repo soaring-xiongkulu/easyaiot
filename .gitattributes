@@ -53,6 +53,9 @@ panel.env.*    text eol=lf
 # IDEA 门户环境文件（install.sh 会 cp idea.env.example → idea.env；CRLF 会污染 TOKEN / OAuth 回调地址）
 idea.env       text eol=lf
 idea.env.*     text eol=lf
+# HARNESS 环境文件（install.sh 会 cp harness.env.example → harness.env；CRLF 会污染 API Key / trusted-host）
+harness.env       text eol=lf
+harness.env.*     text eol=lf
 # deb 维护脚本无扩展名，CRLF 会导致 dpkg 钩子失败
 COMPILE/platforms/ubuntu/deb/postinst  text eol=lf
 COMPILE/platforms/ubuntu/deb/postrm    text eol=lf
@@ -189,3 +192,6 @@ IDEA/.data/** -diff
 IDEA/.venv/** -diff
 IDEA/workspaces/** -diff
 IDEA/logs/** -diff
+
+# HARNESS 运行时数据（dsh-home / Sidecar 状态；与 .gitignore 对齐，防误加入仓库）
+HARNESS/.data/** -diff

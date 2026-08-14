@@ -212,4 +212,10 @@ IDEA/logs/
 IDEA/workspaces/
 IDEA/__pycache__/
 
+# HARNESS 运行时数据与本地配置（与 HARNESS/.gitignore 对齐；容器挂载工作区时会在仓库根生成 AGENTS.md 软链）
+HARNESS/.data/
+HARNESS/harness.env
+/AGENTS.md
+/HARNESS-README.md
+
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
