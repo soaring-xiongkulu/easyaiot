@@ -885,7 +885,8 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 | ![统计](.image/banner/banner1176.jpg) | ![总览](.image/banner/banner1177.jpg) | ![看板](.image/banner/banner1178.jpg) |
 | ![产品](.image/banner/banner1006.jpg) | ![设备](.image/banner/banner1009.jpg) | ![OTA](.image/banner/banner1179.jpg) |
 | ![固件](.image/banner/banner1180.jpg) | ![任务](.image/banner/banner1181.jpg) | ![进度](.image/banner/banner1182.jpg) |
-| ![规则](.image/banner/banner1013.jpg) | ![编排](.image/banner/banner1014.png) |  |
+| ![规则](.image/banner/banner1013.jpg) | ![编排](.image/banner/banner1014.png) | ![转发](.image/banner/banner1206.png) |
+| ![运行](.image/banner/banner1209.png) | ![目的](.image/banner/banner1207.png) | ![投递](.image/banner/banner1208.png) |
 
 #### 🖥️ 集群
 

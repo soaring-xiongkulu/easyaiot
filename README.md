@@ -843,7 +843,8 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 | ![Statistics](.image/banner/banner1176.jpg) | ![Overview](.image/banner/banner1177.jpg) | ![Dashboard](.image/banner/banner1178.jpg) |
 | ![Product](.image/banner/banner1006.jpg) | ![Device](.image/banner/banner1009.jpg) | ![OTA](.image/banner/banner1179.jpg) |
 | ![Firmware](.image/banner/banner1180.jpg) | ![Task](.image/banner/banner1181.jpg) | ![Progress](.image/banner/banner1182.jpg) |
-| ![Rules](.image/banner/banner1013.jpg) | ![Orchestration](.image/banner/banner1014.png) |  |
+| ![Rules](.image/banner/banner1013.jpg) | ![Orchestration](.image/banner/banner1014.png) | ![Forwarding](.image/banner/banner1206.png) |
+| ![Running](.image/banner/banner1209.png) | ![Destination](.image/banner/banner1207.png) | ![Delivery](.image/banner/banner1208.png) |
 
 #### 🖥️ Cluster
 

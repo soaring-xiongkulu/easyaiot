@@ -819,7 +819,8 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Статистика](.image/banner/banner1176.jpg) | ![Обзор](.image/banner/banner1177.jpg) | ![Панель](.image/banner/banner1178.jpg) |
 | ![Продукт](.image/banner/banner1006.jpg) | ![Устройство](.image/banner/banner1009.jpg) | ![OTA](.image/banner/banner1179.jpg) |
 | ![Прошивка](.image/banner/banner1180.jpg) | ![Задача](.image/banner/banner1181.jpg) | ![Прогресс](.image/banner/banner1182.jpg) |
-| ![Правила](.image/banner/banner1013.jpg) | ![Оркестрация](.image/banner/banner1014.png) |  |
+| ![Правила](.image/banner/banner1013.jpg) | ![Оркестрация](.image/banner/banner1014.png) | ![Пересылка](.image/banner/banner1206.png) |
+| ![Работа](.image/banner/banner1209.png) | ![Назначение](.image/banner/banner1207.png) | ![Доставка](.image/banner/banner1208.png) |
 
 #### 🖥️ Кластер
 

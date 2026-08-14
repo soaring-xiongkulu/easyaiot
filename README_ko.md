@@ -818,7 +818,8 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![통계](.image/banner/banner1176.jpg) | ![개요](.image/banner/banner1177.jpg) | ![대시보드](.image/banner/banner1178.jpg) |
 | ![제품](.image/banner/banner1006.jpg) | ![디바이스](.image/banner/banner1009.jpg) | ![OTA](.image/banner/banner1179.jpg) |
 | ![펌웨어](.image/banner/banner1180.jpg) | ![작업](.image/banner/banner1181.jpg) | ![진행](.image/banner/banner1182.jpg) |
-| ![규칙](.image/banner/banner1013.jpg) | ![오케스트레이션](.image/banner/banner1014.png) |  |
+| ![규칙](.image/banner/banner1013.jpg) | ![오케스트레이션](.image/banner/banner1014.png) | ![포워딩](.image/banner/banner1206.png) |
+| ![실행](.image/banner/banner1209.png) | ![목적지](.image/banner/banner1207.png) | ![전달](.image/banner/banner1208.png) |
 
 #### 🖥️ 클러스터
 

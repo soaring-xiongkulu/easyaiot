@@ -818,7 +818,8 @@ EasyAIoT est un projet d'apprentissage open source, sans lien avec des activité
 | ![Statistiques](.image/banner/banner1176.jpg) | ![Vue d'ensemble](.image/banner/banner1177.jpg) | ![Tableau de bord](.image/banner/banner1178.jpg) |
 | ![Produit](.image/banner/banner1006.jpg) | ![Appareil](.image/banner/banner1009.jpg) | ![OTA](.image/banner/banner1179.jpg) |
 | ![Firmware](.image/banner/banner1180.jpg) | ![Tâche](.image/banner/banner1181.jpg) | ![Progression](.image/banner/banner1182.jpg) |
-| ![Règles](.image/banner/banner1013.jpg) | ![Orchestration](.image/banner/banner1014.png) |  |
+| ![Règles](.image/banner/banner1013.jpg) | ![Orchestration](.image/banner/banner1014.png) | ![Transfert](.image/banner/banner1206.png) |
+| ![Exécution](.image/banner/banner1209.png) | ![Destination](.image/banner/banner1207.png) | ![Livraison](.image/banner/banner1208.png) |
 
 #### 🖥️ Cluster
 
