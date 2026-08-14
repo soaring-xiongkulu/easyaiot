@@ -110,7 +110,7 @@ declare -A MODULE_NAMES=(
     [WEB]="Web 前端"
     [APP]="App 移动端 H5"
     [VISUALIZE]="可视化编辑器"
-    [TRANSFORM]="系统对接"
+    [TRANSFORM]="数据转发"
     [PANEL]="运维控制台"
 )
 

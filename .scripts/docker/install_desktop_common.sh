@@ -106,7 +106,7 @@ module_name() {
     "WEB") echo "Web前端服务" ;;
     "APP") echo "App移动端H5" ;;
     "VISUALIZE") echo "可视化编辑器" ;;
-    "TRANSFORM") echo "系统对接" ;;
+    "TRANSFORM") echo "数据转发" ;;
     "PANEL") echo "运维控制台" ;;
     *) echo "$1" ;;
   esac

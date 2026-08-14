@@ -160,10 +160,22 @@ onMounted(() => {
 
 async function fetch(p = {}) {
   const {api, params} = props;
-  if (api && isFunction(api)) {
+  if (!api || !isFunction(api)) {
+    hideLoading();
+    return;
+  }
+  try {
     const res = await api({...params, pageNo: page.value, pageSize: pageSize.value, ...p});
-    data.value = res;
-    total.value = res.size;
+    const list = Array.isArray(res)
+      ? res
+      : (Array.isArray(res?.data) ? res.data : []);
+    data.value = list;
+    total.value = list.length;
+  } catch (error) {
+    console.error(error);
+    data.value = [];
+    total.value = 0;
+  } finally {
     hideLoading();
   }
 }

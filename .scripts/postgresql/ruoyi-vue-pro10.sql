@@ -21330,7 +21330,7 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 1255	数据源配置	data-source-config:data-source-config:query	2	20	1	code/data-source-config	ep:data-analysis	infra/dataSourceConfig/index	InfraDataSourceConfig	0	t	t	t		2022-04-27 14:37:32	1	2024-12-26 14:41:03.089	0
 2478	单表（增删改查）		2	1	1070	code/demo/demo01-contact	ep:bicycle	infra/demo/demo01/index	Demo01Contact	0	t	t	t		2023-11-15 14:42:30	1	2024-12-26 14:32:28.776	0
 2447	三方登录		1	10	1	social	fa:rocket			0	t	t	t	1	2023-11-04 12:12:01	1	2024-12-26 14:36:10.667	0
-2759	基础设施		1	37	0	/infra	ant-design:block-outlined	\N	\N	0	t	t	t	1	2024-07-09 11:19:56.746	1	2025-08-11 15:30:49.055	0
+2759	基础设施		1	38	0	/infra	ant-design:block-outlined	\N	\N	0	t	t	t	1	2024-07-09 11:19:56.746	1	2025-08-11 15:30:49.055	0
 2739	通知管理	notice:config:query	2	17	0	/notice/index	ant-design:sound-outlined	notice/index	Notice	0	t	f	t	1	2024-04-22 23:54:30	1	2025-04-29 18:35:41.919	1
 2962	模型计算	calculate:calculate:list	2	13	0	calculate/index	ant-design:crown-outlined	calculate/index	Calculate	0	t	t	t	1	2025-03-17 13:28:38.556	1	2025-06-15 07:15:37.646	1
 2943	协议管理	protocol:protocol:query	2	4	0	/protocol	ant-design:trophy-outlined	protocol/index	Protocol	0	f	t	f	1	2024-07-25 15:34:33.197	1	2024-09-24 15:40:28.686	1
@@ -21349,7 +21349,7 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 1238	文件配置查询	infra:file-config:query	3	1	1237				\N	0	t	t	t		2022-03-15 14:35:28		2022-04-20 17:03:10	1
 1091	文件查询	infra:file:query	3	1	1090				\N	0	t	t	t		2021-03-12 20:16:20		2022-04-20 17:03:10	1
 2969	告警事件	alert:alert:query	2	35	0	alert	ant-design:alert-outlined	alert/index	Alarm	0	t	t	t	1	2025-11-20 12:41:30.270882	1	2025-11-20 12:41:30.270882	0
-2970	通知管理	notice:notice:query	2	36	0	notice	ant-design:sound-outlined	notice/index	Notice	0	t	t	t	1	2025-11-20 12:42:17.013623	1	2025-11-20 12:43:51.584973	0
+2970	通知管理	notice:notice:query	2	37	0	notice	ant-design:sound-outlined	notice/index	Notice	0	t	t	t	1	2025-11-20 12:42:17.013623	1	2025-11-20 12:43:51.584973	0
 2931	产品管理	product:product:query	2	6	0	product	ant-design:apartment-outlined	product/index	Product	0	t	f	t	1	2024-07-11 05:42:44.432	1	2026-06-11 10:47:23.351937	0
 2966	模型管理	train:train:query	2	9	0	train/index	hugeicons:ai-brain-03	train/index	Train	0	t	t	t	1	2025-08-31 18:41:46.818	1	2025-12-06 14:51:36.602328	0
 2971	通道管理	channel:channel:query	2	99	0	Channel/:deviceIdentification	ant-design:borderless-table-outlined	gb28181/components/Channel/index	Channel	0	f	t	f	1	2026-03-06 14:32:31.248172	1	2026-03-06 14:36:39.101955	0
@@ -21386,8 +21386,8 @@ COPY public.system_menu (id, name, permission, type, sort, parent_id, path, icon
 3124	部署下线	visualize:deploy:offline	3	45	3101				\N	0	t	t	t	1	2026-07-21 13:00:39.505445	1	2026-07-21 13:00:39.505445	0
 2972	集群管理	node:node:query	2	0	0	node/index	ant-design:ungroup-outlined	node/index	ComputeNodeManage	0	t	t	t	1	2026-06-11 10:46:06.011163	1	2026-07-21 13:25:53.05001	0
 3101	可视化管理	visualize:project:query	2	1	0	index	ant-design:fund-outlined	visualize/index	Visualize	0	t	t	t	1	2026-07-21 10:53:12.992697	1	2026-07-21 14:22:48.737176	0
-3200	系统对接		1	47	0	/transform	ant-design:api-outlined	\N	\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
-3201	系统对接	transform:pipeline:query	2	1	3200	index	ant-design:api-outlined	transform/index	Transform	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
+3200	数据转发	transform:pipeline:query	2	36	0	transform/index	ant-design:send-outlined	transform/index	Transform	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
+3201	数据转发	transform:pipeline:query	2	1	3200	index	ant-design:send-outlined	transform/index	Transform	0	f	t	f	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	1
 3202	对接概览查询	transform:overview:query	3	1	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
 3203	目标系统查询	transform:party:query	3	2	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
 3204	目标系统维护	transform:party:update	3	3	3201				\N	0	t	t	t	1	2026-07-28 16:09:55.955643	1	2026-07-28 16:09:55.955643	0
