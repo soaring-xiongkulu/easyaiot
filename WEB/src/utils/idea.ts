@@ -180,11 +180,56 @@ export function deleteIdeaWorkspace(id: string) {
   )
 }
 
-export function openIdeaWorkspace(ws: Pick<IdeaWorkspace, 'url'>) {
-  if (!ws?.url) {
-    return
+export function openIdeaWorkspace(_ws?: Pick<IdeaWorkspace, 'url'>) {
+  // 禁止直连 code-server，统一走 IDEA 门户组合入口
+  window.open(getIdeaPortalUrl(), '_blank', 'noopener,noreferrer')
+}
+
+/** code-server 容器内仓库根目录 */
+export const IDEA_REPO_FOLDER = '/home/coder/easyaiot'
+
+/** 把 HARNESS/宿主机相对路径映射为 IDEA 容器内绝对路径 */
+export function toIdeaAbsolutePath(filePath?: string): string | undefined {
+  if (!filePath)
+    return undefined
+  let p = filePath.trim().replace(/\\/g, '/')
+  if (!p)
+    return undefined
+  if (p.startsWith(IDEA_REPO_FOLDER))
+    return p
+  p = p.replace(/^\/+/, '')
+  p = p.replace(/^(workspace\/)?easyaiot\//, '')
+  return `${IDEA_REPO_FOLDER}/${p}`
+}
+
+/** 构造打开 IDEA 工作区（可选定位到文件）的 code-server URL */
+export function buildIdeaIdeOpenUrl(workspaceUrl: string, filePath?: string): string {
+  const base = workspaceUrl.replace(/\/$/, '')
+  const folder = encodeURIComponent(IDEA_REPO_FOLDER)
+  const abs = toIdeaAbsolutePath(filePath)
+  // code-server：folder 打开仓库；hash 为尽力打开文件（需已登录）
+  if (abs)
+    return `${base}/?folder=${folder}#${abs}`
+  return `${base}/?folder=${folder}`
+}
+
+/** 确保有可用工作区：优先复用 running，否则创建/启动 */
+export async function ensureIdeaWorkspace(user = 'studio'): Promise<IdeaWorkspace> {
+  const list = await listIdeaWorkspaces(user).catch(() => [] as IdeaWorkspace[])
+  const mine = list.filter(w => w.user === user || !user)
+  const running = mine.find(w => w.status === 'running')
+  if (running)
+    return running
+  const stopped = mine.find(w => w.status !== 'running')
+  if (stopped) {
+    try {
+      return await startIdeaWorkspace(stopped.id)
+    }
+    catch {
+      // fall through to create
+    }
   }
-  window.open(ws.url, '_blank', 'noopener,noreferrer')
+  return createIdeaWorkspace(user)
 }
 
 export function formatIdle(seconds?: number): string {

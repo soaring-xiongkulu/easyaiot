@@ -103,6 +103,8 @@ declare global {
     VITE_IDEA_TOKEN?: string
     /** EasyAIoT HARNESS AI 助手（留空则使用当前访问域名 + 3080 端口） */
     VITE_HARNESS_URL?: string
+    VITE_HARNESS_APP_NAME?: string
+    VITE_HARNESS_LOGO?: string
   }
 
   declare function parseInt(s: string | number, radix?: number): number

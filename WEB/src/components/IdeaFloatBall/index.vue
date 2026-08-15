@@ -4,14 +4,14 @@
       <div
         v-if="hidden"
         class="idea-float-edge"
-        title="显示在线编辑器入口"
+        title="显示 AI 助手入口"
         @mouseenter="peek = true"
         @mouseleave="onEdgeLeave"
         @click="showBall"
       >
         <div class="idea-float-edge__tab" :class="{ 'is-peek': peek }">
           <svg class="idea-float-edge__icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M8 6l-5 6 5 6M16 6l5 6-5 6M14 4l-4 16" />
+            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
           </svg>
         </div>
       </div>
@@ -33,12 +33,12 @@
         @mouseleave="hovering = false"
       >
         <Transition name="idea-label">
-          <div v-if="hovering && !dragging" class="idea-float-label">在线编辑器</div>
+          <div v-if="hovering && !dragging" class="idea-float-label">{{ appName }}</div>
         </Transition>
         <button
           type="button"
           class="idea-float-ball"
-          title="按住左键拖动；单击打开；右键隐藏"
+          :title="`按住左键拖动；单击打开${appName}（:9300）；右键隐藏`"
           @click="onBallClick"
           @contextmenu.prevent="onContextMenu"
           @mousedown="onDragStart"
@@ -48,7 +48,7 @@
           <span class="idea-float-ball__core">
             <span class="idea-float-ball__shine" aria-hidden="true" />
             <svg class="idea-float-ball__icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M8 6l-5 6 5 6M16 6l5 6-5 6M14 4l-4 16" />
+              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
             </svg>
           </span>
         </button>
@@ -62,7 +62,7 @@
         :style="{ left: `${menu.x}px`, top: `${menu.y}px` }"
         @click.stop
       >
-        <button type="button" @click="openIdea">打开在线编辑器</button>
+        <button type="button" @click="openIdea">打开{{ appName }}</button>
         <button type="button" @click="hideBall">隐藏入口</button>
       </div>
     </Transition>
@@ -71,9 +71,11 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { getIdeaPortalUrl } from '@/utils/idea'
+import { getHarnessAppName, openHarnessPortal } from '@/utils/harness'
 
 defineOptions({ name: 'IdeaFloatBall' })
+
+const appName = getHarnessAppName()
 
 const HIDE_KEY = 'easyaiot.idea.float.hidden'
 const POS_KEY = 'easyaiot.idea.float.pos.v5'
@@ -164,7 +166,8 @@ function persistHidden(value: boolean) {
 
 function openIdea() {
   menu.visible = false
-  window.open(getIdeaPortalUrl(), '_blank', 'noopener,noreferrer')
+  // 统一跳转 IDEA 门户组合入口（默认 :9300?harness=1）
+  openHarnessPortal()
 }
 
 function hideBall() {

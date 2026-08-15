@@ -1,5 +1,8 @@
 import type { AppRouteModule } from '@/router/types'
 import { LAYOUT } from '@/router/constant'
+import { getHarnessAppName } from '@/utils/harness'
+
+const harnessTitle = getHarnessAppName()
 
 const harness: AppRouteModule = {
   path: '/harness',
@@ -9,7 +12,7 @@ const harness: AppRouteModule = {
   meta: {
     orderNo: 96,
     icon: 'ant-design:robot-outlined',
-    title: 'AI助手',
+    title: harnessTitle,
     hideChildrenInMenu: true,
   },
   children: [
@@ -18,7 +21,7 @@ const harness: AppRouteModule = {
       name: 'HarnessPortal',
       component: () => import('@/views/harness/index.vue'),
       meta: {
-        title: 'AI助手',
+        title: harnessTitle,
         icon: 'ant-design:robot-outlined',
         hideMenu: true,
       },

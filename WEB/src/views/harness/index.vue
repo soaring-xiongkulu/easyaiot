@@ -7,23 +7,17 @@
             <span class="harness-page__badge-dot" :class="{ 'is-online': health.online }" />
             {{ health.online ? '服务在线' : '服务未就绪' }}
           </div>
-          <h1 class="harness-page__title">AI 助手</h1>
+          <h1 class="harness-page__title">{{ appName }}</h1>
           <p class="harness-page__subtitle">
-            基于 DeepSeek Harness 的平台 Agent · 理解 EasyAIoT 项目本体 · 任意页面右下角可悬浮聊天
+            请通过 IDEA 门户与 AI 助手组合使用（移动端仅显示聊天）。不再支持单独打开 HARNESS。
           </p>
         </div>
         <div class="harness-page__actions">
-          <a-button type="primary" size="large" :loading="refreshing" @click="refreshHealth">
+          <a-button type="primary" size="large" @click="openExternal">
+            打开 IDEA + AI 助手
+          </a-button>
+          <a-button size="large" :loading="refreshing" @click="refreshHealth">
             刷新状态
-          </a-button>
-          <a-button size="large" @click="openFloatDrawer">
-            悬浮窗打开
-          </a-button>
-          <a-button size="large" @click="openExternal">
-            新窗口打开
-          </a-button>
-          <a-button size="large" @click="openIdea">
-            在线 IDEA
           </a-button>
         </div>
       </div>
@@ -34,12 +28,12 @@
         type="warning"
         show-icon
         message="HARNESS 服务可能未启动"
-        description="可先执行 bash HARNESS/install.sh install；下方仍会尝试加载聊天界面。若空白请点击「新窗口打开」。"
+        description="请执行 bash HARNESS/install.sh start，然后从 IDEA 门户打开 AI 助手。"
       />
     </section>
 
     <section class="harness-page__prompts">
-        <span class="harness-page__prompts-label">快捷提问（点击复制到剪贴板，粘贴到下方聊天框）：</span>
+        <span class="harness-page__prompts-label">快捷提问（点击复制，到 IDEA 门户聊天框粘贴）：</span>
         <div class="harness-page__chips">
           <button
             v-for="(item, idx) in prompts"
@@ -53,39 +47,33 @@
         </div>
       </section>
 
-      <section class="harness-page__frame-wrap">
-        <iframe
-          :key="iframeKey"
-          class="harness-page__frame"
-          :src="portalUrl"
-          title="EasyAIoT HARNESS AI 助手"
-          allow="clipboard-read; clipboard-write"
-        />
+      <section class="harness-page__frame-wrap harness-page__frame-wrap--cta">
+        <div class="harness-page__cta">
+          <p>AI 助手仅能在 IDEA 门户中使用</p>
+          <a-button type="primary" size="large" @click="openExternal">进入门户</a-button>
+        </div>
       </section>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { getIdeaPortalUrl } from '@/utils/idea'
 import {
   HARNESS_QUICK_PROMPTS,
   checkHarnessHealth,
   copyHarnessPrompt,
-  getHarnessPortalUrl,
+  getHarnessAppName,
   openHarnessPortal,
-  requestHarnessPanelOpen,
   type HarnessHealth,
 } from '@/utils/harness'
 
 defineOptions({ name: 'HarnessPortalPage' })
 
-const portalUrl = getHarnessPortalUrl()
+const appName = computed(() => getHarnessAppName())
 const prompts = HARNESS_QUICK_PROMPTS
 const health = reactive<HarnessHealth>({ online: false })
 const refreshing = ref(false)
-const iframeKey = ref(0)
 
 async function refreshHealth() {
   refreshing.value = true
@@ -94,9 +82,6 @@ async function refreshHealth() {
     health.online = result.online
     health.status = result.status
     health.latencyMs = result.latencyMs
-    if (result.online) {
-      iframeKey.value += 1
-    }
   } finally {
     refreshing.value = false
   }
@@ -106,19 +91,10 @@ function openExternal() {
   openHarnessPortal()
 }
 
-function openFloatDrawer() {
-  requestHarnessPanelOpen()
-  message.success('已在右下角打开悬浮聊天窗')
-}
-
-function openIdea() {
-  window.open(getIdeaPortalUrl(), '_blank', 'noopener,noreferrer')
-}
-
 async function onCopyPrompt(text: string) {
   try {
     await copyHarnessPrompt(text)
-    message.success('已复制，请粘贴到 AI 助手聊天框')
+    message.success('已复制，请到 IDEA 门户 AI 助手粘贴')
   } catch {
     message.info(text)
   }
@@ -300,6 +276,22 @@ onMounted(() => {
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+}
+
+.harness-page__frame-wrap--cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+.harness-page__cta {
+  text-align: center;
+  padding: 48px 24px;
+  color: #475569;
+}
+.harness-page__cta p {
+  margin: 0 0 16px;
+  font-size: 15px;
 }
 
 .harness-page__frame {

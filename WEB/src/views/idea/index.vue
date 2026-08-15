@@ -2,9 +2,12 @@
   <div class="idea-jump">
     <h2>在线 IDEA</h2>
     <p>
-      操作台在独立门户（默认 :9300）。也可点右下角悬浮球新开页面；右键悬浮球可隐藏，鼠标移到屏幕右侧边缘可再唤出。
+      完整编辑器在独立门户（默认 :9300）。门户工具栏可打开右侧 HARNESS AI 助手，与 code-server 分屏协作。
     </p>
-    <a-button type="primary" @click="openPortal">打开 IDEA 门户</a-button>
+    <a-space>
+      <a-button type="primary" @click="openPortal()">打开 IDEA 门户</a-button>
+      <a-button @click="openPortal(true)">打开并显示 AI 助手</a-button>
+    </a-space>
   </div>
 </template>
 
@@ -13,8 +16,10 @@ import { getIdeaPortalUrl } from '@/utils/idea'
 
 defineOptions({ name: 'IdeaPortalJump' })
 
-function openPortal() {
-  window.open(getIdeaPortalUrl(), '_blank', 'noopener,noreferrer')
+function openPortal(withHarness = false) {
+  const base = getIdeaPortalUrl()
+  const url = withHarness ? `${base}/?harness=1` : base
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 </script>
 

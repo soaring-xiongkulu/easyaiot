@@ -4,7 +4,7 @@
       <div
         v-if="hidden"
         class="harness-chat-edge"
-        title="显示 AI 助手"
+        :title="`显示${appName}`"
         @mouseenter="peek = true"
         @mouseleave="peek = false"
         @click="showEntry"
@@ -27,7 +27,8 @@
         <header class="harness-chat-panel__header">
           <div class="harness-chat-panel__title">
             <span class="harness-chat-panel__dot" :class="{ 'is-online': health.online }" />
-            <span>AI 助手</span>
+            <img v-if="logoUrl" class="harness-chat-panel__logo" :src="logoUrl" alt="" />
+            <span>{{ appName }}</span>
             <span v-if="!health.online" class="harness-chat-panel__offline">未就绪</span>
           </div>
           <div class="harness-chat-panel__actions">
@@ -70,7 +71,7 @@
             :key="iframeKey"
             class="harness-chat-panel__frame"
             :src="portalUrl"
-            title="EasyAIoT HARNESS AI 助手"
+            :title="iframeTitle"
             allow="clipboard-read; clipboard-write"
           />
         </div>
@@ -85,18 +86,19 @@
         @mouseleave="fabHover = false"
       >
         <Transition name="harness-label">
-          <div v-if="fabHover" class="harness-chat-fab-label">AI 助手</div>
+          <div v-if="fabHover" class="harness-chat-fab-label">{{ appName }}</div>
         </Transition>
         <button
           type="button"
           class="harness-chat-fab"
-          title="打开 AI 助手 · 右键更多"
+          :title="`打开${appName} · 右键更多`"
           @click="openPanel"
           @contextmenu.prevent="openMenu"
         >
           <span class="harness-chat-fab__ring" aria-hidden="true" />
           <span class="harness-chat-fab__core">
-            <svg class="harness-chat-fab__icon" viewBox="0 0 24 24" aria-hidden="true">
+            <img v-if="logoUrl" class="harness-chat-fab__logo" :src="logoUrl" alt="" />
+            <svg v-else class="harness-chat-fab__icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
             </svg>
           </span>
@@ -126,6 +128,8 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   HARNESS_PANEL_OPEN_EVENT,
   checkHarnessHealth,
+  getHarnessAppName,
+  getHarnessLogoUrl,
   getHarnessPortalUrl,
   isHarnessFloatHidden,
   isHarnessPanelOpen,
@@ -134,12 +138,17 @@ import {
   setHarnessPanelOpen,
   type HarnessHealth,
 } from '@/utils/harness'
+import { usePlatformBranding } from '@/hooks/web/usePlatformBranding'
 
 defineOptions({ name: 'HarnessFloatChat' })
 
 const router = useRouter()
 const route = useRoute()
+const { config: branding } = usePlatformBranding()
 const portalUrl = getHarnessPortalUrl()
+const appName = computed(() => getHarnessAppName())
+const logoUrl = computed(() => getHarnessLogoUrl() || branding.value.platformLogo)
+const iframeTitle = computed(() => appName.value)
 const hidden = ref(false)
 const panelOpen = ref(false)
 const expanded = ref(false)
@@ -172,8 +181,8 @@ function closeMenu() {
 
 function openPanel() {
   closeMenu()
-  panelOpen.value = true
-  refreshHealth()
+  // 仅允许 IDEA 门户组合入口，不再内嵌独立 HARNESS
+  openHarnessPortal()
 }
 
 function closePanel() {
@@ -183,7 +192,7 @@ function closePanel() {
 function goFullPage() {
   closeMenu()
   panelOpen.value = false
-  router.push('/harness/index')
+  openHarnessPortal()
 }
 
 function openExternal() {
@@ -290,6 +299,13 @@ onUnmounted(() => {
   color: #fff;
   flex-shrink: 0;
   user-select: none;
+}
+
+.harness-chat-panel__logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: contain;
 }
 
 .harness-chat-panel__title {
@@ -467,6 +483,13 @@ onUnmounted(() => {
   box-shadow:
     0 8px 24px rgba(91, 33, 182, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.harness-chat-fab__logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
 .harness-chat-fab__icon {

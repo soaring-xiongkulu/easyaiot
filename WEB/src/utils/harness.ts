@@ -1,8 +1,22 @@
-/** EasyAIoT HARNESS — DeepSeek Harness AI Agent（默认当前主机 :3080） */
+/** EasyAIoT HARNESS — 仅经 IDEA 门户组合访问（默认当前主机 :9300?harness=1） */
+
+import { getIdeaPortalUrl } from '@/utils/idea'
 
 const trimEnv = (value: string | undefined) => (value ?? '').trim()
 
 export const HARNESS_DEFAULT_PORT = 3080
+export const IDEA_HARNESS_QUERY = 'harness=1'
+
+export function getHarnessAppName(): string {
+  const configured = trimEnv(import.meta.env.VITE_HARNESS_APP_NAME)
+  if (configured)
+    return configured
+  return 'AI 助手'
+}
+
+export function getHarnessLogoUrl(): string {
+  return trimEnv(import.meta.env.VITE_HARNESS_LOGO)
+}
 
 const HIDE_KEY = 'easyaiot.harness.float.hidden'
 const PANEL_OPEN_KEY = 'easyaiot.harness.panel.open'
@@ -20,7 +34,8 @@ export function setHarnessPanelOpen(open: boolean) {
   }
   if (open) {
     localStorage.setItem(PANEL_OPEN_KEY, '1')
-  } else {
+  }
+  else {
     localStorage.removeItem(PANEL_OPEN_KEY)
   }
 }
@@ -35,7 +50,15 @@ export function requestHarnessPanelOpen() {
   window.dispatchEvent(new CustomEvent(HARNESS_PANEL_OPEN_EVENT))
 }
 
+/** 组合入口：IDEA 门户（含 HARNESS），不再直连 :3080 */
 export function getHarnessPortalUrl(): string {
+  const idea = getIdeaPortalUrl()
+  const sep = idea.includes('?') ? '&' : '?'
+  return `${idea}${sep}${IDEA_HARNESS_QUERY}`
+}
+
+/** @deprecated 保留探测用；健康检查仍可打 HARNESS 端口 */
+export function getHarnessServiceUrl(): string {
   const configured = trimEnv(import.meta.env.VITE_HARNESS_URL)
   if (configured) {
     return configured.replace(/\/$/, '')
@@ -59,7 +82,7 @@ export type HarnessHealth = {
 
 /** 探测 Harness Web UI 是否可达（跨端口可能因 CORS 误报，仅作参考） */
 export async function checkHarnessHealth(): Promise<HarnessHealth> {
-  const url = getHarnessPortalUrl()
+  const url = `${getHarnessServiceUrl()}/?embed=idea`
   const started = Date.now()
   try {
     const resp = await fetch(url, { method: 'GET', cache: 'no-store' })
@@ -81,10 +104,11 @@ export async function checkHarnessHealth(): Promise<HarnessHealth> {
 export const HARNESS_QUICK_PROMPTS = [
   '用 easyaiot_list_modules 介绍 EasyAIoT 各模块职责与端口',
   '调用 easyaiot_gateway_health 检查 Gateway 是否正常',
+  '调用 easyaiot_dev_portals 告诉我 WEB / IDEA / HARNESS 怎么打开',
   '阅读 README_zh.md，用三句话概括 EasyAIoT 平台定位',
+  '打开 HARNESS/README.md，说明如何新建会话才能看到全仓源码',
   '我想新增一个摄像头接入流程，应该改 WEB 还是 VIDEO 模块？',
-  'mini / standard / full 三种部署形态有什么区别？',
-  '帮我在 WEB 里找告警中心相关的路由与页面文件',
+  '帮我在 WEB 里找告警中心相关的路由与页面文件，并在侧边栏打开',
 ] as const
 
 export function isHarnessFloatHidden(): boolean {
