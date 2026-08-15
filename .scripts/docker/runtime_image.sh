@@ -715,16 +715,14 @@ build_module_with_install_script() {
     # subshell 内导出子进程环境，避免 FORCE_REBUILD=0|1 污染本脚本的布尔变量
     (
         if is_force_rebuild; then export FORCE_REBUILD=1; else export FORCE_REBUILD=0; fi
-        # ★ 跨架构平台导出策略：
-        #   - 架构专属脚本（install_linux_arm.sh）自带 DOCKER_PLATFORM 和基础镜像，不导出避免覆盖；
-        #     但需设置 EASYAIOT_CROSS_BUILD=1 告诉脚本允许在 x86 宿主机上交叉构建 arm64 镜像。
-        #   - 通用脚本（install_linux.sh）跨架构时需导出 DOCKER_PLATFORM 供 --platform 使用
-        if ! is_native_arch "$target_arch"; then
-            if [ "$install_script" = "install_linux.sh" ]; then
-                export DOCKER_PLATFORM="$(arch_to_platform "$target_arch")"
-            else
-                export EASYAIOT_CROSS_BUILD=1
-            fi
+        # ★ 平台导出策略（本机也导出，保证 Docker 29/containerd 写入正确 platform）：
+        #   - 架构专属脚本（install_linux_arm.sh）自带 DOCKER_PLATFORM/基础镜像，不覆盖；
+        #     跨架构时设 EASYAIOT_CROSS_BUILD=1 允许在 x86 上交叉构建。
+        #   - 通用脚本（install_linux.sh）导出 DOCKER_PLATFORM 供 docker build --platform
+        if [ "$install_script" = "install_linux.sh" ]; then
+            export DOCKER_PLATFORM="$(arch_to_platform "$target_arch")"
+        elif ! is_native_arch "$target_arch"; then
+            export EASYAIOT_CROSS_BUILD=1
         fi
         cd "$module_path"
         bash "$install_script" build 2>&1 | tee "$build_log"
@@ -1203,18 +1201,17 @@ build_all_modules() {
         print_header "${target_arch} (${arch_label})"
         echo ""
 
-        # ★ 每次循环重置 DOCKER_PLATFORM，避免上一轮跨架构值泄漏到本机架构构建
-        unset DOCKER_PLATFORM
-        # 跨架构：检查磁盘空间、配置 QEMU/binfmt、导出目标平台
+        # ★ 本机/跨架构一律导出 DOCKER_PLATFORM（Docker 29+ 需显式 platform 元数据，避免 push 报 does not provide any platform）
+        local target_platform; target_platform="$(arch_to_platform "$target_arch")"
+        export DOCKER_PLATFORM="$target_platform"
+        # 跨架构：检查磁盘空间、配置 QEMU/binfmt
         if ! is_native_arch "$target_arch"; then
-            local cross_platform; cross_platform="$(arch_to_platform "$target_arch")"
-            if ! runtime_ensure_qemu_binfmt "$cross_platform"; then
+            if ! runtime_ensure_qemu_binfmt "$target_platform"; then
                 print_error "跨架构构建前置检查失败 (${target_arch})，跳过本架构"
                 failed_all=$((failed_all + $(count_planned_images_for_arch "${build_profiles[@]}")))
                 continue
             fi
             ensure_docker_disk_space "$target_arch"
-            export DOCKER_PLATFORM="$cross_platform"
 
             # ★ 仅当本次构建包含 AI 时预拉取 pytorch 基础镜像（约 10GB+）
             # 单模块 WEB/DEVICE/APP 等不应误触发 AI 依赖拉取
