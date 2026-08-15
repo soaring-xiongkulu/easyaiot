@@ -889,61 +889,6 @@ runtime_images_collect_check_refs() {
     fi
 }
 
-runtime_images_refresh_local() {
-    command -v docker >/dev/null 2>&1 || return 0
-    docker info >/dev/null 2>&1 || return 0
-
-    runtime_load_registry >/dev/null 2>&1 || true
-    local registry=""
-    registry=$(runtime_normalize_registry "${EASYAIOT_RUNTIME_REGISTRY:-${RUNTIME_IMAGE_REGISTRY:-}}" 2>/dev/null || true)
-    local registry_prefix="${registry%/}"
-
-    local -a local_repos=()
-    local mapping tmp lname lr
-    local_repos+=("${DEVICE_LOCAL_NAMES[@]}")
-    for mapping in "${INDEPENDENT_MODULES[@]}" "${FULL_ONLY_MODULES[@]}"; do
-        tmp="${mapping#*|}"
-        lname="${tmp%%|*}"
-        [ -n "$lname" ] && local_repos+=("$lname")
-    done
-
-    local repo_tag repo img_id match cids
-    while IFS='|' read -r repo_tag img_id; do
-        [ -z "${repo_tag:-}" ] && continue
-        [ "$repo_tag" = "<none>:<none>" ] && continue
-        repo="${repo_tag%:*}"
-        match=0
-        for lr in "${local_repos[@]}"; do
-            if [ "$repo" = "$lr" ]; then
-                match=1
-                break
-            fi
-        done
-        if [ "$match" -eq 0 ] && [ -n "$registry_prefix" ]; then
-            case "$repo" in
-                "${registry_prefix}"/*) match=1 ;;
-            esac
-        fi
-        [ "$match" -eq 1 ] || continue
-
-        cids=$(docker ps -aq --filter "ancestor=${repo_tag}" 2>/dev/null || true)
-        if [ -z "$cids" ] && [ -n "${img_id:-}" ]; then
-            cids=$(docker ps -aq --filter "ancestor=${img_id}" 2>/dev/null || true)
-        fi
-        if [ -n "$cids" ]; then
-            # shellcheck disable=SC2086
-            docker rm -f $cids >/dev/null 2>&1 || true
-        fi
-        docker rmi -f "$repo_tag" >/dev/null 2>&1 || true
-        if [ -n "${img_id:-}" ]; then
-            docker rmi -f "$img_id" >/dev/null 2>&1 || true
-        fi
-    done < <(docker images --format '{{.Repository}}:{{.Tag}}|{{.ID}}' 2>/dev/null || true)
-
-    rm -f "${RUNTIME_IMAGES_MARKER}" >/dev/null 2>&1 || true
-    return 0
-}
-
 # 删除与当前系统架构不一致的本地预构建镜像；清除无效拉取标记
 runtime_images_ensure_arch_consistency() {
     local expected_arch="${1:-$(runtime_detect_arch)}"
