@@ -10,9 +10,9 @@
 #   ./install_business_linux.sh <命令> [选项] [模块...]
 #
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
-#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件；IDEA 优先
-#   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/iot-visualize 等（含 EMQX）；IDEA 优先
-#   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE、TRANSFORM）；IDEA 优先
+#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件；HARNESS 先于 IDEA
+#   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/iot-visualize 等（含 EMQX）；HARNESS 先于 IDEA
+#   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE、TRANSFORM）；HARNESS 先于 IDEA
 #
 # 示例:
 #   ./install_business_linux.sh install              # 安装全部业务模块
@@ -98,8 +98,8 @@ ensure_industrial_demo_after_business_stack() {
     fi
 }
 
-# 业务模块（按依赖顺序：IDEA 优先 -> 网关/微服务 -> AI/RTC/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(IDEA HARNESS DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+# 业务模块（按依赖顺序：HARNESS 先于 IDEA -> 网关/微服务 -> AI/RTC/视频 -> 前端 -> 全量模块 -> 运维控制台）
+ALL_MODULES=(HARNESS IDEA DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
 
 declare -A MODULE_NAMES=(
     [IDEA]="IDEA 在线 IDE"
@@ -576,8 +576,8 @@ run_on_modules() {
             :
         else
             failed+=("$module")
-            if [ "$module" = "IDEA" ] || [ "$module" = "HARNESS" ]; then
-                print_error "${MODULE_NAMES[$module]:-$module} 失败，已停止后续模块"
+            if [ "$module" = "HARNESS" ] || [ "$module" = "IDEA" ]; then
+                print_error "${MODULE_NAMES[$module]:-$module} 为编排前置模块，失败已中止后续部署"
                 break
             fi
             if $STOP_ON_ERROR; then
@@ -684,7 +684,7 @@ usage() {
     cat <<EOF
 EasyAIoT 业务系统统一管理脚本
 
-管理模块: IDEA、HARNESS、DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE/TRANSFORM 仅 full）
+管理模块: HARNESS、IDEA、DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE/TRANSFORM 仅 full）
 
 用法:
   $0 <命令> [选项] [模块...]
@@ -713,7 +713,7 @@ EasyAIoT 业务系统统一管理脚本
   --continue-on-error    某模块失败后继续执行其余模块
 
 模块:
-  未指定时默认全部（按部署形态过滤），顺序为 IDEA -> HARNESS -> DEVICE -> AI -> RTC -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
+  未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> DEVICE -> AI -> RTC -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
   stop / clean / clean-all 时自动逆序执行
   IDEA 失败时强制中止后续模块（不受 --continue-on-error 影响）
 

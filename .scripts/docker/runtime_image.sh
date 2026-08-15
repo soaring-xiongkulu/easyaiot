@@ -1132,7 +1132,7 @@ build_all_modules() {
     if runtime_is_single_module_build; then
         echo "  构建模块: ${EASYAIOT_RUNTIME_BUILD_MODULE}（单模块）"
     else
-        echo "  构建模块: 全部 (IDEA + HARNESS + DEVICE + AI + RTC + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL)"
+        echo "  构建模块: 全部 (HARNESS + IDEA + DEVICE + AI + RTC + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL)"
     fi
     if runtime_is_single_arch_build; then
         echo "  架构模式: 单架构（跳过多架构 manifest 更新）"

@@ -37,9 +37,9 @@ DEVICE_COMPOSE_SERVICES=(
 )
 
 INDEPENDENT_MODULES=(
+    "aiot-harness|easyaiot/harness|HARNESS"
     "aiot-idea-portal|easyaiot/idea-portal|IDEA"
     "aiot-idea-workspace|easyaiot/idea-workspace|IDEA"
-    "aiot-harness|easyaiot/harness|HARNESS"
     "aiot-ai|ai-service|AI"
     "aiot-rtc|rtc-service|RTC"
     "aiot-video|video-service|VIDEO"
@@ -108,7 +108,7 @@ runtime_is_single_arch_build() {
 }
 
 # build-runtime 可选单模块（IDEA/PANEL 全形态；APP/VISUALIZE/TRANSFORM 仅 full）
-ALL_RUNTIME_BUILD_MODULES=(IDEA HARNESS DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+ALL_RUNTIME_BUILD_MODULES=(HARNESS IDEA DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
 
 # 规范化 build-runtime 目标模块（空/all=全部；无效返回 INVALID）
 runtime_normalize_build_module() {
@@ -551,7 +551,7 @@ runtime_interactive_select_build_module() {
 
     echo ""
     echo "请选择要构建/推送的运行时模块："
-    echo "  1) 全部     — IDEA + HARNESS + DEVICE + AI + RTC + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL（默认）"
+    echo "  1) 全部     — HARNESS + IDEA + DEVICE + AI + RTC + VIDEO + WEB + APP + VISUALIZE + TRANSFORM + PANEL（默认）"
     idx=2
     declare -A _MODULE_CHOICES=()
     for mod in "${ALL_RUNTIME_BUILD_MODULES[@]}"; do

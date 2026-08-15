@@ -15,7 +15,7 @@
 #   status     - 查看所有服务状态
 #   logs       - 查看服务日志
 #   build           - 重新构建所有镜像（各模块本地构建）
-#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 IDEA|HARNESS|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
+#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
 #   clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件）
@@ -161,10 +161,10 @@ echo "命令: $*" >> "$LOG_FILE"
 echo "=========================================" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
 
-# 模块列表（按依赖顺序）
+# 模块列表（按依赖顺序：HARNESS 先于 IDEA；前置失败则中止后续部署）
 MODULES=(
+    "HARNESS"          # DeepSeek Harness AI Agent（IDEA 分屏依赖，须优先就绪）
     "IDEA"             # 社区贡献在线 IDE
-    "HARNESS"          # DeepSeek Harness AI Agent
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
     "AI"               # AI服务
@@ -180,7 +180,7 @@ MODULES=(
 # 编排前置模块（install/start/restart/build/update 失败时终止后续步骤）
 is_bootstrap_module() {
     case "$1" in
-        IDEA|HARNESS) return 0 ;;
+        HARNESS|IDEA) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -1049,6 +1049,7 @@ install_linux() {
         else
             print_error "${MODULE_NAMES[$module]} 安装失败"
             if is_bootstrap_module "$module"; then
+                print_error "${MODULE_NAMES[$module]} 为编排前置模块，失败已中止后续部署"
                 echo ""
                 print_info "完整日志文件: ${LOG_FILE}"
                 exit 1
@@ -1426,11 +1427,11 @@ start_all() {
     create_network
 
     local module
-    for module in IDEA HARNESS; do
+    for module in HARNESS IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "启动 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "start"; then
-                print_error "${MODULE_NAMES[$module]} 启动失败"
+                print_error "${MODULE_NAMES[$module]} 启动失败，已中止后续部署"
                 return 1
             fi
             echo ""
@@ -1559,7 +1560,7 @@ restart_all() {
             fi
         else
             if is_bootstrap_module "$module"; then
-                print_error "${MODULE_NAMES[$module]} 重启失败"
+                print_error "${MODULE_NAMES[$module]} 重启失败，已中止后续部署"
                 return 1
             fi
             print_warning "${MODULE_NAMES[$module]} 重启失败，继续其余模块"
@@ -1638,7 +1639,7 @@ build_all() {
             module_enabled_for_deploy_profile "$module" || continue
             if ! execute_module_command "$module" "build"; then
                 if is_bootstrap_module "$module"; then
-                    print_error "${MODULE_NAMES[$module]} 构建失败"
+                    print_error "${MODULE_NAMES[$module]} 构建失败，已中止后续构建"
                     exit 1
                 fi
                 print_warning "${MODULE_NAMES[$module]} 构建失败，继续其余模块"
@@ -1740,11 +1741,11 @@ update_all() {
     fi
     
     local module
-    for module in IDEA HARNESS; do
+    for module in HARNESS IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "更新 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "update"; then
-                print_error "${MODULE_NAMES[$module]} 更新失败"
+                print_error "${MODULE_NAMES[$module]} 更新失败，已中止后续部署"
                 return 1
             fi
             echo ""
@@ -2006,7 +2007,7 @@ show_help() {
     echo "  logs            - 查看所有服务日志"
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
-    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 IDEA|HARNESS|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
+    echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 HARNESS|IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
@@ -2046,7 +2047,7 @@ show_help() {
     echo "  EASYAIOT_APPLY_INDUSTRIAL_SEED=0   - 启动演示时不写入/刷新工业协议演示设备种子"
     echo "  EASYAIOT_RUNTIME_REGISTRY    - 运行时镜像仓库（默认见 runtime_registry.conf）"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | IDEA | HARNESS | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | HARNESS | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
     echo "  VIDEO_BASE_URL               - runtime 原子模式：中心 VIDEO 汇聚地址（如 http://192.168.1.10:6000）"
     echo "  EASYAIOT_RUNTIME_INSTALL_DIR - runtime 原子模式安装目录（默认 /opt/easyaiot/RUNTIME）"
