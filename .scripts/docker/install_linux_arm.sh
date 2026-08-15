@@ -86,7 +86,7 @@ echo "命令: $*" >> "$LOG_FILE"
 echo "=========================================" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
 
-# 模块列表（按依赖顺序：HARNESS 先于 IDEA；前置失败则中止后续部署）
+# 模块列表（按依赖顺序：HARNESS 先于 IDEA；任一模块失败则跳过并继续后续模块）
 MODULES=(
     "HARNESS"          # DeepSeek Harness AI Agent（IDEA 分屏依赖，须优先就绪）
     "IDEA"             # 社区贡献在线 IDE
@@ -102,7 +102,7 @@ MODULES=(
     "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
 
-# 编排前置模块（install/start/restart/build/update 失败时终止后续步骤）
+# 编排前置模块（仅控制启动顺序；失败不再中止后续模块）
 is_bootstrap_module() {
     case "$1" in
         HARNESS|IDEA) return 0 ;;
@@ -971,12 +971,10 @@ install_linux() {
                 wait_for_base_services
             fi
         else
-            print_error "${MODULE_NAMES[$module]} 安装失败"
-            if is_bootstrap_module "$module"; then
-                print_error "${MODULE_NAMES[$module]} 为编排前置模块，失败已中止后续部署"
-                echo ""
-                print_info "完整日志文件: ${LOG_FILE}"
-                exit 1
+            print_error "${MODULE_NAMES[$module]} 安装失败，已跳过并继续后续模块"
+            if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+                print_error "日志末尾 (${LOG_FILE}):"
+                tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
             fi
             failed_modules+=("${MODULE_NAMES[$module]}")
         fi
@@ -1150,14 +1148,17 @@ start_all() {
     prepare_runtime_environment
     create_network
 
-    # HARNESS 先于 IDEA（失败则中止后续模块）
+    # HARNESS 先于 IDEA（失败跳过并继续后续模块）
     local module
     for module in HARNESS IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "启动 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "start"; then
-                print_error "${MODULE_NAMES[$module]} 启动失败，已中止后续部署"
-                return 1
+                print_error "${MODULE_NAMES[$module]} 启动失败，已跳过并继续后续模块"
+                if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+                    print_error "日志末尾 (${LOG_FILE}):"
+                    tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
+                fi
             fi
             echo ""
         fi
@@ -1166,8 +1167,11 @@ start_all() {
     # 先启动基础服务（.scripts/docker）
     print_section "启动基础服务"
     if ! execute_module_command ".scripts/docker" "start"; then
-        print_error "基础服务启动失败，中止后续模块启动"
-        return 1
+        print_error "基础服务启动失败，已跳过并继续后续模块"
+        if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+            print_error "日志末尾 (${LOG_FILE}):"
+            tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
+        fi
     fi
     echo ""
 
@@ -1195,7 +1199,7 @@ start_all() {
             echo ""
         done
     fi
-    
+
     print_success "所有服务启动完成"
     ensure_platform_agent_after_stack
 }
@@ -1259,11 +1263,11 @@ restart_all() {
                 wait_for_base_services
             fi
         else
-            if is_bootstrap_module "$module"; then
-                print_error "${MODULE_NAMES[$module]} 重启失败，已中止后续部署"
-                return 1
+            print_warning "${MODULE_NAMES[$module]} 重启失败，已跳过并继续其余模块"
+            if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+                print_error "日志末尾 (${LOG_FILE}):"
+                tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
             fi
-            print_warning "${MODULE_NAMES[$module]} 重启失败，继续其余模块"
         fi
         echo ""
     done
@@ -1337,11 +1341,11 @@ build_all() {
         for module in "${MODULES[@]}"; do
             module_enabled_for_deploy_profile "$module" || continue
             if ! execute_module_command "$module" "build"; then
-                if is_bootstrap_module "$module"; then
-                    print_error "${MODULE_NAMES[$module]} 构建失败，已中止后续构建"
-                    exit 1
+                print_warning "${MODULE_NAMES[$module]} 构建失败，已跳过并继续其余模块"
+                if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+                    print_error "日志末尾 (${LOG_FILE}):"
+                    tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
                 fi
-                print_warning "${MODULE_NAMES[$module]} 构建失败，继续其余模块"
             fi
             echo ""
         done
@@ -1440,15 +1444,18 @@ update_all() {
         print_info "将进行本地重建更新（各模块 docker build，耗时较长）"
     fi
     
-    # HARNESS 先于 IDEA（失败则中止后续模块）
+    # HARNESS 先于 IDEA（失败跳过并继续后续模块）
     collect_biz_modules
     local module
     for module in HARNESS IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "更新 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "update"; then
-                print_error "${MODULE_NAMES[$module]} 更新失败，已中止后续部署"
-                return 1
+                print_error "${MODULE_NAMES[$module]} 更新失败，已跳过并继续后续模块"
+                if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+                    print_error "日志末尾 (${LOG_FILE}):"
+                    tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
+                fi
             fi
             echo ""
         fi

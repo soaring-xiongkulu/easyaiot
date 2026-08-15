@@ -152,7 +152,7 @@ MODULE_POSITIONAL=()
 COMMAND=""
 EXTRA_ARGS=()
 AUTO_YES=false
-STOP_ON_ERROR=true
+STOP_ON_ERROR=false
 
 log_to_file() {
     local clean
@@ -576,9 +576,10 @@ run_on_modules() {
             :
         else
             failed+=("$module")
-            if [ "$module" = "HARNESS" ] || [ "$module" = "IDEA" ]; then
-                print_error "${MODULE_NAMES[$module]:-$module} 为编排前置模块，失败已中止后续部署"
-                break
+            print_error "${MODULE_NAMES[$module]:-$module} 失败，已跳过并继续后续模块"
+            if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+                print_error "日志末尾 (${LOG_FILE}):"
+                tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
             fi
             if $STOP_ON_ERROR; then
                 break
@@ -710,12 +711,13 @@ EasyAIoT 业务系统统一管理脚本
 选项:
   -m, --modules <列表>   逗号分隔模块，如 DEVICE,WEB
   -y, --yes              清理操作无需确认
-  --continue-on-error    某模块失败后继续执行其余模块
+  --continue-on-error    某模块失败后继续执行其余模块（默认已开启）
+  --stop-on-error        某模块失败后立即中止（恢复旧行为）
 
 模块:
   未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> DEVICE -> AI -> RTC -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
   stop / clean / clean-all 时自动逆序执行
-  IDEA 失败时强制中止后续模块（不受 --continue-on-error 影响）
+  默认某模块失败后继续其余模块；可用环境/行为保持兼容，--continue-on-error 仍可用
 
 示例:
   $0 install
@@ -755,6 +757,10 @@ parse_args() {
                 ;;
             --continue-on-error)
                 STOP_ON_ERROR=false
+                shift
+                ;;
+            --stop-on-error)
+                STOP_ON_ERROR=true
                 shift
                 ;;
             -m|--modules)
@@ -843,7 +849,10 @@ main() {
             configure_docker_mirror
             runtime_images_prepare_pull_interactive
             runtime_images_export_for_invoke
-            runtime_images_invoke pull || exit 1
+            if ! runtime_images_invoke pull; then
+                runtime_images_dump_pull_failure pull
+                exit 1
+            fi
             export EASYAIOT_SKIP_BUILD=1
             export EASYAIOT_SKIP_IMAGE_PROMPT=1
             ;;

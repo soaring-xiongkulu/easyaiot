@@ -55,7 +55,7 @@ if [ -f "${PROJECT_ROOT}/.scripts/node/ensure_platform_agent_invoke.sh" ]; then
   source "${PROJECT_ROOT}/.scripts/node/ensure_platform_agent_invoke.sh"
 fi
 
-# 模块列表（按依赖顺序：HARNESS 先于 IDEA；前置失败则中止后续部署）
+# 模块列表（按依赖顺序：HARNESS 先于 IDEA；任一模块失败则跳过并继续后续模块）
 MODULES=(
   "HARNESS"
   "IDEA"
@@ -1334,10 +1334,22 @@ desktop_pull_runtime_images() {
   if runtime_images_pulled_ready; then
     export EASYAIOT_SKIP_BUILD=1
     print_warning "部分镜像拉取失败，但核心预构建镜像已就绪，将继续"
+    if declare -F runtime_images_last_log_path >/dev/null 2>&1; then
+      _desk_log=$(runtime_images_last_log_path 2>/dev/null || true)
+      [ -n "${_desk_log:-}" ] && print_warning "拉取详情日志: ${_desk_log}"
+    fi
+    if declare -F runtime_images_report_missing_refs >/dev/null 2>&1; then
+      runtime_images_report_missing_refs \
+        "${EASYAIOT_DEPLOY_PROFILE:-full}" \
+        "${EASYAIOT_RUNTIME_TAG:-latest}"
+    fi
     return 0
   fi
   print_error "预构建镜像拉取失败，且桌面端禁止本地构建"
   print_info "请检查网络 / Docker Desktop 镜像加速 / runtime_registry.conf 后重试: pull"
+  if declare -F runtime_images_dump_pull_failure >/dev/null 2>&1; then
+    runtime_images_dump_pull_failure desktop
+  fi
   return 1
 }
 
@@ -1405,11 +1417,10 @@ desktop_install() {
         wait_for_device_gateway || print_warning "iot-gateway 未就绪，WEB /dev-api 可能暂时 503"
       fi
     else
-      if is_bootstrap_module "$module"; then
-        print_error "$(module_name "$module") 为编排前置模块，失败已中止后续部署"
-        echo ""
-        print_info "完整日志文件: ${LOG_FILE}"
-        return 1
+      print_error "$(module_name "$module") 安装失败，已跳过并继续后续模块"
+      if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+        print_error "日志末尾 (${LOG_FILE}):"
+        tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
       fi
       failed_modules+=("$(module_name "$module")")
     fi
@@ -1449,14 +1460,17 @@ desktop_start() {
   sync_deploy_profile_to_modules
   prepare_desktop_environment
 
-  # HARNESS 先于 IDEA（失败则中止后续模块）
+  # HARNESS 先于 IDEA（失败跳过并继续后续模块）
   local module
   for module in HARNESS IDEA; do
     if module_enabled_for_deploy_profile "$module"; then
       print_section "启动 $(module_name "$module")"
       if ! execute_module_command "$module" "start"; then
-        print_error "$(module_name "$module") 启动失败，已中止后续部署"
-        return 1
+        print_error "$(module_name "$module") 启动失败，已跳过并继续后续模块"
+        if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+          print_error "日志末尾 (${LOG_FILE}):"
+          tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
+        fi
       fi
       echo ""
     fi
@@ -1464,8 +1478,11 @@ desktop_start() {
 
   print_section "启动基础服务"
   if ! execute_module_command ".scripts/docker" "start"; then
-    print_error "基础服务启动失败"
-    return 1
+    print_error "基础服务启动失败，已跳过并继续后续模块"
+    if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+      print_error "日志末尾 (${LOG_FILE}):"
+      tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
+    fi
   fi
   wait_for_base_services
   echo ""
@@ -1574,14 +1591,17 @@ desktop_update() {
     return 1
   fi
 
-  # HARNESS 先于 IDEA（失败则中止后续模块）
+  # HARNESS 先于 IDEA（失败跳过并继续后续模块）
   local module
   for module in HARNESS IDEA; do
     if module_enabled_for_deploy_profile "$module"; then
       print_section "更新 $(module_name "$module")"
       if ! execute_module_command "$module" "update"; then
-        print_error "$(module_name "$module") 更新失败，已中止后续部署"
-        return 1
+        print_error "$(module_name "$module") 更新失败，已跳过并继续后续模块"
+        if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+          print_error "日志末尾 (${LOG_FILE}):"
+          tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
+        fi
       fi
     fi
   done
