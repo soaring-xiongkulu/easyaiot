@@ -351,6 +351,186 @@ docker_available() {
   docker info >/dev/null 2>&1 || return 1
 }
 
+# RUNTIME 编译失败时的详细诊断（仅 VIDEO/RUNTIME 链路使用）
+dump_runtime_build_failure() {
+  local context="${1:-build}"
+  echo ""
+  print_error "========================================"
+  print_error "  RUNTIME 编译失败 — 详细诊断 (${context})"
+  print_error "========================================"
+  print_error "时间: $(date '+%Y-%m-%d %H:%M:%S')"
+  print_error "系统: $(uname -s) $(uname -m) $(uname -r 2>/dev/null || true)"
+  if [[ -f /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    print_error "发行版: ${PRETTY_NAME:-${ID:-?} ${VERSION_ID:-}}"
+  fi
+  print_error "构建模式: ${BUILD_MODE:-?}  ORT_ROOT=${ORT_ROOT:-?}  CONDA_ENV=${CONDA_ENV_NAME:-?}"
+  print_error "用户: $(id -un 2>/dev/null || echo ?) uid=$(id -u)"
+
+  if command -v docker >/dev/null 2>&1; then
+    print_error "docker: $(command -v docker) — $(docker --version 2>/dev/null || echo '?')"
+    while IFS= read -r line; do
+      print_error "  ${line}"
+    done < <(docker info 2>&1 | head -n 30 || true)
+  else
+    print_error "docker: 未安装或不在 PATH"
+  fi
+
+  if command -v conda >/dev/null 2>&1; then
+    print_error "conda: $(conda --version 2>/dev/null || true)"
+  else
+    print_error "conda: 未检测到（host 模式需要）"
+  fi
+
+  if [[ -d "$ROOT/build" ]]; then
+    print_error "build 目录:"
+    ls -la "$ROOT/build" 2>/dev/null | tail -n 25 | while IFS= read -r line; do
+      print_error "  ${line}"
+    done || true
+  fi
+  print_error "可尝试: EASYAIOT_RUNTIME_BUILD_MODE=host $0 install"
+  print_error "或跳过: EASYAIOT_RUNTIME_SKIP=1"
+  echo ""
+}
+
+_runtime_try_install_pkgs() {
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    return 1
+  fi
+  if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+    print_warning "自动安装软件包需要 root（sudo），当前非 root，跳过"
+    return 1
+  fi
+  local pkgs=("$@")
+  if command -v apt-get >/dev/null 2>&1; then
+    print_info "apt-get 安装: ${pkgs[*]}"
+    DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1 || true
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
+  elif command -v dnf >/dev/null 2>&1; then
+    print_info "dnf 安装: ${pkgs[*]}"
+    dnf install -y "${pkgs[@]}"
+  elif command -v yum >/dev/null 2>&1; then
+    print_info "yum 安装: ${pkgs[*]}"
+    yum install -y "${pkgs[@]}"
+  else
+    print_warning "无 apt/dnf/yum，无法自动安装: ${pkgs[*]}"
+    return 1
+  fi
+}
+
+_runtime_auto_install_docker() {
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    print_error "非 Linux，请安装 Docker Desktop 后重试"
+    return 1
+  fi
+  if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+    print_error "自动安装 Docker 需要 root：sudo $0 install"
+    print_error "  或: curl -fsSL https://get.docker.com | sudo sh"
+    return 1
+  fi
+  if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+    _runtime_try_install_pkgs curl ca-certificates || true
+  fi
+  print_info "开始自动安装 Docker（get.docker.com）..."
+  local log="${REPO}/.scripts/docker/logs/runtime_docker_install_$(date +%Y%m%d_%H%M%S).log"
+  mkdir -p "$(dirname "$log")" 2>/dev/null || true
+  {
+    echo "==== runtime auto-install docker $(date '+%Y-%m-%d %H:%M:%S') ===="
+  } >>"$log" 2>/dev/null || true
+  if command -v curl >/dev/null 2>&1; then
+    if ! curl -fsSL https://get.docker.com 2>>"$log" | sh 2>>"$log"; then
+      print_error "Docker 自动安装失败，日志: $log"
+      tail -n 40 "$log" 2>/dev/null | while IFS= read -r line; do print_error "  $line"; done || true
+      return 1
+    fi
+  else
+    if ! wget -qO- https://get.docker.com 2>>"$log" | sh 2>>"$log"; then
+      print_error "Docker 自动安装失败，日志: $log"
+      tail -n 40 "$log" 2>/dev/null | while IFS= read -r line; do print_error "  $line"; done || true
+      return 1
+    fi
+  fi
+  systemctl enable docker >/dev/null 2>&1 || true
+  systemctl start docker >/dev/null 2>&1 || service docker start >/dev/null 2>&1 || true
+  if ! command -v docker >/dev/null 2>&1; then
+    print_error "安装脚本已执行，但 docker 命令仍不可用（详见 $log）"
+    return 1
+  fi
+  print_success "Docker 已安装: $(docker --version 2>/dev/null || echo ok)"
+  return 0
+}
+
+# VIDEO→RUNTIME 部署前：检查并尽量自动补齐本机编译依赖（仅 RUNTIME，不波及其他模块）
+prepare_runtime_build_env() {
+  print_info "===== RUNTIME 部署前环境检查 ====="
+  local fail=0
+  local mode="${BUILD_MODE:-docker}"
+
+  # 基础工具
+  local missing=()
+  command -v tar >/dev/null 2>&1 || missing+=(tar)
+  if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+    missing+=(curl)
+  fi
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    print_warning "缺少工具: ${missing[*]}，尝试自动安装..."
+    if [[ "${EASYAIOT_AUTO_INSTALL_DEPS:-1}" == "1" ]]; then
+      _runtime_try_install_pkgs "${missing[@]}" || fail=1
+    else
+      fail=1
+    fi
+  else
+    print_success "基础工具就绪 (curl/wget + tar)"
+  fi
+
+  case "$mode" in
+    docker|container)
+      if docker_available; then
+        print_success "Docker 可用: $(docker --version 2>/dev/null || true)"
+      else
+        if command -v docker >/dev/null 2>&1; then
+          print_warning "已安装 docker 但 daemon 不可用，尝试启动..."
+          if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+            systemctl start docker >/dev/null 2>&1 || service docker start >/dev/null 2>&1 || true
+          fi
+        fi
+        if ! docker_available; then
+          print_warning "Docker 不可用，尝试自动安装..."
+          if [[ "${EASYAIOT_AUTO_INSTALL_DEPS:-1}" == "1" ]]; then
+            _runtime_auto_install_docker || true
+          else
+            print_error "Docker 不可用且 EASYAIOT_AUTO_INSTALL_DEPS=0"
+          fi
+        fi
+        if docker_available; then
+          print_success "Docker 已就绪"
+        else
+          print_error "Docker 仍不可用（docker 模式编译需要）"
+          fail=1
+        fi
+      fi
+      ;;
+    host|native)
+      if find_conda_sh >/dev/null 2>&1; then
+        print_success "conda 可用（host 编译）"
+      else
+        print_error "host 模式需要 Miniconda/Anaconda，未找到 conda"
+        print_error "  安装: https://docs.conda.io/en/latest/miniconda.html"
+        print_error "  或改用: EASYAIOT_RUNTIME_BUILD_MODE=docker"
+        fail=1
+      fi
+      ;;
+  esac
+
+  if [[ "$fail" -ne 0 ]]; then
+    dump_runtime_build_failure prepare
+    return 1
+  fi
+  print_success "RUNTIME 环境检查通过"
+  return 0
+}
+
 build_runtime_in_docker() {
   if ! docker_available; then
     print_error "docker 不可用，无法使用同源容器编译。可设 EASYAIOT_RUNTIME_BUILD_MODE=host 回退本机编译"
@@ -465,6 +645,11 @@ build_runtime_on_host() {
 }
 
 build_runtime() {
+  # 部署前检查/自动补齐（仅 RUNTIME；失败给出详细诊断）
+  if ! prepare_runtime_build_env; then
+    return 1
+  fi
+
   activate_runtime_env
   ensure_ort_sdk
   # Prefer GPU at runtime by default
@@ -474,11 +659,17 @@ build_runtime() {
   case "$BUILD_MODE" in
     docker|container)
       BUILD_MODE=docker
-      build_runtime_in_docker
+      if ! build_runtime_in_docker; then
+        dump_runtime_build_failure docker
+        return 1
+      fi
       ;;
     host|native)
       BUILD_MODE=host
-      build_runtime_on_host
+      if ! build_runtime_on_host; then
+        dump_runtime_build_failure host
+        return 1
+      fi
       ;;
     *)
       print_error "未知 EASYAIOT_RUNTIME_BUILD_MODE=$BUILD_MODE（可选 docker|host）"
@@ -772,23 +963,32 @@ main() {
 
   local cmd="${1:-install}"
   case "$cmd" in
-    install|build)
-      build_runtime
+    install|build|update)
+      if ! build_runtime; then
+        print_error "RUNTIME 编译失败"
+        dump_runtime_build_failure "$cmd"
+        exit 1
+      fi
+      ;;
+    start|status|restart)
+      # 非常驻服务：start/restart 等同状态检查，失败不阻断上层继续部署
+      status_runtime || true
+      ;;
+    stop|clean|logs)
+      print_info "RUNTIME 无独立容器服务，${cmd} 为空操作"
       ;;
     atomic|node|runtime-only|atomic-install)
       shift || true
       atomic_install_runtime "${1:-}"
       ;;
-    status)
-      status_runtime
-      ;;
     help|-h|--help)
       sed -n '2,30p' "$0"
       echo ""
       echo "命令:"
-      echo "  install|build   - 编译 RUNTIME（默认 docker 同源容器）"
+      echo "  install|build|update - 编译 RUNTIME（默认 docker 同源容器）"
+      echo "  start|status|restart  - 查看编译/原子安装状态"
+      echo "  stop|clean|logs       - 空操作（无独立容器）"
       echo "  atomic [VIDEO_BASE_URL] - 原子模式：只装 RUNTIME 到计算节点目录"
-      echo "  status          - 查看编译/原子安装状态"
       echo ""
       echo "原子模式示例:"
       echo "  VIDEO_BASE_URL=http://192.168.1.10:6000 $0 atomic"
