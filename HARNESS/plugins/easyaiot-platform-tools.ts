@@ -28,6 +28,22 @@ function gatewayBase(): string {
   return (process.env.EASYAIOT_GATEWAY_URL || 'http://host.docker.internal:48080').replace(/\/$/, '')
 }
 
+function ideaPortalBase(): string {
+  return (process.env.EASYAIOT_IDEA_URL || 'http://127.0.0.1:9300').replace(/\/$/, '')
+}
+
+/** 把工作区相对路径映射为 IDEA 门户 ?file= 参数 */
+function toIdeaPortalFile(filePath?: string): string {
+  if (!filePath) return ''
+  let p = filePath.trim().replace(/\\/g, '/')
+  if (!p) return ''
+  p = p.replace(/^\/workspace\/easyaiot\//, '')
+  p = p.replace(/^\/home\/coder\/easyaiot\//, '')
+  p = p.replace(/^\/+/, '')
+  p = p.replace(/^(workspace\/)?easyaiot\//, '')
+  return p
+}
+
 async function fetchJson(url: string, signal: AbortSignal): Promise<{ ok: boolean; status: number; data: unknown }> {
   const resp = await fetch(url, { signal })
   let data: unknown = null
@@ -181,5 +197,107 @@ export function apply(ctx: Context) {
     }),
   )
 
-  console.log('[easyaiot-platform-tools] registered easyaiot_gateway_health, easyaiot_list_modules, easyaiot_service_health')
+  ctx.tools.register(
+    defineTool({
+      name: 'easyaiot_dev_portals',
+      description: '返回 EasyAIoT 常用门户地址（WEB 管控台、IDEA 在线 IDE、HARNESS、PANEL），便于用户跳转完整 VS Code 或运维台。',
+      parameters: {},
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            portals: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  name: { type: 'string' },
+                  port: { type: 'number' },
+                  pathHint: { type: 'string' },
+                  summary: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        render: (_args, value) => [
+          {
+            type: 'text',
+            text: value.portals
+              .map((p: { name: string; port: number; pathHint: string; summary: string }) =>
+                `- **${p.name}** (:${p.port}${p.pathHint}) — ${p.summary}`)
+              .join('\n'),
+          },
+        ],
+      },
+      async execute() {
+        return {
+          portals: [
+            { name: 'WEB 管控台', port: 8888, pathHint: '/', summary: '业务配置与运维 UI' },
+            { name: 'HARNESS AI 助手', port: 3080, pathHint: '/', summary: '本 Agent 聊天 + 文件侧栏' },
+            { name: 'IDEA 在线 IDE', port: 9300, pathHint: '/?harness=1', summary: '完整 VS Code；右侧可开 HARNESS 面板' },
+            { name: 'PANEL 运维台', port: 9200, pathHint: '/', summary: '装机 / 容器 / 诊断' },
+          ],
+        }
+      },
+    }),
+  )
+
+  ctx.tools.register(
+    defineTool({
+      name: 'easyaiot_open_in_idea',
+      description:
+        '生成在 IDEA 门户（:9300）打开仓库文件的链接。门户内左侧为 code-server，右侧可开 HARNESS。把链接发给用户点击即可；不要声称已替用户打开浏览器。',
+      parameters: {
+        file: {
+          type: 'string',
+          description: '仓库相对路径，如 NODE/agent_server.py、HARNESS/README.md；可省略则只打开门户',
+        },
+        open_harness: {
+          type: 'boolean',
+          description: '是否同时打开右侧 HARNESS 面板（默认 true）',
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            url: { type: 'string' },
+            file: { type: 'string' },
+            idea_base: { type: 'string' },
+            hint: { type: 'string' },
+          },
+        },
+        render: (_args, value) => [
+          {
+            type: 'text',
+            text: `${value.hint}\n\n${value.url}`,
+          },
+        ],
+      },
+      async execute(args) {
+        const file = toIdeaPortalFile(typeof args.file === 'string' ? args.file : '')
+        const openHarness = args.open_harness !== false
+        const base = ideaPortalBase()
+        const u = new URL(base + '/')
+        if (file) u.searchParams.set('file', file)
+        if (openHarness) u.searchParams.set('harness', '1')
+        return {
+          url: u.toString(),
+          file,
+          idea_base: base,
+          hint: file
+            ? `请在浏览器打开以下链接，IDEA 将尽量定位到 ${file}：`
+            : '请在浏览器打开以下 IDEA 门户链接：',
+        }
+      },
+    }),
+  )
+
+  console.log(
+    '[easyaiot-platform-tools] registered easyaiot_gateway_health, easyaiot_list_modules, easyaiot_service_health, easyaiot_dev_portals, easyaiot_open_in_idea',
+  )
 }
