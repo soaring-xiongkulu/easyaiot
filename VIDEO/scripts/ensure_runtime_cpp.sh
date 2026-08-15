@@ -153,14 +153,34 @@ ensure_runtime_cpp() {
     return 0
   fi
 
+  # 全量部署已把 RUNTIME 提前编译时，此处仅 wire 挂载，避免重复长编译
+  if [[ "${EASYAIOT_RUNTIME_PREINSTALLED:-0}" == "1" ]] \
+    || [[ -x "${EASYAIOT_ROOT}/RUNTIME/build/RUNTIME" && -f "${EASYAIOT_ROOT}/RUNTIME/deploy.env" ]]; then
+    print_info "检测到 RUNTIME 已编译，仅配置 VIDEO 容器挂载..."
+    wire_runtime_override
+    return 0
+  fi
+
   print_info "安装/编译 RUNTIME（算法任务高性能执行器，默认 GPU）..."
-  if ! bash "$runtime_install" install; then
+  local rt_log="${EASYAIOT_ROOT}/.scripts/docker/logs/runtime_cpp_$(date +%Y%m%d_%H%M%S).log"
+  mkdir -p "$(dirname "$rt_log")" 2>/dev/null || true
+  print_info "RUNTIME 编译日志: ${rt_log}"
+  if ! bash "$runtime_install" install 2>&1 | tee "$rt_log"; then
     print_warning "RUNTIME 编译失败：高性能任务将不可用，普通算法任务仍可使用"
+    print_error "========================================"
+    print_error "  RUNTIME 部署失败 — 详细日志"
+    print_error "========================================"
+    print_error "完整日志: ${rt_log}"
+    print_error "日志末尾 (tail -80):"
+    tail -n 80 "$rt_log" 2>/dev/null | while IFS= read -r line; do print_error "  ${line}"; done || true
+    print_error "可跳过: EASYAIOT_RUNTIME_SKIP=1"
+    print_error "或强制失败: EASYAIOT_RUNTIME_REQUIRED=1"
     rm -f "${VIDEO_DIR}/.docker-compose.runtime.override.yaml"
     if [[ "${EASYAIOT_RUNTIME_REQUIRED:-0}" == "1" ]]; then
       print_error "EASYAIOT_RUNTIME_REQUIRED=1，终止"
       return 1
     fi
+    # 默认不阻断 VIDEO 后续部署（其它模块/VIDEO 容器仍可继续）
     return 0
   fi
 
