@@ -6,8 +6,10 @@ LOGIN_HTML="${LOGIN_HTML:-/usr/lib/code-server/src/browser/pages/login.html}"
 PAGES_DIR="${PAGES_DIR:-/usr/lib/code-server/src/browser/pages}"
 MEDIA_DIR="${MEDIA_DIR:-/usr/lib/code-server/src/browser/media}"
 LOGIN_SRC="${LOGIN_SRC:-/tmp/login-ui}"
+BRIDGE_SRC="${BRIDGE_SRC:-/tmp/idea-browser/easyaiot-ide-bridge.js}"
 APP_NAME="${IDEA_APP_NAME:-EasyAIoT}"
 APP_LONG="${IDEA_APP_LONG:-EasyAIoT 云边端一体化智能算法应用平台}"
+WORKBENCH_HTML="${WORKBENCH_HTML:-/usr/lib/code-server/lib/vscode/out/vs/code/browser/workbench/workbench.html}"
 
 if [[ -f "${PRODUCT_JSON}" ]]; then
   if command -v jq >/dev/null 2>&1; then
@@ -50,6 +52,28 @@ if [[ -d "${LOGIN_SRC}" ]]; then
     cp -f "${LOGIN_SRC}/favicon.ico" /usr/lib/code-server/lib/vscode/resources/server/favicon.ico 2>/dev/null || true
     [[ -f "${LOGIN_SRC}/pwa-icon-192.png" ]] && cp -f "${LOGIN_SRC}/pwa-icon-192.png" /usr/lib/code-server/lib/vscode/resources/server/code-192.png 2>/dev/null || true
     [[ -f "${LOGIN_SRC}/pwa-icon-512.png" ]] && cp -f "${LOGIN_SRC}/pwa-icon-512.png" /usr/lib/code-server/lib/vscode/resources/server/code-512.png 2>/dev/null || true
+  fi
+fi
+
+# Explorer 拖文件 → 门户 / HARNESS：注入 workbench bridge（内联，避免缓存/CSP）
+if [[ -f "${BRIDGE_SRC}" ]]; then
+  cp -f "${BRIDGE_SRC}" "${MEDIA_DIR}/easyaiot-ide-bridge.js"
+  if [[ -f "${WORKBENCH_HTML}" ]]; then
+    python3 - <<'PY' "${WORKBENCH_HTML}" "${BRIDGE_SRC}"
+from pathlib import Path
+import re, sys
+wb, bridge_path = Path(sys.argv[1]), Path(sys.argv[2])
+bridge = bridge_path.read_text(encoding="utf-8")
+html = wb.read_text(encoding="utf-8")
+html = re.sub(r'\s*<script src="\{\{BASE\}\}/_static/src/browser/media/easyaiot-ide-bridge\.js"></script>\s*', "\n", html)
+html = re.sub(r"<!-- easyaiot-ide-bridge -->.*?</script>\s*", "", html, flags=re.S)
+idx = html.rfind("</html>")
+if idx < 0:
+    raise SystemExit("workbench.html: missing </html>")
+html = html[:idx] + "\n\t<!-- easyaiot-ide-bridge -->\n\t<script>\n" + bridge.replace("</script>", "<\\/script>") + "\n\t</script>\n</html>\n"
+wb.write_text(html, encoding="utf-8")
+print("[idea] injected easyaiot-ide-bridge into workbench.html")
+PY
   fi
 fi
 

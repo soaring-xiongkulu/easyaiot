@@ -335,6 +335,25 @@ def create_app() -> Flask:
         except Exception as exc:  # noqa: BLE001
             return _json_error(str(exc), 404)
 
+    @app.route('/api/workspaces/<workspace_id>/open-file', methods=['POST', 'OPTIONS'])
+    @require_access
+    def workspace_open_file(workspace_id: str):
+        """在 code-server 中打开仓库文件（IPC），供 HARNESS 点击引用时调用。"""
+        if request.method == 'OPTIONS':
+            return '', 204
+        _, err = _assert_workspace_access(workspace_id)
+        if err:
+            return err
+        body = request.get_json(silent=True) or {}
+        path = (body.get('path') or body.get('file') or '').strip()
+        if not path:
+            return _json_error('path required', 400)
+        try:
+            data = ops.open_file(workspace_id, path)
+            return jsonify({'ok': True, 'data': data})
+        except Exception as exc:  # noqa: BLE001
+            return _json_error(str(exc), 400)
+
     @app.route('/api/reap-idle', methods=['POST', 'OPTIONS'])
     @require_access
     def reap_idle():

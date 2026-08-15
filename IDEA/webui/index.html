@@ -181,8 +181,176 @@
     #auth-box { display: flex; align-items: center; }
     #auth-box a.ibtn { text-decoration: none; color: inherit; }
 
-    #frame-wrap { position: absolute; inset: 0; background: #f8fafc; }
+    #frame-wrap { position: absolute; inset: 0; background: #f8fafc; display: flex; }
+    #ide-pane { flex: 1; min-width: 280px; position: relative; height: 100%; }
     #ide { width: 100%; height: 100%; border: 0; background: #fff; }
+    #harness-split {
+      display: none;
+      width: 6px;
+      flex-shrink: 0;
+      cursor: col-resize;
+      position: relative;
+      z-index: 30;
+      background: transparent;
+    }
+    #harness-split::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 2px;
+      width: 1px;
+      background: transparent;
+    }
+    #harness-split:hover::after,
+    body.resizing-harness #harness-split::after {
+      left: 1px;
+      width: 3px;
+      background: #005fb8;
+    }
+    body.harness-open #harness-split { display: block; }
+    #harness-pane {
+      display: none;
+      width: min(52vw, 720px);
+      min-width: 380px;
+      max-width: 75vw;
+      height: 100%;
+      border-left: 0;
+      background: #fff;
+      flex-direction: column;
+      position: relative;
+      flex-shrink: 0;
+    }
+    body.harness-open #harness-pane { display: flex; }
+    #harness-pane .h-head {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #3b3b3b;
+      background: #f3f3f3;
+      border-bottom: 0;
+      flex-shrink: 0;
+    }
+    #harness-pane .h-head .h-sub {
+      font-weight: 400;
+      color: #8b8b8b;
+      margin-left: 8px;
+      font-size: 10px;
+    }
+    #harness-pane .h-head button {
+      border: 0;
+      background: transparent;
+      color: #6c6c6c;
+      cursor: pointer;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    #harness-pane .h-head button:hover { background: #e8e8e8; color: #3b3b3b; }
+    #harness-body { flex: 1; min-height: 0; position: relative; }
+    #harness {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #fff;
+    }
+    #harness-drop {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      background: rgba(0, 95, 184, 0.06);
+      border: 2px dashed #005fb8;
+      color: #3b3b3b;
+      font-size: 13px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      pointer-events: none;
+    }
+    body.dragging-files #harness-drop {
+      display: flex;
+      pointer-events: auto;
+    }
+    #harness-toast {
+      display: none;
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      z-index: 8;
+      background: #ffffff;
+      border: 1px solid #e5e5e5;
+      border-left: 3px solid #005fb8;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #3b3b3b;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    #harness-toast.show { display: block; }
+    .ibtn.on { color: #0f172a; background: rgba(15, 23, 42, 0.08); }
+    body.resizing-harness { cursor: col-resize; user-select: none; }
+    body.resizing-harness iframe { pointer-events: none; }
+
+    /* 工具栏收起时仍可见：右侧 AI 拉手 */
+    #ai-tab {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      z-index: 55;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      letter-spacing: 0.12em;
+      padding: 14px 7px;
+      border: 1px solid #d8dee6;
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      background: linear-gradient(180deg, #fafbfc 0%, #f0f2f5 100%);
+      color: #334155;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: -2px 2px 10px rgba(15, 23, 42, 0.08);
+    }
+    #ai-tab:hover { background: #eef2f7; color: #0f172a; }
+    body.harness-open #ai-tab { display: none; }
+
+    /* 移动端：仅聊天，隐藏 IDE / 工具栏 / 分屏把手 */
+    body.mobile-chat #hotzone,
+    body.mobile-chat #toolbar,
+    body.mobile-chat #ide-pane,
+    body.mobile-chat #harness-split,
+    body.mobile-chat #ai-tab,
+    body.mobile-chat #btn-harness-ext,
+    body.mobile-chat .panel {
+      display: none !important;
+    }
+    body.mobile-chat #frame-wrap {
+      inset: 0;
+    }
+    body.mobile-chat #harness-pane {
+      display: flex !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      flex: 1 1 auto;
+    }
+    body.mobile-chat #harness-pane .h-head .h-sub {
+      display: none;
+    }
+    @media (max-width: 820px) {
+      body:not(.force-desktop) {
+        /* JS 会加 mobile-chat；此处兜底避免闪一下 IDE */
+      }
+    }
 
     #empty {
       position: absolute;
@@ -259,6 +427,7 @@
   <div id="app">
     <div id="glow"></div>
     <div id="hotzone" title="显示控制条"></div>
+    <button type="button" id="ai-tab" title="打开 AI 助手 (HARNESS)">AI 助手</button>
     <div id="toolbar">
       <span class="led off" id="status-dot"></span>
       <div class="ws-chip">
@@ -284,6 +453,9 @@
       <button class="ibtn" id="btn-contrib-panel" data-tip="推送代码 / 提合并请求" aria-label="推送代码">
         <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="12" cy="18" r="1.8"/><path d="M7.8 7.3C9 10 10.1 13.4 11.1 16M16.2 7.3C15 10 13.9 13.4 12.9 16"/></svg>
       </button>
+      <button class="ibtn" id="btn-harness" data-tip="AI 助手 (HARNESS)" aria-label="AI 助手">
+        <svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v1h2a3 3 0 0 1 3 3v2"/><path d="M4 10V9a3 3 0 0 1 3-3h2V6a3 3 0 0 1 3-3"/><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M9 14h.01M15 14h.01M9.5 17h5"/></svg>
+      </button>
       <span class="sep"></span>
       <div id="auth-box"></div>
       <button class="ibtn" id="btn-pin" data-tip="固定工具栏" aria-label="固定工具栏">
@@ -292,12 +464,28 @@
     </div>
 
     <div id="frame-wrap">
-      <div id="empty">
-        <h2>编辑器尚未启动</h2>
-        <p>将鼠标移到顶部中间细线，唤出工具栏，再点「启动编辑器」。</p>
-        <button id="btn-enter-empty">启动编辑器</button>
+      <div id="ide-pane">
+        <div id="empty">
+          <h2>编辑器尚未启动</h2>
+          <p>将鼠标移到顶部中间细线，唤出工具栏，再点「启动编辑器」。</p>
+          <button id="btn-enter-empty">启动编辑器</button>
+        </div>
+        <iframe id="ide" title="IDEA workspace" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
       </div>
-      <iframe id="ide" title="IDEA workspace" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+      <div id="harness-split" title="拖拽调节助手宽度" aria-hidden="true"></div>
+      <aside id="harness-pane" aria-label="HARNESS AI 助手">
+        <div class="h-head">
+          <span>AI 助手<span class="h-sub">拖入文件自动 @ 引用</span></span>
+          <span>
+            <button type="button" id="btn-harness-refresh" title="刷新">刷新</button>
+          </span>
+        </div>
+        <div id="harness-body">
+          <iframe id="harness" title="EasyAIoT HARNESS" allow="clipboard-read; clipboard-write"></iframe>
+          <div id="harness-drop">将资源管理器中的文件拖到此处<br/>自动关联为对话上下文</div>
+          <div id="harness-toast"></div>
+        </div>
+      </aside>
     </div>
 
     <div class="panel" id="panel-publish">
@@ -331,6 +519,8 @@
   <script>
     const $ = (id) => document.getElementById(id);
     const PIN_KEY = 'easyaiot.idea.shell.pinned';
+    const HARNESS_KEY = 'easyaiot.idea.harness.open';
+    const REPO_FOLDER = '/home/coder/easyaiot';
     let session = localStorage.getItem('easyaiot.idea.session') || '';
     let workspaces = [];
     let current = null;
@@ -338,6 +528,64 @@
     let jobTimer = null;
     let pinned = localStorage.getItem(PIN_KEY) === '1';
     let barOpen = true;
+    let harnessOpen = localStorage.getItem(HARNESS_KEY) === '1';
+    let pendingFile = '';
+
+    function harnessBaseUrl() {
+      return `${location.protocol}//${location.hostname}:3080`;
+    }
+
+    function harnessEmbedUrl(bust) {
+      let url = harnessBaseUrl() + '/?embed=idea';
+      if (bust) url += '&t=' + Date.now();
+      return url;
+    }
+
+    function isMobileChat() {
+      try {
+        if (localStorage.getItem('easyaiot.idea.forceDesktop') === '1')
+          return false;
+      } catch (_) { /* ignore */ }
+      const u = new URL(location.href);
+      if (u.searchParams.get('desktop') === '1')
+        return false;
+      if (u.searchParams.get('mobile') === '1' || u.searchParams.get('chat') === '1')
+        return true;
+      return window.matchMedia('(max-width: 820px), (hover: none) and (pointer: coarse)').matches;
+    }
+
+    function applyMobileChat() {
+      const on = isMobileChat();
+      document.body.classList.toggle('mobile-chat', on);
+      document.body.classList.toggle('force-desktop', !on && localStorage.getItem('easyaiot.idea.forceDesktop') === '1');
+      if (on) {
+        harnessOpen = true;
+        applyHarness();
+      }
+      return on;
+    }
+
+    function toIdeAbs(filePath) {
+      if (!filePath) return '';
+      let p = String(filePath).trim().replace(/\\/g, '/');
+      if (!p) return '';
+      if (p.startsWith(REPO_FOLDER)) return p;
+      p = p.replace(/^\/+/, '').replace(/^(workspace\/)?easyaiot\//, '');
+      return `${REPO_FOLDER}/${p}`;
+    }
+
+    /** code-server 打开单文件：folder + payload openFile（hash 方式无效） */
+    function buildIdeSrc(wsUrl, filePath) {
+      const base = String(wsUrl || '').replace(/\/$/, '');
+      if (!base) return '';
+      const folder = encodeURIComponent(REPO_FOLDER);
+      const abs = toIdeAbs(filePath || pendingFile);
+      if (!abs) return `${base}/?folder=${folder}`;
+      // vscode-remote:///abs/path — code-server / VS Code web 约定
+      const remote = 'vscode-remote://' + abs;
+      const payload = encodeURIComponent(JSON.stringify([['openFile', remote]]));
+      return `${base}/?folder=${folder}&payload=${payload}`;
+    }
 
     const ICO = {
       login: '<svg viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l4-4-4-4"/><path d="M14 12H3"/></svg>',
@@ -379,17 +627,295 @@
       }, delay == null ? 480 : delay);
     }
 
+    const HARNESS_WIDTH_KEY = 'easyaiot.idea.harness.width';
+    let harnessWidth = parseInt(localStorage.getItem(HARNESS_WIDTH_KEY) || '', 10);
+    if (!Number.isFinite(harnessWidth) || harnessWidth < 380) {
+      harnessWidth = Math.min(720, Math.max(480, Math.round(window.innerWidth * 0.52)));
+    }
+    let toastTimer = null;
+    let dragClearTimer = null;
+    let pendingDragPaths = [];
+    let dragOverHarness = false;
+    let bridgeReady = false;
+
+    function setIdePointerPassThrough(on) {
+      const ide = $('ide');
+      if (ide) ide.style.pointerEvents = on ? 'none' : '';
+    }
+
+    function clampHarnessWidth(px) {
+      const max = Math.floor(window.innerWidth * 0.75);
+      const min = 380;
+      return Math.max(min, Math.min(max, Math.round(px)));
+    }
+
+    function applyHarnessWidth() {
+      const pane = $('harness-pane');
+      if (!pane) return;
+      harnessWidth = clampHarnessWidth(harnessWidth);
+      pane.style.width = harnessWidth + 'px';
+      localStorage.setItem(HARNESS_WIDTH_KEY, String(harnessWidth));
+    }
+
+    function showHarnessToast(msg) {
+      const el = $('harness-toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    function toHarnessRel(raw) {
+      if (!raw) return '';
+      let p = String(raw).trim().replace(/\\/g, '/');
+      if (!p) return '';
+      if (/^[a-z][a-z0-9+.-]*:/i.test(p)) {
+        try {
+          if (/^vscode-/i.test(p)) {
+            const m = p.match(/^[^:]+:\/\/[^/]*(\/.*)$/);
+            p = m ? decodeURIComponent(m[1]) : p;
+          } else {
+            const u = new URL(p);
+            p = decodeURIComponent(u.pathname || '');
+          }
+        } catch (_) { /* keep */ }
+      }
+      p = p.replace(/#.*$/, '');
+      const prefixes = [
+        REPO_FOLDER + '/',
+        '/workspace/easyaiot/',
+        '/home/coder/project/',
+        '/workspaces/easyaiot/',
+      ];
+      for (const pre of prefixes) {
+        if (p.startsWith(pre)) { p = p.slice(pre.length); break; }
+      }
+      p = p.replace(/^\/+/, '').replace(/^(workspace\/)?easyaiot\//, '');
+      return p.replace(/\/$/, '');
+    }
+
+    function extractDropPaths(dt) {
+      if (!dt) return [];
+      const out = [];
+      const push = (s) => String(s || '').split(/[\r\n]+/).forEach((line) => {
+        const t = line.trim();
+        if (t && !t.startsWith('#')) out.push(t);
+      });
+      const get = (mime) => {
+        try { return dt.getData(mime) || ''; } catch (_) { return ''; }
+      };
+      ['text/uri-list', 'application/vnd.code.uri-list', 'resourceurls', 'text/plain'].forEach((m) => push(get(m)));
+      try {
+        const raw = get('resourceurls');
+        if (raw && raw.trim().startsWith('[')) JSON.parse(raw).forEach((u) => out.push(String(u)));
+      } catch (_) { /* ignore */ }
+      if (dt.files && dt.files.length) {
+        for (const f of dt.files) if (f.name) out.push(f.name);
+      }
+      return [...new Set(out.map(toHarnessRel).filter(Boolean))];
+    }
+
+    let lastPointerX = 0;
+    let attachInFlight = false;
+
+    function uniqPaths(list) {
+      const out = [];
+      const seen = new Set();
+      (list || []).forEach((p) => {
+        const rel = toHarnessRel(p) || String(p || '').trim();
+        if (!rel || seen.has(rel)) return;
+        seen.add(rel);
+        out.push(rel);
+      });
+      return out;
+    }
+
+    function attachPathsToHarness(paths) {
+      const rels = uniqPaths(paths);
+      if (!rels.length) {
+        showHarnessToast('未能解析文件路径：请从资源管理器拖到右侧助手区域');
+        return;
+      }
+      if (attachInFlight) return;
+      attachInFlight = true;
+      setTimeout(() => { attachInFlight = false; }, 800);
+
+      if (!harnessOpen) setHarness(true);
+      const frame = $('harness');
+      const payload = { type: 'easyaiot-attach-files', paths: rels, once: true };
+      const send = () => {
+        try {
+          frame.contentWindow.postMessage(payload, '*');
+        } catch (_) { /* ignore */ }
+      };
+      send();
+      // 仅当输入框未就绪时，由 attach-result 触发一次补发
+      pendingDragPaths = [];
+    }
+
+    function applyHarness() {
+      document.body.classList.toggle('harness-open', harnessOpen);
+      $('btn-harness').classList.toggle('on', harnessOpen);
+      localStorage.setItem(HARNESS_KEY, harnessOpen ? '1' : '0');
+      applyHarnessWidth();
+      const frame = $('harness');
+      if (harnessOpen) {
+        const url = harnessEmbedUrl();
+        if (frame.getAttribute('src') !== url) frame.src = url;
+      }
+    }
+
+    function setHarness(open) {
+      if (document.body.classList.contains('mobile-chat'))
+        open = true;
+      harnessOpen = !!open;
+      applyHarness();
+    }
+
+    function beginHarnessResize(ev) {
+      if (!harnessOpen) return;
+      ev.preventDefault();
+      document.body.classList.add('resizing-harness');
+      const startX = ev.clientX;
+      const startW = harnessWidth;
+      const onMove = (e) => {
+        harnessWidth = clampHarnessWidth(startW + (startX - e.clientX));
+        applyHarnessWidth();
+      };
+      const onUp = () => {
+        document.body.classList.remove('resizing-harness');
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    }
+
+    function markDragging(on) {
+      clearTimeout(dragClearTimer);
+      // 只有拿到真实路径才显示蓝色遮罩，避免「假可拖」
+      if (on && pendingDragPaths.length) {
+        document.body.classList.add('dragging-files');
+        setIdePointerPassThrough(true);
+      } else if (!on) {
+        dragClearTimer = setTimeout(() => {
+          document.body.classList.remove('dragging-files');
+          setIdePointerPassThrough(false);
+          dragOverHarness = false;
+        }, 120);
+      }
+    }
+
+    function finishDrop(dt) {
+      const fromPending = pendingDragPaths.slice();
+      const fromDt = dt ? extractDropPaths(dt) : [];
+      const paths = uniqPaths(fromPending.length ? fromPending : fromDt);
+      pendingDragPaths = [];
+      markDragging(false);
+      if (paths.length) attachPathsToHarness(paths);
+    }
+
+    function pointerOverHarnessZone(x) {
+      const pane = $('harness-pane');
+      if (!pane || !harnessOpen) return false;
+      const r = pane.getBoundingClientRect();
+      // 分隔条略向左扩一点，更容易命中
+      return x >= (r.left - 8);
+    }
+
+    function askIdeForPaths() {
+      const ide = $('ide');
+      try {
+        ide.contentWindow.postMessage({ type: 'easyaiot-ide-request-paths' }, '*');
+      } catch (_) { /* ignore */ }
+    }
+
+    window.addEventListener('message', (ev) => {
+      const data = ev.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'easyaiot-ide-bridge-ready') {
+        bridgeReady = true;
+        console.info('[idea] ide-bridge ready', data);
+      } else if (data.type === 'easyaiot-ide-dragstart' && Array.isArray(data.paths)) {
+        pendingDragPaths = uniqPaths(data.paths);
+        if (!pendingDragPaths.length && Array.isArray(data.paths)) {
+          pendingDragPaths = uniqPaths(data.paths.map((p) => String(p || '').trim()));
+        }
+        if (!pendingDragPaths.length) return;
+        if (!harnessOpen) setHarness(true);
+        markDragging(true);
+      } else if (data.type === 'easyaiot-ide-dragend') {
+        // 助手已打开且捕获到路径：松手即写入，不再弹出确认条
+        if (pendingDragPaths.length && harnessOpen) {
+          finishDrop(null);
+          return;
+        }
+        markDragging(false);
+      } else if (data.type === 'easyaiot-ide-hotkey-attach') {
+        if (pendingDragPaths.length) attachPathsToHarness(pendingDragPaths);
+        else askIdeForPaths();
+      } else if (data.type === 'easyaiot-attach-result') {
+        if (data.ok) {
+          pendingDragPaths = [];
+        } else if (data.reason === 'no-composer') {
+          if (Array.isArray(data.paths) && data.paths.length) {
+            setTimeout(() => {
+              try {
+                $('harness').contentWindow.postMessage(
+                  { type: 'easyaiot-attach-files', paths: uniqPaths(data.paths), once: true },
+                  '*',
+                );
+              } catch (_) { /* ignore */ }
+            }, 600);
+          }
+        }
+      } else if (data.type === 'easyaiot-open-in-idea') {
+        openFileInIde(data.path || data.file || '');
+      }
+    });
+
+    function openFileInIde(raw) {
+      const rel = toHarnessRel(raw) || String(raw || '').trim().replace(/^@/, '');
+      if (!rel) return;
+      if (!current || !current.id || current.status !== 'running') {
+        showHarnessToast('请先启动编辑器后再打开文件');
+        return;
+      }
+      // 走门户 API → 容器内 code CLI/IPC，避免 iframe 刷新与 window.open 弹窗拦截
+      api('/api/workspaces/' + encodeURIComponent(current.id) + '/open-file', {
+        method: 'POST',
+        body: JSON.stringify({ path: rel }),
+      }).then(() => {
+        /* 静默打开，不弹提示 */
+      }).catch((e) => {
+        showHarnessToast('打开失败：' + (e.message || e) + '（尝试刷新编辑器）');
+        // 最后兜底：仍尝试 payload URL（可能短暂弹窗）
+        try {
+          $('ide').src = buildIdeSrc(current.url, rel) + '&_t=' + Date.now();
+        } catch (_) { /* ignore */ }
+      });
+    }
+
     function consumeOauth() {
       const u = new URL(location.href);
       const token = u.searchParams.get('idea_token');
       const err = u.searchParams.get('idea_error');
+      const file = u.searchParams.get('file') || u.searchParams.get('path') || '';
+      const harness = u.searchParams.get('harness') || u.searchParams.get('panel') || '';
       if (token) {
         session = token;
         localStorage.setItem('easyaiot.idea.session', token);
       }
-      if (token || err) {
+      if (file) pendingFile = file;
+      if (harness === '1' || harness === 'harness' || harness === 'open') harnessOpen = true;
+      if (token || err || file || harness) {
         u.searchParams.delete('idea_token');
         u.searchParams.delete('idea_error');
+        u.searchParams.delete('file');
+        u.searchParams.delete('path');
+        u.searchParams.delete('harness');
+        u.searchParams.delete('panel');
         history.replaceState({}, '', u.pathname + u.search);
       }
       if (err) alert('登录失败：' + err);
@@ -436,7 +962,9 @@
       }
       empty.style.display = 'none';
       $('status-dot').classList.remove('off');
-      if (ide.getAttribute('src') !== ws.url) ide.src = ws.url;
+      const next = buildIdeSrc(ws.url, pendingFile);
+      if (ide.getAttribute('src') !== next) ide.src = next;
+      pendingFile = '';
       api(`/api/workspaces/${ws.id}/heartbeat`, { method: 'POST' }).catch(() => {});
     }
 
@@ -537,6 +1065,57 @@
     }
 
     $('btn-pin').onclick = () => { pinned = !pinned; applyBar(); if (!pinned) scheduleHide(); };
+    $('btn-harness').onclick = () => {
+      if (document.body.classList.contains('mobile-chat')) {
+        setHarness(true);
+        return;
+      }
+      setHarness(!harnessOpen);
+    };
+    $('ai-tab').onclick = () => setHarness(true);
+    $('btn-harness-refresh').onclick = () => { $('harness').src = harnessEmbedUrl(true); };
+    $('harness-split').addEventListener('mousedown', beginHarnessResize);
+    window.addEventListener('resize', () => {
+      applyMobileChat();
+      if (harnessOpen) applyHarnessWidth();
+    });
+
+    window.addEventListener('dragenter', (e) => {
+      if (!pendingDragPaths.length) return;
+      e.preventDefault();
+      markDragging(true);
+    }, true);
+    window.addEventListener('dragover', (e) => {
+      if (!pendingDragPaths.length) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = 'copy'; } catch (_) {}
+      lastPointerX = e.clientX || lastPointerX;
+      dragOverHarness = pointerOverHarnessZone(lastPointerX);
+      markDragging(true);
+    }, true);
+    window.addEventListener('dragleave', (e) => {
+      if (e.relatedTarget == null) dragOverHarness = false;
+    }, true);
+    window.addEventListener('drop', (e) => {
+      if (!pendingDragPaths.length && !document.body.classList.contains('dragging-files')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      finishDrop(e.dataTransfer);
+    }, true);
+    $('harness-drop').addEventListener('dragover', (e) => {
+      if (!pendingDragPaths.length) return;
+      e.preventDefault();
+      dragOverHarness = true;
+      markDragging(true);
+    });
+    $('harness-drop').addEventListener('drop', (e) => {
+      e.preventDefault();
+      finishDrop(e.dataTransfer);
+    });
+    // 点击遮罩也可写入（避免松手事件丢失）
+    $('harness-drop').addEventListener('click', () => {
+      if (pendingDragPaths.length) finishDrop(null);
+    });
     $('hotzone').onmouseenter = () => { showBar(); };
     $('toolbar').onmouseenter = () => { clearTimeout(hideTimer); showBar(); };
     $('toolbar').onmouseleave = () => scheduleHide();
@@ -544,7 +1123,8 @@
     $('btn-enter-empty').onclick = enterIde;
     $('btn-refresh').onclick = () => {
       if (current && current.url) {
-        $('ide').src = current.url;
+        $('ide').src = buildIdeSrc(current.url, pendingFile);
+        pendingFile = '';
       } else {
         loadWs(current && current.id);
       }
@@ -611,11 +1191,21 @@
     };
 
     consumeOauth();
+    applyMobileChat();
     applyBar();
+    applyHarness();
     if (!pinned) scheduleHide(5000);
     renderAuth()
-      .then(() => loadWs())
-      .then(() => loadPublish().catch(() => {}));
+      .then(() => {
+        if (document.body.classList.contains('mobile-chat'))
+          return;
+        return loadWs();
+      })
+      .then(() => {
+        if (document.body.classList.contains('mobile-chat'))
+          return;
+        return loadPublish().catch(() => {});
+      });
     setInterval(() => {
       if (current && current.id) {
         api(`/api/workspaces/${current.id}/heartbeat`, { method: 'POST' }).catch(() => {});

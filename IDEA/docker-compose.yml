@@ -16,6 +16,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${IDEA_DATA_DIR_HOST}:/data/idea-workspaces
       - ${IDEA_GIT_REFERENCE_DIR:-./.data/git-reference}:/opt/git-reference:ro
+      # 门户前端：挂载源码，改 webui 后刷新即可（无需重建镜像）
+      - ./webui:/opt/idea/webui:ro
       # 同路径挂载：发布时 docker build 上下文必须是宿主机路径
       - ${IDEA_DATA_DIR_HOST}:${IDEA_DATA_DIR_HOST}
       - ${IDEA_HOST_PROJECT_ROOT}:${IDEA_HOST_PROJECT_ROOT}

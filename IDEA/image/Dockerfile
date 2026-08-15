@@ -62,12 +62,13 @@ COPY image/code-server/User/settings.json /tmp/idea-settings.json
 COPY image/entrypoint.sh /usr/local/bin/idea-entrypoint.sh
 COPY image/apply-product.sh /tmp/apply-product.sh
 COPY image/login/ /tmp/login-ui/
+COPY image/browser/ /tmp/idea-browser/
 COPY workspace-template/ /opt/idea/workspace-template/
 
 RUN chmod +x /tmp/apply-product.sh /usr/local/bin/idea-entrypoint.sh \
-    && LOGIN_SRC=/tmp/login-ui /tmp/apply-product.sh \
+    && LOGIN_SRC=/tmp/login-ui BRIDGE_SRC=/tmp/idea-browser/easyaiot-ide-bridge.js /tmp/apply-product.sh \
     && rm -f /tmp/apply-product.sh \
-    && rm -rf /tmp/login-ui \
+    && rm -rf /tmp/login-ui /tmp/idea-browser \
     && mkdir -p /home/coder/easyaiot /home/coder/project-data \
     && mkdir -p /home/coder/.local/share/code-server/User \
     && cp -f /tmp/idea-settings.json /home/coder/.local/share/code-server/User/settings.json \

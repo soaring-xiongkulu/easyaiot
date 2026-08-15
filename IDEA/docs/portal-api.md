@@ -65,6 +65,15 @@ OAuth 配置见 [`oauth.md`](oauth.md)。请求可带 `X-IDEA-Session`（用户�
 
 打开门户根路径 `/` 即为工作区 / 发布到本机 / 贡献。与 WEB 管控台解耦。
 
+门户查询参数（由前端消费后清除）：
+
+| 参数 | 说明 |
+|------|------|
+| `file` / `path` | 仓库相对路径，启动编辑器后尽量打开该文件 |
+| `harness` / `panel` | `1` / `harness` / `open` 时打开右侧 HARNESS AI 面板 |
+
+示例：`http://<host>:9300/?file=NODE/agent_server.py&harness=1`
+
 ## WEB 对接
 
 WEB 仅可选跳转：`VITE_IDEA_URL`（空则当前主机 `:9300`）。不在 WEB 内放发布按钮。

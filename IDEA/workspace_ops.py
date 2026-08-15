@@ -385,6 +385,77 @@ class WorkspaceOps:
         self.touch_activity(workspace_id)
         return self._to_info(c, request_host).to_dict()
 
+    def open_file(self, workspace_id: str, file_path: str) -> Dict[str, Any]:
+        """在已运行的 code-server 实例中打开文件（走 VS Code IPC，避免浏览器弹窗拦截）。"""
+        c = self._find(workspace_id)
+        if not c:
+            raise RuntimeError('workspace not found')
+        if c.status != 'running':
+            raise RuntimeError('workspace is not running')
+
+        raw = (file_path or '').strip().replace('\\', '/')
+        if not raw:
+            raise RuntimeError('file path required')
+        raw = raw.lstrip('@')
+        # 禁止路径穿越
+        if '..' in raw.split('/'):
+            raise RuntimeError('invalid file path')
+
+        repo = '/home/coder/easyaiot'
+        if raw.startswith(repo + '/'):
+            abs_path = raw
+        elif raw.startswith('/workspace/easyaiot/'):
+            abs_path = repo + '/' + raw[len('/workspace/easyaiot/'):]
+        elif raw.startswith('/'):
+            # 仅允许仓库内绝对路径
+            if not raw.startswith(repo + '/') and raw != repo:
+                raise RuntimeError('path outside workspace')
+            abs_path = raw
+        else:
+            rel = raw.replace('workspace/easyaiot/', '').replace('easyaiot/', '', 1)
+            abs_path = f'{repo}/{rel.lstrip("/")}'
+
+        # 通过容器内 remote-cli + IPC 打开，不触发浏览器 window.open
+        script = f'''
+set -e
+ABS={abs_path!r}
+SOCK="$(ls -t /tmp/vscode-ipc-*.sock 2>/dev/null | head -1 || true)"
+if [ -n "$SOCK" ]; then
+  export VSCODE_IPC_HOOK_CLI="$SOCK"
+fi
+CLI=""
+for c in \\
+  /usr/lib/code-server/lib/vscode/bin/remote-cli/code-linux.sh \\
+  /usr/lib/code-server/lib/vscode/bin/remote-cli/code-server \\
+  /usr/bin/code-server
+do
+  if [ -x "$c" ] || [ -f "$c" ]; then CLI="$c"; break; fi
+done
+if [ -z "$CLI" ]; then
+  echo "code cli not found" >&2
+  exit 127
+fi
+# -r 复用窗口；文件不存在时仍尝试打开（可能是新建）
+bash "$CLI" -r "$ABS" 2>/dev/null || "$CLI" -r "$ABS"
+echo OK
+'''
+        result = c.exec_run(
+            ['bash', '-lc', script],
+            user='coder',
+            workdir='/home/coder',
+            environment={'HOME': '/home/coder'},
+        )
+        exit_code = int(result.exit_code or 0)
+        output = ''
+        if isinstance(result.output, (bytes, bytearray)):
+            output = result.output.decode('utf-8', errors='replace')
+        else:
+            output = str(result.output or '')
+        if exit_code != 0:
+            raise RuntimeError(f'open file failed (exit {exit_code}): {output.strip()[:300]}')
+        self.touch_activity(workspace_id)
+        return {'ok': True, 'path': abs_path, 'output': output.strip()[:200]}
+
     def delete_workspace(self, workspace_id: str, remove_data: bool = False) -> Dict[str, Any]:
         c = self._find(workspace_id)
         if not c:
