@@ -181,9 +181,24 @@
     #auth-box { display: flex; align-items: center; }
     #auth-box a.ibtn { text-decoration: none; color: inherit; }
 
-    #frame-wrap { position: absolute; inset: 0; background: #f8fafc; display: flex; }
-    #ide-pane { flex: 1; min-width: 280px; position: relative; height: 100%; }
-    #ide { width: 100%; height: 100%; border: 0; background: #fff; }
+    #frame-wrap {
+      position: absolute;
+      inset: 0;
+      background: #f8fafc;
+      display: flex;
+      min-width: 0;
+      overflow: hidden;
+      width: 100%;
+      max-width: 100%;
+    }
+    #ide-pane {
+      flex: 1 1 auto;
+      min-width: 480px;
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+    }
+    #ide { width: 100%; height: 100%; border: 0; background: #fff; display: block; }
     #harness-split {
       display: none;
       width: 6px;
@@ -211,15 +226,17 @@
     body.harness-open #harness-split { display: block; }
     #harness-pane {
       display: none;
-      width: min(52vw, 720px);
-      min-width: 380px;
-      max-width: 75vw;
+      width: min(42vw, 720px);
+      min-width: 420px;
+      max-width: min(50vw, 820px);
       height: 100%;
       border-left: 0;
       background: #fff;
       flex-direction: column;
       position: relative;
-      flex-shrink: 0;
+      flex: 0 0 auto;
+      min-height: 0;
+      overflow: hidden;
     }
     body.harness-open #harness-pane { display: flex; }
     #harness-pane .h-head {
@@ -297,6 +314,7 @@
     #harness-toast.show { display: block; }
     .ibtn.on { color: #0f172a; background: rgba(15, 23, 42, 0.08); }
     body.resizing-harness { cursor: col-resize; user-select: none; }
+    /* 拖拽时两侧 iframe 都不吃事件，避免助手里 React 跟着每帧重排 */
     body.resizing-harness iframe { pointer-events: none; }
 
     /* 工具栏收起时仍可见：右侧 AI 拉手 */
@@ -322,35 +340,6 @@
     }
     #ai-tab:hover { background: #eef2f7; color: #0f172a; }
     body.harness-open #ai-tab { display: none; }
-
-    /* 移动端：仅聊天，隐藏 IDE / 工具栏 / 分屏把手 */
-    body.mobile-chat #hotzone,
-    body.mobile-chat #toolbar,
-    body.mobile-chat #ide-pane,
-    body.mobile-chat #harness-split,
-    body.mobile-chat #ai-tab,
-    body.mobile-chat #btn-harness-ext,
-    body.mobile-chat .panel {
-      display: none !important;
-    }
-    body.mobile-chat #frame-wrap {
-      inset: 0;
-    }
-    body.mobile-chat #harness-pane {
-      display: flex !important;
-      width: 100% !important;
-      min-width: 0 !important;
-      max-width: none !important;
-      flex: 1 1 auto;
-    }
-    body.mobile-chat #harness-pane .h-head .h-sub {
-      display: none;
-    }
-    @media (max-width: 820px) {
-      body:not(.force-desktop) {
-        /* JS 会加 mobile-chat；此处兜底避免闪一下 IDE */
-      }
-    }
 
     #empty {
       position: absolute;
@@ -541,30 +530,6 @@
       return url;
     }
 
-    function isMobileChat() {
-      try {
-        if (localStorage.getItem('easyaiot.idea.forceDesktop') === '1')
-          return false;
-      } catch (_) { /* ignore */ }
-      const u = new URL(location.href);
-      if (u.searchParams.get('desktop') === '1')
-        return false;
-      if (u.searchParams.get('mobile') === '1' || u.searchParams.get('chat') === '1')
-        return true;
-      return window.matchMedia('(max-width: 820px), (hover: none) and (pointer: coarse)').matches;
-    }
-
-    function applyMobileChat() {
-      const on = isMobileChat();
-      document.body.classList.toggle('mobile-chat', on);
-      document.body.classList.toggle('force-desktop', !on && localStorage.getItem('easyaiot.idea.forceDesktop') === '1');
-      if (on) {
-        harnessOpen = true;
-        applyHarness();
-      }
-      return on;
-    }
-
     function toIdeAbs(filePath) {
       if (!filePath) return '';
       let p = String(filePath).trim().replace(/\\/g, '/');
@@ -627,10 +592,15 @@
       }, delay == null ? 480 : delay);
     }
 
-    const HARNESS_WIDTH_KEY = 'easyaiot.idea.harness.width';
+    const HARNESS_WIDTH_KEY = 'easyaiot.idea.harness.width.v4';
     let harnessWidth = parseInt(localStorage.getItem(HARNESS_WIDTH_KEY) || '', 10);
-    if (!Number.isFinite(harnessWidth) || harnessWidth < 380) {
-      harnessWidth = Math.min(720, Math.max(480, Math.round(window.innerWidth * 0.52)));
+    // 默认约 42% 屏宽，给 IDE 留足空间；清掉会挤扁编辑器的旧缓存
+    try {
+      localStorage.removeItem('easyaiot.idea.harness.width');
+      localStorage.removeItem('easyaiot.idea.harness.width.v3');
+    } catch (_) { /* ignore */ }
+    if (!Number.isFinite(harnessWidth) || harnessWidth < 420 || harnessWidth > window.innerWidth * 0.55) {
+      harnessWidth = Math.max(480, Math.round(window.innerWidth * 0.42));
     }
     let toastTimer = null;
     let dragClearTimer = null;
@@ -644,9 +614,13 @@
     }
 
     function clampHarnessWidth(px) {
-      const max = Math.floor(window.innerWidth * 0.75);
-      const min = 380;
-      return Math.max(min, Math.min(max, Math.round(px)));
+      const split = 6;
+      // IDE 至少约 45% / 480px，再窄编辑器操作按钮会被挤没
+      const ideMin = Math.max(480, Math.round(window.innerWidth * 0.42));
+      const hardMax = Math.max(420, window.innerWidth - ideMin - split);
+      const softMax = Math.min(hardMax, Math.round(window.innerWidth * 0.5), 820);
+      const min = Math.min(420, softMax);
+      return Math.max(min, Math.min(softMax, Math.round(px)));
     }
 
     function applyHarnessWidth() {
@@ -654,7 +628,23 @@
       if (!pane) return;
       harnessWidth = clampHarnessWidth(harnessWidth);
       pane.style.width = harnessWidth + 'px';
+      pane.style.flex = '0 0 auto';
       localStorage.setItem(HARNESS_WIDTH_KEY, String(harnessWidth));
+    }
+
+    function nudgeIdeLayout() {
+      // 只通知 IDE iframe 重排，绝不能再 dispatch window.resize
+      // （resize 监听里若再调用本函数会 Maximum call stack size exceeded）
+      const ide = $('ide');
+      if (!ide || !ide.contentWindow) return;
+      try {
+        ide.contentWindow.dispatchEvent(new Event('resize'));
+      } catch (_) { /* ignore */ }
+      requestAnimationFrame(() => {
+        try {
+          ide.contentWindow.dispatchEvent(new Event('resize'));
+        } catch (_) { /* ignore */ }
+      });
     }
 
     function showHarnessToast(msg) {
@@ -761,14 +751,16 @@
       applyHarnessWidth();
       const frame = $('harness');
       if (harnessOpen) {
-        const url = harnessEmbedUrl();
-        if (frame.getAttribute('src') !== url) frame.src = url;
+        const cur = frame.getAttribute('src') || '';
+        // 未加载、或仍是旧空白缓存时强制换新 URL
+        if (!cur || !/embed=idea/.test(cur) || frame.dataset.needReload === '1') {
+          frame.dataset.needReload = '';
+          frame.src = harnessEmbedUrl(true);
+        }
       }
     }
 
     function setHarness(open) {
-      if (document.body.classList.contains('mobile-chat'))
-        open = true;
       harnessOpen = !!open;
       applyHarness();
     }
@@ -779,17 +771,47 @@
       document.body.classList.add('resizing-harness');
       const startX = ev.clientX;
       const startW = harnessWidth;
-      const onMove = (e) => {
-        harnessWidth = clampHarnessWidth(startW + (startX - e.clientX));
-        applyHarnessWidth();
+      let raf = 0;
+      const notifyHarness = (type) => {
+        try {
+          $('harness').contentWindow.postMessage({ type }, '*');
+        } catch (_) { /* ignore */ }
       };
-      const onUp = () => {
+      notifyHarness('easyaiot-harness-resize-start');
+      const onMove = (e) => {
+        const next = clampHarnessWidth(startW + (startX - e.clientX));
+        if (next === harnessWidth) return;
+        harnessWidth = next;
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          applyHarnessWidth();
+        });
+      };
+      const endResize = () => {
+        if (!document.body.classList.contains('resizing-harness')) return;
         document.body.classList.remove('resizing-harness');
         window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('mouseup', endResize);
+        window.removeEventListener('pointerup', endResize);
+        window.removeEventListener('blur', endResize);
+        document.removeEventListener('mouseleave', endResize);
+        if (raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+        applyHarnessWidth();
+        notifyHarness('easyaiot-harness-resize-end');
+        nudgeIdeLayout();
       };
       window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
+      window.addEventListener('mouseup', endResize);
+      window.addEventListener('pointerup', endResize);
+      window.addEventListener('blur', endResize);
+      document.addEventListener('mouseleave', endResize);
+      try {
+        ev.target.setPointerCapture?.(ev.pointerId);
+      } catch (_) { /* ignore */ }
     }
 
     function markDragging(on) {
@@ -872,6 +894,12 @@
         }
       } else if (data.type === 'easyaiot-open-in-idea') {
         openFileInIde(data.path || data.file || '');
+      } else if (data.type === 'easyaiot-open-external') {
+        const url = String(data.url || '').trim();
+        if (/^https?:\/\//i.test(url)) {
+          try { window.open(url, '_blank', 'noopener,noreferrer'); }
+          catch (_) { location.assign(url); }
+        }
       }
     });
 
@@ -1065,19 +1093,18 @@
     }
 
     $('btn-pin').onclick = () => { pinned = !pinned; applyBar(); if (!pinned) scheduleHide(); };
-    $('btn-harness').onclick = () => {
-      if (document.body.classList.contains('mobile-chat')) {
-        setHarness(true);
-        return;
-      }
-      setHarness(!harnessOpen);
-    };
+    $('btn-harness').onclick = () => setHarness(!harnessOpen);
     $('ai-tab').onclick = () => setHarness(true);
-    $('btn-harness-refresh').onclick = () => { $('harness').src = harnessEmbedUrl(true); };
+    $('btn-harness-refresh').onclick = () => {
+      const frame = $('harness');
+      frame.dataset.needReload = '1';
+      frame.src = harnessEmbedUrl(true);
+      frame.dataset.needReload = '';
+    };
     $('harness-split').addEventListener('mousedown', beginHarnessResize);
     window.addEventListener('resize', () => {
-      applyMobileChat();
       if (harnessOpen) applyHarnessWidth();
+      // 注意：这里不要调用 nudgeIdeLayout，否则与内部 resize 形成死循环
     });
 
     window.addEventListener('dragenter', (e) => {
@@ -1191,21 +1218,22 @@
     };
 
     consumeOauth();
-    applyMobileChat();
+    // 启动自愈：清掉可能卡住的拖拽态 / 过大的助手宽度
+    document.body.classList.remove('resizing-harness', 'dragging-files');
+    try {
+      const ide = $('ide');
+      if (ide) ide.style.pointerEvents = '';
+      const oldW = parseInt(localStorage.getItem(HARNESS_WIDTH_KEY) || '', 10);
+      if (Number.isFinite(oldW) && oldW > window.innerWidth * 0.5) {
+        harnessWidth = Math.max(480, Math.round(window.innerWidth * 0.42));
+      }
+    } catch (_) { /* ignore */ }
     applyBar();
     applyHarness();
     if (!pinned) scheduleHide(5000);
     renderAuth()
-      .then(() => {
-        if (document.body.classList.contains('mobile-chat'))
-          return;
-        return loadWs();
-      })
-      .then(() => {
-        if (document.body.classList.contains('mobile-chat'))
-          return;
-        return loadPublish().catch(() => {});
-      });
+      .then(() => loadWs())
+      .then(() => loadPublish().catch(() => {}));
     setInterval(() => {
       if (current && current.id) {
         api(`/api/workspaces/${current.id}/heartbeat`, { method: 'POST' }).catch(() => {});
