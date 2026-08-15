@@ -107,6 +107,8 @@ LOG_DIR="${SCRIPT_DIR}/logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="${LOG_DIR}/runtime_image_$(date +%Y%m%d_%H%M%S).log"
 : > "$LOG_FILE"
+# 供父脚本（install/desktop acquire）在失败时定位本轮详细日志
+echo "$LOG_FILE" > "${LOG_DIR}/.last_runtime_image_log"
 
 _log() {
     local label="$1" msg="$2"
@@ -1494,19 +1496,59 @@ pull_and_tag_image() {
     pull_out=$(docker pull "$remote_ref" 2>&1)
     pull_rc=$?
     set -e
+    # docker 原文写入主日志（printf 仅到终端，默认不进 LOG_FILE）
+    {
+        echo "---- docker pull ${remote_ref} (exit=${pull_rc}) ----"
+        printf '%s\n' "$pull_out"
+        echo "---- end docker pull ----"
+    } >> "$LOG_FILE" 2>/dev/null || true
     printf '%s\n' "$pull_out"
     if [ "$pull_rc" -ne 0 ]; then
-        print_warning "拉取失败: ${remote_ref}"
-        if docker_error_is_dns_failure "$pull_out"; then
+        local err_kind
+        err_kind="$(runtime_docker_classify_pull_error "$pull_out")"
+        _RUNTIME_LAST_PULL_ERROR_KIND="$err_kind"
+        print_warning "拉取失败: ${remote_ref} [${err_kind}]"
+        print_error "docker pull 输出（末尾）:"
+        while IFS= read -r line; do
+            [ -n "$line" ] && print_error "  ${line}"
+        done < <(printf '%s\n' "$pull_out" | tail -n 40)
+        runtime_docker_print_pull_error_hint "$err_kind" "$remote_ref"
+        if [ "$err_kind" = "dns" ] || docker_error_is_dns_failure "$pull_out"; then
             _print_host_dns_fix_guide
             return 53
         fi
         return 1
     fi
     print_info "打本地标签: ${remote_ref} → ${local_ref}"
-    docker tag "$remote_ref" "$local_ref" || { print_error "打标签失败"; return 1; }
+    if ! docker tag "$remote_ref" "$local_ref"; then
+        print_error "打标签失败: ${remote_ref} → ${local_ref}"
+        return 1
+    fi
     print_success "${local_ref} 已就绪"
     return 0
+}
+
+# 记录本次 pull 失败的远程引用（供汇总打印）
+_RUNTIME_PULL_FAILED_REFS=()
+_RUNTIME_LAST_PULL_ERROR_KIND=""
+
+_runtime_record_pull_failure() {
+    local ref="$1"
+    _RUNTIME_PULL_FAILED_REFS+=("$ref")
+}
+
+_runtime_print_pull_failure_summary() {
+    if [ "${#_RUNTIME_PULL_FAILED_REFS[@]}" -eq 0 ]; then
+        return 0
+    fi
+    echo ""
+    print_error "失败镜像清单 (${#_RUNTIME_PULL_FAILED_REFS[@]}):"
+    local ref
+    for ref in "${_RUNTIME_PULL_FAILED_REFS[@]}"; do
+        print_error "  - ${ref}"
+    done
+    print_error "完整 docker pull 输出已写入日志: ${LOG_FILE}"
+    print_info "查看: tail -n 120 '${LOG_FILE}'"
 }
 
 select_pull_profile() {
@@ -1583,6 +1625,8 @@ pull_all_images() {
     device_pull_total=$(runtime_device_pull_count_for_profile "$pull_profile")
     # 非 local：供循环内检测到 DNS 故障后置位
     _EASYAIOT_DNS_ABORT=0
+    _RUNTIME_PULL_FAILED_REFS=()
+    _RUNTIME_LAST_PULL_ERROR_KIND=""
 
     # ---- 共享模块 ----
     print_header "阶段 1/2：拉取共享镜像（架构: ${CURRENT_ARCH}）"

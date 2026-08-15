@@ -12,6 +12,8 @@ RUNTIME_IMAGE_COMMON_LOADED=1
 RUNTIME_IMAGE_SCRIPT="${RUNTIME_IMAGE_SCRIPT:-${SCRIPT_DIR}/runtime_image.sh}"
 RUNTIME_IMAGES_MARKER="${RUNTIME_IMAGES_MARKER:-${SCRIPT_DIR}/.runtime_images_pulled}"
 RUNTIME_REGISTRY_CONFIG="${RUNTIME_REGISTRY_CONFIG:-${SCRIPT_DIR}/runtime_registry.conf}"
+# runtime_image.sh 每次启动写入本文件，父脚本失败时可定位详细日志
+RUNTIME_IMAGE_LAST_LOG_MARKER="${RUNTIME_IMAGE_LAST_LOG_MARKER:-${SCRIPT_DIR}/logs/.last_runtime_image_log}"
 
 # 加载后由 runtime_load_registry() 填充（可被 EASYAIOT_RUNTIME_REGISTRY 环境变量覆盖）
 RUNTIME_IMAGE_REGISTRY=""
@@ -1205,6 +1207,149 @@ runtime_guess_install_script() {
     esac
 }
 
+# ============================================================================
+# RUNTIME 部署失败诊断（pull / acquire / desktop）
+# ============================================================================
+
+# 分类 docker pull 错误，便于打印针对性提示
+# 输出: dns | auth | not_found | disk | network | unknown
+runtime_docker_classify_pull_error() {
+    local out="${1:-}"
+    if declare -F docker_error_is_dns_failure >/dev/null 2>&1 && docker_error_is_dns_failure "$out"; then
+        echo dns
+        return 0
+    fi
+    if echo "$out" | grep -Eqi 'lookup .*(on \[::1\]:53|on 127\.|connection refused)|no such host|Temporary failure in name resolution|Could not resolve host'; then
+        echo dns
+    elif echo "$out" | grep -Eqi 'no basic auth credentials|unauthorized|authentication required|authorization failed|pull access denied|access denied|denied: requested access'; then
+        echo auth
+    elif echo "$out" | grep -Eqi 'not found|manifest unknown|does not exist|repository does not exist|name unknown|no match for platform'; then
+        echo not_found
+    elif echo "$out" | grep -Eqi 'no space left|disk quota exceeded|ENOSPC'; then
+        echo disk
+    elif echo "$out" | grep -Eqi 'timeout|TLS handshake|connection reset|network is unreachable|i/o timeout|temporary failure|broken pipe|EOF|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout'; then
+        echo network
+    else
+        echo unknown
+    fi
+}
+
+# 按错误类型打印简短修复建议
+runtime_docker_print_pull_error_hint() {
+    local kind="${1:-unknown}"
+    local ref="${2:-}"
+    case "$kind" in
+        dns)
+            runtime_img_msg error "原因归类: DNS 解析失败（dockerd 无法解析镜像仓库域名）"
+            ;;
+        auth)
+            runtime_img_msg error "原因归类: 仓库认证/权限失败"
+            runtime_img_msg error "  可尝试: docker login <registry> 后重试 pull"
+            ;;
+        not_found)
+            runtime_img_msg error "原因归类: 远程镜像不存在或架构/标签不匹配"
+            [ -n "$ref" ] && runtime_img_msg error "  请确认已发布: ${ref}"
+            ;;
+        disk)
+            runtime_img_msg error "原因归类: 磁盘空间不足"
+            runtime_img_msg error "  可尝试: docker system df / docker image prune"
+            ;;
+        network)
+            runtime_img_msg error "原因归类: 网络超时或连接中断"
+            runtime_img_msg error "  可检查代理/镜像加速，或稍后重试"
+            ;;
+        *)
+            runtime_img_msg error "原因归类: 未知（详见上方 docker 输出与日志文件）"
+            ;;
+    esac
+}
+
+# 读取最近一次 runtime_image.sh 日志路径
+runtime_images_last_log_path() {
+    local marker="${RUNTIME_IMAGE_LAST_LOG_MARKER}"
+    if [ -f "$marker" ]; then
+        local path
+        path=$(tr -d '\r\n' < "$marker" 2>/dev/null || true)
+        [ -n "$path" ] && [ -f "$path" ] && printf '%s\n' "$path" && return 0
+    fi
+    # 回退：取 logs 目录下最新 runtime_image_*.log
+    local latest
+    latest=$(ls -1t "${SCRIPT_DIR}/logs"/runtime_image_*.log 2>/dev/null | head -1 || true)
+    [ -n "$latest" ] && [ -f "$latest" ] && printf '%s\n' "$latest" && return 0
+    return 1
+}
+
+# 列出当前形态下缺失或架构不匹配的核心预构建镜像
+runtime_images_report_missing_refs() {
+    local profile="${1:-${EASYAIOT_DEPLOY_PROFILE:-full}}"
+    local tag="${2:-${EASYAIOT_RUNTIME_TAG:-latest}}"
+    tag="$(runtime_normalize_pull_tag "$tag")"
+    local arch
+    arch=$(runtime_detect_arch)
+
+    local -a refs=()
+    runtime_images_collect_check_refs refs "$profile" "$tag"
+
+    if [ "${#refs[@]}" -eq 0 ]; then
+        runtime_img_msg warn "无法枚举核心镜像清单（profile=${profile}）"
+        return 0
+    fi
+
+    local img actual missing=0
+    runtime_img_msg error "核心镜像本地状态 (profile=${profile}, arch=${arch}, tag=${tag}):"
+    for img in "${refs[@]}"; do
+        if runtime_local_image_arch_ready "$img" "$arch"; then
+            runtime_img_msg info "  [OK] ${img}"
+        elif docker image inspect "$img" >/dev/null 2>&1; then
+            actual=$(runtime_image_actual_arch "$img")
+            runtime_img_msg error "  [ARCH] ${img} 本地架构=${actual:-?} 期望=${arch}"
+            missing=$((missing + 1))
+        else
+            runtime_img_msg error "  [MISS] ${img}"
+            missing=$((missing + 1))
+        fi
+    done
+    if [ "$missing" -gt 0 ]; then
+        runtime_img_msg error "缺失/不匹配: ${missing}/${#refs[@]}"
+    else
+        runtime_img_msg info "核心校验镜像均已在本地"
+    fi
+    return 0
+}
+
+# RUNTIME pull/部署失败时输出详细诊断（日志路径 + 末尾 + 缺失镜像）
+# 供 install / desktop / acquire 在失败分支调用
+runtime_images_dump_pull_failure() {
+    local context="${1:-pull}"
+    local log=""
+    log=$(runtime_images_last_log_path 2>/dev/null || true)
+
+    echo ""
+    runtime_img_msg error "========================================"
+    runtime_img_msg error "  RUNTIME 预构建部署失败 — 详细诊断 (${context})"
+    runtime_img_msg error "========================================"
+    runtime_img_msg error "仓库: ${RUNTIME_IMAGE_REGISTRY:-${EASYAIOT_RUNTIME_REGISTRY:-未加载}}"
+    runtime_img_msg error "形态: ${EASYAIOT_DEPLOY_PROFILE:-未设置}"
+    runtime_img_msg error "标签: ${EASYAIOT_RUNTIME_TAG:-latest}"
+
+    if [ -n "$log" ] && [ -f "$log" ]; then
+        runtime_img_msg error "详细日志: ${log}"
+        runtime_img_msg error "日志末尾 (tail -80):"
+        while IFS= read -r line; do
+            runtime_img_msg error "  ${line}"
+        done < <(tail -n 80 "$log" 2>/dev/null || true)
+        runtime_img_msg info "完整日志: cat '${log}'"
+    else
+        runtime_img_msg error "未找到 runtime_image 详细日志（通常位于 .scripts/docker/logs/runtime_image_*.log）"
+    fi
+
+    echo ""
+    runtime_images_report_missing_refs \
+        "${EASYAIOT_DEPLOY_PROFILE:-full}" \
+        "${EASYAIOT_RUNTIME_TAG:-latest}"
+    echo ""
+}
+
 # 预构建镜像拉取失败或用户选择本地构建时的手动构建指引
 # context: install = install 流程内（将自动继续本地构建）; pull = 独立 pull 命令失败
 runtime_print_install_local_build_help() {
@@ -1318,17 +1463,24 @@ runtime_images_acquire() {
         elif runtime_images_pulled_ready; then
             # 个别镜像（如尚未发布的 aiot-transform）失败时，核心镜像仍可能已就绪
             runtime_img_msg warn "部分远程镜像拉取失败，但本地核心预构建镜像已就绪，将跳过构建并继续安装"
+            _log=$(runtime_images_last_log_path 2>/dev/null || true)
+            [ -n "$_log" ] && runtime_img_msg warn "拉取详情日志: ${_log}"
+            runtime_images_report_missing_refs \
+                "${EASYAIOT_DEPLOY_PROFILE:-full}" \
+                "${EASYAIOT_RUNTIME_TAG:-latest}"
             export EASYAIOT_SKIP_BUILD=1
             do_local_build=0
         else
             if [ "$source_free" -eq 1 ]; then
                 runtime_img_msg error "预构建镜像不完整，且当前为无源码 runtime（PANEL 安装包），无法本地 docker build"
                 runtime_img_msg error "请检查仓库连通性，或确认远程已发布缺失镜像（如 aiot-transform）后重试 pull/install"
+                runtime_images_dump_pull_failure install
                 runtime_print_install_local_build_help pull
                 export EASYAIOT_SKIP_IMAGE_PROMPT=1
                 return 1
             fi
             runtime_img_msg warn "预构建镜像拉取失败，install 将自动在各模块执行本地构建"
+            runtime_images_dump_pull_failure install
             runtime_print_install_local_build_help install
             do_local_build=1
         fi
@@ -1392,18 +1544,25 @@ runtime_images_acquire_for_update() {
             export EASYAIOT_SKIP_BUILD=1
         elif runtime_images_pulled_ready; then
             runtime_img_msg warn "部分远程镜像拉取失败，但本地核心预构建镜像已就绪，将跳过重建并继续更新"
+            _log=$(runtime_images_last_log_path 2>/dev/null || true)
+            [ -n "$_log" ] && runtime_img_msg warn "拉取详情日志: ${_log}"
+            runtime_images_report_missing_refs \
+                "${EASYAIOT_DEPLOY_PROFILE:-full}" \
+                "${EASYAIOT_RUNTIME_TAG:-latest}"
             export EASYAIOT_SKIP_BUILD=1
             do_local_build=0
             unset EASYAIOT_RUNTIME_FORCE_PULL
         else
             if runtime_is_source_free_runtime; then
                 runtime_img_msg error "预构建镜像不完整，且当前为无源码 runtime（PANEL 安装包），无法本地重建"
+                runtime_images_dump_pull_failure update
                 runtime_print_install_local_build_help pull
                 unset EASYAIOT_RUNTIME_FORCE_PULL
                 export EASYAIOT_SKIP_IMAGE_PROMPT=1
                 return 1
             fi
             runtime_img_msg warn "预构建镜像拉取失败，update 将自动在各模块执行本地重建"
+            runtime_images_dump_pull_failure update
             runtime_print_install_local_build_help update
             do_local_build=1
             unset EASYAIOT_RUNTIME_FORCE_PULL
