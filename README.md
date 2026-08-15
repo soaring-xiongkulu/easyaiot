@@ -169,6 +169,26 @@ On industrial and building sites, PLCs, meters, and sensors often hang on RS-485
   <li><strong>E2E integration out of the box</strong>: <code>bash EDGE/demo/run_e2e.sh</code> validates the full chain—collection → MQTT uplink → cloud persistence</li>
 </ul>
 
+### 🤖 AI Assistant: IDEA split-pane co-creation—edit code while asking about architecture and health
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Open-source contribution and on-site PoCs often stall in the same place: many modules, long chains—editing needs a local setup, health checks need SSH, architecture questions mean digging docs and asking people. EasyAIoT embeds the <strong>HARNESS conversational assistant</strong> into the <strong>IDEA cloud IDE</strong>—full VS Code workspace on the left, AI assistant split on the right; drag files from the explorer to auto <code>@</code>-mention them in chat, read source while asking about ports, config, and service health, shortening the “don’t know → ask someone → edit again” loop.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>IDEA split-pane co-creation</strong>: Toolbar opens the AI assistant on the right—editor and Agent side by side; or deep-link with <code>?file=path&harness=1</code> to open a file and split</li>
+  <li><strong>Drag to auto @</strong>: Drop explorer files onto the assistant pane to attach them as chat context—fewer paths typed, less context lost</li>
+  <li><strong>Ask and check</strong>: The Agent calls platform Tools to probe Gateway / video / AI health and points to related config and source—compressing SSH + compose digging into one conversation</li>
+  <li><strong>Knows the ontology</strong>: Built-in <code>HARNESS/ontology/AGENTS.md</code> and full-repo workspace—architecture, ports, APIs, and install conventions in one place</li>
+  <li><strong>Same semantics in the console</strong>: In-page floating drawer / full-screen “AI Assistant” share the same capabilities as IDEA; MCP + Cursor Skill reusable across environments</li>
+  <li><strong>Two-way jump</strong>: The assistant can generate portal links via <code>easyaiot_open_in_idea</code>—from Q&amp;A back to a full IDE where you can edit and publish</li>
+</ul>
+
+| | | |
+|:---:|:---:|:---:|
+| ![IDEA Login](.image/banner/banner1203.png) | ![IDEA Workspace](.image/banner/banner1204.png) | ![IDEA Development](.image/banner/banner1205.png) |
+| ![AI Assistant Chat](.image/banner/banner1210.png) | ![AI Assistant Analysis](.image/banner/banner1211.png) | ![AI Assistant Collaboration](.image/banner/banner1212.png) |
+
 ### 🎯 Three Hardware Tiers, One Platform
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -340,7 +360,7 @@ Many projects reduce IoT to a "device ledger + message relay"—devices connect 
   <li><strong>Develop in the browser</strong>: VS Code–style online IDE on code-server; clones the full EasyAIoT repo by default—contributors can edit, run module-level checks, and open PRs without setting up a local toolchain first</li>
   <li><strong>Standalone portal and multi-user</strong>: Ops console on <code>:9300</code>, decoupled from the WEB admin; one Docker workspace per person; port pool 13338–13437 for concurrent users; console floating ball jumps to the portal</li>
   <li><strong>Six-language toolchain aligned with the host</strong>: Preinstalled <strong>JDK 21</strong>, Node 22, Python, Go, CMake/C++, and .NET 8—covers reading, light edits, and module-level checks for WEB / DEVICE / AI / NODE / RUNTIME / EDGE</li>
-  <li><strong>AI co-creation</strong>: GitHub Copilot preinstalled (sign in with your own GitHub account; the platform never holds keys); without a Copilot subscription, bring your own OpenAI-compatible API key via Continue</li>
+  <li><strong>AI co-creation</strong>: GitHub Copilot preinstalled (sign in with your own GitHub account; the platform never holds keys); without a Copilot subscription, bring your own OpenAI-compatible API key via Continue; toolbar opens HARNESS AI Assistant in a split pane—drag files to auto <code>@</code>-mention while you edit</li>
   <li><strong>Local publish</strong>: Suggests modules from workspace diffs, one-click build and replace running containers on the host—refresh to verify, shortening the edit-to-see loop</li>
   <li><strong>OAuth and idle reclaim</strong>: Gitee / GitHub login (can be required), one account per workspace; idle auto-stop after 8 hours by default; heartbeat and opening the IDE refresh activity so compute is not left spinning</li>
   <li><strong>Contribution loop</strong>: Bind your fork → branch → edit → push to the fork → open a PR to upstream</li>
@@ -356,8 +376,10 @@ Many modules and long chains—checking health, asking about architecture, and f
   <li><strong>Ask and check</strong>: The Agent calls platform Tools to probe Gateway / video / AI service health and points to related config and source—compressing SSH + compose digging into one conversation</li>
   <li><strong>Knows the ontology</strong>: Built-in <code>HARNESS/ontology/AGENTS.md</code> and full-repo workspace—architecture, ports, APIs, and install conventions in one place</li>
   <li><strong>Chat in-page</strong>: Floating drawer iframe—no page switch or lost context while viewing alarms/devices; full-screen “AI Assistant” or new window also available</li>
+  <li><strong>IDEA split-pane co-creation</strong>: Toolbar opens the AI assistant on the right—editor and Agent side by side; or deep-link with <code>?file=path&harness=1</code> to open a file and split</li>
+  <li><strong>Drag to auto @</strong>: Drop explorer files onto the assistant pane to attach them as chat context</li>
+  <li><strong>Two-way jump</strong>: Agent can generate portal links via <code>easyaiot_open_in_idea</code>—from Q&amp;A back to a full IDE where you can edit and publish; IDEA for code and PRs, HARNESS for architecture and health</li>
   <li><strong>MCP + Cursor Skill</strong>: Same <code>easyaiot_*</code> capabilities exposed via MCP to Cursor and other IDEs—what you can ask and check in the console, you can invoke in dev; Skills reusable across projects</li>
-  <li><strong>Complements IDEA</strong>: IDEA for code and PRs; HARNESS for architecture and health checks</li>
   <li><strong>Ready in all profiles</strong>: Based on <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar (<code>:3080</code>); included by default in <code>mini / standard / full</code> (<code>EASYAIOT_ENABLE_HARNESS=0</code> to disable); DeepSeek / OpenAI-compatible endpoints; bring your own Key in <code>harness.env</code> or the UI</li>
   <li><strong>Security note</strong>: Experimental module; upstream <code>dsh</code> is Developer Preview; restrict access in production and configure write/Shell approval; do not commit API Keys to Git</li>
 </ul>
@@ -668,6 +690,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, NODE, VIDEO, R
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>Community cloud IDE</strong>: Open a VS Code–style workspace in the browser, clones the full repo by default; one Docker workspace per person, with local publish and idle reclaim—turning open-source contribution from “set up an environment first” into “open and edit”</li>
+    <li><strong>Split-pane AI Assistant</strong>: Toolbar opens HARNESS on the right; drag files to auto <code>@</code>; deep-link with <code>?file=&harness=1</code></li>
   </ul>
 </td>
 </tr>
@@ -677,6 +700,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, NODE, VIDEO, R
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>Conversational assistant</strong>: Ask about health, architecture, and issues—shorter troubleshooting and PoC, less vendor dependency</li>
     <li><strong>In-page floating drawer</strong>: Chat without leaving business pages; included by default in <code>mini / standard / full</code></li>
+    <li><strong>IDEA split-pane link</strong>: Assistant beside the editor; drag-to-<code>@</code>, deep links, and two-way jump</li>
     <li><strong>MCP / Skill</strong>: Console and IDE share platform semantics; Skills reusable across projects</li>
   </ul>
 </td>
@@ -824,11 +848,17 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 | ![Preview](.image/banner/banner1104.png) | ![Access](.image/banner/banner1105.png) | ![NVR](.image/banner/banner1106.png) |
 | ![Live View](.image/banner/banner1183.jpg) | ![Map](.image/banner/banner1184.jpg) |  |
 
-#### 🧠 AI Models
+#### 🤖 AI Assistant
 
 | | | |
 |:---:|:---:|:---:|
 | ![IDEA Login](.image/banner/banner1203.png) | ![IDEA Workspace](.image/banner/banner1204.png) | ![IDEA Development](.image/banner/banner1205.png) |
+| ![AI Assistant Chat](.image/banner/banner1210.png) | ![AI Assistant Analysis](.image/banner/banner1211.png) | ![AI Assistant Collaboration](.image/banner/banner1212.png) |
+
+#### 🧠 AI Models
+
+| | | |
+|:---:|:---:|:---:|
 | ![Multi-cluster Sync](.image/banner/banner1200.png) | ![NFS Cluster Topology](.image/banner/banner1198.png) | ![NFS Cluster Management](.image/banner/banner1197.png) |
 | ![Node Management](.image/banner/banner1199.png) | ![NFS File Directory](.image/banner/banner1201.png) | ![NFS Directory Browser](.image/banner/banner1202.png) |
 | ![Qwen](.image/banner/banner1093.jpg) | ![Vision Model](.image/banner/banner1094.jpg) | ![List](.image/banner/banner1099.png) |

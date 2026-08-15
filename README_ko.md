@@ -160,6 +160,26 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>E2E 연동 즉시 사용</strong>: <code>bash EDGE/demo/run_e2e.sh</code>로 수집 → MQTT 업링크 → 클라우드 입고 전체 체인을 원클릭 검증</li>
 </ul>
 
+### 🤖 AI 어시스턴트: IDEA 분할 화면 공동 창작 — 코드를 고치며 아키텍처·상태를 질문
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+오픈소스 기여와 현장 PoC는 같은 지점에서 막히기 쉽습니다. 모듈이 많고 체인이 길어 — 수정은 로컬 환경이 필요하고, 상태 확인은 SSH가 필요하고, 아키텍처 질문은 문서와 사람에게 의존합니다. EasyAIoT는 <strong>HARNESS 대화형 어시스턴트</strong>를 <strong>IDEA 클라우드 IDE</strong>에 넣습니다 — 왼쪽은 완전한 VS Code 워크스페이스, 오른쪽은 AI 어시스턴트 분할; 탐색기에서 파일을 끌어 자동 <code>@</code> 멘션하고, 소스를 읽으며 포트·설정·서비스 상태를 물어 「모름 → 물어보기 → 다시 수정」 루프를 단축합니다.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>IDEA 분할 화면 공동 창작</strong>: 툴바로 오른쪽 AI 어시스턴트 원클릭 — 에디터와 Agent 동시 화면; <code>?file=경로&harness=1</code> 딥링크로 파일 열고 분할도 가능</li>
+  <li><strong>드래그 자동 @</strong>: 탐색기 파일을 어시스턴트 패널에 놓으면 대화 컨텍스트로 자동 연결 — 경로 입력·컨텍스트 손실 감소</li>
+  <li><strong>물으면 바로 확인</strong>: Agent가 플랫폼 Tool로 Gateway / 영상 / AI 상태를 탐지하고 관련 설정·소스를 안내 — SSH + compose를 한 번의 대화로</li>
+  <li><strong>온톨로지 내장</strong>: <code>HARNESS/ontology/AGENTS.md</code>와 전체 저장소 워크스페이스 — 아키텍처, 포트, API, 설치 규약을 한곳에서</li>
+  <li><strong>콘솔과 동일 시맨틱</strong>: 업무 페이지 플로팅 서랍 / 전체 화면 「AI 어시스턴트」가 IDEA와 동일 능력 공유; MCP + Cursor Skill은 환경 간 재사용</li>
+  <li><strong>양방향 점프</strong>: 어시스턴트가 <code>easyaiot_open_in_idea</code>로 포털 링크를 생성 — Q&amp;A에서 수정·배포 가능한 전체 IDE로 복귀</li>
+</ul>
+
+| | | |
+|:---:|:---:|:---:|
+| ![IDEA 로그인](.image/banner/banner1203.png) | ![IDEA 워크스페이스](.image/banner/banner1204.png) | ![IDEA 개발](.image/banner/banner1205.png) |
+| ![AI 어시스턴트 대화](.image/banner/banner1210.png) | ![AI 어시스턴트 분석](.image/banner/banner1211.png) | ![AI 어시스턴트 협업](.image/banner/banner1212.png) |
+
 ### 🎯 세 가지 하드웨어, 하나의 플랫폼
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -331,7 +351,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>브라우저에서 바로 개발</strong>: code-server 기반 VS Code 스타일 온라인 IDE, 기본적으로 EasyAIoT 전체 저장소를 clone — 기여자가 로컬 환경을 먼저 구성하지 않아도 코드 수정, 모듈 검증, PR 제출 가능</li>
   <li><strong>독립 포털과 다중 사용자</strong>: 운영 콘솔은 <code>:9300</code>에서 WEB 관리 콘솔과 분리; 1인 1 Docker 워크스페이스; 포트 풀 13338–13437로 동시 접속; 콘솔 플로팅 볼로 포털 원클릭 이동</li>
   <li><strong>6개 언어 도구 체인을 호스트와 정렬</strong>: <strong>JDK 21</strong>, Node 22, Python, Go, CMake/C++, .NET 8 사전 설치 — WEB / DEVICE / AI / NODE / RUNTIME / EDGE의 열람·경량 수정·모듈 검증 지원</li>
-  <li><strong>AI 공동 창작</strong>: GitHub Copilot 사전 설치(본인 GitHub 계정 로그인, 플랫폼이 키를 보관하지 않음); Copilot 구독이 없으면 OpenAI 호환 API Key를 Continue로 사용</li>
+  <li><strong>AI 공동 창작</strong>: GitHub Copilot 사전 설치(본인 GitHub 계정 로그인, 플랫폼이 키를 보관하지 않음); Copilot 구독이 없으면 OpenAI 호환 API Key를 Continue로 사용; 툴바로 HARNESS AI 어시스턴트를 분할 화면으로 열고, 파일을 끌어 자동 <code>@</code> 하며 수정과 질의를 병행</li>
   <li><strong>로컬 배포</strong>: 워크스페이스 변경 경로로 대상 모듈을 제안하고, 원클릭으로 빌드 후 호스트에서 실행 중인 동일 컨테이너를 교체 — 새로고침으로 검증해 「수정 → 확인」 루프를 단축</li>
   <li><strong>OAuth와 유휴 회수</strong>: Gitee / GitHub 로그인(필수화 가능), 1인 1존 계정 바인딩; 기본 8시간 유휴 시 자동 중지, 하트비트와 IDE 열기가 활성 시간을 갱신해 연산 낭비 방지</li>
   <li><strong>기여 루프</strong>: 개인 fork 연결 → 브랜치 → 코드 수정 → fork로 푸시 → 공식 저장소에 PR</li>
@@ -347,8 +367,10 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>물으면 바로 확인</strong>: Agent가 플랫폼 Tool로 Gateway / 영상 / AI 서비스 상태를 탐지하고 관련 설정·소스를 안내 — SSH + compose 확인을 한 번의 대화로</li>
   <li><strong>온톨로지 내장</strong>: <code>HARNESS/ontology/AGENTS.md</code>와 전체 저장소 워크스페이스 — 아키텍처, 포트, API, 설치 규약을 한곳에서</li>
   <li><strong>페이지 내 대화</strong>: 플로팅 서랍 iframe — 알람/장치 화면에서 페이지 전환·컨텍스트 손실 없음; 전체 화면 「AI 어시스턴트」 또는 새 창도 가능</li>
+  <li><strong>IDEA 분할 화면 공동 창작</strong>: 툴바로 오른쪽 AI 어시스턴트 원클릭 — 에디터와 Agent 동시 화면; <code>?file=경로&harness=1</code> 딥링크도 지원</li>
+  <li><strong>드래그 자동 @</strong>: 탐색기 파일을 어시스턴트 패널에 놓으면 대화 컨텍스트로 자동 연결</li>
+  <li><strong>양방향 점프</strong>: Agent가 <code>easyaiot_open_in_idea</code>로 포털 링크를 생성 — Q&amp;A에서 수정·배포 가능한 전체 IDE로; IDEA는 코드·PR, HARNESS는 아키텍처·상태 확인</li>
   <li><strong>MCP + Cursor Skill</strong>: 동일 <code>easyaiot_*</code> 능력을 MCP로 Cursor 등 IDE에 노출 — 콘솔에서 묻고 확인하는 것을 개발 환경에서도 호출; Skill은 프로젝트 간 재사용</li>
-  <li><strong>IDEA와 상호 보완</strong>: IDEA는 코드·PR, HARNESS는 아키텍처·상태 확인</li>
   <li><strong>전 프로필 기본 포함</strong>: <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar(<code>:3080</code>), <code>mini / standard / full</code> 기본 배포 포함(<code>EASYAIOT_ENABLE_HARNESS=0</code>로 비활성화); DeepSeek / OpenAI 호환 엔드포인트; Key는 <code>harness.env</code> 또는 UI에서 자체 제공</li>
   <li><strong>보안 안내</strong>: 실험 모듈, upstream <code>dsh</code> Developer Preview; 운영 환경은 접근 제한 및 쓰기/Shell 승인 설정; API Key는 Git에 커밋 금지</li>
 </ul>
@@ -646,6 +668,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TR
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>커뮤니티 온라인 IDE</strong>: 브라우저에서 VS Code 스타일 워크스페이스를 열고 기본적으로 전체 저장소를 clone; 1인 1 Docker 존, 로컬 배포와 유휴 회수 지원 — 오픈소스 기여를 「먼저 환경 구성」에서 「열면 바로 수정」으로</li>
+    <li><strong>분할 화면 AI 어시스턴트</strong>: 툴바로 오른쪽 HARNESS 열기, 드래그 자동 <code>@</code>; <code>?file=&harness=1</code> 딥링크</li>
   </ul>
 </td>
 </tr>
@@ -655,6 +678,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TR
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>대화형 어시스턴트</strong>: 상태·아키텍처·문제 파악 — 장애 대응과 PoC 단축, 벤더 의존 감소</li>
     <li><strong>페이지 내 플로팅 서랍</strong>: 업무 페이지 이탈 없이 대화; <code>mini / standard / full</code> 기본 포함</li>
+    <li><strong>IDEA 분할 화면 연동</strong>: 에디터 오른쪽에 어시스턴트; 드래그-<code>@</code>, 딥링크, 양방향 점프</li>
     <li><strong>MCP / Skill</strong>: 콘솔과 IDE가 플랫폼 시맨틱 공유, Skill 프로젝트 간 재사용</li>
   </ul>
 </td>
@@ -799,11 +823,17 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![미리보기](.image/banner/banner1104.png) | ![접속](.image/banner/banner1105.png) | ![NVR](.image/banner/banner1106.png) |
 | ![실황](.image/banner/banner1183.jpg) | ![지도](.image/banner/banner1184.jpg) |  |
 
-#### 🧠 AI 모델
+#### 🤖 AI 어시스턴트
 
 | | | |
 |:---:|:---:|:---:|
 | ![IDEA 로그인](.image/banner/banner1203.png) | ![IDEA 워크스페이스](.image/banner/banner1204.png) | ![IDEA 개발](.image/banner/banner1205.png) |
+| ![AI 어시스턴트 대화](.image/banner/banner1210.png) | ![AI 어시스턴트 분석](.image/banner/banner1211.png) | ![AI 어시스턴트 협업](.image/banner/banner1212.png) |
+
+#### 🧠 AI 모델
+
+| | | |
+|:---:|:---:|:---:|
 | ![다중 클러스터 동기화](.image/banner/banner1200.png) | ![NFS 클러스터 토폴로지](.image/banner/banner1198.png) | ![NFS 클러스터 관리](.image/banner/banner1197.png) |
 | ![노드 관리](.image/banner/banner1199.png) | ![NFS 파일 디렉터리](.image/banner/banner1201.png) | ![NFS 디렉터리 탐색](.image/banner/banner1202.png) |
 | ![Qwen](.image/banner/banner1093.jpg) | ![비전모델](.image/banner/banner1094.jpg) | ![목록](.image/banner/banner1099.png) |

@@ -169,6 +169,26 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>E2E 聯調開箱即用</strong>：<code>bash EDGE/demo/run_e2e.sh</code> 一鍵驗證採集 → MQTT 上行 → 雲端入庫全鏈路</li>
 </ul>
 
+### 🤖 AI助手：IDEA 分屏共創，邊改代碼邊問架構查健康
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+開源共建與現場 PoC 常卡在同一處：模組多、鏈路長，改代碼要先配環境，查健康要登伺服器，問架構要翻文檔、找人。EasyAIoT 把 <strong>HARNESS 對話式助手</strong>嵌進 <strong>IDEA 在線 IDE</strong>——左側完整 VS Code 工作區，右側 AI 助手分屏；從資源管理器拖文件即可自動 <code>@</code> 引用進對話，邊讀源碼邊問端口、配置與服務健康，縮短「不懂—找人—再改」的閉環。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>IDEA 分屏共創</strong>：工具欄一鍵打開右側 AI 助手，編輯器與 Agent 同屏；亦可 <code>?file=路徑&harness=1</code> 深鏈打開指定文件並分屏</li>
+  <li><strong>拖入自動 @</strong>：資源管理器文件拖到助手面板，自動關聯為對話上下文，少打路徑、少丟上下文</li>
+  <li><strong>問即查</strong>：Agent 調平臺 Tool 探測 Gateway / 視頻 / 算法等服務健康，並指向相關配置與源碼——把 SSH + 翻 compose 壓縮成一次對話</li>
+  <li><strong>懂本體</strong>：內置 <code>HARNESS/ontology/AGENTS.md</code> 與全倉工作區，架構、端口、API、安裝約定有統一答案</li>
+  <li><strong>管控臺同口徑</strong>：業務頁懸浮抽屜 / 全屏「AI 助手」與 IDEA 側同一套能力；MCP + Cursor Skill 可跨環境復用</li>
+  <li><strong>雙向跳轉</strong>：助手可通過 <code>easyaiot_open_in_idea</code> 生成門戶鏈接，從問答回到可改可發的完整 IDE</li>
+</ul>
+
+| | | |
+|:---:|:---:|:---:|
+| ![IDEA登入](.image/banner/banner1203.png) | ![IDEA工作區](.image/banner/banner1204.png) | ![IDEA開發](.image/banner/banner1205.png) |
+| ![AI助手對話](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手協作](.image/banner/banner1212.png) |
+
 ### 🎯 三檔硬體，一套平臺
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -340,7 +360,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>瀏覽器即開發</strong>：基於 code-server 提供 VS Code 風格在線 IDE，默認 clone 完整 EasyAIoT 倉庫，貢獻者不必先配本機環境即可改代碼、跑模組級驗證、提交 PR</li>
   <li><strong>獨立門戶與多人在線</strong>：操作臺獨立運行於 <code>:9300</code>，與 WEB 管控臺解耦；一人一 Docker 工作區，端口池 13338–13437 支持多人同時在線；管控臺懸浮球一鍵跳轉門戶</li>
   <li><strong>六語言工具鏈對齊本機</strong>：預裝 <strong>JDK 21</strong>、Node 22、Python、Go、CMake/C++、.NET 8，覆蓋 WEB / DEVICE / AI / NODE / RUNTIME / EDGE 的閱讀、輕改與模組級驗證</li>
-  <li><strong>AI 共創</strong>：預裝 GitHub Copilot（用自己的 GitHub 帳號登入，平臺不代持密鑰）；無 Copilot 訂閱時可自備 OpenAI 兼容 API Key，經 Continue 輔助改代碼</li>
+  <li><strong>AI 共創</strong>：預裝 GitHub Copilot（用自己的 GitHub 帳號登入，平臺不代持密鑰）；無 Copilot 訂閱時可自備 OpenAI 兼容 API Key，經 Continue 輔助改代碼；工具欄可分屏打開 HARNESS AI 助手，拖文件自動 <code>@</code> 引用，邊改邊問</li>
   <li><strong>本機發佈</strong>：按工作區改動路徑建議待發模組，一鍵執行構建並替換本機正在跑的同名容器，刷新現網即可驗收，縮短「改完—看到效果」的閉環</li>
   <li><strong>OAuth 與閒置回收</strong>：支持 Gitee / GitHub 登入（可強制），一人一區綁定帳號；閒置默認 8 小時自動停機，心跳與打開 IDE 會刷新活躍時間，避免算力空轉</li>
   <li><strong>貢獻閉環</strong>：綁定個人 fork → 開分支改代碼 → 推送到 fork → 向官方倉提交 PR</li>
@@ -356,8 +376,10 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>問即查</strong>：Agent 調平臺 Tool 探測 Gateway / 視頻 / 算法等服務健康，並指向相關配置與源碼——把 SSH + 翻 compose 壓縮成一次對話</li>
   <li><strong>懂本體</strong>：內置 <code>HARNESS/ontology/AGENTS.md</code> 與全倉工作區，架構、端口、API、安裝約定有統一答案</li>
   <li><strong>頁內即聊</strong>：懸浮抽屜 iframe 嵌入，看告警/設備時不跳轉、不丟上下文；亦可全屏「AI 助手」或新視窗</li>
+  <li><strong>IDEA 分屏共創</strong>：工具欄一鍵打開右側 AI 助手，編輯器與 Agent 同屏；亦可 <code>?file=路徑&harness=1</code> 深鏈打開指定文件並分屏</li>
+  <li><strong>拖入自動 @</strong>：從資源管理器拖文件到助手面板，自動關聯為對話上下文</li>
+  <li><strong>雙向跳轉</strong>：Agent 可通過 <code>easyaiot_open_in_idea</code> 生成門戶鏈接，從問答回到可改可發的完整 IDE；IDEA 改代碼提 PR，HARNESS 問架構查健康</li>
   <li><strong>MCP + Cursor Skill</strong>：同一套 <code>easyaiot_*</code> 能力經 MCP 暴露給 Cursor 等 IDE——管控臺能問能查的，開發環境裡同樣能調，Skill 可跨項目復用</li>
-  <li><strong>與 IDEA 互補</strong>：IDEA 改代碼提 PR，HARNESS 問架構查健康</li>
   <li><strong>全形態開箱</strong>：基於 <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar（<code>:3080</code>），<code>mini / standard / full</code> 默認部署即帶（<code>EASYAIOT_ENABLE_HARNESS=0</code> 可關）；DeepSeek / OpenAI 兼容端點，Key 在 <code>harness.env</code> 或 UI 自備</li>
   <li><strong>安全提示</strong>：實驗模組，上游 <code>dsh</code> 處於 Developer Preview；生產請限制訪問並配置寫操作 / Shell 審批；API Key 勿提交 Git</li>
 </ul>
@@ -656,6 +678,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>社區貢獻在線 IDE</strong>：瀏覽器打開 VS Code 風格工作區，默認 clone 全倉；一人一 Docker 區，支持本機發佈與閒置回收，把開源共建從「先配環境」變成「打開即改」</li>
+    <li><strong>分屏 AI 助手</strong>：工具欄打開右側 HARNESS，拖文件自動 <code>@</code> 引用；支持 <code>?file=&harness=1</code> 深鏈定位</li>
   </ul>
 </td>
 </tr>
@@ -665,6 +688,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>對話式助手</strong>：問健康、問架構、定位問題，縮短排障與 PoC，少依賴原廠</li>
     <li><strong>頁內懸浮抽屜</strong>：業務頁不跳轉即聊；<code>mini / standard / full</code> 默認自帶</li>
+    <li><strong>IDEA 分屏聯動</strong>：編輯器右側嵌助手，拖入 <code>@</code>、深鏈定位與雙向跳轉</li>
     <li><strong>MCP / Skill</strong>：管控臺與 IDE 共用平臺語義，Skill 可跨項目復用</li>
   </ul>
 </td>
@@ -809,11 +833,17 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 | ![預覽](.image/banner/banner1104.png) | ![接入](.image/banner/banner1105.png) | ![NVR](.image/banner/banner1106.png) |
 | ![實況](.image/banner/banner1183.jpg) | ![地圖](.image/banner/banner1184.jpg) |  |
 
-#### 🧠 AI模型
+#### 🤖 AI助手
 
 | | | |
 |:---:|:---:|:---:|
 | ![IDEA登入](.image/banner/banner1203.png) | ![IDEA工作區](.image/banner/banner1204.png) | ![IDEA開發](.image/banner/banner1205.png) |
+| ![AI助手對話](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手協作](.image/banner/banner1212.png) |
+
+#### 🧠 AI模型
+
+| | | |
+|:---:|:---:|:---:|
 | ![多集群同步](.image/banner/banner1200.png) | ![NFS集群拓撲](.image/banner/banner1198.png) | ![NFS集群管理](.image/banner/banner1197.png) |
 | ![節點管理](.image/banner/banner1199.png) | ![NFS文件目錄](.image/banner/banner1201.png) | ![NFS目錄瀏覽](.image/banner/banner1202.png) |
 | ![Qwen](.image/banner/banner1093.jpg) | ![視覺模型](.image/banner/banner1094.jpg) | ![列表](.image/banner/banner1099.png) |
