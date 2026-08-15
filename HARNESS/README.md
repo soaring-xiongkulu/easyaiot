@@ -7,19 +7,21 @@
 ## 能力概览
 
 - 浏览器打开 DeepSeek Harness Web UI（默认 `:3080`）
-- 工作区默认挂载 **完整 EasyAIoT 仓库**，Agent 可读改源码、执行命令（受 Harness 审批策略约束）
+- 工作区默认挂载 **完整 EasyAIoT 仓库**，启动时**自动注册工作区**（免手动「选择工作区」）
+- **文件树侧边栏**（`dsh-better-sidebar`）：浏览/预览/编辑源码、终端、Git，与当前任务会话关联
 - 内置 **项目本体**（`ontology/AGENTS.md`）：模块关系、端口、常用 API、运维提示
-- 可选 **平台 Tool 插件**：探测 Gateway 健康、列出模块说明
+- **平台 Tool 插件**：探测 Gateway 健康、列出模块说明
 - WEB 管控台 **「AI 助手」** 菜单与 **右下角悬浮聊天抽屉**（与 IDEA 互补）
 
 ## 与 IDEA 的分工
 
 | | IDEA | HARNESS |
 |---|------|---------|
-| 界面 | VS Code（code-server） | Agent 聊天 Web UI |
+| 界面 | VS Code（code-server）+ 右侧可嵌 HARNESS | Agent 聊天 + 文件侧边栏 |
 | 用户 | 社区贡献者 / 开发者 | 运维、集成商、管理员 |
-| 改代码 | Copilot 补全 + 全功能 IDE | 多步 Agent + 平台 API |
+| 改代码 | Copilot 补全 + 全功能 IDE | 多步 Agent + 侧栏编辑 + 平台 API |
 | 改业务 | 弱 | 强（Tool 调 Gateway 等） |
+| 联动 | 工具栏「AI 助手」打开右侧 HARNESS；`?file=&harness=1` | Tool `easyaiot_open_in_idea` 生成门户链接 |
 
 ## 快速开始
 
@@ -34,8 +36,24 @@ bash install.sh status
 # Settings → Models 中也可在 UI 内填写 API Key
 ```
 
-- WEB 管控台 **「AI 助手」** 菜单与 **右下角悬浮聊天抽屉**（任意页面可聊，不跳转）；全屏页 `/harness/index` 亦可
-- **API Key**：一键部署时可交互输入 DeepSeek Key（可跳过）；也可在 Web UI **Settings → Models** 中随时新增/修改（部署时写入的 Key 不会阻止你在 UI 里改；容器重启也不会覆盖 UI 里已保存的 Key）
+打开后应能直接看到：
+
+1. 左侧只有 **EasyAIoT** 工作区（启动会清掉旧的 `/harness` 会话）→ 点 **新建会话**
+2. 右侧资源管理器应列出 `WEB`、`DEVICE`、`AI`、`HARNESS` 等全仓目录；点文件可预览/编辑；行尾可 `@文件` 引用进聊天
+3. 默认 **Cursor Light** 浅色主题（冷灰侧栏 + 米白主区）。完整 IDE 布局请用 IDEA / Cursor（`:9300`）
+4. 输入框可用 `@文件路径` 引用工作区文件进当前任务
+
+> HARNESS 是 Agent 聊天壳 + 文件侧栏，视觉可贴近 Cursor，但不会变成完整 VS Code/Cursor 三栏 IDE。
+> 容器重建会保留 named volume 里的会话；每次启动会删除 `sessions/--harness--`，只保留 EasyAIoT。清空全部：`docker compose down -v`。
+
+## 建议搭配的能力
+
+| 能力 | 说明 |
+|------|------|
+| 文件树侧边栏 | 浏览/预览/编辑、终端、Git |
+| `@文件` 提及 | 聊天框输入 `@` 搜索并引用路径 |
+| 平台 Tool | `easyaiot_gateway_health` / `easyaiot_list_modules` / `easyaiot_service_health` / `easyaiot_dev_portals` / `easyaiot_open_in_idea` |
+| IDEA | 完整 VS Code：打开 `:9300`；工具栏点「AI 助手」可分屏 HARNESS |
 
 ## 部署形态
 
@@ -50,11 +68,14 @@ HARNESS/
   docker-entrypoint.sh
   install.sh / install_linux.sh
   harness.env.example
-  cordis.patch.yml          # 挂载 EasyAIoT 插件
+  cordis.patch.yml          # EasyAIoT 插件补丁
+  scripts/
+    ensure-ux-plugins.sh    # 安装/补齐侧边栏插件
   ontology/
     AGENTS.md               # 项目本体（注入工作区）
   plugins/
     easyaiot-platform-tools.ts
+    easyaiot-workspace-seed.ts
 ```
 
 ## 安全注意
@@ -69,9 +90,15 @@ HARNESS/
 |------|------|
 | `HARNESS_LISTEN_PORT` | 监听端口，默认 `3080` |
 | `HARNESS_WORKSPACE_HOST` | 宿主机 EasyAIoT 根目录（Agent 工作区） |
+| `HARNESS_WORKSPACE` | 容器内工作区路径，默认 `/workspace/easyaiot` |
+| `HARNESS_WORKSPACE_TITLE` | Web UI 工作区显示名，默认 `EasyAIoT` |
+| `HARNESS_ENABLE_SIDEBAR` | `1` 启用文件树侧边栏（默认），`0` 关闭 |
+| `HARNESS_SIDEBAR_PACKAGE` | 侧边栏 npm 规格，默认 `dsh-better-sidebar@0.12.1` |
 | `DEEPSEEK_API_KEY` | DeepSeek API Key |
 | `OPENAI_API_KEY` / `OPENAI_BASE_URL` | OpenAI 兼容端点（如 DashScope） |
 | `EASYAIOT_GATEWAY_URL` | 平台 Tool 调用的 Gateway 基址 |
+| `EASYAIOT_IDEA_URL` | `easyaiot_open_in_idea` 生成的 IDEA 门户基址 |
+| `HARNESS_TRUSTED_HOSTS` | iframe 嵌入时追加 trusted-host（含 `:9300` 门户） |
 
 ## 后续扩展
 
