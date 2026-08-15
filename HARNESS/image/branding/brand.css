@@ -43,6 +43,14 @@ img.easyaiot-replaced-logo,
   border-radius: 4px !important;
 }
 
+/* 不替换 React 节点：仅藏 DeepSeek 鱼标，避免 sidebar removeChild 崩 */
+html.easyaiot-vscode-light svg[viewBox="0 0 23.16 17.04"],
+html.easyaiot-vscode-light svg[viewBox^="0 0 23.16"],
+html.easyaiot-vscode-light svg[class*="railFish"],
+html.easyaiot-vscode-light svg[class*="FishLogo"] {
+  opacity: 0 !important;
+}
+
 html.easyaiot-vscode-light {
   --vsc-bg: #ffffff;
   --vsc-bg-sidebar: #f3f3f3;
@@ -79,6 +87,11 @@ html.easyaiot-vscode-light body {
   --dsw-alias-bg-elevated: var(--vsc-bg-editor) !important;
   --dsw-alias-label-primary: var(--vsc-fg) !important;
   --dsw-alias-label-secondary: var(--vsc-fg-muted) !important;
+  --dsw-alias-label-primary-foreground: #ffffff !important;
+  --dsw-alias-label-primary-inverted: #ffffff !important;
+  --dsw-alias-button-primary-fill: #2b2b2b !important;
+  --dsw-alias-button-primary-fill-hover: #1f1f1f !important;
+  --dsw-alias-button-primary-fill-disabled: #8a8a8a !important;
   --dsw-alias-border-l1: transparent !important;
   --dsw-alias-border-l2: transparent !important;
   --dsw-alias-border-l2-darkmode-thin: #d0d0d0 !important;
@@ -235,8 +248,37 @@ html.easyaiot-vscode-light [role="button"] {
   border-color: transparent !important;
 }
 
+/* 主按钮保持白字，避免被上面的全局 color 盖成深色看不清 */
+html.easyaiot-vscode-light button[class*="primary"],
+html.easyaiot-vscode-light button[class*="Primary"],
+html.easyaiot-vscode-light [role="button"][class*="primary"],
+html.easyaiot-vscode-light [role="button"][class*="Primary"],
+html.easyaiot-vscode-light [class*="primaryButton"],
+html.easyaiot-vscode-light [class*="PrimaryButton"] {
+  background: var(--dsw-alias-button-primary-fill, #2b2b2b) !important;
+  color: #ffffff !important;
+}
+
+html.easyaiot-vscode-light button[class*="primary"]:disabled,
+html.easyaiot-vscode-light button[class*="Primary"]:disabled,
+html.easyaiot-vscode-light [class*="primaryButton"]:disabled,
+html.easyaiot-vscode-light [class*="PrimaryButton"]:disabled,
+html.easyaiot-vscode-light button[class*="primary"][aria-disabled="true"],
+html.easyaiot-vscode-light [class*="primaryButton"][aria-disabled="true"] {
+  background: #8a8a8a !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
 html.easyaiot-vscode-light button:hover {
   background: var(--vsc-bg-hover) !important;
+}
+
+html.easyaiot-vscode-light button[class*="primary"]:hover:not(:disabled),
+html.easyaiot-vscode-light button[class*="Primary"]:hover:not(:disabled),
+html.easyaiot-vscode-light [class*="primaryButton"]:hover:not(:disabled) {
+  background: var(--dsw-alias-button-primary-fill-hover, #1f1f1f) !important;
+  color: #ffffff !important;
 }
 
 /* Tab：无灰底块，无底边线 */
@@ -289,45 +331,21 @@ html.easyaiot-vscode-light input::placeholder {
   color: var(--vsc-fg-faint) !important;
 }
 
-/* 空态：输入区贴底，不悬在空白中央 */
+/* 空态：不要写死 height，拖拽改宽时容易把底部控件裁掉 */
 html.easyaiot-vscode-light [class*="pXSMma_root"],
 html.easyaiot-vscode-light [class*="EmptyHero"],
 html.easyaiot-vscode-light [class*="emptyHero"],
 html.easyaiot-vscode-light [class*="wSkVaW_composerHero"],
 html.easyaiot-vscode-light [class*="composerHero"] {
-  justify-content: flex-end !important;
-  padding-bottom: 16px !important;
+  box-sizing: border-box !important;
 }
 
-/* 欢迎区：去掉 logo +「探索未至之境」 */
-html.easyaiot-vscode-light [class*="headline"],
-html.easyaiot-vscode-light [class*="Headline"],
+/* 欢迎区：只藏标语行，避免误伤对话区其它 headline 节点 */
+html.easyaiot-vscode-light [class*="pXSMma_headline"],
 html.easyaiot-vscode-light [class*="fishHitbox"],
-html.easyaiot-vscode-light [class*="headlineText"],
-html.easyaiot-vscode-light [class*="HeadlineText"],
 html.easyaiot-vscode-light [class*="previewBadge"],
-html.easyaiot-vscode-light [class*="easyaiot-harness-hero-logo"],
 html.easyaiot-vscode-light .easyaiot-harness-hero-logo {
   display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-/* 欢迎区 / 空态：去掉外框灰底卡片感 */
-html.easyaiot-vscode-light [class*="empty"],
-html.easyaiot-vscode-light [class*="Empty"],
-html.easyaiot-vscode-light [class*="welcome"],
-html.easyaiot-vscode-light [class*="Welcome"],
-html.easyaiot-vscode-light [class*="hero"],
-html.easyaiot-vscode-light [class*="Hero"] {
-  border: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
 }
 
 /* 底部光晕 / 装饰 SVG —— 看起来像输入区外发光线框 */
@@ -339,16 +357,56 @@ html.easyaiot-vscode-light svg[class*="glow"] {
   opacity: 0 !important;
 }
 
-/* 工作区 / 模式芯片：去掉描边盒子 */
+/* 工作区 / 模式芯片：去掉描边即可，勿影响可见性 */
 html.easyaiot-vscode-light [class*="workspace"],
 html.easyaiot-vscode-light [class*="Workspace"],
 html.easyaiot-vscode-light [class*="seat"],
 html.easyaiot-vscode-light [class*="Seat"],
-html.easyaiot-vscode-light [class*="hlSegment"],
-html.easyaiot-vscode-light [class*="trigger"] {
+html.easyaiot-vscode-light [class*="hlSegment"] {
   border: 0 !important;
   box-shadow: none !important;
   outline: none !important;
+}
+
+/*
+ * 输入栏底部操作条：上游用 container query 在 <=460px 时藏掉
+ * Workspace Write 文案；拖拽改窄助手栏就会「拖没了」。
+ * 关掉该容器查询，并强制工具/模式/尾部控件始终可见。
+ */
+html.easyaiot-vscode-light [class*="uV2eYG_row"] {
+  container-type: normal !important;
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  min-width: 0 !important;
+}
+
+html.easyaiot-vscode-light [class*="uV2eYG_tools"],
+html.easyaiot-vscode-light [class*="uV2eYG_modes"],
+html.easyaiot-vscode-light [class*="uV2eYG_trailing"] {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  max-width: none !important;
+}
+
+html.easyaiot-vscode-light [class*="Sh0Q9G_trigger"],
+html.easyaiot-vscode-light [class*="Sh0Q9G_triggerIcon"],
+html.easyaiot-vscode-light [class*="Sh0Q9G_triggerLabel"],
+html.easyaiot-vscode-light [class*="Sh0Q9G_chevron"] {
+  display: inline-flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+
+html.easyaiot-vscode-light [class*="Sh0Q9G_triggerLabel"] {
+  display: inline !important;
+  white-space: nowrap !important;
 }
 
 /* Explorer 文件树模块：IDEA 已有资源管理器，这里直接去掉 */
@@ -392,9 +450,57 @@ html.easyaiot-vscode-light #root > div {
 html.easyaiot-vscode-light [class*="pI_x6G_frame"] {
   width: 100% !important;
   max-width: none !important;
-  grid-template-columns: 52px minmax(0, 1fr) 0fr !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  /* 固定图标轨 52px，聊天占满；详情列 0。勿 display:none 侧栏（会丢新建会话等按钮） */
+  grid-template-columns: 52px minmax(0, 1fr) 0 !important;
 }
 
+/* 左侧只留图标轨，禁止展开成「工作区」宽栏；靠 overflow 裁切文案，勿误伤按钮 */
+html.easyaiot-vscode-light [class*="pI_x6G_sidebarCol"] {
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  overflow: hidden !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  border: 0 !important;
+}
+
+/* 右侧详情列：占位 0，勿 display:none */
+html.easyaiot-vscode-light [class*="pI_x6G_detailsCol"] {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+}
+
+/* 禁止拖出侧栏/详情的内部分隔条 */
+html.easyaiot-vscode-light [class*="pI_x6G_handle"] {
+  display: none !important;
+  pointer-events: none !important;
+  width: 0 !important;
+}
+
+/* 聊天主栏必须在中间轨 */
+html.easyaiot-vscode-light [class*="pI_x6G_centerCol"] {
+  grid-column: 2 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: hidden !important;
+}
+
+/* 宽度自适应即可，勿强制 overflow/sticky/flex —— 拖拽改宽时会把底部操作条裁没 */
 html.easyaiot-vscode-light [class*="pI_x6G_centerCol"],
 html.easyaiot-vscode-light [class*="wSkVaW_root"],
 html.easyaiot-vscode-light [class*="wSkVaW_scrollBody"],
@@ -405,15 +511,16 @@ html.easyaiot-vscode-light [class*="uV2eYG_root"],
 html.easyaiot-vscode-light [class*="uV2eYG_hero"] {
   width: 100% !important;
   max-width: none !important;
-  flex: 1 1 auto !important;
   min-width: 0 !important;
   align-self: stretch !important;
+  box-sizing: border-box !important;
 }
 
 html.easyaiot-vscode-light {
-  --dsh-composer-card-max-width: min(960px, calc(100% - 24px)) !important;
-  --dsh-chat-content-width: min(960px, calc(100% - 24px)) !important;
-  --dsh-composer-side-clearance: 12px !important;
+  --dsh-chat-content-width: min(960px, calc(100% - 16px)) !important;
+  --dsh-composer-card-max-width: min(960px, calc(100% - 16px)) !important;
+  --dsh-composer-side-clearance: 8px !important;
+  --dsh-composer-dock-inset: 4px !important;
 }
 
 html.easyaiot-vscode-light [class*="uV2eYG_card"],
@@ -423,6 +530,7 @@ html.easyaiot-vscode-light [class*="_card"]:not([class*="paneCard"]) {
   max-width: var(--dsh-composer-card-max-width) !important;
   margin-left: auto !important;
   margin-right: auto !important;
+  box-sizing: border-box !important;
 }
 
 /* 字体整体缩小，聊天更紧凑 */
@@ -565,6 +673,76 @@ html.easyaiot-vscode-light [class*="NewSession"] {
   display: none;
 }
 .easyaiot-drop-hint.show { display: block; }
+
+/* 无 Key onboarding 弹框：注册 / 充值指引 */
+.easyaiot-deepseek-platform-hint {
+  margin: 10px 0 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--vsc-fg-muted, #6c6c6c);
+}
+.easyaiot-deepseek-platform-hint a {
+  color: var(--vsc-accent, #0078d4) !important;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+/*
+ * 弹框 / Settings 表单：API Key 等字段需要清晰大输入框。
+ * 全局 VS Code 主题把 input border 清掉了，这里单独恢复。
+ */
+html.easyaiot-vscode-light [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [role="dialog"] textarea,
+html.easyaiot-vscode-light [class*="Modal"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [class*="modal"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [class*="Dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [class*="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [class*="Onboarding"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [class*="ProviderEditor"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [class*="credential"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [class*="Credential"] input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light .easyaiot-key-input-box {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 44px !important;
+  margin-top: 8px !important;
+  padding: 10px 14px !important;
+  background: #ffffff !important;
+  border: 1px solid #c4c4c4 !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--vsc-fg, #1e1e1e) !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  caret-color: var(--vsc-fg, #1e1e1e) !important;
+}
+
+html.easyaiot-vscode-light [role="dialog"] input:focus,
+html.easyaiot-vscode-light [role="dialog"] textarea:focus,
+html.easyaiot-vscode-light [class*="Modal"] input:focus,
+html.easyaiot-vscode-light [class*="modal"] input:focus,
+html.easyaiot-vscode-light [class*="Dialog"] input:focus,
+html.easyaiot-vscode-light [class*="dialog"] input:focus,
+html.easyaiot-vscode-light [class*="Onboarding"] input:focus,
+html.easyaiot-vscode-light [class*="ProviderEditor"] input:focus,
+html.easyaiot-vscode-light .easyaiot-key-input-box:focus {
+  border-color: var(--vsc-accent, #0078d4) !important;
+  box-shadow: 0 0 0 1px var(--vsc-accent, #0078d4) !important;
+}
+
+/* 弹框内输入外壳（若 dsh 用 div 包一层）也给框 */
+html.easyaiot-vscode-light [role="dialog"] [class*="field"],
+html.easyaiot-vscode-light [role="dialog"] [class*="Field"],
+html.easyaiot-vscode-light [role="dialog"] [class*="keyInput"],
+html.easyaiot-vscode-light [role="dialog"] [class*="KeyInput"],
+html.easyaiot-vscode-light [class*="Modal"] [class*="field"],
+html.easyaiot-vscode-light [class*="Dialog"] [class*="field"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
 
 html.easyaiot-vscode-light * {
   scrollbar-width: thin;

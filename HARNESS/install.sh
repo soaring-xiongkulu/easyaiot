@@ -48,10 +48,12 @@ prompt_deepseek_api_key() {
 
   echo ""
   echo "[harness] AI 助手需 DeepSeek API Key 才能对话；也可跳过，稍后在 Web UI 配置。"
+  echo "[harness] 注册 / 充值：https://platform.deepseek.com/"
   read -r -p "请输入 DeepSeek API Key [回车跳过]: " _ds_key || _ds_key=""
   _ds_key="$(echo "${_ds_key}" | xargs)"
   if [[ -z "${_ds_key}" ]]; then
     echo "[harness] 已跳过 — 打开 :3080 → Settings → Models 填写 Key 即可"
+    echo "[harness] 获取 Key：https://platform.deepseek.com/"
     return 0
   fi
 

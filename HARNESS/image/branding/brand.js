@@ -13,16 +13,12 @@
   }
 
   function renderSidebar(btn) {
+    // 禁止 innerHTML：侧栏由 React 托管，改 DOM 会在重渲时 NotFoundError(removeChild)
     if (!btn || btn.dataset.easyaiotBrand === '1')
       return
     btn.dataset.easyaiotBrand = '1'
-    if (logo) {
-      btn.innerHTML = `<span class="easyaiot-harness-brand">${logoImg()}<span>${name}</span></span>`
-    }
-    else {
-      btn.innerHTML = `<span class="easyaiot-harness-brand"><span>${name}</span></span>`
-    }
     btn.setAttribute('aria-label', name)
+    btn.title = name
   }
 
   /** DeepSeek FishLogo 特征 viewBox；侧栏 rail / 欢迎区都会用到 */
@@ -37,46 +33,26 @@
     const cls = svg.getAttribute('class') || ''
     if (/railFish|\bfish\b|FishLogo|wordmark/i.test(cls))
       return true
-    // 含鲸鱼 clipPath 的 wordmark
     if (svg.querySelector('clipPath[id*="whale"], [clip-path*="whale"]'))
       return true
     return false
   }
 
   function replaceFishSvg(svg) {
-    if (!logo || !isFishLogoSvg(svg))
+    // 禁止 replaceWith：会拆掉 React 侧栏 fiber，拖拽/重渲即 slot crashed
+    if (!isFishLogoSvg(svg))
       return
-    const parent = svg.parentElement
-    if (!parent)
-      return
-    const r = svg.getBoundingClientRect()
-    const size = Math.max(16, Math.round(Math.max(r.width, r.height) || 24))
-    const img = document.createElement('img')
-    img.className = 'easyaiot-replaced-logo'
-    img.src = logo
-    img.alt = name
-    img.width = size
-    img.height = size
-    img.style.width = `${size}px`
-    img.style.height = `${size}px`
-    img.dataset.easyaiotLogo = '1'
     svg.dataset.easyaiotLogo = '1'
-    svg.replaceWith(img)
+    svg.setAttribute('aria-hidden', 'true')
+    svg.style.opacity = '0'
   }
 
   function replaceAllFishLogos(root) {
     if (!logo)
       return
     const scope = root || document
+    // 只改属性/透明度，绝不替换或清空 React 节点
     scope.querySelectorAll('svg').forEach(replaceFishSvg)
-    // 欢迎区鱼图标容器
-    scope.querySelectorAll('[class*="fishHitbox"]').forEach((box) => {
-      if (box.dataset.easyaiotLogo === '1')
-        return
-      box.dataset.easyaiotLogo = '1'
-      box.innerHTML = logoImg('easyaiot-harness-hero-logo')
-    })
-    // 任何仍指向 deepseek favicon / 旧 logo 的 img
     scope.querySelectorAll('img').forEach((img) => {
       if (img.dataset.easyaiotLogo === '1' || img.classList.contains('easyaiot-replaced-logo'))
         return
@@ -406,12 +382,35 @@
     notifyParent({ type: 'easyaiot-open-in-idea', path })
   }
 
+  const DEEPSEEK_PLATFORM_URL = 'https://platform.deepseek.com/'
+
+  function isExternalHttpUrl(raw) {
+    try {
+      const u = new URL(String(raw || ''), location.href)
+      return u.protocol === 'http:' || u.protocol === 'https:'
+    }
+    catch {
+      return false
+    }
+  }
+
   // 嵌入门户时：拦截可能弹出的新窗口，改为通知左侧 IDE
   if (window.parent && window.parent !== window) {
     try {
       const origOpen = window.open.bind(window)
       window.open = function (url, target, features) {
         const s = String(url || '')
+        // DeepSeek 注册/充值等外链：允许新开（或交给父页）
+        if (isExternalHttpUrl(s) && !/vscode-remote:|file:/i.test(s)) {
+          try {
+            const opened = origOpen(url, target || '_blank', features)
+            if (opened)
+              return opened
+          }
+          catch { /* fall through */ }
+          notifyParent({ type: 'easyaiot-open-external', url: s })
+          return null
+        }
         let path = ''
         try {
           if (/vscode-remote:|file:/.test(s)) {
@@ -437,6 +436,77 @@
       }
     }
     catch { /* ignore */ }
+  }
+
+  function isOnboardingKeyDialog(root) {
+    if (!root || !root.querySelector)
+      return false
+    const text = (root.textContent || '').replace(/\s+/g, ' ')
+    // dsh DeepSeekOnboardingDialog：无 Key 首次弹框
+    if (/添加一个 API Key 开始使用|Add an API key to get started/i.test(text))
+      return true
+    if (/配置 DeepSeek 官方模型|Configure the official DeepSeek provider/i.test(text)
+      && /API (密钥|key|Key)/i.test(text))
+      return true
+    return false
+  }
+
+  function styleOnboardingKeyInputs(dialog) {
+    if (!dialog || !dialog.querySelectorAll)
+      return
+    dialog.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea').forEach((el) => {
+      el.classList.add('easyaiot-key-input-box')
+    })
+  }
+
+  function ensureDeepseekPlatformHint(root) {
+    const scope = root || document
+    const nodes = scope.querySelectorAll('[role="dialog"], [class*="dialog"], [class*="Dialog"], [class*="Modal"], [class*="modal"]')
+    const candidates = nodes.length ? [...nodes] : [document.body]
+    for (const dialog of candidates) {
+      if (!isOnboardingKeyDialog(dialog))
+        continue
+
+      styleOnboardingKeyInputs(dialog)
+
+      if (dialog.querySelector('.easyaiot-deepseek-platform-hint'))
+        continue
+
+      const hint = document.createElement('p')
+      hint.className = 'easyaiot-deepseek-platform-hint'
+      const zh = /添加一个 API Key|配置 DeepSeek|请输入 API/i.test(dialog.textContent || '')
+      const label = zh
+        ? '还没有 Key？请前往 DeepSeek 开放平台注册并充值：'
+        : 'Need a key? Register and top up at the DeepSeek Platform: '
+      hint.appendChild(document.createTextNode(label))
+      const a = document.createElement('a')
+      a.href = DEEPSEEK_PLATFORM_URL
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      a.textContent = DEEPSEEK_PLATFORM_URL
+      a.addEventListener('click', (e) => {
+        // 嵌入 iframe 时确保外链能打开
+        if (window.parent && window.parent !== window) {
+          e.preventDefault()
+          try {
+            window.open(DEEPSEEK_PLATFORM_URL, '_blank', 'noopener,noreferrer')
+          }
+          catch {
+            notifyParent({ type: 'easyaiot-open-external', url: DEEPSEEK_PLATFORM_URL })
+          }
+        }
+      })
+      hint.appendChild(a)
+
+      // 插在描述段落后、输入区之前
+      const desc = dialog.querySelector('p')
+      if (desc && desc.parentElement)
+        desc.insertAdjacentElement('afterend', hint)
+      else {
+        const body = dialog.querySelector('[class*="body"], [class*="Body"], [class*="content"], [class*="Content"]') || dialog
+        body.insertBefore(hint, body.firstChild)
+      }
+    }
   }
 
   function ensureDropHint() {
@@ -505,12 +575,63 @@
     return out
   }
 
+  let scanPaused = false
+  let scanPauseUntil = 0
+  let observing = false
+  const obs = new MutationObserver(() => {
+    if (!observing || scanPaused)
+      return
+    scheduleScan()
+  })
+  function startObserve() {
+    if (observing || scanPaused)
+      return
+    observing = true
+    // 只看子树增删，属性变动太多会拖垮拖拽帧率
+    obs.observe(document.documentElement, { childList: true, subtree: true })
+  }
+
+  function pauseScan(ms) {
+    scanPaused = true
+    scanPauseUntil = Date.now() + (ms || 400)
+    try { obs.disconnect() } catch { /* ignore */ }
+    observing = false
+    if (scanTimer) {
+      clearTimeout(scanTimer)
+      scanTimer = 0
+    }
+  }
+
+  function maybeResumeScan() {
+    if (!scanPaused)
+      return
+    if (Date.now() < scanPauseUntil)
+      return
+    scanPaused = false
+    startObserve()
+  }
+
   function onParentMessage(ev) {
     const data = ev.data
     if (!data || typeof data !== 'object')
       return
     if (data.type === 'easyaiot-attach-files' && Array.isArray(data.paths)) {
       insertMentions(data.paths)
+    }
+    else if (data.type === 'easyaiot-harness-resize-start') {
+      pauseScan(60000)
+    }
+    else if (data.type === 'easyaiot-harness-resize-end') {
+      scanPauseUntil = Date.now() + 400
+      window.setTimeout(() => {
+        maybeResumeScan()
+        forceCollapsedChrome()
+      }, 420)
+    }
+    else if (data.type === 'easyaiot-harness-resize') {
+      // 兼容旧消息：短暂停扫
+      pauseScan(400)
+      window.setTimeout(maybeResumeScan, 420)
     }
   }
 
@@ -535,22 +656,64 @@
     ensureDropHint().classList.remove('show')
   }
 
+  function updateEmbedClass() {
+    const embed = isEmbedMode()
+    document.documentElement.classList.toggle('easyaiot-embed', embed)
+    if (document.body)
+      document.body.classList.toggle('easyaiot-embed', embed)
+    // 去掉「工作区」浮动开关；侧栏始终按默认布局显示
+    document.documentElement.classList.remove('easyaiot-rail-open', 'easyaiot-mobile')
+    document.body?.classList.remove('easyaiot-mobile')
+    document.querySelectorAll('.easyaiot-rail-toggle').forEach((el) => el.remove())
+  }
+
+  function isEmbedMode() {
+    if (window.parent && window.parent !== window)
+      return true
+    const emb = (new URLSearchParams(location.search).get('embed') || '').toLowerCase()
+    return emb === 'idea' || emb === '1' || emb === 'portal' || emb === 'true'
+  }
+
+  function forceCollapsedChrome() {
+    // 宽屏时上游会把 sidebar 自动展开成「工作区」；嵌入时锁成 52px 图标轨
+    if (!isEmbedMode())
+      return
+    document.querySelectorAll('[class*="pI_x6G_frame"]').forEach((el) => {
+      el.setAttribute('data-sidebar-collapsed', '')
+      el.setAttribute('data-details-collapsed', '')
+      try {
+        el.style.setProperty('grid-template-columns', '52px minmax(0, 1fr) 0', 'important')
+      }
+      catch { /* ignore */ }
+    })
+  }
+
   function scan() {
+    if (scanPaused || Date.now() < scanPauseUntil)
+      return
     preferVscodeLight()
+    updateEmbedClass()
+    forceCollapsedChrome()
     document.querySelectorAll('button[class*="brand"]').forEach(renderSidebar)
-    // 只处理标语 headline；顺带恢复曾被误藏的 Hero 容器
-    document.querySelectorAll('[class*="headline"], [class*="Hero"], [class*="hero"]').forEach(patchHero)
+    // 标语用 CSS 隐藏；JS 只做极轻量标记，避免 display:none 拆 React 树
+    document.querySelectorAll('[class*="pXSMma_headline"]').forEach((el) => {
+      if (el.dataset.easyaiotHero === '1')
+        return
+      el.dataset.easyaiotHero = '1'
+    })
     replaceAllFishLogos(document)
-    neutralizeOddColors(document.body)
+    ensureDeepseekPlatformHint(document)
   }
 
   function scheduleScan() {
+    if (scanPaused || Date.now() < scanPauseUntil)
+      return
     if (scanTimer)
       return
     scanTimer = window.setTimeout(() => {
       scanTimer = 0
       scan()
-    }, 180)
+    }, 600)
   }
 
   if (cfg.name)
@@ -587,6 +750,21 @@
   // 暴露给同页调试
   window.__easyaiotAttachFiles = insertMentions
 
-  const obs = new MutationObserver(scheduleScan)
-  obs.observe(document.documentElement, { childList: true, subtree: true })
+  const _scan = scan
+  scan = function scanSafe() {
+    if (scanPaused || Date.now() < scanPauseUntil)
+      return
+    observing = false
+    try {
+      obs.disconnect()
+    }
+    catch { /* ignore */ }
+    try {
+      _scan()
+    }
+    finally {
+      startObserve()
+    }
+  }
+  startObserve()
 })()
