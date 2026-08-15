@@ -11,7 +11,12 @@
       >
         <div class="idea-float-edge__tab" :class="{ 'is-peek': peek }">
           <svg class="idea-float-edge__icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+            <path d="M12 8V4H8" />
+            <rect width="16" height="12" x="4" y="8" rx="2" />
+            <path d="M2 14h2" />
+            <path d="M20 14h2" />
+            <path d="M9 13v2" />
+            <path d="M15 13v2" />
           </svg>
         </div>
       </div>
@@ -38,7 +43,7 @@
         <button
           type="button"
           class="idea-float-ball"
-          :title="`按住左键拖动；单击打开${appName}（:9300）；右键隐藏`"
+          :title="`按住左键拖动；单击打开${appName}；右键隐藏`"
           @click="onBallClick"
           @contextmenu.prevent="onContextMenu"
           @mousedown="onDragStart"
@@ -48,7 +53,12 @@
           <span class="idea-float-ball__core">
             <span class="idea-float-ball__shine" aria-hidden="true" />
             <svg class="idea-float-ball__icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+              <path d="M12 8V4H8" />
+              <rect width="16" height="12" x="4" y="8" rx="2" />
+              <path d="M2 14h2" />
+              <path d="M20 14h2" />
+              <path d="M9 13v2" />
+              <path d="M15 13v2" />
             </svg>
           </span>
         </button>
@@ -77,7 +87,8 @@ defineOptions({ name: 'IdeaFloatBall' })
 
 const appName = getHarnessAppName()
 
-const HIDE_KEY = 'easyaiot.idea.float.hidden'
+/** v2：默认展示悬浮球；旧 hidden=1 偏好不再沿用 */
+const HIDE_KEY = 'easyaiot.idea.float.hidden.v2'
 const POS_KEY = 'easyaiot.idea.float.pos.v5'
 
 const BALL = 68
@@ -380,27 +391,6 @@ onUnmounted(() => {
   transform: scale(0.94) translateY(-4px);
 }
 
-/* 悬停标签 */
-.idea-label-enter-active {
-  transition:
-    opacity 0.24s var(--idea-ease-out),
-    transform 0.24s var(--idea-ease-out);
-}
-.idea-label-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-.idea-label-enter-from,
-.idea-label-leave-to {
-  opacity: 0;
-  transform: translateY(-50%) translateX(8px);
-}
-
-.idea-label-enter-to,
-.idea-label-leave-from {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-}
-
 .idea-float-wrap {
   position: fixed;
   z-index: 1100;
@@ -440,6 +430,27 @@ onUnmounted(() => {
   animation: none;
   transition: transform 0.36s cubic-bezier(0.34, 1.25, 0.64, 1);
   transform: scale(1);
+}
+
+/* 悬停标签 */
+.idea-label-enter-active {
+  transition:
+    opacity 0.24s var(--idea-ease-out),
+    transform 0.24s var(--idea-ease-out);
+}
+.idea-label-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.idea-label-enter-from,
+.idea-label-leave-to {
+  opacity: 0;
+  transform: translateY(-50%) translateX(8px);
+}
+
+.idea-label-enter-to,
+.idea-label-leave-from {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
 
 .idea-float-label {
