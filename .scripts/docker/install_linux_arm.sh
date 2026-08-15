@@ -86,9 +86,10 @@ echo "命令: $*" >> "$LOG_FILE"
 echo "=========================================" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
 
-# 模块列表（按依赖顺序：IDEA 优先；失败则中止后续模块）
+# 模块列表（按依赖顺序：HARNESS 先于 IDEA；前置失败则中止后续部署）
 MODULES=(
-    "IDEA"             # 社区贡献在线 IDE（全形态优先部署）
+    "HARNESS"          # DeepSeek Harness AI Agent（IDEA 分屏依赖，须优先就绪）
+    "IDEA"             # 社区贡献在线 IDE
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
     "AI"               # AI服务
@@ -101,8 +102,17 @@ MODULES=(
     "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
 
+# 编排前置模块（install/start/restart/build/update 失败时终止后续步骤）
+is_bootstrap_module() {
+    case "$1" in
+        HARNESS|IDEA) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # 模块名称映射
 declare -A MODULE_NAMES
+MODULE_NAMES["HARNESS"]="HARNESS AI助手"
 MODULE_NAMES["IDEA"]="IDEA在线IDE"
 MODULE_NAMES[".scripts/docker"]="基础服务"
 MODULE_NAMES["DEVICE"]="Device服务"
@@ -117,6 +127,7 @@ MODULE_NAMES["PANEL"]="运维控制台"
 
 # 模块端口映射
 declare -A MODULE_PORTS
+MODULE_PORTS["HARNESS"]="3080"
 MODULE_PORTS["IDEA"]="9300"
 MODULE_PORTS[".scripts/docker"]="8848"  # Nacos端口
 MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
@@ -131,6 +142,7 @@ MODULE_PORTS["PANEL"]="9200"
 
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
+MODULE_HEALTH_ENDPOINTS["HARNESS"]="/"
 MODULE_HEALTH_ENDPOINTS["IDEA"]="/health"
 MODULE_HEALTH_ENDPOINTS[".scripts/docker"]="/nacos/actuator/health"
 MODULE_HEALTH_ENDPOINTS["DEVICE"]="/actuator/health"  # Gateway健康检查
@@ -754,6 +766,10 @@ execute_module_command() {
             print_info "未检测到 TRANSFORM 目录，跳过系统对接部署"
             return 0
         fi
+        if [ "$module" = "HARNESS" ]; then
+            print_error "未检测到 HARNESS 目录，无法部署 AI 助手"
+            return 1
+        fi
         if [ "$module" = "PANEL" ]; then
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（runtime 无 PANEL 目录）"
             return 0
@@ -771,6 +787,10 @@ execute_module_command() {
         if [ "$module" = "TRANSFORM" ]; then
             print_info "未检测到 TRANSFORM/install_linux.sh，跳过系统对接部署"
             return 0
+        fi
+        if [ "$module" = "HARNESS" ]; then
+            print_error "未检测到 HARNESS/install_linux.sh，无法部署 AI 助手"
+            return 1
         fi
         if [ "$module" = "PANEL" ]; then
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（无 install_linux.sh）"
@@ -952,8 +972,8 @@ install_linux() {
             fi
         else
             print_error "${MODULE_NAMES[$module]} 安装失败"
-            if [ "$module" = "IDEA" ]; then
-                print_error "IDEA 部署失败，中止后续模块安装"
+            if is_bootstrap_module "$module"; then
+                print_error "${MODULE_NAMES[$module]} 为编排前置模块，失败已中止后续部署"
                 echo ""
                 print_info "完整日志文件: ${LOG_FILE}"
                 exit 1
@@ -1008,6 +1028,11 @@ install_linux() {
                     print_info "  - Web前端服务：检查 pnpm install/build 和 nginx 镜像构建"
                     print_info "    docker images | grep web-service"
                     print_info "    cat WEB/docker-build-logs/pnpm-build.log | tail -50"
+                    ;;
+                "HARNESS AI助手")
+                    print_info "  - HARNESS：检查 easyaiot/harness 镜像与 :3080 端口"
+                    print_info "    docker images | grep harness"
+                    print_info "    bash HARNESS/install.sh status"
                     ;;
                 "IDEA在线IDE")
                     print_info "  - IDEA：检查 idea-workspace / idea-portal 镜像构建"
@@ -1125,15 +1150,18 @@ start_all() {
     prepare_runtime_environment
     create_network
 
-    # IDEA 优先启动（全形态；失败则中止后续模块）
-    if module_enabled_for_deploy_profile "IDEA"; then
-        print_section "启动 IDEA 在线 IDE"
-        if ! execute_module_command "IDEA" "start"; then
-            print_error "IDEA 启动失败，中止后续模块启动"
-            return 1
+    # HARNESS 先于 IDEA（失败则中止后续模块）
+    local module
+    for module in HARNESS IDEA; do
+        if module_enabled_for_deploy_profile "$module"; then
+            print_section "启动 ${MODULE_NAMES[$module]}"
+            if ! execute_module_command "$module" "start"; then
+                print_error "${MODULE_NAMES[$module]} 启动失败，已中止后续部署"
+                return 1
+            fi
+            echo ""
         fi
-        echo ""
-    fi
+    done
     
     # 先启动基础服务（.scripts/docker）
     print_section "启动基础服务"
@@ -1153,7 +1181,7 @@ start_all() {
     local -a start_modules=()
     local module
     for module in "${BIZ_MODULES[@]}"; do
-        [ "$module" = "IDEA" ] && continue
+        is_bootstrap_module "$module" && continue
         start_modules+=("$module")
     done
     if [ "${PARALLEL_MODULES:-true}" = "true" ]; then
@@ -1231,8 +1259,8 @@ restart_all() {
                 wait_for_base_services
             fi
         else
-            if [ "$module" = "IDEA" ]; then
-                print_error "IDEA 重启失败，中止后续模块重启"
+            if is_bootstrap_module "$module"; then
+                print_error "${MODULE_NAMES[$module]} 重启失败，已中止后续部署"
                 return 1
             fi
             print_warning "${MODULE_NAMES[$module]} 重启失败，继续其余模块"
@@ -1308,7 +1336,13 @@ build_all() {
         local module
         for module in "${MODULES[@]}"; do
             module_enabled_for_deploy_profile "$module" || continue
-            execute_module_command "$module" "build" || print_warning "${MODULE_NAMES[$module]} 构建失败，继续其余模块"
+            if ! execute_module_command "$module" "build"; then
+                if is_bootstrap_module "$module"; then
+                    print_error "${MODULE_NAMES[$module]} 构建失败，已中止后续构建"
+                    exit 1
+                fi
+                print_warning "${MODULE_NAMES[$module]} 构建失败，继续其余模块"
+            fi
             echo ""
         done
     fi
@@ -1406,16 +1440,19 @@ update_all() {
         print_info "将进行本地重建更新（各模块 docker build，耗时较长）"
     fi
     
-    # IDEA 优先更新（全形态；失败则中止后续模块）
+    # HARNESS 先于 IDEA（失败则中止后续模块）
     collect_biz_modules
-    if module_enabled_for_deploy_profile "IDEA"; then
-        print_section "更新 IDEA 在线 IDE"
-        if ! execute_module_command "IDEA" "update"; then
-            print_error "IDEA 更新失败，中止后续模块更新"
-            return 1
+    local module
+    for module in HARNESS IDEA; do
+        if module_enabled_for_deploy_profile "$module"; then
+            print_section "更新 ${MODULE_NAMES[$module]}"
+            if ! execute_module_command "$module" "update"; then
+                print_error "${MODULE_NAMES[$module]} 更新失败，已中止后续部署"
+                return 1
+            fi
+            echo ""
         fi
-        echo ""
-    fi
+    done
 
     # 基础服务先更新并等就绪，业务模块随后
     if execute_module_command ".scripts/docker" "update"; then
@@ -1430,7 +1467,7 @@ update_all() {
     local -a update_modules=()
     local module
     for module in "${BIZ_MODULES[@]}"; do
-        [ "$module" = "IDEA" ] && continue
+        is_bootstrap_module "$module" && continue
         update_modules+=("$module")
     done
     if [ "${PARALLEL_MODULES:-false}" = "true" ]; then
@@ -1477,6 +1514,9 @@ verify_all() {
         echo ""
         echo -e "${GREEN}服务访问地址:${NC}"
         echo -e "  IDEA 在线 IDE:         http://localhost:9300"
+        if module_enabled_for_deploy_profile HARNESS; then
+            echo -e "  AI 助手 (HARNESS):      http://localhost:3080"
+        fi
         echo -e "  基础服务 (Nacos):     http://localhost:8848/nacos"
         echo -e "  基础服务 (MinIO):     http://localhost:9000 (API), http://localhost:9001 (Console)"
         echo -e "  基础服务 (Milvus):    http://localhost:9091 (Health), localhost:19530 (gRPC)"
