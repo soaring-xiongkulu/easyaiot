@@ -74,6 +74,8 @@ ensure_host_paths() {
   load_env
   if [[ -z "${HARNESS_WORKSPACE_HOST:-}" ]]; then
     export HARNESS_WORKSPACE_HOST="${EASYAIOT_ROOT}"
+    set_harness_env_var HARNESS_WORKSPACE_HOST "${EASYAIOT_ROOT}"
+    echo "[harness] HARNESS_WORKSPACE_HOST -> ${EASYAIOT_ROOT}"
   fi
   mkdir -p "${ROOT}/.data"
 }
@@ -118,6 +120,7 @@ do_build() {
     -f "${ROOT}/Dockerfile"
     -t "${HARNESS_IMAGE:-easyaiot/harness:latest}"
     --build-arg "DSH_VERSION=${DSH_VERSION:-0.1.0-rc.6}"
+    --build-arg "HARNESS_SIDEBAR_PACKAGE=${HARNESS_SIDEBAR_PACKAGE:-dsh-better-sidebar@0.12.1}"
   )
   if [[ -n "${DOCKER_PLATFORM:-}" ]]; then
     build_args+=(--platform "${DOCKER_PLATFORM}")

@@ -1,6 +1,10 @@
 # EasyAIoT HARNESS Cordis 补丁层
-# 挂载平台 Tool 插件（TypeScript，由 dsh 经 tsx 加载）
+# - 平台 Tool 插件
+# - 启动时预置 EasyAIoT 工作区（免手动「选择工作区」）
+# 文件树侧边栏（dsh-better-sidebar）由 profile bundle 挂载，见 scripts/ensure-ux-plugins.sh
 
 - insert:
     - id: easyaiot-platform-tools
       name: '/harness/plugins/easyaiot-platform-tools.ts'
+    - id: easyaiot-workspace-seed
+      name: '/harness/plugins/easyaiot-workspace-seed.ts'

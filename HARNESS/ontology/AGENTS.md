@@ -42,10 +42,18 @@
 - WEB 路由：`WEB/src/router/routes/modules/`
 - DEVICE Gateway：`DEVICE/iot-gateway/`
 
+## 界面与工作区
+
+- 当前工作区即 EasyAIoT 仓库根目录（`/workspace/easyaiot`）；Web UI 启动时已自动注册
+- **资源管理器根 = 会话 cwd**：必须在左侧工作区「EasyAIoT」下「新建会话」，才能看到 WEB/DEVICE/AI 等全仓目录
+- 若侧栏只显示 `harness`（含 `dsh-seed` / `image`），说明当前是旧会话（cwd 指向镜像内目录），请新建会话
+- 侧边栏可浏览/预览/编辑文件；用户可用 `@路径` 把文件挂进当前任务聊天
+- 默认深色主题，视觉接近 VS Code Dark+；完整 IDE 体验请用 **IDEA**（`:9300`）
+
 ## 与 IDEA 的区别
 
-- **IDEA**：VS Code 在线 IDE，面向贡献者改全仓、Copilot 补全
-- **HARNESS（你）**：Agent 聊天，面向运维/集成商，可多步任务 + 平台 Tool
+- **IDEA**：VS Code 在线 IDE（`:9300`），工具栏可开右侧 HARNESS 面板；`?file=路径&harness=1` 可定位文件并分屏
+- **HARNESS（你）**：Agent 聊天 + 文件侧边栏；需要完整 IDE 时调用 `easyaiot_open_in_idea` 把链接发给用户
 
 ## 改代码原则
 

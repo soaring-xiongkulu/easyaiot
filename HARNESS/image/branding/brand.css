@@ -1,0 +1,572 @@
+/* EasyAIoT HARNESS — VS Code Light，扁平少框 */
+
+.easyaiot-harness-hero-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+  border-radius: 4px;
+}
+
+.easyaiot-harness-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.easyaiot-harness-brand img {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.easyaiot-harness-brand span {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--vsc-font);
+  color: var(--vsc-fg) !important;
+}
+
+/* 活动栏 / 侧栏里的品牌图标统一成 EasyAIoT logo */
+img.easyaiot-replaced-logo,
+.easyaiot-logo-slot img {
+  width: 20px !important;
+  height: 20px !important;
+  object-fit: contain !important;
+  border-radius: 4px !important;
+}
+
+html.easyaiot-vscode-light {
+  --vsc-bg: #ffffff;
+  --vsc-bg-sidebar: #f3f3f3;
+  --vsc-bg-editor: #ffffff;
+  --vsc-bg-hover: #e8e8e8;
+  --vsc-bg-active: #e4e6f1;
+  --vsc-fg: #3b3b3b;
+  --vsc-fg-muted: #6c6c6c;
+  --vsc-fg-faint: #8b8b8b;
+  --vsc-border: transparent;
+  --vsc-border-soft: #ececec;
+  --vsc-accent: #005fb8;
+  --vsc-warn-fg: #6b5a00;
+  --vsc-warn-bg: #fff8e1;
+  --vsc-warn-border: #d6b656;
+  --vsc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --vsc-mono: "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --vsc-font-size: 12px;
+  --vsc-font-size-sm: 11px;
+  --vsc-font-size-lg: 13px;
+}
+
+html.easyaiot-vscode-light,
+html.easyaiot-vscode-light body {
+  font-family: var(--vsc-font) !important;
+  font-size: var(--vsc-font-size) !important;
+  line-height: 1.45 !important;
+  background: var(--vsc-bg) !important;
+  color: var(--vsc-fg) !important;
+  color-scheme: light;
+
+  --dsw-alias-bg-page: var(--vsc-bg) !important;
+  --dsw-alias-bg-module-platform: var(--vsc-bg-sidebar) !important;
+  --dsw-alias-bg-elevated: var(--vsc-bg-editor) !important;
+  --dsw-alias-label-primary: var(--vsc-fg) !important;
+  --dsw-alias-label-secondary: var(--vsc-fg-muted) !important;
+  --dsw-alias-border-l1: transparent !important;
+  --dsw-alias-border-l2: transparent !important;
+  --dsw-alias-border-l2-darkmode-thin: #d0d0d0 !important;
+  --dsw-alias-border-l3: transparent !important;
+  --dsw-alias-border-l4: transparent !important;
+  --dsw-alias-border-inverted: transparent !important;
+  --dsw-alias-border-inverted2: transparent !important;
+  --dsw-specific-input-major: #ffffff !important;
+  --dsw-shadow-lv1: none !important;
+  --dsw-shadow-lv2: none !important;
+  --dsw-shadow-lv3: none !important;
+  --dsw-alias-interactive-bg-hover: var(--vsc-bg-hover) !important;
+  --dsw-static-neutral-bluish-400: var(--vsc-fg-muted) !important;
+  --dsw-static-blue-900: var(--vsc-accent) !important;
+  --dsw-static-red-600: var(--vsc-warn-fg) !important;
+  --dsw-static-red-500: var(--vsc-warn-fg) !important;
+  --dsw-static-orange-500: var(--vsc-fg-muted) !important;
+}
+
+html.easyaiot-vscode-light #root,
+html.easyaiot-vscode-light #app {
+  background: var(--vsc-bg) !important;
+  color: var(--vsc-fg);
+}
+
+/* —— 全局去框：卡片 / 面板 / 气泡外壳 —— */
+html.easyaiot-vscode-light [class*="card"],
+html.easyaiot-vscode-light [class*="Card"],
+html.easyaiot-vscode-light [class*="panel"],
+html.easyaiot-vscode-light [class*="Panel"],
+html.easyaiot-vscode-light [class*=" Panels"],
+html.easyaiot-vscode-light [class*="shell"],
+html.easyaiot-vscode-light [class*="Shell"],
+html.easyaiot-vscode-light [class*="surface"],
+html.easyaiot-vscode-light [class*="Surface"],
+html.easyaiot-vscode-light [class*="bubble"],
+html.easyaiot-vscode-light [class*="Bubble"],
+html.easyaiot-vscode-light [class*="message"],
+html.easyaiot-vscode-light [class*="Message"],
+html.easyaiot-vscode-light [class*="conversation"],
+html.easyaiot-vscode-light [class*="Conversation"],
+html.easyaiot-vscode-light [class*="composer"],
+html.easyaiot-vscode-light [class*="Composer"],
+html.easyaiot-vscode-light [class*="inputZone"],
+html.easyaiot-vscode-light [class*="InputZone"],
+html.easyaiot-vscode-light [class*="dock"],
+html.easyaiot-vscode-light [class*="Dock"],
+html.easyaiot-vscode-light [class*="rail"],
+html.easyaiot-vscode-light [class*="Rail"],
+html.easyaiot-vscode-light main {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-image: none !important;
+}
+
+html.easyaiot-vscode-light [class*="sidebar"],
+html.easyaiot-vscode-light aside,
+html.easyaiot-vscode-light [class*="explorer"],
+html.easyaiot-vscode-light [class*="Explorer"],
+html.easyaiot-vscode-light [class*="better"],
+html.easyaiot-vscode-light [class*="Better"] {
+  background: var(--vsc-bg-sidebar) !important;
+  color: var(--vsc-fg) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-family: var(--vsc-font) !important;
+}
+
+/* 侧栏不再画竖线，避免“框”感 */
+html.easyaiot-vscode-light [class*="sidebar"],
+html.easyaiot-vscode-light [class*="Explorer"],
+html.easyaiot-vscode-light [class*="explorer"],
+html.easyaiot-vscode-light [class*="pane"],
+html.easyaiot-vscode-light [class*="Pane"] {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html.easyaiot-vscode-light [class*="conversation"],
+html.easyaiot-vscode-light [class*="Conversation"],
+html.easyaiot-vscode-light main {
+  background: var(--vsc-bg-editor) !important;
+}
+
+/* 对话输入：只要一个大聊天框，不要套娃描边 */
+html.easyaiot-vscode-light [class*="uV2eYG_card"],
+html.easyaiot-vscode-light [class*="composer"] [class*="card"],
+html.easyaiot-vscode-light [class*="Composer"] [class*="card"],
+html.easyaiot-vscode-light [class*="_card"]:not([class*="paneCard"]) {
+  border: 1px solid #d8d8d8 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: #fff !important;
+  border-radius: 12px !important;
+  min-height: 148px !important;
+  padding: 12px 14px 10px !important;
+}
+
+html.easyaiot-vscode-light [class*="cardWorkspaceTrigger"]::after,
+html.easyaiot-vscode-light [class*="CardWorkspaceTrigger"]::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+}
+
+/* 内部输入层保持无框，避免“框中框” */
+html.easyaiot-vscode-light [class*="uV2eYG_input"],
+html.easyaiot-vscode-light [class*="uV2eYG_scroll"],
+html.easyaiot-vscode-light [class*="uV2eYG_grow"],
+html.easyaiot-vscode-light [class*="uV2eYG_row"] {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+html.easyaiot-vscode-light [class*="uV2eYG_input"],
+html.easyaiot-vscode-light [class*="uV2eYG_scroll"],
+html.easyaiot-vscode-light [class*="uV2eYG_grow"] {
+  min-height: 72px !important;
+}
+
+/* 去掉树状缩进竖线 / 装饰线 */
+html.easyaiot-vscode-light [class*="indent"],
+html.easyaiot-vscode-light [class*="Indent"],
+html.easyaiot-vscode-light [class*="guide"],
+html.easyaiot-vscode-light [class*="Guide"],
+html.easyaiot-vscode-light [class*="tree"] li::before,
+html.easyaiot-vscode-light [class*="Tree"] li::before {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+
+html.easyaiot-vscode-light [class*="selected"],
+html.easyaiot-vscode-light [aria-selected="true"],
+html.easyaiot-vscode-light [data-selected="true"] {
+  background: var(--vsc-bg-active) !important;
+  color: var(--vsc-fg) !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+}
+
+html.easyaiot-vscode-light button,
+html.easyaiot-vscode-light [role="button"] {
+  font-family: var(--vsc-font) !important;
+  color: var(--vsc-fg) !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+html.easyaiot-vscode-light button:hover {
+  background: var(--vsc-bg-hover) !important;
+}
+
+/* Tab：无灰底块，无底边线 */
+html.easyaiot-vscode-light [role="tablist"],
+html.easyaiot-vscode-light [class*="Tabs"],
+html.easyaiot-vscode-light [class*="tabs"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+html.easyaiot-vscode-light [role="tab"],
+html.easyaiot-vscode-light [class*="tab"]:not(table):not([class*="table"]) {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  color: var(--vsc-fg-muted) !important;
+}
+
+html.easyaiot-vscode-light [role="tab"][aria-selected="true"],
+html.easyaiot-vscode-light [role="tab"][data-state="active"],
+html.easyaiot-vscode-light [class*="tab"][class*="active"],
+html.easyaiot-vscode-light [class*="Tab"][class*="active"],
+html.easyaiot-vscode-light [class*="tab"][data-state="active"] {
+  background: transparent !important;
+  color: var(--vsc-fg) !important;
+  box-shadow: inset 0 -2px 0 var(--vsc-accent) !important;
+}
+
+/* 输入区：无边框、无圆角套娃；与页面融为一体 */
+html.easyaiot-vscode-light textarea,
+html.easyaiot-vscode-light input:not([type="checkbox"]):not([type="radio"]),
+html.easyaiot-vscode-light [contenteditable="true"],
+html.easyaiot-vscode-light [role="textbox"],
+html.easyaiot-vscode-light [class*="uV2eYG_input"],
+html.easyaiot-vscode-light [class*="_input"]:not(input):not(textarea) {
+  background: transparent !important;
+  border: 0 !important;
+  outline: none !important;
+  color: var(--vsc-fg) !important;
+  caret-color: var(--vsc-fg) !important;
+  font-family: var(--vsc-font) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html.easyaiot-vscode-light textarea::placeholder,
+html.easyaiot-vscode-light input::placeholder {
+  color: var(--vsc-fg-faint) !important;
+}
+
+/* 空态：输入区贴底，不悬在空白中央 */
+html.easyaiot-vscode-light [class*="pXSMma_root"],
+html.easyaiot-vscode-light [class*="EmptyHero"],
+html.easyaiot-vscode-light [class*="emptyHero"],
+html.easyaiot-vscode-light [class*="wSkVaW_composerHero"],
+html.easyaiot-vscode-light [class*="composerHero"] {
+  justify-content: flex-end !important;
+  padding-bottom: 16px !important;
+}
+
+/* 欢迎区：去掉 logo +「探索未至之境」 */
+html.easyaiot-vscode-light [class*="headline"],
+html.easyaiot-vscode-light [class*="Headline"],
+html.easyaiot-vscode-light [class*="fishHitbox"],
+html.easyaiot-vscode-light [class*="headlineText"],
+html.easyaiot-vscode-light [class*="HeadlineText"],
+html.easyaiot-vscode-light [class*="previewBadge"],
+html.easyaiot-vscode-light [class*="easyaiot-harness-hero-logo"],
+html.easyaiot-vscode-light .easyaiot-harness-hero-logo {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 欢迎区 / 空态：去掉外框灰底卡片感 */
+html.easyaiot-vscode-light [class*="empty"],
+html.easyaiot-vscode-light [class*="Empty"],
+html.easyaiot-vscode-light [class*="welcome"],
+html.easyaiot-vscode-light [class*="Welcome"],
+html.easyaiot-vscode-light [class*="hero"],
+html.easyaiot-vscode-light [class*="Hero"] {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* 底部光晕 / 装饰 SVG —— 看起来像输入区外发光线框 */
+html.easyaiot-vscode-light [class*="heroGlow"],
+html.easyaiot-vscode-light [class*="HeroGlow"],
+html.easyaiot-vscode-light svg[class*="Glow"],
+html.easyaiot-vscode-light svg[class*="glow"] {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+/* 工作区 / 模式芯片：去掉描边盒子 */
+html.easyaiot-vscode-light [class*="workspace"],
+html.easyaiot-vscode-light [class*="Workspace"],
+html.easyaiot-vscode-light [class*="seat"],
+html.easyaiot-vscode-light [class*="Seat"],
+html.easyaiot-vscode-light [class*="hlSegment"],
+html.easyaiot-vscode-light [class*="trigger"] {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Explorer 文件树模块：IDEA 已有资源管理器，这里直接去掉 */
+html.easyaiot-vscode-light [class*="W-zNGW_workbench"],
+html.easyaiot-vscode-light [class*="W-zNGW_panel"],
+html.easyaiot-vscode-light [class*="W-zNGW_pane"],
+html.easyaiot-vscode-light [class*="W-zNGW_explorer"],
+html.easyaiot-vscode-light [class*="W-zNGW_explorerBody"],
+html.easyaiot-vscode-light [class*="W-zNGW_tabBar"],
+html.easyaiot-vscode-light [class*="W-zNGW_tab "],
+html.easyaiot-vscode-light [class*="W-zNGW_tabActive"],
+html.easyaiot-vscode-light [class*="W-zNGW_toggleButton"],
+html.easyaiot-vscode-light [class*="W-zNGW_toggleCluster"],
+html.easyaiot-vscode-light [class*="W-zNGW_bottomPanel"],
+html.easyaiot-vscode-light [class*="panelResize"],
+html.easyaiot-vscode-light [class*="PanelResize"],
+html.easyaiot-vscode-light [class*="ydkMvW"] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  flex: 0 0 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 去掉右侧文件面板后：主栏占满剩余宽度 */
+html.easyaiot-vscode-light,
+html.easyaiot-vscode-light body,
+html.easyaiot-vscode-light #root,
+html.easyaiot-vscode-light #root > div {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+}
+
+html.easyaiot-vscode-light [class*="pI_x6G_frame"] {
+  width: 100% !important;
+  max-width: none !important;
+  grid-template-columns: 52px minmax(0, 1fr) 0fr !important;
+}
+
+html.easyaiot-vscode-light [class*="pI_x6G_centerCol"],
+html.easyaiot-vscode-light [class*="wSkVaW_root"],
+html.easyaiot-vscode-light [class*="wSkVaW_scrollBody"],
+html.easyaiot-vscode-light [class*="wSkVaW_composerSeat"],
+html.easyaiot-vscode-light [class*="wSkVaW_composerStack"],
+html.easyaiot-vscode-light [class*="wSkVaW_composerHero"],
+html.easyaiot-vscode-light [class*="uV2eYG_root"],
+html.easyaiot-vscode-light [class*="uV2eYG_hero"] {
+  width: 100% !important;
+  max-width: none !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  align-self: stretch !important;
+}
+
+html.easyaiot-vscode-light {
+  --dsh-composer-card-max-width: min(960px, calc(100% - 24px)) !important;
+  --dsh-chat-content-width: min(960px, calc(100% - 24px)) !important;
+  --dsh-composer-side-clearance: 12px !important;
+}
+
+html.easyaiot-vscode-light [class*="uV2eYG_card"],
+html.easyaiot-vscode-light [class*="composer"] [class*="card"],
+html.easyaiot-vscode-light [class*="_card"]:not([class*="paneCard"]) {
+  width: 100% !important;
+  max-width: var(--dsh-composer-card-max-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* 字体整体缩小，聊天更紧凑 */
+html.easyaiot-vscode-light button,
+html.easyaiot-vscode-light [role="button"],
+html.easyaiot-vscode-light [role="tab"],
+html.easyaiot-vscode-light [class*="headline"],
+html.easyaiot-vscode-light [class*="Headline"],
+html.easyaiot-vscode-light [class*="label"],
+html.easyaiot-vscode-light [class*="Label"],
+html.easyaiot-vscode-light [class*="message"],
+html.easyaiot-vscode-light [class*="Message"],
+html.easyaiot-vscode-light [class*="bubble"],
+html.easyaiot-vscode-light [class*="Bubble"],
+html.easyaiot-vscode-light [class*="markdown"],
+html.easyaiot-vscode-light p,
+html.easyaiot-vscode-light li,
+html.easyaiot-vscode-light span {
+  font-size: inherit;
+}
+
+/* 聊天框正文：强制常规字重（上游默认 500/16px，中文会显得很粗） */
+html.easyaiot-vscode-light [class*="uV2eYG_card"],
+html.easyaiot-vscode-light [class*="uV2eYG_card"] *,
+html.easyaiot-vscode-light [class*="uV2eYG_input"],
+html.easyaiot-vscode-light [class*="uV2eYG_backdrop"],
+html.easyaiot-vscode-light [class*="uV2eYG_grow"],
+html.easyaiot-vscode-light [class*="uV2eYG_row"],
+html.easyaiot-vscode-light [class*="uV2eYG_hlToken"],
+html.easyaiot-vscode-light [class*="uV2eYG_textRef"],
+html.easyaiot-vscode-light [class*="uV2eYG_chip"],
+html.easyaiot-vscode-light [class*="uV2eYG_hint"],
+html.easyaiot-vscode-light textarea,
+html.easyaiot-vscode-light [contenteditable="true"],
+html.easyaiot-vscode-light [role="textbox"] {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  font-family: var(--vsc-font) !important;
+  font-synthesis: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  line-height: 1.5 !important;
+}
+
+html.easyaiot-vscode-light [class*="uV2eYG_input"],
+html.easyaiot-vscode-light [class*="uV2eYG_backdrop"],
+html.easyaiot-vscode-light [class*="uV2eYG_grow"] [class*="hl"],
+html.easyaiot-vscode-light [class*="uV2eYG_backdrop"] span,
+html.easyaiot-vscode-light [class*="uV2eYG_backdrop"] div {
+  font-weight: 400 !important;
+  color: #3b3b3b !important;
+}
+
+html.easyaiot-vscode-light [class*="sidebar"],
+html.easyaiot-vscode-light [class*="hHd-Xa"],
+html.easyaiot-vscode-light [class*="newSession"] {
+  font-size: var(--vsc-font-size-sm) !important;
+}
+
+html.easyaiot-vscode-light [data-status="error"],
+html.easyaiot-vscode-light [class*="ErrorMessage"],
+html.easyaiot-vscode-light [class*="errorMessage"],
+html.easyaiot-vscode-light [class*="Error"],
+html.easyaiot-vscode-light [class*="failed"],
+html.easyaiot-vscode-light [class*="Failed"],
+html.easyaiot-vscode-light [class*="MISSING"],
+html.easyaiot-vscode-light [class*="credential"],
+html.easyaiot-vscode-light [class*="Credential"] {
+  color: var(--vsc-warn-fg) !important;
+  background: var(--vsc-warn-bg) !important;
+  border-left: 3px solid var(--vsc-warn-border) !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+html.easyaiot-vscode-light a {
+  color: var(--vsc-accent) !important;
+}
+
+html.easyaiot-vscode-light .cm-editor,
+html.easyaiot-vscode-light pre,
+html.easyaiot-vscode-light code {
+  background: #f8f8f8 !important;
+  color: var(--vsc-fg) !important;
+  font-family: var(--vsc-mono) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 伪元素描边（输入区套娃边框）全部关掉 */
+html.easyaiot-vscode-light [class*="composer"]::before,
+html.easyaiot-vscode-light [class*="Composer"]::before,
+html.easyaiot-vscode-light [class*="composer"]::after,
+html.easyaiot-vscode-light [class*="Composer"]::after,
+html.easyaiot-vscode-light [class*="input"]::before,
+html.easyaiot-vscode-light [class*="Input"]::before,
+html.easyaiot-vscode-light [class*="dock"]::before,
+html.easyaiot-vscode-light [class*="Dock"]::before,
+html.easyaiot-vscode-light [class*="shell"]::before,
+html.easyaiot-vscode-light [class*="Shell"]::before,
+html.easyaiot-vscode-light [class*="card"]::before,
+html.easyaiot-vscode-light [class*="Card"]::before {
+  border: 0 !important;
+  box-shadow: none !important;
+  content: none !important;
+  background: transparent !important;
+}
+
+/* 用户气泡：去掉灰底圆角大卡片感，保留轻微底色即可 */
+html.easyaiot-vscode-light [class*="bubble"],
+html.easyaiot-vscode-light [class*="Bubble"] {
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* 新会话等按钮：去掉硬边框 */
+html.easyaiot-vscode-light [class*="newSession"],
+html.easyaiot-vscode-light [class*="NewSession"] {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: var(--vsc-bg-hover) !important;
+  border-radius: 4px !important;
+}
+
+.easyaiot-drop-hint {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 72px;
+  z-index: 99999;
+  pointer-events: none;
+  padding: 10px 12px;
+  border: 1px dashed var(--vsc-accent);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--vsc-fg);
+  font-size: 12px;
+  border-radius: 4px;
+  display: none;
+}
+.easyaiot-drop-hint.show { display: block; }
+
+html.easyaiot-vscode-light * {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 transparent;
+}

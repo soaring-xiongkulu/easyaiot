@@ -30,6 +30,25 @@ else
   bad "platform tools plugin not found in logs"
 fi
 
+if docker logs easyaiot-harness 2>&1 | grep -qE 'easyaiot-workspace-seed|workspace-seed'; then
+  ok "workspace seed plugin touched logs"
+else
+  # 插件可能已静默成功；退而检查 profile / 脚本存在
+  if docker exec easyaiot-harness test -f /harness/plugins/easyaiot-workspace-seed.ts; then
+    ok "workspace seed plugin present in image"
+  else
+    bad "workspace seed plugin missing"
+  fi
+fi
+
+if docker exec easyaiot-harness sh -c 'test -f /data/dsh-home/profiles/web/package.json && grep -q dsh-better-sidebar /data/dsh-home/profiles/web/package.json'; then
+  ok "dsh-better-sidebar installed in web profile"
+elif docker exec easyaiot-harness sh -c 'test -f /harness/dsh-seed/profiles/web/package.json && grep -q dsh-better-sidebar /harness/dsh-seed/profiles/web/package.json'; then
+  ok "dsh-better-sidebar present in image seed (volume may need recreate)"
+else
+  bad "dsh-better-sidebar not found (set HARNESS_ENABLE_SIDEBAR=1 and rebuild)"
+fi
+
 if docker exec easyaiot-harness curl -fsS http://host.docker.internal:48080/actuator/health | grep -q '"status":"UP"'; then
   ok "Gateway health from harness container"
 else
