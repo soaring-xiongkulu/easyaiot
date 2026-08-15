@@ -13,5 +13,6 @@ ms-dotnettools.csharp
 ms-azuretools.vscode-docker
 eamodio.gitlens
 Continue.continue
+redhat.vscode-yaml
 saoudrizwan.claude-dev
 llvm-vs-code-extensions.vscode-clangd
