@@ -1188,8 +1188,35 @@ runtime_docker_log_push_failure() {
 }
 
 # 带重试的 docker push
+# 用法: runtime_docker_push_with_retry <ref> [platform]
+# Docker 29 + containerd image store 下，本地镜像常以 OCI index 存储；
+# 对 :amd64/:arm64 等单架构标签若不带 --platform，可能报：
+#   "was found but does not provide any platform"
+# 传入 platform（如 linux/amd64）可只推送对应单架构 manifest。
+_RUNTIME_DOCKER_PUSH_HAS_PLATFORM=""
+runtime_docker_push_supports_platform() {
+    if [ -z "${_RUNTIME_DOCKER_PUSH_HAS_PLATFORM}" ]; then
+        if docker push --help 2>&1 | grep -q -- '--platform'; then
+            _RUNTIME_DOCKER_PUSH_HAS_PLATFORM=1
+        else
+            _RUNTIME_DOCKER_PUSH_HAS_PLATFORM=0
+        fi
+    fi
+    [ "${_RUNTIME_DOCKER_PUSH_HAS_PLATFORM}" = "1" ]
+}
+
 runtime_docker_push_with_retry() {
-    runtime_docker_upload_with_retry "推送 $1" docker push "$1"
+    local ref="$1"
+    local platform="${2:-}"
+    if [ -n "$platform" ] && runtime_docker_push_supports_platform; then
+        runtime_docker_upload_with_retry "推送 ${ref} (--platform ${platform})" \
+            docker push --platform "$platform" "$ref"
+        return $?
+    fi
+    if [ -n "$platform" ]; then
+        runtime_img_msg warn "当前 docker 不支持 push --platform，回退为裸推送: ${ref}"
+    fi
+    runtime_docker_upload_with_retry "推送 ${ref}" docker push "$ref"
 }
 
 # 轻量消息输出（source 方有 print_* 时复用）

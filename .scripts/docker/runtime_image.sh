@@ -607,8 +607,10 @@ tag_and_push() {
                 docker rmi "$remote_ref" 2>/dev/null || true
                 return 1
             fi
-            print_info "推送架构镜像: ${remote_ref}"
-            if ! runtime_docker_push_with_retry "$remote_ref"; then
+            # ★ Docker 29/containerd：单架构标签必须带 --platform，否则 OCI index 可能推送失败
+            local push_platform; push_platform="$(arch_to_platform "$arch_suffix")"
+            print_info "推送架构镜像: ${remote_ref} (${push_platform})"
+            if ! runtime_docker_push_with_retry "$remote_ref" "$push_platform"; then
                 print_error "推送失败: ${remote_ref}"
                 return 1
             fi
