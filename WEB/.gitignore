@@ -16,6 +16,10 @@ tests/server/static/upload
 .env.*.local
 .eslintcache
 
+# HTTP/2 开发自签证书（pnpm certs:dev / pnpm dev:http2）
+certs/
+!certs/README.md
+
 # Log files
 npm-debug.log*
 yarn-debug.log*
