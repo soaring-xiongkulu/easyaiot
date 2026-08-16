@@ -37,22 +37,133 @@ is_running() {
     [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
 }
 
+# 解释器可用且能 import 指定模块（避免把损坏的 .venv/bin/python 当成功）
+python_has_mod() {
+    local py="$1" mod="${2:-}"
+    [ -n "$py" ] || return 1
+    [ -x "$py" ] || command -v "$py" >/dev/null 2>&1 || return 1
+    if [ -z "$mod" ]; then
+        "$py" -c "import sys" >/dev/null 2>&1
+        return $?
+    fi
+    "$py" -c "import ${mod}" >/dev/null 2>&1
+}
+
+# 损坏的 venv：ensurepip 失败后常留下不可用的 bin/python*
+opcua_venv_is_broken() {
+    local vpy="${OPC_UA_DIR}/.venv/bin/python"
+    local vpy3="${OPC_UA_DIR}/.venv/bin/python3"
+    [ -d "${OPC_UA_DIR}/.venv" ] || return 1
+    if [ -x "$vpy" ] && python_has_mod "$vpy"; then
+        return 1
+    fi
+    if [ -x "$vpy3" ] && python_has_mod "$vpy3"; then
+        return 1
+    fi
+    # 目录存在但解释器不可用
+    return 0
+}
+
+purge_broken_opcua_venv() {
+    if opcua_venv_is_broken; then
+        echo "[industrial-demo] 清理损坏的 opc-ua .venv（常见于缺少 python3-venv/ensurepip）" >&2
+        rm -rf "${OPC_UA_DIR}/.venv"
+    fi
+}
+
+# 尝试安装 python3-venv（仅 root + apt；版本化包如 python3.14-venv）
+try_install_python_venv_pkg() {
+    if [ "$(id -u)" -ne 0 ] 2>/dev/null; then
+        return 1
+    fi
+    if ! command -v apt-get >/dev/null 2>&1; then
+        return 1
+    fi
+    local ver=""
+    ver="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+    local -a pkgs=(python3-venv)
+    [ -n "$ver" ] && pkgs+=("python${ver}-venv")
+    echo "[industrial-demo] 尝试安装: ${pkgs[*]}" >&2
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}" >/dev/null 2>&1
+}
+
+bootstrap_opcua_venv() {
+    local venv_dir="${OPC_UA_DIR}/.venv"
+    local vpy="${venv_dir}/bin/python"
+    mkdir -p "$OPC_UA_DIR"
+    purge_broken_opcua_venv
+
+    # 1) 标准 venv
+    if ! python3 -m venv "$venv_dir" >/dev/null 2>&1; then
+        try_install_python_venv_pkg || true
+        rm -rf "$venv_dir"
+        if ! python3 -m venv "$venv_dir" >/dev/null 2>&1; then
+            # 2) 无 ensurepip 时先建空 venv，再 get-pip
+            rm -rf "$venv_dir"
+            if python3 -m venv --without-pip "$venv_dir" >/dev/null 2>&1 \
+                && [ -x "$vpy" ]; then
+                if command -v curl >/dev/null 2>&1; then
+                    curl -fsSL https://bootstrap.pypa.io/get-pip.py -o /tmp/easyaiot-get-pip.py 2>/dev/null \
+                        && "$vpy" /tmp/easyaiot-get-pip.py -q 2>/dev/null \
+                        || true
+                    rm -f /tmp/easyaiot-get-pip.py
+                fi
+            fi
+        fi
+    fi
+
+    if [ ! -x "$vpy" ] || ! python_has_mod "$vpy"; then
+        rm -rf "$venv_dir"
+        return 1
+    fi
+
+    if ! python_has_mod "$vpy" asyncua; then
+        if [ -x "${venv_dir}/bin/pip" ]; then
+            "${venv_dir}/bin/pip" install -q -r "${OPC_UA_DIR}/requirements.txt" >/dev/null 2>&1 \
+                || "${venv_dir}/bin/pip" install -q asyncua >/dev/null 2>&1 \
+                || true
+        else
+            "$vpy" -m pip install -q -r "${OPC_UA_DIR}/requirements.txt" >/dev/null 2>&1 \
+                || "$vpy" -m pip install -q asyncua >/dev/null 2>&1 \
+                || true
+        fi
+    fi
+    if python_has_mod "$vpy" asyncua; then
+        echo "$vpy"
+        return 0
+    fi
+    return 1
+}
+
+install_mod_system_python() {
+    local mod="$1" pkg="${2:-$1}"
+    # 用户目录 → 系统 → PEP 668 break-system-packages
+    python3 -m pip install --user -q "$pkg" >/dev/null 2>&1 \
+        || python3 -m pip install -q "$pkg" >/dev/null 2>&1 \
+        || python3 -m pip install --break-system-packages -q "$pkg" >/dev/null 2>&1 \
+        || true
+    python_has_mod python3 "$mod"
+}
+
 resolve_python() {
     local need_mod="${1:-}"
     if [ -n "${INDUSTRIAL_DEMO_PYTHON:-}" ] && command -v "$INDUSTRIAL_DEMO_PYTHON" >/dev/null 2>&1; then
-        echo "$INDUSTRIAL_DEMO_PYTHON"
-        return
+        if [ -z "$need_mod" ] || python_has_mod "$INDUSTRIAL_DEMO_PYTHON" "$need_mod"; then
+            echo "$INDUSTRIAL_DEMO_PYTHON"
+            return
+        fi
     fi
-    # OPC UA 优先用目录内 venv
-    if [ "$need_mod" = "asyncua" ] && [ -x "${OPC_UA_DIR}/.venv/bin/python" ]; then
-        if "${OPC_UA_DIR}/.venv/bin/python" -c "import asyncua" 2>/dev/null; then
+    # OPC UA：仅在 venv 真正可用时使用
+    if [ "$need_mod" = "asyncua" ]; then
+        purge_broken_opcua_venv
+        if python_has_mod "${OPC_UA_DIR}/.venv/bin/python" asyncua; then
             echo "${OPC_UA_DIR}/.venv/bin/python"
             return
         fi
     fi
     for cand in python3 python; do
         if command -v "$cand" >/dev/null 2>&1; then
-            if [ -z "$need_mod" ] || "$cand" -c "import ${need_mod}" 2>/dev/null; then
+            if [ -z "$need_mod" ] || python_has_mod "$cand" "$need_mod"; then
                 echo "$cand"
                 return
             fi
@@ -63,9 +174,9 @@ resolve_python() {
 
 ensure_pip_mod() {
     local mod="$1" pkg="${2:-$1}"
-    local py
+    local py=""
     py="$(resolve_python "$mod")"
-    if [ -n "$py" ]; then
+    if [ -n "$py" ] && python_has_mod "$py" "$mod"; then
         echo "$py"
         return 0
     fi
@@ -74,19 +185,14 @@ ensure_pip_mod() {
         return 1
     fi
     if [ "$mod" = "asyncua" ]; then
-        python3 -m venv "${OPC_UA_DIR}/.venv" 2>/dev/null || true
-        if [ -x "${OPC_UA_DIR}/.venv/bin/pip" ]; then
-            "${OPC_UA_DIR}/.venv/bin/pip" install -q -r "${OPC_UA_DIR}/requirements.txt" 2>/dev/null || true
-            if "${OPC_UA_DIR}/.venv/bin/python" -c "import asyncua" 2>/dev/null; then
-                echo "${OPC_UA_DIR}/.venv/bin/python"
-                return 0
-            fi
+        # 仅捕获最后一行路径；诊断信息走 stderr
+        py="$(bootstrap_opcua_venv | tail -n 1)" || true
+        if [ -n "$py" ] && python_has_mod "$py" asyncua; then
+            echo "$py"
+            return 0
         fi
     fi
-    python3 -m pip install --user -q "$pkg" 2>/dev/null \
-        || python3 -m pip install -q "$pkg" 2>/dev/null \
-        || true
-    if python3 -c "import ${mod}" 2>/dev/null; then
+    if install_mod_system_python "$mod" "$pkg"; then
         echo "python3"
         return 0
     fi
@@ -193,10 +299,17 @@ start_opc_ua() {
         echo "[industrial-demo] opc-ua 端口 4840 已在监听，跳过"
         return 0
     fi
-    local py
+    local py=""
     py="$(ensure_pip_mod asyncua asyncua)" || true
-    if [ -z "${py:-}" ]; then
-        echo "[industrial-demo] 缺少 asyncua，OPC UA 演示未启动（pip install asyncua）" >&2
+    # 防止把 ensurepip 报错文本当成解释器路径
+    if [ -z "${py:-}" ] || [[ "$py" == *$'\n'* ]] || [[ "$py" == *"ensurepip"* ]]; then
+        echo "[industrial-demo] 缺少可用的 asyncua 环境，OPC UA 演示未启动" >&2
+        echo "[industrial-demo] 请安装: apt install python3-venv python3.\$(python3 -c 'import sys;print(sys.version_info.minor)')-venv" >&2
+        echo "[industrial-demo] 或: python3 -m pip install --user asyncua" >&2
+        return 1
+    fi
+    if ! python_has_mod "$py" asyncua; then
+        echo "[industrial-demo] 解释器不可用或无 asyncua: ${py}" >&2
         return 1
     fi
     start_bg opc-ua 4840 "$py" -u "${OPC_UA_DIR}/00_server_simulator.py" \
