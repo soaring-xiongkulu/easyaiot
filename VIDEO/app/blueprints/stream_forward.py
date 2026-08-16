@@ -255,7 +255,17 @@ def receive_heartbeat():
         if process_id:
             task.service_process_id = process_id
         if log_path:
-            task.service_log_path = log_path
+            # executor=cpp 时 RUNTIME 上报的是每设备子目录（forward_{deviceId}），
+            # 会覆盖 Python supervisor 的任务日志目录，导致 UI 读不到 YYYY-MM-DD.log。
+            norm = str(log_path).replace('\\', '/').rstrip('/')
+            marker = f'stream_forward_task_{task_id}'
+            if marker in norm:
+                parts = norm.split('/')
+                for i, part in enumerate(parts):
+                    if part == marker:
+                        norm = '/'.join(parts[: i + 1])
+                        break
+            task.service_log_path = norm
         elif not task.service_log_path:
             # 如果没有log_path，根据task_id生成
             video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
