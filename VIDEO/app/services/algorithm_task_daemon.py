@@ -38,6 +38,7 @@ class AlgorithmTaskDaemon:
         executor: str = 'cpp',
         runtime_bin: str = None,
         runtime_ini: str = None,
+        runtime_inis: list = None,
     ):
         """
         初始化守护进程
@@ -50,16 +51,24 @@ class AlgorithmTaskDaemon:
             extra_env: 启动时注入子进程的额外环境变量（如 SAM 配置，避免守护进程查库）
             executor: python | cpp
             runtime_bin: RUNTIME 二进制路径（executor=cpp）
-            runtime_ini: RUNTIME 配置 ini 路径（executor=cpp）
+            runtime_ini: RUNTIME 配置 ini 路径（executor=cpp，单路兼容）
+            runtime_inis: RUNTIME 多路 ini 列表（cpp realtime 一路一进程）
         """
         self._process = None
+        self._processes = []  # cpp 多路：多个 RUNTIME
         self._task_id = task_id
         self._log_path = log_path
         self._task_type = task_type
         self._extra_env = extra_env or {}
         self._executor = (executor or 'cpp').strip().lower()
         self._runtime_bin = runtime_bin
-        self._runtime_ini = runtime_ini
+        inis = []
+        if runtime_inis:
+            inis = [str(p).strip() for p in runtime_inis if str(p).strip()]
+        elif runtime_ini:
+            inis = [str(runtime_ini).strip()]
+        self._runtime_inis = inis
+        self._runtime_ini = inis[0] if inis else (runtime_ini or None)
         self._running = True  # 守护线程是否继续运行
         self._restart = False  # 手动重启标志
         self._daemon_thread = threading.Thread(target=self._daemon, daemon=True)
@@ -95,6 +104,14 @@ class AlgorithmTaskDaemon:
 
     def _daemon(self):
         """守护线程主循环，管理子进程并处理日志"""
+        # cpp realtime 多路：一路一个 RUNTIME，单独监督循环
+        if (
+            getattr(self, '_executor', 'python') == 'cpp'
+            and len(getattr(self, '_runtime_inis', None) or []) > 1
+        ):
+            self._daemon_multi_cpp()
+            return
+
         current_date = datetime.now().date()
         log_file_path = self._get_log_file_path()
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
@@ -370,56 +387,186 @@ class AlgorithmTaskDaemon:
     def restart(self):
         """手动重启服务"""
         self._restart = True
-        if self._process:
-            self._process.terminate()
+        procs = list(getattr(self, '_processes', None) or [])
+        if self._process and self._process not in procs:
+            procs.append(self._process)
+        for proc in procs:
+            try:
+                if proc.poll() is None:
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    except (ProcessLookupError, OSError):
+                        proc.terminate()
+            except Exception:
+                pass
 
     def stop(self):
         """停止服务"""
         self._log('收到停止信号，正在停止守护进程...', 'INFO')
         self._running = False
-        if self._process:
+        procs = list(getattr(self, '_processes', None) or [])
+        if self._process and self._process not in procs:
+            procs.append(self._process)
+        for proc in procs:
             try:
-                # 先尝试优雅终止整个进程组
                 try:
-                    # 使用进程组ID终止整个进程树（包括所有子进程和孙进程，如FFmpeg）
-                    pgid = os.getpgid(self._process.pid)
-                    self._log(f'终止进程组 {pgid} (主进程PID: {self._process.pid})', 'INFO')
+                    pgid = os.getpgid(proc.pid)
+                    self._log(f'终止进程组 {pgid} (主进程PID: {proc.pid})', 'INFO')
                     os.killpg(pgid, signal.SIGTERM)
                 except (ProcessLookupError, OSError) as e:
-                    # 如果进程组不存在，尝试直接终止主进程
                     self._log(f'进程组不存在，直接终止主进程: {str(e)}', 'WARNING')
                     try:
-                        self._process.terminate()
+                        proc.terminate()
                     except ProcessLookupError:
-                        # 进程已经不存在
-                        self._log('进程已不存在', 'INFO')
-                        return
-                
-                # 等待进程退出
+                        continue
                 try:
-                    self._process.wait(timeout=10)  # 增加等待时间到10秒
-                    self._log('进程已优雅退出', 'INFO')
+                    proc.wait(timeout=10)
+                    self._log(f'进程已优雅退出 PID={proc.pid}', 'INFO')
                 except sp.TimeoutExpired:
-                    # 如果10秒内没有退出，强制杀死整个进程组
-                    self._log('进程未在10秒内退出，强制终止整个进程组', 'WARNING')
+                    self._log(f'进程未在10秒内退出，强制终止 PID={proc.pid}', 'WARNING')
                     try:
-                        pgid = os.getpgid(self._process.pid)
-                        os.killpg(pgid, signal.SIGKILL)
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
                     except (ProcessLookupError, OSError):
-                        # 如果进程组不存在，尝试直接杀死主进程
                         try:
-                            self._process.kill()
+                            proc.kill()
                         except ProcessLookupError:
                             pass
                     try:
-                        self._process.wait(timeout=3)
+                        proc.wait(timeout=3)
                     except (sp.TimeoutExpired, ProcessLookupError):
                         pass
             except Exception as e:
                 self._log(f'停止进程时出错: {str(e)}', 'WARNING')
-                # 如果进程已经不存在，忽略错误
-                pass
+        self._processes = []
+        self._process = None
         self._log('守护进程已停止', 'INFO')
+
+    def _daemon_multi_cpp(self):
+        """cpp realtime 多路：每路独立 RUNTIME，崩溃自动拉起。"""
+        log_file_path = self._get_log_file_path()
+        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+        f_log = open(log_file_path, mode='a', encoding='utf-8')
+        try:
+            inis = list(self._runtime_inis or [])
+            self._log(
+                f'守护进程启动（多路 RUNTIME），任务ID: {self._task_id}, 路数: {len(inis)}',
+                'INFO',
+            )
+            f_log.write('# ========== 算法任务守护进程启动（多路 RUNTIME） ==========\n')
+            f_log.write(f'# 任务ID: {self._task_id}\n')
+            f_log.write(f'# 路数: {len(inis)}\n')
+            for p in inis:
+                f_log.write(f'#   ini: {p}\n')
+            f_log.write(f'# 启动时间: {datetime.now().isoformat()}\n')
+            f_log.write('# ========================================================\n\n')
+            f_log.flush()
+
+            # slot -> Popen
+            children = {}
+
+            def _spawn(ini_path: str):
+                cmds, cwd, env = self._get_cpp_deploy_args_for_ini(ini_path)
+                if not cmds:
+                    return None
+                preexec_fn = os.setsid if os.name == 'posix' else None
+                creationflags = 0 if os.name == 'posix' else sp.CREATE_NEW_PROCESS_GROUP
+                proc = sp.Popen(
+                    cmds,
+                    stdout=sp.DEVNULL,
+                    stderr=sp.DEVNULL,
+                    cwd=cwd,
+                    env=env,
+                    preexec_fn=preexec_fn,
+                    creationflags=creationflags,
+                )
+                self._log(f'RUNTIME 已启动 device_ini={os.path.basename(ini_path)} PID={proc.pid}', 'INFO')
+                f_log.write(
+                    f'# [{datetime.now().isoformat()}] start {os.path.basename(ini_path)} pid={proc.pid}\n'
+                )
+                f_log.flush()
+                return proc
+
+            # initial start (stagger slightly to soften NVR/SRS burst)
+            for idx, ini in enumerate(inis):
+                if not self._running:
+                    break
+                proc = _spawn(ini)
+                if proc:
+                    children[ini] = proc
+                if idx + 1 < len(inis):
+                    time.sleep(0.4)
+
+            self._processes = list(children.values())
+            self._process = self._processes[0] if self._processes else None
+
+            while self._running:
+                if self._restart:
+                    self._restart = False
+                    self._log('手动重启全部 RUNTIME 路', 'INFO')
+                    for ini, proc in list(children.items()):
+                        try:
+                            if proc and proc.poll() is None:
+                                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                        except Exception:
+                            pass
+                    time.sleep(1)
+                    children.clear()
+                    for idx, ini in enumerate(inis):
+                        if not self._running:
+                            break
+                        proc = _spawn(ini)
+                        if proc:
+                            children[ini] = proc
+                        if idx + 1 < len(inis):
+                            time.sleep(0.4)
+                    self._processes = list(children.values())
+                    self._process = self._processes[0] if self._processes else None
+
+                # respawn dead children
+                for ini in inis:
+                    if not self._running:
+                        break
+                    proc = children.get(ini)
+                    if proc is None or proc.poll() is not None:
+                        rc = None if proc is None else proc.poll()
+                        self._log(
+                            f'RUNTIME 退出，准备重启 ini={os.path.basename(ini)} rc={rc}',
+                            'WARNING',
+                        )
+                        f_log.write(
+                            f'# [{datetime.now().isoformat()}] exit {os.path.basename(ini)} rc={rc}, restart\n'
+                        )
+                        f_log.flush()
+                        time.sleep(2)
+                        if not self._running:
+                            break
+                        new_proc = _spawn(ini)
+                        if new_proc:
+                            children[ini] = new_proc
+                        self._processes = list(children.values())
+                        self._process = self._processes[0] if self._processes else None
+
+                for _ in range(10):
+                    if not self._running or self._restart:
+                        break
+                    time.sleep(0.1)
+
+            # stopping: terminate remaining
+            for ini, proc in list(children.items()):
+                try:
+                    if proc and proc.poll() is None:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                except Exception:
+                    pass
+            self._processes = []
+            self._process = None
+            f_log.write(f'# [{datetime.now().isoformat()}] 多路守护进程退出\n')
+            f_log.flush()
+        finally:
+            try:
+                f_log.close()
+            except Exception:
+                pass
 
     def _get_log_file_path(self) -> str:
         """获取日志文件路径（按日期）"""
@@ -551,8 +698,12 @@ class AlgorithmTaskDaemon:
 
     def _get_cpp_deploy_args(self) -> tuple:
         """拉起 RUNTIME 二进制（executor=cpp）。"""
+        return self._get_cpp_deploy_args_for_ini(self._runtime_ini)
+
+    def _get_cpp_deploy_args_for_ini(self, runtime_ini: str) -> tuple:
+        """按指定 ini 构造 RUNTIME 启动参数。"""
         runtime_bin = (self._runtime_bin or os.getenv('RUNTIME_BIN') or '').strip()
-        runtime_ini = (self._runtime_ini or '').strip()
+        runtime_ini = (runtime_ini or '').strip()
         if not runtime_bin or not os.path.isfile(runtime_bin):
             self._log(f'RUNTIME 二进制不存在: {runtime_bin}', 'ERROR')
             return None, None, None
@@ -575,6 +726,7 @@ class AlgorithmTaskDaemon:
             'LD_LIBRARY_PATH', 'PATH',
             'USE_GPU', 'RUNTIME_PREFER_GPU', 'RUNTIME_FORCE_CPU', 'RUNTIME_GPU_DEVICE_ID',
             'CUDA_VISIBLE_DEVICES', 'NVIDIA_VISIBLE_DEVICES',
+            'STREAM_FORWARD_FFMPEG', 'OPENCV_FFMPEG_CAPTURE_OPTIONS',
         ):
             val = os.getenv(key)
             if val is not None and val != '':

@@ -496,6 +496,7 @@ def cleanup_orphaned_processes(task_id: int, extra_protected_pids: set = None):
     # 仅清理实时算法服务 / RUNTIME，避免误杀 stream_forward 等同 TASK_ID 的 run_deploy
     realtime_deploy_marker = os.path.join('realtime_algorithm_service', 'run_deploy.py')
     runtime_ini_marker = f'task_{task_id}.ini'
+    runtime_ini_prefix = f'task_{task_id}_'
     orphan_terminate_timeout = int(os.getenv('ALGORITHM_ORPHAN_TERMINATE_TIMEOUT', '12'))
     try:
         import psutil
@@ -507,22 +508,24 @@ def cleanup_orphaned_processes(task_id: int, extra_protected_pids: set = None):
                 daemon = _running_daemons[task_id]
                 # 保护正在运行的守护进程管理的进程（即使_process为None，也可能正在启动中）
                 if daemon._running:
-                    if daemon._process:
-                        try:
-                            # 检查进程是否真的在运行
-                            if daemon._process.poll() is None:
-                                # 守护进程管理的进程还在运行，保护它及其子进程
-                                protected_pids.add(daemon._process.pid)
-                                try:
-                                    # 获取所有子进程的PID
-                                    parent_proc = psutil.Process(daemon._process.pid)
-                                    for child in parent_proc.children(recursive=True):
-                                        protected_pids.add(child.pid)
-                                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                                    pass
-                        except:
-                            # poll失败，进程可能已经不存在，但不影响保护逻辑
-                            pass
+                    managed = []
+                    if getattr(daemon, '_processes', None):
+                        managed.extend([p for p in daemon._processes if p])
+                    if daemon._process and daemon._process not in managed:
+                        managed.append(daemon._process)
+                    if managed:
+                        for mp in managed:
+                            try:
+                                if mp.poll() is None:
+                                    protected_pids.add(mp.pid)
+                                    try:
+                                        parent_proc = psutil.Process(mp.pid)
+                                        for child in parent_proc.children(recursive=True):
+                                            protected_pids.add(child.pid)
+                                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                        pass
+                            except Exception:
+                                pass
                     else:
                         # 进程为None但守护进程还在运行，说明可能正在启动中
                         # 为了安全起见，不清理任何进程（避免误杀正在启动的进程）
@@ -538,14 +541,20 @@ def cleanup_orphaned_processes(task_id: int, extra_protected_pids: set = None):
                 
                 cmdline_str = ' '.join(cmdline)
                 is_python_deploy = realtime_deploy_marker in cmdline_str
-                is_runtime_bin = (
-                    runtime_ini_marker in cmdline_str
-                    and (
-                        'RUNTIME' in cmdline_str
-                        or any(
-                            str(arg).endswith('RUNTIME') or str(arg).endswith('RUNTIME.exe')
-                            for arg in cmdline
-                        )
+                def _cmdline_is_task_runtime(args) -> bool:
+                    for arg in args:
+                        base = os.path.basename(str(arg))
+                        if base == runtime_ini_marker:
+                            return True
+                        if base.startswith(runtime_ini_prefix) and base.endswith('.ini'):
+                            return True
+                    return False
+
+                is_runtime_bin = _cmdline_is_task_runtime(cmdline) and (
+                    'RUNTIME' in cmdline_str
+                    or any(
+                        str(arg).endswith('RUNTIME') or str(arg).endswith('RUNTIME.exe')
+                        for arg in cmdline
                     )
                 )
                 if not is_python_deploy and not is_runtime_bin:
@@ -962,18 +971,20 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             executor = (getattr(task, 'executor', None) or 'cpp').strip().lower()
             runtime_bin = None
             runtime_ini = None
+            runtime_inis = None
             if executor in ('cpp', 'c++', 'runtime', 'cxx'):
                 executor = 'cpp'
                 if task.task_type not in ('realtime', 'snap', 'patrol'):
                     return (False, f'executor=cpp 不支持任务类型: {task.task_type}', False)
                 try:
                     from .runtime_config_service import (
-                        generate_runtime_ini,
+                        generate_runtime_inis,
                         ensure_runtime_bin_ready,
                         runtime_library_path_env,
                     )
                     runtime_bin = ensure_runtime_bin_ready(task)
-                    runtime_ini = generate_runtime_ini(task, log_path)
+                    runtime_inis = generate_runtime_inis(task, log_path)
+                    runtime_ini = runtime_inis[0] if runtime_inis else None
                     lib_path = runtime_library_path_env()
                     if lib_path:
                         extra_env['LD_LIBRARY_PATH'] = lib_path
@@ -983,6 +994,11 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                         task.service_port = 8000 + (int(task_id) % 1000)
                     task.service_log_path = log_path
                     db.session.commit()
+                    logger.info(
+                        'cpp 任务 %s 生成 %s 路 RUNTIME 配置',
+                        task_id,
+                        len(runtime_inis or []),
+                    )
                 except Exception as e:
                     logger.error('生成 RUNTIME 配置失败: %s', e, exc_info=True)
                     return (False, f'生成 RUNTIME 配置失败: {e}', False)
@@ -1014,6 +1030,7 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     executor=executor,
                     runtime_bin=runtime_bin,
                     runtime_ini=runtime_ini,
+                    runtime_inis=runtime_inis,
                 )
                 _running_daemons[task_id] = daemon
 
@@ -1023,18 +1040,24 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     task_id,
                 )
             
-            # 等待守护进程启动并获取进程PID（最多等待2秒）
+            # 等待守护进程启动并获取进程PID（最多等待5秒；多路会错峰拉起）
             import time
             process_pid = None
-            for _ in range(20):  # 等待最多2秒（20 * 0.1秒）
+            for _ in range(50):  # 等待最多5秒（50 * 0.1秒）
                 time.sleep(0.1)
-                if daemon._process is not None:
+                managed = list(getattr(daemon, '_processes', None) or [])
+                if daemon._process is not None and daemon._process not in managed:
+                    managed.append(daemon._process)
+                alive = []
+                for mp in managed:
                     try:
-                        if daemon._process.poll() is None:
-                            process_pid = daemon._process.pid
-                            break
-                    except:
+                        if mp.poll() is None:
+                            alive.append(mp)
+                    except Exception:
                         pass
+                if alive:
+                    process_pid = alive[0].pid
+                    break
                 if not daemon._running:
                     # 守护进程已停止，退出等待
                     break

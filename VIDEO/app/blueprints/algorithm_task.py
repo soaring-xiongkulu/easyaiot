@@ -324,7 +324,16 @@ def receive_realtime_heartbeat():
         if process_id:
             task.service_process_id = process_id
         if log_path:
-            task.service_log_path = log_path
+            # cpp 多路：RUNTIME 上报 runtime_{deviceId} 子目录，归一到 task_{id} 以便 UI 读日日志
+            norm = str(log_path).replace('\\', '/').rstrip('/')
+            marker = f'task_{task_id}'
+            if marker in norm:
+                parts = norm.split('/')
+                for i, part in enumerate(parts):
+                    if part == marker:
+                        norm = '/'.join(parts[: i + 1])
+                        break
+            task.service_log_path = norm
         elif not task.service_log_path:
             # 如果没有log_path，根据task_id生成
             video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
