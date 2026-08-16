@@ -202,10 +202,32 @@ ensure_pip_mod() {
 
 port_listening() {
     local port="$1"
+    # 优先 TCP 探活（比解析 ss 更可靠）
+    if command -v python3 >/dev/null 2>&1; then
+        if python3 - <<PY >/dev/null 2>&1
+import socket
+s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(0.4)
+try:
+    s.connect(("127.0.0.1", int("${port}")))
+except Exception:
+    raise SystemExit(1)
+finally:
+    try:
+        s.close()
+    except Exception:
+        pass
+raise SystemExit(0)
+PY
+        then
+            return 0
+        fi
+    fi
     if command -v ss >/dev/null 2>&1; then
         ss -ltn 2>/dev/null | grep -Eq ":${port}([[:space:]]|$)"
         return $?
     fi
+    # 回退：本机能 bind 该端口则认为无人监听
     python3 - <<PY >/dev/null 2>&1
 import socket
 s=socket.socket()
@@ -218,26 +240,46 @@ raise SystemExit(1)
 PY
 }
 
+# start_bg <role> <ready_port|""> [max_wait_sec] -- <cmd...>
+# 兼容旧调用: start_bg role port cmd...（第3参若不是纯数字则视为命令开头）
 start_bg() {
     local role="$1"
     local ready_port="${2:-}"
     shift 2
+    local max_wait=8
+    if [ "${1:-}" = "--" ]; then
+        shift
+    elif [[ "${1:-}" =~ ^[0-9]+$ ]]; then
+        max_wait="$1"
+        shift
+        [ "${1:-}" = "--" ] && shift
+    fi
+    local ready_marker="${START_BG_READY_MARKER:-}"
     local pid_file="${RUN_DIR}/${role}.pid"
     local log_file="${LOG_DIR}/${role}.log"
     if is_running "$pid_file"; then
         echo "[industrial-demo] ${role} 已在运行 pid=$(cat "$pid_file")"
         return 0
     fi
-    # 清理陈旧 pid
+    # 清理陈旧 pid / 日志尾，便于探测 READY
     rm -f "$pid_file"
+    : >"$log_file"
     echo "[industrial-demo] 启动 ${role}: $*"
     # 脱离当前会话，避免安装脚本退出后被 SIGHUP
     PYTHONUNBUFFERED=1 nohup "$@" >>"$log_file" 2>&1 </dev/null &
     local new_pid=$!
     echo "$new_pid" >"$pid_file"
     disown "$new_pid" 2>/dev/null || true
-    local i
-    for i in 1 2 3 4 5 6 7 8 9 10; do
+    local i elapsed=0
+    local steps=$((max_wait * 2))
+    [ "$steps" -lt 1 ] && steps=1
+    for i in $(seq 1 "$steps"); do
+        if [ -n "$ready_marker" ] && grep -qF "$ready_marker" "$log_file" 2>/dev/null; then
+            if is_running "$pid_file" || { [ -n "$ready_port" ] && port_listening "$ready_port"; }; then
+                echo "[industrial-demo] ${role} 已启动 pid=$(cat "$pid_file" 2>/dev/null || echo '?') log=${log_file}"
+                return 0
+            fi
+        fi
         if is_running "$pid_file"; then
             if [ -z "$ready_port" ] || port_listening "$ready_port"; then
                 echo "[industrial-demo] ${role} 已启动 pid=$(cat "$pid_file") log=${log_file}"
@@ -247,11 +289,20 @@ start_bg() {
             # 子进程可能被 systemd/容器接管，端口就绪即视为成功
             echo "[industrial-demo] ${role} 端口 ${ready_port} 已就绪 log=${log_file}"
             return 0
+        elif ! is_running "$pid_file"; then
+            # 进程已退出：尽早失败，避免空等
+            if [ "$i" -ge 4 ]; then
+                break
+            fi
         fi
-        sleep 0.3
+        sleep 0.5
+        elapsed=$((elapsed + 1))
     done
     echo "[industrial-demo] ${role} 启动失败，见 ${log_file}" >&2
-    tail -n 30 "$log_file" 2>/dev/null || true
+    if [ -f "$pid_file" ] && ! is_running "$pid_file"; then
+        echo "[industrial-demo] ${role} 进程已退出（pid 文件残留）" >&2
+    fi
+    tail -n 40 "$log_file" 2>/dev/null || true
     return 1
 }
 
@@ -289,7 +340,7 @@ start_modbus_tcp() {
     local py
     py="$(resolve_python)"
     [ -n "$py" ] || py="python3"
-    start_bg modbus-tcp "$MODBUS_TCP_PORT" "$py" -u "${MODBUS_TCP_DIR}/00_slave_simulator.py" \
+    start_bg modbus-tcp "$MODBUS_TCP_PORT" 8 -- "$py" -u "${MODBUS_TCP_DIR}/00_slave_simulator.py" \
         --host 0.0.0.0 --port "$MODBUS_TCP_PORT" --unit 1
 }
 
@@ -312,7 +363,8 @@ start_opc_ua() {
         echo "[industrial-demo] 解释器不可用或无 asyncua: ${py}" >&2
         return 1
     fi
-    start_bg opc-ua 4840 "$py" -u "${OPC_UA_DIR}/00_server_simulator.py" \
+    START_BG_READY_MARKER="OPC UA READY" \
+        start_bg opc-ua 4840 25 -- "$py" -u "${OPC_UA_DIR}/00_server_simulator.py" \
         --endpoint "$OPC_UA_ENDPOINT"
 }
 

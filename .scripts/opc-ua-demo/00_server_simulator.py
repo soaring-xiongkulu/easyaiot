@@ -22,6 +22,8 @@ async def main() -> None:
     await server.init()
     server.set_endpoint(args.endpoint)
     server.set_server_name("EasyAIoT OPC UA Demo")
+    # 仅开放无安全端点，避免缺证书时跳过全部加密策略、启动异常或客户端连不上
+    server.set_security_policy([ua.SecurityPolicyType.NoSecurity])
 
     uri = "http://easyaiot.local/opcua/demo"
     idx = await server.register_namespace(uri)
@@ -47,9 +49,11 @@ async def main() -> None:
         f"NodeIds: ns={idx};s=Temperature | ns={idx};s=Setpoint | ns={idx};s=Running",
         flush=True,
     )
-    print("SecurityPolicy=None / Anonymous 即可连接（日志里证书告警可忽略）", flush=True)
+    print("SecurityPolicy=None / Anonymous 即可连接", flush=True)
 
     async with server:
+        # 进入 context 后才真正 bind 监听；供 start 脚本探测就绪
+        print("OPC UA READY", flush=True)
         value = 25.0
         while True:
             value += 0.5
@@ -64,3 +68,6 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         sys.exit(0)
+    except Exception as exc:  # pragma: no cover
+        print(f"OPC UA server fatal: {exc}", file=sys.stderr, flush=True)
+        raise
