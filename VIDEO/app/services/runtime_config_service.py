@@ -952,11 +952,17 @@ def generate_runtime_inis(
     *,
     prefer_cluster_model: bool = False,
     write_local: bool = True,
+    only_device_ids: Optional[List[str]] = None,
+    force_per_device: bool = False,
+    remote_ini_dir: Optional[str] = None,
 ) -> List[str]:
     """生成 RUNTIME ini 路径列表。
 
     - realtime：每路摄像头一份 ini / 一个进程（推各自 ai/{{device_id}}）
     - snap / patrol：仍为一份 ini（进程内多路调度）
+    - only_device_ids：仅生成指定设备（集群分片）
+    - force_per_device：分片场景下即使单路也使用 task_{id}_{deviceId}.ini
+    - remote_ini_dir：远程节点上的 ini 目录（write_local=False 时用于路径）
     """
     task_type = (getattr(task, 'task_type', None) or 'realtime').strip().lower()
     if task_type == 'snapshot':
@@ -964,9 +970,21 @@ def generate_runtime_inis(
     if task_type not in ('realtime', 'snap', 'patrol'):
         raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
 
-    devices = _task_devices(task)
-    if not devices:
+    all_devices = _task_devices(task)
+    if not all_devices:
         raise ValueError(f'任务 {task.id} 未绑定设备，无法生成 RUNTIME 配置')
+
+    device_index_map = {str(d.id): i for i, d in enumerate(all_devices)}
+    if only_device_ids:
+        by_id = {str(d.id): d for d in all_devices}
+        devices: List[Device] = []
+        for raw_id in only_device_ids:
+            did = str(raw_id)
+            if did not in by_id:
+                raise ValueError(f'任务 {task.id} 未绑定设备 {did}，无法生成分片配置')
+            devices.append(by_id[did])
+    else:
+        devices = list(all_devices)
 
     for d in devices:
         if not resolve_algo_rtsp_url(d):
@@ -1035,12 +1053,23 @@ def generate_runtime_inis(
     if gpu_device_id < 0:
         gpu_device_id = 0
 
-    # realtime：一路一进程；snap/patrol：单进程多设备
+    # realtime：一路一进程；snap/patrol：单进程多设备（分片时仅包含 only_device_ids）
     targets: List[Tuple[Device, int, List[Device]]]
     if task_type == 'realtime':
-        targets = [(d, i, [d]) for i, d in enumerate(devices)]
+        targets = [
+            (d, device_index_map.get(str(d.id), i), [d])
+            for i, d in enumerate(devices)
+        ]
     else:
-        targets = [(devices[0], 0, devices)]
+        primary_index = device_index_map.get(str(devices[0].id), 0)
+        targets = [(devices[0], primary_index, devices)]
+
+    per_device = force_per_device or (task_type == 'realtime' and (
+        len(all_devices) > 1 or bool(only_device_ids)
+    ))
+    # snap/patrol 分片：单 ini，但需独立端口/文件名，避免同节点多 workload 冲突
+    shard_mode = bool(only_device_ids) and task_type in ('snap', 'patrol')
+    ini_base = Path(remote_ini_dir) if remote_ini_dir else runtime_config_dir()
 
     paths: List[str] = []
     contents: List[str] = []
@@ -1059,18 +1088,30 @@ def generate_runtime_inis(
         elif rtmp_out:
             enable_rtmp = True
 
-        if task_type == 'realtime' and len(devices) > 1:
+        if task_type == 'realtime' and per_device:
             control_port = _realtime_device_control_port(int(task.id), device_index)
-            ini_path = runtime_config_dir() / f'task_{task.id}_{device.id}.ini'
+            ini_path = ini_base / f'task_{task.id}_{device.id}.ini'
             device_log = os.path.join(log_dir, f'runtime_{device.id}')
             if write_local:
                 os.makedirs(device_log, exist_ok=True)
             mqtt_client_id = (
                 os.getenv('MQTT_ALGO_CLIENT_ID') or f'algo-runtime-{task.id}-{device.id}'
             ).strip()
+        elif shard_mode:
+            shard_key = '_'.join(str(d.id) for d in devices_for_json[:3])
+            if len(devices_for_json) > 3:
+                shard_key = f'{shard_key}_n{len(devices_for_json)}'
+            control_port = _realtime_device_control_port(int(task.id), device_index)
+            ini_path = ini_base / f'task_{task.id}_shard_{shard_key}.ini'
+            device_log = os.path.join(log_dir, f'runtime_shard_{shard_key}')
+            if write_local:
+                os.makedirs(device_log, exist_ok=True)
+            mqtt_client_id = (
+                os.getenv('MQTT_ALGO_CLIENT_ID') or f'algo-runtime-{task.id}-shard-{shard_key}'
+            ).strip()
         else:
             control_port = _control_port(task)
-            ini_path = runtime_config_dir() / f'task_{task.id}.ini'
+            ini_path = ini_base / f'task_{task.id}.ini'
             device_log = log_path
             mqtt_client_id = (os.getenv('MQTT_ALGO_CLIENT_ID') or f'algo-runtime-{task.id}').strip()
 
@@ -1171,16 +1212,24 @@ def generate_runtime_ini_content(
     *,
     prefer_cluster_model: bool = True,
     remote_ini_path: Optional[str] = None,
+    only_device_ids: Optional[List[str]] = None,
+    force_per_device: bool = False,
 ) -> Tuple[str, str]:
     """Return (remote_ini_path, ini_content) without requiring local model file.
 
     远程多路时返回第一路内容；完整列表见 generate_runtime_inis.last_contents。
     """
+    remote_dir = None
+    if remote_ini_path:
+        remote_dir = os.path.dirname(remote_ini_path) or None
     paths = generate_runtime_inis(
         task,
         log_path,
         prefer_cluster_model=prefer_cluster_model,
         write_local=False,
+        only_device_ids=only_device_ids,
+        force_per_device=force_per_device,
+        remote_ini_dir=remote_dir,
     )
     contents = getattr(generate_runtime_inis, 'last_contents', None) or []
     if not contents:
@@ -1188,6 +1237,31 @@ def generate_runtime_ini_content(
     path = remote_ini_path or paths[0]
     generate_runtime_ini.last_content = contents[0]  # type: ignore[attr-defined]
     return path, contents[0]
+
+
+def generate_runtime_inis_content(
+    task: AlgorithmTask,
+    log_path: str,
+    *,
+    prefer_cluster_model: bool = True,
+    only_device_ids: Optional[List[str]] = None,
+    force_per_device: bool = False,
+    remote_ini_dir: Optional[str] = None,
+) -> List[Tuple[str, str]]:
+    """返回 [(ini_path, content), ...]，供远程分片多路部署。"""
+    paths = generate_runtime_inis(
+        task,
+        log_path,
+        prefer_cluster_model=prefer_cluster_model,
+        write_local=False,
+        only_device_ids=only_device_ids,
+        force_per_device=force_per_device,
+        remote_ini_dir=remote_ini_dir,
+    )
+    contents = getattr(generate_runtime_inis, 'last_contents', None) or []
+    if len(contents) != len(paths):
+        raise ValueError('生成 RUNTIME ini 内容数量与路径不一致')
+    return list(zip(paths, contents))
 
 
 def _stream_forward_control_port(task_id: int, device_index: int) -> int:
