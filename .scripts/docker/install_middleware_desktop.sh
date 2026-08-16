@@ -38,6 +38,8 @@ print_warning() { warn "$1"; }
 print_error() { err "$1"; }
 # shellcheck source=docker_mirror_common.sh
 source "${SCRIPT_DIR}/docker_mirror_common.sh"
+# shellcheck source=clear_iot_node_seed_data.sh
+source "${SCRIPT_DIR}/clear_iot_node_seed_data.sh"
 
 ensure_env_var() {
   local key="$1" value="$2"
@@ -617,6 +619,9 @@ post_start_hooks() {
   update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"
   sleep 3
   bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true
+  # 与 Linux 中间件对齐：历史卷/首次 initdb 后清掉 iot-node 样例节点
+  wait_postgres_for_node_seed_clear || true
+  clear_iot_node_seed_data
 }
 
 cmd_install() {
