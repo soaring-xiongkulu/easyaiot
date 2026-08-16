@@ -6451,6 +6451,13 @@ update_middleware() {
         show_unhealthy_containers
     fi
     echo ""
+    # update 也要清样例节点：历史数据卷 / 旧安装包不会再跑 initdb，与 install 对齐
+    if wait_for_postgresql; then
+        clear_iot_node_seed_data
+    else
+        print_warning "PostgreSQL 未就绪，跳过 iot-node 样例节点清空"
+    fi
+    echo ""
     if middleware_service_enabled "Milvus"; then
         print_section "检查 Milvus 向量数据库"
         wait_for_milvus || print_warning "Milvus 未就绪"

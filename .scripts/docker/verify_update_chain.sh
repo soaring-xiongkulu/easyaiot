@@ -211,6 +211,19 @@ if [ -f "$ROOT/.scripts/docker/clear_iot_node_seed_data.sh" ] \
 else
   bad "iot-node 样例清空未覆盖全平台"
 fi
+# update 路径也必须清空（不能只靠首次 initdb）
+if awk '/^update_middleware\(\)/,/^}/ { if (/clear_iot_node_seed_data/) found=1 } END { exit !found }' \
+    "$ROOT/.scripts/docker/install_middleware_linux.sh"; then
+  ok "Linux update_middleware 会清空 iot-node 样例"
+else
+  bad "Linux update_middleware 缺少 clear_iot_node_seed_data"
+fi
+if grep -A20 '^cmd_update()' "$ROOT/.scripts/docker/install_middleware_desktop.sh" | grep -q 'post_start_hooks' \
+  && grep -A15 '^post_start_hooks()' "$ROOT/.scripts/docker/install_middleware_desktop.sh" | grep -q 'clear_iot_node_seed_data'; then
+  ok "桌面 cmd_update → post_start_hooks 会清空 iot-node 样例"
+else
+  bad "桌面 update 未清空 iot-node 样例"
+fi
 # PATH 去掉 git：helper 不得调用真实 git 失败
 if timeout 15 bash -c '
   set -e
