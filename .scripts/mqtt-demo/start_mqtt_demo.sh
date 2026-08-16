@@ -9,7 +9,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="${SCRIPT_DIR}/run"
 LOG_DIR="${RUN_DIR}/logs"
+VENDOR_DIR="${SCRIPT_DIR}/vendor"
 mkdir -p "$RUN_DIR" "$LOG_DIR"
+
+# 内置纯 Python 的 paho-mqtt，避免系统 PEP 668 / 无 pip 网络时启动失败
+if [ -d "${VENDOR_DIR}/paho" ]; then
+    export PYTHONPATH="${VENDOR_DIR}${PYTHONPATH:+:$PYTHONPATH}"
+fi
 
 if [ "${EASYAIOT_ENABLE_MQTT_DEMO:-1}" = "0" ]; then
     echo "[mqtt-demo] EASYAIOT_ENABLE_MQTT_DEMO=0，跳过启动"
@@ -45,27 +51,185 @@ SUB_DEVICE="${SUB_DEVICE:-demo-sub-001}"
 SUB_NAME="${SUB_NAME:-演示子设备-001}"
 GATEWAY_PRODUCT="${GATEWAY_PRODUCT:-$PRODUCT}"
 GATEWAY_DEVICE="${GATEWAY_DEVICE:-$DEVICE}"
+VENV_DIR="${MQTT_DEMO_VENV:-${SCRIPT_DIR}/.venv}"
 
-resolve_python() {
-    if [ -n "${MQTT_DEMO_PYTHON:-}" ] && command -v "$MQTT_DEMO_PYTHON" >/dev/null 2>&1; then
-        echo "$MQTT_DEMO_PYTHON"
-        return
+python_has_paho() {
+    local py="$1"
+    [ -n "$py" ] || return 1
+    [ -x "$py" ] || command -v "$py" >/dev/null 2>&1 || return 1
+    "$py" -c "import paho.mqtt.client" >/dev/null 2>&1
+}
+
+python_usable() {
+    local py="$1"
+    [ -n "$py" ] || return 1
+    [ -x "$py" ] || command -v "$py" >/dev/null 2>&1 || return 1
+    "$py" -c "import sys" >/dev/null 2>&1
+}
+
+mqtt_venv_is_broken() {
+    local vpy="${VENV_DIR}/bin/python"
+    local vpy3="${VENV_DIR}/bin/python3"
+    [ -d "$VENV_DIR" ] || return 1
+    if [ -x "$vpy" ] && python_usable "$vpy"; then
+        return 1
     fi
-    for cand in python3 python; do
-        if command -v "$cand" >/dev/null 2>&1; then
-            if "$cand" -c "import paho.mqtt.client" 2>/dev/null; then
+    if [ -x "$vpy3" ] && python_usable "$vpy3"; then
+        return 1
+    fi
+    return 0
+}
+
+purge_broken_mqtt_venv() {
+    if mqtt_venv_is_broken; then
+        echo "[mqtt-demo] 清理损坏的 .venv（常见于缺少 python3-venv/ensurepip）" >&2
+        rm -rf "$VENV_DIR"
+    fi
+}
+
+try_install_python_venv_pkg() {
+    if [ "$(id -u)" -ne 0 ] 2>/dev/null; then
+        return 1
+    fi
+    if ! command -v apt-get >/dev/null 2>&1; then
+        return 1
+    fi
+    local ver=""
+    ver="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+    local -a pkgs=(python3-venv)
+    [ -n "$ver" ] && pkgs+=("python${ver}-venv")
+    echo "[mqtt-demo] 尝试安装: ${pkgs[*]}" >&2
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}" >/dev/null 2>&1
+}
+
+find_system_python3() {
+    # 避免 PATH 里误用空/半截 venv 的 python3 去嵌套创建
+    for cand in /usr/bin/python3 /bin/python3 python3; do
+        if [ -x "$cand" ] || command -v "$cand" >/dev/null 2>&1; then
+            if python_usable "$cand"; then
                 echo "$cand"
-                return
+                return 0
             fi
         fi
     done
-    # 尝试安装到当前可用 python3
-    if command -v python3 >/dev/null 2>&1; then
-        python3 -m pip install --user -q paho-mqtt 2>/dev/null \
-            || python3 -m pip install -q paho-mqtt 2>/dev/null \
-            || true
-        if python3 -c "import paho.mqtt.client" 2>/dev/null; then
-            echo "python3"
+    echo ""
+}
+
+pip_install_paho() {
+    local py="$1"
+    [ -n "$py" ] || return 1
+    # 优先 venv/user；PEP 668 系统 Python 再尝试 --break-system-packages
+    "$py" -m pip install -q paho-mqtt >/dev/null 2>&1 \
+        || "$py" -m pip install --user -q paho-mqtt >/dev/null 2>&1 \
+        || "$py" -m pip install --break-system-packages -q paho-mqtt >/dev/null 2>&1
+}
+
+bootstrap_mqtt_venv() {
+    local base_py=""
+    local vpy="${VENV_DIR}/bin/python"
+    base_py="$(find_system_python3)"
+    mkdir -p "$(dirname "$VENV_DIR")"
+    purge_broken_mqtt_venv
+
+    if [ -x "$vpy" ] && python_has_paho "$vpy"; then
+        echo "$vpy"
+        return 0
+    fi
+
+    if [ -z "$base_py" ]; then
+        echo "[mqtt-demo] 未找到可用的系统 python3" >&2
+        return 1
+    fi
+
+    if [ ! -x "$vpy" ] || ! python_usable "$vpy"; then
+        echo "[mqtt-demo] 创建本地 venv 并安装 paho-mqtt..." >&2
+        if ! "$base_py" -m venv "$VENV_DIR" >/dev/null 2>&1; then
+            try_install_python_venv_pkg || true
+            rm -rf "$VENV_DIR"
+            if ! "$base_py" -m venv "$VENV_DIR" >/dev/null 2>&1; then
+                rm -rf "$VENV_DIR"
+                if "$base_py" -m venv --without-pip "$VENV_DIR" >/dev/null 2>&1 \
+                    && [ -x "$vpy" ]; then
+                    if command -v curl >/dev/null 2>&1; then
+                        curl -fsSL https://bootstrap.pypa.io/get-pip.py -o /tmp/easyaiot-mqtt-get-pip.py 2>/dev/null \
+                            && "$vpy" /tmp/easyaiot-mqtt-get-pip.py -q 2>/dev/null \
+                            || true
+                        rm -f /tmp/easyaiot-mqtt-get-pip.py
+                    fi
+                fi
+            fi
+        fi
+    fi
+
+    if [ ! -x "$vpy" ] || ! python_usable "$vpy"; then
+        rm -rf "$VENV_DIR"
+        return 1
+    fi
+
+    if ! python_has_paho "$vpy"; then
+        if [ -x "${VENV_DIR}/bin/pip" ]; then
+            "${VENV_DIR}/bin/pip" install -q paho-mqtt >/dev/null 2>&1 || true
+        fi
+        pip_install_paho "$vpy" || true
+    fi
+
+    if python_has_paho "$vpy"; then
+        echo "$vpy"
+        return 0
+    fi
+    return 1
+}
+
+resolve_python() {
+    if [ -n "${MQTT_DEMO_PYTHON:-}" ]; then
+        if python_has_paho "$MQTT_DEMO_PYTHON"; then
+            echo "$MQTT_DEMO_PYTHON"
+            return
+        fi
+        if command -v "$MQTT_DEMO_PYTHON" >/dev/null 2>&1 || [ -x "$MQTT_DEMO_PYTHON" ]; then
+            pip_install_paho "$MQTT_DEMO_PYTHON" || true
+            if python_has_paho "$MQTT_DEMO_PYTHON"; then
+                echo "$MQTT_DEMO_PYTHON"
+                return
+            fi
+        fi
+    fi
+
+    # 已有可用 venv
+    if [ -x "${VENV_DIR}/bin/python" ] && python_has_paho "${VENV_DIR}/bin/python"; then
+        echo "${VENV_DIR}/bin/python"
+        return
+    fi
+
+    for cand in python3 python; do
+        if command -v "$cand" >/dev/null 2>&1 && python_has_paho "$cand"; then
+            echo "$cand"
+            return
+        fi
+    done
+
+    # 系统绝对路径上的 python3（可能已装 paho，但 PATH 被其它 venv 抢占）
+    local sys_py=""
+    sys_py="$(find_system_python3)"
+    if [ -n "$sys_py" ] && python_has_paho "$sys_py"; then
+        echo "$sys_py"
+        return
+    fi
+
+    # 首选本地 venv（避开 Debian/Ubuntu PEP 668 禁止系统 pip）
+    local vpy=""
+    vpy="$(bootstrap_mqtt_venv | tail -n 1)" || true
+    if [ -n "$vpy" ] && python_has_paho "$vpy"; then
+        echo "$vpy"
+        return
+    fi
+
+    # 最后尝试往系统 python3 装（可能因 PEP 668 失败）
+    if [ -n "$sys_py" ]; then
+        echo "[mqtt-demo] venv 不可用，尝试系统 pip 安装 paho-mqtt..." >&2
+        pip_install_paho "$sys_py" || true
+        if python_has_paho "$sys_py"; then
+            echo "$sys_py"
             return
         fi
     fi
@@ -98,9 +262,12 @@ PY
 
 PY="$(resolve_python)"
 if [ -z "$PY" ]; then
-    echo "[mqtt-demo] 错误: 找不到带 paho-mqtt 的 Python，请先: pip install paho-mqtt" >&2
+    echo "[mqtt-demo] 错误: 找不到带 paho-mqtt 的 Python" >&2
+    echo "[mqtt-demo] 请安装: apt install python3-venv python3.\$(python3 -c 'import sys;print(f\"{sys.version_info.major}.{sys.version_info.minor}\")')-venv" >&2
+    echo "[mqtt-demo] 或手动: python3 -m venv ${VENV_DIR} && ${VENV_DIR}/bin/pip install paho-mqtt" >&2
     exit 1
 fi
+echo "[mqtt-demo] 使用解释器: ${PY}"
 
 echo "[mqtt-demo] 等待 EMQX ${MQTT_HOST}:${MQTT_PORT} ..."
 if ! wait_tcp "$MQTT_HOST" "$MQTT_PORT" 90; then
