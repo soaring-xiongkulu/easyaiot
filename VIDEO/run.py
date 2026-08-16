@@ -524,6 +524,7 @@ def create_app(start_background_tasks=None):
                         ('prefer_gpu', 'BOOLEAN NOT NULL DEFAULT TRUE'),
                         ('target_node_id', 'BIGINT'),
                         ('node_id', 'BIGINT'),
+                        ('device_deployments', 'TEXT'),
                     ]:
                         result = db.session.execute(text(f"""
                             SELECT EXISTS (

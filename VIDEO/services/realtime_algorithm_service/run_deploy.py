@@ -1836,7 +1836,13 @@ def load_task_config():
         if task.devices:
             # 刷新设备关联关系，确保获取最新的设备信息
             db_session.refresh(task)
+            allowed_raw = (os.getenv('DEVICE_IDS') or os.getenv('ALGORITHM_SHARD_DEVICE_IDS') or '').strip()
+            allowed = {x.strip() for x in allowed_raw.split(',') if x.strip()} if allowed_raw else None
+            if allowed:
+                logger.info('实时算法分片设备过滤 DEVICE_IDS=%s', allowed_raw)
             for device in task.devices:
+                if allowed is not None and str(device.id) not in allowed:
+                    continue
                 # 刷新设备对象，确保获取最新的source和ai_rtmp_stream
                 db_session.refresh(device)
                 # 输入流地址（支持RTSP/RTMP，以及通过gb28181://虚拟源动态解析）

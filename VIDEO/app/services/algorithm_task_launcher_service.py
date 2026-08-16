@@ -110,9 +110,22 @@ def _local_algorithm_daemon_running(task_id: int) -> bool:
 
 
 def _algorithm_task_service_healthy(task: AlgorithmTask) -> bool:
-    """判断算法任务服务是否仍在运行（本机守护进程 / 远程心跳）。"""
+    """判断算法任务服务是否仍在运行（本机守护进程 / 分片部署 / 远程心跳）。"""
     if _local_algorithm_daemon_running(task.id):
         return True
+
+    try:
+        from app.services.algorithm_task_cluster_service import (
+            deployments_healthy,
+            parse_device_deployments,
+            use_device_level_schedule,
+        )
+        if parse_device_deployments(task):
+            return deployments_healthy(task)
+        if use_device_level_schedule(task) and getattr(task, 'device_deployments', None):
+            return deployments_healthy(task)
+    except Exception as e:
+        logger.debug('算法分片健康检查跳过: %s', e)
 
     timeout = _algorithm_heartbeat_failover_seconds()
     if _heartbeat_stale(task.service_last_heartbeat, timeout):
@@ -293,10 +306,17 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
         REMOTE_RUNTIME_BIN,
         REMOTE_RUNTIME_LD_LIBRARY_PATH,
     )
+    from app.services.algorithm_task_cluster_service import (
+        use_device_level_schedule,
+        deploy_sharded_algorithm_task,
+    )
 
     ok, sync_msg = _ensure_task_models_on_cluster(task)
     if not ok:
         return (False, f'集群模型预同步失败: {sync_msg}', False)
+
+    if use_device_level_schedule(task):
+        return deploy_sharded_algorithm_task(task_id, task)
 
     policy = getattr(task, 'schedule_policy', None) or 'local'
     target_node_id = getattr(task, 'target_node_id', None)
@@ -372,16 +392,40 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
             )
         remote_ini = os.path.join(log_dir, 'runtime.ini')
         try:
-            ini_path, ini_content = generate_runtime_ini_content(
-                task,
-                log_dir,
-                prefer_cluster_model=True,
-                remote_ini_path=remote_ini,
-            )
+            from app.services.runtime_config_service import generate_runtime_inis_content
+            device_count = len(task.devices or [])
+            if (task.task_type or '').strip().lower() == 'realtime' and device_count > 1:
+                pairs = generate_runtime_inis_content(
+                    task,
+                    log_dir,
+                    prefer_cluster_model=True,
+                    force_per_device=True,
+                    remote_ini_dir=log_dir,
+                )
+                files = [{'path': p, 'content': c, 'mode': '0644'} for p, c in pairs]
+                if len(pairs) == 1:
+                    command = [REMOTE_RUNTIME_BIN, pairs[0][0]]
+                else:
+                    ini_args = ' '.join(f'"{p}"' for p, _ in pairs)
+                    script = (
+                        'set -e; pids=(); '
+                        f'for f in {ini_args}; do "{REMOTE_RUNTIME_BIN}" "$f" & pids+=($!); done; '
+                        'trap \'kill "${pids[@]}" 2>/dev/null || true\' EXIT TERM INT; '
+                        'wait'
+                    )
+                    command = ['/bin/bash', '-lc', script]
+            else:
+                ini_path, ini_content = generate_runtime_ini_content(
+                    task,
+                    log_dir,
+                    prefer_cluster_model=True,
+                    remote_ini_path=remote_ini,
+                )
+                command = [REMOTE_RUNTIME_BIN, ini_path]
+                files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
         except Exception as e:
             logger.error('生成远程 RUNTIME 配置失败: %s', e, exc_info=True)
             return (False, f'生成远程 RUNTIME 配置失败: {e}', False)
-        command = [REMOTE_RUNTIME_BIN, ini_path]
         work_dir = '/opt/easyaiot/RUNTIME'
         env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
         env['VIDEO_ROOT'] = video_root_remote
@@ -393,7 +437,6 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
             task.service_port = int(task.runtime_control_port)
         else:
             task.service_port = 8000 + (int(task_id) % 1000)
-        files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
     else:
         service_dir = {
             'realtime': 'realtime_algorithm_service',
@@ -410,6 +453,7 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
         command = [python_exec, deploy_script]
         env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
         env['VIDEO_ROOT'] = video_root_remote
+        files = None
 
     result = node_client.deploy_workload(
         node_id=node_id,
@@ -428,6 +472,9 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
     task.service_process_id = result.get('pid')
     task.service_log_path = log_dir
     task.run_status = 'running'
+    # 整任务单节点部署时清空分片明细，避免与旧分片状态混用
+    if hasattr(task, 'device_deployments'):
+        task.device_deployments = None
     db.session.commit()
 
     logger.info(
@@ -438,6 +485,25 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
 
 
 def _stop_remote_task(task_id: int, node_id: Optional[int]) -> None:
+    task = None
+    try:
+        task = AlgorithmTask.query.get(task_id)
+    except Exception:
+        task = None
+    if task is not None:
+        try:
+            from app.services.algorithm_task_cluster_service import (
+                parse_device_deployments,
+                stop_all_shards,
+                apply_task_service_fields_from_deployments,
+            )
+            if parse_device_deployments(task) or getattr(task, 'device_deployments', None):
+                stop_all_shards(task)
+                apply_task_service_fields_from_deployments(task, [])
+                return
+        except Exception as e:
+            logger.warning('按分片停止算法任务失败 task_id=%s: %s', task_id, e)
+
     if not node_id:
         return
     from app.utils import node_client
@@ -445,6 +511,10 @@ def _stop_remote_task(task_id: int, node_id: Optional[int]) -> None:
         node_client.stop_workload(node_id, WORKLOAD_TYPE_ALGORITHM, str(task_id))
     except Exception as e:
         logger.warning('远程停止算法任务失败 task_id=%s: %s', task_id, e)
+    try:
+        node_client.release_workload(WORKLOAD_TYPE_ALGORITHM, str(task_id))
+    except Exception as e:
+        logger.debug('释放算法任务绑定失败 task_id=%s: %s', task_id, e)
 
 
 def get_service_script_path(service_type: str) -> str:
@@ -770,7 +840,12 @@ def stop_service_process(task_id: int, service_type: str, stop_request_id: int =
     was_remote = False
     try:
         task = AlgorithmTask.query.get(task_id)
-        was_remote = bool(task and task.node_id)
+        was_remote = bool(
+            task and (
+                task.node_id
+                or getattr(task, 'device_deployments', None)
+            )
+        )
     except RuntimeError:
         # stop_algorithm_task 在后台线程执行 teardown 时无 Flask 上下文，仅做本机进程清理
         logger.debug('无 Flask 应用上下文，跳过远程任务数据库操作: task_id=%s', task_id)
@@ -780,6 +855,8 @@ def stop_service_process(task_id: int, service_type: str, stop_request_id: int =
         task.node_id = None
         task.service_process_id = None
         task.run_status = 'stopped'
+        if hasattr(task, 'device_deployments'):
+            task.device_deployments = None
         db.session.commit()
 
     _stop_post_process_cluster(task_id, task)
@@ -830,6 +907,22 @@ def restart_task_services(task_id: int) -> bool:
     _cancel_pending_stop_requests(task_id)
     task = AlgorithmTask.query.get(task_id)
     if task and _use_remote_deploy(task):
+        from app.services.algorithm_task_cluster_service import (
+            use_device_level_schedule,
+            stop_all_shards,
+            apply_task_service_fields_from_deployments,
+            deploy_sharded_algorithm_task,
+        )
+        if use_device_level_schedule(task):
+            stop_all_shards(task)
+            apply_task_service_fields_from_deployments(task, [])
+            db.session.commit()
+            success, _, _ = deploy_sharded_algorithm_task(task_id, task, fresh_allocate=True)
+            if success:
+                task = AlgorithmTask.query.get(task_id)
+                if task:
+                    _start_post_process_cluster(task)
+            return success
         _stop_remote_task(task_id, task.node_id)
         _stop_post_process_cluster(task_id, task)
         success, _, _ = _deploy_task_on_remote_node(task_id, task)
@@ -885,7 +978,32 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
         # 实时/抓拍/巡检算法任务都需要启动服务进程
         if task.task_type in ['realtime', 'snap', 'patrol']:
             if _use_remote_deploy(task):
+                from app.services.algorithm_task_cluster_service import (
+                    use_device_level_schedule,
+                    deployments_healthy,
+                    parse_device_deployments,
+                    stop_all_shards,
+                    apply_task_service_fields_from_deployments,
+                    deploy_sharded_algorithm_task,
+                )
+
                 failover_sec = _algorithm_heartbeat_failover_seconds()
+                if use_device_level_schedule(task) and parse_device_deployments(task):
+                    if deployments_healthy(task) and not _heartbeat_stale(
+                        task.service_last_heartbeat, failover_sec,
+                    ):
+                        logger.info('任务 %s 分片已在集群运行，跳过重复部署', task_id)
+                        ok_pp, _ = _start_post_process_cluster(task)
+                        return (True, '任务已在远程分片运行', True) if ok_pp else (False, '后处理集群启动失败', False)
+                    logger.info('任务 %s 分片未健康或心跳超时，重新按设备分片部署', task_id)
+                    stop_all_shards(task)
+                    apply_task_service_fields_from_deployments(task, [])
+                    db.session.commit()
+                    result = deploy_sharded_algorithm_task(task_id, task, fresh_allocate=True)
+                    if result[0]:
+                        _start_post_process_cluster(task)
+                    return result
+
                 if task.node_id and not _heartbeat_stale(task.service_last_heartbeat, failover_sec):
                     if _is_compute_node_online(int(task.node_id)):
                         logger.info('任务 %s 已在远程节点 %s 运行，跳过重复部署', task_id, task.node_id)
@@ -899,6 +1017,8 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     _stop_remote_task(task_id, task.node_id)
                     task.node_id = None
                     task.service_process_id = None
+                    if hasattr(task, 'device_deployments'):
+                        task.device_deployments = None
                     db.session.commit()
                 result = _deploy_task_on_remote_node(task_id, task)
                 if result[0]:
@@ -1182,6 +1302,17 @@ def recover_unhealthy_algorithm_tasks() -> int:
         if _algorithm_task_service_healthy(task):
             continue
         try:
+            from app.services.algorithm_task_cluster_service import (
+                use_device_level_schedule,
+                migrate_unhealthy_algorithm_task,
+            )
+            if use_device_level_schedule(task):
+                migrated = migrate_unhealthy_algorithm_task(task.id)
+                if migrated:
+                    recovered += 1
+                    logger.info('算法任务 %s 分片迁移恢复成功 migrated=%s', task.id, migrated)
+                    continue
+
             logger.info(
                 '算法任务 %s (%s) 服务未运行或心跳超时，尝试恢复',
                 task.id, task.task_name,

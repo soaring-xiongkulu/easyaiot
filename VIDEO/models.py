@@ -971,6 +971,11 @@ class AlgorithmTask(db.Model):
                            comment='自动调度时是否优先 GPU 节点')
     target_node_id = db.Column(db.BigInteger, nullable=True, comment='指定部署节点ID')
     node_id = db.Column(db.BigInteger, nullable=True, comment='实际运行节点ID')
+    device_deployments = db.Column(
+        db.Text,
+        nullable=True,
+        comment='设备级远程/分片部署明细 JSON：[{device_ids,node_id,host,workload_id,pid,local}]',
+    )
 
     # 执行后端：python=现有 run_deploy；cpp=RUNTIME 二进制（realtime/snap/patrol，本机）
     executor = db.Column(db.String(20), default='cpp', nullable=False,
@@ -1049,6 +1054,17 @@ class AlgorithmTask(db.Model):
     def _parse_alert_class_names(self):
         from app.utils.alert_class_filter import parse_alert_class_names
         return parse_alert_class_names(self.alert_class_names)
+
+    def _parse_device_deployments(self):
+        import json
+        raw = getattr(self, 'device_deployments', None)
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
 
     @staticmethod
     def _parse_library_ids(raw) -> list:
@@ -1159,6 +1175,7 @@ class AlgorithmTask(db.Model):
             'prefer_gpu': self.prefer_gpu if self.prefer_gpu is not None else True,
             'target_node_id': self.target_node_id,
             'node_id': self.node_id,
+            'device_deployments': self._parse_device_deployments(),
             'executor': getattr(self, 'executor', None) or 'cpp',
             'runtime_bin_path': getattr(self, 'runtime_bin_path', None),
             'runtime_control_port': getattr(self, 'runtime_control_port', None),

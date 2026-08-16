@@ -213,6 +213,11 @@ def load_patrol_config() -> bool:
         session_config = _config_from_task(task)
         db_session.refresh(task)
         device_ids = [d.id for d in (task.devices or [])]
+        allowed_raw = (os.getenv('DEVICE_IDS') or os.getenv('ALGORITHM_SHARD_DEVICE_IDS') or '').strip()
+        if allowed_raw:
+            allowed = {x.strip() for x in allowed_raw.split(',') if x.strip()}
+            device_ids = [d for d in device_ids if str(d) in allowed]
+            logger.info('巡检分片设备过滤 DEVICE_IDS=%s -> %s', allowed_raw, device_ids)
         model_ids = session_config.model_ids
     else:
         logger.error('PATROL_SESSION_ID 或 TASK_ID 未设置')
