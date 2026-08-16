@@ -109,10 +109,27 @@ for db_name in "${DATABASES[@]}"; do
     if [ "$table_count" -gt 0 ]; then
         echo "  ✓ 数据库已包含 $table_count 个表，跳过 SQL 导入"
         success_count=$((success_count + 1))
-        # 历史库可能已带样例节点：仅清理仓库样例主机
+        # 历史库可能已带样例节点（host 也可能被改写）：按指纹清理
         if [ "$db_name" = "iot-node20" ]; then
-            seed_n=$(psql -U "$POSTGRES_USER" -d "$db_name" -tAc \
-                "SELECT COUNT(*) FROM compute_node WHERE deleted = 0 AND host IN ('192.168.1.10','192.168.1.11','192.168.1.12');" 2>/dev/null | tr -d '[:space:]' || echo 0)
+            seed_n=$(psql -U "$POSTGRES_USER" -d "$db_name" -tAc "
+SELECT
+  (SELECT COUNT(*) FROM compute_node WHERE deleted = 0 AND (
+      host IN ('192.168.1.10','192.168.1.11','192.168.1.12')
+      OR name IN ('NFS-Storage-01','NFS-Client-01')
+      OR agent_token IN (
+        'd92c6783e84b6c7c64ca378656fcb115',
+        'cd3d4d946d7446a913f846b92ad94557',
+        '0ec4652835ee5d457fd3e73d007c280a'
+      )
+      OR COALESCE(tags::text, '') LIKE '%demo-node%'
+      OR COALESCE(tags::text, '') LIKE '%66009735168%'
+      OR COALESCE(tags::text, '') LIKE '%1005867986944%'
+  ))
+  +
+  (SELECT COUNT(*) FROM node_metric_snapshot WHERE deleted = 0
+      AND mem_total_bytes = 66009735168
+      AND disk_total_bytes = 1005867986944);
+" 2>/dev/null | tr -d '[:space:]' || echo 0)
             if [ "${seed_n:-0}" -gt 0 ] 2>/dev/null; then
                 clear_iot_node_seed_data_initdb
             fi

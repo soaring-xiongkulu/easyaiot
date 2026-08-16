@@ -41,6 +41,12 @@ public class NodeAgentServiceImpl implements NodeAgentService {
     private static final long HEARTBEAT_TTL_SECONDS = 60;
     /** 容量差异超过该比例视为冲突（宿主机 61G vs 容器 30G ≈ 50%） */
     private static final double CAPACITY_MISMATCH_RATIO = 0.20;
+    /**
+     * iot-node10.sql 演示库容量指纹。真实宿主机常为更小内存（如 46G），
+     * 若仍按「仅更大容量可抢绑」会拒绝心跳，导致 GPU/显存永远写不进指标。
+     */
+    private static final long DEMO_SEED_MEM_TOTAL_BYTES = 66_009_735_168L;
+    private static final String DEMO_SEED_HOSTNAME = "demo-node";
     private static final String TAG_AGENT_HOSTNAME = "agent_hostname";
     private static final String TAG_AGENT_MEM_TOTAL = "agent_mem_total_bytes";
 
@@ -161,12 +167,17 @@ public class NodeAgentServiceImpl implements NodeAgentService {
             boolean sameMachineRename = memTotalBytes != null
                     && memTotalBytes > 0
                     && capacityMatchesBound(node, memTotalBytes);
-            if (!staleTakeover && !sameMachineRename) {
+            // 演示库 hostname=demo-node：允许平台节点换绑到真实主机名，否则心跳被拒、GPU 不上报
+            boolean seedHostnameTakeover = ComputeNodeServiceImpl.isPlatformNode(node)
+                    && isDemoSeedHostname(bound);
+            if (!staleTakeover && !sameMachineRename && !seedHostnameTakeover) {
                 log.warn("拒绝冲突 Agent: nodeId={}, boundHostname={}, reportedHostname={}",
                         node.getId(), bound, reported);
                 throw exception(AGENT_HOST_MISMATCH);
             }
-            if (sameMachineRename) {
+            if (seedHostnameTakeover) {
+                log.info("演示库主机名换绑: nodeId={}, {} -> {}", node.getId(), bound, reported);
+            } else if (sameMachineRename) {
                 log.info("同机主机名变更，允许换绑: nodeId={}, {} -> {}", node.getId(), bound, reported);
             } else {
                 log.warn("原 Agent 心跳已过期，允许换绑主机名: nodeId={}, {} -> {}", node.getId(), bound, reported);
@@ -182,6 +193,24 @@ public class NodeAgentServiceImpl implements NodeAgentService {
             return false;
         }
         return relativeDiff(boundMem, memTotalBytes) <= CAPACITY_MISMATCH_RATIO;
+    }
+
+    private boolean isDemoSeedHostname(String hostname) {
+        return StrUtil.isNotBlank(hostname) && DEMO_SEED_HOSTNAME.equalsIgnoreCase(hostname.trim());
+    }
+
+    private boolean isDemoSeedCapacity(Long boundMem, ComputeNodeDO node) {
+        if (boundMem != null && boundMem == DEMO_SEED_MEM_TOTAL_BYTES) {
+            return true;
+        }
+        if (node.getTags() == null) {
+            return false;
+        }
+        String memTag = node.getTags().get(TAG_AGENT_MEM_TOTAL);
+        if (StrUtil.isNotBlank(memTag) && String.valueOf(DEMO_SEED_MEM_TOTAL_BYTES).equals(memTag.trim())) {
+            return true;
+        }
+        return isDemoSeedHostname(node.getTags().get(TAG_AGENT_HOSTNAME));
     }
 
     /**
@@ -200,8 +229,14 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         if (boundMem != null && boundMem > 0 && relativeDiff(boundMem, memTotalBytes) > CAPACITY_MISMATCH_RATIO) {
             boolean platformLargerTakeover = ComputeNodeServiceImpl.isPlatformNode(node)
                     && memTotalBytes > boundMem * (1.0 + CAPACITY_MISMATCH_RATIO);
+            // 演示库 61G 指纹 → 真实机更小内存：必须允许换绑，否则指标/GPU 永远停在样例快照
+            boolean seedCapacityTakeover = ComputeNodeServiceImpl.isPlatformNode(node)
+                    && isDemoSeedCapacity(boundMem, node);
             boolean staleTakeover = allowRebindWhenStale && !hasFreshHeartbeat(node.getId());
-            if (platformLargerTakeover) {
+            if (seedCapacityTakeover) {
+                log.warn("演示库容量指纹换绑: nodeId={}, boundMem={}, reportedMem={}",
+                        node.getId(), boundMem, memTotalBytes);
+            } else if (platformLargerTakeover) {
                 log.warn("平台节点采纳更大容量上报: nodeId={}, boundMem={}, reportedMem={}",
                         node.getId(), boundMem, memTotalBytes);
             } else if (!staleTakeover) {

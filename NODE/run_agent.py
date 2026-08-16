@@ -145,28 +145,82 @@ def wait_for_platform_credentials() -> None:
     logger.warning('bootstrap 等待超时，将使用本地 agent.env 继续尝试注册')
 
 
+def _parse_smi_number(raw: str) -> float:
+    """nvidia-smi 在 vGPU/GRID 上常返回 [N/A]，按 0 处理。"""
+    text = (raw or '').strip()
+    if not text or text.upper() in ('[N/A]', 'N/A', 'NA', 'NONE'):
+        return 0.0
+    try:
+        return float(text)
+    except ValueError:
+        return 0.0
+
+
 def get_gpu_info() -> List[Dict[str, Any]]:
+    """采集 GPU 列表。GRID/vGPU（如 RTX6000-4Q）部分字段可能为 [N/A]，仍应上报卡数与可用显存。"""
     gpus: List[Dict[str, Any]] = []
     try:
         import subprocess
-        result = subprocess.run(
+        queries = [
             ['nvidia-smi', '--query-gpu=index,name,utilization.gpu,memory.used,memory.total',
              '--format=csv,noheader,nounits'],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0:
+            # 部分 vGPU 不支持 utilization，退化为仅索引/名称/显存
+            ['nvidia-smi', '--query-gpu=index,name,memory.used,memory.total',
+             '--format=csv,noheader,nounits'],
+        ]
+        for cmd in queries:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=8)
+            if result.returncode != 0:
+                continue
             for line in result.stdout.strip().split('\n'):
                 if not line.strip():
                     continue
                 parts = [p.strip() for p in line.split(',')]
                 if len(parts) >= 5:
                     gpus.append({
-                        'id': int(parts[0]),
+                        'id': int(_parse_smi_number(parts[0])),
                         'name': parts[1],
-                        'util': float(parts[2]) if parts[2] != '[N/A]' else 0,
-                        'mem_used_mb': float(parts[3]) if parts[3] != '[N/A]' else 0,
-                        'mem_total_mb': float(parts[4]) if parts[4] != '[N/A]' else 0,
+                        'util': _parse_smi_number(parts[2]),
+                        'mem_used_mb': _parse_smi_number(parts[3]),
+                        'mem_total_mb': _parse_smi_number(parts[4]),
                     })
+                elif len(parts) >= 4:
+                    gpus.append({
+                        'id': int(_parse_smi_number(parts[0])),
+                        'name': parts[1],
+                        'util': 0.0,
+                        'mem_used_mb': _parse_smi_number(parts[2]),
+                        'mem_total_mb': _parse_smi_number(parts[3]),
+                    })
+            if gpus:
+                break
+        if not gpus:
+            # 最后兜底：至少上报卡名（显存可能为 0，概览仍显示卡数量）
+            listed = subprocess.run(
+                ['nvidia-smi', '-L'], capture_output=True, text=True, timeout=8,
+            )
+            if listed.returncode == 0:
+                for idx, line in enumerate(listed.stdout.strip().split('\n')):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    # GPU 0: GRID RTX6000-4Q (UUID: ...)
+                    name = line
+                    if ':' in line:
+                        name = line.split(':', 1)[1].strip()
+                    if '(' in name:
+                        name = name.split('(', 1)[0].strip()
+                    gpus.append({
+                        'id': idx,
+                        'name': name or f'GPU {idx}',
+                        'util': 0.0,
+                        'mem_used_mb': 0.0,
+                        'mem_total_mb': 0.0,
+                    })
+        if not gpus:
+            logger.debug('nvidia-smi 可用但未解析到 GPU 行')
+    except FileNotFoundError:
+        logger.debug('未安装 nvidia-smi，跳过 GPU 采集')
     except Exception as e:
         logger.debug('GPU 采集跳过: %s', e)
     return gpus

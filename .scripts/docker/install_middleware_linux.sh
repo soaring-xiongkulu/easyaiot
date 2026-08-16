@@ -6451,9 +6451,18 @@ update_middleware() {
         show_unhealthy_containers
     fi
     echo ""
-    # update 也要清样例节点：历史数据卷 / 旧安装包不会再跑 initdb，与 install 对齐
+    # update 也要清样例节点：历史数据卷 / 旧安装包不会再跑 initdb；host 被改写后仍靠指纹识别
     if wait_for_postgresql; then
         clear_iot_node_seed_data
+        # 再扫一次：若仍残留样例容量指纹则强制清空
+        if [ "${EASYAIOT_KEEP_NODE_SEED:-0}" != "1" ]; then
+            local _left=0
+            _left="$(_count_iot_node_seed_fingerprints 2>/dev/null || echo 0)"
+            if [ "${_left:-0}" -gt 0 ] 2>/dev/null; then
+                print_warning "仍检测到 ${_left} 条样例指纹，强制清空..."
+                clear_iot_node_seed_data force
+            fi
+        fi
     else
         print_warning "PostgreSQL 未就绪，跳过 iot-node 样例节点清空"
     fi

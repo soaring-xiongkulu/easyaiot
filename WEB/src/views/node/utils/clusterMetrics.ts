@@ -171,22 +171,41 @@ export function isOnlineComputeNode(node: ComputeNodeVO): boolean {
 export function collectGpuCards(nodes: ComputeNodeVO[]): GpuCardMetric[] {
   const cards: GpuCardMetric[] = [];
   nodes.filter(isOnlineComputeNode).forEach((node) => {
-    parseGpuInfo(node.gpuInfo).forEach((gpu) => {
-      const memTotal = num(gpu.mem_total_mb);
-      const memUsed = num(gpu.mem_used_mb);
-      const memPercent = memTotal > 0 ? Math.round((memUsed / memTotal) * 1000) / 10 : 0;
+    const parsed = parseGpuInfo(node.gpuInfo);
+    if (parsed.length) {
+      parsed.forEach((gpu) => {
+        const memTotal = num(gpu.mem_total_mb);
+        const memUsed = num(gpu.mem_used_mb);
+        const memPercent = memTotal > 0 ? Math.round((memUsed / memTotal) * 1000) / 10 : 0;
+        cards.push({
+          key: `${node.id}-${gpu.id ?? 0}`,
+          nodeId: node.id!,
+          nodeName: node.name,
+          gpuId: gpu.id ?? 0,
+          name: gpu.name || `GPU ${gpu.id ?? 0}`,
+          util: num(gpu.util),
+          memUsedMb: memUsed,
+          memTotalMb: memTotal,
+          memPercent,
+        });
+      });
+      return;
+    }
+    // 心跳 gpuInfo 尚未写入时，用节点配置的 maxGpuCount 兜底卡数量（显存可能暂为 0）
+    const maxCount = Math.max(0, Math.floor(num(node.maxGpuCount)));
+    for (let i = 0; i < maxCount; i += 1) {
       cards.push({
-        key: `${node.id}-${gpu.id ?? 0}`,
+        key: `${node.id}-cfg-${i}`,
         nodeId: node.id!,
         nodeName: node.name,
-        gpuId: gpu.id ?? 0,
-        name: gpu.name || `GPU ${gpu.id ?? 0}`,
-        util: num(gpu.util),
-        memUsedMb: memUsed,
-        memTotalMb: memTotal,
-        memPercent,
+        gpuId: i,
+        name: `GPU ${i}`,
+        util: 0,
+        memUsedMb: 0,
+        memTotalMb: 0,
+        memPercent: 0,
       });
-    });
+    }
   });
   return cards.sort((a, b) => b.util - a.util || b.memPercent - a.memPercent);
 }
@@ -250,7 +269,7 @@ export function buildNodeLoadList(nodes: ComputeNodeVO[]): NodeLoadItem[] {
         diskUsedBytes: num(node.diskUsedBytes) || undefined,
         diskTotalBytes: num(node.diskTotalBytes) || undefined,
         activeTasks: num(node.activeTasks),
-        gpuCount: gpus.length,
+        gpuCount: Math.max(gpus.length, Math.floor(num(node.maxGpuCount))),
         avgGpuUtil: avg(gpus.map((g) => num(g.util))),
         avgVram: avg(
           gpus.map((g) => {

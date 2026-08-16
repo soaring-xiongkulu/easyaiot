@@ -211,6 +211,12 @@ if [ -f "$ROOT/.scripts/docker/clear_iot_node_seed_data.sh" ] \
 else
   bad "iot-node 样例清空未覆盖全平台"
 fi
+if grep -q '_count_iot_node_seed_fingerprints\|66009735168\|NFS-Storage-01' \
+    "$ROOT/.scripts/docker/clear_iot_node_seed_data.sh"; then
+  ok "样例清空支持 host 改写后的指纹识别"
+else
+  bad "样例清空仍仅依赖 192.168.1.x host"
+fi
 # update 路径也必须清空（不能只靠首次 initdb）
 if awk '/^update_middleware\(\)/,/^}/ { if (/clear_iot_node_seed_data/) found=1 } END { exit !found }' \
     "$ROOT/.scripts/docker/install_middleware_linux.sh"; then
