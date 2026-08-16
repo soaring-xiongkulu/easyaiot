@@ -933,13 +933,6 @@ install_linux() {
     
     local success_count=0
     local total_count=${#MODULES[@]}
-    local _n=0 _m=0
-    for module in "${MODULES[@]}"; do
-        module_enabled_for_deploy_profile "$module" || continue
-        _m=$((_m + 1))
-    done
-    _m=$(( (_m + 1) / 2 ))
-    [ "$_m" -lt 1 ] && _m=1
     
     for module in "${MODULES[@]}"; do
         if ! module_enabled_for_deploy_profile "$module"; then
@@ -966,11 +959,6 @@ install_linux() {
                 print_error "日志末尾 (${LOG_FILE}):"
                 tail -n 40 "$LOG_FILE" 2>/dev/null | while IFS= read -r _line; do print_error "  ${_line}"; done || true
             fi
-        fi
-        _n=$((_n + 1))
-        if [ "$_n" -eq "$_m" ]; then
-            # 切勿 exit：中点恰在 RTC 之后，静默失败曾导致 VIDEO/WEB 装不上
-            _fs_align_at_install_midpoint
         fi
         echo ""
     done

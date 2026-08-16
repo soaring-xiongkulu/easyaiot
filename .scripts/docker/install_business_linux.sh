@@ -561,12 +561,6 @@ run_on_modules() {
         warn_middleware || true
     fi
 
-    local _n=0 _m=0
-    if [ "$cmd" = "install" ]; then
-        _m=$(( (${#SELECTED_MODULES[@]} + 1) / 2 ))
-        [ "$_m" -lt 1 ] && _m=1
-    fi
-
     for module in "${SELECTED_MODULES[@]}"; do
         mapped_cmd=$(map_module_command "$module" "$cmd")
         if [ -z "$mapped_cmd" ]; then
@@ -583,13 +577,6 @@ run_on_modules() {
             fi
             if $STOP_ON_ERROR; then
                 break
-            fi
-        fi
-        if [ "$cmd" = "install" ]; then
-            _n=$((_n + 1))
-            if [ "$_n" -eq "$_m" ]; then
-                # 切勿 exit：中点恰在 RTC 之后，静默失败曾导致 VIDEO/WEB 装不上
-                _fs_align_at_install_midpoint
             fi
         fi
     done
