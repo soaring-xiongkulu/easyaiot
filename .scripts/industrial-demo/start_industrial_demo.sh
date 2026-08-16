@@ -249,10 +249,6 @@ apply_industrial_seed() {
         echo "[industrial-demo] 跳过种子写入（EASYAIOT_APPLY_INDUSTRIAL_SEED=0）"
         return 0
     fi
-    if [ ! -f "$SEED_SQL" ]; then
-        echo "[industrial-demo] 未找到种子 ${SEED_SQL}，跳过 DB 写入" >&2
-        return 0
-    fi
     if ! command -v docker >/dev/null 2>&1; then
         echo "[industrial-demo] 无 docker，跳过种子写入"
         return 0
@@ -264,13 +260,25 @@ apply_industrial_seed() {
 
     local host
     host="$(resolve_demo_host)"
-    echo "[industrial-demo] 写入演示种子（设备 host/endpoint -> ${host}）..."
 
-    if ! docker exec -i postgres-server psql -U postgres -d iot-device20 -v ON_ERROR_STOP=1 <"$SEED_SQL" \
-        >"${LOG_DIR}/seed.log" 2>&1; then
-        echo "[industrial-demo] 种子 SQL 执行失败，见 ${LOG_DIR}/seed.log" >&2
-        tail -n 40 "${LOG_DIR}/seed.log" 2>/dev/null || true
-        return 1
+    if [ -f "$SEED_SQL" ]; then
+        echo "[industrial-demo] 写入演示种子（设备 host/endpoint -> ${host}）..."
+        if ! docker exec -i postgres-server psql -U postgres -d iot-device20 -v ON_ERROR_STOP=1 <"$SEED_SQL" \
+            >"${LOG_DIR}/seed.log" 2>&1; then
+            echo "[industrial-demo] 种子 SQL 执行失败，见 ${LOG_DIR}/seed.log" >&2
+            tail -n 40 "${LOG_DIR}/seed.log" 2>/dev/null || true
+            return 1
+        fi
+    else
+        echo "[industrial-demo] 未找到种子 ${SEED_SQL}，尝试仅刷新已有演示设备地址" >&2
+        local n
+        n=$(docker exec postgres-server psql -U postgres -d iot-device20 -tAc \
+            "SELECT COUNT(*) FROM device WHERE id IN (920001,920002,920003) AND deleted = 0;" 2>/dev/null | tr -d '[:space:]' || echo 0)
+        if [ "${n:-0}" -eq 0 ] 2>/dev/null; then
+            echo "[industrial-demo] 库中无演示设备且缺少种子文件，跳过 DB 写入" >&2
+            return 0
+        fi
+        : >"${LOG_DIR}/seed.log"
     fi
 
     # 将占位地址刷新为当前可达地址（Docker Sink -> host.docker.internal）
