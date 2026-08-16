@@ -71,6 +71,129 @@ bool preferFfmpegRelay(const std::string& rtmpUrl) {
     return true;
 }
 
+std::string findFfprobeBinary() {
+    const std::string ffmpeg = findFfmpegBinary();
+    if (ffmpeg.size() >= 6 && ffmpeg.compare(ffmpeg.size() - 6, 6, "ffmpeg") == 0) {
+        std::string probe = ffmpeg.substr(0, ffmpeg.size() - 6) + "ffprobe";
+        if (access(probe.c_str(), X_OK) == 0) {
+            return probe;
+        }
+    }
+    if (access("/usr/bin/ffprobe", X_OK) == 0) {
+        return "/usr/bin/ffprobe";
+    }
+    return "ffprobe";
+}
+
+bool envTruthy(const char* name, bool defaultValue) {
+    const char* v = std::getenv(name);
+    if (!v || v[0] == '\0') {
+        return defaultValue;
+    }
+    std::string s(v);
+    for (char& c : s) {
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+    }
+    if (s == "0" || s == "false" || s == "no" || s == "off") {
+        return false;
+    }
+    if (s == "1" || s == "true" || s == "yes" || s == "on") {
+        return true;
+    }
+    return defaultValue;
+}
+
+bool isH264CodecName(const std::string& codec) {
+    return codec == "h264" || codec == "avc" || codec == "avc1";
+}
+
+std::string probeInputVideoCodec(const std::string& inputUrl) {
+    const std::string ffprobe = findFfprobeBinary();
+    const char* probeEnv = std::getenv("STREAM_FORWARD_PROBESIZE");
+    const char* analyzeEnv = std::getenv("STREAM_FORWARD_ANALYZEDURATION");
+    const char* probesize = (probeEnv && *probeEnv) ? probeEnv : "3000000";
+    const char* analyzeduration = (analyzeEnv && *analyzeEnv) ? analyzeEnv : "3000000";
+
+    int pipefd[2];
+    if (pipe(pipefd) != 0) {
+        return {};
+    }
+    pid_t pid = fork();
+    if (pid < 0) {
+        close(pipefd[0]);
+        close(pipefd[1]);
+        return {};
+    }
+    if (pid == 0) {
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]);
+        int devnull = open("/dev/null", O_WRONLY);
+        if (devnull >= 0) {
+            dup2(devnull, STDERR_FILENO);
+            close(devnull);
+        }
+        clearenv();
+        setenv("PATH", "/usr/bin:/bin", 1);
+        execlp(
+            ffprobe.c_str(),
+            ffprobe.c_str(),
+            "-hide_banner",
+            "-loglevel", "error",
+            "-rtsp_transport", "tcp",
+            "-analyzeduration", analyzeduration,
+            "-probesize", probesize,
+            "-select_streams", "v:0",
+            "-show_entries", "stream=codec_name",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            inputUrl.c_str(),
+            static_cast<char*>(nullptr));
+        _exit(127);
+    }
+    close(pipefd[1]);
+    char buf[128];
+    std::string out;
+    ssize_t n = 0;
+    while ((n = read(pipefd[0], buf, sizeof(buf))) > 0) {
+        out.append(buf, static_cast<size_t>(n));
+        if (out.size() > 64) {
+            break;
+        }
+    }
+    close(pipefd[0]);
+    int status = 0;
+    waitpid(pid, &status, 0);
+    // trim
+    while (!out.empty() && (out.back() == '\n' || out.back() == '\r' || out.back() == ' ')) {
+        out.pop_back();
+    }
+    for (char& c : out) {
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+    }
+    return out;
+}
+
+bool shouldTranscodeToH264(const std::string& inputUrl) {
+    if (!envTruthy("STREAM_FORWARD_VIDEO_COPY", true)) {
+        return true;
+    }
+    const std::string codec = probeInputVideoCodec(inputUrl);
+    if (codec.empty()) {
+        LOG(WARNING) << "[FORWARD] codec probe failed, try copy first";
+        return false;
+    }
+    if (isH264CodecName(codec)) {
+        LOG(INFO) << "[FORWARD] source codec=" << codec << " use copy";
+        return false;
+    }
+    LOG(INFO) << "[FORWARD] source codec=" << codec << " auto-transcode to H.264 for Web FLV";
+    return true;
+}
+
 }  // namespace
 
 StreamForwarder::StreamForwarder(const Config& config, PipelineMetrics* metrics)
@@ -324,6 +447,7 @@ bool StreamForwarder::ffmpegRelaySession() {
     const char* analyzeEnv = std::getenv("STREAM_FORWARD_ANALYZEDURATION");
     const char* probesize = (probeEnv && *probeEnv) ? probeEnv : "2000000";
     const char* analyzeduration = (analyzeEnv && *analyzeEnv) ? analyzeEnv : "2000000";
+    const bool transcode = shouldTranscodeToH264(config_.rtspUrl);
 
     std::vector<std::string> args = {
         ffmpegBin,
@@ -335,13 +459,51 @@ bool StreamForwarder::ffmpegRelaySession() {
         "-probesize", probesize,
         "-i", config_.rtspUrl,
         "-an",
-        "-c:v", "copy",
+    };
+    if (transcode) {
+        const char* bitrate = std::getenv("STREAM_FORWARD_TRANSCODE_BITRATE");
+        if (!bitrate || !*bitrate) {
+            bitrate = std::getenv("FFMPEG_VIDEO_BITRATE");
+        }
+        if (!bitrate || !*bitrate) {
+            bitrate = "2000k";
+        }
+        const char* preset = std::getenv("FFMPEG_PRESET");
+        if (!preset || !*preset) {
+            preset = "veryfast";
+        }
+        const char* gop = std::getenv("FFMPEG_GOP_SIZE");
+        if (!gop || !*gop) {
+            gop = "50";
+        }
+        const char* fps = std::getenv("VIEW_OUTPUT_FPS");
+        if (!fps || !*fps) {
+            fps = std::getenv("VIEW_SOURCE_FPS");
+        }
+        if (!fps || !*fps) {
+            fps = "25";
+        }
+        args.insert(args.end(), {
+            "-c:v", "libx264",
+            "-b:v", bitrate,
+            "-preset", preset,
+            "-tune", "zerolatency",
+            "-profile:v", "main",
+            "-g", gop,
+            "-bf", "0",
+            "-pix_fmt", "yuv420p",
+            "-r", fps,
+        });
+    } else {
+        args.insert(args.end(), {"-c:v", "copy"});
+    }
+    args.insert(args.end(), {
         "-avoid_negative_ts", "make_zero",
         "-muxdelay", "0",
         "-muxpreload", "0",
         "-f", "flv",
         config_.rtmpUrl,
-    };
+    });
 
     std::vector<char*> argv;
     argv.reserve(args.size() + 1);
@@ -350,7 +512,8 @@ bool StreamForwarder::ffmpegRelaySession() {
     }
     argv.push_back(nullptr);
 
-    LOG(INFO) << "[FORWARD] Starting ffmpeg CLI copy relay "
+    LOG(INFO) << "[FORWARD] Starting ffmpeg CLI "
+              << (transcode ? "transcode(H.264)" : "copy") << " relay "
               << config_.rtspUrl << " -> " << config_.rtmpUrl
               << " via " << ffmpegBin;
 
