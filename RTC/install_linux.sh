@@ -18,6 +18,8 @@ EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
 # shellcheck source=../.scripts/docker/gpu_compose_helpers.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/gpu_compose_helpers.sh"
+# shellcheck source=../.scripts/docker/module_update_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 
 RTC_IMAGE="${RTC_IMAGE:-rtc-service:latest}"
 RTC_NAME="${RTC_NAME:-rtc-service}"
@@ -79,6 +81,14 @@ ensure_env() {
 
 pull_vendor() {
   print_info "拉取 go2rtc 源码 → ${VENDOR_DIR}"
+  if ! easyaiot_have_git; then
+    if [ -f "${VENDOR_DIR}/go.mod" ]; then
+      print_warning "未安装 git，使用已有 vendor/go2rtc"
+      return 0
+    fi
+    print_error "未安装 git，且缺少 ${VENDOR_DIR}；请安装 git 或一键 update 选「拉取预构建镜像」"
+    return 1
+  fi
   if [ -d "${VENDOR_DIR}/.git" ]; then
     git -C "${VENDOR_DIR}" pull --ff-only || {
       print_warning "git pull 失败，尝试重新 clone ..."
@@ -192,7 +202,9 @@ do_update() {
   need_docker
   detect_compose
   ensure_env
-  if [ "${EASYAIOT_SKIP_BUILD:-0}" != "1" ]; then
+  if easyaiot_update_should_recreate_only "${RTC_IMAGE}"; then
+    :
+  elif [ "${EASYAIOT_SKIP_BUILD:-0}" != "1" ]; then
     do_build
   elif ! docker image inspect "${RTC_IMAGE}" >/dev/null 2>&1; then
     print_error "镜像 ${RTC_IMAGE} 不存在，且已设置跳过构建"

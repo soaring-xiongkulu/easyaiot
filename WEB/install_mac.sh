@@ -31,6 +31,9 @@ NC='\033[0m' # No Color
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=../.scripts/docker/module_update_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 
 # 打印带颜色的消息
 print_info() {
@@ -617,10 +620,17 @@ update_service() {
     check_macos
     check_docker
     check_docker_compose
-    
+
+    if easyaiot_update_should_recreate_only web-service:latest; then
+        $COMPOSE_CMD up -d --force-recreate --remove-orphans
+        print_success "服务更新完成"
+        check_status
+        return 0
+    fi
+
     print_info "拉取最新代码..."
-    git pull || print_warning "Git pull 失败，继续使用当前代码"
-    
+    easyaiot_git_pull_ff_only
+
     # 注意：前端构建现在在Docker容器内完成，重新构建镜像时会自动完成
     print_info "重新构建镜像（前端构建将在容器内自动完成）..."
     $COMPOSE_CMD build

@@ -412,17 +412,23 @@ clean_all() {
 
 # 更新服务（重新构建并重启）
 update_services() {
-    print_info "更新所有服务（在容器中重新构建并重启，显示完整日志）..."
+    print_info "更新所有服务..."
     cd "$SCRIPT_DIR"
-    # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
-    
-    # 直接执行命令并实时输出
-    local exit_code
-    
-    # 执行更新命令
-    $DOCKER_COMPOSE up -d --build --force-recreate
-    exit_code=$?
-    
+
+    # 拉取预构建 / 无 git：禁止本地 --build，仅 recreate（安装包与桌面镜像部署）
+    if [ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ] && check_images_exist; then
+        print_success "预构建镜像已就绪（EASYAIOT_SKIP_BUILD=1），跳过构建，仅 recreate"
+        $DOCKER_COMPOSE up -d --force-recreate --remove-orphans
+    elif ! command -v git >/dev/null 2>&1 && check_images_exist; then
+        print_warning "未检测到 git，使用本地镜像 recreate（不构建）"
+        $DOCKER_COMPOSE up -d --force-recreate --remove-orphans
+    else
+        print_info "更新所有服务（在容器中重新构建并重启，显示完整日志）..."
+        # 注意：编译将在Docker容器中完成，不需要宿主机Maven环境
+        $DOCKER_COMPOSE up -d --build --force-recreate
+    fi
+    local exit_code=$?
+
     # 检查命令是否成功
     if [ $exit_code -ne 0 ]; then
         print_error "服务更新失败（退出码: $exit_code）"
@@ -440,7 +446,7 @@ update_services() {
         exit 1
     fi
     
-    print_success "服务更新完成（所有编译在容器中完成，共 $container_count 个容器）"
+    print_success "服务更新完成（共 $container_count 个容器）"
 }
 
 # 显示帮助信息

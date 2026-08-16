@@ -38,6 +38,8 @@ source "${EASYAIOT_ROOT}/.scripts/docker/init-build-cache-dirs.sh"
 source "${EASYAIOT_ROOT}/.scripts/docker/gpu_compose_helpers.sh"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
+# shellcheck source=../.scripts/docker/module_update_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 
 GPU_COMPOSE_OVERRIDE=".docker-compose.gpu.override.yaml"
 GPU_LOCAL_ENV=".env.local"
@@ -1059,20 +1061,48 @@ update_service() {
     detect_architecture
     configure_architecture
     check_network
+    check_gpu
+    configure_gpu
+
+    # 拉取预构建 / 无 git：禁止 git pull，仅 recreate（安装包常见场景）
+    if easyaiot_update_should_recreate_only ai-service:latest; then
+        cleanup_renamed_containers
+        compose_up_or_fail -d --force-recreate --remove-orphans --no-deps --quiet-pull ai-service
+        print_success "服务更新完成"
+        check_status
+        verify_container_gpu_visibility
+        return 0
+    fi
+
+    # 无 git 且无可用镜像：只能基于当前目录构建
+    if ! easyaiot_have_git; then
+        print_warning "未安装 git 且本地无 ai-service 镜像，将基于当前目录源码构建"
+        local needs_build=1
+        print_info "重新构建镜像（复用 BuildKit 层缓存 + 离线 pip 缓存）..."
+        print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
+        if ! build_with_cache ""; then
+            exit 1
+        fi
+        cleanup_renamed_containers
+        compose_up_or_fail -d --force-recreate --remove-orphans --no-deps --quiet-pull ai-service
+        print_success "服务更新完成"
+        check_status
+        verify_container_gpu_visibility
+        return 0
+    fi
 
     # 记录更新前代码版本，用于判断依赖/构建文件是否变化
     local rev_before=""
-    rev_before="$(git rev-parse HEAD 2>/dev/null || echo "")"
+    rev_before="$(easyaiot_git_rev_parse_head)"
 
     print_info "拉取最新代码..."
     # --ff-only：快进失败立即返回，不产生意外合并提交，比默认 pull 更快更安全
-    if ! git pull --ff-only; then
-        print_error "Git pull 失败，已停止更新，未重建旧版本容器"
+    if ! easyaiot_git_pull_ff_only strict; then
         return 1
     fi
 
     local rev_after=""
-    rev_after="$(git rev-parse HEAD 2>/dev/null || echo "")"
+    rev_after="$(easyaiot_git_rev_parse_head)"
 
     check_gpu
     configure_gpu

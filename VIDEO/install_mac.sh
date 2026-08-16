@@ -31,6 +31,8 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=../.scripts/docker/module_update_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 
 # 打印带颜色的消息
 print_info() {
@@ -499,10 +501,21 @@ update_service() {
     check_docker_compose
     clean_compose_cache
     check_network
-    
+
+    if easyaiot_update_should_recreate_only video-service:latest; then
+        if echo "$COMPOSE_CMD" | grep -q "docker compose"; then
+            $COMPOSE_CMD up -d --force-recreate --quiet-pull 2>&1 | grep -v "^$" || true
+        else
+            $COMPOSE_CMD up -d --force-recreate 2>&1 | grep -v "^$" || true
+        fi
+        print_success "服务更新完成"
+        check_status
+        return 0
+    fi
+
     print_info "拉取最新代码..."
-    git pull || print_warning "Git pull 失败，继续使用当前代码"
-    
+    easyaiot_git_pull_ff_only
+
     print_info "重新构建镜像（减少输出）..."
     # 使用 --progress=plain 减少构建输出
     if echo "$COMPOSE_CMD" | grep -q "docker compose"; then

@@ -171,7 +171,14 @@ case "${cmd}" in
     bash "${ROOT}/install.sh" start
     ;;
   update|rebuild)
-    do_build
+    load_env
+    if [[ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ]] && image_exists; then
+      echo "[harness] 预构建镜像已就绪（EASYAIOT_SKIP_BUILD=1），跳过构建，仅 recreate"
+    elif ! command -v git >/dev/null 2>&1 && image_exists; then
+      echo "[harness] 未检测到 git，使用本地镜像 recreate（不构建）"
+    else
+      do_build
+    fi
     compose up -d --force-recreate
     echo "[harness] Web UI: http://127.0.0.1:${HARNESS_LISTEN_PORT:-3080}"
     ;;

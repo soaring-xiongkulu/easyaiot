@@ -121,8 +121,18 @@ do_install() {
 
 do_update() {
   load_env
-  build_workspace
-  build_portal
+  if [[ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ]] && images_ready; then
+    echo "[idea] 预构建镜像已就绪（EASYAIOT_SKIP_BUILD=1），跳过构建，仅 recreate"
+  elif [[ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ]]; then
+    echo "[idea] EASYAIOT_SKIP_BUILD=1 但本地镜像不完整，请先 pull；本次将尝试构建补齐" >&2
+    build_workspace
+    build_portal
+  elif ! command -v git >/dev/null 2>&1 && images_ready; then
+    echo "[idea] 未检测到 git，使用本地镜像 recreate（不构建）"
+  else
+    build_workspace
+    build_portal
+  fi
   compose up -d --force-recreate
   echo "[idea] portal: http://127.0.0.1:${IDEA_LISTEN_PORT:-9300}"
 }

@@ -145,7 +145,13 @@ do_rebuild() {
   need_docker
   stop_legacy_host_process
   compose down --remove-orphans 2>/dev/null || true
-  do_build
+  if [ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ] && image_exists; then
+    echo "[PANEL] 预构建镜像已就绪（EASYAIOT_SKIP_BUILD=1），跳过构建，仅 recreate"
+  elif ! command -v git >/dev/null 2>&1 && image_exists; then
+    echo "[PANEL] 未检测到 git，使用本地镜像 recreate（不构建）"
+  else
+    do_build
+  fi
   compose up -d --force-recreate --remove-orphans
   sleep 2
   do_status

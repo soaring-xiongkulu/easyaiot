@@ -30,6 +30,9 @@ NC='\033[0m' # No Color
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=../.scripts/docker/module_update_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 
 # 打印带颜色的消息
 print_info() {
@@ -439,10 +442,17 @@ update_service() {
     detect_architecture
     configure_architecture
     check_network
-    
+
+    if easyaiot_update_should_recreate_only ai-service:latest; then
+        $COMPOSE_CMD up -d --force-recreate --quiet-pull 2>&1 | grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" || true
+        print_success "服务更新完成"
+        check_status
+        return 0
+    fi
+
     print_info "拉取最新代码..."
-    git pull || print_warning "Git pull 失败，继续使用当前代码"
-    
+    easyaiot_git_pull_ff_only
+
     print_info "重新构建镜像..."
     print_info "架构: $ARCH, 平台: $DOCKER_PLATFORM, 基础镜像: $BASE_IMAGE"
     # 使用环境变量传递架构配置给docker-compose

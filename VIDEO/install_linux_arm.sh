@@ -39,6 +39,8 @@ EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${EASYAIOT_ROOT}/.scripts/docker/init-build-cache-dirs.sh"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
+# shellcheck source=../.scripts/docker/module_update_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 BUILD_CACHE_DIR="$(easyaiot_build_cache_base "$EASYAIOT_ROOT")"
 DOCKER_IMAGES_DIR="$(arm_docker_images_dir "$EASYAIOT_ROOT")"
 
@@ -866,17 +868,24 @@ update_service() {
     check_network
     ensure_cpp_runtime || true
 
+    # 拉取预构建 / 无 git：禁止 git pull，仅 recreate
+    if easyaiot_update_should_recreate_only video-service:latest; then
+        cleanup_renamed_containers
+        $COMPOSE_CMD up -d --remove-orphans --no-deps video-service 2>&1 | grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" || true
+        print_success "服务更新完成"
+        return 0
+    fi
+
     # 记录更新前代码版本，用于判断依赖/构建文件是否变化
     local rev_before=""
-    rev_before="$(git rev-parse HEAD 2>/dev/null || echo "")"
+    rev_before="$(easyaiot_git_rev_parse_head)"
 
     print_info "拉取最新代码..."
-    # --ff-only：快进失败立即返回，不产生意外合并提交，比默认 pull 更快更安全
-    git pull --ff-only || print_warning "Git pull 失败，继续使用当前代码"
+    # --ff-only：快进失败立即返回；无 git 时跳过 pull，基于当前目录构建
+    easyaiot_git_pull_ff_only
 
     local rev_after=""
-    rev_after="$(git rev-parse HEAD 2>/dev/null || echo "")"
-
+    rev_after="$(easyaiot_git_rev_parse_head)"
     # ---- 判断是否需要重建镜像 ----
     local needs_build=0
     if ! docker image inspect video-service:latest >/dev/null 2>&1; then
@@ -938,7 +947,7 @@ update_service() {
         local code_changed=0
         if [ -n "$rev_before" ] && [ "$rev_before" != "$rev_after" ]; then
             code_changed=1
-        elif ! git diff --quiet HEAD -- . 2>/dev/null; then
+        elif ! easyaiot_git_worktree_clean; then
             code_changed=1
         fi
 

@@ -36,6 +36,8 @@ EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${EASYAIOT_ROOT}/.scripts/docker/init-build-cache-dirs.sh"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
+# shellcheck source=../.scripts/docker/module_update_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 # 远程镜像公共库（aiot-app 拉取与 runtime_image.sh 共用命名规则）
 if [ -z "${RUNTIME_IMAGE_COMMON_LOADED:-}" ]; then
     _app_saved_script_dir="$SCRIPT_DIR"
@@ -875,27 +877,33 @@ update_service() {
     check_docker
     check_docker_compose
 
+    # 拉取预构建 / 无 git：禁止 git pull，仅 recreate
+    if easyaiot_update_should_recreate_only app-service:latest; then
+        cleanup_renamed_containers
+        $COMPOSE_CMD up -d --remove-orphans
+        check_status
+        return 0
+    fi
+
     # 记录更新前代码版本，用于判断是否需要重建
     local rev_before=""
-    rev_before="$(git rev-parse HEAD 2>/dev/null || echo "")"
+    rev_before="$(easyaiot_git_rev_parse_head)"
 
     print_info "拉取最新代码..."
-    # --ff-only：快进失败立即返回，不产生意外合并提交，比默认 pull 更快更安全
-    git pull --ff-only || print_warning "Git pull 失败，继续使用当前代码"
+    # --ff-only：快进失败立即返回；无 git 时跳过 pull，基于当前目录构建
+    easyaiot_git_pull_ff_only
 
     local rev_after=""
-    rev_after="$(git rev-parse HEAD 2>/dev/null || echo "")"
+    rev_after="$(easyaiot_git_rev_parse_head)"
 
-    # 无变更快速路径：提交号未变 + 本地无未提交改动 + 镜像已存在 + 部署形态未变 → 跳过前端重建
+    # 无变更快速路径：提交号未变 + 本地无未提交改动 + 镜像已存在 → 跳过前端重建
     # 说明1：clean 会删除镜像并刷新构建戳，故 clean 后镜像不存在 → 此处不会误跳过
-    # 说明2：git diff --quiet HEAD 捕获「已跟踪文件的本地未提交修改」，避免改了代码没 commit
-    #        却被误判为无变更而跳过重建（git diff 不受未跟踪的构建日志干扰）。
-    #        注意：全新的未跟踪文件 git diff 检测不到，这种情况请先 git add，或用 FORCE_REBUILD=1。
+    # 说明2：git diff --quiet HEAD 捕获「已跟踪文件的本地未提交修改」
     # 说明3：部署形态变更时 APP 模块本身不可用（仅 full），此处不校验形态戳
     if [ "${FORCE_REBUILD:-0}" != "1" ] \
         && docker image inspect app-service:latest >/dev/null 2>&1 \
         && [ -n "$rev_before" ] && [ "$rev_before" = "$rev_after" ] \
-        && git diff --quiet HEAD -- . 2>/dev/null; then
+        && easyaiot_git_worktree_clean; then
         print_success "代码无变更且镜像已存在，跳过前端重建"
         print_info "（如需强制重建：FORCE_REBUILD=1 ./install_linux.sh update）"
         cleanup_renamed_containers
