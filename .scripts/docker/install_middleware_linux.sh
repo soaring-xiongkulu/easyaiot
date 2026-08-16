@@ -4103,6 +4103,70 @@ init_minio() {
     return $init_result
 }
 
+# 清空 iot-node 仓库样例节点数据（iot-node10.sql 中的演示节点/指标/NFS 拓扑）
+# 一键部署后集群概览会显示样例机内存磁盘，与本机无关；本机 Agent 启动后会重新纳管控制面节点。
+# 保留样例：EASYAIOT_KEEP_NODE_SEED=1
+# $1=force 时无论是否检测到样例主机都清空（刚导入 *10.sql 后使用）
+clear_iot_node_seed_data() {
+    local mode="${1:-auto}"
+    local db_name="iot-node20"
+
+    if [ "${EASYAIOT_KEEP_NODE_SEED:-0}" = "1" ]; then
+        print_info "保留 iot-node 样例数据（EASYAIOT_KEEP_NODE_SEED=1）"
+        return 0
+    fi
+
+    if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'postgres-server'; then
+        return 0
+    fi
+    if ! docker exec postgres-server psql -U postgres -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$db_name"; then
+        return 0
+    fi
+    # 表可能尚未创建（空库）
+    if ! docker exec postgres-server psql -U postgres -d "$db_name" -tAc \
+        "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='compute_node'" 2>/dev/null | grep -q 1; then
+        return 0
+    fi
+
+    local seed_count=0
+    # 与 .scripts/postgresql/iot-node10.sql 样例主机一致
+    seed_count=$(docker exec postgres-server psql -U postgres -d "$db_name" -tAc \
+        "SELECT COUNT(*) FROM compute_node WHERE deleted = 0 AND host IN ('192.168.1.10','192.168.1.11','192.168.1.12');" 2>/dev/null | tr -d '[:space:]' || echo 0)
+    seed_count="${seed_count:-0}"
+
+    if [ "$mode" != "force" ] && [ "$seed_count" -eq 0 ] 2>/dev/null; then
+        print_info "iot-node 无仓库样例节点，跳过清空"
+        return 0
+    fi
+
+    print_info "清空 iot-node 样例/演示节点数据（避免集群概览显示非本机节点）..."
+    local sql
+    sql=$(cat <<'EOSQL'
+DO $$
+BEGIN
+  -- 子表优先；表不存在时跳过，兼容旧库
+  IF to_regclass('public.node_metric_snapshot') IS NOT NULL THEN TRUNCATE TABLE public.node_metric_snapshot RESTART IDENTITY; END IF;
+  IF to_regclass('public.node_storage_op_log') IS NOT NULL THEN TRUNCATE TABLE public.node_storage_op_log RESTART IDENTITY; END IF;
+  IF to_regclass('public.node_workload_binding') IS NOT NULL THEN TRUNCATE TABLE public.node_workload_binding RESTART IDENTITY; END IF;
+  IF to_regclass('public.node_ssh_credential') IS NOT NULL THEN TRUNCATE TABLE public.node_ssh_credential RESTART IDENTITY; END IF;
+  IF to_regclass('public.nfs_cluster_bridge') IS NOT NULL THEN TRUNCATE TABLE public.nfs_cluster_bridge RESTART IDENTITY; END IF;
+  IF to_regclass('public.nfs_cluster') IS NOT NULL THEN TRUNCATE TABLE public.nfs_cluster RESTART IDENTITY; END IF;
+  IF to_regclass('public.device_media_binding') IS NOT NULL THEN TRUNCATE TABLE public.device_media_binding RESTART IDENTITY; END IF;
+  IF to_regclass('public.edge_node') IS NOT NULL THEN TRUNCATE TABLE public.edge_node RESTART IDENTITY; END IF;
+  IF to_regclass('public.control_plane_peer') IS NOT NULL THEN TRUNCATE TABLE public.control_plane_peer RESTART IDENTITY; END IF;
+  IF to_regclass('public.compute_node') IS NOT NULL THEN TRUNCATE TABLE public.compute_node RESTART IDENTITY CASCADE; END IF;
+END $$;
+EOSQL
+)
+    if docker exec -i postgres-server psql -U postgres -d "$db_name" -v ON_ERROR_STOP=1 <<< "$sql" >/dev/null 2>&1; then
+        print_success "已清空 iot-node 节点相关样例数据（compute_node / 指标 / NFS 拓扑等）"
+        print_info "控制面节点将在本机 Agent 纳管后自动出现在集群概览"
+        return 0
+    fi
+    print_warning "清空 iot-node 样例数据失败（可稍后手动 TRUNCATE compute_node 等相关表）"
+    return 0
+}
+
 # 初始化数据库
 init_databases() {
     print_section "初始化数据库"
@@ -4188,11 +4252,18 @@ init_databases() {
             else
                 if execute_sql_script "$db_name" "$sql_file"; then
                     success_count=$((success_count + 1))
+                    # 刚导入仓库 *10.sql：强制清掉演示节点，避免集群概览显示样例机
+                    if [ "$db_name" = "iot-node20" ]; then
+                        clear_iot_node_seed_data force
+                    fi
                 fi
             fi
         fi
         echo ""
     done
+
+    # 已初始化库也可能残留样例节点（历史部署）；检测到仓库样例主机则清理
+    clear_iot_node_seed_data
     
     # Nacos 账号配置：先自动初始化 admin（新库无内置账号），再用 API 实测登录验证；
     # 全部通过则零人工介入。仅当验证失败（已有 admin 但密码与预期不一致）才回退人工确认。

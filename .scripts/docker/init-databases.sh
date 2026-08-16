@@ -18,6 +18,39 @@ get_sql_file() {
     esac
 }
 
+# 清空 iot-node 仓库样例节点（与 install_middleware_linux.sh clear_iot_node_seed_data 对齐）
+clear_iot_node_seed_data_initdb() {
+    local db_name="iot-node20"
+    if [ "${EASYAIOT_KEEP_NODE_SEED:-0}" = "1" ]; then
+        echo "  · 保留 iot-node 样例数据（EASYAIOT_KEEP_NODE_SEED=1）"
+        return 0
+    fi
+    if ! psql -U "$POSTGRES_USER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$db_name'" | grep -q 1; then
+        return 0
+    fi
+    if ! psql -U "$POSTGRES_USER" -d "$db_name" -tAc \
+        "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='compute_node'" 2>/dev/null | grep -q 1; then
+        return 0
+    fi
+    echo "  → 清空 iot-node 样例节点数据（compute_node / 指标 / NFS 拓扑）..."
+    psql -U "$POSTGRES_USER" -d "$db_name" -v ON_ERROR_STOP=1 <<'EOSQL' >/dev/null
+DO $$
+BEGIN
+  IF to_regclass('public.node_metric_snapshot') IS NOT NULL THEN TRUNCATE TABLE public.node_metric_snapshot RESTART IDENTITY; END IF;
+  IF to_regclass('public.node_storage_op_log') IS NOT NULL THEN TRUNCATE TABLE public.node_storage_op_log RESTART IDENTITY; END IF;
+  IF to_regclass('public.node_workload_binding') IS NOT NULL THEN TRUNCATE TABLE public.node_workload_binding RESTART IDENTITY; END IF;
+  IF to_regclass('public.node_ssh_credential') IS NOT NULL THEN TRUNCATE TABLE public.node_ssh_credential RESTART IDENTITY; END IF;
+  IF to_regclass('public.nfs_cluster_bridge') IS NOT NULL THEN TRUNCATE TABLE public.nfs_cluster_bridge RESTART IDENTITY; END IF;
+  IF to_regclass('public.nfs_cluster') IS NOT NULL THEN TRUNCATE TABLE public.nfs_cluster RESTART IDENTITY; END IF;
+  IF to_regclass('public.device_media_binding') IS NOT NULL THEN TRUNCATE TABLE public.device_media_binding RESTART IDENTITY; END IF;
+  IF to_regclass('public.edge_node') IS NOT NULL THEN TRUNCATE TABLE public.edge_node RESTART IDENTITY; END IF;
+  IF to_regclass('public.control_plane_peer') IS NOT NULL THEN TRUNCATE TABLE public.control_plane_peer RESTART IDENTITY; END IF;
+  IF to_regclass('public.compute_node') IS NOT NULL THEN TRUNCATE TABLE public.compute_node RESTART IDENTITY CASCADE; END IF;
+END $$;
+EOSQL
+    echo "  ✓ 已清空 iot-node 样例节点（本机 Agent 纳管后会重新出现控制面节点）"
+}
+
 # 扫描 SQL_DIR 下所有 *10.sql 推导库名（兼容 bash 3.2，不依赖关联数组）
 DATABASES=()
 for _f in "$SQL_DIR"/*10.sql; do
@@ -76,12 +109,23 @@ for db_name in "${DATABASES[@]}"; do
     if [ "$table_count" -gt 0 ]; then
         echo "  ✓ 数据库已包含 $table_count 个表，跳过 SQL 导入"
         success_count=$((success_count + 1))
+        # 历史库可能已带样例节点：仅清理仓库样例主机
+        if [ "$db_name" = "iot-node20" ]; then
+            seed_n=$(psql -U "$POSTGRES_USER" -d "$db_name" -tAc \
+                "SELECT COUNT(*) FROM compute_node WHERE deleted = 0 AND host IN ('192.168.1.10','192.168.1.11','192.168.1.12');" 2>/dev/null | tr -d '[:space:]' || echo 0)
+            if [ "${seed_n:-0}" -gt 0 ] 2>/dev/null; then
+                clear_iot_node_seed_data_initdb
+            fi
+        fi
     else
         if [ -f "$SQL_DIR/$sql_file" ]; then
             echo "  → 导入 SQL 文件: $sql_file"
             if psql -U "$POSTGRES_USER" -d "$db_name" -f "$SQL_DIR/$sql_file" > /dev/null 2>&1; then
                 echo "  ✓ SQL 文件导入成功"
                 success_count=$((success_count + 1))
+                if [ "$db_name" = "iot-node20" ]; then
+                    clear_iot_node_seed_data_initdb
+                fi
             else
                 echo "  ✗ SQL 文件导入失败，请检查文件内容"
             fi
@@ -99,4 +143,3 @@ else
     echo "⚠️  数据库初始化部分完成 ($success_count/$total_count)"
 fi
 echo "=========================================="
-
