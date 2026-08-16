@@ -342,6 +342,15 @@ compose_up_detached() {
     _up_rc=$?
     cat "$_up_log"
 
+    # 媒体 bind 源异常（/mnt/easyaiot-media 误建为文件等）→ 修复后重试一次
+    if [ "$_up_rc" -ne 0 ] && repair_media_bind_after_compose_error "$(cat "$_up_log")"; then
+        print_warning "媒体挂载源已修复（EASYAIOT_MEDIA_ROOT=${EASYAIOT_MEDIA_ROOT}），重试 DEVICE 启动..."
+        : > "$_up_log"
+        COMPOSE_ANSI=never device_compose up -d --no-color --remove-orphans "${up_targets[@]}" > "$_up_log" 2>&1
+        _up_rc=$?
+        cat "$_up_log"
+    fi
+
     # rootless runc /dev/null 间歇性错误 → 退避重试
     for _retry in 1 2 3; do
         [ "$_up_rc" -eq 0 ] && break
@@ -404,6 +413,14 @@ _repair_created_iot_containers() {
         COMPOSE_ANSI=never device_compose up -d --no-color "$_svc_name" > "$_up_log" 2>&1
         _up_rc=$?
         cat "$_up_log"
+
+        if [ "$_up_rc" -ne 0 ] && repair_media_bind_after_compose_error "$(cat "$_up_log")"; then
+            print_warning "媒体挂载源已修复，重试重建 $_n ..."
+            : > "$_up_log"
+            COMPOSE_ANSI=never device_compose up -d --no-color "$_svc_name" > "$_up_log" 2>&1
+            _up_rc=$?
+            cat "$_up_log"
+        fi
 
         # 对 OCI /dev/null 错误退避重试
         for _retry in 1 2 3; do

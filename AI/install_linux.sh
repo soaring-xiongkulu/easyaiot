@@ -199,6 +199,16 @@ compose_up_or_fail() {
     compose_log=$(mktemp)
     if ! $COMPOSE_CMD "${compose_args[@]}" up "$@" >"$compose_log" 2>&1; then
         cat "$compose_log"
+        if repair_media_bind_after_compose_error "$(cat "$compose_log")"; then
+            print_warning "媒体挂载源已修复（EASYAIOT_MEDIA_ROOT=${EASYAIOT_MEDIA_ROOT}），重试启动..."
+            : >"$compose_log"
+            if $COMPOSE_CMD "${compose_args[@]}" up "$@" >"$compose_log" 2>&1; then
+                grep -v "^Creating\|^Starting\|^Pulling\|^Waiting\|^Container" "$compose_log" || true
+                rm -f "$compose_log"
+                return 0
+            fi
+            cat "$compose_log"
+        fi
         rm -f "$compose_log"
         print_error "Docker Compose 创建/更新容器失败"
         return 1

@@ -51,6 +51,28 @@ video_compose() {
     $COMPOSE_CMD "${files[@]}" "$@"
 }
 
+# compose up；若媒体 bind 源 mkdir file exists 则修复后重试一次
+video_compose_up_or_fail() {
+    local compose_log _rc
+    compose_log=$(mktemp)
+    set +e
+    video_compose up "$@" >"$compose_log" 2>&1
+    _rc=$?
+    set -e
+    cat "$compose_log"
+    if [ "$_rc" -ne 0 ] && repair_media_bind_after_compose_error "$(cat "$compose_log")"; then
+        print_warning "媒体挂载源已修复（EASYAIOT_MEDIA_ROOT=${EASYAIOT_MEDIA_ROOT}），重试 VIDEO 启动..."
+        : >"$compose_log"
+        set +e
+        video_compose up "$@" >"$compose_log" 2>&1
+        _rc=$?
+        set -e
+        cat "$compose_log"
+    fi
+    rm -f "$compose_log"
+    return "$_rc"
+}
+
 # 打印带颜色的消息
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -498,7 +520,10 @@ install_service() {
     
     print_info "启动服务..."
     cleanup_renamed_containers
-    video_compose up -d --remove-orphans
+    if ! video_compose_up_or_fail -d --remove-orphans; then
+        print_error "VIDEO 服务启动失败"
+        exit 1
+    fi
 
     print_success "服务安装完成！"
     print_info "等待服务启动..."
@@ -532,7 +557,7 @@ start_service() {
     wire_cpp_runtime_override
 
     cleanup_renamed_containers
-    video_compose up -d --force-recreate --remove-orphans
+    video_compose_up_or_fail -d --force-recreate --remove-orphans
     print_success "服务已启动"
     check_status
 }
@@ -564,7 +589,7 @@ restart_service() {
     wire_cpp_runtime_override
 
     cleanup_renamed_containers
-    video_compose up -d --force-recreate --remove-orphans
+    video_compose_up_or_fail -d --force-recreate --remove-orphans
     print_success "服务已重启"
     check_status
 }
@@ -720,12 +745,12 @@ update_service() {
         # 构建完成后才重建容器：compose 检测到镜像变化「先停旧、再起新」，停机仅数秒
         print_info "应用新镜像（仅重建变更服务，最小化停机）..."
         cleanup_renamed_containers
-        video_compose up -d --remove-orphans --no-deps video-service
+        video_compose_up_or_fail -d --remove-orphans --no-deps video-service
     else
         print_success "依赖未变，跳过镜像构建（业务代码经卷挂载，重启进程即可生效）"
         # 确保容器存在并应用任何 compose 配置变更（首次启用源码挂载时会在此处重建一次）
         cleanup_renamed_containers
-        video_compose up -d --remove-orphans --no-deps video-service
+        video_compose_up_or_fail -d --remove-orphans --no-deps video-service
 
         # 是否需要重启进程以加载新源码：有新提交，或本地有未提交改动（git diff 脏）。
         # git diff --quiet HEAD 仅在出错或有已跟踪改动时返回非 0，用于捕获“改了代码没 commit”的场景；

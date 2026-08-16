@@ -54,7 +54,12 @@ apply_deploy_profile() {
             ;;
     esac
 
-    EASYAIOT_MEDIA_ROOT="$(resolve_easyaiot_media_root 2>/dev/null || echo "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}")"
+    # 确保宿主机 bind 源是真实目录（误建成文件会导致 daemon: mkdir ... file exists）
+    if command -v ensure_easyaiot_media_bind_source >/dev/null 2>&1 || type ensure_easyaiot_media_bind_source >/dev/null 2>&1; then
+        EASYAIOT_MEDIA_ROOT="$(ensure_easyaiot_media_bind_source)"
+    else
+        EASYAIOT_MEDIA_ROOT="$(resolve_easyaiot_media_root 2>/dev/null || echo "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}")"
+    fi
     export EASYAIOT_MEDIA_ROOT
     if [ -z "${NFS_SERVER:-}" ]; then
         NFS_SERVER="$(resolve_nfs_server_from_mount)"
@@ -279,6 +284,38 @@ ensure_deploy_profile() {
     apply_deploy_profile
 }
 
+# compose 报「creating mount source path ... file exists」时调用：修复/回退媒体根并同步模块 env
+# 返回 0=已修复可重试；1=非该类错误
+repair_media_bind_after_compose_error() {
+    local log_text="${1:-}"
+    _deploy_profile_load_media_root_helpers
+    if ! type is_media_bind_source_mkdir_error >/dev/null 2>&1; then
+        return 1
+    fi
+    is_media_bind_source_mkdir_error "$log_text" || return 1
+
+    local prev="${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}"
+    echo "[media] 检测到 Docker bind 源异常（mkdir file exists），正在修复媒体根: ${prev}"
+
+    # 1) 原地修复（误建成文件 / 坏 symlink → 目录）
+    if type ensure_easyaiot_media_bind_source >/dev/null 2>&1; then
+        ensure_easyaiot_media_bind_source >/dev/null || true
+    fi
+
+    # 2) /mnt 路径在 Snap Docker / 异常挂载上常仍失败 → 强制家目录本地 bind
+    case "$prev" in
+        /mnt/*)
+            echo "[media] /mnt 媒体根对 Docker 不可用，回退到 $(easyaiot_home_media_root 2>/dev/null || echo "${HOME}/easyaiot/media")"
+            ensure_easyaiot_media_bind_source --force-home >/dev/null || true
+            ;;
+    esac
+
+    export EASYAIOT_MEDIA_ROOT
+    sync_deploy_profile_to_modules "$(_deploy_profile_repo_root)"
+    echo "[media] 已修复并同步 EASYAIOT_MEDIA_ROOT=${EASYAIOT_MEDIA_ROOT}"
+    return 0
+}
+
 print_deploy_profile_summary() {
   apply_deploy_profile
   local desc
@@ -456,7 +493,7 @@ apply_middleware_deploy_env() {
     local root="${1:-$(_deploy_profile_repo_root)}"
     local env_file="${root}/.scripts/docker/.env"
     local mount_root
-    mount_root="$(resolve_easyaiot_media_root)"
+    mount_root="$(ensure_easyaiot_media_bind_source 2>/dev/null || resolve_easyaiot_media_root)"
     local nfs_export="${NFS_EXPORT:-$mount_root}"
     mkdir -p "$(dirname "$env_file")"
     touch "$env_file"
@@ -477,7 +514,7 @@ apply_device_deploy_env() {
         _set_env_docker_kv "$env_file" IOT_SYSTEM_SPRING_PROFILES_ACTIVE "local"
     fi
     _set_env_docker_kv "$env_file" IOT_SINK_SPRING_PROFILES_ACTIVE "$(iot_sink_spring_profiles_active)"
-    _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$(resolve_easyaiot_media_root)"
+    _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$(ensure_easyaiot_media_bind_source 2>/dev/null || resolve_easyaiot_media_root)"
 }
 
 # TRANSFORM：按形态写入 .env.docker（供运行脚本统一读取）
@@ -521,16 +558,25 @@ record_web_deploy_profile_built() {
 # 按部署形态同步 VIDEO/AI .env.docker（告警/DVR 统一经 Gateway→iot-sink；mini 仅精简 DEVICE/中间件）
 _apply_python_sink_media_env() {
     local env_file="$1"
+    local compose_env="${2:-}"
+    local with_sink_hooks="${3:-1}"
     local mount_root
-    mount_root="$(resolve_easyaiot_media_root)"
-    _set_env_docker_kv "$env_file" MINIO_ENABLED true
-    _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 1
-    _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
-    _set_env_docker_kv "$env_file" IOT_SINK_MEDIA_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
-    _set_env_docker_kv "$env_file" ALERT_IMAGES_DIR "/mnt/easyaiot-media/alert_images"
+    mount_root="$(ensure_easyaiot_media_bind_source 2>/dev/null || resolve_easyaiot_media_root)"
+    if [ "$with_sink_hooks" = "1" ]; then
+        _set_env_docker_kv "$env_file" MINIO_ENABLED true
+        _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 1
+        _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
+        _set_env_docker_kv "$env_file" IOT_SINK_MEDIA_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
+        _set_env_docker_kv "$env_file" ALERT_IMAGES_DIR "/mnt/easyaiot-media/alert_images"
+        _set_env_docker_kv "$env_file" SRS_HOST_DATA_ROOT "$mount_root"
+        _set_env_docker_kv "$env_file" SRS_RECORD_DIR "${mount_root}/playbacks"
+    fi
     _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$mount_root"
-    _set_env_docker_kv "$env_file" SRS_HOST_DATA_ROOT "$mount_root"
-    _set_env_docker_kv "$env_file" SRS_RECORD_DIR "${mount_root}/playbacks"
+    # compose 文件变量替换读项目目录 .env（不是 .env.docker），同步写入避免仍用默认 /mnt
+    if [ -n "$compose_env" ]; then
+        touch "$compose_env"
+        _set_env_docker_kv "$compose_env" EASYAIOT_MEDIA_ROOT "$mount_root"
+    fi
 }
 
 apply_python_service_deploy_env() {
@@ -558,7 +604,10 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST false
             fi
             _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST false
-            _apply_python_sink_media_env "$env_file"
+            _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 1
+        else
+            # AI：仅同步媒体根，供 compose ${EASYAIOT_MEDIA_ROOT} 替换
+            _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0
         fi
     done
 }
