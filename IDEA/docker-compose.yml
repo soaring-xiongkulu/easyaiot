@@ -49,7 +49,7 @@ services:
       IDEA_GITEE_SCOPE: ${IDEA_GITEE_SCOPE:-user_info}
       IDEA_GITHUB_CLIENT_ID: ${IDEA_GITHUB_CLIENT_ID:-}
       IDEA_GITHUB_CLIENT_SECRET: ${IDEA_GITHUB_CLIENT_SECRET:-}
-      IDEA_GITHUB_SCOPE: ${IDEA_GITHUB_SCOPE:-read:user user:email}
+      IDEA_GITHUB_SCOPE: "${IDEA_GITHUB_SCOPE:-read:user user:email}"
       # 容器内工作目录；创建子容器时使用 IDEA_DATA_DIR_HOST
       IDEA_DATA_DIR: /data/idea-workspaces
       IDEA_DATA_DIR_HOST: ${IDEA_DATA_DIR_HOST}

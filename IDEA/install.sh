@@ -13,6 +13,11 @@ ensure_env_file() {
     cp "${ROOT}/idea.env.example" "${ROOT}/idea.env"
     echo "[idea] 已生成 ${ROOT}/idea.env"
   fi
+  # 旧模板未给含空格的 scope 加引号，source 会报 user:email: command not found
+  if grep -q '^IDEA_GITHUB_SCOPE=read:user user:email$' "${ROOT}/idea.env" 2>/dev/null; then
+    sed -i 's/^IDEA_GITHUB_SCOPE=read:user user:email$/IDEA_GITHUB_SCOPE="read:user user:email"/' "${ROOT}/idea.env"
+    echo "[idea] 已修复 idea.env 中 IDEA_GITHUB_SCOPE 引号"
+  fi
 }
 
 load_env() {
