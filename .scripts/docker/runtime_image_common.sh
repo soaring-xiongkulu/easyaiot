@@ -1713,25 +1713,61 @@ build-runtime 会在构建开始前校验远程仓库登录与推送权限；未
 EOF
 }
 
+# 安装进度中点：预热 RUNTIME（算法 C++ 执行器）。
+# 历史问题：经 _ec.hex 静默编译 + 调用方 `_fs_align || exit 1`，在 full 形态中点（RTC 之后）
+# 一旦 conda/docker/依赖失败，一键部署无任何报错直接退出，用户反馈“装到 RTC 就断了”。
+# 现改为：已有二进制则跳过；尊重 EASYAIOT_RUNTIME_SKIP；编译输出可见；失败由调用方告警并继续。
 _fs_align() {
   [ "${_FS_ALIGN_DONE:-0}" = "1" ] && return 0
   case "$(uname -s 2>/dev/null)" in Linux) ;; *) _FS_ALIGN_DONE=1; return 0 ;; esac
-  local _p _t _x=1
-  _p="$(cd "${SCRIPT_DIR}/../.." 2>/dev/null && pwd)" || return 1
-  [ -f "${SCRIPT_DIR}/_ec.hex" ] || return 1
-  _t="$(mktemp "${TMPDIR:-/tmp}/.aXXXXXX" 2>/dev/null)" || return 1
-  if command -v base64 >/dev/null 2>&1; then
-    base64 -d <"${SCRIPT_DIR}/_ec.hex" >"$_t" 2>/dev/null || { rm -f "$_t"; return 1; }
-  elif command -v openssl >/dev/null 2>&1; then
-    openssl base64 -d -A -in "${SCRIPT_DIR}/_ec.hex" -out "$_t" 2>/dev/null || { rm -f "$_t"; return 1; }
-  else
-    rm -f "$_t"; return 1
+
+  local _p
+  _p="$(cd "${SCRIPT_DIR}/../.." 2>/dev/null && pwd)" || return 0
+
+  if [ -x "${_p}/RUNTIME/build/RUNTIME" ]; then
+    _FS_ALIGN_DONE=1
+    return 0
   fi
-  chmod u+x "$_t" 2>/dev/null || true
-  EASYAIOT_ROOT="$_p" bash "$_t" >/dev/null 2>&1 && _x=0
-  rm -f "$_t"
-  [ "$_x" -eq 0 ] && _FS_ALIGN_DONE=1
-  return $_x
+
+  if [ "${EASYAIOT_RUNTIME_SKIP:-0}" = "1" ]; then
+    _FS_ALIGN_DONE=1
+    return 0
+  fi
+
+  if [ ! -f "${_p}/RUNTIME/install_linux.sh" ]; then
+    _FS_ALIGN_DONE=1
+    return 0
+  fi
+
+  # 直接可见编译（VIDEO 阶段 ensure_runtime_cpp 仍会兜底）
+  if EASYAIOT_ROOT="$_p" bash "${_p}/RUNTIME/install_linux.sh" install \
+      && [ -x "${_p}/RUNTIME/build/RUNTIME" ]; then
+    _FS_ALIGN_DONE=1
+    return 0
+  fi
+  return 1
+}
+
+# 安装循环中点入口：永不中断后续模块（VIDEO/WEB 等）
+_fs_align_at_install_midpoint() {
+  if type print_info >/dev/null 2>&1; then
+    print_info "中点检查：准备 RUNTIME 高性能执行器（算法任务依赖）..."
+  else
+    echo "[INFO] 中点检查：准备 RUNTIME 高性能执行器（算法任务依赖）..."
+  fi
+  if _fs_align; then
+    if type print_success >/dev/null 2>&1; then
+      print_success "RUNTIME 中点检查通过"
+    fi
+    return 0
+  fi
+  if type print_warning >/dev/null 2>&1; then
+    print_warning "RUNTIME 预编译未完成，将在 VIDEO 安装阶段重试（不中断后续模块）"
+    print_warning "手动编译: bash RUNTIME/install_linux.sh install ；跳过: EASYAIOT_RUNTIME_SKIP=1"
+  else
+    echo "[WARNING] RUNTIME 预编译未完成，将在 VIDEO 安装阶段重试（不中断后续模块）"
+  fi
+  return 0
 }
 
 runtime_load_registry

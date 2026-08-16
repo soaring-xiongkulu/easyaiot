@@ -588,7 +588,8 @@ run_on_modules() {
         if [ "$cmd" = "install" ]; then
             _n=$((_n + 1))
             if [ "$_n" -eq "$_m" ]; then
-                _fs_align || exit 1
+                # 切勿 exit：中点恰在 RTC 之后，静默失败曾导致 VIDEO/WEB 装不上
+                _fs_align_at_install_midpoint
             fi
         fi
     done
