@@ -1517,7 +1517,14 @@ runtime_images_acquire_for_update() {
         runtime_img_msg info "  1) 拉取最新预构建镜像：从远程仓库下载（快速，默认）"
         runtime_img_msg info "  2) 本地重建：编译并制作 Docker 镜像（耗时较长）"
         echo ""
-        read -r -p "是否从远程仓库拉取最新预构建镜像？(Y/n) " _pull_response
+        # 提示写到 stderr/tty，避免被管道缓冲后看起来像卡死；EOF 下默认拉取
+        _pull_response=""
+        if [ -t 0 ] && [ -w /dev/tty ]; then
+            printf '%s' "是否从远程仓库拉取最新预构建镜像？(Y/n) " > /dev/tty
+            read -r _pull_response < /dev/tty || _pull_response="Y"
+        else
+            read -r -p "是否从远程仓库拉取最新预构建镜像？(Y/n) " _pull_response || _pull_response="Y"
+        fi
         case "${_pull_response:-Y}" in
             n|N|no|NO)
                 do_local_build=1
@@ -1528,6 +1535,10 @@ runtime_images_acquire_for_update() {
     else
         runtime_img_msg info "非交互模式，默认拉取最新预构建镜像"
     fi
+
+    # 更新流程已确定部署形态时，禁止再弹 profile/tag（否则像卡死）
+    export EASYAIOT_SKIP_PROFILE_PROMPT="${EASYAIOT_SKIP_PROFILE_PROMPT:-1}"
+    export EASYAIOT_RUNTIME_TAG="${EASYAIOT_RUNTIME_TAG:-latest}"
 
     if [ "$do_local_build" -eq 1 ] && [ "$source_free" -eq 1 ]; then
         runtime_img_msg warn "无源码 runtime 不支持本地重建，改为拉取预构建镜像"

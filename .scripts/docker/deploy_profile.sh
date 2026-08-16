@@ -441,7 +441,18 @@ resolve_nfs_server_from_mount() {
     fi
     local root
     root="$(resolve_easyaiot_media_root)"
-    if mountpoint -q "$root" 2>/dev/null; then
+    # 用 findmnt/timeout，避免僵死 NFS 上 mountpoint 卡死整个 update
+    if type _is_media_mountpoint_safe >/dev/null 2>&1; then
+        if _is_media_mountpoint_safe "$root"; then
+            findmnt -n -o SOURCE "$root" 2>/dev/null | cut -d: -f1 || true
+            return
+        fi
+    elif command -v timeout >/dev/null 2>&1; then
+        if timeout 3 mountpoint -q "$root" 2>/dev/null; then
+            findmnt -n -o SOURCE "$root" 2>/dev/null | cut -d: -f1 || true
+            return
+        fi
+    elif mountpoint -q "$root" 2>/dev/null; then
         findmnt -n -o SOURCE "$root" 2>/dev/null | cut -d: -f1 || true
         return
     fi

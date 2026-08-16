@@ -1367,7 +1367,8 @@ clean_build_runtime() {
 # 更新所有服务
 update_all() {
     print_section "更新所有服务 (麒麟系统)"
-    
+    print_info "准备更新环境（部署形态 / Docker / 镜像来源）..."
+
     ensure_deploy_profile
     print_info "部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
     detect_architecture
@@ -1375,7 +1376,11 @@ update_all() {
     check_docker_compose
     configure_docker_mirror
     export EASYAIOT_INSTALL_SCRIPT=".scripts/docker/install_linux_kylin.sh"
+    export EASYAIOT_SKIP_PROFILE_PROMPT=1
+    export EASYAIOT_RUNTIME_TAG="${EASYAIOT_RUNTIME_TAG:-latest}"
+    print_info "选择镜像更新方式..."
     runtime_images_acquire_for_update
+    print_info "准备运行时环境..."
     prepare_runtime_environment
     create_network
 

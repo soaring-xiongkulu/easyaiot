@@ -31,23 +31,54 @@ _media_run_priv() {
 }
 
 # Snap 版 Docker 对 /mnt 等路径常出现 bind mkdir: file exists，优先家目录
+# 注意：禁止调用 docker info（daemon 卡死时会让 update/install 无输出挂起）
 is_snap_confined_docker() {
-    local bin root_dir
+    if [ -n "${_EASYAIOT_SNAP_DOCKER_CACHED:-}" ]; then
+        [ "${_EASYAIOT_SNAP_DOCKER_CACHED}" = "1" ]
+        return $?
+    fi
+    local bin=""
     bin="$(command -v docker 2>/dev/null || true)"
-    [ -z "$bin" ] && return 1
+    _EASYAIOT_SNAP_DOCKER_CACHED=0
+    if [ -z "$bin" ]; then
+        return 1
+    fi
     case "$bin" in
-        /snap/*) return 0 ;;
+        /snap/*) _EASYAIOT_SNAP_DOCKER_CACHED=1; return 0 ;;
     esac
     if command -v readlink >/dev/null 2>&1; then
         case "$(readlink -f "$bin" 2>/dev/null || true)" in
-            /snap/*) return 0 ;;
+            /snap/*) _EASYAIOT_SNAP_DOCKER_CACHED=1; return 0 ;;
         esac
     fi
-    root_dir="$(docker info 2>/dev/null | awk -F': ' '/Docker Root Dir/{print $2; exit}' || true)"
-    case "$root_dir" in
-        /var/snap/docker/*) return 0 ;;
-    esac
+    # 不依赖 docker info：仅看常见 snap 数据目录是否存在
+    if [ -d /var/snap/docker/common ] || [ -d /var/snap/docker/current ]; then
+        case "$bin" in
+            /usr/bin/docker|/bin/docker)
+                # apt 版 docker 也可能与 snap 目录并存，不以目录单独判定
+                ;;
+            *)
+                _EASYAIOT_SNAP_DOCKER_CACHED=1
+                return 0
+                ;;
+        esac
+    fi
     return 1
+}
+
+# 安全判断挂载点：避免僵死 NFS 上 mountpoint/stat 永久卡死
+_is_media_mountpoint_safe() {
+    local path="$1"
+    [ -n "$path" ] || return 1
+    if command -v findmnt >/dev/null 2>&1; then
+        [ "$(findmnt -n -o TARGET "$path" 2>/dev/null || true)" = "$path" ]
+        return $?
+    fi
+    if command -v timeout >/dev/null 2>&1; then
+        timeout 3 mountpoint -q "$path" 2>/dev/null
+        return $?
+    fi
+    mountpoint -q "$path" 2>/dev/null
 }
 
 # 标准候选路径（按优先级）
@@ -147,7 +178,7 @@ resolve_easyaiot_media_root() {
     fi
 
     for candidate in $(_easyaiot_media_root_candidates); do
-        if mountpoint -q "$candidate" 2>/dev/null && _is_usable_media_bind_dir "$candidate"; then
+        if _is_media_mountpoint_safe "$candidate" && _is_usable_media_bind_dir "$candidate"; then
             echo "$candidate"
             return
         fi

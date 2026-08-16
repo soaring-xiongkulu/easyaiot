@@ -546,8 +546,28 @@ source "${SCRIPT_DIR}/docker_compose_bundled.sh"
 
 # 检查 Docker 权限
 check_docker_permission() {
-    if ! docker info &> /dev/null; then
-        local error_msg=$(docker info 2>&1)
+    local _info_out=""
+    # docker info 在 daemon/NFS 异常时可能无限挂起，加超时避免 update 无输出卡死
+    if command -v timeout >/dev/null 2>&1; then
+        if ! _info_out=$(timeout 20 docker info 2>&1); then
+            local error_msg="$_info_out"
+            if echo "$error_msg" | grep -qi "permission denied\|cannot connect"; then
+                print_error "没有权限访问 Docker daemon（执行: sudo usermod -aG docker \$USER 后重新登录，或用 sudo 运行此脚本）"
+            elif echo "$error_msg" | grep -qi "Is the docker daemon running"; then
+                print_error "Docker daemon 未运行（执行: sudo systemctl start docker）"
+                if systemctl is-failed docker.service &> /dev/null 2>&1; then
+                    print_info "若启动失败，运行诊断: sudo .scripts/docker/diagnose_docker_systemd.sh diagnose"
+                fi
+            elif [ -z "$error_msg" ] || echo "$error_msg" | grep -qiE 'timeout|terminated'; then
+                print_error "Docker daemon 响应超时（20s），请检查: systemctl status docker; journalctl -u docker -n 50"
+            else
+                print_error "无法连接 Docker daemon: $error_msg"
+            fi
+            exit 1
+        fi
+    elif ! docker info &> /dev/null; then
+        local error_msg
+        error_msg=$(docker info 2>&1)
         
         if echo "$error_msg" | grep -qi "permission denied\|cannot connect"; then
             print_error "没有权限访问 Docker daemon（执行: sudo usermod -aG docker \$USER 后重新登录，或用 sudo 运行此脚本）"
@@ -1730,14 +1750,21 @@ clean_build_runtime() {
 # 更新所有服务
 update_all() {
     print_section "更新所有服务"
-    
+    # 立刻刷出进度，避免 ensure_deploy_profile / docker 探测阶段看起来像卡死
+    print_info "准备更新环境（部署形态 / Docker / 镜像来源）..."
+
     ensure_deploy_profile
     print_info "部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
     check_docker "$@"
     check_docker_compose
     configure_docker_mirror
     export EASYAIOT_INSTALL_SCRIPT="${EASYAIOT_INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}"
+    # 形态已由 ensure_deploy_profile 确定，拉镜像时勿再反复交互选 profile/tag
+    export EASYAIOT_SKIP_PROFILE_PROMPT=1
+    export EASYAIOT_RUNTIME_TAG="${EASYAIOT_RUNTIME_TAG:-latest}"
+    print_info "选择镜像更新方式..."
     runtime_images_acquire_for_update
+    print_info "准备运行时环境..."
     prepare_runtime_environment
     create_network
 
@@ -1763,6 +1790,7 @@ update_all() {
     done
 
     # 基础服务先更新并等就绪，业务模块随后
+    print_section "更新 ${MODULE_NAMES[".scripts/docker"]}"
     if execute_module_command ".scripts/docker" "update"; then
         wait_for_base_services
     else
@@ -1784,6 +1812,7 @@ update_all() {
         fi
     else
         for module in "${update_modules[@]}"; do
+            print_section "更新 ${MODULE_NAMES[$module]}"
             execute_module_command "$module" "update" || print_warning "${MODULE_NAMES[$module]} 更新失败，继续其余模块"
             # DEVICE 更新后等待 gateway 就绪，确保后续 WEB 更新时 /dev-api/ 可达
             if [ "$module" = "DEVICE" ]; then
