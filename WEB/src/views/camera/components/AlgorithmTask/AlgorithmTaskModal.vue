@@ -127,7 +127,7 @@ const runtimeVersionBanner = computed(() => {
   if (info.ready) {
     return '本机 RUNTIME 已就绪，但未找到 VERSION 文件（请重新编译以写入版本信息）';
   }
-  return '本机 RUNTIME 未就绪：高性能任务将触发自动编译，或请先执行 RUNTIME/install_linux.sh';
+  return '本机推理运行时未就绪：低时延任务将触发自动编译，或请先完成业务运行时安装';
 });
 
 async function loadRuntimeInfo() {
@@ -615,15 +615,15 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       componentProps: {
         placeholder: '请选择任务类型',
         options: [
-          { label: '实时算法任务（高性能）', value: 'realtime_cpp' },
-          { label: '抓拍算法任务（高性能）', value: 'snap_cpp' },
-          { label: '巡检算法任务（高性能）', value: 'patrol_cpp' },
-          { label: '实时算法任务', value: 'realtime' },
-          { label: '抓拍算法任务', value: 'snap' },
-          { label: '巡检算法任务', value: 'patrol' },
+          { label: '实时视频分析（低时延）', value: 'realtime_cpp' },
+          { label: '事件抓拍分析（低时延）', value: 'snap_cpp' },
+          { label: '周期巡检分析（低时延）', value: 'patrol_cpp' },
+          { label: '实时视频分析（全功能）', value: 'realtime' },
+          { label: '事件抓拍分析（全功能）', value: 'snap' },
+          { label: '周期巡检分析（全功能）', value: 'patrol' },
         ],
       },
-      helpMessage: '高性能：RUNTIME C++ 加速推理，适合大路数/低时延。可「本机」跑，或调度到已分发 RUNTIME 的计算节点（原子节点）；未标注项为 Python 完整能力集（人脸/车牌/后处理等）',
+      helpMessage: '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、后处理等完整能力集',
       defaultValue: 'realtime_cpp',
     },
     {
@@ -651,7 +651,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         placeholder: '请选择调度策略',
         options: schedulePolicyOptions,
       },
-      helpMessage: '本机：当前 VIDEO 所在机拉起 RUNTIME/Python；自动/指定节点：经 iot-node 下发到远程 Agent。高性能(cpp)调度到节点前，请先在「节点管理 → 业务运行时分发」安装 RUNTIME',
+      helpMessage: '本机：在当前视频服务所在机器启动；自动/指定节点：下发到远程计算节点。低时延任务调度到节点前，请先在「节点管理 → 业务运行时分发」完成安装',
     },
     {
       field: 'prefer_gpu',

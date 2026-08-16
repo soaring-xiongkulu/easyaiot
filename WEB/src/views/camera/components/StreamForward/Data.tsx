@@ -22,7 +22,7 @@ export function getBasicColumns(): BasicColumn[] {
       },
     },
     {
-      title: '执行后端',
+      title: '推流引擎',
       dataIndex: 'executor',
       width: 120,
       customRender: ({ text }) => {
@@ -30,7 +30,7 @@ export function getBasicColumns(): BasicColumn[] {
         const isCpp = ex === 'cpp' || ex === 'c++' || ex === 'runtime';
         return (
           <Tag color={isCpp ? 'orange' : 'blue'}>
-            {isCpp ? '高性能' : '兼容模式'}
+            {isCpp ? '性能优先' : '兼容优先'}
           </Tag>
         );
       },

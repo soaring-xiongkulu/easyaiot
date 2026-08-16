@@ -19,8 +19,8 @@ export function getBasicColumns(): BasicColumn[] {
         const executor = String(record?.executor || 'python').toLowerCase();
         const isCpp = executor === 'cpp' || executor === 'c++' || executor === 'runtime';
         const base =
-          text === 'realtime' ? '实时算法任务' : text === 'patrol' ? '巡检算法任务' : '抓拍算法任务';
-        const label = isCpp ? `${base}（高性能）` : base;
+          text === 'realtime' ? '实时视频分析' : text === 'patrol' ? '周期巡检分析' : '事件抓拍分析';
+        const label = isCpp ? `${base}（低时延）` : `${base}（全功能）`;
         const color = text === 'realtime' ? 'blue' : text === 'patrol' ? 'purple' : 'green';
         return (
           <Tag color={isCpp ? 'orange' : color}>
@@ -183,9 +183,9 @@ export function getFormConfig(): Partial<FormProps> {
           placeholder: '请选择任务类型',
           options: [
             { value: '', label: '全部' },
-            { value: 'realtime', label: '实时算法任务' },
-            { value: 'snap', label: '抓拍算法任务' },
-            { value: 'patrol', label: '巡检算法任务' },
+            { value: 'realtime', label: '实时视频分析' },
+            { value: 'snap', label: '事件抓拍分析' },
+            { value: 'patrol', label: '周期巡检分析' },
           ],
         },
       },

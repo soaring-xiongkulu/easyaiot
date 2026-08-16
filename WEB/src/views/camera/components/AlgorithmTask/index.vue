@@ -312,15 +312,15 @@ const searchParams = ref<{
 function formatTaskTypeLabel(item: { task_type?: string; executor?: string }) {
   const base =
     item.task_type === 'realtime'
-      ? '实时算法任务'
+      ? '实时视频分析'
       : item.task_type === 'patrol'
-        ? '巡检算法任务'
-        : '抓拍算法任务';
+        ? '周期巡检分析'
+        : '事件抓拍分析';
   const ex = String(item.executor || 'python').toLowerCase();
   if (ex === 'cpp' || ex === 'c++' || ex === 'runtime' || ex === 'cxx') {
-    return `${base}（高性能）`;
+    return `${base}（低时延）`;
   }
-  return base;
+  return `${base}（全功能）`;
 }
 
 // 表格模式配置
@@ -583,8 +583,8 @@ const [registerForm, { validate }] = useForm({
         placeholder: '请选择任务类型',
         options: [
           { value: '', label: '全部' },
-          { value: 'realtime', label: '实时算法任务' },
-          { value: 'snap', label: '抓拍算法任务' },
+          { value: 'realtime', label: '实时视频分析' },
+          { value: 'snap', label: '事件抓拍分析' },
         ],
       },
     },
