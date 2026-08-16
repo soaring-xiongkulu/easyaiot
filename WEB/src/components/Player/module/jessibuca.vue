@@ -463,8 +463,12 @@ export default {
       if (!this.playUrl || !this.jessibuca) return;
 
       const originalPlayUrl = this.playUrl;
-      // mini 容器：后端常返回宿主机 IP:8080，须改为页面 host 经 nginx 代理 /live|/ai|/rtp
-      let target = normalizeJessibucaPlayUrl(rewriteStreamHostToPageHost(originalPlayUrl));
+      // 多分屏：上层已在 localhost/127.0.0.1:页面端口 间轮询（走 Vite /live 反代），
+      // 禁止再统一改回单一页面 host，否则会撞上 HTTP/1.1 同 origin 约 6 路限制。
+      // 单路预览仍改写到页面 host。
+      let target = this.multiView
+        ? originalPlayUrl
+        : normalizeJessibucaPlayUrl(rewriteStreamHostToPageHost(originalPlayUrl));
       // 受保护流(/ai /live /rtp)需带 secure_link 票据，未签名会被 nginx 403
       if (isProtectedStreamUrl(target)) {
         try {
@@ -474,7 +478,9 @@ export default {
           // 不把整路播放卡死在签发服务上：强制校验关闭时仍可播；开启时会 403 ->
           // on('error') -> maybeRenewOnError 再续票自愈；若是 401，axios 已统一跳登录。
           console.warn("stream ticket sign failed, fallback to unsigned url", e);
-          target = normalizeJessibucaPlayUrl(rewriteStreamHostToPageHost(this.playUrl));
+          target = this.multiView
+            ? this.playUrl
+            : normalizeJessibucaPlayUrl(rewriteStreamHostToPageHost(this.playUrl));
         }
         // 防竞态：等待签发期间地址已切换/组件已销毁则放弃
         if (this.playUrl !== originalPlayUrl || !this.jessibuca) return;

@@ -84,6 +84,8 @@ export interface DirectPlayUrlResult {
 
 /** 探测 AI 流是否在 ZLM 上就绪（毫秒） */
 export const AI_STREAM_PROBE_MS = 1200;
+/** 多分屏探测宜更短，避免空 /ai 长时间占连接 */
+export const AI_STREAM_PROBE_MULTI_VIEW_MS = 900;
 /** 直连 AI 流起播超时后回退原始流（毫秒，仅 preferAi 时生效） */
 export const AI_PLAY_FALLBACK_MS = 2500;
 /** Jessibuca 播 /ai 且可回退时，加载/心跳超时（秒），尽快触发 stream-error */
@@ -268,6 +270,106 @@ function toBrowserPlayUrl(stream?: string | null): string | null {
   return normalizeJessibucaPlayUrl(rewriteStreamHostToPageHost(httpUrl));
 }
 
+/**
+ * 多分屏播放地址：
+ * - 页面已是 HTTP/2/3：同 origin 多路复用，直接用页面 host（最终方案）
+ * - 否则（Vite HTTP/1.1）：自动轮换 127.0.0.1..N 扩连接池（本机打开时）
+ */
+let multiViewOriginSeq = 0;
+
+/** 回环 origin 池大小；可用 VITE_MULTIVIEW_LOOPBACK_POOL 覆盖（1~254） */
+function multiViewLoopbackPoolSize(): number {
+  const raw =
+    typeof import.meta !== 'undefined'
+      ? Number((import.meta as any).env?.VITE_MULTIVIEW_LOOPBACK_POOL)
+      : NaN;
+  if (Number.isFinite(raw) && raw >= 1) return Math.min(254, Math.floor(raw));
+  return 64;
+}
+
+function isLocalDevPageHost(host: string): boolean {
+  return host === 'localhost' || host.startsWith('127.') || host === '[::1]' || host === '::1';
+}
+
+/** 当前页面文档是否已经走 HTTP/2 或 HTTP/3（可多路复用，无需 127.x 池） */
+export function pageUsesHttp2(): boolean {
+  if (typeof performance === 'undefined') return false;
+  try {
+    const nav = performance.getEntriesByType('navigation')[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    const proto = (nav?.nextHopProtocol || '').toLowerCase();
+    return proto === 'h2' || proto === 'h2c' || proto.startsWith('h3');
+  } catch {
+    return false;
+  }
+}
+
+function resolveMultiViewMediaPort(): string {
+  if (typeof window === 'undefined') return '';
+  return window.location.port || '';
+}
+
+/** 自动生成多分屏 hostname 列表 */
+function collectMultiViewPageHosts(): string[] {
+  const pageHost = (typeof window !== 'undefined' && window.location.hostname) || 'localhost';
+  const hosts: string[] = [];
+  const push = (h?: string | null) => {
+    const host = (h || '').trim();
+    if (!host || hosts.includes(host)) return;
+    hosts.push(host);
+  };
+
+  // HTTP/2/3：一条连接多路复用，保持单一 origin
+  if (pageUsesHttp2()) {
+    return [pageHost];
+  }
+
+  if (isLocalDevPageHost(pageHost)) {
+    const n = multiViewLoopbackPoolSize();
+    for (let i = 1; i <= n; i += 1) {
+      push(`127.0.0.${i}`);
+    }
+  } else {
+    push(pageHost);
+    const envHosts = String(
+      (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_MULTIVIEW_EXTRA_HOSTS) || '',
+    )
+      .split(/[\s,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const h of envHosts) push(h);
+  }
+
+  return hosts.length ? hosts : [pageHost];
+}
+
+export function toMultiViewPlayUrl(url?: string | null): string | null {
+  const trimmed = url?.trim();
+  if (!trimmed) return null;
+  if (typeof window === 'undefined') return trimmed;
+  try {
+    const httpUrl = trimmed.startsWith('rtmp://') ? convertRtmpToHttp(trimmed) : trimmed;
+    if (!httpUrl) return null;
+    const pageUrl = rewriteStreamHostToPageHost(httpUrl);
+    const parsed = new URL(pageUrl);
+    const path = parsed.pathname || '';
+    if (!/^\/(live|ai|rtp)\//i.test(path)) {
+      return pageUrl;
+    }
+    const hosts = collectMultiViewPageHosts();
+    const host = hosts[multiViewOriginSeq++ % hosts.length]!;
+    const port = resolveMultiViewMediaPort();
+    parsed.protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    parsed.hostname = host;
+    if (port) parsed.port = port;
+    else parsed.port = '';
+    return parsed.toString();
+  } catch {
+    return trimmed;
+  }
+}
+
 /** 是否为算法任务输出的 AI 流（检测框烧录在此路流上） */
 export function isAiStreamPlayUrl(url?: string | null): boolean {
   if (!url) return false;
@@ -298,6 +400,21 @@ export async function probeStreamPlayable(
   let target = url?.trim();
   if (!target || typeof window === 'undefined') return false;
   target = flvUrlForHttpProbe(target);
+  // 探测时若落在页面 host，轮换到 127.0.0.1:同端口，避免与播放抢同一 origin 的 6 路连接
+  try {
+    const u = new URL(target);
+    if (
+      /^\/(live|ai)\//i.test(u.pathname) &&
+      typeof window !== 'undefined' &&
+      u.port === window.location.port
+    ) {
+      if (u.hostname === 'localhost') u.hostname = '127.0.0.1';
+      else if (u.hostname === '127.0.0.1') u.hostname = 'localhost';
+      target = u.toString();
+    }
+  } catch {
+    /* keep target */
+  }
   // 探测直连 fetch /ai 地址，受 secure_link 保护，需先签名（开启强制校验时未签名恒 403）。
   // 签发失败则降级探测未签名地址：强制校验关闭时仍能正常探测，开启时会 403 -> 探测返回 false -> 回退原始流。
   if (isProtectedStreamUrl(target)) {
@@ -371,26 +488,76 @@ export async function pickDirectPlayUrls(
     return { url: aiUrl, preferAi: true };
   }
 
-  // 启用 AI：先 instant 播 /live，后台 1.2s 探测 /ai 就绪后无感升级；/ai 失败则 3s 内回退 /live
-  return { url: videoUrl, pendingAiUrl: aiUrl };
+  // 启用 AI：优先直接播 /ai（算法任务只推 app=ai）；失败再由播放器回退 /live。
+  // 若先播空 /live，SRS 会挂起无响应，多分屏会一直「视频加载中」。
+  return { url: aiUrl, fallbackUrl: videoUrl, preferAi: true };
 }
+
+/** 全局串行 AI 探测，避免多分屏同时 fetch 空 /ai 占满浏览器连接池 */
+const AI_UPGRADE_PROBE_LIMIT = 1;
+let aiUpgradeProbeActive = 0;
+const aiUpgradeProbeWaiters: Array<() => void> = [];
+
+function enqueueAiUpgradeProbe<T>(job: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const run = () => {
+      aiUpgradeProbeActive += 1;
+      job()
+        .then(resolve, reject)
+        .finally(() => {
+          aiUpgradeProbeActive -= 1;
+          const next = aiUpgradeProbeWaiters.shift();
+          if (next) next();
+        });
+    };
+    if (aiUpgradeProbeActive < AI_UPGRADE_PROBE_LIMIT) run();
+    else aiUpgradeProbeWaiters.push(run);
+  });
+}
+
+export type PendingAiUpgradeOptions = {
+  /** 探测超时，默认 AI_STREAM_PROBE_MS */
+  probeMs?: number;
+  /** 起播后再延迟探测，避免与首屏 /live 抢连接 */
+  delayMs?: number;
+  /** 是否走全局串行探测（默认 true） */
+  serialize?: boolean;
+};
 
 /**
  * 首帧已播原始流后，后台探测 AI 就绪再升级（分屏/大屏/弹窗共用）。
+ * 多分屏务必 serialize + delay，否则空 /ai 会把连接池打满导致全屏卡死。
  */
 export function schedulePendingAiStreamUpgrade(
   aiUrl: string,
   fallbackUrl: string,
   shouldUpgrade: () => boolean,
   onUpgrade: () => void,
+  options?: PendingAiUpgradeOptions,
 ): void {
   const ai = aiUrl?.trim();
   const fb = fallbackUrl?.trim();
   if (!ai || !fb || ai === fb) return;
-  void probeStreamPlayable(ai, AI_STREAM_PROBE_MS).then((ready) => {
+
+  const probeMs = options?.probeMs ?? AI_STREAM_PROBE_MS;
+  const delayMs = Math.max(0, options?.delayMs ?? 0);
+  const serialize = options?.serialize !== false;
+
+  const run = async () => {
+    if (delayMs > 0) {
+      await new Promise<void>((r) => window.setTimeout(r, delayMs));
+    }
+    if (!shouldUpgrade()) return;
+    const ready = await probeStreamPlayable(ai, probeMs);
     if (!ready || !shouldUpgrade()) return;
     onUpgrade();
-  });
+  };
+
+  if (serialize) {
+    void enqueueAiUpgradeProbe(run);
+  } else {
+    void run();
+  }
 }
 
 export function supportsRtspForward(record: DeviceInfo): boolean {

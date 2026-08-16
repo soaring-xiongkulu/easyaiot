@@ -181,9 +181,12 @@ import { formatAlertListTitle, isSnapAlertTask } from '@/views/alert/alertDispla
 import { formatCameraDeviceLabel, formatCameraShortName, isGb28181Device } from '@/views/camera/utils/deviceLabel'
 import {
   AI_PLAY_FALLBACK_MS,
+  AI_STREAM_PROBE_MULTI_VIEW_MS,
   pickDirectPlayUrls,
   resolveGbChannelPlayUrls,
   schedulePendingAiStreamUpgrade,
+  isAiStreamPlayUrl,
+  toMultiViewPlayUrl,
 } from '@/views/camera/utils/devicePlay'
 import { parseGbChannelKey } from '@/views/camera/utils/gb28181Tree'
 import type { MonitorTreeDeviceNode } from '@/api/device/camera'
@@ -195,6 +198,66 @@ import {
   type MonitorLayoutPreset,
   type MonitorLayoutSlot,
 } from '../utils/monitorLayoutStorage'
+
+/** 多分屏同时起播并发上限，避免后几路卡在「疯狂加载中」 */
+const MULTI_VIEW_PLAY_CONCURRENCY = 2
+
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<void>,
+  staggerMs = 220,
+): Promise<void> {
+  if (!items.length) return
+  const limit = Math.max(1, Math.min(concurrency, items.length))
+  let cursor = 0
+  const runOne = async () => {
+    while (cursor < items.length) {
+      const index = cursor++
+      await worker(items[index]!, index)
+      if (staggerMs > 0 && cursor < items.length) {
+        await new Promise((r) => window.setTimeout(r, staggerMs))
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: limit }, () => runOne()))
+}
+
+const playStartQueue: Array<() => Promise<void>> = []
+let playStartActive = 0
+
+function enqueuePlayStart<T>(job: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    playStartQueue.push(async () => {
+      try {
+        resolve(await job())
+      } catch (e) {
+        reject(e)
+      }
+    })
+    drainPlayStartQueue()
+  })
+}
+
+function drainPlayStartQueue() {
+  while (playStartActive < MULTI_VIEW_PLAY_CONCURRENCY && playStartQueue.length) {
+    const next = playStartQueue.shift()
+    if (!next) return
+    playStartActive += 1
+    void next().finally(() => {
+      playStartActive -= 1
+      drainPlayStartQueue()
+    })
+  }
+}
+
+function isMultiViewLayout(): boolean {
+  return getMaxVideoCount(currentLayout.value) > 1
+}
+
+function shouldEnableAiForPlay(): boolean {
+  return enableAi.value
+}
 
 /** 与 monitor/index.vue 中 MONITOR_OVERLAY_Z_INDEX 保持一致 */
 const MONITOR_OVERLAY_Z_INDEX = 10050
@@ -223,6 +286,7 @@ const dragSourceIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 const currentLayout = ref('1')
 /** 勾选后点播 AI 流；默认开，先播 /live 原始流，AI 就绪后无感升级，失败则快速回退 */
+/** 勾选后点播 AI 流（检测框由算法任务烧录）；默认关，避免多分屏误探 /ai 占满连接 */
 const enableAi = ref(true)
 const videoRefs = ref<(InstanceType<typeof Jessibuca> | null)[]>([])
 const alertRecordList = ref<any[]>([])
@@ -369,7 +433,7 @@ async function playSavedSlot(index: number, saved: MonitorLayoutSlot) {
     const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolveGbChannelPlayUrls(
       gb.sipDeviceId,
       gb.channelId,
-      { enableAi: enableAi.value, synced: saved.device },
+      { enableAi: shouldEnableAiForPlay(), synced: saved.device },
     )
     if (!url) {
       createMessage.warn(`方案恢复失败：${saved.name}`)
@@ -416,21 +480,30 @@ async function restorePendingVideos() {
   if (isRestoringLayout.value) return
   isRestoringLayout.value = true
   try {
-    const tasks: Promise<void>[] = []
+    const pending: Array<{ idx: number; slot: MonitorLayoutSlot }> = []
     internalVideoList.value.forEach((slot, idx) => {
       if (!slot?.pendingRestore || !slot.deviceId) return
-      tasks.push(
-        playSavedSlot(idx, {
+      pending.push({
+        idx,
+        slot: {
           deviceId: slot.deviceId,
           name: slot.name,
           location: slot.location,
           device: slot.device,
-        }).finally(() => {
-          slot.pendingRestore = false
-        }),
-      )
+        },
+      })
     })
-    await Promise.all(tasks)
+    const maxCount = getMaxVideoCount(currentLayout.value)
+    await runWithConcurrency(
+      pending,
+      MULTI_VIEW_PLAY_CONCURRENCY,
+      async ({ idx, slot }) => {
+        await playSavedSlot(idx, slot).finally(() => {
+          const current = internalVideoList.value[idx]
+          if (current) current.pendingRestore = false
+        })
+      },
+    )
   } finally {
     isRestoringLayout.value = false
   }
@@ -757,71 +830,128 @@ async function startPlayAtScreen(
     pendingAiUrl?: string | null
   },
 ) {
-  clearAiFallbackTimer(targetIndex)
+  return enqueuePlayStart(async () => {
+    clearAiFallbackTimer(targetIndex)
+    liveRemountRetries.delete(targetIndex)
 
-  const fallbackUrl = payload.fallbackUrl?.trim()
-  const hasFallback = !!(payload.preferAi && fallbackUrl && fallbackUrl !== payload.url)
-  const pendingAi = payload.pendingAiUrl?.trim()
+    const useMultiViewUrl = isMultiViewLayout()
+    const primaryUrl = (useMultiViewUrl ? toMultiViewPlayUrl(payload.url) : null) || payload.url
+    const fallbackRaw = payload.fallbackUrl?.trim()
+    const fallbackUrl = fallbackRaw
+      ? ((useMultiViewUrl ? toMultiViewPlayUrl(fallbackRaw) : null) || fallbackRaw)
+      : ''
+    const pendingRaw = payload.pendingAiUrl?.trim()
+    const pendingAi = pendingRaw
+      ? ((useMultiViewUrl ? toMultiViewPlayUrl(pendingRaw) : null) || pendingRaw)
+      : ''
+    const hasFallback = !!(payload.preferAi && fallbackUrl && fallbackUrl !== primaryUrl)
+    const allowAiUpgrade = shouldEnableAiForPlay()
 
-  internalVideoList.value[targetIndex] = {
-    id: payload.id,
-    url: payload.url,
-    name: payload.name,
-    deviceId: payload.deviceId,
-    location: payload.location || '',
-    device: payload.device,
-    fallbackUrl: hasFallback ? fallbackUrl : null,
-  }
+    internalVideoList.value[targetIndex] = {
+      id: payload.id,
+      url: primaryUrl,
+      name: payload.name,
+      deviceId: payload.deviceId,
+      location: payload.location || '',
+      device: payload.device,
+      fallbackUrl: hasFallback && allowAiUpgrade ? fallbackUrl : null,
+    }
 
-  if (pendingAi && pendingAi !== payload.url && payload.deviceId) {
-    schedulePendingAiStreamUpgrade(
-      pendingAi,
-      payload.url,
-      () => {
-        const slot = internalVideoList.value[targetIndex]
-        return !!slot && slot.deviceId === payload.deviceId && slot.url !== pendingAi
-      },
-      () => {
-        const slot = internalVideoList.value[targetIndex]
-        if (!slot) return
-        internalVideoList.value[targetIndex] = {
-          ...slot,
-          url: pendingAi,
-          fallbackUrl: payload.url,
-        }
-      },
-    )
-  }
+    // 启用 AI：先播 /live；多分屏串行探测 /ai，就绪后再逐路升级，失败保持 /live
+    if (allowAiUpgrade && pendingAi && pendingAi !== primaryUrl && payload.deviceId) {
+      const multi = isMultiViewLayout()
+      schedulePendingAiStreamUpgrade(
+        pendingAi,
+        primaryUrl,
+        () => {
+          const slot = internalVideoList.value[targetIndex]
+          return !!slot && slot.deviceId === payload.deviceId && slot.url !== pendingAi
+        },
+        () => {
+          const slot = internalVideoList.value[targetIndex]
+          if (!slot) return
+          internalVideoList.value[targetIndex] = {
+            ...slot,
+            url: pendingAi,
+            fallbackUrl: primaryUrl,
+          }
+        },
+        {
+          serialize: true,
+          probeMs: multi ? AI_STREAM_PROBE_MULTI_VIEW_MS : undefined,
+          // 等 /live 先占稳连接，再错峰探测，避免空 /ai 打满 6 路上限
+          delayMs: multi ? 1200 + targetIndex * 500 : 400,
+        },
+      )
+    }
 
-  if (!hasFallback) return
+    if (!hasFallback || !allowAiUpgrade) return
 
-  const primaryUrl = payload.url
-  const timerId = window.setTimeout(async () => {
-    aiFallbackTimers.delete(targetIndex)
-    const slot = internalVideoList.value[targetIndex]
-    if (!slot || slot.url !== primaryUrl) return
-    if (videoRefs.value[targetIndex]?.playing) return
+    const timerId = window.setTimeout(async () => {
+      aiFallbackTimers.delete(targetIndex)
+      const slot = internalVideoList.value[targetIndex]
+      if (!slot || slot.url !== primaryUrl) return
+      if (videoRefs.value[targetIndex]?.playing) return
 
-    internalVideoList.value[targetIndex] = { ...slot, url: fallbackUrl!, fallbackUrl: null }
-  }, AI_PLAY_FALLBACK_MS)
-  aiFallbackTimers.set(targetIndex, timerId)
+      internalVideoList.value[targetIndex] = { ...slot, url: fallbackUrl!, fallbackUrl: null }
+    }, AI_PLAY_FALLBACK_MS)
+    aiFallbackTimers.set(targetIndex, timerId)
+  })
 }
 
-/** AI 流播放后中断（timeout/error）：回退到原始流 */
+/** AI 流失败回退 /live；已是 live 仍超时则最多 remount 1 次 */
+const liveRemountRetries = new Map<number, number>()
+
 function handleStreamError(screenIdx: number) {
   const slot = internalVideoList.value[screenIdx]
   if (!slot) return
   const fb = slot.fallbackUrl?.trim()
-  if (!fb || fb === slot.url) return
+  if (fb && fb !== slot.url) {
+    clearAiFallbackTimer(screenIdx)
+    liveRemountRetries.delete(screenIdx)
+    internalVideoList.value[screenIdx] = { ...slot, url: fb, fallbackUrl: null }
+    return
+  }
+  if (!slot.url || !slot.deviceId) return
+  if (isAiStreamPlayUrl(slot.url)) {
+    const liveUrl = slot.url.replace(/\/ai\//i, '/live/')
+    if (liveUrl !== slot.url) {
+      clearAiFallbackTimer(screenIdx)
+      liveRemountRetries.delete(screenIdx)
+      internalVideoList.value[screenIdx] = {
+        ...slot,
+        id: `video-${slot.deviceId}-live-${Date.now()}`,
+        url: liveUrl,
+        fallbackUrl: null,
+      }
+      return
+    }
+  }
+  // live 超时：改 key 强制 Jessibuca 重建（多分屏继续走多 origin）
+  const retries = liveRemountRetries.get(screenIdx) || 0
+  if (retries >= 1) return
+  liveRemountRetries.set(screenIdx, retries + 1)
   clearAiFallbackTimer(screenIdx)
-  internalVideoList.value[screenIdx] = { ...slot, url: fb, fallbackUrl: null }
+  const remountBase = isMultiViewLayout()
+    ? (toMultiViewPlayUrl(slot.url.replace(/([?&])_r=\d+/g, '').replace(/[?&]$/, '')) || slot.url)
+    : slot.url
+  const bust = `_r=${Date.now()}`
+  const nextUrl = remountBase.includes('?')
+    ? `${remountBase.replace(/([?&])_r=\d+/g, '$1').replace(/[?&]$/, '')}&${bust}`
+    : `${remountBase}?${bust}`
+  internalVideoList.value[screenIdx] = {
+    ...slot,
+    id: `video-${slot.deviceId}-retry-${Date.now()}`,
+    url: nextUrl,
+    fallbackUrl: null,
+  }
 }
 
 async function resolvePlayUrlsForDevice(dev: MonitorTreeDeviceNode) {
   if (isGb28181Device(dev.source, dev.device_kind)) {
     return { url: null as string | null, fallbackUrl: null as string | null | undefined }
   }
-  return pickDirectPlayUrls(dev, enableAi.value)
+  return pickDirectPlayUrls(dev, shouldEnableAiForPlay())
 }
 
 async function reloadVideoAtIndex(index: number) {
@@ -836,7 +966,7 @@ async function reloadVideoAtIndex(index: number) {
     const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolveGbChannelPlayUrls(
       gb.sipDeviceId,
       gb.channelId,
-      { enableAi: enableAi.value, synced: deviceNode },
+      { enableAi: shouldEnableAiForPlay(), synced: deviceNode },
     )
     if (url) {
       await startPlayAtScreen(index, {
@@ -858,7 +988,7 @@ async function reloadVideoAtIndex(index: number) {
 
   const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolvePlayUrlsForDevice(dev)
   if (!url) {
-    createMessage.warn(enableAi.value ? '该设备暂无 AI 流或原始流地址' : '该设备暂无播放地址')
+    createMessage.warn(shouldEnableAiForPlay() ? '该设备暂无 AI 流或原始流地址' : '该设备暂无播放地址')
     return
   }
   await startPlayAtScreen(index, {
@@ -874,11 +1004,17 @@ async function reloadVideoAtIndex(index: number) {
 }
 
 async function reloadAllVideosForAiToggle() {
-  const tasks: Promise<void>[] = []
+  const indexes: number[] = []
   internalVideoList.value.forEach((slot, idx) => {
-    if (slot?.url) tasks.push(reloadVideoAtIndex(idx))
+    if (slot?.url) indexes.push(idx)
   })
-  await Promise.all(tasks)
+  await runWithConcurrency(
+    indexes,
+    MULTI_VIEW_PLAY_CONCURRENCY,
+    async (idx) => {
+      await reloadVideoAtIndex(idx)
+    },
+  )
 }
 
 watch(enableAi, () => {
@@ -918,11 +1054,11 @@ const playDeviceStream = async (device: any) => {
     const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolveGbChannelPlayUrls(
       gb.sipDeviceId,
       gb.channelId,
-      { enableAi: enableAi.value, synced: dev },
+      { enableAi: shouldEnableAiForPlay(), synced: dev },
     )
     if (!url) {
       createMessage.warn(
-        enableAi.value
+        shouldEnableAiForPlay()
           ? '国标通道 AI 流不可用，请确认算法任务已启动；WVP 点播也失败，请检查通道状态'
           : '国标通道拉流失败，请检查 WVP 服务与通道状态',
       )
@@ -950,7 +1086,7 @@ const playDeviceStream = async (device: any) => {
   const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolvePlayUrlsForDevice(dev)
   if (!url) {
     createMessage.warning(
-      enableAi.value
+      shouldEnableAiForPlay()
         ? '该设备暂无 AI 流或原始流播放地址，请先在设备列表中配置'
         : '该设备暂无可用播放地址，请先在设备列表中配置流地址',
     )
