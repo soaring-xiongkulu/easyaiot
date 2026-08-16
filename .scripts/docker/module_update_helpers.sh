@@ -59,6 +59,29 @@ easyaiot_git_pull_ff_only() {
     return 0
 }
 
+# update 拉预构建镜像时也会跳过模块内 git pull；在此单独同步仓库脚本
+# （mqtt-demo vendor、install 脚本等），否则镜像更新了但宿主机 .scripts 仍是旧版。
+# 关闭：EASYAIOT_SKIP_GIT_PULL=1
+easyaiot_update_sync_project_scripts() {
+    local root="${1:-}"
+    if [ "${EASYAIOT_SKIP_GIT_PULL:-0}" = "1" ]; then
+        return 0
+    fi
+    if [ -z "$root" ] || [ ! -d "$root/.git" ]; then
+        return 0
+    fi
+    if ! easyaiot_have_git; then
+        return 0
+    fi
+    _easyaiot_update_msg info "同步仓库脚本（与镜像更新独立，含 mqtt-demo 等）..."
+    if git -C "$root" pull --ff-only; then
+        _easyaiot_update_msg success "仓库脚本已同步到 $(git -C "$root" rev-parse --short HEAD 2>/dev/null || echo latest)"
+        return 0
+    fi
+    _easyaiot_update_msg warning "git pull 失败，继续使用当前目录脚本"
+    return 0
+}
+
 easyaiot_git_rev_parse_head() {
     if easyaiot_have_git; then
         git rev-parse HEAD 2>/dev/null || echo ""

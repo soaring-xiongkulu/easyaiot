@@ -10,11 +10,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="${SCRIPT_DIR}/run"
 LOG_DIR="${RUN_DIR}/logs"
 VENDOR_DIR="${SCRIPT_DIR}/vendor"
+VENV_DIR="${MQTT_DEMO_VENV:-${SCRIPT_DIR}/.venv}"
 mkdir -p "$RUN_DIR" "$LOG_DIR"
 
 # 内置纯 Python 的 paho-mqtt，避免系统 PEP 668 / 无 pip 网络时启动失败
 if [ -d "${VENDOR_DIR}/paho" ]; then
     export PYTHONPATH="${VENDOR_DIR}${PYTHONPATH:+:$PYTHONPATH}"
+fi
+
+# 统一兜底（venv / pip）；vendor 已在上方 PYTHONPATH。失败不退出，后面 resolve_python 再报错
+if [ -f "${SCRIPT_DIR}/ensure_paho_ready.sh" ]; then
+    bash "${SCRIPT_DIR}/ensure_paho_ready.sh" >/dev/null 2>&1 || true
+    if [ -d "${VENDOR_DIR}/paho" ]; then
+        export PYTHONPATH="${VENDOR_DIR}${PYTHONPATH:+:$PYTHONPATH}"
+    fi
+    if [ -x "${VENV_DIR}/bin/python" ] \
+        && "${VENV_DIR}/bin/python" -c "import paho.mqtt.client" >/dev/null 2>&1; then
+        export MQTT_DEMO_PYTHON="${VENV_DIR}/bin/python"
+        export PATH="${VENV_DIR}/bin:${PATH}"
+    fi
 fi
 
 if [ "${EASYAIOT_ENABLE_MQTT_DEMO:-1}" = "0" ]; then

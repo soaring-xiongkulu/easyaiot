@@ -230,6 +230,23 @@ if grep -A20 '^cmd_update()' "$ROOT/.scripts/docker/install_middleware_desktop.s
 else
   bad "桌面 update 未清空 iot-node 样例"
 fi
+
+# 10) update 同步脚本 + mqtt-demo paho 兜底
+note "10) update 同步仓库脚本与 mqtt-demo paho..."
+if grep -q 'easyaiot_update_sync_project_scripts' "$ROOT/.scripts/docker/module_update_helpers.sh" \
+  && grep -q 'easyaiot_update_sync_project_scripts' "$ROOT/.scripts/docker/install_linux.sh"; then
+  ok "update_all 会 git pull 同步宿主机脚本"
+else
+  bad "update 未同步仓库脚本"
+fi
+if [ -f "$ROOT/.scripts/mqtt-demo/vendor/paho/mqtt/client.py" ] \
+  && [ -f "$ROOT/.scripts/mqtt-demo/ensure_paho_ready.sh" ] \
+  && grep -q 'PYTHONPATH' "$ROOT/.scripts/mqtt-demo/start_mqtt_demo.sh"; then
+  ok "mqtt-demo 含 vendor/paho 与 ensure_paho_ready"
+else
+  bad "mqtt-demo paho 兜底不完整"
+fi
+
 # PATH 去掉 git：helper 不得调用真实 git 失败
 if timeout 15 bash -c '
   set -e

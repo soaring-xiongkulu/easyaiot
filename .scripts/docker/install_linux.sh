@@ -68,6 +68,9 @@ source "${SCRIPT_DIR}/diagnose_tools.sh"
 # shellcheck source=node/ensure_platform_agent_invoke.sh
 source "${PROJECT_ROOT}/.scripts/node/ensure_platform_agent_invoke.sh"
 
+# shellcheck source=module_update_helpers.sh
+source "${SCRIPT_DIR}/module_update_helpers.sh"
+
 _ensure_platform_agent_info() { print_info "$1"; }
 _ensure_platform_agent_ok() { print_success "$1"; }
 _ensure_platform_agent_warn() { print_warning "$1"; }
@@ -84,6 +87,7 @@ ensure_platform_agent_after_stack() {
 ensure_mqtt_demo_after_stack() {
     local demo_dir="${PROJECT_ROOT}/.scripts/mqtt-demo"
     local starter="${demo_dir}/start_mqtt_demo.sh"
+    local ensure_paho="${demo_dir}/ensure_paho_ready.sh"
     if [ "${EASYAIOT_ENABLE_MQTT_DEMO:-1}" = "0" ]; then
         print_info "跳过 mqtt-demo 自动启动（EASYAIOT_ENABLE_MQTT_DEMO=0）"
         return 0
@@ -93,17 +97,40 @@ ensure_mqtt_demo_after_stack() {
         return 0
     fi
     if [ ! -x "$starter" ] && [ -f "$starter" ]; then
-        chmod +x "$starter" "${demo_dir}/stop_mqtt_demo.sh" 2>/dev/null || true
+        chmod +x "$starter" "${demo_dir}/stop_mqtt_demo.sh" "$ensure_paho" 2>/dev/null || true
     fi
     if [ ! -f "$starter" ]; then
         print_warning "未找到 ${starter}，跳过 mqtt-demo"
         return 0
+    fi
+    # 兼容旧版 start 脚本：先准备 paho（vendor / venv / pip），并导出到当前环境
+    if [ -f "$ensure_paho" ]; then
+        chmod +x "$ensure_paho" 2>/dev/null || true
+        bash "$ensure_paho" >/dev/null 2>&1 || true
+        # shellcheck disable=SC1090
+        eval "$(bash "$ensure_paho" print-env 2>/dev/null)" || true
+        if [ -d "${demo_dir}/vendor/paho" ]; then
+            export PYTHONPATH="${demo_dir}/vendor${PYTHONPATH:+:$PYTHONPATH}"
+        fi
+        if [ -x "${demo_dir}/.venv/bin/python" ]; then
+            export PATH="${demo_dir}/.venv/bin:${PATH}"
+            export MQTT_DEMO_PYTHON="${demo_dir}/.venv/bin/python"
+        fi
+    elif [ -d "${demo_dir}/vendor/paho" ]; then
+        export PYTHONPATH="${demo_dir}/vendor${PYTHONPATH:+:$PYTHONPATH}"
+    else
+        # 无 vendor 的旧目录：尽量系统 pip 装上，让旧 start 脚本能 import
+        python3 -m pip install --user -q paho-mqtt >/dev/null 2>&1 \
+            || python3 -m pip install --break-system-packages -q paho-mqtt >/dev/null 2>&1 \
+            || python3 -m pip install -q paho-mqtt >/dev/null 2>&1 \
+            || true
     fi
     print_section "启动 MQTT 演示设备（01/02/03 并行）"
     if bash "$starter"; then
         print_success "mqtt-demo 已启动（日志: ${demo_dir}/run/logs/）"
     else
         print_warning "mqtt-demo 启动未完全成功，可稍后手动: bash ${starter}"
+        print_info "若报缺少 paho-mqtt，可执行: python3 -m pip install --break-system-packages paho-mqtt"
     fi
 }
 
@@ -1758,6 +1785,8 @@ update_all() {
     export EASYAIOT_RUNTIME_TAG="${EASYAIOT_RUNTIME_TAG:-latest}"
     print_info "选择镜像更新方式..."
     runtime_images_acquire_for_update
+    # 拉预构建时模块内会跳过 git pull；这里单独同步宿主机脚本（mqtt-demo vendor 等）
+    easyaiot_update_sync_project_scripts "$PROJECT_ROOT"
     print_info "准备运行时环境..."
     prepare_runtime_environment
     create_network

@@ -64,6 +64,7 @@ ensure_platform_agent_after_business_stack() {
 ensure_mqtt_demo_after_business_stack() {
     local demo_dir="${PROJECT_ROOT}/.scripts/mqtt-demo"
     local starter="${demo_dir}/start_mqtt_demo.sh"
+    local ensure_paho="${demo_dir}/ensure_paho_ready.sh"
     if [ "${EASYAIOT_ENABLE_MQTT_DEMO:-1}" = "0" ]; then
         print_info "跳过 mqtt-demo 自动启动（EASYAIOT_ENABLE_MQTT_DEMO=0）"
         return 0
@@ -73,7 +74,21 @@ ensure_mqtt_demo_after_business_stack() {
         return 0
     fi
     if [ -f "$starter" ]; then
-        chmod +x "$starter" "${demo_dir}/stop_mqtt_demo.sh" 2>/dev/null || true
+        chmod +x "$starter" "${demo_dir}/stop_mqtt_demo.sh" "$ensure_paho" 2>/dev/null || true
+        if [ -f "$ensure_paho" ]; then
+            bash "$ensure_paho" >/dev/null 2>&1 || true
+            if [ -d "${demo_dir}/vendor/paho" ]; then
+                export PYTHONPATH="${demo_dir}/vendor${PYTHONPATH:+:$PYTHONPATH}"
+            fi
+            if [ -x "${demo_dir}/.venv/bin/python" ]; then
+                export PATH="${demo_dir}/.venv/bin:${PATH}"
+                export MQTT_DEMO_PYTHON="${demo_dir}/.venv/bin/python"
+            fi
+        else
+            python3 -m pip install --user -q paho-mqtt >/dev/null 2>&1 \
+                || python3 -m pip install --break-system-packages -q paho-mqtt >/dev/null 2>&1 \
+                || true
+        fi
         print_info "启动 MQTT 演示设备（01/02/03 并行）..."
         bash "$starter" || print_warning "mqtt-demo 启动未完全成功，可手动: bash ${starter}"
     fi
