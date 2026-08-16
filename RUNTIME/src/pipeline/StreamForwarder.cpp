@@ -1,7 +1,17 @@
 #include "pipeline/StreamForwarder.h"
 
+#include <cerrno>
 #include <chrono>
+#include <cstdlib>
+#include <string>
 #include <thread>
+#include <vector>
+
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <glog/logging.h>
 
@@ -22,6 +32,43 @@ bool isRtspUrl(const std::string& url) {
 
 bool isRtmpUrl(const std::string& url) {
     return url.rfind("rtmp://", 0) == 0 || url.rfind("rtmps://", 0) == 0;
+}
+
+std::string findFfmpegBinary() {
+    if (const char* explicitPath = std::getenv("STREAM_FORWARD_FFMPEG")) {
+        if (explicitPath[0] != '\0' && access(explicitPath, X_OK) == 0) {
+            return explicitPath;
+        }
+    }
+    if (const char* conda = std::getenv("CONDA_PREFIX")) {
+        std::string cand = std::string(conda) + "/bin/ffmpeg";
+        if (access(cand.c_str(), X_OK) == 0) {
+            return cand;
+        }
+    }
+    if (access("/usr/bin/ffmpeg", X_OK) == 0) {
+        return "/usr/bin/ffmpeg";
+    }
+    return "ffmpeg";
+}
+
+bool preferFfmpegRelay(const std::string& rtmpUrl) {
+    // Local file remux via libav is fine; RTMP publish to SRS for some NVR
+    // bitstreams is more reliable through the same ffmpeg CLI path VIDEO uses.
+    if (!isRtmpUrl(rtmpUrl)) {
+        return false;
+    }
+    const char* mode = std::getenv("STREAM_FORWARD_RELAY_MODE");
+    if (mode && mode[0] != '\0') {
+        std::string m(mode);
+        if (m == "libav" || m == "api" || m == "remux") {
+            return false;
+        }
+        if (m == "ffmpeg" || m == "cli" || m == "native") {
+            return true;
+        }
+    }
+    return true;
 }
 
 }  // namespace
@@ -83,17 +130,25 @@ bool StreamForwarder::openInput() {
         return false;
     }
 
+    // Align with VIDEO stream_forward defaults (STREAM_FORWARD_PROBESIZE /
+    // ANALYZEDURATION). Tiny probesize + analyzeduration=0 often leaves
+    // incomplete H.264 extradata; FLV/RTMP then fails SRS demux ("not annexb").
+    const char* probeEnv = std::getenv("STREAM_FORWARD_PROBESIZE");
+    const char* analyzeEnv = std::getenv("STREAM_FORWARD_ANALYZEDURATION");
+    const char* probesize = (probeEnv && *probeEnv) ? probeEnv : "2000000";
+    const char* analyzeduration = (analyzeEnv && *analyzeEnv) ? analyzeEnv : "2000000";
+
     AVDictionary* fmtOptions = nullptr;
     const std::string& openUrl = config_.rtspUrl;
     if (isRtspUrl(openUrl)) {
+        // Keep RTSP options conservative: nobuffer/low_delay can drop SPS/PPS
+        // packets and make FLV/RTMP copy fail SRS demux ("not annexb").
         av_dict_set(&fmtOptions, "rtsp_transport", "tcp", 0);
-        av_dict_set(&fmtOptions, "stimeout", "3000000", 0);
-        av_dict_set(&fmtOptions, "timeout", "5000000", 0);
+        av_dict_set(&fmtOptions, "stimeout", "5000000", 0);
+        av_dict_set(&fmtOptions, "rw_timeout", "5000000", 0);
         av_dict_set(&fmtOptions, "max_delay", "500000", 0);
-        av_dict_set(&fmtOptions, "fflags", "nobuffer", 0);
-        av_dict_set(&fmtOptions, "flags", "low_delay", 0);
-        av_dict_set(&fmtOptions, "probesize", "32768", 0);
-        av_dict_set(&fmtOptions, "analyzeduration", "0", 0);
+        av_dict_set(&fmtOptions, "probesize", probesize, 0);
+        av_dict_set(&fmtOptions, "analyzeduration", analyzeduration, 0);
     } else if (isRtmpUrl(openUrl)) {
         av_dict_set(&fmtOptions, "rtmp_live", "live", 0);
     }
@@ -107,19 +162,14 @@ bool StreamForwarder::openInput() {
 
     AVDictionary* probeOptions = nullptr;
     if (isRtspUrl(openUrl)) {
-        av_dict_set(&probeOptions, "probesize", "32768", 0);
-        av_dict_set(&probeOptions, "analyzeduration", "0", 0);
+        av_dict_set(&probeOptions, "probesize", probesize, 0);
+        av_dict_set(&probeOptions, "analyzeduration", analyzeduration, 0);
     }
     ret = avformat_find_stream_info(inCtx_, &probeOptions);
     av_dict_free(&probeOptions);
     if (ret < 0) {
         logAvError("[FORWARD] avformat_find_stream_info failed", ret);
         return false;
-    }
-
-    if (isRtspUrl(openUrl)) {
-        inCtx_->flags |= AVFMT_FLAG_NOBUFFER;
-        inCtx_->max_delay = 500000;
     }
 
     videoInIndex_ = av_find_best_stream(inCtx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
@@ -132,7 +182,8 @@ bool StreamForwarder::openInput() {
     const char* codecName = avcodec_get_name(inStream->codecpar->codec_id);
     LOG(INFO) << "[FORWARD] Input ready: " << openUrl
               << " video=" << inStream->codecpar->width << "x" << inStream->codecpar->height
-              << " codec=" << (codecName ? codecName : "unknown");
+              << " codec=" << (codecName ? codecName : "unknown")
+              << " extradata=" << inStream->codecpar->extradata_size << "B";
     return true;
 }
 
@@ -167,18 +218,21 @@ bool StreamForwarder::openOutput() {
         return false;
     }
     outStream->codecpar->codec_tag = 0;
-    outStream->time_base = inStream->time_base;
+    // FLV/RTMP expects a stable 1kHz time base for live publish.
+    outStream->time_base = AVRational{1, 1000};
     videoOutIndex_ = outStream->index;
 
+#ifdef AVFMT_FLAG_AUTO_BSF
+    outCtx_->flags |= AVFMT_FLAG_AUTO_BSF;
+#endif
+
     if (!(outCtx_->oformat->flags & AVFMT_NOFILE)) {
-        AVDictionary* options = nullptr;
-        av_dict_set(&options, "rtmp_buffer", "50", 0);
-        av_dict_set(&options, "rtmp_live", "live", 0);
-        av_dict_set(&options, "buffer_size", "65536", 0);
-        ret = avio_open2(&outCtx_->pb, config_.rtmpUrl.c_str(), AVIO_FLAG_WRITE, nullptr, &options);
-        av_dict_free(&options);
+        // Let FFmpeg open the URL (matches CLI remux). Custom rtmp_* options
+        // via avio_open2 have been observed to break SRS publish for some NVR
+        // bitstreams while local .flv remux still succeeds.
+        ret = avio_open(&outCtx_->pb, config_.rtmpUrl.c_str(), AVIO_FLAG_WRITE);
         if (ret < 0) {
-            logAvError("[FORWARD] avio_open2 failed", ret);
+            logAvError("[FORWARD] avio_open failed", ret);
             return false;
         }
     }
@@ -189,7 +243,8 @@ bool StreamForwarder::openOutput() {
         return false;
     }
 
-    LOG(INFO) << "[FORWARD] Output ready: " << config_.rtmpUrl << " mode=copy";
+    LOG(INFO) << "[FORWARD] Output ready: " << config_.rtmpUrl
+              << " mode=copy extradata=" << outStream->codecpar->extradata_size << "B";
     return true;
 }
 
@@ -202,9 +257,16 @@ bool StreamForwarder::remuxSession() {
         return false;
     }
 
-    AVPacket pkt;
+    AVPacket* pkt = av_packet_alloc();
+    if (!pkt) {
+        LOG(ERROR) << "[FORWARD] av_packet_alloc failed";
+        closeAll();
+        return false;
+    }
+
+    bool startedOnKey = false;
     while (running_.load()) {
-        int ret = av_read_frame(inCtx_, &pkt);
+        int ret = av_read_frame(inCtx_, pkt);
         if (ret < 0) {
             if (ret == AVERROR_EOF) {
                 LOG(INFO) << "[FORWARD] Input EOF";
@@ -214,9 +276,19 @@ bool StreamForwarder::remuxSession() {
             break;
         }
 
-        if (pkt.stream_index != videoInIndex_) {
-            av_packet_unref(&pkt);
+        if (pkt->stream_index != videoInIndex_) {
+            av_packet_unref(pkt);
             continue;
+        }
+
+        // Start on IDR so FLV sequence header + first NALU are consistent.
+        if (!startedOnKey) {
+            if (!(pkt->flags & AV_PKT_FLAG_KEY)) {
+                av_packet_unref(pkt);
+                continue;
+            }
+            startedOnKey = true;
+            LOG(INFO) << "[FORWARD] First keyframe size=" << pkt->size;
         }
 
         if (metrics_) {
@@ -226,31 +298,140 @@ bool StreamForwarder::remuxSession() {
 
         AVStream* inStream = inCtx_->streams[videoInIndex_];
         AVStream* outStream = outCtx_->streams[videoOutIndex_];
-        if (pkt.dts == AV_NOPTS_VALUE && pkt.pts != AV_NOPTS_VALUE) {
-            pkt.dts = pkt.pts;
+        if (pkt->dts == AV_NOPTS_VALUE && pkt->pts != AV_NOPTS_VALUE) {
+            pkt->dts = pkt->pts;
         }
-        av_packet_rescale_ts(&pkt, inStream->time_base, outStream->time_base);
-        pkt.stream_index = videoOutIndex_;
-        pkt.pos = -1;
+        av_packet_rescale_ts(pkt, inStream->time_base, outStream->time_base);
+        pkt->stream_index = videoOutIndex_;
+        pkt->pos = -1;
 
-        ret = av_interleaved_write_frame(outCtx_, &pkt);
-        av_packet_unref(&pkt);
+        ret = av_interleaved_write_frame(outCtx_, pkt);
+        av_packet_unref(pkt);
         if (ret < 0) {
             logAvError("[FORWARD] av_interleaved_write_frame failed", ret);
             break;
         }
     }
 
+    av_packet_free(&pkt);
     closeAll();
     return true;
 }
 
+bool StreamForwarder::ffmpegRelaySession() {
+    const std::string ffmpegBin = findFfmpegBinary();
+    const char* probeEnv = std::getenv("STREAM_FORWARD_PROBESIZE");
+    const char* analyzeEnv = std::getenv("STREAM_FORWARD_ANALYZEDURATION");
+    const char* probesize = (probeEnv && *probeEnv) ? probeEnv : "2000000";
+    const char* analyzeduration = (analyzeEnv && *analyzeEnv) ? analyzeEnv : "2000000";
+
+    std::vector<std::string> args = {
+        ffmpegBin,
+        "-hide_banner",
+        "-nostdin",
+        "-loglevel", "warning",
+        "-rtsp_transport", "tcp",
+        "-analyzeduration", analyzeduration,
+        "-probesize", probesize,
+        "-i", config_.rtspUrl,
+        "-an",
+        "-c:v", "copy",
+        "-avoid_negative_ts", "make_zero",
+        "-muxdelay", "0",
+        "-muxpreload", "0",
+        "-f", "flv",
+        config_.rtmpUrl,
+    };
+
+    std::vector<char*> argv;
+    argv.reserve(args.size() + 1);
+    for (auto& a : args) {
+        argv.push_back(a.data());
+    }
+    argv.push_back(nullptr);
+
+    LOG(INFO) << "[FORWARD] Starting ffmpeg CLI copy relay "
+              << config_.rtspUrl << " -> " << config_.rtmpUrl
+              << " via " << ffmpegBin;
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        LOG(ERROR) << "[FORWARD] fork failed errno=" << errno;
+        return false;
+    }
+    if (pid == 0) {
+        // Capture ffmpeg stderr before clearing env.
+        const char* logPath = std::getenv("STREAM_FORWARD_FFMPEG_LOG");
+        if (logPath && logPath[0] != '\0') {
+            int fd = open(logPath, O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if (fd >= 0) {
+                dup2(fd, STDERR_FILENO);
+                close(fd);
+            }
+        }
+        // Give system ffmpeg a clean environment. Inheriting RUNTIME's conda
+        // LD_LIBRARY_PATH makes /usr/bin/ffmpeg fail when publishing to SRS.
+        const bool systemFfmpeg = (ffmpegBin == "/usr/bin/ffmpeg" ||
+                                   ffmpegBin == "ffmpeg");
+        if (systemFfmpeg) {
+            clearenv();
+            setenv("PATH", "/usr/bin:/bin", 1);
+            setenv("HOME", "/tmp", 1);
+        }
+        execvp(argv[0], argv.data());
+        _exit(127);
+    }
+
+    // Parent: wait until stop requested or ffmpeg exits
+    int status = 0;
+    while (running_.load()) {
+        pid_t waited = waitpid(pid, &status, WNOHANG);
+        if (waited == pid) {
+            if (WIFEXITED(status)) {
+                LOG(WARNING) << "[FORWARD] ffmpeg exited code=" << WEXITSTATUS(status);
+            } else if (WIFSIGNALED(status)) {
+                LOG(WARNING) << "[FORWARD] ffmpeg killed by signal=" << WTERMSIG(status);
+            }
+            return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+        }
+        if (waited < 0) {
+            LOG(ERROR) << "[FORWARD] waitpid failed errno=" << errno;
+            return false;
+        }
+        if (metrics_) {
+            // Heartbeat-style activity so monitors know relay is alive.
+            metrics_->packetsIn.fetch_add(1, std::memory_order_relaxed);
+        }
+        packetsRemuxed_.fetch_add(1, std::memory_order_relaxed);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+
+    // Stop requested: terminate ffmpeg
+    kill(pid, SIGTERM);
+    for (int i = 0; i < 25; ++i) {
+        pid_t waited = waitpid(pid, &status, WNOHANG);
+        if (waited == pid) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (waitpid(pid, &status, WNOHANG) == 0) {
+        kill(pid, SIGKILL);
+        waitpid(pid, &status, 0);
+    }
+    LOG(INFO) << "[FORWARD] ffmpeg relay stopped";
+    return true;
+}
+
 void StreamForwarder::forwardLoop() {
+    const bool useFfmpeg = preferFfmpegRelay(config_.rtmpUrl);
     LOG(INFO) << "[FORWARD] Starting copy relay "
-              << config_.rtspUrl << " -> " << config_.rtmpUrl;
+              << config_.rtspUrl << " -> " << config_.rtmpUrl
+              << (useFfmpeg ? " (ffmpeg CLI)" : " (libav remux)");
 
     while (running_.load()) {
-        if (!remuxSession()) {
+        const bool ok = useFfmpeg ? ffmpegRelaySession() : remuxSession();
+        if (!ok) {
             LOG(WARNING) << "[FORWARD] Session failed, retry in "
                          << kReconnectDelayMs << "ms";
         } else if (!running_.load()) {

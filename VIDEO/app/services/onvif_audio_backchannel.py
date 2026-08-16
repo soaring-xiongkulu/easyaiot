@@ -19,12 +19,12 @@ ONVIF Audio Back Channel 标准协议实现
 
 import socket
 import hashlib
-import base64
 import time
 import struct
 import logging
-from typing import Dict, Any, Optional, Tuple
-from urllib.parse import quote
+import os
+import re
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,22 @@ class ONVIFAudioBackchannel:
         
         logger.info(f"初始化ONVIF Audio Backchannel客户端: {camera_ip}:{camera_port}")
         logger.info(f"音频配置: codec={audio_codec}, rate={sample_rate}Hz, channels={channels}")
+
+    def _build_rtsp_uri(self, path: str = "/audio") -> str:
+        """
+        构建不含账号密码的 RTSP URI。
+
+        Digest/Basic 凭证只能放在 Authorization 头中。
+        若把 user:pass 嵌进 Request-URI，摄像机按无凭证 URI 校验 Digest 会持续 401。
+        """
+        if path.startswith("rtsp://"):
+            rest = path[7:]
+            if "@" in rest:
+                rest = rest.split("@", 1)[1]
+            return f"rtsp://{rest}"
+        if not path.startswith("/"):
+            path = f"/{path}"
+        return f"rtsp://{self.camera_ip}:{self.camera_port}{path}"
     
     def connect(self) -> bool:
         """
@@ -115,7 +131,7 @@ class ONVIFAudioBackchannel:
         
         Args:
             method: RTSP方法（DESCRIBE/SETUP/PLAY等）
-            uri: RTSP URI
+            uri: RTSP URI（必须与 Request-URI 一致，且不含 user:pass）
             auth_info: WWW-Authenticate响应头内容
         
         Returns:
@@ -125,42 +141,57 @@ class ONVIFAudioBackchannel:
         # 格式: Digest realm="xxx", nonce="yyy", ...
         
         # 先去掉"Digest"前缀
-        auth_info_clean = auth_info.replace("Digest ", "").strip()
+        auth_info_clean = re.sub(r"^Digest\s+", "", auth_info.strip(), flags=re.IGNORECASE)
         
         auth_parts = {}
         for part in auth_info_clean.split(','):
             if '=' in part:
                 key, value = part.strip().split('=', 1)
-                auth_parts[key.strip()] = value.strip('"')
+                auth_parts[key.strip().lower()] = value.strip().strip('"')
         
         realm = auth_parts.get('realm', '')
         nonce = auth_parts.get('nonce', '')
+        opaque = auth_parts.get('opaque')
+        qop_raw = auth_parts.get('qop', '')
+        qop = qop_raw.split(',')[0].strip() if qop_raw else ''
         
-        logger.info(f"[Auth] Digest认证参数: realm={realm}, nonce={nonce}")
+        logger.info(f"[Auth] Digest认证参数: realm={realm}, nonce={nonce}, qop={qop or '-'}")
         
-        # 计算HA1
-        ha1_str = f"{self.username}:{realm}:{self.password}"
-        ha1 = hashlib.md5(ha1_str.encode()).hexdigest()
+        # 计算HA1 / HA2
+        ha1 = hashlib.md5(f"{self.username}:{realm}:{self.password}".encode()).hexdigest()
+        ha2 = hashlib.md5(f"{method}:{uri}".encode()).hexdigest()
         
-        # 计算HA2
-        ha2_str = f"{method}:{uri}"
-        ha2 = hashlib.md5(ha2_str.encode()).hexdigest()
-        
-        # 计算response
-        response_str = f"{ha1}:{nonce}:{ha2}"
-        response = hashlib.md5(response_str.encode()).hexdigest()
+        if qop:
+            # RFC 2617 qop=auth
+            nc = "00000001"
+            cnonce = hashlib.md5(f"{time.time()}-{os.getpid()}".encode()).hexdigest()[:16]
+            response = hashlib.md5(
+                f"{ha1}:{nonce}:{nc}:{cnonce}:{qop}:{ha2}".encode()
+            ).hexdigest()
+            auth_header = (
+                f'Digest username="{self.username}", '
+                f'realm="{realm}", '
+                f'nonce="{nonce}", '
+                f'uri="{uri}", '
+                f'response="{response}", '
+                f'qop={qop}, '
+                f'nc={nc}, '
+                f'cnonce="{cnonce}"'
+            )
+        else:
+            response = hashlib.md5(f"{ha1}:{nonce}:{ha2}".encode()).hexdigest()
+            auth_header = (
+                f'Digest username="{self.username}", '
+                f'realm="{realm}", '
+                f'nonce="{nonce}", '
+                f'uri="{uri}", '
+                f'response="{response}"'
+            )
+
+        if opaque:
+            auth_header += f', opaque="{opaque}"'
         
         logger.info(f"[Auth] Digest认证响应: {response}")
-        
-        # 构建Authorization头
-        auth_header = (
-            f"Digest username=\"{self.username}\", "
-            f"realm=\"{realm}\", "
-            f"nonce=\"{nonce}\", "
-            f"uri=\"{uri}\", "
-            f"response=\"{response}\""
-        )
-        
         return auth_header
     
     def describe_audio_backchannel(self, audio_path: str = "/audio") -> Dict[str, Any]:
@@ -178,8 +209,8 @@ class ONVIFAudioBackchannel:
             logger.info("[步骤2] RTSP DESCRIBE - 请求Audio Back Channel")
             logger.info("=" * 60)
             
-            # 构建RTSP URI
-            rtsp_uri = f"rtsp://{quote(self.username)}:{quote(self.password)}@{self.camera_ip}:{self.camera_port}{audio_path}"
+            # 凭证只走 Authorization，URI 不含 user:pass
+            rtsp_uri = self._build_rtsp_uri(audio_path)
             
             logger.info(f"[Request] RTSP URI: {rtsp_uri}")
             
@@ -243,6 +274,11 @@ class ONVIFAudioBackchannel:
                     
                     logger.info("[Response] 认证后的响应:")
                     logger.info(response[:500])
+                    if "401" in response.split("\r\n", 1)[0]:
+                        logger.error(
+                            "[ERROR] Digest认证仍返回401，请核对摄像机用户名/密码；"
+                            "URI已使用无凭证形式 rtsp://host:port/path"
+                        )
             
             # 解析SDP响应
             sdp_info = self._parse_sdp(response)
@@ -578,34 +614,34 @@ class ONVIFAudioBackchannel:
             logger.info(f"[Info] Control URL: {control_url}")
             logger.info(f"[Info] Mode: {audio_track.get('mode', 'unknown')}")
             
-            # 智能构建RTSP URI
+            # 智能构建RTSP URI（不含账号密码，凭证走 Authorization）
             rtsp_uri = None
             
             # 策略1: 如果control_url已经是完整的RTSP URL
             if control_url.startswith('rtsp://'):
-                rtsp_uri = control_url
+                rtsp_uri = self._build_rtsp_uri(control_url)
                 logger.info(f"[Strategy 1] 使用完整RTSP URL")
             
             # 策略2: 如果track_id包含/audio/路径
             elif '/audio/' in control_url or track_id.startswith('/audio/'):
-                # 使用相对路径
-                rtsp_uri = f"rtsp://{quote(self.username)}:{quote(self.password)}@{self.camera_ip}:{self.camera_port}{control_url if control_url.startswith('/') else '/' + control_url}"
+                path = control_url if control_url.startswith('/') else f'/{control_url}'
+                rtsp_uri = self._build_rtsp_uri(path)
                 logger.info(f"[Strategy 2] 使用/audio/路径")
             
             # 策略3: 如果track_id是数字（海康威视标准）
             elif track_id.isdigit():
                 track_id_full = f"trackID={track_id}"
-                rtsp_uri = f"rtsp://{quote(self.username)}:{quote(self.password)}@{self.camera_ip}:{self.camera_port}/audio/{track_id_full}"
+                rtsp_uri = self._build_rtsp_uri(f"/audio/{track_id_full}")
                 logger.info(f"[Strategy 3] 使用trackID=格式（海康威视）")
             
             # 策略4: 如果track_id是特殊关键字（如audio_backchannel）
             elif 'backchannel' in track_id.lower() or 'audio' in track_id.lower():
-                rtsp_uri = f"rtsp://{quote(self.username)}:{quote(self.password)}@{self.camera_ip}:{self.camera_port}/{track_id}"
+                rtsp_uri = self._build_rtsp_uri(f"/{track_id}")
                 logger.info(f"[Strategy 4] 使用特殊关键字路径")
             
             # 策略5: 默认使用/audio/trackID=格式
             else:
-                rtsp_uri = f"rtsp://{quote(self.username)}:{quote(self.password)}@{self.camera_ip}:{self.camera_port}/audio/trackID={track_id}"
+                rtsp_uri = self._build_rtsp_uri(f"/audio/trackID={track_id}")
                 logger.info(f"[Strategy 5] 使用默认trackID=格式")
             
             logger.info(f"[Request] RTSP URI: {rtsp_uri}")
@@ -721,8 +757,8 @@ class ONVIFAudioBackchannel:
                 logger.error("[ERROR] 缺少Session ID")
                 return False
             
-            # 构建RTSP URI
-            rtsp_uri = f"rtsp://{quote(self.username)}:{quote(self.password)}@{self.camera_ip}:{self.camera_port}/audio"
+            # 构建RTSP URI（不含账号密码）
+            rtsp_uri = self._build_rtsp_uri("/audio")
             
             # PLAY请求
             play_request = (
@@ -868,8 +904,8 @@ class ONVIFAudioBackchannel:
                 logger.warning("[WARN] 没有活动的Session")
                 return True
             
-            # 构建RTSP URI
-            rtsp_uri = f"rtsp://{quote(self.username)}:{quote(self.password)}@{self.camera_ip}:{self.camera_port}/audio"
+            # 构建RTSP URI（不含账号密码）
+            rtsp_uri = self._build_rtsp_uri("/audio")
             
             # TEARDOWN请求
             teardown_request = (

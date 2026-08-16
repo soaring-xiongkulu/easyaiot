@@ -33,6 +33,8 @@ private:
     bool openOutput();
     void closeAll();
     bool remuxSession();
+    /** RTMP publish via ffmpeg CLI copy (matches VIDEO stream_forward native relay). */
+    bool ffmpegRelaySession();
 
     Config config_;
     PipelineMetrics* metrics_{nullptr};
