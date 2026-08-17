@@ -96,7 +96,7 @@ wire_runtime_override() {
     done
   fi
 
-  local ld_path="/opt/easyaiot/runtime-conda-lib:/opt/easyaiot/ort-lib"
+  local ld_path="/opt/easyaiot/runtime-conda-lib:/opt/easyaiot/ort-lib:/opt/conda/lib/python3.11/site-packages/nvidia/cudnn/lib"
   if [[ -n "$cuda_host" ]]; then
     ld_path="${ld_path}:/opt/easyaiot/cuda-lib"
     cuda_volume_line="      - ${cuda_host}:/opt/easyaiot/cuda-lib:ro"
@@ -122,6 +122,7 @@ wire_runtime_override() {
     echo "  video-service:"
     echo "    volumes:"
     echo "      - ${RUNTIME_HOST_DIR}:/opt/easyaiot/RUNTIME:ro"
+    echo "      - ${RUNTIME_HOST_DIR}/config:/opt/easyaiot/RUNTIME/config:rw"
     echo "      - ${RUNTIME_CONDA_LIB_HOST}:/opt/easyaiot/runtime-conda-lib:ro"
     echo "      - ${RUNTIME_ORT_LIB_HOST}:/opt/easyaiot/ort-lib:ro"
     if [[ -n "$cuda_volume_line" ]]; then
