@@ -57,3 +57,4 @@
 - 部署：[平台部署文档](../部署文档/平台部署文档_zh.md)
 - TRANSFORM 联调脚本：[TRANSFORM/docs/操作手册.md](../../TRANSFORM/docs/操作手册.md)
 - 项目介绍：[.doc/项目介绍](../项目介绍/)
+- 视频剪辑（Shotcut）：[../视频操作/README.md](../视频操作/README.md)
