@@ -50,7 +50,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 보다 완전한 그림·문자 소개는 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT 프로젝트 소개 V2.0 (PPT)</a>, 그리고 <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI 영상 감시 분석 플랫폼 (PDF)</a>를 참조하세요.
+📄 보다 완전한 그림·문자 소개는 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT 프로젝트 소개 V2.0 (PPT)</a>, 그리고 <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI 영상 감시 분석 플랫폼 (PDF)</a>를 참조하세요. 배포 완료 후 업무 운영은 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">플랫폼 운영 매뉴얼</a>을 참고하세요.
 </p>
 
 ## 🌟 프로젝트에 대한 몇 가지 생각
@@ -771,6 +771,20 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 - [macOS 이미지 배포](.doc/部署文档/平台macOS部署文档_ko.md) — Docker Desktop으로 사전 빌드 이미지 원클릭 pull
 - [Windows 이미지 배포](.doc/部署文档/平台Windows部署文档_ko.md) — `install_windows.ps1` 권장 진입점
 - [배포 모범 사례](.doc/部署文档/部署最佳实践_ko.md) — 프로파일, 환경 요구, 원클릭 배포(CentOS **7–9** / **CentOS ARM** / **Kylin (麒麟) / openEuler (欧拉)** 포함), 운영 문제 해결 및 프로덕션 권장
+
+## 📘 운영 매뉴얼
+
+납품·당직·업무 운영용: **운영 체인**(목표 → 선행 조건 → 단계 → 검수)으로 구성. 플랫폼이 이미 배포·사용 가능한 상태를 전제로 합니다. (본문은 현재 간체 중문입니다.)
+
+- [플랫폼 운영 매뉴얼(목차)](.doc/操作手册/README.md) — 읽는 법, 최단 폐루프, 문서 색인
+- [운영 체인 개요](.doc/操作手册/00-操作链总览.md) — 전체 지도, 메뉴 빠른 참조, PoC 당일 검수 목록
+- [로그인 및 기본 준비](.doc/操作手册/01-登录与基础准备.md) — 계정, 조직, 권한, 알림 채널
+- [영상 장비 접속](.doc/操作手册/02-视频设备接入.md) — ONVIF / NVR / GB28181 / RTC / DJI → 미리보기·푸시
+- [AI 알고리즘 작업 폐루프](.doc/操作手册/03-AI算法任务闭环.md) — 라벨링/모델 → 작업 → 경보
+- [IoT 장비 접속](.doc/操作手册/04-物联网设备接入.md) — 제품 물모델 → 장비 → EDGE / 산업 수집
+- [경보·알림 및 외부 연동](.doc/操作手册/05-告警通知与对外联动.md) — 경보 처리, 알림, TRANSFORM
+- [시각화 대시보드](.doc/操作手册/06-可视化大屏.md) — 대시보드/공정 편집·게시·송출
+- [APP 모바일 당직](.doc/操作手册/07-APP移动值守.md) — 모바일과 WEB 기능 대조
 
 ## 🎮 데모 환경
 

@@ -50,7 +50,7 @@ The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, NO
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 For a more complete illustrated introduction, see <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT Project Introduction V2.0 (PPT)</a>, and <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI Video Surveillance Analytics Platform (PDF)</a>.
+📄 For a more complete illustrated introduction, see <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT Project Introduction V2.0 (PPT)</a>, and <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI Video Surveillance Analytics Platform (PDF)</a>. For day-to-day platform operations after deployment, see the <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Platform Operations Manual</a>.
 </p>
 
 ## 🌟 Some Thoughts on the Project
@@ -796,6 +796,20 @@ compensate third parties for damages caused by usage. All EasyAIoT-related resou
 - [macOS Image Deploy](.doc/部署文档/平台macOS部署文档.md) — One-click pull of pre-built images with Docker Desktop
 - [Windows Image Deploy](.doc/部署文档/平台Windows部署文档.md) — `install_windows.ps1` recommended entry
 - [Deployment Best Practices](.doc/部署文档/部署最佳实践_en.md) — Profiles, environment requirements, one-click deploy (incl. CentOS **7–9** / **CentOS ARM** / **Kylin (麒麟) / openEuler (欧拉)**), troubleshooting, and production recommendations
+
+## 📘 Operations Manual
+
+For delivery, watchkeeping, and business operations: organized by **operation chains** (goal → prerequisites → steps → acceptance). Assumes the platform is already deployed and available. (Content is currently in Simplified Chinese.)
+
+- [Platform Operations Manual (Index)](.doc/操作手册/README.md) — How to read, shortest closed loop, and doc index
+- [Operation Chain Overview](.doc/操作手册/00-操作链总览.md) — Global map, menu quick reference, same-day PoC checklist
+- [Login & Basic Setup](.doc/操作手册/01-登录与基础准备.md) — Accounts, org, permissions, notification channels
+- [Video Device Onboarding](.doc/操作手册/02-视频设备接入.md) — ONVIF / NVR / GB28181 / RTC / DJI → preview & stream forward
+- [AI Algorithm Task Loop](.doc/操作手册/03-AI算法任务闭环.md) — Labeling/models → tasks → alerts
+- [IoT Device Onboarding](.doc/操作手册/04-物联网设备接入.md) — Product thing model → devices → EDGE / industrial acquisition
+- [Alerts, Notifications & External Integration](.doc/操作手册/05-告警通知与对外联动.md) — Alert handling, notifications, TRANSFORM
+- [Visualization Dashboards](.doc/操作手册/06-可视化大屏.md) — Dashboard/SCADA edit, publish, and display
+- [APP Mobile Watchkeeping](.doc/操作手册/07-APP移动值守.md) — Mobile vs WEB capability map
 
 ## 🎮 Demo Environment
 

@@ -50,7 +50,7 @@ La plateforme comprend notamment les modules <strong>WEB, APP, DEVICE, EDGE, NOD
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 Pour une présentation illustrée plus complète, consultez <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">Présentation du projet EasyAIoT V2.0 (PPT)</a>, ainsi que <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">Plateforme d'analyse de vidéosurveillance IA (PDF)</a>.
+📄 Pour une présentation illustrée plus complète, consultez <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">Présentation du projet EasyAIoT V2.0 (PPT)</a>, ainsi que <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">Plateforme d'analyse de vidéosurveillance IA (PDF)</a>. Pour les opérations métier après déploiement, voir le <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">manuel d'exploitation de la plateforme</a>.
 </p>
 
 ## 🌟 Réflexions sur le projet
@@ -771,6 +771,20 @@ EasyAIoT est un projet d'apprentissage open source, sans lien avec des activité
 - [Déploiement image macOS](.doc/部署文档/平台macOS部署文档_fr.md) — Pull one-click d'images préconstruites (Docker Desktop)
 - [Déploiement image Windows](.doc/部署文档/平台Windows部署文档_fr.md) — Entrée recommandée `install_windows.ps1`
 - [Bonnes pratiques de déploiement](.doc/部署文档/部署最佳实践_fr.md) — Profils, prérequis, déploiement one-click (dont CentOS **7–9** / **CentOS ARM** / **Kylin (麒麟) / openEuler (欧拉)**), dépannage et production
+
+## 📘 Manuel d'exploitation
+
+Pour la livraison, la veille opérationnelle et les opérations métier : organisé par **chaînes d'opération** (objectif → prérequis → étapes → critères d'acceptation). La plateforme est supposée déjà déployée et disponible. (Contenu actuellement en chinois simplifié.)
+
+- [Manuel d'exploitation (sommaire)](.doc/操作手册/README.md) — Lecture, boucle courte et index
+- [Vue d'ensemble des chaînes](.doc/操作手册/00-操作链总览.md) — Carte globale, menus, checklist PoC
+- [Connexion et préparation](.doc/操作手册/01-登录与基础准备.md) — Comptes, organisation, droits, notifications
+- [Accès des équipements vidéo](.doc/操作手册/02-视频设备接入.md) — ONVIF / NVR / GB28181 / RTC / DJI → prévisualisation et push
+- [Boucle des tâches d'algorithme IA](.doc/操作手册/03-AI算法任务闭环.md) — Annotation/modèles → tâches → alertes
+- [Accès des équipements IoT](.doc/操作手册/04-物联网设备接入.md) — Produit / modèle → appareils → EDGE / acquisition industrielle
+- [Alertes, notifications et intégrations](.doc/操作手册/05-告警通知与对外联动.md) — Traitement des alertes, notifications, TRANSFORM
+- [Tableaux de visualisation](.doc/操作手册/06-可视化大屏.md) — Édition, publication et diffusion des écrans
+- [Veille mobile APP](.doc/操作手册/07-APP移动值守.md) — Correspondance des capacités APP / WEB
 
 ## 🎮 Environnement de démonstration
 

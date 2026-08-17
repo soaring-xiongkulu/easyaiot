@@ -50,7 +50,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 如需更完整的圖文介紹，請參閱 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT項目介紹 V2.0（PPT）</a>，以及 <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI視頻監控分析平臺（PDF）</a>。
+📄 如需更完整的圖文介紹，請參閱 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT項目介紹 V2.0（PPT）</a>，以及 <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI視頻監控分析平臺（PDF）</a>。部署完成後的業務操作見 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">平臺操作手冊</a>。
 </p>
 
 ## 🌟 關於項目的一些思考
@@ -781,6 +781,20 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 - [macOS 映像部署](.doc/部署文档/平台macOS部署文档_zh_tw.md) — Docker Desktop 一鍵拉取預建構映像
 - [Windows 映像部署](.doc/部署文档/平台Windows部署文档_zh_tw.md) — `install_windows.ps1` 推薦入口
 - [部署最佳實踐](.doc/部署文档/部署最佳实践_zh_tw.md) — 規格選型、環境要求、一鍵部署（含 CentOS **7～9** / **CentOS ARM** / **麒麟(Kylin) / 歐拉(openEuler)**）、運維排錯與生產環境建議
+
+## 📘 操作手冊
+
+面向交付、值守與業務操作：按**操作鏈**組織（目標 → 前置 → 步驟 → 驗收），預設平臺已部署可用。
+
+- [平臺操作手冊（目錄）](.doc/操作手册/README.md) — 怎麼讀、最短閉環與文件索引
+- [操作鏈總覽](.doc/操作手册/00-操作链总览.md) — 全局地圖、選單速查、PoC 當天驗收清單
+- [登入與基礎準備](.doc/操作手册/01-登录与基础准备.md) — 帳號、組織、權限、通知渠道底座
+- [視頻設備接入](.doc/操作手册/02-视频设备接入.md) — ONVIF / NVR / 國標 / RTC / 大疆 → 預覽與推流
+- [AI 演算法任務閉環](.doc/操作手册/03-AI算法任务闭环.md) — 標註/模型 → 任務 → 告警
+- [物聯網設備接入](.doc/操作手册/04-物联网设备接入.md) — 產品物模型 → 設備 → EDGE / 工業採集
+- [告警通知與對外聯動](.doc/操作手册/05-告警通知与对外联动.md) — 告警處置、通知、TRANSFORM
+- [可視化大屏](.doc/操作手册/06-可视化大屏.md) — 大屏/組態編輯、發佈與投放
+- [APP 移動值守](.doc/操作手册/07-APP移动值守.md) — 移動端與 WEB 能力對照
 
 ## 🎮 演示環境
 
