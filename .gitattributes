@@ -139,6 +139,14 @@ RUNTIME/models/**/*.names -diff
 RUNTIME/models/**/*.names.json -diff
 RUNTIME/.bundle-runtime/** -diff
 RUNTIME/.bundle-runtime/**/*.tar.gz binary -diff
+# VIDEO 离线 ffmpeg 运行时打包产物（体积大，不参与 diff；与 .gitignore 对齐）
+VIDEO/.bundle-ffmpeg/** -diff
+VIDEO/.bundle-ffmpeg/**/*.tar.gz binary -diff
+VIDEO/.bundle-ffmpeg/**/*.tar.xz binary -diff
+VIDEO/.bundle-ffmpeg/**/*.zip binary -diff
+# VIDEO 离线 pip wheels 缓存（体积大，不参与 diff；与 .gitignore 对齐）
+VIDEO/.bundle-wheels/** -diff
+VIDEO/.bundle-wheels/**/*.whl binary -diff
 RUNTIME/build/** -diff
 RUNTIME/build-mqtt/** -diff
 RUNTIME/build-linux/** -diff

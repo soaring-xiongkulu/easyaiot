@@ -171,6 +171,10 @@ VIDEO/face_capture_head_yolov8.onnx
 VIDEO/face_matching_insightface_buffalo_l/
 VIDEO/face_rec.onnx
 VIDEO/ffmpeg-master-*.tar.xz
+# VIDEO 离线 ffmpeg 运行时打包产物（体积大，不随仓库分发）
+VIDEO/.bundle-ffmpeg/
+# VIDEO 离线 pip wheels 缓存（体积大，不随仓库分发）
+VIDEO/.bundle-wheels/
 # VIDEO 内置 YOLO：.pt→onnx 导出缓存与旁路 .names（保留已跟踪的 yolo*.pt；勿提交导出产物）
 VIDEO/yolo*.onnx
 VIDEO/yolov*.onnx
