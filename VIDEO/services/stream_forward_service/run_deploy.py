@@ -2319,7 +2319,10 @@ def _fixed_rate_push_worker(device_id: str):
     logger.info(f"📤 固定速率推帧线程停止 [设备: {device_id}]")
 
 
-def update_task_status(status: str = None, exception_reason: str = None):
+_EXC_REASON_UNSET = object()
+
+
+def update_task_status(status: str = None, exception_reason: str | None | object = _EXC_REASON_UNSET):
     """更新任务状态到数据库
     
     Args:
@@ -2332,8 +2335,11 @@ def update_task_status(status: str = None, exception_reason: str = None):
             if task:
                 if status is not None:
                     task.status = status
-                if exception_reason is not None:
-                    task.exception_reason = exception_reason[:500]  # 限制长度
+                # 约定：当调用方显式传入 exception_reason=None 时，表示“清空异常原因”
+                if exception_reason is not _EXC_REASON_UNSET:
+                    task.exception_reason = (
+                        exception_reason[:500] if exception_reason is not None else None
+                    )  # 限制长度 + 支持清空
                 db.session.commit()
                 logger.debug(f"任务状态已更新: status={status}, exception_reason={exception_reason}")
     except Exception as e:

@@ -497,6 +497,12 @@ def ensure_nvr_stream_forward_task(nvr_id: int) -> Optional[StreamForwardTask]:
                 logger.info(
                     f'NVR 推流转发任务无设备/策略变化，跳过重平衡: nvr_id={nvr_id}, task_id={task.id}',
                 )
+            else:
+                try:
+                    start_stream_forward_task(task.id)
+                    logger.info(f'已补启动已停止的 NVR 推流转发任务: nvr_id={nvr_id}, task_id={task.id}')
+                except Exception as e:
+                    logger.warning(f'补启动 NVR 推流转发任务失败: nvr_id={nvr_id}, task_id={task.id}, error={e}')
             return task
 
         task_name = f'{nvr_label}-推流转发'
@@ -545,10 +551,25 @@ def ensure_device_stream_forward_task(device_id: str) -> Optional[StreamForwardT
             StreamForwardTask.devices.any(Device.id == device_id)
         ).all()
         
-        # 如果已经存在任务，直接返回第一个任务
         if existing_tasks:
-            logger.info(f"设备 {device_id} 已存在于推流转发任务中，任务ID: {existing_tasks[0].id}")
-            return existing_tasks[0]
+            running = [t for t in existing_tasks if t.is_enabled]
+            nvr_tasks = [t for t in existing_tasks if _is_nvr_stream_forward_task(t)]
+            task = (running[0] if running else None) or (nvr_tasks[0] if nvr_tasks else existing_tasks[0])
+            if not task.is_enabled:
+                try:
+                    start_stream_forward_task(task.id)
+                    logger.info(
+                        '设备 %s 已有推流转发任务 %s，已补启动',
+                        device_id, task.id,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        '设备 %s 已有推流转发任务 %s，补启动失败: %s',
+                        device_id, task.id, e,
+                    )
+            else:
+                logger.info(f"设备 {device_id} 已存在于推流转发任务中，任务ID: {task.id}")
+            return task
         
         # 注意：不再检查设备冲突，因为推流转发任务使用rtmp_stream，算法任务使用ai_rtmp，它们使用不同的流地址，可以同时使用
         

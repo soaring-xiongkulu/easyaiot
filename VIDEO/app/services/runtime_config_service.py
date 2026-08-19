@@ -1323,8 +1323,12 @@ def _stream_forward_runtime_ini_content(
     *,
     device_index: int = 0,
 ) -> str:
-    video_base = resolve_video_service_base_url().rstrip('/')
-    heartbeat = f'{video_base}/video/stream-forward/heartbeat'
+    heartbeat_env = (os.getenv('VIDEO_HEARTBEAT_URL') or '').strip()
+    if heartbeat_env:
+        heartbeat = heartbeat_env
+    else:
+        video_base = resolve_video_service_base_url().rstrip('/')
+        heartbeat = f'{video_base}/video/stream-forward/heartbeat'
     control_port = _stream_forward_control_port(int(task.id), device_index)
     log_dir = os.path.dirname(log_path) if log_path else str(runtime_config_dir())
     device_log = os.path.join(log_dir, f'forward_{device.id}')

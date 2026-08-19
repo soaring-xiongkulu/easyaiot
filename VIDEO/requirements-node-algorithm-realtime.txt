@@ -1,10 +1,11 @@
 # 实时算法计算节点离线运行时
 -r requirements-node-stream-forward.txt
-onnxruntime-gpu==1.20.0
+# 3.10+ 用 GPU 包；3.9 无 1.20.0，且无 GPU 节点走 CPU 包
+onnxruntime-gpu==1.20.0; python_version >= "3.10"
+onnxruntime==1.16.3; python_version < "3.10"
 httpx[http2]>=0.27
 pytz>=2024.1
 APScheduler>=3.10.4
 croniter>=1.4.1
 minio==7.2.0
-nacos-sdk-python==2.0.9
-netifaces==0.11.0
+netifaces==0.11.0; python_version < "3.12"

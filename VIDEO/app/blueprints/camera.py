@@ -480,10 +480,10 @@ def start_ffmpeg_stream(device_id):
                     })
                 daemon.stop()
 
-            # 启动新进程并更新数据库
-            ffmpeg_processes[device_id] = FFmpegDaemon(device_id)
+            # 必须先落库 enable_forward=True，守护线程启动时会立刻查库
             device.enable_forward = True
             db.session.commit()
+            ffmpeg_processes[device_id] = FFmpegDaemon(device_id)
 
         return jsonify({
             'code': 0,

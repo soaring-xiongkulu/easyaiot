@@ -8,6 +8,7 @@ import logging
 import os
 from datetime import datetime
 from flask import Blueprint, request, jsonify
+import requests
 
 from models import db, StreamForwardTask, Device, utc_isoformat_z
 from app.services.stream_forward_service import (
@@ -51,10 +52,55 @@ def get_task(task_id):
     """获取推流转发任务详情"""
     try:
         task = get_stream_forward_task(task_id)
+        task_dict = task.to_dict()
+
+        # 对齐 UI 异常字段：当 SRS 侧实际已经在 publish 时，不应残留“所有推流进程均未运行”等旧异常。
+        if task_dict.get('executor') == 'cpp' and task_dict.get('exception_reason'):
+            try:
+                target_node_id = task_dict.get('target_node_id')
+                if target_node_id:
+                    from app.utils.node_client import get_node
+                    node = get_node(int(target_node_id))
+                    node_host = (node.get('host') or '').strip()
+                    tags = node.get('tags') or {}
+                    srs_api_port = int(tags.get('srs_api_port') or 1985)
+
+                    if node_host and node_host not in ('127.0.0.1', 'localhost'):
+                        srs_url = f'http://{node_host}:{srs_api_port}/api/v1/streams/'
+                        r = requests.get(srs_url, timeout=2.0)
+                        payload = r.json() if r is not None else {}
+                        streams = payload.get('streams') or []
+
+                        device_ids = set(task_dict.get('device_ids') or [])
+                        active = False
+                        for s in streams:
+                            s_name = (s.get('name') or '').strip()
+                            publish = (s.get('publish') or {})
+                            if not publish.get('active', False):
+                                continue
+                            if s_name in device_ids:
+                                active = True
+                                break
+                            # 兼容某些实现：name 可能包含 .flv 后缀
+                            if s_name.endswith('.flv') and s_name[:-4] in device_ids:
+                                active = True
+                                break
+
+                        if active:
+                            task_dict['status'] = 0
+                            task_dict['exception_reason'] = None
+                            # 同步落库一次，避免刷新 UI 后又回滚
+                            task.status = 0
+                            task.exception_reason = None
+                            db.session.commit()
+            except Exception:
+                # 失败时不影响主流程：仍返回 DB 中原始 exception_reason
+                pass
+
         return jsonify({
             'code': 0,
             'msg': 'success',
-            'data': task.to_dict()
+            'data': task_dict
         })
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400

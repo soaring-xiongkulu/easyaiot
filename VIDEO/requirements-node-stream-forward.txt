@@ -2,8 +2,8 @@
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
 Flask-CORS>=3.0.0
-opencv-python>=4.8.0
-numpy>=1.26.4,<3
+opencv-python-headless>=4.8.0,<5
+numpy>=1.26.4,<2
 python-dotenv==1.0.0
 requests>=2.31.0
 psycopg2-binary==2.9.9
