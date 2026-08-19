@@ -5,7 +5,8 @@ export interface ComputeNode {
   name: string
   host: string
   status?: string
-  nodeRole: string
+  nodeRole?: string
+  functions?: string[]
 }
 
 export interface NodePageResult {

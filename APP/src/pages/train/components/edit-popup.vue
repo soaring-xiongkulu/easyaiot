@@ -228,7 +228,10 @@ async function loadNodes() {
     const res = await getNodePage({ pageNo: 1, pageSize: 200, status: 'online' })
     const { list } = parseListResponse<any>(res, ['list', 'data'])
     nodeOptions.value = list
-      .filter((n: any) => ['compute', 'gpu', 'hybrid'].includes(n.nodeRole))
+      .filter((n: any) => {
+        const fns = Array.isArray(n.functions) ? n.functions : String(n.nodeRole || '').split(',')
+        return fns.includes('train')
+      })
       .map((n: any) => ({
         label: `${n.name} (${n.host})`,
         value: n.id,
