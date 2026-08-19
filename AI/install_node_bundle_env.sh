@@ -3,6 +3,17 @@
 # 由 iot-node SSH 同步后在目标机执行: sudo bash install_node_bundle_env.sh
 set -euo pipefail
 
+# RUNTIME 可能把专用 lib 写进 LD_LIBRARY_PATH，sudo 会因此无法加载插件
+unset LD_LIBRARY_PATH LD_PRELOAD || true
+
+as_root() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  else
+    command sudo env -u LD_LIBRARY_PATH -u LD_PRELOAD "$@"
+  fi
+}
+
 BUNDLE_DIR="${1:-}"
 if [[ -z "${BUNDLE_DIR}" || ! -d "${BUNDLE_DIR}" ]]; then
   echo "INSTALL_FAIL: 缺少 bundle 目录参数" >&2
@@ -37,10 +48,10 @@ if ! has_wheel pip || ! has_wheel setuptools || ! has_wheel wheel; then
 fi
 
 echo "==> 离线安装 bundle 运行时: ${BUNDLE_DIR}"
-sudo rm -rf "${SITE_PKG}"
-sudo mkdir -p "${SITE_PKG}"
+as_root rm -rf "${SITE_PKG}"
+as_root mkdir -p "${SITE_PKG}"
 
-sudo "${PYTHON}" - "${SITE_PKG}" "${WHEELS_DIR}" <<'PY'
+as_root "${PYTHON}" - "${SITE_PKG}" "${WHEELS_DIR}" <<'PY'
 import glob, os, sys, zipfile
 site, wheels_dir = sys.argv[1], sys.argv[2]
 os.makedirs(site, exist_ok=True)
@@ -53,22 +64,22 @@ for pkg in ("pip", "setuptools", "wheel"):
         zf.extractall(site)
 PY
 
-if ! sudo env PYTHONPATH="${SITE_PKG}" "${PYTHON}" -m pip --version >/dev/null 2>&1; then
+if ! as_root env PYTHONPATH="${SITE_PKG}" "${PYTHON}" -m pip --version >/dev/null 2>&1; then
   echo "INSTALL_FAIL: bootstrap pip 不可用" >&2
   exit 1
 fi
 
-if ! sudo env PYTHONPATH="${SITE_PKG}" "${PYTHON}" -m pip install \
+if ! as_root env PYTHONPATH="${SITE_PKG}" "${PYTHON}" -m pip install \
     --target="${SITE_PKG}" --no-index --find-links "${WHEELS_DIR}" \
     -r "${REQ_FILE}" -q; then
   echo "INSTALL_FAIL: 离线依赖安装失败" >&2
   exit 1
 fi
 
-sudo tee "${LAUNCHER}" > /dev/null <<WRAP
+as_root tee "${LAUNCHER}" > /dev/null <<WRAP
 #!/bin/bash
 export PYTHONPATH="${SITE_PKG}\${PYTHONPATH:+:\$PYTHONPATH}"
 exec ${PYTHON} "\$@"
 WRAP
-sudo chmod +x "${LAUNCHER}"
+as_root chmod +x "${LAUNCHER}"
 echo "BUNDLE_ENV_OK: ${LAUNCHER}"
