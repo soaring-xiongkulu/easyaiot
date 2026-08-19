@@ -1,0 +1,62 @@
+# 功能可调度 = 组件组合（derive 规则）
+capabilities:
+  algorithm_realtime:
+    all: [nfs_mount]
+    any: [runtime, video_bundle_realtime]
+    workload_type: algorithm_task
+  algorithm_snap:
+    all: [nfs_mount]
+    any: [runtime, video_bundle_realtime]
+    workload_type: algorithm_task
+  algorithm_patrol:
+    all: [nfs_mount]
+    any: [runtime, video_bundle_realtime]
+    workload_type: algorithm_task
+  stream_forward:
+    all: [srs_live]
+    any: [runtime, ffmpeg]
+    workload_type: stream_forward
+  model_train:
+    all: [model_train_bundle, cuda, nfs_mount, gpu_vram]
+    any: []
+    workload_type: model_train
+    constraints:
+      min_free_vram_mb: 8192
+  llm_inference:
+    all: [cuda, gpu_vram, llm_bundle]
+    any: []
+    workload_type: llm_service
+    constraints:
+      min_free_vram_mb: 16384
+  srs_live:
+    all: [docker, srs_live]
+    any: []
+    workload_type: srs_live
+  ai_inference:
+    all: [nfs_mount]
+    any: [runtime, video_bundle_realtime]
+    workload_type: ai_service
+  auto_label:
+    all: [nfs_mount]
+    any: [runtime, video_bundle_realtime]
+    workload_type: auto_label
+
+allocate_defaults:
+  algorithm_realtime:
+    capabilities: [algorithm_realtime]
+    require_nfs_mount: true
+    prefer_gpu: true
+    min_free_vram_mb: 2048
+    require_schedulable: true
+  model_train:
+    capabilities: [model_train]
+    require_nfs_mount: true
+    prefer_gpu: true
+    gpu_count: 1
+    min_free_vram_mb: 8192
+    require_schedulable: true
+  stream_forward:
+    capabilities: [stream_forward, srs_live]
+    max_cpu_percent: 85
+    max_mem_percent: 95
+    require_schedulable: true

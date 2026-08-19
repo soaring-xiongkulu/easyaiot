@@ -1,0 +1,62 @@
+# ComponentSentinel 注册表（SENTINEL Agent 与控制面 NODE 共享语义）
+components:
+  runtime:
+    functions: [algorithm, forward, infer, label, transform]
+    depends: []
+  nfs_mount:
+    functions: [algorithm, train, label, infer, nfs]
+    depends: []
+  cuda:
+    functions: [train, llm]
+    depends: []
+  gpu_vram:
+    functions: [train, llm]
+    depends: [cuda]
+  docker:
+    functions: [live, mqtt]
+    depends: []
+  srs_live:
+    functions: [live, forward]
+    depends: [docker]
+  ffmpeg:
+    functions: [algorithm, forward, live]
+    depends: []
+  model_train_bundle:
+    functions: [train]
+    depends: []
+  video_bundle_realtime:
+    functions: [algorithm, infer, label]
+    depends: []
+  llm_bundle:
+    functions: [llm]
+    depends: [cuda]
+
+remediation:
+  runtime:
+    action: deploy_runtime_cpp
+    enabled: true
+    cooldown_sec: 180
+    max_attempts: 3
+  model_train_bundle:
+    action: deploy_bundle
+    params: { bundle: model_train }
+    enabled: true
+    cooldown_sec: 180
+    max_attempts: 3
+  video_bundle_realtime:
+    action: deploy_bundle
+    params: { bundle: algorithm_realtime }
+    enabled: true
+    cooldown_sec: 180
+    max_attempts: 3
+  srs_live:
+    action: deploy_media_stack
+    params: { stack_type: srs_live }
+    enabled: true
+    cooldown_sec: 180
+    max_attempts: 3
+  ffmpeg:
+    action: deploy_ffmpeg
+    enabled: true
+    cooldown_sec: 180
+    max_attempts: 3

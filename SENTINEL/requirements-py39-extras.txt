@@ -1,0 +1,4 @@
+# Flask 等在 Python < 3.10 上的回退依赖。
+# pip 在较新 Python 上为 3.9 下载 wheel 时可能跳过带 python_version 标记的传递依赖，需显式列出。
+importlib-metadata>=3.6.0
+zipp>=3.20

@@ -1,0 +1,72 @@
+# 节点功能（用户勾选）→ 声明能力 / 期望组件 / 调度 workload
+# 唯一真实源：WEB 勾选、NODE 落库、Sentinel 期望组件、调度过滤都读这张表
+functions:
+  algorithm:
+    label: 视频分析
+    desc: 实时/抓拍/巡检算法任务
+    capabilities: [algorithm_realtime, algorithm_snap, algorithm_patrol]
+    components: [nfs_mount, runtime, ffmpeg, video_bundle_realtime]
+    workloads: [algorithm_task]
+  forward:
+    label: 推流转发
+    desc: 把路流转发到其他目标
+    capabilities: [stream_forward]
+    components: [srs_live, runtime, ffmpeg]
+    workloads: [stream_forward]
+  live:
+    label: 直播接入
+    desc: 作为 SRS/ZLM 给设备推流拉流
+    capabilities: [srs_live, srs_ai, zlm]
+    components: [docker, srs_live]
+    workloads: [srs_live, srs_ai, zlm]
+  train:
+    label: 模型训练
+    desc: YOLO 等训练任务，需要 GPU
+    capabilities: [model_train]
+    components: [nfs_mount, cuda, gpu_vram, model_train_bundle]
+    workloads: [model_train]
+    require_gpu: true
+  llm:
+    label: 大模型
+    desc: vLLM 等大模型推理，需要 GPU
+    capabilities: [llm_inference]
+    components: [cuda, gpu_vram, llm_bundle]
+    workloads: [llm_service]
+    require_gpu: true
+  label:
+    label: 智能标注
+    desc: SAM/YOLO 标注流水线
+    capabilities: [auto_label]
+    components: [nfs_mount, runtime, video_bundle_realtime]
+    workloads: [auto_label]
+  infer:
+    label: 模型推理
+    desc: 在线推理服务
+    capabilities: [ai_inference]
+    components: [nfs_mount, runtime, video_bundle_realtime]
+    workloads: [ai_service]
+  mqtt:
+    label: 物联接入
+    desc: EMQX，设备 MQTT 接入
+    capabilities: [emqx, mqtt_gateway]
+    components: [docker]
+    workloads: [emqx, mqtt_gateway]
+  nfs:
+    label: 共享存储
+    desc: 向集群导出 NFS 目录
+    capabilities: [nfs_server, media_storage]
+    components: [nfs_mount]
+    workloads: []
+    nfs_server: true
+  transform:
+    label: 数据转发
+    desc: TRANSFORM 运行时
+    capabilities: [transform_runtime]
+    components: [runtime]
+    workloads: [transform_runtime]
+
+# 勾选这些功能的节点需要挂 NFS 客户端
+nfs_client_functions: [algorithm, train, label, infer]
+
+# 控制面本机默认功能（单机=集群特例）
+platform_default: [algorithm, forward, live, nfs]
