@@ -27,7 +27,10 @@
 #   check      - 检查 Docker 和 Docker Compose 安装状态
 #   profile    - 显示当前部署形态与服务范围
 #   site [子命令] - 官方网站 SITE 独立部署
-#   menu       - 打开两层交互引导（同无参数）
+#   runtime|runtime-atomic - RUNTIME 原子模式（只装计算节点执行器，需 VIDEO_BASE_URL）
+#   build-runtime-cpp [target] - RUNTIME C++ 离线包矩阵构建（容器内按 OS 编译，与 COMPILE 对齐）
+#   preflight-runtime-cpp [--node N] - RUNTIME 分发前预检（缺包时提示 export 命令）
+#   export-runtime-cpp <os_family> - 单 OS 导出（如 openeuler22 / kylin10）
 #   diagnose       - 问题分析定位（进入【分析】子菜单）
 #   analyze-logs   - 多模块日志合并分析（各模块约 500 行，带分割线）
 #   analyze-disk   - 项目关键目录磁盘占用分析
@@ -70,6 +73,8 @@ source "${PROJECT_ROOT}/.scripts/node/ensure_platform_agent_invoke.sh"
 
 # shellcheck source=module_update_helpers.sh
 source "${SCRIPT_DIR}/module_update_helpers.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/runtime_cpp_bundle_common.sh"
 
 _ensure_platform_agent_info() { print_info "$1"; }
 _ensure_platform_agent_ok() { print_success "$1"; }
@@ -2083,6 +2088,9 @@ show_help() {
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
     echo "  runtime|runtime-atomic - RUNTIME 原子模式（只装计算节点执行器，需 VIDEO_BASE_URL）"
+    echo "  build-runtime-cpp [target|--all|--compile-target NAME] - RUNTIME C++ 离线包矩阵构建"
+    echo "  preflight-runtime-cpp [--node N | os_family [arch]] - 分发前预检本地 tarball"
+    echo "  export-runtime-cpp <os_family> - 单 OS 容器内导出（openeuler22 / kylin10 等）"
     echo "  menu            - 打开两层交互引导（部署 / 分析 / 官网）"
     echo "  diagnose        - 进入【分析】子菜单"
     echo "  analyze-logs    - 多模块日志合并分析（各模块约 500 行，带分割线）"
@@ -2136,6 +2144,29 @@ run_runtime_atomic() {
         return 1
     fi
     bash "$runtime_script" atomic "$@"
+}
+
+# RUNTIME C++ 离线包矩阵（iot-node 分发用，与 COMPILE 目标对齐）
+run_runtime_cpp_bundle_cmd() {
+    local sub="${1:-help}"
+    shift || true
+    case "$sub" in
+        build|build-runtime-cpp|matrix)
+            runtime_cpp_build_matrix "$@"
+            ;;
+        preflight|preflight-runtime-cpp|check)
+            runtime_cpp_preflight_bundle "$@"
+            ;;
+        export|export-runtime-cpp)
+            runtime_cpp_export_one "$@"
+            ;;
+        help|-h|--help)
+            runtime_cpp_bundle_usage
+            ;;
+        *)
+            runtime_cpp_build_matrix "$sub" "$@"
+            ;;
+    esac
 }
 
 # 官方网站 SITE：委托 SITE/install_linux.sh
@@ -2248,6 +2279,15 @@ main() {
             ;;
         runtime|runtime-atomic|install-runtime|atomic-runtime)
             run_runtime_atomic "${2:-}"
+            ;;
+        build-runtime-cpp|runtime-cpp-build|runtime-cpp-matrix)
+            run_runtime_cpp_bundle_cmd build "${@:2}"
+            ;;
+        preflight-runtime-cpp|runtime-cpp-preflight)
+            run_runtime_cpp_bundle_cmd preflight "${@:2}"
+            ;;
+        export-runtime-cpp|runtime-cpp-export)
+            run_runtime_cpp_bundle_cmd export "${@:2}"
             ;;
         diagnose|diagnose-tools)
             run_analyze_interactive_menu

@@ -29,6 +29,20 @@ sudo .scripts/docker/install_linux_centos_arm.sh --upgrade-docker-only
 sudo .scripts/docker/install_linux_openeuler.sh --upgrade-docker-only
 ```
 
+**RUNTIME C++ 离线包（iot-node 集群分发，与 COMPILE 矩阵对齐）**
+
+```bash
+# 分发前预检（缺包时提示 export 命令，不必 SSH 上去才发现）
+bash .scripts/docker/install_linux.sh preflight-runtime-cpp --node 5
+bash .scripts/docker/install_linux.sh preflight-runtime-cpp openeuler22 x86_64
+
+# 单 OS / 批量矩阵构建（openEuler / CentOS / 麒麟入口均转交 install_linux.sh）
+bash .scripts/docker/install_linux.sh build-runtime-cpp openeuler22
+bash .scripts/docker/install_linux.sh build-runtime-cpp --compile-target openeuler
+bash .scripts/docker/install_linux_openeuler.sh build-runtime-cpp openeuler22
+bash .scripts/docker/install_linux_kylin.sh build-runtime-cpp kylin10   # 需 RUNTIME_KYLIN10_ARM64_IMAGE
+```
+
 一键安装顺序：`IDEA`（:9300，全形态优先；失败则中止）→ 中间件 → DEVICE/AI/RTC/VIDEO/WEB… → PANEL。
 可用 `EASYAIOT_ENABLE_IDEA=0` 临时跳过 IDEA。
 
