@@ -77,6 +77,15 @@ hs_err_pid*
 # Node Agent 离线 pip wheel（体积大，勿提交）
 NODE/get-pip.py
 NODE/pip-wheels/
+
+# Node Agent 运行时环境变量（含 token，勿提交）
+NODE/agent.env
+
+# Sentinel Agent 离线 pip wheel（体积大，勿提交）
+SENTINEL/pip-wheels/
+
+# Sentinel Agent 运行时环境变量（含 token，勿提交）
+SENTINEL/agent.env
 # Package Files #
 .pnpm-store/
 *.pyc

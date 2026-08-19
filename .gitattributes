@@ -103,6 +103,13 @@ CMakeLists.txt text eol=lf
 NODE/pip-wheels/** -diff
 NODE/get-pip.py -diff
 
+# Node Agent 运行时环境文件（强制 LF，避免 CRLF 污染 token）
+NODE/agent.env text eol=lf
+
+# Sentinel Agent 离线 pip wheel（体积大，本地/export 下载，不参与 diff）
+SENTINEL/pip-wheels/** -diff
+SENTINEL/get-pip.py -diff
+
 # VIDEO 人脸特征模型（体积大，本地/install 下载，不参与 diff）
 VIDEO/face_rec.onnx binary -diff
 
