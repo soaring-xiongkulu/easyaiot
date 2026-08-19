@@ -14,7 +14,7 @@
         mode="multiple"
         show-search
         allow-clear
-        placeholder="选择 compute / gpu / hybrid 节点（可多选）"
+        placeholder="选择已勾选分析/训练/推理等计算功能的节点（可多选）"
         style="min-width: 480px; flex: 1"
         :options="nodeOptions"
         :filter-option="filterNode"
@@ -48,7 +48,7 @@ import { Button } from '@/components/Button';
 import { CollapseContainer } from '@/components/Container';
 import { getNodePage, type ComputeNodeVO } from '@/api/device/node';
 import { isPlatformNode } from '../../utils/platformNode';
-import { WORKLOAD_BUNDLE_COPY, WORKLOAD_BUNDLE_TYPES } from '../../utils/constants';
+import { WORKLOAD_BUNDLE_COPY, WORKLOAD_BUNDLE_TYPES, isSchedulableComputeNode } from '../../utils/constants';
 import WorkloadBundlePanel from './WorkloadBundlePanel.vue';
 import FfmpegBatchPanel from './FfmpegBatchPanel.vue';
 import RuntimeCppBatchPanel from './RuntimeCppBatchPanel.vue';
@@ -72,7 +72,7 @@ function filterNode(input: string, option: { label?: string }) {
 
 function isEligibleNode(node: ComputeNodeVO) {
   if (isPlatformNode(node)) return false;
-  if (node.nodeRole !== 'compute' && node.nodeRole !== 'gpu' && node.nodeRole !== 'hybrid') return false;
+  if (!isSchedulableComputeNode(node)) return false;
   return !!(node.sshUsername?.trim() || node.sshCredentialConfigured);
 }
 

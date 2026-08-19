@@ -4,7 +4,7 @@
       v-model:selected-node-ids="selectedNodeIds"
       role-filter="gpuWorkload"
       :initial-node-ids="initialNodeIds"
-      placeholder="选择 gpu / hybrid 节点（可多选，部署时将使用所选节点）"
+      placeholder="选择已勾选大模型功能的节点（可多选）"
     />
 
     <Tabs v-model:activeKey="activeTab" type="card" class="inner-tabs mt-4">

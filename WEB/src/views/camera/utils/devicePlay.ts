@@ -1,5 +1,6 @@
 import type { DeviceInfo, MonitorTreeDeviceNode } from '@/api/device/camera';
 import { getDeviceInfo } from '@/api/device/camera';
+import { ensureDeviceStreamForwardTask } from '@/api/device/stream_forward';
 import { playByDeviceAndChannel } from '@/api/device/gb28181';
 import {
   formatCameraDeviceLabel,
@@ -721,6 +722,8 @@ export async function openDeviceInDialogPlayer(
 
   if (!hasPlayableStream(record)) return false;
 
+  await ensureDirectRtspPlayReady(record.id);
+
   const { url, fallbackUrl, preferAi, pendingAiUrl } = await pickDirectPlayUrls(record, enableAi);
   if (!url) return false;
 
@@ -750,4 +753,17 @@ export async function resolveMonitorPlayUrl(
   }
 
   return pickVideoPlayUrl(device);
+}
+
+/**
+ * 点播前确保推流转发任务在调度节点上运行（NVR 多路走集群任务，不在控制面起 ffmpeg）。
+ */
+export async function ensureDirectRtspPlayReady(deviceId?: string | null): Promise<void> {
+  const id = String(deviceId || '').trim();
+  if (!id) return;
+  try {
+    await ensureDeviceStreamForwardTask(id);
+  } catch {
+    /* 已在推或瞬时失败时仍尝试打开播放器，由播放超时提示 */
+  }
 }

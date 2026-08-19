@@ -79,8 +79,8 @@ export function navigateToNodeBatchTab(router: Router, tab: string, nodeIds: num
 
 export function navigateToOnboardService(
   router: Router,
-  node: { id?: number; nodeRole?: string | null },
+  node: { id?: number; functions?: string[] | null; nodeRole?: string | null },
 ) {
   if (!node.id) return;
-  navigateToNodeServiceTab(router, resolveOnboardServiceTab(node.nodeRole), node.id);
+  navigateToNodeServiceTab(router, resolveOnboardServiceTab(node), node.id);
 }

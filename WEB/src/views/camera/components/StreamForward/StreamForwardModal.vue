@@ -42,6 +42,7 @@ import {
 import { getRuntimeInfo } from '@/api/device/algorithm_task';
 import { getDeviceList } from '@/api/device/camera';
 import { getNodePage } from '@/api/device/node';
+import { nodeHasFunction } from '@/views/node/utils/constants';
 import { Button } from '@/components/Button'
 defineOptions({ name: 'StreamForwardModal' });
 
@@ -319,7 +320,7 @@ const loadNodes = async () => {
     );
     const page = res?.data || res;
     const list = (page?.list || []).filter(
-      (node: any) => node.nodeRole === 'compute' || node.nodeRole === 'gpu' || node.nodeRole === 'hybrid',
+      (node: any) => nodeHasFunction(node, 'forward'),
     );
     nodeOptions.value = list.map((node: any) => ({
       label: `${node.name} (${node.host})`,

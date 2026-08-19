@@ -76,6 +76,7 @@ import { Form, FormItem, Select, InputNumber, Switch } from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { deployModel, getModelPage } from '@/api/device/model';
 import { getNodePage } from '@/api/device/node';
+import { nodeHasAnyFunction } from '@/views/node/utils/constants';
 
 const AForm = Form;
 const AFormItem = FormItem;
@@ -139,7 +140,7 @@ const loadNodeOptions = async () => {
     const res = await getNodePage({ pageNo: 1, pageSize: 200, status: 'online' });
     const page = res?.data || res;
     const list = (page?.list || []).filter(
-      (node: any) => node.nodeRole === 'compute' || node.nodeRole === 'gpu' || node.nodeRole === 'hybrid',
+      (node: any) => nodeHasAnyFunction(node, ['infer', 'llm']),
     );
     nodeOptions.value = list.map((node: any) => ({
       label: `${node.name} (${node.host})`,

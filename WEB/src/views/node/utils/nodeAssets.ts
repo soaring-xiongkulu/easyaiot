@@ -7,23 +7,47 @@ export interface NodeRoleVisual {
 }
 
 export const NODE_ROLE_VISUAL: Record<string, NodeRoleVisual> = {
-  compute: {
+  algorithm: {
     coverClass: 'node-card-cover--compute',
     iconClass: 'node-server-icon--compute',
     bodyIcon: 'mdi:server',
-    roleMarkIcon: 'mdi:chip',
+    roleMarkIcon: 'mdi:video-outline',
   },
-  gpu: {
-    coverClass: 'node-card-cover--compute',
-    iconClass: 'node-server-icon--compute',
+  forward: {
+    coverClass: 'node-card-cover--media',
+    iconClass: 'node-server-icon--media',
     bodyIcon: 'mdi:server',
-    roleMarkIcon: 'mdi:expansion-card',
+    roleMarkIcon: 'mdi:transit-connection-variant',
   },
-  media: {
+  live: {
     coverClass: 'node-card-cover--media',
     iconClass: 'node-server-icon--media',
     bodyIcon: 'mdi:server',
     roleMarkIcon: 'mdi:cast',
+  },
+  train: {
+    coverClass: 'node-card-cover--compute',
+    iconClass: 'node-server-icon--compute',
+    bodyIcon: 'mdi:server',
+    roleMarkIcon: 'mdi:school-outline',
+  },
+  llm: {
+    coverClass: 'node-card-cover--compute',
+    iconClass: 'node-server-icon--compute',
+    bodyIcon: 'mdi:server',
+    roleMarkIcon: 'mdi:robot-outline',
+  },
+  label: {
+    coverClass: 'node-card-cover--compute',
+    iconClass: 'node-server-icon--compute',
+    bodyIcon: 'mdi:server',
+    roleMarkIcon: 'mdi:tag-outline',
+  },
+  infer: {
+    coverClass: 'node-card-cover--compute',
+    iconClass: 'node-server-icon--compute',
+    bodyIcon: 'mdi:server',
+    roleMarkIcon: 'mdi:chip',
   },
   mqtt: {
     coverClass: 'node-card-cover--mqtt',
@@ -31,20 +55,20 @@ export const NODE_ROLE_VISUAL: Record<string, NodeRoleVisual> = {
     bodyIcon: 'mdi:server',
     roleMarkIcon: 'mdi:access-point-network',
   },
-  storage: {
+  nfs: {
     coverClass: 'node-card-cover--storage',
     iconClass: 'node-server-icon--storage',
     bodyIcon: 'mdi:server',
-    roleMarkIcon: 'mdi:database',
+    roleMarkIcon: 'mdi:folder-network-outline',
   },
-  hybrid: {
+  transform: {
     coverClass: 'node-card-cover--hybrid',
     iconClass: 'node-server-icon--hybrid',
     bodyIcon: 'mdi:server',
-    roleMarkIcon: 'mdi:lan',
+    roleMarkIcon: 'mdi:swap-horizontal',
   },
 };
 
 export function getNodeRoleVisual(role?: string): NodeRoleVisual {
-  return NODE_ROLE_VISUAL[role || ''] || NODE_ROLE_VISUAL.compute;
+  return NODE_ROLE_VISUAL[role || ''] || NODE_ROLE_VISUAL.algorithm;
 }

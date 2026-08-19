@@ -7,7 +7,19 @@ import { Icon } from '@/components/Icon';
 import { Button } from '@/components/Button';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getAgentSetup, testNodeSsh, type ComputeNodeVO } from '@/api/device/node';
-import { SETUP_COPY, SETUP_STEP_LABELS, NODE_TERM, loadNodeControlPlaneUrlAsync, saveNodeControlPlaneUrl, readMediaPortsFromTags, readMqttPortsFromTags } from '../../utils/constants';
+import {
+  SETUP_COPY,
+  SETUP_STEP_LABELS,
+  NODE_TERM,
+  loadNodeControlPlaneUrlAsync,
+  saveNodeControlPlaneUrl,
+  readMediaPortsFromTags,
+  readMqttPortsFromTags,
+  nodeHasAnyFunction,
+  nodeHasFunction,
+  formatNodeFunctions,
+  primaryNodeFunction,
+} from '../../utils/constants';
 import NodeMetaBadge from '../NodeMetaBadge/index.vue';
 import SetupOverviewPanel from '../SetupOverviewPanel/index.vue';
 import MediaStackSetupPanel from '../MediaStackSetupPanel/index.vue';
@@ -45,11 +57,9 @@ watch(controlPlaneUrl, (url) => {
   if (nodeInfo.value?.id) saveNodeControlPlaneUrl(nodeInfo.value.id, url);
 });
 
-const isMediaNode = computed(
-  () => nodeInfo.value?.nodeRole === 'media' || nodeInfo.value?.nodeRole === 'hybrid',
-);
+const isMediaNode = computed(() => nodeHasAnyFunction(nodeInfo.value, ['live', 'forward']));
 
-const isMqttNode = computed(() => nodeInfo.value?.nodeRole === 'mqtt');
+const isMqttNode = computed(() => nodeHasFunction(nodeInfo.value, 'mqtt'));
 
 const steps = computed<SetupStep[]>(() => {
   const list: SetupStep[] = [
@@ -78,6 +88,7 @@ const mediaFormValues = computed(() => {
   const tags = node.tags || {};
   return {
     nodeRole: node.nodeRole,
+    functions: node.functions,
     nodeId: node.id,
     name: node.name,
     host: node.host,
@@ -95,6 +106,7 @@ const mqttFormValues = computed(() => {
   const tags = node.tags || {};
   return {
     nodeRole: node.nodeRole,
+    functions: node.functions,
     nodeId: node.id,
     name: node.name,
     host: node.host,
@@ -246,7 +258,7 @@ function handleVerifyOnline() {
         </div>
         <div v-if="nodeInfo" class="setup-drawer-header__tags">
           <NodeMetaBadge type="status" :status="nodeInfo.status" size="lg" />
-          <NodeMetaBadge type="role" :role="nodeInfo.nodeRole" size="lg" />
+          <NodeMetaBadge type="role" :role="primaryNodeFunction(nodeInfo)" :label="formatNodeFunctions(nodeInfo)" size="lg" />
         </div>
       </div>
     </template>

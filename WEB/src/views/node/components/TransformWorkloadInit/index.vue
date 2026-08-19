@@ -13,7 +13,7 @@
       role-filter="computeWorkload"
       :exclude-platform="true"
       :initial-node-ids="initialNodeIds"
-      placeholder="选择其他 compute / gpu / hybrid 节点（不含本机控制面）"
+      placeholder="选择已勾选数据转发的节点（不含本机控制面）"
     />
 
     <Tabs

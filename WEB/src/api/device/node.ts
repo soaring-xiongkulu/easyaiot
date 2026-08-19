@@ -37,7 +37,8 @@ export interface ComputeNodeVO {
   sshPort?: number;
   agentPort?: number;
   status?: string;
-  nodeRole: string;
+  nodeRole?: string;
+  functions?: string[];
   region?: string;
   tags?: Record<string, string>;
   capabilities?: Record<string, boolean>;
@@ -67,12 +68,17 @@ export interface ComputeNodeVO {
   controlPlaneId?: number;
   isRemote?: boolean;
   peerId?: number;
+  sentinelAutoDeployStarted?: boolean;
   createTime?: string;
   updateTime?: string;
 }
 
-export const createNode = (data: ComputeNodeVO, options?: Pick<NodeRequestOptions, 'errorMessageMode'>) => {
-  return commonApi('post', Api.Node + '/create', { data }, options);
+export const createNode = (data: ComputeNodeVO, options?: Pick<NodeRequestOptions, 'errorMessageMode' | 'timeout'>) => {
+  return commonApi('post', Api.Node + '/create', { data }, { timeout: 120000, ...options });
+};
+
+export const preflightNode = (data: ComputeNodeVO) => {
+  return commonApi('post', Api.Node + '/preflight', { data }, { timeout: 60000, errorMessageMode: 'none' });
 };
 
 export const updateNode = (data: ComputeNodeVO) => {
@@ -85,6 +91,82 @@ export const deleteNode = (id: number) => {
 
 export const getNode = (id: number) => {
   return commonApi('get', Api.Node + '/get', { params: { id } });
+};
+
+export interface NodeSentinelRemediateLogVO {
+  id?: number;
+  nodeId?: number;
+  componentId?: string;
+  mark?: string;
+  action?: string;
+  success?: boolean;
+  exhausted?: boolean;
+  attemptCount?: number;
+  maxAttempts?: number;
+  probeState?: string;
+  message?: string;
+  logs?: Array<Record<string, unknown>>;
+  createTime?: string;
+}
+
+export interface NodeSentinelVO {
+  nodeId?: number;
+  nodeProfile?: string;
+  nodeFunctions?: string[];
+  sentinelVersion?: string;
+  probeLevel?: string;
+  components?: Array<Record<string, unknown>>;
+  schedulableCapabilities?: Record<string, Record<string, unknown>>;
+  summary?: Record<string, unknown>;
+  environmentProfile?: Record<string, unknown>;
+  declaredCapabilities?: Record<string, unknown>;
+  operationalState?: string;
+  remediation?: Record<string, unknown>;
+  lastProbeAt?: string;
+  fresh?: boolean;
+  remediateLogs?: NodeSentinelRemediateLogVO[];
+}
+
+export const getNodeSentinel = async (nodeId: number): Promise<NodeSentinelVO> => {
+  const res = await commonApi('get', Api.Node + '/sentinel/get', { params: { nodeId } });
+  if (res && typeof res === 'object') {
+    const r = res as Record<string, unknown>;
+    if (r.nodeId != null || r.components) {
+      return r as NodeSentinelVO;
+    }
+    const wrapped = r.data as NodeSentinelVO | undefined;
+    if (wrapped) return wrapped;
+  }
+  return {};
+};
+
+export const probeNodeSentinel = async (
+  nodeId: number,
+  level = 'L1',
+): Promise<NodeSentinelVO> => {
+  const res = await commonApi('post', Api.Node + '/sentinel/probe', { data: { nodeId, level } });
+  if (res && typeof res === 'object') {
+    const r = res as Record<string, unknown>;
+    if (r.nodeId != null || r.components) {
+      return r as NodeSentinelVO;
+    }
+    const wrapped = r.data as NodeSentinelVO | undefined;
+    if (wrapped) return wrapped;
+  }
+  return {};
+};
+
+export const resyncNodeSentinel = async (nodeId: number): Promise<NodeSentinelVO> => {
+  const res = await commonApi('post', Api.Node + '/sentinel/resync', { params: { nodeId } });
+  if (res && typeof res === 'object') {
+    const r = res as Record<string, unknown>;
+    if (r.nodeId != null || r.components) {
+      return r as NodeSentinelVO;
+    }
+    const wrapped = r.data as NodeSentinelVO | undefined;
+    if (wrapped) return wrapped;
+  }
+  return {};
 };
 
 export interface NodePageResult {
@@ -304,6 +386,7 @@ export interface CephTopologyNodeVO {
   name?: string;
   host?: string;
   nodeRole?: string;
+  functions?: string[];
   status?: string;
   agentPort?: number;
   /** platform | nfs_primary | nfs_standby | nfs_client | nfs_candidate（兼容 storage_nfs / ceph_client） */
@@ -1045,28 +1128,46 @@ export const releaseDeviceMedia = (deviceId: string) => {
   return commonApi('post', `${Api.Node}/media/release?deviceId=${encodeURIComponent(deviceId)}`);
 };
 
-/** 可参与计算工作负载调度的节点角色 */
-const SCHEDULABLE_COMPUTE_ROLES = ['compute', 'gpu', 'hybrid'] as const;
+const SCHEDULABLE_COMPUTE_FUNCTIONS = [
+  'algorithm',
+  'forward',
+  'train',
+  'llm',
+  'label',
+  'infer',
+  'transform',
+] as const;
 
-function isSchedulableComputeNode(node?: Pick<ComputeNodeVO, 'nodeRole'> | null): boolean {
-  const role = node?.nodeRole;
-  return !!role && (SCHEDULABLE_COMPUTE_ROLES as readonly string[]).includes(role);
+function nodeFunctionIds(node?: Pick<ComputeNodeVO, 'functions' | 'nodeRole'> | null): string[] {
+  if (node?.functions?.length) {
+    return node.functions.map((id) => String(id).trim()).filter(Boolean);
+  }
+  return String(node?.nodeRole || '')
+    .split(/[,\s]+/)
+    .map((id) => id.trim())
+    .filter(Boolean);
 }
 
-/** 获取可用于调度的在线节点（compute / gpu / hybrid） */
+function isSchedulableComputeNode(node?: Pick<ComputeNodeVO, 'functions' | 'nodeRole'> | null): boolean {
+  const set = new Set(nodeFunctionIds(node));
+  return SCHEDULABLE_COMPUTE_FUNCTIONS.some((fn) => set.has(fn));
+}
+
+/** 获取可用于计算工作负载调度的在线节点 */
 export const listScheduleNodes = async () => {
   const res = await getNodePage({ pageNo: 1, pageSize: 200, status: 'online' });
   const list = res?.data?.list ?? [];
   return list.filter((node: ComputeNodeVO) => isSchedulableComputeNode(node));
 };
 
-/** 获取可用于媒体调度的在线节点（media / hybrid） */
+/** 获取可用于媒体调度的在线节点（直播接入 / 推流转发） */
 export const listMediaNodes = async () => {
   const res = await getNodePage({ pageNo: 1, pageSize: 200, status: 'online' });
   const list = res?.data?.list ?? [];
-  return list.filter(
-    (node: ComputeNodeVO) => node.nodeRole === 'media' || node.nodeRole === 'hybrid',
-  );
+  return list.filter((node: ComputeNodeVO) => {
+    const set = new Set(nodeFunctionIds(node));
+    return set.has('live') || set.has('forward');
+  });
 };
 
 // ---------- 工作负载 bundle 批量分发 ----------

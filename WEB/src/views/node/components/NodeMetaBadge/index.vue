@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { NODE_ROLE_MAP, NODE_STATUS_MAP, NODE_TERM, SETUP_COPY, CEPH_MOUNT_LABELS } from '../../utils/constants';
+import { NODE_STATUS_MAP, NODE_TERM, SETUP_COPY, CEPH_MOUNT_LABELS, formatNodeFunctions, primaryNodeFunction } from '../../utils/constants';
 
 defineOptions({ name: 'NodeMetaBadge' });
 
@@ -9,13 +9,14 @@ const props = withDefaults(
     type: 'status' | 'role' | 'readiness' | 'scope' | 'ceph';
     status?: string;
     role?: string;
+    label?: string;
     ready?: boolean;
     cephStatus?: 'ready' | 'not_ready' | 'unknown';
     size?: 'xs' | 'sm' | 'md' | 'lg';
   }>(),
   {
     status: 'pending',
-    role: 'compute',
+    role: 'algorithm',
     ready: false,
     size: 'md',
   },
@@ -33,8 +34,8 @@ const badgeClass = computed(() => {
     return `node-meta-badge--status-${NODE_STATUS_MAP[key] ? key : 'pending'}`;
   }
   if (props.type === 'role') {
-    const key = props.role || 'compute';
-    return `node-meta-badge--role-${NODE_ROLE_MAP[key] ? key : 'compute'}`;
+    const key = primaryNodeFunction({ nodeRole: props.role });
+    return `node-meta-badge--role-${key}`;
   }
   if (props.type === 'scope') {
     return 'node-meta-badge--scope-control-plane';
@@ -48,7 +49,7 @@ const label = computed(() => {
     return NODE_STATUS_MAP[key]?.text || props.status || '-';
   }
   if (props.type === 'role') {
-    return NODE_ROLE_MAP[props.role || ''] || props.role || '-';
+    return props.label || formatNodeFunctions({ nodeRole: props.role }) || '-';
   }
   if (props.type === 'scope') {
     return NODE_TERM.controlPlaneNode;

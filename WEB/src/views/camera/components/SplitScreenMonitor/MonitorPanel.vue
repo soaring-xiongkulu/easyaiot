@@ -194,6 +194,7 @@ import {
   AI_PLAY_FALLBACK_MS,
   AI_STREAM_PROBE_MULTI_VIEW_MS,
   pickDirectPlayUrls,
+  ensureDirectRtspPlayReady,
   schedulePendingAiStreamUpgrade,
   resolveGbChannelPlayUrls,
   isAiStreamPlayUrl,
@@ -491,6 +492,7 @@ async function playSavedSlot(index: number, saved: CameraMonitorLayoutSlot) {
     state.playCells[index] = null;
     return;
   }
+  await ensureDirectRtspPlayReady(dev.id);
   const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolveDirectPlayUrl(dev);
   if (!url) {
     createMessage.warn(`方案恢复失败：${saved.name}`);
@@ -1050,6 +1052,7 @@ async function handleTreeSelect(keys: string[] | string) {
   state.loadingCells.push(cellIdx);
 
   try {
+    await ensureDirectRtspPlayReady(device.id);
     const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolveDirectPlayUrl(device);
     if (!url) {
       createMessage.warn(

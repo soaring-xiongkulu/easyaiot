@@ -1,11 +1,12 @@
-import { NODE_ROLE_MAP, MEDIA_PORT_DEFAULTS, STORAGE_TAG_DEFAULTS } from './constants';
+import { MEDIA_PORT_DEFAULTS, STORAGE_TAG_DEFAULTS, formatNodeFunctions } from './constants';
 
 export interface NodeFormHistoryEntry {
   id: string;
   savedAt: number;
   name: string;
   host: string;
-  nodeRole: string;
+  nodeRole?: string;
+  functions?: string[];
   region?: string;
   remark?: string;
   sshPort?: number;
@@ -49,11 +50,23 @@ function persist(list: NodeFormHistoryEntry[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
 
-function entryFingerprint(entry: Pick<NodeFormHistoryEntry, 'name' | 'host' | 'nodeRole' | 'sshPort' | 'agentPort'>): string {
+function functionsKey(entry: Pick<NodeFormHistoryEntry, 'functions' | 'nodeRole'>): string {
+  if (entry.functions?.length) {
+    return [...entry.functions].map((id) => String(id).trim()).filter(Boolean).sort().join(',');
+  }
+  return String(entry.nodeRole || '')
+    .split(/[,\s]+/)
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
+function entryFingerprint(entry: Pick<NodeFormHistoryEntry, 'name' | 'host' | 'functions' | 'nodeRole' | 'sshPort' | 'agentPort'>): string {
   return [
     (entry.name || '').trim(),
     (entry.host || '').trim(),
-    entry.nodeRole || 'compute',
+    functionsKey(entry),
     String(entry.sshPort ?? 22),
     String(entry.agentPort ?? ''),
   ].join('\0');
@@ -70,7 +83,8 @@ export function saveNodeFormHistory(
     ...entry,
     name: (entry.name || '').trim(),
     host: (entry.host || '').trim(),
-    nodeRole: entry.nodeRole || 'compute',
+    functions: entry.functions?.length ? entry.functions : undefined,
+    nodeRole: functionsKey(entry) || undefined,
     id: entry.id || `node_${Date.now()}`,
     savedAt: entry.savedAt ?? Date.now(),
   };
@@ -98,7 +112,7 @@ export function formatNodeFormHistoryPrimary(entry: NodeFormHistoryEntry): strin
 
 export function formatNodeFormHistoryMeta(entry: NodeFormHistoryEntry): string {
   const parts: string[] = [
-    NODE_ROLE_MAP[entry.nodeRole] || entry.nodeRole || '计算节点',
+    formatNodeFunctions(entry),
     formatNodeFormHistoryTime(entry.savedAt),
   ];
   if (entry.region?.trim()) {
@@ -111,6 +125,7 @@ export function nodeFormHistoryToFields(entry: NodeFormHistoryEntry): Record<str
   return {
     name: entry.name,
     host: entry.host,
+    functions: entry.functions,
     nodeRole: entry.nodeRole,
     region: entry.region,
     remark: entry.remark,
@@ -142,7 +157,12 @@ export function valuesToNodeFormHistoryEntry(values: Record<string, unknown>): O
   return {
     name: String(values.name || '').trim(),
     host: String(values.host || '').trim(),
-    nodeRole: String(values.nodeRole || 'compute'),
+    functions: Array.isArray(values.functions)
+      ? (values.functions as string[]).map((id) => String(id).trim()).filter(Boolean)
+      : undefined,
+    nodeRole: Array.isArray(values.functions)
+      ? (values.functions as string[]).join(',')
+      : String(values.nodeRole || ''),
     region: values.region ? String(values.region) : undefined,
     remark: values.remark ? String(values.remark) : undefined,
     sshPort: values.sshPort != null ? Number(values.sshPort) : 22,

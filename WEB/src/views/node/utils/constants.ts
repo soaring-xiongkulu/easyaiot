@@ -148,30 +148,85 @@ export const NODE_STATUS_BADGE: Record<string, { bg: string; color: string; bord
   maintenance: { bg: '#fffbe6', color: '#d48806', border: '#ffe58f' },
 };
 
-export const NODE_ROLE_MAP: Record<string, string> = {
-  compute: '计算节点',
-  gpu: 'GPU 节点',
-  media: '媒体节点',
-  mqtt: 'MQTT网关节点',
-  storage: '存储节点',
-  hybrid: '混合节点',
-};
+export const NODE_FUNCTION_DEFS = [
+  { id: 'algorithm', label: '视频分析', desc: '实时/抓拍/巡检算法任务' },
+  { id: 'forward', label: '推流转发', desc: '把路流转发到其他目标' },
+  { id: 'live', label: '直播接入', desc: '作为 SRS/ZLM 给设备推流拉流' },
+  { id: 'train', label: '模型训练', desc: 'YOLO 等训练任务，需要 GPU' },
+  { id: 'llm', label: '大模型', desc: 'vLLM 等大模型推理，需要 GPU' },
+  { id: 'label', label: '智能标注', desc: 'SAM/YOLO 标注流水线' },
+  { id: 'infer', label: '模型推理', desc: '在线推理服务' },
+  { id: 'mqtt', label: '物联接入', desc: 'EMQX，设备 MQTT 接入' },
+  { id: 'nfs', label: '共享存储', desc: '向集群导出 NFS 目录' },
+  { id: 'transform', label: '数据转发', desc: 'TRANSFORM 运行时' },
+] as const;
 
-export const NODE_ROLE_DESC: Record<string, string> = {
-  compute: '无 GPU，用于 CPU 推理、轻量算法或推流转发',
-  gpu: '配备 GPU，用于模型推理、深度学习算法等算力密集型任务',
-  media: '用于 SRS/ZLM 流媒体集群，设备拉流/推流',
-  mqtt: '用于 EMQX MQTT 集群，设备物联网协议接入',
-  storage: 'NFS 存储节点；NFS 安装与挂载请在流媒体管理完成',
-  hybrid: '同时承担计算与媒体调度',
-};
+export type NodeFunctionId = (typeof NODE_FUNCTION_DEFS)[number]['id'];
 
-/** 可参与计算工作负载调度的节点角色 */
-export const SCHEDULABLE_COMPUTE_ROLES = ['compute', 'gpu', 'hybrid'] as const;
+export const NODE_FUNCTION_MAP: Record<string, string> = Object.fromEntries(
+  NODE_FUNCTION_DEFS.map((item) => [item.id, item.label]),
+);
 
-export function isSchedulableComputeNode(node?: { nodeRole?: string | null } | null): boolean {
-  const role = node?.nodeRole;
-  return !!role && (SCHEDULABLE_COMPUTE_ROLES as readonly string[]).includes(role);
+export const NODE_FUNCTION_DESC: Record<string, string> = Object.fromEntries(
+  NODE_FUNCTION_DEFS.map((item) => [item.id, item.desc]),
+);
+
+export const NODE_FUNCTION_OPTIONS = NODE_FUNCTION_DEFS.map((item) => ({
+  label: item.label,
+  value: item.id,
+}));
+
+type FunctionBearer = {
+  functions?: string[] | null;
+  nodeRole?: string | null;
+} | null | undefined;
+
+export function parseNodeFunctions(node?: FunctionBearer): string[] {
+  if (Array.isArray(node?.functions) && node.functions.length) {
+    return node.functions.map((id) => String(id).trim()).filter((id) => id in NODE_FUNCTION_MAP);
+  }
+  const csv = node?.nodeRole || '';
+  return csv
+    .split(/[,\s]+/)
+    .map((id) => id.trim())
+    .filter((id) => id in NODE_FUNCTION_MAP);
+}
+
+export function nodeHasFunction(node: FunctionBearer, fn: string): boolean {
+  return parseNodeFunctions(node).includes(fn);
+}
+
+export function nodeHasAnyFunction(node: FunctionBearer, fns: readonly string[]): boolean {
+  const set = new Set(parseNodeFunctions(node));
+  return fns.some((fn) => set.has(fn));
+}
+
+export function formatNodeFunctions(node?: FunctionBearer): string {
+  const ids = parseNodeFunctions(node);
+  if (!ids.length) return '-';
+  return ids.map((id) => NODE_FUNCTION_MAP[id] || id).join('、');
+}
+
+export function primaryNodeFunction(node?: FunctionBearer): string {
+  return parseNodeFunctions(node)[0] || 'algorithm';
+}
+
+export const NODE_ROLE_MAP = NODE_FUNCTION_MAP;
+export const NODE_ROLE_DESC = NODE_FUNCTION_DESC;
+
+/** 可参与计算工作负载调度的节点功能 */
+export const SCHEDULABLE_COMPUTE_FUNCTIONS = [
+  'algorithm',
+  'forward',
+  'train',
+  'llm',
+  'label',
+  'infer',
+  'transform',
+] as const;
+
+export function isSchedulableComputeNode(node?: FunctionBearer): boolean {
+  return nodeHasAnyFunction(node, SCHEDULABLE_COMPUTE_FUNCTIONS);
 }
 
 /**
@@ -278,7 +333,7 @@ export const NODE_DETAIL = {
   tabMqttDeploy: NODE_TERM.mqttService,
   tabStorageDeploy: NODE_TERM.storageService,
   tabAgentDeploy: NODE_TERM.agent,
-  sectionStorage: 'Ceph 存储',
+  sectionStorage: 'NFS 存储',
   sectionResource: '资源使用',
   sectionResourceHint: 'CPU、内存、显存、磁盘占用，与集群概览维度一致',
   sectionConfig: NODE_TERM.nodeConfig,
@@ -302,6 +357,48 @@ export const NODE_DETAIL = {
   pendingMessage: NODE_TERM.pendingTitle,
   offlineMessage: NODE_TERM.offlineTitle,
   maintenanceMessage: NODE_TERM.maintenanceTitle,
+  tabSentinel: 'Sentinel 哨兵',
+} as const;
+
+/** Sentinel 组件 / 可调度能力面板文案 */
+export const SENTINEL_TERM = {
+  title: '节点组件哨兵（Sentinel）',
+  hint: 'Agent 心跳自动探测本机组件状态，并推导集群功能是否可调度；无需按功能逐项手工勾选能力。',
+  componentSection: '组件健康',
+  capabilitySection: '可调度功能',
+  component: '组件',
+  capability: '功能',
+  state: '状态',
+  expected: '功能期望',
+  schedulable: '可调度',
+  missing: '缺失组件',
+  reason: '说明',
+  yes: '是',
+  no: '否',
+  fresh: '快照新鲜',
+  stale: '快照过期/无 Agent 上报',
+  refresh: '刷新',
+  noData: '暂无 Sentinel 数据，请确认节点 Agent 已升级并已心跳上报。',
+  noCapability: '暂无可调度能力推导结果',
+  loadFailed: '加载 Sentinel 快照失败',
+  probe: '主动探测',
+  resync: '重新同步',
+  probing: '探测中…',
+  resyncing: '同步中…',
+  probeSuccess: 'Sentinel 探测完成',
+  resyncSuccess: 'Sentinel 同步完成',
+  declaredSection: '声明能力',
+  envSection: '环境画像',
+  operationalState: '运行态',
+  healMark: '自愈标记',
+  healAttempts: '自愈次数',
+  healSection: '自愈日志',
+  healMarked: '待自愈',
+  healHealing: '自愈中',
+  healExhausted: '自愈失败',
+  healUnhealable: '无法自愈',
+  healHealed: '已恢复',
+  noHealLog: '暂无自愈记录',
 } as const;
 
 /**
@@ -377,10 +474,10 @@ export const LANE_BATCH_DEPLOY_ACTIONS = [
 export type NodeServiceTabKey = keyof typeof NODE_SERVICE_TAB;
 
 /** 待纳管节点应跳转的服务部署 Tab */
-export function resolveOnboardServiceTab(nodeRole?: string | null): string {
-  if (nodeRole === 'storage') return CAMERA_NFS_TAB.ops;
-  if (nodeRole === 'media' || nodeRole === 'hybrid') return NODE_SERVICE_TAB.media;
-  if (nodeRole === 'mqtt') return NODE_SERVICE_TAB.mqtt;
+export function resolveOnboardServiceTab(node?: { functions?: string[] | null; nodeRole?: string | null } | null): string {
+  if (nodeHasFunction(node, 'nfs')) return CAMERA_NFS_TAB.ops;
+  if (nodeHasAnyFunction(node, ['live', 'forward'])) return NODE_SERVICE_TAB.media;
+  if (nodeHasFunction(node, 'mqtt')) return NODE_SERVICE_TAB.mqtt;
   return NODE_SERVICE_TAB.agent;
 }
 
@@ -388,29 +485,22 @@ export function isCameraNfsTab(tab: string): boolean {
   return (Object.values(CAMERA_NFS_TAB) as string[]).includes(tab);
 }
 
-/** 集群环境初始化 — 节点角色筛选 */
-export const CLUSTER_NODE_ROLE_FILTERS = {
-  /** 计算/推理工作负载节点 */
-  computeWorkload: ['compute', 'gpu', 'hybrid'] as const,
-  /** GPU 大模型推理节点 */
-  gpuWorkload: ['gpu', 'hybrid'] as const,
-  /** 需部署监测代理的全部角色（不含平台节点） */
-  allManaged: ['compute', 'gpu', 'hybrid', 'media', 'mqtt', 'storage'] as const,
-  /** 流媒体引擎节点 */
-  media: ['media', 'hybrid'] as const,
-  /** MQTT 网关节点 */
+/** 集群环境初始化 — 按功能筛选节点 */
+export const CLUSTER_NODE_FUNCTION_FILTERS = {
+  computeWorkload: ['algorithm', 'forward', 'train', 'llm', 'label', 'infer', 'transform'] as const,
+  gpuWorkload: ['train', 'llm'] as const,
+  allManaged: ['algorithm', 'forward', 'live', 'train', 'llm', 'label', 'infer', 'mqtt', 'nfs', 'transform'] as const,
+  media: ['live', 'forward'] as const,
   mqtt: ['mqtt'] as const,
-  /** NFS 存储/MON 节点 */
-  storage: ['storage'] as const,
-  /** NFS 主/备服务端候选（storage；控制面另用 includePlatform） */
-  nfsServer: ['storage'] as const,
-  /** 需挂载 NFS 的节点（兼容键名 cephClient） */
-  cephClient: ['compute', 'gpu', 'hybrid', 'media'] as const,
-  /** NFS 客户端（同 cephClient） */
-  nfsClient: ['compute', 'gpu', 'hybrid', 'media'] as const,
+  storage: ['nfs'] as const,
+  nfsServer: ['nfs'] as const,
+  cephClient: ['algorithm', 'train', 'label', 'infer'] as const,
+  nfsClient: ['algorithm', 'train', 'label', 'infer'] as const,
 } as const;
 
-export type ClusterNodeRoleFilterKey = keyof typeof CLUSTER_NODE_ROLE_FILTERS;
+export const CLUSTER_NODE_ROLE_FILTERS = CLUSTER_NODE_FUNCTION_FILTERS;
+
+export type ClusterNodeRoleFilterKey = keyof typeof CLUSTER_NODE_FUNCTION_FILTERS;
 
 /** 工作负载 bundle 分发（目标机默认无外网，控制面离线打包 pip wheels） */
 export const WORKLOAD_BUNDLE_TYPES = [
@@ -493,7 +583,7 @@ export const WORKLOAD_BUNDLE_TYPES = [
     remoteRoot: '/opt/easyaiot/AI',
     pythonLauncher: '/opt/easyaiot/AI/.bundles/model_train/run-python.sh',
     scriptMarker: 'services/train_worker/run_worker.py',
-    desc: '分发模型训练运行时（YOLO 训练 + CephFS 共享数据集/输出目录）',
+    desc: '分发模型训练运行时（YOLO 训练 + NFS 共享数据集/输出目录）',
   },
   {
     key: 'llm_service',
@@ -525,7 +615,7 @@ export function resolveLegacyWorkloadTab(bundleKey?: string): '7' | '8' | '9' | 
 export const WORKLOAD_BUNDLE_COPY = {
   offlineHint:
     '目标服务器默认无外网：控制面在有网环境自动下载 pip wheel 并 SSH 同步至节点离线安装，无需节点联网。',
-  selectNodes: '选择目标节点（需已配置 SSH 凭据，建议 compute / gpu / hybrid 角色）',
+  selectNodes: '选择目标节点（需已配置 SSH 凭据，按勾选功能筛选）',
   targetNodes: '目标节点',
   deployEnv: '分发运行时',
   deployScripts: '分发脚本',
@@ -542,7 +632,7 @@ export const WORKLOAD_BUNDLE_COPY = {
   ffmpegCheck: '检测 FFmpeg',
   ffmpegRemove: '删除 FFmpeg',
   runtimeCppHint:
-    '一键分发：点击「分发 RUNTIME」即可。控制面若尚未编译会自动 install → 导出离线包 → SSH 安装到 /opt/easyaiot/RUNTIME（首次较久）。算法类「全量分发」也会自动带上。模型走 Ceph；推理默认 prefer GPU、失败回退 CPU。装好后可在算法任务里选「高性能」+「自动/指定节点」把任务调度到该节点。检测会对照控制面与节点 VERSION，不一致时建议重新分发升级。',
+    '一键分发：点击「分发 RUNTIME」即可。控制面若尚未编译会自动 install → 导出离线包 → SSH 安装到 /opt/easyaiot/RUNTIME（首次较久）。算法类「全量分发」也会自动带上。模型走 NFS；推理默认 prefer GPU、失败回退 CPU。装好后可在算法任务里选「高性能」+「自动/指定节点」把任务调度到该节点。检测会对照控制面与节点 VERSION，不一致时建议重新分发升级。',
   runtimeCppPath: '/opt/easyaiot/RUNTIME/bin/RUNTIME',
   runtimeCppDeploy: '分发 RUNTIME',
   runtimeCppCheck: '检测 RUNTIME',
@@ -805,8 +895,8 @@ export const CEPH_MOUNT_LABELS: Record<CephMountStatus, string> = {
   unknown: 'NFS 未上报',
 };
 
-export function isClusterComputeRole(role?: string): boolean {
-  return ['compute', 'gpu', 'hybrid'].includes(role || '');
+export function isClusterComputeRole(node?: FunctionBearer): boolean {
+  return isSchedulableComputeNode(node);
 }
 
 export function readCephMountFromTags(tags?: Record<string, string | undefined>): {
@@ -869,13 +959,13 @@ function isValidStorageHost(host?: string): boolean {
 }
 
 /** 存储栈脚本是否可生成 */
-export function isStorageStackScriptReady(params?: StorageStackScriptParams): boolean {
-  if (!params || params.nodeRole !== 'storage') return false;
+export function isStorageStackScriptReady(params?: StorageStackScriptParams & { functions?: string[] }): boolean {
+  if (!params || !nodeHasFunction(params, 'nfs')) return false;
   return isValidStorageHost(params.host) && !!params.cephMonHost?.trim() && !!params.mediaMountPath?.trim();
 }
 
 export function getStorageStackGuideState(params?: StorageStackScriptParams): StorageStackGuideState {
-  const isStorageRole = params?.nodeRole === 'storage';
+  const isStorageRole = nodeHasFunction(params, 'nfs');
   const hostDone = isValidStorageHost(params?.host);
   const configDone =
     !!params?.cephMonHost?.trim() &&
@@ -1036,11 +1126,11 @@ function areMediaPortsValid(params?: MediaStackScriptParams): boolean {
   return true;
 }
 
-/** 媒体栈脚本是否可生成（角色为 media/hybrid 且 IP、端口已填写有效） */
+/** 媒体栈脚本是否可生成（已勾选直播接入或推流转发，且 IP、端口已填写有效） */
 export function isMediaStackScriptReady(
-  params: (MediaStackScriptParams & { nodeRole?: string }) | undefined,
+  params: (MediaStackScriptParams & { nodeRole?: string; functions?: string[] }) | undefined,
 ): boolean {
-  if (!params || (params.nodeRole !== 'media' && params.nodeRole !== 'hybrid')) return false;
+  if (!params || !nodeHasAnyFunction(params, ['live', 'forward'])) return false;
   return isValidHost(params.host) && areMediaPortsValid(params);
 }
 
@@ -1060,9 +1150,9 @@ export interface MediaStackGuideState {
 
 /** 媒体栈部署引导状态（用于 UI 展示待填项与就绪摘要） */
 export function getMediaStackGuideState(
-  params: (MediaStackScriptParams & { nodeRole?: string }) | undefined,
+  params: (MediaStackScriptParams & { nodeRole?: string; functions?: string[] }) | undefined,
 ): MediaStackGuideState {
-  const isMediaRole = params?.nodeRole === 'media' || params?.nodeRole === 'hybrid';
+  const isMediaRole = nodeHasAnyFunction(params, ['live', 'forward']);
   const hostDone = isValidHost(params?.host);
   const portsDone = areMediaPortsValid(params);
   const hook = getControlPlaneHookEndpoint();
@@ -1189,9 +1279,9 @@ function areMqttPortsValid(params?: MqttStackScriptParams): boolean {
 }
 
 export function isMqttStackScriptReady(
-  params: (MqttStackScriptParams & { nodeRole?: string }) | undefined,
+  params: (MqttStackScriptParams & { nodeRole?: string; functions?: string[] }) | undefined,
 ): boolean {
-  if (!params || params.nodeRole !== 'mqtt') return false;
+  if (!params || !nodeHasFunction(params, 'mqtt')) return false;
   return isValidHost(params.host) && areMqttPortsValid(params);
 }
 
@@ -1203,9 +1293,9 @@ export interface MqttStackGuideState {
 }
 
 export function getMqttStackGuideState(
-  params: (MqttStackScriptParams & { nodeRole?: string }) | undefined,
+  params: (MqttStackScriptParams & { nodeRole?: string; functions?: string[] }) | undefined,
 ): MqttStackGuideState {
-  const isMqttRole = params?.nodeRole === 'mqtt';
+  const isMqttRole = nodeHasFunction(params, 'mqtt');
   const hostDone = isValidHost(params?.host);
   const portsDone = areMqttPortsValid(params);
   const pendingItems: MediaStackGuideItem[] = [
@@ -1447,10 +1537,11 @@ export interface RandomDeployPorts {
 }
 
 /** 生成一组互不冲突的部署端口（不含 RTP 范围端口） */
-export function generateRandomDeployPorts(nodeRole?: string): RandomDeployPorts {
+export function generateRandomDeployPorts(node?: FunctionBearer | string): RandomDeployPorts {
   const used = new Set<number>();
   const agentPort = pickUniquePort(used, 19100, 19999);
-  const isMedia = nodeRole === 'media' || nodeRole === 'hybrid';
+  const bearer = typeof node === 'string' ? { nodeRole: node } : node;
+  const isMedia = nodeHasAnyFunction(bearer, ['live', 'forward']);
   if (!isMedia) {
     return { agentPort };
   }
@@ -1473,21 +1564,28 @@ export function generateDefaultAgentPort(): number {
   return generateRandomDeployPorts().agentPort;
 }
 
-export const AGENT_INSTALL_DIR = '/opt/easyaiot/node-agent';
+export const AGENT_INSTALL_DIR = '/opt/easyaiot/sentinel-agent';
 
 export function buildAgentEnvContent(node: {
   id?: number;
   agentPort?: number;
   agentToken?: string;
   controlPlaneUrl?: string;
+  functions?: string[] | null;
+  nodeRole?: string | null;
 }): string {
   const port = node.agentPort ?? 9100;
   const controlPlane = node.controlPlaneUrl?.trim() || getControlPlaneAgentUrl();
-  return `# EasyAIoT Node Agent 配置
+  const functions = parseNodeFunctions(node).join(',');
+  return `# EasyAIoT Sentinel Agent 配置（节点环境观察者）
+PLATFORM_AGENT=0
 NODE_ID=${node.id ?? ''}
 AGENT_TOKEN=${node.agentToken ?? 'your-agent-token-here'}
+NODE_FUNCTIONS=${functions}
 CONTROL_PLANE_URL=${controlPlane}
 HEARTBEAT_INTERVAL=10
+SENTINEL_L1_INTERVAL=300
+SENTINEL_AUTO_REMEDIATE=true
 AGENT_LISTEN_HOST=0.0.0.0
 AGENT_LISTEN_PORT=${port}
 AI_ROOT=/opt/easyaiot/AI
@@ -1500,11 +1598,11 @@ MINIO_SECRET_KEY=your-secret
 `;
 }
 
-/** 从控制面同步 Agent 文件到目标主机 */
+/** 从控制面同步 Sentinel Agent 文件到目标主机 */
 export function buildAgentRsyncCommand(host?: string, sshUsername = 'root'): string {
   const targetHost = host?.trim() || '<目标服务器>';
   const user = sshUsername?.trim() || 'root';
-  return `rsync -avz NODE/ ${user}@${targetHost}:${AGENT_INSTALL_DIR}/\n# 若 pip-wheels/ 为空，请先在平台服务器安装 pip 并执行: bash NODE/export_pip_wheels.sh`;
+  return `rsync -avz SENTINEL/ ${user}@${targetHost}:${AGENT_INSTALL_DIR}/\n# 若 pip-wheels/ 为空，请先在平台服务器安装 pip 并执行: bash SENTINEL/export_pip_wheels.sh`;
 }
 
 /** 目标主机上写入配置、安装并启动 Agent */
@@ -1514,6 +1612,8 @@ export function buildAgentInstallCommands(node: {
   agentToken?: string;
   host?: string;
   controlPlaneUrl?: string;
+  functions?: string[] | null;
+  nodeRole?: string | null;
 }): string {
   const host = node.host?.trim() || '<目标服务器>';
   const env = buildAgentEnvContent(node).trimEnd();
@@ -1534,6 +1634,8 @@ export function buildAgentDeployScript(node: {
   agentToken?: string;
   host?: string;
   controlPlaneUrl?: string;
+  functions?: string[] | null;
+  nodeRole?: string | null;
 }): string {
   return `${buildAgentRsyncCommand(node.host)}\n\n# 同步完成后 SSH 登录目标主机，执行：\n${buildAgentInstallCommands(node)}`;
 }
@@ -1547,7 +1649,7 @@ export const SETUP_FORM_WRAPPER_COL = { span: 21 };
  */
 export const SETUP_STEP_LABELS = {
   overview: { title: '确认配置', description: '检查信息' },
-  storage: { title: NODE_TERM.storageService, description: 'Ceph OSD / CephFS' },
+  storage: { title: NODE_TERM.storageService, description: 'NFS 共享存储' },
   media: { title: NODE_TERM.mediaService, description: 'SRS / ZLM' },
   mqtt: { title: NODE_TERM.mqttService, description: 'EMQX 集群' },
   agent: { title: NODE_TERM.agent, description: NODE_TERM.remoteDeploy },

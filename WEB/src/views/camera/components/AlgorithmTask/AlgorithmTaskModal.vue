@@ -51,6 +51,7 @@ import { listScenarioPoseLibraries } from '@/api/device/scenario_pose_library';
 import { getDeviceList, getDeviceInfo, registerDevice, updateDevice } from '@/api/device/camera';
 import { getModelPage } from '@/api/device/model';
 import { getNodePage } from '@/api/device/node';
+import { nodeHasFunction } from '@/views/node/utils/constants';
 import { notifyTemplateQueryByType } from '@/api/device/notice';
 import { getDeviceChannels, queryVideoList } from '@/api/device/gb28181';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
@@ -338,7 +339,7 @@ const loadNodes = async () => {
     const res = await getNodePage({ pageNo: 1, pageSize: 200, status: 'online' });
     const page = res?.data || res;
     const list = (page?.list || []).filter(
-      (node: any) => node.nodeRole === 'compute' || node.nodeRole === 'gpu' || node.nodeRole === 'hybrid',
+      (node: any) => nodeHasFunction(node, 'algorithm'),
     );
     nodeOptions.value = list.map((node: any) => ({
       label: `${node.name} (${node.host})`,

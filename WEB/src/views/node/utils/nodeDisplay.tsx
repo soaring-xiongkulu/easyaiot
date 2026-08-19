@@ -1,6 +1,6 @@
 import { h, type VNode } from 'vue';
 import type { ComputeNodeVO } from '@/api/device/node';
-import { NODE_ROLE_MAP, NODE_STATUS_MAP, NODE_TERM, SETUP_COPY, CEPH_MOUNT_LABELS, readCephMountFromTags, type CephMountStatus } from './constants';
+import { NODE_FUNCTION_MAP, NODE_STATUS_MAP, NODE_TERM, SETUP_COPY, CEPH_MOUNT_LABELS, readCephMountFromTags, formatNodeFunctions, primaryNodeFunction, type CephMountStatus } from './constants';
 import { isPlatformNode } from './platformNode';
 
 type SshCredentialNode = Pick<ComputeNodeVO, 'sshUsername' | 'sshCredentialConfigured'>;
@@ -29,10 +29,11 @@ function resolveStatusKey(status?: string) {
   return status && NODE_STATUS_MAP[status] ? status : 'pending';
 }
 
-function resolveRoleKey(role?: string) {
-  return role === 'media' || role === 'hybrid' || role === 'gpu' || role === 'storage' || role === 'mqtt' || role === 'compute'
-    ? role
-    : 'compute';
+function resolveRoleKey(node?: { functions?: string[] | null; nodeRole?: string | null } | string | null) {
+  if (typeof node === 'string') {
+    return node in NODE_FUNCTION_MAP ? node : primaryNodeFunction({ nodeRole: node });
+  }
+  return primaryNodeFunction(node);
 }
 
 export function renderNodeStatusBadge(status?: string) {
@@ -44,9 +45,10 @@ export function renderNodeStatusBadge(status?: string) {
   ]);
 }
 
-export function renderNodeRoleBadge(role?: string) {
-  const key = resolveRoleKey(role);
-  return h('span', { class: `node-meta-badge node-meta-badge--role-${key}` }, NODE_ROLE_MAP[key] || role || '-');
+export function renderNodeRoleBadge(node?: { functions?: string[] | null; nodeRole?: string | null } | string | null) {
+  const key = resolveRoleKey(node);
+  const label = typeof node === 'string' ? (NODE_FUNCTION_MAP[node] || node) : formatNodeFunctions(node);
+  return h('span', { class: `node-meta-badge node-meta-badge--role-${key}` }, label || '-');
 }
 
 export function renderNodeReadinessBadge(ready: boolean) {

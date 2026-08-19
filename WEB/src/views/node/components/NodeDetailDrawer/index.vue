@@ -9,16 +9,17 @@ import { Button } from '@/components/Button';
 import { useMessage } from '@/hooks/web/useMessage';
 import { formatToDateTime } from '@/utils/dateUtil';
 import { getNode, testNodeSsh, type ComputeNodeVO } from '@/api/device/node';
-import { NODE_DETAIL, NODE_ROLE_DESC, NODE_TERM } from '../../utils/constants';
+import { NODE_DETAIL, formatNodeFunctions, primaryNodeFunction, NODE_TERM, nodeHasAnyFunction, nodeHasFunction } from '../../utils/constants';
 import { mediaDetailSchema, mqttDetailSchema, nodeSetupSummarySchema } from '../../Data';
 import NodeMetaBadge from '../NodeMetaBadge/index.vue';
 import { isPlatformNode } from '../../utils/platformNode';
 import SetupOverviewPanel from '../SetupOverviewPanel/index.vue';
 import NodeDetailResourcePanel from '../NodeDetailResourcePanel/index.vue';
+import NodeSentinelPanel from '../NodeSentinelPanel/index.vue';
 
 defineOptions({ name: 'NodeDetailDrawer' });
 
-type DetailTabKey = 'resource' | 'config' | 'access';
+type DetailTabKey = 'resource' | 'sentinel' | 'config' | 'access';
 
 const emit = defineEmits([
   'register',
@@ -36,12 +37,11 @@ const testingSsh = ref(false);
 const activeTab = ref<DetailTabKey>('resource');
 const node = ref<ComputeNodeVO | null>(null);
 const metricsLoading = ref(false);
+const sentinelPanelRef = ref<InstanceType<typeof NodeSentinelPanel> | null>(null);
 
-const isMediaNode = computed(
-  () => node.value?.nodeRole === 'media' || node.value?.nodeRole === 'hybrid',
-);
+const isMediaNode = computed(() => nodeHasAnyFunction(node.value, ['live', 'forward']));
 
-const isMqttNode = computed(() => node.value?.nodeRole === 'mqtt');
+const isMqttNode = computed(() => nodeHasFunction(node.value, 'mqtt'));
 
 const statusAlert = computed(() => {
   const status = node.value?.status;
@@ -59,7 +59,7 @@ const statusAlert = computed(() => {
 
 const isPlatformReadonly = computed(() => isPlatformNode(node.value));
 
-const roleDesc = computed(() => NODE_ROLE_DESC[node.value?.nodeRole || ''] || '');
+const roleDesc = computed(() => formatNodeFunctions(node.value));
 
 const [registerMediaDesc] = useDescription({
   useCollapse: false,
@@ -123,6 +123,7 @@ async function loadDetail(id: number) {
 async function handleRefresh() {
   if (!node.value?.id) return;
   await loadDetail(node.value.id);
+  await sentinelPanelRef.value?.reload?.();
   emit('refresh');
 }
 
@@ -196,7 +197,7 @@ defineExpose({
         <div class="detail-drawer-header__tags">
           <NodeMetaBadge v-if="isPlatformNode(node)" type="scope" size="lg" />
           <NodeMetaBadge type="status" :status="node.status" size="lg" />
-          <NodeMetaBadge type="role" :role="node.nodeRole" size="lg" />
+          <NodeMetaBadge type="role" :role="primaryNodeFunction(node)" :label="formatNodeFunctions(node)" size="lg" />
         </div>
       </div>
     </template>
@@ -252,6 +253,12 @@ defineExpose({
           <div class="detail-tab-pane">
             <p class="detail-tab-hint">{{ NODE_DETAIL.sectionResourceHint }}</p>
             <NodeDetailResourcePanel :node="node" :loading="metricsLoading" />
+          </div>
+        </Tabs.TabPane>
+
+        <Tabs.TabPane v-if="!isPlatformReadonly" :key="'sentinel'" :tab="NODE_DETAIL.tabSentinel">
+          <div class="detail-tab-pane">
+            <NodeSentinelPanel ref="sentinelPanelRef" :node-id="node.id" />
           </div>
         </Tabs.TabPane>
 

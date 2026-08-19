@@ -1,5 +1,5 @@
 import type { ComputeNodeVO } from '@/api/device/node';
-import { NODE_INSIGHT, NODE_METRIC, NODE_TERM, parseGpuInfo, type GpuInfoItem } from './constants';
+import { NODE_INSIGHT, NODE_METRIC, NODE_TERM, parseGpuInfo, isSchedulableComputeNode, nodeHasAnyFunction, type GpuInfoItem } from './constants';
 
 const MB_BYTES = 1024 * 1024;
 
@@ -161,7 +161,7 @@ function num(val?: number | null): number {
 }
 
 export function isComputeNode(node: ComputeNodeVO): boolean {
-  return node.nodeRole === 'compute' || node.nodeRole === 'gpu' || node.nodeRole === 'hybrid';
+  return isSchedulableComputeNode(node);
 }
 
 export function isOnlineComputeNode(node: ComputeNodeVO): boolean {
@@ -313,7 +313,7 @@ export function buildClusterSnapshot(nodes: ComputeNodeVO[]): ClusterSnapshot {
   const computeOnline = onlineNodes.filter(isComputeNode);
   const computeWithMem = computeNodes.filter(hasMemCapacity);
   const computeWithDisk = computeNodes.filter(hasDiskCapacity);
-  const mediaOnline = onlineNodes.filter((n) => n.nodeRole === 'media' || n.nodeRole === 'hybrid');
+  const mediaOnline = onlineNodes.filter((n) => nodeHasAnyFunction(n, ['live', 'forward']));
   const gpuCards = collectGpuCards(nodes);
 
   return {

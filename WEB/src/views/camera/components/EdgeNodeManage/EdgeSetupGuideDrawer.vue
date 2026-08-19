@@ -27,7 +27,7 @@
         <div v-if="focusNode" class="setup-drawer-header__tags">
           <a-tag :color="statusColor(focusNode.status)">{{ statusText(focusNode.status) }}</a-tag>
           <a-tag :color="focusNode.cephMountReady ? 'success' : 'warning'">
-            Ceph {{ focusNode.cephMountReady ? '就绪' : '未就绪' }}
+            NFS {{ focusNode.cephMountReady ? '就绪' : '未就绪' }}
           </a-tag>
         </div>
       </div>
@@ -195,7 +195,7 @@
               type="warning"
               show-icon
               style="margin-bottom: 12px"
-              message="暂无在线 media/hybrid 节点。请先在「节点管理 → 流媒体引擎」部署 SRS，或确认节点在线后再刷新。"
+              message="暂无在线直播/推流节点。请先在「节点管理」勾选直播接入或推流转发并部署 SRS，或确认节点在线后再刷新。"
             />
             <div class="url-row">
               <a-select
@@ -204,7 +204,7 @@
                 allow-clear
                 show-search
                 option-filter-prop="label"
-                placeholder="选择可用的 SRS 节点（media / hybrid）"
+                placeholder="选择可用的 SRS 节点（已勾选直播接入或推流转发）"
                 :options="srsSelectOptions"
                 :loading="loadingMedia"
               />
@@ -500,6 +500,7 @@ import {
   isLocalControlPlaneUrl,
   readMediaPortsFromTags,
   resolveControlPlaneAgentUrl,
+  formatNodeFunctions,
 } from '@/views/node/utils/constants';
 import NODE_COMPUTE_IMAGE from '@/assets/images/node/node-compute.svg';
 import { statusColor, statusText } from './Data';
@@ -619,7 +620,7 @@ const selectedSrsSummary = computed(() => {
   return {
     name: node.name || '未命名',
     host: node.host,
-    role: node.nodeRole || '-',
+    role: formatNodeFunctions(node),
     rtmpBase: `rtmp://${node.host}:${ports.srsRtmpPort}/ai/<deviceId>`,
     httpBase: `http://${node.host}:${ports.srsHttpPort}/ai/<deviceId>.flv`,
   };
@@ -632,7 +633,7 @@ const srsSelectOptions = computed(() =>
       const ports = readMediaPortsFromTags(n.tags);
       return {
         value: n.id as number,
-        label: `${n.name || '未命名'} (${n.host}) · ${n.nodeRole} · RTMP ${ports.srsRtmpPort}`,
+        label: `${n.name || '未命名'} (${n.host}) · ${formatNodeFunctions(n)} · RTMP ${ports.srsRtmpPort}`,
       };
     }),
 );
@@ -659,7 +660,7 @@ const configBundleCmd = computed(() => {
   if (setSrsCmd.value) {
     lines.push(setSrsCmd.value);
   } else {
-    lines.push('# （未选择 SRS）建议先在上方下拉选定 media/hybrid 节点后再复制');
+    lines.push('# （未选择 SRS）建议先在上方下拉选定已勾选直播/推流的节点后再复制');
   }
   if (joinToken.value.trim()) {
     lines.push(setJoinTokenCmd.value);
@@ -759,7 +760,7 @@ const prepareChecklist = computed(() => [
       ? selectedSrsNodeId.value != null
         ? `已选定：${selectedSrsSummary.value?.name || selectedSrsNodeId.value}`
         : `发现 ${mediaNodes.value.length} 个媒体节点，请在「配置地址」下拉选定`
-      : '请先部署/上线 media 或 hybrid 节点',
+      : '请先部署/上线已勾选直播接入或推流转发的节点',
   },
   {
     key: 'mqtt',
@@ -769,9 +770,9 @@ const prepareChecklist = computed(() => [
   },
   {
     key: 'ceph',
-    label: 'CephFS 与中心路径一致',
+    label: 'NFS 与中心路径一致',
     ok: null as boolean | null,
-    hint: '边缘需挂载同一 Ceph 路径，否则 cephMountReady=false',
+    hint: '边缘需挂载同一 NFS 路径，否则 nfsMountReady=false',
   },
   {
     key: 'token',

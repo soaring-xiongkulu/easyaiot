@@ -14,19 +14,19 @@
     <div
       class="node-item-card__cover"
       :class="[
-        getNodeRoleVisual(item.nodeRole).coverClass,
+        getNodeRoleVisual(primaryNodeFunction(item)).coverClass,
         item.status ? `node-item-card__cover--${item.status}` : '',
       ]"
       @click="emit('view', item)"
     >
       <div class="node-item-card__cover-inner">
         <NodeRoleIcon
-          :role="item.nodeRole"
+          :role="primaryNodeFunction(item)"
           :size="compact ? 'md' : central ? 'lg' : 'ml'"
         />
       </div>
       <div class="node-item-card__badges" @click.stop>
-        <NodeMetaBadge type="role" :role="item.nodeRole" size="sm" />
+        <NodeMetaBadge type="role" :role="primaryNodeFunction(item)" :label="formatNodeFunctions(item)" size="sm" />
         <NodeMetaBadge type="status" :status="item.status" size="sm" />
       </div>
       <div v-if="selectable" class="node-item-card__checkbox" @click.stop>
@@ -92,6 +92,8 @@ import { DeleteOutlined, EditOutlined, EyeOutlined, RocketOutlined } from '@ant-
 import type { ComputeNodeVO } from '@/api/device/node';
 import {
   NODE_TERM,
+  primaryNodeFunction,
+  formatNodeFunctions,
 } from '../../utils/constants';
 import { getNodeRoleVisual } from '../../utils/nodeAssets';
 import { isPlatformNode } from '../../utils/platformNode';

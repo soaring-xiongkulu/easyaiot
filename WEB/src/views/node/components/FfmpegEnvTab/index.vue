@@ -4,7 +4,7 @@
       v-model:selected-node-ids="selectedNodeIds"
       role-filter="computeWorkload"
       :initial-node-ids="initialNodeIds"
-      placeholder="选择 compute / gpu / hybrid 节点（可多选）"
+      placeholder="选择已勾选对应功能的节点（可多选）"
     />
 
     <FfmpegBatchPanel :node-ids="selectedNodeIds" />

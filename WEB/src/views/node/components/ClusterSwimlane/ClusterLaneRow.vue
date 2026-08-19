@@ -8,9 +8,9 @@ import { Icon } from '@/components/Icon';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
   LANE_BATCH_DEPLOY_ACTIONS,
-  NODE_ROLE_MAP,
   NODE_STATUS_MAP,
   NODE_TERM,
+  formatNodeFunctions,
 } from '../../utils/constants';
 import {
   canManageLaneWorkers,
@@ -63,8 +63,8 @@ const onlineWorkers = computed(
   () => workers.value.filter((n) => n.status === 'online' && !isPlatformNode(n)).length,
 );
 
-function roleLabel(role?: string | null) {
-  return NODE_ROLE_MAP[role || ''] || role || '-';
+function roleLabel(node?: { functions?: string[] | null; nodeRole?: string | null } | null) {
+  return formatNodeFunctions(node);
 }
 
 function statusMeta(status?: string | null) {
@@ -157,7 +157,7 @@ function isWorkerSelectable(node: ComputeNodeVO) {
         </div>
         <div class="node-row__main">
           <div class="node-row__name">{{ central.name || '-' }}</div>
-          <div class="node-row__meta">{{ central.host || '-' }} · {{ roleLabel(central.nodeRole) }}</div>
+          <div class="node-row__meta">{{ central.host || '-' }} · {{ roleLabel(central) }}</div>
         </div>
         <div class="node-row__ops" @click.stop>
           <Button size="small" type="link" @click="emit('view', central)">详情</Button>
@@ -178,7 +178,7 @@ function isWorkerSelectable(node: ComputeNodeVO) {
             @click.stop
             @change="(e) => toggleWorker(worker, e.target.checked)"
           />
-          <Tag color="cyan">{{ roleLabel(worker.nodeRole) }}</Tag>
+          <Tag color="cyan">{{ roleLabel(worker) }}</Tag>
           <Tag :color="statusMeta(worker.status).color">{{ statusMeta(worker.status).text }}</Tag>
         </div>
         <div class="node-row__main">

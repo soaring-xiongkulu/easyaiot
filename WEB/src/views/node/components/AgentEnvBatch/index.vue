@@ -5,7 +5,7 @@
       v-model:selected-node-ids="selectedNodeIds"
       role-filter="allManaged"
       :initial-node-id="initialNodeId"
-      placeholder="选择 compute / gpu / hybrid / media / storage 节点（可多选）"
+      placeholder="选择已纳管节点（可多选）"
     />
 
     <CollapseContainer

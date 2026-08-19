@@ -8,7 +8,7 @@
       role-filter="media"
       :initial-node-id="initialNodeId"
       :initial-node-ids="initialNodeIds"
-      placeholder="选择 media / hybrid 节点（可多选）"
+      placeholder="选择已勾选直播接入或推流转发的节点（可多选）"
     />
 
     <CollapseContainer

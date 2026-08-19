@@ -241,6 +241,9 @@ function handleView(record: Recordable) {
 }
 
 function handleCreated(record: ComputeNodeVO) {
+  if (record.sentinelAutoDeployStarted) {
+    createMessage.success('节点已分配，正在自动离线部署全量 Sentinel 并开始监测');
+  }
   void handleSuccess();
   navigateToOnboardService(router, record);
 }

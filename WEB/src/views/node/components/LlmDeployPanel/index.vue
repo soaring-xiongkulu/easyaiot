@@ -192,7 +192,10 @@ async function loadNodes() {
   const res = await getNodePage({ pageNo: 1, pageSize: 200, status: 'online' });
   const list = res?.list || [];
   nodeOptions.value = list
-    .filter((n: { nodeRole?: string }) => ['gpu', 'hybrid'].includes(n.nodeRole || ''))
+    .filter((n: { functions?: string[]; nodeRole?: string }) => {
+      const fns = n.functions?.length ? n.functions : String(n.nodeRole || '').split(',');
+      return fns.includes('llm');
+    })
     .map((n: { id: number; name?: string; host?: string; gpuInfo?: string }) => {
       const gpus = parseGpuInfo(n.gpuInfo);
       const freeGb = gpus.reduce(

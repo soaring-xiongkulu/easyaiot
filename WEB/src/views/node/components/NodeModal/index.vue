@@ -7,7 +7,7 @@ import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
 import { Button } from '@/components/Button';
 import { createNode, updateNode, type ComputeNodeVO } from '@/api/device/node';
-import { generateDefaultAgentPort, generateRandomDeployPorts, SETUP_COPY, readMediaPortsFromTags, buildMediaPortTags, readStorageTagsFromTags, buildStorageTags, readMqttPortsFromTags, buildMqttPortTags } from '../../utils/constants';
+import { generateDefaultAgentPort, generateRandomDeployPorts, SETUP_COPY, readMediaPortsFromTags, buildMediaPortTags, readStorageTagsFromTags, buildStorageTags, readMqttPortsFromTags, buildMqttPortTags, nodeHasAnyFunction } from '../../utils/constants';
 import {
   nodeFormHistoryToFields,
   saveNodeFormHistory,
@@ -35,18 +35,18 @@ const [registerForm, { setFieldsValue, resetFields, validate, clearValidate }] =
 });
 
 function handleGenerateRandomPorts(model: Record<string, unknown>) {
-  const ports = generateRandomDeployPorts(String(model.nodeRole || 'compute'));
+  const ports = generateRandomDeployPorts({
+    functions: model.functions as string[] | undefined,
+    nodeRole: String(model.nodeRole || ''),
+  });
   setFieldsValue(ports);
   createMessage.success(SETUP_COPY.generateRandomPortsSuccess);
-}
-
-function isComputeRole(role: unknown) {
-  return role !== 'media' && role !== 'hybrid' && role !== 'mqtt' && role !== 'storage';
 }
 
 function flattenNodeTags(record: ComputeNodeVO) {
   return {
     ...record,
+    functions: record.functions?.length ? record.functions : undefined,
     ...readMediaPortsFromTags(record.tags),
     ...readStorageTagsFromTags(record.tags),
     ...readMqttPortsFromTags(record.tags),
@@ -55,13 +55,14 @@ function flattenNodeTags(record: ComputeNodeVO) {
 
 function buildNodeTags(values: Record<string, unknown>) {
   const base = (values.tags as Record<string, string> | undefined) || {};
-  if (values.nodeRole === 'media' || values.nodeRole === 'hybrid') {
+  const functions = Array.isArray(values.functions) ? (values.functions as string[]) : [];
+  if (functions.includes('live') || functions.includes('forward')) {
     return { ...base, ...buildMediaPortTags(values) };
   }
-  if (values.nodeRole === 'storage') {
+  if (functions.includes('nfs')) {
     return { ...base, ...buildStorageTags(values) };
   }
-  if (values.nodeRole === 'mqtt') {
+  if (functions.includes('mqtt')) {
     return { ...base, ...buildMqttPortTags(values) };
   }
   return base;
@@ -106,18 +107,8 @@ async function handleSubmit() {
     ...raw,
     tags: buildNodeTags(raw),
   };
-  if (values.nodeRole === 'compute' || values.nodeRole === 'storage' || values.nodeRole === 'mqtt') {
-    values.maxGpuCount = 0;
-  } else if (values.nodeRole === 'gpu') {
-    values.maxGpuCount = Number(values.maxGpuCount) > 0 ? Number(values.maxGpuCount) : 1;
-  }
+  delete (values as Record<string, unknown>).nodeRole;
   if (unref(isUpdate) && editRecord.value) {
-    if (values.nodeRole !== 'gpu') {
-      values.maxGpuCount =
-        values.nodeRole === 'compute' || values.nodeRole === 'storage' || values.nodeRole === 'mqtt'
-          ? 0
-          : (editRecord.value.maxGpuCount ?? 0);
-    }
     values.maxTaskCount = editRecord.value.maxTaskCount ?? 50;
     values.weight = editRecord.value.weight ?? 100;
   }
@@ -207,7 +198,7 @@ function handleCancel() {
                 class="field-with-action__control"
               />
               <Button
-                v-if="isComputeRole(model.nodeRole)"
+                v-if="nodeHasAnyFunction({ functions: model.functions }, ['live', 'forward'])"
                 type="default"
                 class="field-with-action__btn"
                 @click="handleGenerateRandomPorts(model)"
@@ -225,7 +216,7 @@ function handleCancel() {
                 class="field-with-action__control"
               />
               <Button
-                v-if="isComputeRole(model.nodeRole)"
+                v-if="nodeHasAnyFunction({ functions: model.functions }, ['live', 'forward'])"
                 type="default"
                 class="field-with-action__btn"
                 @click="handleGenerateRandomPorts(model)"

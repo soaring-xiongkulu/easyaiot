@@ -50,6 +50,8 @@ import { getNodePage, type ComputeNodeVO } from '@/api/device/node';
 import {
   CLUSTER_NODE_ROLE_FILTERS,
   NODE_DASHBOARD,
+  formatNodeFunctions,
+  nodeHasAnyFunction,
   type ClusterNodeRoleFilterKey,
 } from '../../utils/constants';
 import { isPlatformNode } from '../../utils/platformNode';
@@ -152,8 +154,8 @@ function isEligibleNode(node: ComputeNodeVO) {
     if (props.includePlatform) return true;
     if (props.excludePlatform) return false;
   }
-  const roles = allowedRoles.value;
-  if (roles && !roles.has(node.nodeRole || '')) return false;
+  const allowed = allowedRoles.value;
+  if (allowed && !nodeHasAnyFunction(node, [...allowed])) return false;
   return true;
 }
 
@@ -164,7 +166,7 @@ function hasSshCredential(node: ComputeNodeVO) {
 function rebuildNodeOptions() {
   // 只列出可操作节点，避免把 storage 等无关角色混进客户端下拉
   nodeOptions.value = scopedNodeList.value.filter(isEligibleNode).map((node) => ({
-    label: `${node.name} (${node.host}) — ${node.nodeRole || '?'} / ${node.status || 'unknown'}${hasSshCredential(node) ? '' : ' / 未配置 SSH'}`,
+    label: `${node.name} (${node.host}) — ${formatNodeFunctions(node)} / ${node.status || 'unknown'}${hasSshCredential(node) ? '' : ' / 未配置 SSH'}`,
     value: node.id!,
     disabled: !hasSshCredential(node) && !isPlatformNode(node),
   }));

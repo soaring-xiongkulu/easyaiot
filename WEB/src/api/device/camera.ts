@@ -321,6 +321,7 @@ export const registerNvrWithChannels = (data: {
   rtsp_template?: string;
   rtsp_port?: number;
   channel_count?: number;
+  directory_id?: number;
 }): Promise<NvrRegisterChannelsResult> => {
   defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
   return defHttp

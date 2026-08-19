@@ -170,6 +170,7 @@ import { BasicForm, useForm } from '@/components/Form';
 import { getDatasetPage } from '@/api/device/dataset';
 import { getModelPage } from '@/api/device/model';
 import { getNodePage, type ComputeNodeVO } from '@/api/device/node';
+import { nodeHasFunction } from '@/views/node/utils/constants';
 import { getTrainGpuStatus, uploadTrainDataset } from '@/api/device/train';
 import { useMessage } from '@/hooks/web/useMessage';
 import { Button } from '@/components/Button';
@@ -452,8 +453,7 @@ const loadNodes = async () => {
     const res = await getNodePage({ pageNo: 1, pageSize: 200, status: 'online' });
     const page = (res as { data?: { list?: unknown[] }; list?: unknown[] })?.data || res;
     const list = (((page as { list?: unknown[] })?.list || []) as ComputeNodeVO[]).filter(
-      (node) =>
-        node.nodeRole === 'compute' || node.nodeRole === 'gpu' || node.nodeRole === 'hybrid',
+      (node) => nodeHasFunction(node, 'train'),
     );
     nodeRecords.value = list;
     nodeOptions.value = list
@@ -721,7 +721,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         },
       },
       helpMessage:
-        '优先调度 GPU 节点；无可用 GPU 时自动回落到 CPU 节点（含中心节点）。集群模式需 CephFS 与 model_train Bundle',
+        '优先调度 GPU 节点；无可用 GPU 时自动回落到 CPU 节点（含中心节点）。集群模式需 NFS 与 model_train Bundle',
     },
     {
       field: 'target_node_id',
