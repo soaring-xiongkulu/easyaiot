@@ -545,7 +545,7 @@ RUNTIME_IMAGE_SPECS=(
     "iot-infra/iot-infra-biz/Dockerfile|iot-module-infra-biz:latest"
     "iot-device/iot-device-biz/Dockerfile|iot-module-device-biz:latest"
     "iot-dataset/iot-dataset-biz/Dockerfile|iot-module-dataset-biz:latest"
-    "iot-node/iot-node-biz/Dockerfile|iot-module-node-biz:latest"
+    "../NODE/iot-node-biz/Dockerfile|iot-module-node-biz:latest"
     "iot-visualize/iot-visualize-biz/Dockerfile|iot-module-visualize-biz:latest"
     "iot-tdengine/iot-tdengine-biz/Dockerfile|iot-module-tdengine-biz:latest"
     "iot-file/iot-file-biz/Dockerfile|iot-module-file-biz:latest"

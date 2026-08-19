@@ -40,7 +40,7 @@
         <module>iot-infra</module>
         <module>iot-file</module>
         <module>iot-dataset</module>
-        <module>iot-node</module>
+        <module>../NODE</module>
         <module>iot-visualize</module>
         <module>iot-device</module>
         <module>iot-tdengine</module>
