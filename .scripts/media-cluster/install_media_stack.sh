@@ -239,17 +239,18 @@ render_zlm_config() {
   print_ok "ZLM 配置已生成"
 }
 
-deploy_srs() {
-  assert_not_running "SRS" srs_healthy
-  if srs_healthy; then
-    print_skip "SRS 已在运行（API ${SRS_API_PORT} 可访问），跳过部署"
-    return 0
-  fi
-  render_srs_config
-  print_step "启动 SRS 容器"
-  export MEDIA_NODE_ID="${MEDIA_NODE_NAME}-srs"
-  export ZLM_HTTP_PORT
-  compose_up srs
+restart_media_service() {
+  local service="$1"
+  local cname="${MEDIA_NODE_NAME}-${service}"
+  (
+    cd "${MEDIA_CLUSTER_ROOT}"
+    ${COMPOSE_CMD} -f docker-compose.media-node.yml restart "${service}" 2>/dev/null \
+      || docker restart "${cname}" 2>/dev/null \
+      || true
+  )
+}
+
+wait_srs_healthy() {
   local i=0
   while [[ $i -lt 30 ]]; do
     if srs_healthy; then
@@ -263,28 +264,36 @@ deploy_srs() {
   exit 1
 }
 
-deploy_zlm() {
-  assert_not_running "ZLMediaKit" zlm_healthy
-  if zlm_healthy; then
-    print_skip "ZLMediaKit 已在运行（HTTP ${ZLM_HTTP_PORT} 可访问），跳过部署"
+deploy_srs() {
+  render_srs_config
+  assert_not_running "SRS" srs_healthy
+  if srs_healthy; then
+    print_step "SRS 已在运行，重启以应用 Hook 配置"
+    restart_media_service srs
+    wait_srs_healthy
     return 0
   fi
+  print_step "启动 SRS 容器"
+  export MEDIA_NODE_ID="${MEDIA_NODE_NAME}-srs"
+  export ZLM_HTTP_PORT
+  compose_up srs
+  wait_srs_healthy
+}
+
+deploy_zlm() {
   render_zlm_config
+  assert_not_running "ZLMediaKit" zlm_healthy
+  if zlm_healthy; then
+    print_step "ZLMediaKit 已在运行，重启以应用 Hook 配置"
+    restart_media_service zlm
+    wait_zlm_healthy
+    return 0
+  fi
   print_step "启动 ZLMediaKit 容器"
   export MEDIA_NODE_ID="${MEDIA_NODE_NAME}-zlm"
   export ZLM_HTTP_PORT
   compose_up zlm
-  local i=0
-  while [[ $i -lt 30 ]]; do
-    if zlm_healthy; then
-      print_ok "ZLMediaKit 已就绪 (HTTP ${ZLM_HTTP_PORT}, RTMP ${ZLM_RTMP_PORT}, RTSP ${ZLM_RTSP_PORT})"
-      return 0
-    fi
-    sleep 2
-    i=$((i + 1))
-  done
-  print_err "ZLMediaKit 启动超时，请检查: docker logs ${MEDIA_NODE_NAME}-zlm"
-  exit 1
+  wait_zlm_healthy
 }
 
 main() {

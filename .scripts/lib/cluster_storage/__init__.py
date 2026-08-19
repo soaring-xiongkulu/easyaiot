@@ -1,7 +1,7 @@
 """
 EasyAIoT 集群模式共享存储配置。
 
-CLUSTER_MODE=true 时，各服务统一使用 CephFS 挂载根目录（默认 /mnt/easyaiot-media）
+CLUSTER_MODE=true 时，各服务统一使用 NFS 挂载根目录（默认 /mnt/easyaiot-media）
 作为跨节点热缓冲；MinIO 仍为权威归档。
 
 目录规范（见 docs/streaming-cluster/存储与上传流水线.md）：
@@ -32,7 +32,7 @@ DEFAULT_SRS_HOST_DATA_ROOT = '~/easyaiot/data'
 
 
 def get_mount_root() -> str:
-    explicit = (os.getenv('MEDIA_HOST_DATA_ROOT') or os.getenv('CEPH_MOUNT_ROOT') or '').strip()
+    explicit = (os.getenv('MEDIA_HOST_DATA_ROOT') or os.getenv('NFS_MOUNT_ROOT') or os.getenv('CEPH_MOUNT_ROOT') or '').strip()
     if explicit:
         return os.path.normpath(os.path.expanduser(os.path.expandvars(explicit)))
     if is_cluster_mode():
@@ -97,6 +97,11 @@ def get_staging_dir() -> str:
     if explicit:
         return explicit.rstrip('/\\')
     return os.path.join(get_mount_root().rstrip('/\\'), 'staging')
+
+
+def verify_nfs_mount(mount_root: Optional[str] = None) -> bool:
+    """检查 NFS 共享媒体挂载是否就绪（历史名 verify_ceph_mount）。"""
+    return verify_ceph_mount(mount_root)
 
 
 def verify_ceph_mount(mount_root: Optional[str] = None) -> bool:
@@ -215,7 +220,7 @@ def ensure_cluster_dirs() -> None:
 
 
 def resolve_container_path(local_path: str, cwd: str = '') -> str:
-    """容器内 /data 或 /mnt/easyaiot-media 路径映射到宿主机 CephFS 挂载。"""
+    """容器内 /data 或 /mnt/easyaiot-media 路径映射到宿主机 NFS 挂载。"""
     if not local_path:
         return local_path
     if not os.path.isabs(local_path) and cwd:
