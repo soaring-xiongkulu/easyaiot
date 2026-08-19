@@ -27,6 +27,7 @@ import com.basiclab.iot.node.domain.vo.NodeWorkloadBundleNodeResultVO;
 import com.basiclab.iot.node.service.NodeStorageService;
 import com.basiclab.iot.node.service.NfsMultiClusterService;
 import com.basiclab.iot.node.util.CredentialEncryptUtil;
+import com.basiclab.iot.node.util.NodeFunctions;
 import com.basiclab.iot.node.util.SshSessionHelper;
 import com.basiclab.iot.node.util.StorageStackDeployUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -354,6 +355,7 @@ public class NodeStorageServiceImpl implements NodeStorageService {
         vo.setName(node.getName());
         vo.setHost(node.getHost());
         vo.setNodeRole(node.getNodeRole());
+        vo.setFunctions(NodeFunctions.parse(node));
         vo.setStatus(node.getStatus());
         vo.setAgentPort(node.getAgentPort() != null ? node.getAgentPort() : 9100);
         vo.setKind(kind);

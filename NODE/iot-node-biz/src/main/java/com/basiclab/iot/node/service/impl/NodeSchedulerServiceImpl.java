@@ -11,9 +11,10 @@ import com.basiclab.iot.node.dal.pgsql.NodeWorkloadBindingMapper;
 import com.basiclab.iot.node.domain.vo.ComputeNodePageReqVO;
 import com.basiclab.iot.node.domain.vo.NodeSchedulerAllocateReqVO;
 import com.basiclab.iot.node.domain.vo.NodeSchedulerAllocateRespVO;
-import com.basiclab.iot.node.enums.NodeRoleEnum;
+import com.basiclab.iot.node.util.NodeFunctions;
 import com.basiclab.iot.node.enums.NodeStatusEnum;
 import com.basiclab.iot.node.service.NodeSchedulerService;
+import com.basiclab.iot.node.service.NodeSentinelService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,8 +41,14 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
     @Resource
     private NodeWorkloadBindingMapper nodeWorkloadBindingMapper;
 
+    @Resource
+    private NodeSentinelService nodeSentinelService;
+
     @Value("${easyaiot.scheduler.prefer-gpu-default:true}")
     private boolean preferGpuDefault;
+
+    @Value("${easyaiot.sentinel.scheduling-enabled:true}")
+    private boolean sentinelSchedulingEnabled;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -52,7 +59,7 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
             if (existing != null && "running".equals(existing.getStatus())) {
                 ComputeNodeDO node = computeNodeMapper.selectById(existing.getNodeId());
                 if (node != null && NodeStatusEnum.ONLINE.getStatus().equals(node.getStatus())) {
-                    if (!requiresCephMount(reqVO) || isCephMountReady(node)) {
+                    if (!requiresNfsMount(reqVO) || isNfsMountReady(node)) {
                         return buildResp(node, existing.getId(), null);
                     }
                 }
@@ -106,7 +113,7 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
     }
 
     private boolean matchRequirements(ComputeNodeDO node, NodeSchedulerAllocateReqVO reqVO) {
-        if (!matchNodeRole(node, reqVO.getWorkloadType())) {
+        if (!matchNodeFunctions(node, reqVO.getWorkloadType())) {
             return false;
         }
         NodeSchedulerAllocateReqVO.Requirements req = reqVO.getRequirements();
@@ -131,7 +138,13 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         if (requiresGpu(req) && !isGpuNode(node)) {
             return false;
         }
-        if (requiresCephMount(reqVO) && !isCephMountReady(node)) {
+        if (requiresNfsMount(reqVO) && !isNfsMountReady(node)) {
+            return false;
+        }
+        if (shouldRequireSchedulable(reqVO) && !matchSentinelSchedulable(node, reqVO)) {
+            return false;
+        }
+        if (!matchResourceLimits(node, reqVO)) {
             return false;
         }
         long running = nodeWorkloadBindingMapper.countRunningByNodeId(node.getId());
@@ -153,11 +166,8 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         return preferGpuDefault;
     }
 
-    /** GPU 节点：角色为 gpu，或配置了 maxGpuCount，或心跳上报了 GPU 硬件 */
+    /** GPU 节点：配置了 maxGpuCount，或心跳上报了 GPU 硬件 */
     private boolean isGpuNode(ComputeNodeDO node) {
-        if (NodeRoleEnum.GPU.getRole().equals(node.getNodeRole())) {
-            return true;
-        }
         if (node.getMaxGpuCount() != null && node.getMaxGpuCount() > 0) {
             return true;
         }
@@ -165,9 +175,9 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         return metric != null && CollUtil.isNotEmpty(metric.getGpuInfo());
     }
 
-    /** 纯计算节点（无 GPU）：角色为 compute 且未声明 GPU */
+    /** 无 GPU 的计算类节点 */
     private boolean isComputeOnlyNode(ComputeNodeDO node) {
-        return NodeRoleEnum.COMPUTE.getRole().equals(node.getNodeRole()) && !isGpuNode(node);
+        return NodeFunctions.isComputeWorkloadNode(node) && !isGpuNode(node);
     }
 
     /**
@@ -192,35 +202,91 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         return !(cpu >= 60 && mem >= 85);
     }
 
-    private boolean matchNodeRole(ComputeNodeDO node, String workloadType) {
-        String role = node.getNodeRole();
-        if (isMediaWorkload(workloadType)) {
-            return NodeRoleEnum.MEDIA.getRole().equals(role) || NodeRoleEnum.HYBRID.getRole().equals(role);
+    private boolean shouldRequireSchedulable(NodeSchedulerAllocateReqVO reqVO) {
+        NodeSchedulerAllocateReqVO.Requirements req = reqVO.getRequirements();
+        if (req != null && req.getRequireSchedulable() != null) {
+            return req.getRequireSchedulable();
         }
-        if (isMqttWorkload(workloadType)) {
-            return NodeRoleEnum.MQTT.getRole().equals(role);
+        return sentinelSchedulingEnabled;
+    }
+
+    private boolean matchSentinelSchedulable(ComputeNodeDO node, NodeSchedulerAllocateReqVO reqVO) {
+        if (ComputeNodeServiceImpl.isPlatformNode(node)) {
+            return true;
         }
-        if (isComputeWorkload(workloadType)) {
-            return NodeRoleEnum.COMPUTE.getRole().equals(role)
-                    || NodeRoleEnum.GPU.getRole().equals(role)
-                    || NodeRoleEnum.HYBRID.getRole().equals(role);
+        List<String> requiredCapabilities = resolveRequiredCapabilities(reqVO);
+        if (CollUtil.isEmpty(requiredCapabilities)) {
+            return true;
+        }
+        for (String capability : requiredCapabilities) {
+            if (!nodeSentinelService.isCapabilitySchedulable(node.getId(), capability)) {
+                return false;
+            }
         }
         return true;
     }
 
-    private boolean isMediaWorkload(String workloadType) {
-        return "srs_live".equals(workloadType) || "srs_ai".equals(workloadType) || "zlm".equals(workloadType);
+    private boolean matchResourceLimits(ComputeNodeDO node, NodeSchedulerAllocateReqVO reqVO) {
+        NodeSchedulerAllocateReqVO.Requirements req = reqVO.getRequirements();
+        NodeMetricSnapshotDO metric = nodeMetricSnapshotMapper.selectLatestByNodeId(node.getId());
+        if (metric == null) {
+            return true;
+        }
+        Integer maxCpu = req != null ? req.getMaxCpuPercent() : null;
+        Integer maxMem = req != null ? req.getMaxMemPercent() : null;
+        if ("stream_forward".equals(reqVO.getWorkloadType())) {
+            if (maxCpu == null) {
+                maxCpu = 85;
+            }
+            if (maxMem == null) {
+                maxMem = 95;
+            }
+        }
+        if (maxCpu != null && metric.getCpuPercent() != null
+                && metric.getCpuPercent().doubleValue() >= maxCpu) {
+            return false;
+        }
+        if (maxMem != null && metric.getMemPercent() != null
+                && metric.getMemPercent().doubleValue() >= maxMem) {
+            return false;
+        }
+        Integer minVram = req != null ? req.getMinFreeVramMb() : null;
+        if (minVram == null && requiresGpu(req)) {
+            minVram = 2048;
+        }
+        if (minVram != null && minVram > 0 && CollUtil.isNotEmpty(metric.getGpuInfo())) {
+            double maxFreeMb = 0;
+            for (Map<String, Object> gpu : metric.getGpuInfo()) {
+                if (gpu == null) {
+                    continue;
+                }
+                double total = toDouble(gpu.get("mem_total_mb"));
+                double used = toDouble(gpu.get("mem_used_mb"));
+                maxFreeMb = Math.max(maxFreeMb, Math.max(0, total - used));
+            }
+            if (maxFreeMb > 0 && maxFreeMb < minVram) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    private boolean isMqttWorkload(String workloadType) {
-        return "emqx".equals(workloadType) || "mqtt_gateway".equals(workloadType);
+    private double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value != null) {
+            try {
+                return Double.parseDouble(String.valueOf(value));
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
     }
 
-    private boolean isComputeWorkload(String workloadType) {
-        return "ai_service".equals(workloadType) || "algorithm_task".equals(workloadType)
-                || "stream_forward".equals(workloadType) || "auto_label".equals(workloadType)
-                || "model_train".equals(workloadType) || "post_process".equals(workloadType)
-                || "llm_service".equals(workloadType) || "transform_runtime".equals(workloadType);
+    private boolean matchNodeFunctions(ComputeNodeDO node, String workloadType) {
+        return NodeFunctions.matchesWorkload(node, workloadType);
     }
 
     private List<String> resolveRequiredCapabilities(NodeSchedulerAllocateReqVO reqVO) {
@@ -236,15 +302,17 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         return capabilities;
     }
 
-    /** 算法任务等需读取 CephFS 共享模型/抓拍路径时要求节点挂载就绪 */
-    private boolean requiresCephMount(NodeSchedulerAllocateReqVO reqVO) {
+    /** 算法任务等需读取 NFS 共享模型/抓拍路径时要求节点挂载就绪 */
+    private boolean requiresNfsMount(NodeSchedulerAllocateReqVO reqVO) {
         NodeSchedulerAllocateReqVO.Requirements req = reqVO.getRequirements();
-        if (req != null && Boolean.TRUE.equals(req.getRequireCephMount())) {
+        if (req != null && (Boolean.TRUE.equals(req.getRequireNfsMount())
+                || Boolean.TRUE.equals(req.getRequireCephMount()))) {
             return true;
         }
         String workloadType = reqVO.getWorkloadType();
         if ("model_train".equals(workloadType)) {
-            return req != null && Boolean.TRUE.equals(req.getRequireCephMount());
+            return req != null && (Boolean.TRUE.equals(req.getRequireNfsMount())
+                    || Boolean.TRUE.equals(req.getRequireCephMount()));
         }
         if (!"algorithm_task".equals(workloadType)) {
             return false;
@@ -260,7 +328,7 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         return false;
     }
 
-    private boolean isCephMountReady(ComputeNodeDO node) {
+    private boolean isNfsMountReady(ComputeNodeDO node) {
         if (ComputeNodeServiceImpl.isPlatformNode(node)) {
             return true;
         }
@@ -303,7 +371,7 @@ public class NodeSchedulerServiceImpl implements NodeSchedulerService {
         if (ComputeNodeServiceImpl.isPlatformNode(node)) {
             if ("stream_forward".equals(workloadType)) {
                 score *= 0.02;
-            } else if (isComputeWorkload(workloadType)) {
+            } else {
                 score *= 0.1;
             }
         }

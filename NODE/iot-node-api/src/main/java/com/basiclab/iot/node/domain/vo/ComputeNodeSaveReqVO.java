@@ -4,7 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotEmpty;
+import java.util.List;
 import java.util.Map;
 
 @Schema(description = "管理后台 - 服务器节点新增/修改 Request VO")
@@ -28,9 +29,10 @@ public class ComputeNodeSaveReqVO {
     @Schema(description = "Agent 端口", example = "9100")
     private Integer agentPort;
 
-    @Schema(description = "节点角色: compute | gpu | media | storage | hybrid", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "节点角色不能为空")
-    private String nodeRole;
+    @Schema(description = "节点功能（可多选）: algorithm | forward | live | train | llm | label | infer | mqtt | nfs | transform",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotEmpty(message = "请至少勾选一项节点功能")
+    private List<String> functions;
 
     @Schema(description = "区域/机房")
     private String region;

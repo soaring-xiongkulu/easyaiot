@@ -2,6 +2,10 @@ package com.basiclab.iot.node.util;
 
 import com.basiclab.iot.node.enums.WorkloadBundleTypeEnum;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,6 +29,8 @@ public final class WorkloadBundleDeployUtil {
     public static final String INSTALL_BUNDLE_ENV_SCRIPT = "install_node_bundle_env.sh";
     public static final String GET_PIP_SCRIPT = "get-pip.py";
     public static final String RUN_PYTHON_LAUNCHER = "run-python.sh";
+    public static final String WHEELS_TARGET_MARKER = ".target-python";
+    public static final String WHEELS_META_FILE = ".bundle-meta";
 
     private static final Set<String> SKIP_DIR_NAMES = new HashSet<>(Arrays.asList(
             "__pycache__", ".git", "logs", "node_modules", ".venv", "venv", ".bundle-wheels", BUNDLE_SUBDIR
@@ -51,6 +57,48 @@ public final class WorkloadBundleDeployUtil {
 
     public static String remotePythonLauncher(WorkloadBundleTypeEnum bundle) {
         return remoteBundleDir(bundle) + "/" + RUN_PYTHON_LAUNCHER;
+    }
+
+    /**
+     * 展开 {@code -r} 引用，生成节点上可独立安装的 requirements.txt。
+     * 算法 bundle 依赖 stream-forward 等文件，原样上传会导致 pip 在 bundle 目录找不到被引用文件。
+     */
+    public static String flattenRequirements(File reqFile) throws IOException {
+        if (reqFile == null || !reqFile.isFile()) {
+            throw new IOException("requirements 不存在: " + reqFile);
+        }
+        return flattenRequirements(reqFile, new HashSet<>());
+    }
+
+    private static String flattenRequirements(File reqFile, Set<String> seen) throws IOException {
+        String canonical = reqFile.getCanonicalPath();
+        if (!seen.add(canonical)) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String line : Files.readAllLines(reqFile.toPath(), StandardCharsets.UTF_8)) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("-r ")) {
+                String ref = trimmed.substring(3).trim();
+                File inc = new File(reqFile.getParentFile(), ref);
+                if (!inc.isFile()) {
+                    throw new IOException("requirements 引用缺失: " + inc);
+                }
+                sb.append(flattenRequirements(inc, seen));
+                continue;
+            }
+            if (trimmed.startsWith("--requirement ")) {
+                String ref = trimmed.substring("--requirement ".length()).trim();
+                File inc = new File(reqFile.getParentFile(), ref);
+                if (!inc.isFile()) {
+                    throw new IOException("requirements 引用缺失: " + inc);
+                }
+                sb.append(flattenRequirements(inc, seen));
+                continue;
+            }
+            sb.append(line).append('\n');
+        }
+        return sb.toString();
     }
 
     public static String requirementsFileName(WorkloadBundleTypeEnum bundle) {
@@ -83,7 +131,20 @@ public final class WorkloadBundleDeployUtil {
         return bundle == WorkloadBundleTypeEnum.TRANSFORM_RUNTIME;
     }
 
-    public static String localWheelsCacheDir(String sourceRoot, WorkloadBundleTypeEnum bundle) {
+    public static String localWheelsCacheDir(
+            String sourceRoot, WorkloadBundleTypeEnum bundle,
+            String osFamily, String archKey, String targetPython) {
+        return sourceRoot + "/.bundle-wheels/"
+                + bundle.getType() + "/"
+                + normalizeTargetKey(osFamily, "linux") + "/"
+                + normalizeTargetKey(archKey, "x86_64") + "/"
+                + pythonCacheKey(targetPython);
+    }
+
+    /**
+     * 旧布局：仅 bundleType。只有控制面本机与目标节点 OS/arch 一致时才允许回退，避免跨 ABI 混包。
+     */
+    public static String legacyLocalWheelsCacheDir(String sourceRoot, WorkloadBundleTypeEnum bundle) {
         return sourceRoot + "/.bundle-wheels/" + bundle.getType();
     }
 
@@ -286,5 +347,30 @@ public final class WorkloadBundleDeployUtil {
                 "app",
                 "services/train_worker"
         );
+    }
+
+    public static String pythonCacheKey(String targetPython) {
+        String normalized = normalizePythonVersion(targetPython);
+        return "py" + normalized.replace(".", "");
+    }
+
+    public static String normalizePythonVersion(String targetPython) {
+        if (targetPython == null || targetPython.isBlank()) {
+            return "3.10";
+        }
+        String normalized = targetPython.trim().toLowerCase(Locale.ROOT).replace("cp", "");
+        String[] parts = normalized.split("\\.");
+        if (parts.length >= 2 && parts[0].matches("\\d+") && parts[1].matches("\\d+")) {
+            return parts[0] + "." + parts[1];
+        }
+        return "3.10";
+    }
+
+    private static String normalizeTargetKey(String raw, String fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        String normalized = raw.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._-]", "-");
+        return normalized.isEmpty() ? fallback : normalized;
     }
 }

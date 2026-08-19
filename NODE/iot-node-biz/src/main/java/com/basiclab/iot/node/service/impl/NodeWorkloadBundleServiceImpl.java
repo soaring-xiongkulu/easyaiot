@@ -1,8 +1,10 @@
 package com.basiclab.iot.node.service.impl;
 
 import com.basiclab.iot.node.dal.dataobject.ComputeNodeDO;
+import com.basiclab.iot.node.dal.dataobject.NodeSentinelSnapshotDO;
 import com.basiclab.iot.node.dal.dataobject.NodeSshCredentialDO;
 import com.basiclab.iot.node.dal.pgsql.ComputeNodeMapper;
+import com.basiclab.iot.node.dal.pgsql.NodeSentinelSnapshotMapper;
 import com.basiclab.iot.node.dal.pgsql.NodeSshCredentialMapper;
 import com.basiclab.iot.node.domain.vo.NodeMediaRemoteDeployRespVO;
 import com.basiclab.iot.node.domain.vo.NodeWorkloadBundleBatchReqVO;
@@ -17,6 +19,7 @@ import com.basiclab.iot.node.service.NodeRuntimeCppDeployService;
 import com.basiclab.iot.node.service.NodeWorkloadBundleService;
 import com.basiclab.iot.node.util.CredentialEncryptUtil;
 import com.basiclab.iot.node.util.FfmpegStaticDeployUtil;
+import com.basiclab.iot.node.util.RuntimeCppDeployUtil;
 import com.basiclab.iot.node.util.SshSessionHelper;
 import com.basiclab.iot.node.util.WorkloadBundleDeployUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -53,10 +56,24 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
     private static final int DEPLOY_TIMEOUT_MS = 900_000;
     private static final long EXPORT_PIP_WHEELS_TIMEOUT_MS = 900_000L;
 
+    private static final class BundleTarget {
+        private final String osFamily;
+        private final String archKey;
+        private final String targetPython;
+
+        private BundleTarget(String osFamily, String archKey, String targetPython) {
+            this.osFamily = osFamily;
+            this.archKey = archKey;
+            this.targetPython = targetPython;
+        }
+    }
+
     @Resource
     private ComputeNodeMapper computeNodeMapper;
     @Resource
     private NodeSshCredentialMapper nodeSshCredentialMapper;
+    @Resource
+    private NodeSentinelSnapshotMapper nodeSentinelSnapshotMapper;
     @Resource
     private NodeFfmpegDeployService nodeFfmpegDeployService;
     @Resource
@@ -330,26 +347,21 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
                 return result;
             }
 
-            String targetPython = detectRemotePythonVersion(ssh);
-            steps.add(step("Python 运行时", "success", "目标机 Python " + targetPython));
+            BundleTarget target = resolveBundleTarget(node.getId(), ssh);
+            steps.add(step("目标画像", "success",
+                    "os=" + target.osFamily + " arch=" + target.archKey + " python=" + target.targetPython));
 
             String sourceRoot = resolveModuleSourceRoot(bundle);
-            File wheelsDir = ensureLocalWheels(sourceRoot, bundle, targetPython, steps);
-            if (wheelsDir == null) {
-                result.setSuccess(false);
-                result.setMessage(lastFailedOutput(steps));
-                return result;
-            }
-
             String remoteBundle = WorkloadBundleDeployUtil.remoteBundleDir(bundle);
             ssh.ensureRemoteDir(remoteBundle);
-            syncBundleEnvFiles(ssh, sourceRoot, bundle, wheelsDir, remoteBundle, steps);
+            syncBundleEnvFiles(ssh, sourceRoot, bundle, null, remoteBundle, steps, true);
 
             String installScript = WorkloadBundleDeployUtil.INSTALL_BUNDLE_ENV_SCRIPT;
             SshSessionHelper.SshExecResult installResult = ssh.exec(
-                    "cd '" + remoteBundle + "' && sudo bash " + installScript + " '" + remoteBundle + "'",
+                    "cd '" + remoteBundle + "' && sudo env BUNDLE_ONLINE_INSTALL=1 bash "
+                            + installScript + " '" + remoteBundle + "'",
                     DEPLOY_TIMEOUT_MS);
-            NodeMediaRemoteDeployRespVO.DeployStep installStep = step("离线安装运行时", "failed",
+            NodeMediaRemoteDeployRespVO.DeployStep installStep = step("在线安装运行时", "failed",
                     trim(installResult.combinedOutput(), 8000));
             if (installResult.combinedOutput().contains("BUNDLE_ENV_OK")) {
                 installStep.setStatus("success");
@@ -562,18 +574,24 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
             WorkloadBundleTypeEnum bundle,
             File wheelsDir,
             String remoteBundle,
-            List<NodeMediaRemoteDeployRespVO.DeployStep> steps) throws Exception {
+            List<NodeMediaRemoteDeployRespVO.DeployStep> steps,
+            boolean onlineInstall) throws Exception {
         File req = new File(sourceRoot, WorkloadBundleDeployUtil.requirementsFileName(bundle));
         File install = new File(sourceRoot, WorkloadBundleDeployUtil.INSTALL_BUNDLE_ENV_SCRIPT);
         File getPip = new File(sourceRoot, WorkloadBundleDeployUtil.GET_PIP_SCRIPT);
         if (!req.isFile() || !install.isFile()) {
             throw exception("AI".equals(bundle.getModule()) ? AI_SOURCE_NOT_FOUND : VIDEO_SOURCE_NOT_FOUND);
         }
-        ssh.uploadFile(req.getAbsolutePath(), remoteBundle + "/requirements.txt");
+        ssh.uploadBytes(remoteBundle + "/requirements.txt",
+                WorkloadBundleDeployUtil.flattenRequirements(req).getBytes(StandardCharsets.UTF_8));
         ssh.uploadFile(install.getAbsolutePath(), remoteBundle + "/" + WorkloadBundleDeployUtil.INSTALL_BUNDLE_ENV_SCRIPT);
         ssh.exec("chmod +x " + remoteBundle + "/" + WorkloadBundleDeployUtil.INSTALL_BUNDLE_ENV_SCRIPT, 10_000);
         if (getPip.isFile()) {
             ssh.uploadFile(getPip.getAbsolutePath(), remoteBundle + "/" + WorkloadBundleDeployUtil.GET_PIP_SCRIPT);
+        }
+        if (onlineInstall) {
+            steps.add(step("同步安装脚本", "success", "已上传 requirements（online-install）"));
+            return;
         }
         String remoteWheels = remoteBundle + "/" + WorkloadBundleDeployUtil.PIP_WHEELS_DIR;
         ssh.ensureRemoteDir(remoteWheels);
@@ -590,13 +608,22 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
     private File ensureLocalWheels(
             String sourceRoot,
             WorkloadBundleTypeEnum bundle,
-            String targetPython,
+            BundleTarget target,
             List<NodeMediaRemoteDeployRespVO.DeployStep> steps) {
-        File wheelsDir = new File(WorkloadBundleDeployUtil.localWheelsCacheDir(sourceRoot, bundle));
-        if (isWheelsReady(wheelsDir, targetPython)) {
+        File wheelsDir = new File(WorkloadBundleDeployUtil.localWheelsCacheDir(
+                sourceRoot, bundle, target.osFamily, target.archKey, target.targetPython));
+        if (isWheelsReady(wheelsDir, target)) {
             steps.add(step("准备离线 pip 包", "success",
-                    "本机离线包已就绪（" + listWheelFiles(wheelsDir).length + " 个，Python " + targetPython + "）"));
+                    "本机离线包已就绪（" + listWheelFiles(wheelsDir).length + " 个，"
+                            + target.osFamily + "/" + target.archKey + ", Python " + target.targetPython + "）"));
             return wheelsDir;
+        }
+        File legacyDir = new File(WorkloadBundleDeployUtil.legacyLocalWheelsCacheDir(sourceRoot, bundle));
+        if (canUseLegacyWheels(legacyDir, target)) {
+            steps.add(step("准备离线 pip 包", "success",
+                    "复用旧布局缓存（" + listWheelFiles(legacyDir).length + " 个，"
+                            + target.osFamily + "/" + target.archKey + ", Python " + target.targetPython + "）"));
+            return legacyDir;
         }
         File exportScript = new File(sourceRoot, WorkloadBundleDeployUtil.EXPORT_PIP_WHEELS_SCRIPT);
         if (!exportScript.isFile()) {
@@ -610,14 +637,15 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
             if (!wheelsDir.exists() && !wheelsDir.mkdirs()) {
                 log.warn("无法创建 wheel 缓存目录: {}", wheelsDir.getAbsolutePath());
             }
-            String output = runExportScript(exportScript, bundle, targetPython, wheelsDir);
-            if (!isWheelsReady(wheelsDir, targetPython)) {
+            String output = runExportScript(exportScript, bundle, target, wheelsDir);
+            if (!isWheelsReady(wheelsDir, target)) {
                 steps.add(step("准备离线 pip 包", "failed",
                         "export 后 wheel 包仍不完整\n" + trim(output, 4000)));
                 return null;
             }
             steps.add(step("准备离线 pip 包", "success",
-                    "本机已下载 " + listWheelFiles(wheelsDir).length + " 个 wheel（Python " + targetPython + "）"));
+                    "本机已下载 " + listWheelFiles(wheelsDir).length + " 个 wheel（"
+                            + target.osFamily + "/" + target.archKey + ", Python " + target.targetPython + "）"));
             return wheelsDir;
         } catch (Exception e) {
             steps.add(step("准备离线 pip 包", "failed", "控制面下载 wheel 失败: " + e.getMessage()));
@@ -625,12 +653,14 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
         }
     }
 
-    private String runExportScript(File exportScript, WorkloadBundleTypeEnum bundle, String targetPython, File wheelsDir)
+    private String runExportScript(File exportScript, WorkloadBundleTypeEnum bundle, BundleTarget target, File wheelsDir)
             throws Exception {
         ProcessBuilder pb = new ProcessBuilder("bash", exportScript.getAbsolutePath());
         pb.directory(exportScript.getParentFile());
         pb.environment().put("BUNDLE_TYPE", bundle.getType());
-        pb.environment().put("BUNDLE_TARGET_PYTHON", targetPython);
+        pb.environment().put("BUNDLE_TARGET_PYTHON", target.targetPython);
+        pb.environment().put("BUNDLE_OS_FAMILY", target.osFamily);
+        pb.environment().put("BUNDLE_TARGET_ARCH", target.archKey);
         pb.environment().put("BUNDLE_PIP_WHEELS_DIR", wheelsDir.getAbsolutePath());
         pb.redirectErrorStream(true);
         Process process = pb.start();
@@ -651,20 +681,73 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
         return output;
     }
 
-    private boolean isWheelsReady(File wheelsDir, String targetPython) {
+    private boolean isWheelsReady(File wheelsDir, BundleTarget target) {
         File[] wheels = listWheelFiles(wheelsDir);
         if (wheels.length < 5) {
             return false;
         }
-        File marker = new File(wheelsDir, ".target-python");
+        File marker = new File(wheelsDir, WorkloadBundleDeployUtil.WHEELS_TARGET_MARKER);
         if (!marker.isFile()) {
             return false;
         }
         try {
-            return Files.readString(marker.toPath(), StandardCharsets.UTF_8).trim().equals(targetPython);
+            String python = Files.readString(marker.toPath(), StandardCharsets.UTF_8).trim();
+            if (!WorkloadBundleDeployUtil.normalizePythonVersion(python)
+                    .equals(WorkloadBundleDeployUtil.normalizePythonVersion(target.targetPython))) {
+                return false;
+            }
+            File meta = new File(wheelsDir, WorkloadBundleDeployUtil.WHEELS_META_FILE);
+            if (!meta.isFile()) {
+                return false;
+            }
+            Map<String, String> metaMap = parseSimpleMeta(meta);
+            return target.osFamily.equals(metaMap.getOrDefault("os_family", ""))
+                    && target.archKey.equals(metaMap.getOrDefault("arch", ""));
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private boolean canUseLegacyWheels(File wheelsDir, BundleTarget target) {
+        if (!isLegacyPythonMarkerReady(wheelsDir, target.targetPython)) {
+            return false;
+        }
+        return target.osFamily.equals(detectLocalOsFamily()) && target.archKey.equals(detectLocalArchKey());
+    }
+
+    private boolean isLegacyPythonMarkerReady(File wheelsDir, String targetPython) {
+        File[] wheels = listWheelFiles(wheelsDir);
+        if (wheels.length < 5) {
+            return false;
+        }
+        File marker = new File(wheelsDir, WorkloadBundleDeployUtil.WHEELS_TARGET_MARKER);
+        if (!marker.isFile()) {
+            return false;
+        }
+        try {
+            String python = Files.readString(marker.toPath(), StandardCharsets.UTF_8).trim();
+            return WorkloadBundleDeployUtil.normalizePythonVersion(python)
+                    .equals(WorkloadBundleDeployUtil.normalizePythonVersion(targetPython));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private Map<String, String> parseSimpleMeta(File file) {
+        Map<String, String> meta = new HashMap<>();
+        try {
+            for (String raw : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)) {
+                String line = raw.trim();
+                int idx = line.indexOf('=');
+                if (idx <= 0) {
+                    continue;
+                }
+                meta.put(line.substring(0, idx).trim(), line.substring(idx + 1).trim());
+            }
+        } catch (Exception ignored) {
+            return meta;
+        }
+        return meta;
     }
 
     private File[] listWheelFiles(File dir) {
@@ -994,5 +1077,65 @@ public class NodeWorkloadBundleServiceImpl implements NodeWorkloadBundleService 
                 10_000);
         String version = result.combinedOutput().trim();
         return version.matches("3\\.\\d+") ? version : "3.10";
+    }
+
+    private BundleTarget resolveBundleTarget(Long nodeId, SshSessionHelper ssh) throws Exception {
+        String targetPython = detectRemotePythonVersion(ssh);
+        RuntimeCppDeployUtil.OsArch osArch = resolveOsArchFromSentinel(nodeId);
+        if (osArch == null) {
+            osArch = detectRemoteOsArch(ssh);
+        }
+        String osFamily = osArch != null && osArch.osFamily != null && !osArch.osFamily.isBlank()
+                ? osArch.osFamily : detectLocalOsFamily();
+        String archKey = osArch != null && osArch.archKey != null && !osArch.archKey.isBlank()
+                ? osArch.archKey : detectLocalArchKey();
+        return new BundleTarget(osFamily, archKey, targetPython);
+    }
+
+    private RuntimeCppDeployUtil.OsArch resolveOsArchFromSentinel(Long nodeId) {
+        NodeSentinelSnapshotDO snapshot = nodeSentinelSnapshotMapper.selectById(nodeId);
+        if (snapshot == null || snapshot.getEnvironmentProfile() == null) {
+            return null;
+        }
+        Object osObj = snapshot.getEnvironmentProfile().get("os");
+        if (!(osObj instanceof Map)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> os = (Map<String, Object>) osObj;
+        String family = stringVal(os.get("family"));
+        if (family == null || family.isBlank()) {
+            return null;
+        }
+        String archRaw = stringVal(os.get("arch"));
+        String archKey = RuntimeCppDeployUtil.archKeyForUname(
+                archRaw != null && !archRaw.isBlank() ? archRaw : "x86_64");
+        return new RuntimeCppDeployUtil.OsArch(
+                family,
+                archKey,
+                stringVal(os.get("id")),
+                stringVal(os.get("versionId")),
+                archRaw);
+    }
+
+    private RuntimeCppDeployUtil.OsArch detectRemoteOsArch(SshSessionHelper ssh) throws Exception {
+        SshSessionHelper.SshExecResult result = ssh.exec(RuntimeCppDeployUtil.detectOsReleaseCommand(), 10_000);
+        return RuntimeCppDeployUtil.parseOsArch(result.combinedOutput());
+    }
+
+    private static String stringVal(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        String text = String.valueOf(raw).trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private String detectLocalOsFamily() {
+        return RuntimeCppDeployUtil.detectLocalOsFamily();
+    }
+
+    private String detectLocalArchKey() {
+        return RuntimeCppDeployUtil.detectLocalArchKey();
     }
 }

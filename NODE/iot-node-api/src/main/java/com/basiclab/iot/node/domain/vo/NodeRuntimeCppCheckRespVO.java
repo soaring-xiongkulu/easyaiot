@@ -31,6 +31,12 @@ public class NodeRuntimeCppCheckRespVO {
     @Schema(description = "与控制面版本是否一致（两侧皆有 version 时才判定）")
     private Boolean versionMatch;
 
+    @Schema(description = "节点 os-release 映射的 RUNTIME 包键，如 openeuler24 / ubuntu24")
+    private String osFamily;
+
+    @Schema(description = "节点 CPU 架构键，x86_64 或 arm64")
+    private String arch;
+
     @Schema(description = "是否成功")
     private Boolean success;
 

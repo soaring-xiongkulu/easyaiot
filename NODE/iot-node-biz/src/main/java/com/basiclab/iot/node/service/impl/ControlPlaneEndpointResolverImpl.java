@@ -38,12 +38,12 @@ public class ControlPlaneEndpointResolverImpl implements ControlPlaneEndpointRes
         if (fromUrl != null) {
             return fromUrl;
         }
-        if (isReachableHost(configuredHookHost)) {
-            return configuredHookHost.trim();
-        }
         String platformHost = platformNodeHost();
         if (platformHost != null) {
             return platformHost;
+        }
+        if (isReachableHost(configuredHookHost)) {
+            return configuredHookHost.trim();
         }
         String detected = HostIpUtil.detectHostIp();
         if (isReachableHost(detected)) {

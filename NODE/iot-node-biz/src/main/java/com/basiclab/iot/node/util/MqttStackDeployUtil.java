@@ -2,7 +2,7 @@ package com.basiclab.iot.node.util;
 
 import cn.hutool.core.util.StrUtil;
 import com.basiclab.iot.node.dal.dataobject.ComputeNodeDO;
-import com.basiclab.iot.node.enums.NodeRoleEnum;
+import com.basiclab.iot.node.util.NodeFunctions;
 
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -26,7 +26,7 @@ public final class MqttStackDeployUtil {
     }
 
     public static boolean isMqttRole(String role) {
-        return NodeRoleEnum.MQTT.getRole().equals(role);
+        return NodeFunctions.parse(role).contains("mqtt");
     }
 
     public static String sanitizeNodeName(String name, String host) {

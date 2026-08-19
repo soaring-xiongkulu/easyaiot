@@ -14,6 +14,7 @@ import com.basiclab.iot.node.domain.vo.NodeWorkloadDeployRespVO;
 import com.basiclab.iot.node.enums.NodeStatusEnum;
 import com.basiclab.iot.node.service.NodeAiWorkloadSyncService;
 import com.basiclab.iot.node.service.NodeCommandService;
+import com.basiclab.iot.node.service.NodeSentinelService;
 import com.basiclab.iot.node.service.NodeVideoWorkloadSyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,8 @@ public class NodeCommandServiceImpl implements NodeCommandService {
     private NodeVideoWorkloadSyncService nodeVideoWorkloadSyncService;
     @Resource
     private NodeAiWorkloadSyncService nodeAiWorkloadSyncService;
+    @Resource
+    private NodeSentinelService nodeSentinelService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -53,6 +56,13 @@ public class NodeCommandServiceImpl implements NodeCommandService {
         ComputeNodeDO node = validateOnlineNode(reqVO.getNodeId());
         nodeVideoWorkloadSyncService.syncBeforeDeploy(node, reqVO.getWorkloadType());
         nodeAiWorkloadSyncService.syncBeforeDeploy(node, reqVO.getWorkloadType());
+
+        Map<String, Object> requirements = new HashMap<>();
+        if (reqVO.getEnv() != null && reqVO.getEnv().get("capabilities") != null) {
+            requirements.put("capabilities", reqVO.getEnv().get("capabilities"));
+        }
+        nodeSentinelService.validateBeforeDeploy(node.getId(), reqVO.getWorkloadType(), requirements);
+
         String runtime = reqVO.getRuntime() == null || reqVO.getRuntime().isBlank()
                 ? "process" : reqVO.getRuntime().trim().toLowerCase();
         if ("process".equals(runtime) && (reqVO.getCommand() == null || reqVO.getCommand().isEmpty())) {
@@ -72,7 +82,7 @@ public class NodeCommandServiceImpl implements NodeCommandService {
             body.put("files", reqVO.getFiles());
         }
 
-        JSONObject result = callAgent(node, "/workload/deploy", body);
+        JSONObject result = callAgentWithStaleWorkloadRetry(node, reqVO, body);
         Integer pid = result.getInt("pid");
 
         NodeWorkloadBindingDO binding = nodeWorkloadBindingMapper.selectByWorkload(
@@ -148,6 +158,37 @@ public class NodeCommandServiceImpl implements NodeCommandService {
             throw exception(COMPUTE_NODE_OFFLINE);
         }
         return node;
+    }
+
+    private JSONObject callAgentWithStaleWorkloadRetry(
+            ComputeNodeDO node, NodeWorkloadDeployReqVO reqVO, Map<String, Object> body) {
+        try {
+            return callAgent(node, "/workload/deploy", body);
+        } catch (ServiceException e) {
+            if (!isWorkloadAlreadyRunning(e)) {
+                throw e;
+            }
+            log.info("工作负载已运行，先停止再重试 nodeId={} {}:{}",
+                    node.getId(), reqVO.getWorkloadType(), reqVO.getWorkloadId());
+            stopWorkloadQuietly(node.getId(), reqVO.getWorkloadType(), reqVO.getWorkloadId());
+            return callAgent(node, "/workload/deploy", body);
+        }
+    }
+
+    private void stopWorkloadQuietly(Long nodeId, String workloadType, String workloadId) {
+        try {
+            stopWorkload(nodeId, workloadType, workloadId);
+        } catch (ServiceException e) {
+            log.warn("停止 stale workload 失败 nodeId={} {}:{} — {}",
+                    nodeId, workloadType, workloadId, e.getMessage());
+        }
+    }
+
+    private static boolean isWorkloadAlreadyRunning(ServiceException e) {
+        if (e == null || e.getMessage() == null) {
+            return false;
+        }
+        return e.getMessage().contains("工作负载已运行");
     }
 
     private JSONObject callAgent(ComputeNodeDO node, String path, Map<String, Object> body) {

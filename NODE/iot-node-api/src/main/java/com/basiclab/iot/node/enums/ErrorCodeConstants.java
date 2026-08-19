@@ -14,6 +14,9 @@ public interface ErrorCodeConstants {
     ErrorCode COMPUTE_NODE_PLATFORM_UPDATE_FORBIDDEN = new ErrorCode(1_005_000_006, "控制面节点为只读，不可修改");
     ErrorCode COMPUTE_NODE_OFFLINE = new ErrorCode(1_005_000_003, "服务器节点离线");
     ErrorCode COMPUTE_NODE_NOT_PENDING = new ErrorCode(1_005_000_004, "节点已完成纳管或不在待纳管状态");
+    ErrorCode COMPUTE_NODE_FUNCTIONS_REQUIRED = new ErrorCode(1_005_000_007, "请至少勾选一项节点功能");
+    ErrorCode COMPUTE_NODE_SSH_REQUIRED = new ErrorCode(1_005_000_008, "添加节点必须填写 SSH 用户名和密码/私钥，以便预检目标机网络与资源");
+    ErrorCode COMPUTE_NODE_PREFLIGHT_FAILED = new ErrorCode(1_005_000_009, "{}");
     ErrorCode SSH_CREDENTIAL_NOT_EXISTS = new ErrorCode(1_005_001_000, "SSH 凭据不存在");
     ErrorCode SSH_CONNECT_FAILED = new ErrorCode(1_005_001_001, "SSH 连接失败");
     ErrorCode AGENT_TOKEN_INVALID = new ErrorCode(1_005_002_000, "Agent 认证令牌无效");
@@ -31,7 +34,7 @@ public interface ErrorCodeConstants {
     ErrorCode AGENT_SOURCE_NOT_FOUND = new ErrorCode(1_005_005_000, "控制面未找到 Agent 源目录");
 
     ErrorCode STORAGE_CLUSTER_SOURCE_NOT_FOUND = new ErrorCode(1_005_006_000, "控制面未找到 Ceph storage-cluster 源目录");
-    ErrorCode STORAGE_NODE_ROLE_INVALID = new ErrorCode(1_005_006_001, "当前节点角色不支持该 Ceph 存储操作");
+    ErrorCode STORAGE_NODE_ROLE_INVALID = new ErrorCode(1_005_006_001, "当前节点未勾选共享存储或需要 NFS 的功能，无法执行该操作");
     ErrorCode STORAGE_FILE_PATH_INVALID = new ErrorCode(1_005_006_002, "文件路径非法或超出媒体挂载根");
     ErrorCode STORAGE_MEDIA_ROOT_UNUSABLE = new ErrorCode(1_005_006_008,
             "本机媒体根不可用（无权限或无法创建）: {}。IDEA 无 sudo 时可设 EASYAIOT_EDGE_MEDIA_ROOT=$HOME/easyaiot/media 后重启");
@@ -47,7 +50,7 @@ public interface ErrorCodeConstants {
     ErrorCode NFS_BRIDGE_RUNNING = new ErrorCode(1_005_006_014, "桥接任务正在执行中");
 
     ErrorCode MQTT_CLUSTER_SOURCE_NOT_FOUND = new ErrorCode(1_005_008_000, "控制面未找到 mqtt-cluster 源目录");
-    ErrorCode MQTT_NODE_ROLE_INVALID = new ErrorCode(1_005_008_001, "仅 MQTT 网关节点支持 EMQX 集群部署");
+    ErrorCode MQTT_NODE_ROLE_INVALID = new ErrorCode(1_005_008_001, "仅勾选「物联接入」的节点支持 EMQX 部署");
 
     ErrorCode EDGE_JOIN_TOKEN_INVALID = new ErrorCode(1_005_009_000, "EDGE 加入令牌无效或未开启开放纳管");
     ErrorCode EDGE_ENROLL_HOST_EMPTY = new ErrorCode(1_005_009_001, "EDGE 纳管主机地址不能为空");

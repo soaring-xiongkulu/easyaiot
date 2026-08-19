@@ -4,12 +4,13 @@ import cn.hutool.core.util.StrUtil;
 import com.basiclab.iot.node.dal.dataobject.ComputeNodeDO;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
  * NFS 共享媒体栈远程部署（唯一产品存储通路）。
- * 未配置 nfs_server_host 时：storage 角色用本机 host；其它角色不得静默回退为 local_bind。
+ * 未配置 nfs_server_host 时：勾选 nfs 的节点用本机 host；其它节点不得静默回退为 local_bind。
  */
 public final class StorageStackDeployUtil {
 
@@ -53,8 +54,8 @@ public final class StorageStackDeployUtil {
      * 解析 NFS 服务端地址（唯一 NFS 通路）。
      * <ul>
      *   <li>优先 tags.nfs_server_host / 兼容 ceph_mon_host</li>
-     *   <li>storage 角色未配置时用本机 host（本机即 Export 服务端）</li>
-     *   <li>客户端未配置时不得回退为本机 IP（否则会挂到自己），需先「分配默认角色」</li>
+     *   <li>勾选 nfs 的节点未配置时用本机 host（本机即 Export 服务端）</li>
+     *   <li>客户端未配置时不得回退为本机 IP（否则会挂到自己）</li>
      * </ul>
      */
     public static String resolveNfsServerHost(ComputeNodeDO node, Map<String, String> tags) {
@@ -73,7 +74,7 @@ public final class StorageStackDeployUtil {
             }
             return "127.0.0.1";
         }
-        // 拓扑主/备服务端：即使 nodeRole 不是 storage，也应作为 Export 端
+        // 拓扑主/备服务端：即使未勾选 nfs 功能，也应作为 Export 端
         String clusterRole = tagString(tags, "nfs_cluster_role", null);
         if ("primary".equalsIgnoreCase(clusterRole) || "standby".equalsIgnoreCase(clusterRole)
                 || "server".equalsIgnoreCase(tagString(tags, "nfs_role", null))) {
@@ -125,15 +126,16 @@ public final class StorageStackDeployUtil {
     }
 
     public static boolean isStorageRole(String role) {
-        return "storage".equalsIgnoreCase(role);
+        return NodeFunctions.parse(role).contains("nfs");
     }
 
     public static boolean isClientMountRole(String role) {
-        if (role == null) {
-            return false;
+        List<String> functions = NodeFunctions.parse(role);
+        for (String id : NodeFunctions.NFS_CLIENT) {
+            if (functions.contains(id)) {
+                return true;
+            }
         }
-        String r = role.toLowerCase(Locale.ROOT);
-        return "storage".equals(r) || "media".equals(r) || "hybrid".equals(r)
-                || "compute".equals(r) || "gpu".equals(r);
+        return false;
     }
 }

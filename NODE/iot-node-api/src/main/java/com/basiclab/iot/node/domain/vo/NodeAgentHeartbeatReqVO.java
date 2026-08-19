@@ -60,10 +60,19 @@ public class NodeAgentHeartbeatReqVO {
     @Schema(description = "是否处于集群模式")
     private Boolean clusterMode;
 
-    @Schema(description = "CephFS 挂载根路径")
+    @Schema(description = "NFS 挂载根路径")
+    private String nfsMountRoot;
+
+    @Schema(description = "NFS 挂载是否就绪")
+    private Boolean nfsMountReady;
+
+    @Schema(description = "兼容旧字段：同 nfsMountRoot")
     private String cephMountRoot;
 
-    @Schema(description = "CephFS 挂载是否就绪")
+    @Schema(description = "兼容旧字段：同 nfsMountReady")
     private Boolean cephMountReady;
+
+    @Schema(description = "Sentinel 组件探测与可调度能力快照")
+    private Map<String, Object> sentinel;
 
 }

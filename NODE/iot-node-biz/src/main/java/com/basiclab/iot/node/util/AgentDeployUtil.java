@@ -2,12 +2,15 @@ package com.basiclab.iot.node.util;
 
 public final class AgentDeployUtil {
 
-    public static final String REMOTE_INSTALL_DIR = "/opt/easyaiot/node-agent";
+    public static final String REMOTE_INSTALL_DIR = "/opt/easyaiot/sentinel-agent";
+    /** 兼容历史安装路径 */
+    public static final String LEGACY_REMOTE_INSTALL_DIR = "/opt/easyaiot/node-agent";
     public static final String PIP_WHEELS_DIR = "pip-wheels";
     public static final String EXPORT_PIP_WHEELS_SCRIPT = "export_pip_wheels.sh";
     public static final String GET_PIP_SCRIPT = "get-pip.py";
 
     public static final String[] SYNC_RELATIVE_FILES = {
+            "run_sentinel.py",
             "run_agent.py",
             "agent_server.py",
             "media_manager.py",
@@ -18,16 +21,27 @@ public final class AgentDeployUtil {
             "install.sh",
     };
 
+    /** 全量离线包可选文件：缺省不阻断部署 */
+    public static final String[] SYNC_OPTIONAL_FILES = {
+            "requirements-py39-extras.txt",
+            "README.md",
+    };
+
     private AgentDeployUtil() {
     }
 
-    public static String buildEnvContent(long nodeId, String agentToken, int agentPort, String controlPlaneUrl) {
-        return "# EasyAIoT Node Agent 配置\n"
+    public static String buildEnvContent(long nodeId, String agentToken, int agentPort,
+                                         String controlPlaneUrl, String functionsCsv) {
+        String functions = functionsCsv != null && !functionsCsv.isBlank() ? functionsCsv.trim().toLowerCase() : "";
+        return "# EasyAIoT Sentinel Agent 配置（节点环境观察者）\n"
                 + "PLATFORM_AGENT=0\n"
                 + "NODE_ID=" + nodeId + "\n"
                 + "AGENT_TOKEN=" + agentToken + "\n"
+                + "NODE_FUNCTIONS=" + functions + "\n"
                 + "CONTROL_PLANE_URL=" + controlPlaneUrl + "\n"
                 + "HEARTBEAT_INTERVAL=10\n"
+                + "SENTINEL_L1_INTERVAL=300\n"
+                + "SENTINEL_AUTO_REMEDIATE=true\n"
                 + "AGENT_LISTEN_HOST=0.0.0.0\n"
                 + "AGENT_LISTEN_PORT=" + agentPort + "\n"
                 + "AI_ROOT=/opt/easyaiot/AI\n"

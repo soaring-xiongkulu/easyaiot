@@ -15,7 +15,7 @@ public interface ComputeNodeMapper extends BaseMapperX<ComputeNodeDO> {
                 .likeIfPresent(ComputeNodeDO::getName, reqVO.getName())
                 .likeIfPresent(ComputeNodeDO::getHost, reqVO.getHost())
                 .eqIfPresent(ComputeNodeDO::getStatus, reqVO.getStatus())
-                .eqIfPresent(ComputeNodeDO::getNodeRole, reqVO.getNodeRole())
+                .likeIfPresent(ComputeNodeDO::getNodeRole, reqVO.getFunction())
                 .eqIfPresent(ComputeNodeDO::getRegion, reqVO.getRegion())
                 .eqIfPresent(ComputeNodeDO::getControlPlaneId, reqVO.getControlPlaneId())
                 .orderByDesc(ComputeNodeDO::getUpdateTime));

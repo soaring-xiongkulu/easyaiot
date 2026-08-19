@@ -16,8 +16,9 @@ import com.basiclab.iot.node.domain.vo.EdgeNodeRespVO;
 import com.basiclab.iot.node.domain.vo.EdgeNodeUpdateReqVO;
 import com.basiclab.iot.node.domain.vo.EdgeRuntimeConfigReqVO;
 import com.basiclab.iot.node.domain.vo.EdgeRuntimeConfigRespVO;
-import com.basiclab.iot.node.enums.NodeRoleEnum;
+import com.basiclab.iot.node.enums.NodeFunctionEnum;
 import com.basiclab.iot.node.enums.NodeStatusEnum;
+import com.basiclab.iot.node.util.NodeFunctions;
 import com.basiclab.iot.node.service.ControlPlaneEndpointResolver;
 import com.basiclab.iot.node.service.EdgeNodeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -190,11 +191,14 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
             return;
         }
         EdgeNodeDO existing = edgeNodeMapper.selectByComputeNodeId(computeNode.getId());
-        boolean cephReady = false;
+        boolean nfsReady = false;
         Map<String, String> tags = computeNode.getTags();
         if (tags != null) {
-            String ready = tags.get("ceph_mount_ready");
-            cephReady = "true".equalsIgnoreCase(ready) || "1".equals(ready);
+            String ready = tags.get("nfs_mount_ready");
+            if (StrUtil.isBlank(ready)) {
+                ready = tags.get("ceph_mount_ready");
+            }
+            nfsReady = "true".equalsIgnoreCase(ready) || "1".equals(ready);
         }
         String fingerprint = enrollHint != null ? enrollHint.getFingerprint() : null;
         if (StrUtil.isBlank(fingerprint) && tags != null) {
@@ -218,7 +222,7 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
                     .nodeRole(computeNode.getNodeRole())
                     .maxTaskCount(computeNode.getMaxTaskCount() != null ? computeNode.getMaxTaskCount() : 1)
                     .activeTaskCount(0)
-                    .cephMountReady(cephReady)
+                    .cephMountReady(nfsReady)
                     .lastHeartbeatAt(computeNode.getLastHeartbeatAt() != null
                             ? computeNode.getLastHeartbeatAt() : LocalDateTime.now())
                     .enabled(true)
@@ -244,7 +248,7 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
         if (computeNode.getMaxTaskCount() != null) {
             existing.setMaxTaskCount(computeNode.getMaxTaskCount());
         }
-        existing.setCephMountReady(cephReady);
+        existing.setCephMountReady(nfsReady);
         existing.setLastHeartbeatAt(LocalDateTime.now());
         existing.setTags(tags);
         edgeNodeMapper.updateById(existing);
@@ -308,7 +312,13 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
     }
 
     private ComputeNodeDO createEdgeNode(EdgeEnrollReqVO reqVO, String host) {
-        String role = StrUtil.blankToDefault(reqVO.getNodeRole(), NodeRoleEnum.COMPUTE.getRole());
+        String role = NodeFunctionEnum.ALGORITHM.getId();
+        if (StrUtil.isNotBlank(reqVO.getNodeRole())) {
+            List<String> parsed = NodeFunctions.normalize(List.of(reqVO.getNodeRole().split("[,\\s]+")));
+            if (!parsed.isEmpty()) {
+                role = NodeFunctions.toCsv(parsed);
+            }
+        }
         ComputeNodeDO node = ComputeNodeDO.builder()
                 .name(StrUtil.blankToDefault(reqVO.getHostname(), "edge-" + host))
                 .host(host)
@@ -384,7 +394,7 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
 
     private List<String> resolveMqttBrokerUrls() {
         List<ComputeNodeDO> mqttNodes = computeNodeMapper.selectList().stream()
-                .filter(n -> NodeRoleEnum.MQTT.getRole().equals(n.getNodeRole()))
+                .filter(NodeFunctions::isMqtt)
                 .filter(n -> NodeStatusEnum.ONLINE.getStatus().equals(n.getStatus())
                         || NodeStatusEnum.PENDING.getStatus().equals(n.getStatus()))
                 .collect(Collectors.toList());

@@ -6,6 +6,7 @@
         <groupId>com.basiclab.iot</groupId>
         <artifactId>iot</artifactId>
         <version>${revision}</version>
+        <relativePath>../DEVICE/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <modules>
@@ -17,6 +18,6 @@
 
     <name>${project.artifactId}</name>
     <description>
-        node 模块：服务器节点管理，支撑 AI 模型、算法任务、流媒体集群的远程部署与调度。
+        NODE 控制面：集群节点汇总、Sentinel 快照 ingest、调度与可调度性视图（观察者模式）。
     </description>
 </project>

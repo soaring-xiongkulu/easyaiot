@@ -34,8 +34,18 @@ public class NodeSchedulerAllocateReqVO {
         private Boolean preferGpu;
         private String region;
         private List<Long> excludeNodeIds;
-        /** 是否要求节点 CephFS 已挂载就绪（集群算法/模型共享存储） */
+        /** 是否要求节点 NFS 已挂载就绪（集群算法/模型共享存储） */
+        private Boolean requireNfsMount;
+        /** 兼容旧字段，等价 requireNfsMount */
         private Boolean requireCephMount;
+        /** 是否要求 Sentinel 实测可调度（默认跟随全局 sentinel.scheduling-enabled） */
+        private Boolean requireSchedulable;
+        /** 最小空闲显存 MB（GPU 调度） */
+        private Integer minFreeVramMb;
+        /** 最大 CPU 利用率 %（推流等资源敏感负载） */
+        private Integer maxCpuPercent;
+        /** 最大内存利用率 % */
+        private Integer maxMemPercent;
     }
 
 }

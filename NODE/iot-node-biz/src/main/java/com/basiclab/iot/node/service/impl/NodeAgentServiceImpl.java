@@ -7,11 +7,11 @@ import com.basiclab.iot.node.dal.pgsql.ComputeNodeMapper;
 import com.basiclab.iot.node.dal.pgsql.NodeMetricSnapshotMapper;
 import com.basiclab.iot.node.domain.vo.NodeAgentHeartbeatReqVO;
 import com.basiclab.iot.node.domain.vo.NodeAgentRegisterReqVO;
-import com.basiclab.iot.node.enums.NodeRoleEnum;
 import com.basiclab.iot.node.enums.NodeStatusEnum;
 import com.basiclab.iot.node.service.EdgeNodeService;
 import com.basiclab.iot.node.service.NodeAgentService;
 import com.basiclab.iot.node.service.NodeClusterMetricsBroadcaster;
+import com.basiclab.iot.node.service.NodeSentinelService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -62,6 +62,9 @@ public class NodeAgentServiceImpl implements NodeAgentService {
     @Resource
     private EdgeNodeService edgeNodeService;
 
+    @Resource
+    private NodeSentinelService nodeSentinelService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void register(NodeAgentRegisterReqVO reqVO) {
@@ -95,7 +98,7 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         node.setStatus(NodeStatusEnum.ONLINE.getStatus());
         node.setLastHeartbeatAt(LocalDateTime.now());
         syncGpuCountFromHeartbeat(node, reqVO.getGpuInfo());
-        syncCephMountFromHeartbeat(node, reqVO);
+        syncNfsMountFromHeartbeat(node, reqVO);
         computeNodeMapper.updateById(node);
         // 边缘运行时节点：刷新 edge_node 管理表心跳/Ceph 状态
         if (node.getTags() != null && ("true".equalsIgnoreCase(node.getTags().get("edge_runtime"))
@@ -123,6 +126,7 @@ public class NodeAgentServiceImpl implements NodeAgentService {
                 .build();
         nodeMetricSnapshotMapper.insert(snapshot);
         touchHeartbeat(node.getId());
+        nodeSentinelService.ingestHeartbeat(node.getId(), reqVO.getSentinel());
         nodeClusterMetricsBroadcaster.broadcastNodeUpdate(node, snapshot);
     }
 
@@ -295,11 +299,7 @@ public class NodeAgentServiceImpl implements NodeAgentService {
 
     /** GPU / 混合节点：根据 Agent 上报的 gpu_info 同步 maxGpuCount（含控制面 HYBRID 节点） */
     private void syncGpuCountFromHeartbeat(ComputeNodeDO node, java.util.List<java.util.Map<String, Object>> gpuInfo) {
-        String role = node.getNodeRole();
         if (gpuInfo == null || gpuInfo.isEmpty()) {
-            return;
-        }
-        if (!NodeRoleEnum.GPU.getRole().equals(role) && !NodeRoleEnum.HYBRID.getRole().equals(role)) {
             return;
         }
         int detected = gpuInfo.size();
@@ -308,22 +308,26 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         }
     }
 
-    /** 将 Agent 上报的挂载状态写入节点 tags，供调度器与拓扑使用 */
-    private void syncCephMountFromHeartbeat(ComputeNodeDO node, NodeAgentHeartbeatReqVO reqVO) {
-        if (reqVO.getCephMountReady() == null && StrUtil.isBlank(reqVO.getCephMountRoot())) {
+    /** 将 Agent 上报的 NFS 挂载状态写入节点 tags，供调度器与拓扑使用 */
+    private void syncNfsMountFromHeartbeat(ComputeNodeDO node, NodeAgentHeartbeatReqVO reqVO) {
+        Boolean readyFlag = reqVO.getNfsMountReady() != null
+                ? reqVO.getNfsMountReady() : reqVO.getCephMountReady();
+        String mountRoot = StrUtil.blankToDefault(reqVO.getNfsMountRoot(), reqVO.getCephMountRoot());
+        if (readyFlag == null && StrUtil.isBlank(mountRoot)) {
             return;
         }
         Map<String, String> tags = node.getTags() != null
                 ? new HashMap<>(node.getTags()) : new HashMap<>();
-        if (reqVO.getCephMountReady() != null) {
-            String ready = Boolean.TRUE.equals(reqVO.getCephMountReady()) ? "true" : "false";
-            tags.put("ceph_mount_ready", ready);
+        if (readyFlag != null) {
+            String ready = Boolean.TRUE.equals(readyFlag) ? "true" : "false";
             tags.put("nfs_mount_ready", ready);
+            tags.put("ceph_mount_ready", ready);
         }
-        if (StrUtil.isNotBlank(reqVO.getCephMountRoot())) {
-            String root = reqVO.getCephMountRoot().trim();
-            tags.put("ceph_mount_path", root);
+        if (StrUtil.isNotBlank(mountRoot)) {
+            String root = mountRoot.trim();
+            tags.put("nfs_mount_path", root);
             tags.put("media_mount_path", root);
+            tags.put("ceph_mount_path", root);
         }
         if (reqVO.getClusterMode() != null) {
             tags.put("cluster_mode", Boolean.TRUE.equals(reqVO.getClusterMode()) ? "true" : "false");

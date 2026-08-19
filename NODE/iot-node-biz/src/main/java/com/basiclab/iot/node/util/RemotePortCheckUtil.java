@@ -178,7 +178,9 @@ public final class RemotePortCheckUtil {
             return lower.contains("-srs")
                     || lower.contains("ossrs")
                     || lower.contains("/srs")
-                    || lower.contains("srs:");
+                    || lower.contains("srs:")
+                    || lower.contains("\"srs\"")
+                    || lower.contains("media-cluster/srs");
         }
         if (label.startsWith("ZLM")) {
             return lower.contains("-zlm")
@@ -188,9 +190,19 @@ public final class RemotePortCheckUtil {
         }
         if (label.contains("Agent") || label.contains("代理")) {
             return lower.contains("easyaiot-node-agent")
+                    || lower.contains("easyaiot-sentinel-agent")
                     || lower.contains("run_agent")
+                    || lower.contains("run_sentinel")
                     || lower.contains("agent_server")
-                    || lower.contains("node-agent");
+                    || lower.contains("node-agent")
+                    || lower.contains("sentinel-agent")
+                    || lower.contains("/opt/easyaiot/sentinel-agent")
+                    || lower.contains("/opt/easyaiot/node-agent")
+                    || (lower.contains("python") && (
+                            lower.contains("sentinel")
+                                    || lower.contains("agent_server")
+                                    || lower.contains("run_sentinel")
+                                    || lower.contains("run_agent")));
         }
         if (label.startsWith("MQTT") || label.startsWith("EMQX")) {
             return lower.contains("emqx")

@@ -29,6 +29,7 @@ public class NodeCephTopologyRespVO {
         private String name;
         private String host;
         private String nodeRole;
+        private List<String> functions;
         private String status;
         private Integer agentPort;
         /**

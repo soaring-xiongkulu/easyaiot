@@ -19,7 +19,7 @@ import com.basiclab.iot.node.domain.vo.NodeMediaStackCheckRespVO;
 import com.basiclab.iot.node.domain.vo.NodePortCheckRespVO;
 import com.basiclab.iot.node.domain.vo.NodeSchedulerAllocateReqVO;
 import com.basiclab.iot.node.domain.vo.NodeSchedulerAllocateRespVO;
-import com.basiclab.iot.node.enums.NodeRoleEnum;
+import com.basiclab.iot.node.util.NodeFunctions;
 import com.basiclab.iot.node.enums.NodeStatusEnum;
 import com.basiclab.iot.node.service.ControlPlaneEndpointResolver;
 import com.basiclab.iot.node.service.NodeMediaService;
@@ -219,9 +219,8 @@ public class NodeMediaServiceImpl implements NodeMediaService {
         if (node == null) {
             throw exception(COMPUTE_NODE_NOT_EXISTS);
         }
-        if (!NodeRoleEnum.MEDIA.getRole().equals(node.getNodeRole())
-                && !NodeRoleEnum.HYBRID.getRole().equals(node.getNodeRole())) {
-            throw new IllegalStateException("仅 media / hybrid 节点支持媒体栈 SSH 部署");
+        if (!NodeFunctions.isLive(node)) {
+            throw new IllegalStateException("仅勾选「直播接入」或「推流转发」的节点支持媒体栈部署");
         }
         NodeSshCredential sshCredential = loadSshCredential(nodeId);
 
@@ -236,21 +235,29 @@ public class NodeMediaServiceImpl implements NodeMediaService {
 
             steps.add(runStep("SSH 连接", "success", "已连接 " + node.getHost() + ":" + sshPort));
 
+            ExistingMediaCheck existingCheck = checkExistingMediaServices(ssh, node);
+            steps.add(existingCheck.step);
+            if (existingCheck.srsRunning && existingCheck.zlmRunning) {
+                NodeMediaRemoteDeployRespVO.DeployStep syncStep = syncMediaClusterScripts(ssh, sourceRoot);
+                steps.add(syncStep);
+                NodeMediaRemoteDeployRespVO.DeployStep refreshStep = runRemoteDeployPhase(
+                        ssh, node, DeployPhase.DEPLOY_SERVICES, "刷新媒体 Hook 配置", 180000);
+                steps.add(refreshStep);
+                NodeMediaRemoteDeployRespVO.DeployStep verifyStep = verifyServices(ssh, node);
+                steps.add(verifyStep);
+                boolean ok = "success".equals(refreshStep.getStatus()) && "success".equals(verifyStep.getStatus());
+                resp.setSuccess(ok);
+                resp.setMessage(ok
+                        ? "SRS 与 ZLMediaKit 均已运行，已刷新 Hook 配置"
+                        : "Hook 配置刷新失败");
+                return resp;
+            }
+
             NodePortCheckRespVO portCheck = checkMediaPortsOnSession(ssh, node);
             steps.add(portCheck.getSteps().get(0));
             if (!Boolean.TRUE.equals(portCheck.getPortsReady())) {
                 resp.setSuccess(false);
                 resp.setMessage(portCheck.getMessage());
-                return resp;
-            }
-
-            ExistingMediaCheck existingCheck = checkExistingMediaServices(ssh, node);
-            steps.add(existingCheck.step);
-            if (existingCheck.srsRunning && existingCheck.zlmRunning) {
-                NodeMediaRemoteDeployRespVO.DeployStep verifyStep = verifyServices(ssh, node);
-                steps.add(verifyStep);
-                resp.setSuccess("success".equals(verifyStep.getStatus()));
-                resp.setMessage("SRS 与 ZLMediaKit 均已运行，无需重复部署");
                 return resp;
             }
 
@@ -512,9 +519,8 @@ public class NodeMediaServiceImpl implements NodeMediaService {
         if (node == null) {
             throw exception(COMPUTE_NODE_NOT_EXISTS);
         }
-        if (!NodeRoleEnum.MEDIA.getRole().equals(node.getNodeRole())
-                && !NodeRoleEnum.HYBRID.getRole().equals(node.getNodeRole())) {
-            throw new IllegalStateException("仅 media / hybrid 节点支持媒体栈端口检测");
+        if (!NodeFunctions.isLive(node)) {
+            throw new IllegalStateException("仅勾选「直播接入」或「推流转发」的节点支持媒体栈端口检测");
         }
         NodeSshCredential credential = loadSshCredential(nodeId);
         int sshPort = ComputeNodeServiceImpl.resolveSshPort(node);
@@ -558,9 +564,8 @@ public class NodeMediaServiceImpl implements NodeMediaService {
         if (node == null) {
             throw exception(COMPUTE_NODE_NOT_EXISTS);
         }
-        if (!NodeRoleEnum.MEDIA.getRole().equals(node.getNodeRole())
-                && !NodeRoleEnum.HYBRID.getRole().equals(node.getNodeRole())) {
-            throw new IllegalStateException("仅 media / hybrid 节点支持媒体栈 SSH 检测");
+        if (!NodeFunctions.isLive(node)) {
+            throw new IllegalStateException("仅勾选「直播接入」或「推流转发」的节点支持媒体栈 SSH 检测");
         }
         NodeSshCredentialDO credential = nodeSshCredentialMapper.selectByNodeId(nodeId);
         if (credential == null) {
@@ -806,9 +811,8 @@ public class NodeMediaServiceImpl implements NodeMediaService {
         if (node == null) {
             throw exception(COMPUTE_NODE_NOT_EXISTS);
         }
-        if (!NodeRoleEnum.MEDIA.getRole().equals(node.getNodeRole())
-                && !NodeRoleEnum.HYBRID.getRole().equals(node.getNodeRole())) {
-            throw new IllegalStateException("仅 media / hybrid 节点支持媒体栈 SSH 操作");
+        if (!NodeFunctions.isLive(node)) {
+            throw new IllegalStateException("仅勾选「直播接入」或「推流转发」的节点支持媒体栈 SSH 操作");
         }
     }
 

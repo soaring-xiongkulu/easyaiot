@@ -15,6 +15,7 @@ import com.basiclab.iot.node.dal.pgsql.NodeWorkloadBindingMapper;
 import com.basiclab.iot.node.domain.vo.ComputeNodePageReqVO;
 import com.basiclab.iot.node.domain.vo.ComputeNodeRespVO;
 import com.basiclab.iot.node.domain.vo.ComputeNodeSaveReqVO;
+import com.basiclab.iot.node.domain.vo.NodeOnboardPreflightRespVO;
 import com.basiclab.iot.node.domain.vo.NodeAgentCheckRespVO;
 import com.basiclab.iot.node.domain.vo.NodeMediaRemoteDeployRespVO;
 import com.basiclab.iot.node.domain.vo.NodePortCheckRespVO;
@@ -23,21 +24,27 @@ import com.basiclab.iot.node.domain.vo.NodeMetricTrendReqVO;
 import com.basiclab.iot.node.domain.vo.NodeMetricTrendRespVO;
 import com.basiclab.iot.node.domain.vo.PlatformAgentBootstrapRespVO;
 import com.basiclab.iot.node.domain.vo.NodeMetricTrendSeriesRespVO;
-import com.basiclab.iot.node.enums.NodeRoleEnum;
 import com.basiclab.iot.node.enums.NodeStatusEnum;
 import com.basiclab.iot.node.service.ControlPlaneEndpointResolver;
 import com.basiclab.iot.node.service.ComputeNodeService;
 import com.basiclab.iot.node.util.AgentDeployUtil;
+import com.basiclab.iot.node.util.NodeOnboardPreflight;
 import com.basiclab.iot.node.util.CredentialEncryptUtil;
 import com.basiclab.iot.node.util.HostIpUtil;
+import com.basiclab.iot.node.util.NodeFunctions;
 import com.basiclab.iot.node.util.RemotePortCheckUtil;
 import com.basiclab.iot.node.util.SshClientUtil;
 import com.basiclab.iot.node.util.SshSessionHelper;
+import com.basiclab.iot.node.util.WorkloadBundleDeployUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
@@ -57,6 +64,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -75,6 +83,8 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     private static final String PLATFORM_CAPABILITY_KEY = "platform";
     private static final String PLATFORM_NODE_NAME = "控制面节点";
 
+    private static final String SENTINEL_DEPLOY_LOCK_PREFIX = "node:sentinel:deploy:lock:";
+
     @Resource
     private ComputeNodeMapper computeNodeMapper;
     @Resource
@@ -88,8 +98,15 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
 
     @Value("${easyaiot.agent.source-path:}")
     private String agentSourcePath;
+    @Value("${easyaiot.sentinel.auto-deploy-on-create:true}")
+    private boolean autoDeployOnCreate;
     @Resource
     private ControlPlaneEndpointResolver controlPlaneEndpointResolver;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    @Qualifier("sentinelBootstrapExecutor")
+    private Executor sentinelBootstrapExecutor;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -97,16 +114,31 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         if (computeNodeMapper.selectByHost(createReqVO.getHost()) != null) {
             throw exception(COMPUTE_NODE_HOST_EXISTS);
         }
+        List<String> functions = NodeFunctions.normalize(createReqVO.getFunctions());
+        if (functions.isEmpty()) {
+            throw exception(COMPUTE_NODE_FUNCTIONS_REQUIRED);
+        }
+        if (!hasSshSecret(createReqVO)) {
+            throw exception(COMPUTE_NODE_SSH_REQUIRED);
+        }
+        NodeOnboardPreflightRespVO preflight = preflightNode(createReqVO);
+        if (!Boolean.TRUE.equals(preflight.getOk())) {
+            throw exception(COMPUTE_NODE_PREFLIGHT_FAILED, StrUtil.blankToDefault(
+                    preflight.getMessage(), "节点预检未通过，无法添加"));
+        }
         ComputeNodeDO node = BeanUtils.toBean(createReqVO, ComputeNodeDO.class);
+        node.setNodeRole(NodeFunctions.toCsv(functions));
         node.setSshPort(defaultPort(createReqVO.getSshPort(), DEFAULT_SSH_PORT));
         node.setAgentPort(defaultPort(createReqVO.getAgentPort(), DEFAULT_AGENT_PORT));
         node.setStatus(NodeStatusEnum.PENDING.getStatus());
         node.setWeight(createReqVO.getWeight() != null ? createReqVO.getWeight() : 100);
-        applyRoleGpuDefaults(node, createReqVO.getMaxGpuCount());
+        applyFunctionGpuDefaults(node, functions, createReqVO.getMaxGpuCount());
         node.setMaxTaskCount(createReqVO.getMaxTaskCount() != null ? createReqVO.getMaxTaskCount() : 50);
-        if (node.getCapabilities() == null) {
-            node.setCapabilities(defaultCapabilities(createReqVO.getNodeRole()));
+        Map<String, Boolean> caps = NodeFunctions.capabilities(functions);
+        if (createReqVO.getCapabilities() != null) {
+            caps.putAll(createReqVO.getCapabilities());
         }
+        node.setCapabilities(caps);
         node.setAgentToken(IdUtil.fastSimpleUUID());
         ensurePlatformNode();
         ComputeNodeDO platformNode = computeNodeMapper.selectPlatformNode();
@@ -115,7 +147,38 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         }
         computeNodeMapper.insert(node);
         saveSshCredential(node.getId(), createReqVO);
-        return toRespVO(node, true);
+        boolean scheduled = scheduleAutoDeployIfPossible(node.getId(), createReqVO);
+        ComputeNodeRespVO resp = toRespVO(node, true);
+        resp.setSentinelAutoDeployStarted(scheduled);
+        return resp;
+    }
+
+    @Override
+    public NodeOnboardPreflightRespVO preflightNode(ComputeNodeSaveReqVO reqVO) {
+        if (reqVO == null || StrUtil.isBlank(reqVO.getHost()) || !hasSshSecret(reqVO)) {
+            NodeOnboardPreflightRespVO fail = new NodeOnboardPreflightRespVO();
+            fail.setOk(false);
+            fail.setMessage("添加节点必须填写主机地址和 SSH 凭据，以便预检目标机网络与资源");
+            return fail;
+        }
+        List<String> functions = NodeFunctions.normalize(reqVO.getFunctions());
+        int sshPort = defaultPort(reqVO.getSshPort(), DEFAULT_SSH_PORT);
+        int agentPort = defaultPort(reqVO.getAgentPort(), DEFAULT_AGENT_PORT);
+        boolean needDocker = functions.contains("live") || functions.contains("mqtt") || functions.contains("forward");
+        boolean needGpu = NodeFunctions.requiresGpu(functions);
+        String password = "private_key".equals(reqVO.getSshAuthType()) ? null : reqVO.getSshPassword();
+        String privateKey = "private_key".equals(reqVO.getSshAuthType()) ? reqVO.getSshPrivateKey() : null;
+        return NodeOnboardPreflight.run(
+                reqVO.getHost(),
+                sshPort,
+                reqVO.getSshUsername(),
+                StrUtil.blankToDefault(reqVO.getSshAuthType(), "password"),
+                password,
+                privateKey,
+                agentPort,
+                needDocker,
+                needGpu,
+                resolveControlPlaneUrl(null));
     }
 
     @Override
@@ -130,14 +193,28 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
             throw exception(COMPUTE_NODE_HOST_EXISTS);
         }
         ComputeNodeDO updateObj = BeanUtils.toBean(updateReqVO, ComputeNodeDO.class);
+        List<String> functions = NodeFunctions.normalize(updateReqVO.getFunctions());
+        if (functions.isEmpty()) {
+            throw exception(COMPUTE_NODE_FUNCTIONS_REQUIRED);
+        }
+        updateObj.setNodeRole(NodeFunctions.toCsv(functions));
+        Map<String, Boolean> caps = NodeFunctions.capabilities(functions);
+        if (updateReqVO.getCapabilities() != null) {
+            caps.putAll(updateReqVO.getCapabilities());
+        }
+        updateObj.setCapabilities(caps);
         updateObj.setSshPort(defaultPort(updateReqVO.getSshPort(), defaultPort(existing.getSshPort(), DEFAULT_SSH_PORT)));
         updateObj.setAgentPort(defaultPort(updateReqVO.getAgentPort(), defaultPort(existing.getAgentPort(), DEFAULT_AGENT_PORT)));
         updateObj.setAgentToken(existing.getAgentToken());
         updateObj.setStatus(existing.getStatus());
         updateObj.setLastHeartbeatAt(existing.getLastHeartbeatAt());
-        applyRoleGpuDefaults(updateObj, updateReqVO.getMaxGpuCount());
+        applyFunctionGpuDefaults(updateObj, functions, updateReqVO.getMaxGpuCount());
         computeNodeMapper.updateById(updateObj);
         saveSshCredential(updateReqVO.getId(), updateReqVO);
+        if (autoDeployOnCreate && hasSshSecret(updateReqVO)
+                && NodeStatusEnum.PENDING.getStatus().equals(existing.getStatus())) {
+            scheduleAutoDeploy(updateReqVO.getId());
+        }
     }
 
     @Override
@@ -189,12 +266,14 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                 }
             }
             Map<String, Boolean> caps = platformNode.getCapabilities() != null
-                    ? new HashMap<>(platformNode.getCapabilities()) : defaultCapabilities(platformNode.getNodeRole());
+                    ? new HashMap<>(platformNode.getCapabilities()) : NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT);
             if (!Boolean.TRUE.equals(caps.get(PLATFORM_CAPABILITY_KEY))) {
                 caps.put(PLATFORM_CAPABILITY_KEY, true);
                 changed = true;
             }
-            if (mergeDefaultCapabilities(caps, platformNode.getNodeRole())) {
+            if (NodeFunctions.parse(platformNode).isEmpty()) {
+                platformNode.setNodeRole(NodeFunctions.toCsv(NodeFunctions.PLATFORM_DEFAULT));
+                caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
                 changed = true;
             }
             if (changed) {
@@ -208,9 +287,12 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         if (byHost != null) {
             Map<String, Boolean> caps = byHost.getCapabilities() != null
                     ? new HashMap<>(byHost.getCapabilities())
-                    : defaultCapabilities(byHost.getNodeRole());
+                    : NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT);
             caps.put(PLATFORM_CAPABILITY_KEY, true);
-            mergeDefaultCapabilities(caps, byHost.getNodeRole());
+            if (NodeFunctions.parse(byHost).isEmpty()) {
+                byHost.setNodeRole(NodeFunctions.toCsv(NodeFunctions.PLATFORM_DEFAULT));
+                caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
+            }
             byHost.setCapabilities(caps);
             computeNodeMapper.updateById(byHost);
             return;
@@ -219,14 +301,14 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         ComputeNodeDO node = new ComputeNodeDO();
         node.setName(PLATFORM_NODE_NAME);
         node.setHost(hostIp);
-        node.setNodeRole(NodeRoleEnum.HYBRID.getRole());
+        node.setNodeRole(NodeFunctions.toCsv(NodeFunctions.PLATFORM_DEFAULT));
         node.setStatus(NodeStatusEnum.ONLINE.getStatus());
         node.setSshPort(DEFAULT_SSH_PORT);
         node.setAgentPort(DEFAULT_AGENT_PORT);
         node.setWeight(100);
         node.setMaxGpuCount(0);
         node.setMaxTaskCount(50);
-        Map<String, Boolean> caps = defaultCapabilities(NodeRoleEnum.HYBRID.getRole());
+        Map<String, Boolean> caps = NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT);
         caps.put(PLATFORM_CAPABILITY_KEY, true);
         node.setCapabilities(caps);
         node.setAgentToken(IdUtil.fastSimpleUUID());
@@ -310,7 +392,24 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         if (isPlatformNode(node)) {
             throw exception(COMPUTE_NODE_PLATFORM_UPDATE_FORBIDDEN);
         }
-        NodeSshCredentialDO credential = nodeSshCredentialMapper.selectByNodeId(nodeId);
+        String lockKey = SENTINEL_DEPLOY_LOCK_PREFIX + nodeId;
+        Boolean locked = stringRedisTemplate.opsForValue()
+                .setIfAbsent(lockKey, "1", 20, TimeUnit.MINUTES);
+        if (Boolean.FALSE.equals(locked)) {
+            NodeMediaRemoteDeployRespVO busy = new NodeMediaRemoteDeployRespVO();
+            busy.setSuccess(false);
+            busy.setMessage("Sentinel 全量离线部署进行中，请稍后刷新");
+            return busy;
+        }
+        try {
+            return deployAgentBySshLocked(node, controlPlaneUrlOverride);
+        } finally {
+            stringRedisTemplate.delete(lockKey);
+        }
+    }
+
+    private NodeMediaRemoteDeployRespVO deployAgentBySshLocked(ComputeNodeDO node, String controlPlaneUrlOverride) {
+        NodeSshCredentialDO credential = nodeSshCredentialMapper.selectByNodeId(node.getId());
         if (credential == null) {
             throw exception(SSH_CREDENTIAL_NOT_EXISTS);
         }
@@ -339,6 +438,9 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
 
             NodePortCheckRespVO portCheck = checkAgentPortOnSession(ssh, node);
             steps.add(portCheck.getSteps().get(0));
+            if (!Boolean.TRUE.equals(portCheck.getPortsReady())) {
+                portCheck = tryStopStaleAgentAndRecheckPort(ssh, node, portCheck, steps);
+            }
             if (!Boolean.TRUE.equals(portCheck.getPortsReady())) {
                 resp.setSuccess(false);
                 resp.setMessage(portCheck.getMessage());
@@ -379,7 +481,8 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                     node.getId(),
                     node.getAgentToken() != null ? node.getAgentToken() : "",
                     agentPort,
-                    controlPlaneUrl);
+                    controlPlaneUrl,
+                    node.getNodeRole());
             String installScript = AgentDeployUtil.buildInstallScript(envContent);
             String encoded = Base64.getEncoder().encodeToString(installScript.getBytes(StandardCharsets.UTF_8));
             SshSessionHelper.SshExecResult installResult = ssh.exec(
@@ -405,10 +508,12 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
             steps.add(verifyStep);
             boolean ok = "success".equals(verifyStep.getStatus());
             resp.setSuccess(ok);
-            resp.setMessage(ok ? "Agent 部署完成，等待心跳上报" : "服务已安装但验证未通过");
+            resp.setMessage(ok
+                    ? "Sentinel 全量离线部署完成，已开始扫描组件并经网关上报 NODE"
+                    : "服务已安装但验证未通过");
             return resp;
         } catch (Exception e) {
-            log.error("Agent SSH 部署失败 nodeId={}", nodeId, e);
+            log.error("Agent SSH 部署失败 nodeId={}", node.getId(), e);
             NodeMediaRemoteDeployRespVO.DeployStep fail = new NodeMediaRemoteDeployRespVO.DeployStep();
             fail.setName("部署中断");
             fail.setStatus("failed");
@@ -475,6 +580,54 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         LinkedHashMap<String, Integer> portMap = new LinkedHashMap<>();
         portMap.put("节点代理", agentPort);
         return RemotePortCheckUtil.checkPorts(ssh, portMap);
+    }
+
+    /** Agent 端口被旧进程占用时先 stop，避免全量部署因端口冲突失败。 */
+    private NodePortCheckRespVO tryStopStaleAgentAndRecheckPort(
+            SshSessionHelper ssh,
+            ComputeNodeDO node,
+            NodePortCheckRespVO blocked,
+            List<NodeMediaRemoteDeployRespVO.DeployStep> steps) {
+        if (!isStaleAgentPortConflict(blocked)) {
+            return blocked;
+        }
+        try {
+            steps.add(runDeployStep("停止旧 Agent", "running", "检测到 Agent 端口被旧进程占用，正在停止…"));
+            String encoded = Base64.getEncoder().encodeToString(
+                    buildAgentStopScript().getBytes(StandardCharsets.UTF_8));
+            ssh.exec("echo " + encoded + " | base64 -d | sudo bash -s", 120_000);
+            int agentPort = node.getAgentPort() != null && node.getAgentPort() > 0
+                    ? node.getAgentPort() : DEFAULT_AGENT_PORT;
+            ssh.exec("fuser -k " + agentPort + "/tcp 2>/dev/null || true", 15_000);
+            NodePortCheckRespVO recheck = checkAgentPortOnSession(ssh, node);
+            steps.add(recheck.getSteps().get(0));
+            if (Boolean.TRUE.equals(recheck.getPortsReady())) {
+                steps.add(runDeployStep("停止旧 Agent", "success", "旧 Agent 已释放端口 " + agentPort));
+            } else {
+                steps.add(runDeployStep("停止旧 Agent", "failed", "停止后端口仍被占用"));
+            }
+            return recheck;
+        } catch (Exception e) {
+            log.warn("停止旧 Agent 失败 nodeId={}: {}", node.getId(), e.getMessage());
+            steps.add(runDeployStep("停止旧 Agent", "failed", e.getMessage()));
+            return blocked;
+        }
+    }
+
+    private static boolean isStaleAgentPortConflict(NodePortCheckRespVO portCheck) {
+        if (portCheck == null || portCheck.getPorts() == null) {
+            return false;
+        }
+        for (NodePortCheckRespVO.PortItem item : portCheck.getPorts()) {
+            if (!"occupied".equals(item.getStatus())) {
+                continue;
+            }
+            String name = item.getName() != null ? item.getName() : "";
+            if (name.contains("Agent") || name.contains("代理")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -632,8 +785,6 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                     .collect(Collectors.toList());
         }
         return computeNodeMapper.selectList(new LambdaQueryWrapperX<ComputeNodeDO>()
-                        .in(ComputeNodeDO::getNodeRole,
-                                NodeRoleEnum.COMPUTE.getRole(), NodeRoleEnum.HYBRID.getRole())
                         .orderByAsc(ComputeNodeDO::getName))
                 .stream()
                 .filter(this::isTrendEligibleNode)
@@ -641,8 +792,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     }
 
     private boolean isTrendEligibleNode(ComputeNodeDO node) {
-        String role = node.getNodeRole();
-        return NodeRoleEnum.COMPUTE.getRole().equals(role) || NodeRoleEnum.HYBRID.getRole().equals(role);
+        return NodeFunctions.isComputeWorkloadNode(node);
     }
 
     private NodeMetricTrendPointRespVO toTrendPoint(NodeMetricSnapshotDO snapshot) {
@@ -779,13 +929,13 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     private String buildAgentStopScript() {
         return "#!/usr/bin/env bash\n"
                 + "set -euo pipefail\n"
-                + "if systemctl list-unit-files easyaiot-node-agent.service >/dev/null 2>&1; then\n"
-                + "  echo '>>> 停止 easyaiot-node-agent'\n"
-                + "  systemctl stop easyaiot-node-agent 2>&1 || true\n"
-                + "  echo '[OK] 服务已停止'\n"
-                + "else\n"
-                + "  echo '[SKIP] 服务未注册'\n"
-                + "fi\n"
+                + "for svc in easyaiot-sentinel-agent easyaiot-node-agent; do\n"
+                + "  if systemctl list-unit-files \"${svc}.service\" >/dev/null 2>&1; then\n"
+                + "    echo \">>> 停止 ${svc}\"\n"
+                + "    systemctl stop \"${svc}\" 2>&1 || true\n"
+                + "  fi\n"
+                + "done\n"
+                + "echo '[OK] Agent 服务已停止'\n"
                 + "echo STOP_OK\n";
     }
 
@@ -814,6 +964,50 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                 + "  echo '[SKIP] 安装目录不存在'\n"
                 + "fi\n"
                 + "echo REMOVE_OK\n";
+    }
+
+    private boolean scheduleAutoDeployIfPossible(Long nodeId, ComputeNodeSaveReqVO reqVO) {
+        if (!autoDeployOnCreate || nodeId == null || !hasSshSecret(reqVO)) {
+            return false;
+        }
+        scheduleAutoDeploy(nodeId);
+        return true;
+    }
+
+    private void scheduleAutoDeploy(Long nodeId) {
+        Runnable task = () -> {
+            try {
+                log.info("节点分配完成，开始自动离线部署 Sentinel nodeId={}", nodeId);
+                NodeMediaRemoteDeployRespVO result = deployAgentBySsh(nodeId, null);
+                if (result != null && Boolean.TRUE.equals(result.getSuccess())) {
+                    log.info("Sentinel 自动部署成功 nodeId={}", nodeId);
+                } else {
+                    log.warn("Sentinel 自动部署未完成 nodeId={}: {}",
+                            nodeId, result != null ? result.getMessage() : "null");
+                }
+            } catch (Exception e) {
+                log.warn("Sentinel 自动部署失败 nodeId={}: {}", nodeId, e.getMessage());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sentinelBootstrapExecutor.execute(task);
+                }
+            });
+        } else {
+            sentinelBootstrapExecutor.execute(task);
+        }
+    }
+
+    private boolean hasSshSecret(ComputeNodeSaveReqVO reqVO) {
+        if (reqVO == null || StrUtil.isBlank(reqVO.getSshUsername())) {
+            return false;
+        }
+        String secret = "private_key".equals(reqVO.getSshAuthType())
+                ? reqVO.getSshPrivateKey() : reqVO.getSshPassword();
+        return StrUtil.isNotBlank(secret);
     }
 
     private void saveSshCredential(Long nodeId, ComputeNodeSaveReqVO reqVO) {
@@ -850,6 +1044,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     private ComputeNodeRespVO toRespVO(ComputeNodeDO node, boolean exposeToken) {
         ComputeNodeRespVO resp = BeanUtils.toBean(node, ComputeNodeRespVO.class);
         resp.setIsPlatform(isPlatformNode(node));
+        resp.setFunctions(NodeFunctions.parse(node));
         if (exposeToken) {
             resp.setAgentToken(node.getAgentToken());
         }
@@ -900,69 +1095,18 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         return Comparator.comparing((ComputeNodeRespVO node) -> !Boolean.TRUE.equals(node.getIsPlatform()));
     }
 
-    /** 将角色默认能力合并进已有 map，返回是否有变更（用于升级历史节点能力字段）。 */
-    private boolean mergeDefaultCapabilities(Map<String, Boolean> caps, String nodeRole) {
-        Map<String, Boolean> defaults = defaultCapabilities(nodeRole);
-        boolean changed = false;
-        for (Map.Entry<String, Boolean> entry : defaults.entrySet()) {
-            if (Boolean.TRUE.equals(entry.getValue()) && !Boolean.TRUE.equals(caps.get(entry.getKey()))) {
-                caps.put(entry.getKey(), true);
-                changed = true;
-            }
+    private void applyFunctionGpuDefaults(ComputeNodeDO node, List<String> functions, Integer requestedMaxGpuCount) {
+        if (requestedMaxGpuCount != null && requestedMaxGpuCount >= 0) {
+            node.setMaxGpuCount(requestedMaxGpuCount);
+            return;
         }
-        return changed;
-    }
-
-    private Map<String, Boolean> defaultCapabilities(String nodeRole) {
-        Map<String, Boolean> caps = new HashMap<>();
-        if (NodeRoleEnum.COMPUTE.getRole().equals(nodeRole)
-                || NodeRoleEnum.GPU.getRole().equals(nodeRole)
-                || NodeRoleEnum.HYBRID.getRole().equals(nodeRole)) {
-            caps.put("ai_inference", true);
-            caps.put("algorithm_realtime", true);
-            caps.put("algorithm_snap", true);
-            caps.put("algorithm_patrol", true);
-            caps.put("stream_forward", true);
-            caps.put("auto_label", true);
-            caps.put("model_train", true);
+        if (NodeFunctions.requiresGpu(functions) && (node.getMaxGpuCount() == null || node.getMaxGpuCount() <= 0)) {
+            node.setMaxGpuCount(1);
+            return;
         }
-        if (NodeRoleEnum.GPU.getRole().equals(nodeRole)
-                || NodeRoleEnum.HYBRID.getRole().equals(nodeRole)) {
-            caps.put("llm_inference", true);
-        }
-        if (NodeRoleEnum.MEDIA.getRole().equals(nodeRole) || NodeRoleEnum.HYBRID.getRole().equals(nodeRole)) {
-            caps.put("srs_live", true);
-            caps.put("srs_ai", true);
-            caps.put("zlm", true);
-        }
-        if (NodeRoleEnum.STORAGE.getRole().equals(nodeRole)) {
-            caps.put("ceph_osd", true);
-            caps.put("media_storage", true);
-        }
-        if (NodeRoleEnum.MQTT.getRole().equals(nodeRole)) {
-            caps.put("emqx", true);
-            caps.put("mqtt_gateway", true);
-        }
-        return caps;
-    }
-
-    /**
-     * 按节点角色规范化 GPU 数量：计算节点无 GPU，GPU 节点至少 1 张。
-     */
-    private void applyRoleGpuDefaults(ComputeNodeDO node, Integer requestedMaxGpuCount) {
-        String role = node.getNodeRole();
-        if (NodeRoleEnum.COMPUTE.getRole().equals(role)
-                || NodeRoleEnum.STORAGE.getRole().equals(role)
-                || NodeRoleEnum.MQTT.getRole().equals(role)) {
+        if (node.getMaxGpuCount() == null) {
             node.setMaxGpuCount(0);
-            return;
         }
-        if (NodeRoleEnum.GPU.getRole().equals(role)) {
-            int count = requestedMaxGpuCount != null && requestedMaxGpuCount > 0 ? requestedMaxGpuCount : 1;
-            node.setMaxGpuCount(count);
-            return;
-        }
-        node.setMaxGpuCount(requestedMaxGpuCount != null ? requestedMaxGpuCount : 0);
     }
 
     private String resolveControlPlaneUrl(String override) {
@@ -971,8 +1115,12 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
 
     private String resolveAgentSource() {
         for (String path : listAgentSourceCandidates()) {
-            File entry = new File(path, "run_agent.py");
-            if (entry.isFile()) {
+            File sentinel = new File(path, "run_sentinel.py");
+            if (sentinel.isFile()) {
+                return new File(path).getAbsolutePath();
+            }
+            File legacy = new File(path, "run_agent.py");
+            if (legacy.isFile()) {
                 return new File(path).getAbsolutePath();
             }
         }
@@ -980,21 +1128,25 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     }
 
     /**
-     * Agent 源码候选目录（优先完整 repo/NODE，最后才是 /opt/easyaiot/node-agent 运行时目录）。
+     * Sentinel Agent 源码候选目录（优先 SENTINEL/，兼容历史 NODE/ 与运行时目录）。
      */
     private List<String> listAgentSourceCandidates() {
         LinkedHashMap<String, Boolean> ordered = new LinkedHashMap<>();
         if (agentSourcePath != null && !agentSourcePath.isBlank()) {
             ordered.put(agentSourcePath.trim(), Boolean.TRUE);
         }
+        ordered.put("/opt/easyaiot/sentinel-agent", Boolean.TRUE);
         ordered.put("/opt/easyaiot/NODE", Boolean.TRUE);
+        ordered.put("/opt/easyaiot/SENTINEL", Boolean.TRUE);
         String userDir = System.getProperty("user.dir");
         if (userDir != null && !userDir.isBlank()) {
+            ordered.put(userDir + "/SENTINEL", Boolean.TRUE);
+            ordered.put(userDir + "/../SENTINEL", Boolean.TRUE);
+            ordered.put(userDir + "/../../SENTINEL", Boolean.TRUE);
             ordered.put(userDir + "/NODE", Boolean.TRUE);
             ordered.put(userDir + "/../NODE", Boolean.TRUE);
-            ordered.put(userDir + "/../../NODE", Boolean.TRUE);
         }
-        ordered.put("/opt/easyaiot/node-agent", Boolean.TRUE);
+        ordered.put(AgentDeployUtil.LEGACY_REMOTE_INSTALL_DIR, Boolean.TRUE);
         return new ArrayList<>(ordered.keySet());
     }
 
@@ -1090,6 +1242,32 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
             count++;
         }
 
+        File sentinelDir = new File(sourceRoot, "sentinel");
+        if (sentinelDir.isDirectory()) {
+            count += ssh.uploadDirectoryRecursive(
+                    sentinelDir,
+                    AgentDeployUtil.REMOTE_INSTALL_DIR + "/sentinel",
+                    WorkloadBundleDeployUtil::shouldSkipDirectory,
+                    WorkloadBundleDeployUtil::shouldSkipFile);
+        }
+        File registryDir = new File(sourceRoot, "registry");
+        if (registryDir.isDirectory()) {
+            count += ssh.uploadDirectoryRecursive(
+                    registryDir,
+                    AgentDeployUtil.REMOTE_INSTALL_DIR + "/registry",
+                    WorkloadBundleDeployUtil::shouldSkipDirectory,
+                    WorkloadBundleDeployUtil::shouldSkipFile);
+        }
+
+        for (String relative : AgentDeployUtil.SYNC_OPTIONAL_FILES) {
+            File local = new File(sourceRoot, relative);
+            if (!local.isFile()) {
+                continue;
+            }
+            ssh.uploadFile(local.getAbsolutePath(), AgentDeployUtil.REMOTE_INSTALL_DIR + "/" + relative);
+            count++;
+        }
+
         File getPip = pipBundle.getPipScript;
         if (getPip == null || !getPip.isFile()) {
             NodeMediaRemoteDeployRespVO.DeployStep fail = new NodeMediaRemoteDeployRespVO.DeployStep();
@@ -1109,7 +1287,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
             NodeMediaRemoteDeployRespVO.DeployStep fail = new NodeMediaRemoteDeployRespVO.DeployStep();
             fail.setName("同步文件");
             fail.setStatus("failed");
-            fail.setOutput("本机缺少离线 pip 包，请执行 NODE/export_pip_wheels.sh 后重试");
+            fail.setOutput("本机缺少离线 pip 包，请执行 SENTINEL/export_pip_wheels.sh 后重试");
             return fail;
         }
 
@@ -1155,7 +1333,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
             return runDeployStep("准备离线 pip 包", "failed",
                     "缺少离线 pip 包且未找到 export_pip_wheels.sh；"
                             + "请配置 EASYAIOT_AGENT_SOURCE_PATH 指向含 NODE 源码的目录，"
-                            + "或在平台执行: bash NODE/export_pip_wheels.sh");
+                            + "或在平台执行: bash SENTINEL/export_pip_wheels.sh");
         }
 
         File wheelsDir = pipBundle.wheelsDir != null

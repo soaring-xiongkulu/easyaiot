@@ -50,7 +50,8 @@ public class SshSessionHelper implements AutoCloseable {
         ChannelExec channel = null;
         try {
             channel = (ChannelExec) session.openChannel("exec");
-            channel.setCommand(command);
+            // RUNTIME 等组件若把专用 lib 写进 profile.d 的 LD_LIBRARY_PATH，sudo 会加载失败
+            channel.setCommand("unset LD_LIBRARY_PATH LD_PRELOAD; " + command);
             channel.setInputStream(null);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             ByteArrayOutputStream error = new ByteArrayOutputStream();

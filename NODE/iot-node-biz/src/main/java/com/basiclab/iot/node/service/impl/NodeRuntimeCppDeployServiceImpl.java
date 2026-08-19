@@ -1,8 +1,10 @@
 package com.basiclab.iot.node.service.impl;
 
 import com.basiclab.iot.node.dal.dataobject.ComputeNodeDO;
+import com.basiclab.iot.node.dal.dataobject.NodeSentinelSnapshotDO;
 import com.basiclab.iot.node.dal.dataobject.NodeSshCredentialDO;
 import com.basiclab.iot.node.dal.pgsql.ComputeNodeMapper;
+import com.basiclab.iot.node.dal.pgsql.NodeSentinelSnapshotMapper;
 import com.basiclab.iot.node.dal.pgsql.NodeSshCredentialMapper;
 import com.basiclab.iot.node.domain.vo.NodeMediaRemoteDeployRespVO;
 import com.basiclab.iot.node.domain.vo.NodeRuntimeCppBatchReqVO;
@@ -24,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.basiclab.iot.common.exception.util.ServiceExceptionUtil.exception;
@@ -45,6 +48,8 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
     private ComputeNodeMapper computeNodeMapper;
     @Resource
     private NodeSshCredentialMapper nodeSshCredentialMapper;
+    @Resource
+    private NodeSentinelSnapshotMapper nodeSentinelSnapshotMapper;
 
     @Value("${easyaiot.runtime.source-path:}")
     private String runtimeSourcePath;
@@ -112,8 +117,8 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
         ComputeNodeDO node = validateNode(nodeId);
         try (SshSessionHelper ssh = openSsh(node)) {
             SshSessionHelper.SshExecResult probe = ssh.exec(RuntimeCppDeployUtil.verifyCommand(), 30_000);
-            if (probe.combinedOutput().contains("RUNTIME_OK")) {
-                steps.add(step("RUNTIME", "skipped", "已存在 " + RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN));
+            if (RuntimeCppDeployUtil.outputMeansReady(probe.combinedOutput())) {
+                steps.add(step("RUNTIME", "skipped", "已就绪 " + RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN));
                 return true;
             }
         } catch (Exception e) {
@@ -177,15 +182,42 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
     private NodeWorkloadBundleNodeResultVO deployInternal(ComputeNodeDO node) {
         NodeWorkloadBundleNodeResultVO result = baseResult(node);
         List<NodeMediaRemoteDeployRespVO.DeployStep> steps = result.getSteps();
+
+        RuntimeCppDeployUtil.OsArch sentinelOs = resolveOsArchFromSentinel(node.getId());
+        if (sentinelOs != null) {
+            String sourceRoot = resolveRuntimeSourceRoot();
+            File prefetched = RuntimeCppDeployUtil.findLocalTarball(sourceRoot, sentinelOs);
+            if (prefetched == null) {
+                String localOs = RuntimeCppDeployUtil.detectLocalOsFamily();
+                String localArch = RuntimeCppDeployUtil.detectLocalArchKey();
+                steps.add(step("分发前预检", "failed",
+                        "Sentinel 上报节点 OS=" + sentinelOs.bundleKey()
+                                + "，控制面缺少对应 RUNTIME 离线包。\n"
+                                + RuntimeCppDeployUtil.missingBundleHint(sentinelOs.osFamily, sentinelOs.archKey)
+                                + "\n控制面本机是 " + localOs + "/" + localArch
+                                + "，不会在缺包时 SSH 上传。"));
+                result.setSuccess(false);
+                result.setMessage(lastFailed(steps));
+                return result;
+            }
+            steps.add(step("分发前预检", "success",
+                    "Sentinel 画像 os=" + sentinelOs.bundleKey()
+                            + "，本地包已就绪 " + prefetched.getName()
+                            + "（" + formatBytes(prefetched.length()) + "）"));
+        }
+
         try (SshSessionHelper ssh = openSsh(node)) {
             steps.add(step("SSH 连接", "success", "已连接 " + node.getHost()));
 
-            String uname = detectRemoteArch(ssh);
-            String archKey = RuntimeCppDeployUtil.archKeyForUname(uname);
-            steps.add(step("探测架构", "success", "uname -m => " + uname + "，使用 " + archKey + " 包"));
+            RuntimeCppDeployUtil.OsArch target = detectRemoteOsArch(ssh);
+            steps.add(step("探测系统", "success",
+                    "os-release ID=" + target.osId
+                            + " VERSION_ID=" + target.versionId
+                            + " uname=" + target.uname
+                            + " → 包键 " + target.bundleKey()));
 
             String sourceRoot = resolveRuntimeSourceRoot();
-            File tarball = ensureLocalTarball(sourceRoot, archKey, steps);
+            File tarball = ensureLocalTarball(sourceRoot, target, steps);
             if (tarball == null) {
                 result.setSuccess(false);
                 result.setMessage(lastFailed(steps));
@@ -215,16 +247,20 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
                     "sudo bash " + remoteCache + "/" + RuntimeCppDeployUtil.INSTALL_SCRIPT
                             + " '" + remoteRoot + "' '" + remoteTar + "'",
                     DEPLOY_TIMEOUT_MS);
-            NodeMediaRemoteDeployRespVO.DeployStep installStep = step("安装 RUNTIME", "failed",
-                    trim(install.combinedOutput(), 6000));
-            if (install.combinedOutput().contains("RUNTIME_OK")) {
-                installStep.setStatus("success");
-            }
+            SshSessionHelper.SshExecResult smoke = ssh.exec(RuntimeCppDeployUtil.verifyCommand(), 30_000);
+            boolean installOk = RuntimeCppDeployUtil.outputMeansReady(smoke.combinedOutput());
+            String combined = trim(install.combinedOutput() + "\n" + smoke.combinedOutput(), 6000);
+            NodeMediaRemoteDeployRespVO.DeployStep installStep = step(
+                    "安装 RUNTIME",
+                    installOk ? "success" : "failed",
+                    installOk ? combined
+                            : "安装后无法执行 --version（包与节点 OS/ABI 不匹配或动态库缺失）\n" + combined);
             steps.add(installStep);
 
-            result.setSuccess("success".equals(installStep.getStatus()));
+            result.setSuccess(installOk);
             result.setMessage(result.getSuccess()
-                    ? "RUNTIME 已安装: " + RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN
+                    ? "RUNTIME 已安装并可执行: " + RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN
+                            + "（" + target.bundleKey() + "）"
                     : installStep.getOutput());
         } catch (Exception e) {
             steps.add(step("安装 RUNTIME", "failed", e.getMessage()));
@@ -263,9 +299,16 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
     }
 
     private void probeRuntime(SshSessionHelper ssh, NodeRuntimeCppCheckRespVO resp) throws Exception {
+        try {
+            RuntimeCppDeployUtil.OsArch osArch = detectRemoteOsArch(ssh);
+            resp.setOsFamily(osArch.osFamily);
+            resp.setArch(osArch.archKey);
+        } catch (Exception e) {
+            log.debug("探测节点 OS 失败: {}", e.getMessage());
+        }
         SshSessionHelper.SshExecResult result = ssh.exec(RuntimeCppDeployUtil.verifyCommand(), 30_000);
         String out = result.combinedOutput();
-        boolean ok = out.contains("RUNTIME_OK");
+        boolean ok = RuntimeCppDeployUtil.outputMeansReady(out);
         resp.setRuntimeReady(ok);
         if (ok) {
             String block = RuntimeCppDeployUtil.extractVersionBlock(out);
@@ -280,10 +323,13 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
         if (ok) {
             String ver = resp.getVersion();
             detail = (ver != null && !ver.isBlank())
-                    ? ("版本 " + ver + (resp.getBuiltAt() != null ? " · built_at=" + resp.getBuiltAt() : ""))
+                    ? ("版本 " + ver + (resp.getBuiltAt() != null ? " · built_at=" + resp.getBuiltAt() : "")
+                    + (resp.getOsFamily() != null ? " · os=" + resp.getOsFamily() : ""))
                     : trim(out, 2000);
-        } else {
+        } else if (out.contains("RUNTIME_MISSING")) {
             detail = "未找到 " + RuntimeCppDeployUtil.REMOTE_RUNTIME_BIN;
+        } else {
+            detail = "RUNTIME 无法执行（需要匹配节点 OS 的离线包）\n" + trim(out, 2500);
         }
         NodeMediaRemoteDeployRespVO.DeployStep s = step("RUNTIME", ok ? "success" : "failed", detail);
         resp.getSteps().add(s);
@@ -327,17 +373,34 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
 
     private File ensureLocalTarball(
             String sourceRoot,
-            String archKey,
+            RuntimeCppDeployUtil.OsArch target,
             List<NodeMediaRemoteDeployRespVO.DeployStep> steps) {
-        File cacheDir = new File(RuntimeCppDeployUtil.localCacheDir(sourceRoot, archKey));
-        String tarName = RuntimeCppDeployUtil.tarballNameForArch(archKey);
-        File tar = new File(cacheDir, tarName);
-        File marker = new File(cacheDir, ".ready");
-        if (tar.isFile() && tar.length() > 1024L && marker.isFile()) {
+        File existing = RuntimeCppDeployUtil.findLocalTarball(sourceRoot, target);
+        if (existing != null) {
             steps.add(step("准备 RUNTIME 离线包", "success",
-                    "本机已就绪 " + tar.getAbsolutePath() + "（" + formatBytes(tar.length()) + "）"));
-            return tar;
+                    "本机已就绪 " + existing.getAbsolutePath()
+                            + "（" + formatBytes(existing.length()) + "）"));
+            return existing;
         }
+
+        String osFamily = target.osFamily;
+        String archKey = target.archKey;
+        File cacheDir = new File(RuntimeCppDeployUtil.localCacheDir(sourceRoot, osFamily, archKey));
+        String tarName = RuntimeCppDeployUtil.tarballName(osFamily, archKey);
+        File tar = new File(cacheDir, tarName);
+
+        String localOs = RuntimeCppDeployUtil.detectLocalOsFamily();
+        String localArch = RuntimeCppDeployUtil.detectLocalArchKey();
+        boolean sameAbi = osFamily.equals(localOs) && archKey.equals(localArch);
+
+        if (!sameAbi) {
+            steps.add(step("准备 RUNTIME 离线包", "failed",
+                    RuntimeCppDeployUtil.missingBundleHint(osFamily, archKey)
+                            + "\n控制面本机是 " + localOs + "/" + localArch
+                            + "，不会把这份二进制发到 " + target.bundleKey() + "。"));
+            return null;
+        }
+
         File exportScript = new File(sourceRoot, RuntimeCppDeployUtil.EXPORT_SCRIPT);
         if (!exportScript.isFile()) {
             steps.add(step("准备 RUNTIME 离线包", "failed",
@@ -349,9 +412,9 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
             if (!cacheDir.exists() && !cacheDir.mkdirs()) {
                 log.warn("无法创建 RUNTIME 缓存目录 {}", cacheDir.getAbsolutePath());
             }
-            // export_runtime_cpp.sh 内会在缺二进制时自动 install_linux.sh（一键：编译→打包）
             steps.add(step("控制面准备", "running",
-                    "若尚未编译将自动执行 install_linux.sh，随后导出离线包（首次可能较久）"));
+                    "目标与本机 ABI 一致（" + target.bundleKey()
+                            + "），若尚未编译将自动执行 install_linux.sh 后导出"));
             ProcessBuilder pb = new ProcessBuilder("bash", exportScript.getAbsolutePath());
             pb.directory(new File(sourceRoot));
             pb.environment().put("RUNTIME_ARCH", RuntimeCppDeployUtil.exportArchEnv(archKey));
@@ -373,7 +436,7 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
                         ? "export 退出码 " + process.exitValue()
                         : output.trim());
             }
-            if (!tar.isFile() || tar.length() <= 1024L) {
+            if (!RuntimeCppDeployUtil.isUsableTarball(tar)) {
                 steps.add(step("准备 RUNTIME 离线包", "failed",
                         "export 后 tarball 仍不可用\n" + trim(output, 3000)));
                 return null;
@@ -387,9 +450,43 @@ public class NodeRuntimeCppDeployServiceImpl implements NodeRuntimeCppDeployServ
         }
     }
 
-    private String detectRemoteArch(SshSessionHelper ssh) throws Exception {
-        SshSessionHelper.SshExecResult r = ssh.exec("uname -m 2>/dev/null || echo x86_64", 10_000);
-        return r.combinedOutput().trim();
+    private RuntimeCppDeployUtil.OsArch resolveOsArchFromSentinel(Long nodeId) {
+        NodeSentinelSnapshotDO snapshot = nodeSentinelSnapshotMapper.selectById(nodeId);
+        if (snapshot == null || snapshot.getEnvironmentProfile() == null) {
+            return null;
+        }
+        Object osObj = snapshot.getEnvironmentProfile().get("os");
+        if (!(osObj instanceof Map)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> os = (Map<String, Object>) osObj;
+        String family = stringVal(os.get("family"));
+        if (family == null || family.isBlank()) {
+            return null;
+        }
+        String archRaw = stringVal(os.get("arch"));
+        String archKey = RuntimeCppDeployUtil.archKeyForUname(
+                archRaw != null && !archRaw.isBlank() ? archRaw : "x86_64");
+        return new RuntimeCppDeployUtil.OsArch(
+                family,
+                archKey,
+                stringVal(os.get("id")),
+                stringVal(os.get("versionId")),
+                archRaw);
+    }
+
+    private static String stringVal(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        String text = String.valueOf(raw).trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private RuntimeCppDeployUtil.OsArch detectRemoteOsArch(SshSessionHelper ssh) throws Exception {
+        SshSessionHelper.SshExecResult r = ssh.exec(RuntimeCppDeployUtil.detectOsReleaseCommand(), 10_000);
+        return RuntimeCppDeployUtil.parseOsArch(r.combinedOutput());
     }
 
     private String resolveRuntimeSourceRoot() {

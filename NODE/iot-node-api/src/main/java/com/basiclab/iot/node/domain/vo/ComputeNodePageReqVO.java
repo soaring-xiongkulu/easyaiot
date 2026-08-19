@@ -21,8 +21,8 @@ public class ComputeNodePageReqVO extends PageParam {
     @Schema(description = "状态: pending | online | offline | maintenance")
     private String status;
 
-    @Schema(description = "节点角色: compute | media | hybrid")
-    private String nodeRole;
+    @Schema(description = "按单个功能过滤: algorithm | forward | live | train | llm | label | infer | mqtt | nfs | transform")
+    private String function;
 
     @Schema(description = "区域")
     private String region;
