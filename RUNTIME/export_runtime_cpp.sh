@@ -6,9 +6,13 @@
 #   bash RUNTIME/export_runtime_cpp.sh
 #   RUNTIME_ARCH=arm64 bash RUNTIME/export_runtime_cpp.sh
 #
-# 产出:
-#   RUNTIME/.bundle-runtime/{x86_64|arm64}/easyaiot-runtime-{arch}.tar.gz
+# 产出（按目标操作系统 + 架构分区，禁止跨 ABI 混用）:
+#   RUNTIME/.bundle-runtime/{os_family}/{arch}/easyaiot-runtime-{os_family}-{arch}.tar.gz
+#   例: openeuler24/x86_64、ubuntu24/x86_64、el9/x86_64
 #   同目录 .ready 标记
+#
+# 必须在目标同类系统（或同类容器）里编译再导出。RUNTIME_OS_FAMILY 若与本机
+# os-release 不一致会直接拒绝，避免把 Ubuntu 包打成 openEuler 标签。
 #
 # 一键：若尚未编译，默认自动执行 ./install_linux.sh install（可用 RUNTIME_AUTO_INSTALL=0 关闭）
 # ============================================
@@ -19,6 +23,8 @@ REPO="$(cd "$ROOT/.." && pwd)"
 
 # shellcheck disable=SC1091
 source "$ROOT/scripts/version_meta.sh"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/os_family.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -72,40 +78,77 @@ collect_libs() {
   if [[ -n "${RUNTIME_ORT_LIB_HOST:-}" && -d "${RUNTIME_ORT_LIB_HOST}" ]]; then
     cp -a "${RUNTIME_ORT_LIB_HOST}/." "$dest_lib/" 2>/dev/null || true
   fi
-  if [[ -n "${RUNTIME_CONDA_LIB_HOST:-}" && -d "${RUNTIME_CONDA_LIB_HOST}" ]]; then
-    # 仅拷贝 RUNTIME 实际依赖的 .so（避免整个 conda lib 过大）
-    :
-  fi
+
+  local conda_lib="${RUNTIME_CONDA_LIB_HOST:-${CONDA_PREFIX:-}/lib}"
+  copy_named_libs_from() {
+    local src="$1"
+    [[ -d "$src" ]] || return 0
+    local pattern f base
+    for pattern in \
+      'libcblas.so*' 'libblas.so*' 'liblapack.so*' 'libgfortran.so*' \
+      'libopenblas.so*' 'libopenblasp*.so*' 'libgomp.so*'; do
+      shopt -s nullglob
+      for f in "$src"/$pattern; do
+        base="$(basename "$f")"
+        cp -L -f "$f" "$dest_lib/$base" 2>/dev/null || true
+      done
+      shopt -u nullglob
+    done
+  }
+  copy_named_libs_from "$conda_lib"
 
   if ! command -v ldd >/dev/null 2>&1; then
     print_warning "无 ldd，跳过依赖收集（仅含 ORT lib）"
     return 0
   fi
 
-  local line so real
+  local line so real base
   while IFS= read -r line; do
     so="$(echo "$line" | awk '/=>/ {print $3}')"
     [[ -z "$so" || "$so" == "not" ]] && continue
-    [[ ! -f "$so" ]] && continue
+    [[ ! -e "$so" ]] && continue
     # 跳过系统核心 libc/libm/libpthread/ld
     case "$(basename "$so")" in
-      libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|ld-linux*) continue ;;
+      libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|ld-linux*|libresolv.so*|libnss_*|libanl.so*) continue ;;
     esac
     real="$(readlink -f "$so" 2>/dev/null || echo "$so")"
-    cp -a "$so" "$dest_lib/" 2>/dev/null || true
-    if [[ -n "$real" && "$real" != "$so" && -f "$real" ]]; then
-      cp -a "$real" "$dest_lib/" 2>/dev/null || true
+    base="$(basename "$so")"
+    # 解引用 symlink，避免包内链到 /opt/miniconda3/... 绝对路径
+    cp -L -f "$real" "$dest_lib/$base" 2>/dev/null || true
+    if [[ -n "$real" && "$real" != "$so" ]]; then
+      cp -L -f "$real" "$dest_lib/$(basename "$real")" 2>/dev/null || true
     fi
   done < <(ldd "$bin" 2>/dev/null || true)
+
+  copy_named_libs_from "$conda_lib"
+}
+
+relocate_runtime_rpath() {
+  local bin="$1"
+  if command -v patchelf >/dev/null 2>&1; then
+    patchelf --set-rpath '$ORIGIN/../lib' "$bin" 2>/dev/null || true
+  elif command -v chrpath >/dev/null 2>&1; then
+    chrpath -r '$ORIGIN/../lib' "$bin" 2>/dev/null || true
+  fi
 }
 
 main() {
   ensure_built
 
-  local arch
+  local arch os_family host_family requested
   arch="$(arch_key)"
-  local cache="${RUNTIME_CACHE_DIR:-$ROOT/.bundle-runtime/$arch}"
+  requested="${RUNTIME_OS_FAMILY:-}"
+  host_family="$(RUNTIME_OS_FAMILY= runtime_detect_os_family)"
+  if [[ -n "$requested" && "$requested" != "$host_family" ]]; then
+    print_error "本机 os-release 为 ${host_family}，拒绝打成 ${requested} 包（ABI 会错）。"
+    print_error "请在 ${requested} 系统或同类容器中执行 export_runtime_cpp.sh。"
+    exit 1
+  fi
+  os_family="$host_family"
+  export RUNTIME_OS_FAMILY="$os_family"
+  local cache="${RUNTIME_CACHE_DIR:-$ROOT/.bundle-runtime/${os_family}/${arch}}"
   mkdir -p "$cache"
+  print_info "目标包键: os=${os_family} arch=${arch}"
 
   local deploy_env="$ROOT/deploy.env"
   local bin="$ROOT/build/RUNTIME"
@@ -125,7 +168,8 @@ main() {
   # 清理目录必须用全局变量：local 在 main 返回后 EXIT trap 看不到
   RUNTIME_EXPORT_WORK="$(mktemp -d)"
   trap 'rm -rf "${RUNTIME_EXPORT_WORK:-}"' EXIT
-  local staging="$RUNTIME_EXPORT_WORK/easyaiot-runtime-${arch}"
+  local pkg="easyaiot-runtime-${os_family}-${arch}"
+  local staging="$RUNTIME_EXPORT_WORK/${pkg}"
   mkdir -p "$staging/bin" "$staging/lib" "$staging/config" "$staging/models" "$staging/scripts"
 
   cp -f "$bin" "$staging/bin/RUNTIME"
@@ -133,10 +177,15 @@ main() {
 
   print_info "收集动态库依赖..."
   collect_libs "$staging/bin/RUNTIME" "$staging/lib"
+  relocate_runtime_rpath "$staging/bin/RUNTIME"
 
   # .pt → onnx 兜底脚本（节点上若有 ultralytics / RUNTIME_PYTHON 可用）
   if [[ -f "$ROOT/scripts/ensure_onnx_model.py" ]]; then
     cp -f "$ROOT/scripts/ensure_onnx_model.py" "$staging/scripts/" || true
+  fi
+  if [[ -f "$ROOT/scripts/smoke_runtime.sh" ]]; then
+    cp -f "$ROOT/scripts/smoke_runtime.sh" "$staging/scripts/" || true
+    chmod +x "$staging/scripts/smoke_runtime.sh"
   fi
 
   # 内置 ONNX（存在则打入；-L 解引用 yolo11n.onnx → yolov11n.onnx）
@@ -186,17 +235,29 @@ EOF
     done < <(grep -E '^(version|git)=' "$ROOT/build/VERSION" 2>/dev/null || true)
   fi
   runtime_write_version_file "$staging/VERSION" "export" "$bin" "${RUNTIME_ORT_LIB_HOST:-${ORT_ROOT:-}}" "${RUNTIME_BUILD_MODE:-${BUILD_MODE:-}}"
+  {
+    echo "os_family=${os_family}"
+    echo "arch=${arch}"
+  } >> "$staging/VERSION"
   # Also refresh control-plane copy for check UI
   cp -f "$staging/VERSION" "$ROOT/build/VERSION" 2>/dev/null || true
   cp -f "$staging/VERSION" "$ROOT/VERSION" 2>/dev/null || true
-  print_info "打包 VERSION: version=${RUNTIME_VERSION} git=${RUNTIME_GIT}"
+  print_info "打包 VERSION: version=${RUNTIME_VERSION} git=${RUNTIME_GIT} os=${os_family} arch=${arch}"
 
-  local tar_name="easyaiot-runtime-${arch}.tar.gz"
+  print_info "本机冒烟：source env.sh && RUNTIME --version ..."
+  if ! bash "$ROOT/scripts/smoke_runtime.sh" "$staging"; then
+    print_error "导出包在本机无法执行，拒绝产出（请检查动态库收集是否跳过了 glibc 组件）"
+    exit 1
+  fi
+
+  local tar_name="easyaiot-runtime-${os_family}-${arch}.tar.gz"
   local tar_path="$cache/$tar_name"
   print_info "打包 $tar_path ..."
-  tar -czf "$tar_path" -C "$RUNTIME_EXPORT_WORK" "easyaiot-runtime-${arch}"
+  tar -czf "$tar_path" -C "$RUNTIME_EXPORT_WORK" "$pkg"
   date -Iseconds 2>/dev/null || date > "$cache/.ready"
-  print_success "已导出: $tar_path ($(du -h "$tar_path" | awk '{print $1}')) version=${RUNTIME_VERSION}"
+  echo "${os_family}" > "$cache/.os-family"
+  echo "${arch}" > "$cache/.arch"
+  print_success "已导出: $tar_path ($(du -h "$tar_path" | awk '{print $1}')) version=${RUNTIME_VERSION} os=${os_family}"
   echo "RUNTIME_EXPORT_OK=$tar_path"
 }
 

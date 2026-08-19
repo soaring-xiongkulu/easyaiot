@@ -190,12 +190,53 @@ curl -s http://127.0.0.1:8123/health
 **页面只需一步**：WEB「业务运行时分发」→ **高性能算法 · RUNTIME(C++)** →「分发 RUNTIME」  
 （或算法 bundle「全量分发」，会顺带安装 RUNTIME。）
 
-控制面后台自动串联：`install_linux.sh`（若未编译）→ `export_runtime_cpp.sh` → SSH 安装到节点 `/opt/easyaiot/RUNTIME`。
+控制面按节点 **OS family + arch** 选本地 tarball，SSH 安装到 `/opt/easyaiot/RUNTIME`。**缺包时在 SSH 之前即失败**，并提示对应 OS 的容器内导出命令（不会把 Ubuntu 包发到 openEuler / 麒麟）。
 
 - 节点二进制：`/opt/easyaiot/RUNTIME/bin/RUNTIME`
 - 远程任务：VIDEO 写 ini → Agent 落盘启动；模型可走对象存储 / Ceph
 - API：`POST /admin-api/node/workload-bundle/runtime-cpp/batch-deploy-ssh`
 - 关闭自动编译：环境变量 `RUNTIME_AUTO_INSTALL=0`（仅当你要手工控制编译时）
+
+### 分发前预检（推荐）
+
+```bash
+# 按 Sentinel 节点 id 检查（读 os_family + 本地 tarball）
+bash RUNTIME/scripts/preflight_runtime_bundle.sh --node 5
+
+# 或显式 OS
+bash RUNTIME/scripts/preflight_runtime_bundle.sh openeuler22 x86_64
+
+# 顶层 install_linux 入口（各 OS 一键脚本均委托此命令）
+bash .scripts/docker/install_linux.sh preflight-runtime-cpp --node 5
+```
+
+缺包时 iot-node 会提示：
+
+```bash
+bash RUNTIME/scripts/export_runtime_os_container.sh openeuler22
+```
+
+### 矩阵构建（与 COMPILE 对齐）
+
+| 命令 | 说明 |
+|------|------|
+| `bash RUNTIME/build_runtime_matrix.sh` | 默认实验室优先包（openeuler22 / ubuntu26 / el9） |
+| `bash RUNTIME/build_runtime_matrix.sh --all` | 全矩阵 |
+| `bash RUNTIME/build_runtime_matrix.sh --compile-target openeuler` | 与 `COMPILE/build.sh openeuler` 同范围 |
+| `bash .scripts/docker/install_linux.sh build-runtime-cpp openeuler22` | 顶层一键入口 |
+| `bash .scripts/docker/install_linux_openeuler.sh build-runtime-cpp openeuler22` | openEuler 入口（转交 install_linux） |
+| `bash .scripts/docker/install_linux_kylin.sh build-runtime-cpp kylin10` | 麒麟须单独镜像，见下 |
+
+产物路径：`RUNTIME/.bundle-runtime/{os_family}/{arch}/easyaiot-runtime-*.tar.gz`
+
+**麒麟（Kylin）**：RUNTIME 与 openEuler **不能混用**。须设置专用容器镜像后再导出，例如：
+
+```bash
+export RUNTIME_KYLIN10_ARM64_IMAGE=<kylin-v10-sp3-arm64-image>
+bash RUNTIME/scripts/export_runtime_os_container.sh kylin10
+```
+
+或在实机麒麟上：`bash RUNTIME/export_runtime_cpp.sh`（本机 ABI 一致时控制面可自动导出）。
 
 > 批量分发后，各节点仍建议配置可达的中心 `VIDEO_BASE_URL`（原子安装会写 `node.env`；分发场景由 Agent/平台约定工作目录与环境）。
 

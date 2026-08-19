@@ -30,6 +30,8 @@ BUILD_MODE="${EASYAIOT_RUNTIME_BUILD_MODE:-docker}"
 
 # shellcheck disable=SC1091
 source "$ROOT/scripts/version_meta.sh"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/os_family.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -626,17 +628,23 @@ build_runtime_on_host() {
 
   runtime_resolve_version_meta "$ROOT" "$REPO"
   print_info "cmake 配置（host, version=${RUNTIME_VERSION}）..."
-  cmake "$ROOT" \
+  if ! cmake "$ROOT" \
     -B "$build_dir" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
     -DOpenCV_DIR="$CONDA_PREFIX/lib/cmake/opencv5" \
     -DONNXRUNTIME_ROOT="$ORT_ROOT" \
     -DRUNTIME_VERSION_STR="${RUNTIME_VERSION}" \
-    -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/opencv5"
+    -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/opencv5"; then
+    print_error "cmake 配置失败"
+    return 1
+  fi
 
   print_info "编译中..."
-  cmake --build "$build_dir" -j"$(nproc 2>/dev/null || echo 4)"
+  if ! cmake --build "$build_dir" -j"$(nproc 2>/dev/null || echo 4)"; then
+    print_error "cmake 编译失败"
+    return 1
+  fi
 
   if [[ ! -x "$build_dir/RUNTIME" ]]; then
     print_error "编译完成但未找到可执行文件: $build_dir/RUNTIME"
@@ -903,15 +911,15 @@ atomic_install_runtime() {
   # 已编译则跳过 export 内二次 install
   RUNTIME_AUTO_INSTALL=0 bash "$export_sh"
 
-# 检测架构：export 使用 x86_64/arm64；detect_arch 返回 x64/aarch64
-  local bundle_arch
-  case "$(uname -m)" in
-    aarch64|arm64) bundle_arch="arm64" ;;
-    *) bundle_arch="x86_64" ;;
-  esac
-  local tar_path="$ROOT/.bundle-runtime/${bundle_arch}/easyaiot-runtime-${bundle_arch}.tar.gz"
+  local bundle_arch bundle_os
+  bundle_arch="$(runtime_arch_key)"
+  bundle_os="$(runtime_detect_os_family)"
+  local tar_path="$ROOT/.bundle-runtime/${bundle_os}/${bundle_arch}/easyaiot-runtime-${bundle_os}-${bundle_arch}.tar.gz"
   if [[ ! -f "$tar_path" ]]; then
-    tar_path="$(find "$ROOT/.bundle-runtime" -name 'easyaiot-runtime-*.tar.gz' 2>/dev/null | head -1 || true)"
+    tar_path="$ROOT/.bundle-runtime/${bundle_arch}/easyaiot-runtime-${bundle_arch}.tar.gz"
+  fi
+  if [[ ! -f "$tar_path" ]]; then
+    tar_path="$(find "$ROOT/.bundle-runtime" -name "easyaiot-runtime-${bundle_os}-${bundle_arch}.tar.gz" 2>/dev/null | head -1 || true)"
   fi
   if [[ -z "${tar_path:-}" || ! -f "$tar_path" ]]; then
     print_error "未找到导出包（export_runtime_cpp.sh 未产出 tar.gz）"

@@ -49,6 +49,9 @@ run_as mkdir -p "${INSTALL_DIR}/bin" "${INSTALL_DIR}/lib" "${INSTALL_DIR}/config
 run_as cp -f "${inner}/bin/RUNTIME" "${INSTALL_DIR}/bin/RUNTIME"
 run_as chmod +x "${INSTALL_DIR}/bin/RUNTIME"
 if [[ -d "${inner}/lib" ]]; then
+  # 全量替换 lib，避免旧包残留 symlink 导致 cp -a 失败（openEuler 常见）
+  run_as rm -rf "${INSTALL_DIR}/lib"
+  run_as mkdir -p "${INSTALL_DIR}/lib"
   run_as cp -a "${inner}/lib/." "${INSTALL_DIR}/lib/"
 fi
 if [[ -f "${inner}/env.sh" ]]; then
@@ -60,6 +63,9 @@ if [[ -d "${inner}/models" ]]; then
 fi
 if [[ -d "${inner}/scripts" ]]; then
   run_as cp -a "${inner}/scripts/." "${INSTALL_DIR}/scripts/" 2>/dev/null || true
+fi
+if [[ -f "${INSTALL_DIR}/scripts/smoke_runtime.sh" ]]; then
+  run_as chmod +x "${INSTALL_DIR}/scripts/smoke_runtime.sh" || true
 fi
 # 兼容旧包：只有 yolov11n.onnx 时补规范名
 if [[ ! -f "${INSTALL_DIR}/models/yolo11n.onnx" && -f "${INSTALL_DIR}/models/yolov11n.onnx" ]]; then
@@ -82,7 +88,9 @@ if [[ -d /etc/profile.d ]]; then
   if [[ "$need_priv" -eq 1 ]] || [[ -w /etc/profile.d ]]; then
     run_as tee /etc/profile.d/easyaiot-runtime.sh > /dev/null <<PROFILE
 export RUNTIME_BIN="${INSTALL_DIR}/bin/RUNTIME"
-export LD_LIBRARY_PATH="${INSTALL_DIR}/lib:\${LD_LIBRARY_PATH:-}"
+export PATH="${INSTALL_DIR}/bin:\${PATH}"
+# 不要把 RUNTIME/lib 放进全局 LD_LIBRARY_PATH：其中的 libresolv 会污染 sudo/系统动态链接器。
+# 运行 RUNTIME 时 source ${INSTALL_DIR}/env.sh
 PROFILE
   fi
 fi
@@ -97,11 +105,25 @@ if [[ ! -x "${INSTALL_DIR}/bin/RUNTIME" ]]; then
   exit 1
 fi
 
-# 轻量自检：能加载动态库即可（不跑模型）
-if command -v ldd >/dev/null 2>&1; then
-  if ldd "${INSTALL_DIR}/bin/RUNTIME" 2>&1 | grep -q "not found"; then
-    echo "INSTALL_WARN: 仍有未解析动态库（节点可能缺 CUDA 系统库，运行时将回退 CPU）:" >&2
-    ldd "${INSTALL_DIR}/bin/RUNTIME" 2>&1 | grep "not found" || true
+# 真正能 exec 才算装好：文件存在 / ldd 前几行不够。
+SMOKE="${INSTALL_DIR}/scripts/smoke_runtime.sh"
+if [[ -f "$SMOKE" ]]; then
+  if ! bash "$SMOKE" "${INSTALL_DIR}"; then
+    echo "INSTALL_FAIL: RUNTIME 在本节点无法执行 --version（OS/ABI 包不匹配或动态库缺失）" >&2
+    exit 1
+  fi
+else
+  echo "INSTALL_WARN: 包内无 smoke_runtime.sh，回退 env.sh + --version" >&2
+  unset LD_LIBRARY_PATH LD_PRELOAD
+  # shellcheck disable=SC1091
+  if [[ -f "${INSTALL_DIR}/env.sh" ]]; then
+    # shellcheck disable=SC1090
+    . "${INSTALL_DIR}/env.sh"
+  fi
+  if ! "${INSTALL_DIR}/bin/RUNTIME" --version >/dev/null 2>&1; then
+    echo "INSTALL_FAIL: RUNTIME --version 失败" >&2
+    "${INSTALL_DIR}/bin/RUNTIME" --version || true
+    exit 1
   fi
 fi
 
