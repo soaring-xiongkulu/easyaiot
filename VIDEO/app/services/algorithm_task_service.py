@@ -836,7 +836,8 @@ def create_algorithm_task(task_name: str,
                 # 调用AI模块API获取模型信息（仅对正数ID，即数据库中的模型）
                 import requests
                 import os
-                ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
+                from app.utils.service_urls import resolve_model_service_base_url
+                ai_service_url = resolve_model_service_base_url()
                 for model_id in model_ids:
                     # 如果是负数ID，表示默认模型
                     if model_id < 0:
@@ -1156,7 +1157,8 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                     # 调用AI模块API获取模型信息（仅对正数ID，即数据库中的模型）
                     import requests
                     import os
-                    ai_service_url = os.getenv('AI_SERVICE_URL', 'http://localhost:5000')
+                    from app.utils.service_urls import resolve_model_service_base_url
+                    ai_service_url = resolve_model_service_base_url()
                     for model_id in model_ids:
                         # 如果是负数ID，表示默认模型
                         if model_id < 0:

@@ -2355,6 +2355,29 @@ class PatrolSession(db.Model):
         }
 
 
+class AiModel(db.Model):
+    """edge 形态模型注册表（与 AI 模块 model 表结构对齐，存于 VIDEO 库）。"""
+    __tablename__ = 'model'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    model_path = db.Column(db.String(500), nullable=True)
+    image_url = db.Column(db.String(500))
+    version = db.Column(db.String(20), default='1.0.0')
+    status = db.Column(db.Integer, default=0, nullable=False)
+    class_names = db.Column(db.Text, nullable=True)
+    selected_class_names = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+    onnx_model_path = db.Column(db.String(500))
+    torchscript_model_path = db.Column(db.String(500))
+    tensorrt_model_path = db.Column(db.String(500))
+    openvino_model_path = db.Column(db.String(500))
+    model_origin = db.Column(db.String(32), default='upload', nullable=True)
+    origin_ref = db.Column(db.String(128), nullable=True)
+
+
 def ensure_algorithm_task_sam_columns(engine):
     """老库 algorithm_task 表补 SAM 补充识别列。"""
     import logging
