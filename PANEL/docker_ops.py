@@ -364,6 +364,10 @@ _INDEPENDENT_IMAGES = [
 
 # mini / standard 形态下 DEVICE 跳过的 compose 服务（与 deploy_profile 粗对齐）
 _DEVICE_SKIP_BY_PROFILE = {
+    'edge': {
+        'iot-gateway', 'iot-system', 'iot-infra', 'iot-device', 'iot-dataset', 'iot-node',
+        'iot-visualize', 'iot-tdengine', 'iot-file', 'iot-message', 'iot-sink', 'iot-gb28181',
+    },
     'mini': {
         'iot-gateway', 'iot-infra', 'iot-device', 'iot-dataset', 'iot-node',
         'iot-visualize', 'iot-tdengine', 'iot-file', 'iot-message', 'iot-sink', 'iot-gb28181',
