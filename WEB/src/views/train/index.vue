@@ -18,7 +18,8 @@
             :initial-dataset-id="initialDatasetId"
           />
         </TabPane>
-        <TabPane key="2" tab="模型推理">
+        <!-- edge：仅 VIDEO 本地模型 CRUD，无 AI 推理服务 -->
+        <TabPane v-if="showInferenceTab" key="2" tab="模型推理">
           <AiModelTool :initialLLMId="initialLLMId" :tab-active="state.activeKey === '2'" />
         </TabPane>
         <TabPane v-if="showAdvancedTabs" key="7" tab="SAM 万物识别">
@@ -50,12 +51,15 @@ import DeployService from "@/views/train/components/DeployService/index.vue";
 import LLMManage from "@/views/train/components/LLMManage/index.vue";
 import SamInferencePage from "@/views/model/SamInference/index.vue";
 import GpuStackMonitorTip from '@/components/GpuStackMonitorTip/index.vue';
-import { isTrainAdvancedEnabled } from '@/utils/deployProfile';
+import { isEdgeStandaloneDeployProfile, isTrainAdvancedEnabled } from '@/utils/deployProfile';
 
 defineOptions({name: 'TRAIN'})
 
 const route = useRoute();
 const showAdvancedTabs = isTrainAdvancedEnabled();
+/** edge 单机：仅模型管理（VIDEO 本地 CRUD）；推理依赖 AI 模块，不展示 */
+const showInferenceTab = !isEdgeStandaloneDeployProfile();
+const edgeStandalone = isEdgeStandaloneDeployProfile();
 
 const TRAIN_TAB_KEYS = {
   MODEL_LIST: '1',
@@ -72,7 +76,14 @@ const MINI_TRAIN_TAB_KEYS = new Set<string>([
   TRAIN_TAB_KEYS.INFERENCE,
 ]);
 
+const EDGE_TRAIN_TAB_KEYS = new Set<string>([
+  TRAIN_TAB_KEYS.MODEL_LIST,
+]);
+
 function normalizeTrainRouteTab(tab: string): string {
+  if (edgeStandalone) {
+    return EDGE_TRAIN_TAB_KEYS.has(tab) ? tab : TRAIN_TAB_KEYS.MODEL_LIST;
+  }
   if (!showAdvancedTabs && !MINI_TRAIN_TAB_KEYS.has(tab)) {
     return TRAIN_TAB_KEYS.MODEL_LIST;
   }
