@@ -3,10 +3,11 @@
 # EasyAIoT 容器内存占用分析
 # ============================================
 # 统计当前运行中的中间件与业务容器实际内存占用，
-# 并与 mini / standard / full 三种部署规格的推荐上限对比。
+# 并与 edge / mini / standard / full 四种部署规格的推荐上限对比。
 #
 # 用法:
 #   ./analyze_deploy_memory.sh              # 使用已保存的部署规格作为基准
+#   ./analyze_deploy_memory.sh --profile edge
 #   ./analyze_deploy_memory.sh --profile mini
 #   ./analyze_deploy_memory.sh --all-profiles
 #   ./analyze_deploy_memory.sh --json
@@ -44,14 +45,16 @@ while [ $# -gt 0 ]; do
 用法: ./analyze_deploy_memory.sh [选项]
 
 选项:
-  --profile <mini|standard|full>  指定对比基准规格（默认读取 .deploy_profile）
-  --all-profiles                  同时展示三种规格的符合性判定
+  --profile <edge|mini|standard|full>  指定对比基准规格（默认读取 .deploy_profile）
+  --all-profiles                  同时展示四种规格的符合性判定
   --json                          以 JSON 输出（便于自动化采集）
   -h, --help                      显示帮助
 
 说明:
   容器内存取自 docker stats 的 RSS 用量（运行中容器）。
-  规格上限取自 deploy_profile.sh 中的推荐值：mini 4 GB / standard 16 GB / full 20 GB。
+  规格上限取自 deploy_profile.sh：edge 3 GB / mini 4 GB / standard 16 GB / full 20 GB。
+  edge 典型运行容器：PostgreSQL、Redis、SRS、VIDEO、WEB（零 DEVICE，无 MinIO/Nacos/EMQX）。
+  RUNTIME 为宿主机进程，不在 Docker 统计内；edge 规格 3 GB 含 RUNTIME 与系统缓冲余量。
 EOF
             exit 0
             ;;
@@ -87,6 +90,26 @@ APP_CONTAINERS=(
     ai-service rtc-service video-service web-service app-service
     pusher-service sorter-service frame-extractor-service
 )
+
+# edge 形态典型 Docker 容器（RUNTIME 为宿主机进程，不计入）
+EDGE_EXPECTED_CONTAINERS=(
+    postgres-server redis-server srs-server video-service web-service
+)
+
+is_edge_expected_container() {
+    array_contains "$1" "${EDGE_EXPECTED_CONTAINERS[@]}"
+}
+
+sum_edge_expected_mib() {
+    local -a running=("$@")
+    local name total=0 mib
+    for name in "${running[@]}"; do
+        is_edge_expected_container "$name" || continue
+        mib="${MEM_MIB[$name]:-0}"
+        total=$(awk -v a="$total" -v b="$mib" 'BEGIN { printf "%.2f", a+b }')
+    done
+    echo "$total"
+}
 
 mem_usage_to_mib() {
     local raw="${1%%/*}"
@@ -187,6 +210,23 @@ collect_running_easyaiot_containers() {
 infer_profile_from_containers() {
     local -a running=("$@")
     local name
+    local has_video=false has_web=false
+    local has_device_core=false has_sink=false
+
+    for name in "${running[@]}"; do
+        case "$name" in
+            video-service) has_video=true ;;
+            web-service) has_web=true ;;
+            iot-system|iot-gateway) has_device_core=true ;;
+            iot-sink) has_sink=true ;;
+        esac
+    done
+
+    # edge：VIDEO+WEB，零 DEVICE（无 gateway/system/sink）
+    if $has_video && $has_web && ! $has_device_core && ! $has_sink; then
+        echo "edge"
+        return 0
+    fi
 
     for name in "${running[@]}"; do
         case "$name" in
@@ -206,13 +246,12 @@ infer_profile_from_containers() {
         esac
     done
 
-    local has_core_device=false
     for name in "${running[@]}"; do
         case "$name" in
-            iot-system) has_core_device=true ;;
+            iot-system) has_device_core=true ;;
         esac
     done
-    if $has_core_device; then
+    if $has_device_core; then
         echo "mini"
         return 0
     fi
@@ -231,10 +270,11 @@ profile_budget_check() {
 resolve_target_profile() {
     if [ -n "$TARGET_PROFILE" ]; then
         case "$TARGET_PROFILE" in
+            0|edge) echo "edge" ;;
             1|mini) echo "mini" ;;
             2|standard) echo "standard" ;;
             3|full) echo "full" ;;
-            *) print_err "无效规格: $TARGET_PROFILE"; exit 2 ;;
+            *) print_err "无效规格: $TARGET_PROFILE（可选: edge | mini | standard | full）"; exit 2 ;;
         esac
         return
     fi
@@ -285,12 +325,19 @@ emit_json_report() {
     done
     lines+="]"
 
+    local edge_budget mini_budget std_budget full_budget
+    edge_budget=$(deploy_profile_budget_mib edge)
+    mini_budget=$(deploy_profile_budget_mib mini)
+    std_budget=$(deploy_profile_budget_mib standard)
+    full_budget=$(deploy_profile_budget_mib full)
+
     local profiles_json
     profiles_json=$(cat <<EOF
 {
-  "mini": {"budget_mib": 4096, "within_budget": $(bool_within_budget "$total_mib" mini), "headroom_mib": $(awk -v b=4096 -v t="$total_mib" 'BEGIN { printf "%.2f", b-t }')},
-  "standard": {"budget_mib": 16384, "within_budget": $(bool_within_budget "$total_mib" standard), "headroom_mib": $(awk -v b=16384 -v t="$total_mib" 'BEGIN { printf "%.2f", b-t }')},
-  "full": {"budget_mib": 20480, "within_budget": $(bool_within_budget "$total_mib" full), "headroom_mib": $(awk -v b=20480 -v t="$total_mib" 'BEGIN { printf "%.2f", b-t }')}
+  "edge": {"budget_mib": $edge_budget, "within_budget": $(bool_within_budget "$total_mib" edge), "headroom_mib": $(awk -v b="$edge_budget" -v t="$total_mib" 'BEGIN { printf "%.2f", b-t }')},
+  "mini": {"budget_mib": $mini_budget, "within_budget": $(bool_within_budget "$total_mib" mini), "headroom_mib": $(awk -v b="$mini_budget" -v t="$total_mib" 'BEGIN { printf "%.2f", b-t }')},
+  "standard": {"budget_mib": $std_budget, "within_budget": $(bool_within_budget "$total_mib" standard), "headroom_mib": $(awk -v b="$std_budget" -v t="$total_mib" 'BEGIN { printf "%.2f", b-t }')},
+  "full": {"budget_mib": $full_budget, "within_budget": $(bool_within_budget "$total_mib" full), "headroom_mib": $(awk -v b="$full_budget" -v t="$total_mib" 'BEGIN { printf "%.2f", b-t }')}
 }
 EOF
 )
@@ -420,6 +467,22 @@ main() {
     echo ""
     print_info "EasyAIoT 容器总占用: $(format_mib "$total_mib")"
 
+    if [ "$target_profile" = "edge" ] || [ "$inferred_profile" = "edge" ]; then
+        local edge_core_mib edge_extra=0 name mib
+        edge_core_mib=$(sum_edge_expected_mib "${containers[@]}")
+        for name in "${containers[@]}"; do
+            is_edge_expected_container "$name" && continue
+            mib="${MEM_MIB[$name]:-0}"
+            edge_extra=$(awk -v a="$edge_extra" -v b="$mib" 'BEGIN { printf "%.2f", a+b }')
+        done
+        echo ""
+        print_info "edge 典型 5 容器合计: $(format_mib "$edge_core_mib")（PG/Redis/SRS/VIDEO/WEB）"
+        if awk -v e="$edge_extra" 'BEGIN { exit (e > 0.01) ? 0 : 1 }'; then
+            print_warn "另有非 edge 典型容器占用 $(format_mib "$edge_extra")（如历史 full/standard 残留，可 stop 后重跑本脚本）"
+        fi
+        print_info "edge 推荐内存上限: $(deploy_profile_budget_label edge)（含 RUNTIME 宿主机进程与峰值缓冲）"
+    fi
+
     print_section "部署规格符合性"
     load_saved_deploy_profile
     apply_deploy_profile
@@ -429,7 +492,7 @@ main() {
     echo ""
 
     local profile p_label headroom status
-    local -a profiles_to_show=(mini standard full)
+    local -a profiles_to_show=(edge mini standard full)
     if ! $SHOW_ALL_PROFILES; then
         profiles_to_show=("$target_profile")
     fi

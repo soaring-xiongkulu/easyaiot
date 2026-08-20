@@ -2735,10 +2735,17 @@ _apply_srs_http_hooks() {
     local srs_config_file="$1"
     local gateway_ip="$2"
     local on_publish_url on_dvr_url
+    local video_port="${FLASK_RUN_PORT:-6000}"
+    local host_ip
+    host_ip=$(get_host_ip)
+    [ -z "$host_ip" ] && host_ip="127.0.0.1"
 
-    if is_mini_deploy_profile; then
-        local video_port="${FLASK_RUN_PORT:-6000}"
-        local host_ip=$(get_host_ip)
+    if is_edge_deploy_profile; then
+        # 零 DEVICE：on_publish / on_dvr 均直连 VIDEO 本地消化
+        on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
+        on_dvr_url="http://${host_ip}:${video_port}/video/media/hook/srs/on_dvr"
+        print_info "edge 形态：on_publish / on_dvr 均直连 VIDEO（本地存储）"
+    elif is_mini_deploy_profile; then
         on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
         on_dvr_url="http://${gateway_ip}:48080/admin-api/sink/media/hook/srs/on_dvr"
         print_info "mini 形态：on_publish 直连 VIDEO；on_dvr 经 Gateway→iot-sink"
@@ -2807,8 +2814,11 @@ prepare_srs_config() {
     # 如果复制失败或源文件不存在，创建默认配置文件
     print_info "创建默认 SRS 配置文件..."
     local on_publish_url on_dvr_url
-    if is_mini_deploy_profile; then
-        local video_port="${FLASK_RUN_PORT:-6000}"
+    local video_port="${FLASK_RUN_PORT:-6000}"
+    if is_edge_deploy_profile; then
+        on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
+        on_dvr_url="http://${host_ip}:${video_port}/video/media/hook/srs/on_dvr"
+    elif is_mini_deploy_profile; then
         on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
         on_dvr_url="http://${gateway_ip}:48080/admin-api/sink/media/hook/srs/on_dvr"
     else

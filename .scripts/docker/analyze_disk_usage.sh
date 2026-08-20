@@ -41,6 +41,7 @@ LOCAL_PLAYBACK_CANDIDATES=(
     "${MEDIA_RECORD_DIR:-}|MEDIA_RECORD_DIR（本地录像根目录）"
     "${SRS_RECORD_DIR:-}|SRS_RECORD_DIR（本地录像根目录）"
     "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/playbacks|NFS 媒体根 playbacks（EASYAIOT_MEDIA_ROOT）"
+    "${PROJECT_ROOT}/.runtime-media/playbacks|项目 .runtime-media/playbacks（edge 单机合装常用）"
     "${HOME}/easyaiot/media/playbacks|~/easyaiot/media/playbacks（无 sudo 本地 bind）"
     "${HOME}/easyaiot/data/playbacks|~/easyaiot/data/playbacks（历史路径）"
     "${SCRIPT_DIR}/srs_data/playbacks|中间件 srs_data/playbacks 挂载"
@@ -51,6 +52,7 @@ LOCAL_PLAYBACK_CANDIDATES=(
 LOCAL_ALERT_IMAGE_CANDIDATES=(
     "${ALERT_IMAGES_DIR:-}|ALERT_IMAGES_DIR 环境变量"
     "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/alert_images|NFS alert_images"
+    "${PROJECT_ROOT}/.runtime-media/alert_images|项目 .runtime-media/alert_images（edge 常用）"
     "${HOME}/easyaiot/media/alert_images|~/easyaiot/media/alert_images"
     "${HOME}/easyaiot/data/alert_images|~/easyaiot/data/alert_images（历史）"
 )
@@ -371,27 +373,45 @@ collect_local_alert_images_report() {
 collect_alert_record_summary() {
     echo "【5】告警录像存储说明"
     ensure_deploy_profile
-    if [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "mini" ]; then
-        print_info "mini 形态：告警录像主要在【3】本地 playbacks，不一定写入 MinIO"
+    if is_local_storage_deploy_profile; then
+        if is_edge_deploy_profile; then
+            print_info "edge 形态：零 DEVICE + 本地存储；告警图/录像均在【3】【4】本地目录，不经 MinIO"
+        else
+            print_info "mini 形态：告警录像主要在【3】本地 playbacks，不一定写入 MinIO"
+        fi
     else
         print_info "${EASYAIOT_DEPLOY_PROFILE} 形态：告警录像元数据 record_path 指向 MinIO record-space（见【1】）"
         print_info "在线回放走 MinIO 下载 API；本地【3】为 SRS 录制/upload 缓冲，不应长期堆积"
     fi
     echo ""
     print_info "排查提示:"
-    echo "  - MinIO 录像膨胀 → 清理【1】record-space 过期日期目录"
-    echo "  - 本地 playbacks 膨胀 → 检查 DVR 上传是否失败；确认 PLAYBACK_DELETE_AFTER_UPLOAD=true"
-    echo "  - 告警图片膨胀 → 清理【2】MinIO alert-images 与【4】本地 alert_images"
-    echo "  - 告警无录像 → 查【1】对应 device_id 时间点是否有 .flv，或【3】live 目录是否有残留"
+    if is_local_storage_deploy_profile; then
+        echo "  - 本地 playbacks 膨胀 → 见【3】检查 live/ai 子目录与 DVR 本地落盘"
+        echo "  - 本地告警图膨胀 → 见【4】清理 alert_images"
+        echo "  - 告警无录像 → 查【3】playbacks/live 对应 device 是否有 .flv"
+    else
+        echo "  - MinIO 录像膨胀 → 清理【1】record-space 过期日期目录"
+        echo "  - 本地 playbacks 膨胀 → 检查 DVR 上传是否失败；确认 PLAYBACK_DELETE_AFTER_UPLOAD=true"
+        echo "  - 告警图片膨胀 → 清理【2】MinIO alert-images 与【4】本地 alert_images"
+        echo "  - 告警无录像 → 查【1】对应 device_id 时间点是否有 .flv，或【3】live 目录是否有残留"
+    fi
 }
 
 collect_media_storage_report() {
     print_section "录像与告警媒体占用（重点分析）"
-    print_info "以下目录通常是磁盘占用的主要来源（MinIO 归档 + 本地上传/回放缓冲），请优先关注。"
+    ensure_deploy_profile
+    if is_local_storage_deploy_profile; then
+        print_info "当前为 ${EASYAIOT_DEPLOY_PROFILE} 形态（本地存储热路径）；MinIO【1】【2】通常未部署，请优先看【3】【4】"
+    else
+        print_info "以下目录通常是磁盘占用的主要来源（MinIO 归档 + 本地上传/回放缓冲），请优先关注。"
+    fi
     echo ""
 
     # --- MinIO 监控录像 ---
     echo "【1】MinIO 监控录像 (record-space bucket)"
+    if is_local_storage_deploy_profile; then
+        print_info "edge/mini 通常不部署 MinIO；若目录仍存在，可能是历史 full/mini 残留数据"
+    fi
     print_path_row_abs "总占用" "$MINIO_RECORD_SPACE_DIR" ".scripts/docker/minio_data/data/record-space"
     if [ -d "$MINIO_RECORD_SPACE_DIR" ]; then
         local file_count
@@ -513,17 +533,43 @@ collect_top_dirs_report() {
 collect_profile_hint() {
     print_section "部署形态与排查建议"
     ensure_deploy_profile
+    local budget_label budget_mib
+    budget_label=$(deploy_profile_budget_label "${EASYAIOT_DEPLOY_PROFILE}")
+    budget_mib=$(deploy_profile_budget_mib "${EASYAIOT_DEPLOY_PROFILE}")
     print_info "当前部署形态: $(_deploy_profile_desc) (${EASYAIOT_DEPLOY_PROFILE})"
+    print_info "推荐容器内存上限: ${budget_label}（${budget_mib} MiB，详见 ./analyze_deploy_memory.sh）"
+    echo ""
+    case "${EASYAIOT_DEPLOY_PROFILE}" in
+        edge)
+            echo "edge 形态要点:"
+            echo "  - 中间件: PostgreSQL + Redis + SRS（无 MinIO/Nacos/EMQX/Kafka）"
+            echo "  - 业务: VIDEO + WEB + RUNTIME（零 DEVICE）"
+            echo "  - 媒体: 本地 EASYAIOT_MEDIA_ROOT（playbacks / alert_images）"
+            echo "  - 内存: 典型 5 容器约 600 MiB–1.2 GB，推荐上限 3 GB（含 RUNTIME 宿主机进程）"
+            ;;
+        mini)
+            echo "mini 形态要点:"
+            echo "  - 含 DEVICE(gateway/system/sink) + MinIO；告警/DVR 可走 sink"
+            echo "  - 本地 playbacks 与 MinIO 可能并存，注意双重占用"
+            ;;
+    esac
     echo ""
     echo "常见磁盘问题与处理建议:"
-    echo "  1) MinIO 监控录像(record-space)过大 → 见【1】按设备/日期清理"
-    echo "  2) 本地 playbacks 过大 → 见【3】检查 live/ai 子目录；确认 DVR 上传 MinIO 正常、PLAYBACK_DELETE_AFTER_UPLOAD=true"
-    echo "  3) MinIO 告警图片(alert-images)过大 → 见【2】按日期清理"
-    echo "  4) 本地 alert_images 过大 → 见【4】清理 VIDEO/alert_images 中已上传残留"
-    echo "  5) 告警录像缺失 → full/standard 查【1】；mini 查【3】playbacks/live"
-    echo "  6) Docker 镜像/容器过多 → cleanup_docker_space.sh 或 install_linux.sh clean（先备份）"
-    echo "  7) 中间件日志膨胀 → standalone-logs 与 logs 目录"
-    echo "  8) 磁盘满导致数据库异常 → 优先释放【1】【3】空间后 restart 服务"
+    if is_local_storage_deploy_profile; then
+        echo "  1) 本地 playbacks 过大 → 见【3】按 device/日期清理"
+        echo "  2) 本地 alert_images 过大 → 见【4】清理已展示告警图"
+        echo "  3) Docker 镜像/构建缓存过大 → cleanup_docker_space.sh"
+        echo "  4) 中间件日志膨胀 → standalone-logs 与 logs 目录"
+    else
+        echo "  1) MinIO 监控录像(record-space)过大 → 见【1】按设备/日期清理"
+        echo "  2) 本地 playbacks 过大 → 见【3】检查 live/ai 子目录；确认 DVR 上传 MinIO 正常"
+        echo "  3) MinIO 告警图片(alert-images)过大 → 见【2】按日期清理"
+        echo "  4) 本地 alert_images 过大 → 见【4】清理 VIDEO/alert_images 中已上传残留"
+        echo "  5) 告警录像缺失 → full/standard 查【1】；mini 查【3】playbacks/live"
+        echo "  6) Docker 镜像/容器过多 → cleanup_docker_space.sh 或 install_linux.sh clean（先备份）"
+        echo "  7) 中间件日志膨胀 → standalone-logs 与 logs 目录"
+        echo "  8) 磁盘满导致数据库异常 → 优先释放【1】【3】空间后 restart 服务"
+    fi
 }
 
 parse_args() {
