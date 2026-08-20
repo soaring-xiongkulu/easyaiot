@@ -89,6 +89,8 @@ declare global {
     VITE_TIANDITU_KEY: string
     /** 部署形态：mini | standard | full */
     VITE_GLOB_DEPLOY_PROFILE?: string
+    /** edge 单机合装标识（与 mini 前端裁剪区分） */
+    VITE_GLOB_EDGE_STANDALONE?: string
     /** 数据集批量上传最大并发数 */
     VITE_UPLOAD_MAX_CONCURRENCY?: string
     /** VISUALIZE 大屏编辑器基址 */

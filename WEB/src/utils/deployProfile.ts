@@ -19,9 +19,37 @@ export function isMiniDeployProfile(): boolean {
   return getDeployProfile() === 'mini';
 }
 
-/** 大屏「管理后台」默认落地页：mini 无集群管理，进流媒体地图分布 */
+/** edge 单机合装：登录无租户、无滑块验证码（VITE 编译时关闭） */
+export function isLoginTenantEnabled(): boolean {
+  return String(import.meta.env.VITE_GLOB_APP_TENANT_ENABLE ?? 'true').trim().toLowerCase() !== 'false';
+}
+
+export function isLoginCaptchaEnabled(): boolean {
+  return String(import.meta.env.VITE_GLOB_APP_CAPTCHA_ENABLE ?? 'true').trim().toLowerCase() !== 'false';
+}
+
+/** edge 单机合装（与 mini 共用前端裁剪，但零 DEVICE / 无集群 Tab） */
+export function isEdgeStandaloneDeployProfile(): boolean {
+  return String(import.meta.env.VITE_GLOB_EDGE_STANDALONE ?? 'false').trim().toLowerCase() === 'true';
+}
+
+/** edge 单机合装不部署 NFS 集群，仅隐藏 NFS 相关 Tab */
+const EDGE_HIDDEN_CAMERA_TAB_KEYS = new Set([
+  '20', // NFS 集群管理
+  '24', // NFS 集群拓扑
+  '22', // NFS 节点部署
+  '23', // NFS 文件目录
+]);
+
+export function isEdgeCameraTabVisible(tabKey: string): boolean {
+  if (!isEdgeStandaloneDeployProfile())
+    return true;
+  return !EDGE_HIDDEN_CAMERA_TAB_KEYS.has(String(tabKey));
+}
+
+/** 大屏「管理后台」默认落地页（edge/mini 均进入流媒体 — 地图分布 Tab） */
 export function getAdminHomeRoute(): { path: string; query?: Record<string, string> } {
-  if (isMiniDeployProfile()) {
+  if (isEdgeStandaloneDeployProfile() || isMiniDeployProfile()) {
     return { path: '/camera/index', query: { tab: '1' } };
   }
   return { path: '/node/index' };
@@ -89,9 +117,9 @@ export function isTransformEnabled(): boolean {
   return getDeployProfile() === 'full';
 }
 
-/** 各部署形态均启用 HARNESS（与 IDEA 一致；install 侧可用 EASYAIOT_ENABLE_HARNESS=0 关闭） */
+/** 各部署形态均启用 HARNESS（edge 单机合装除外） */
 export function isHarnessEnabled(): boolean {
-  return true;
+  return !isEdgeStandaloneDeployProfile();
 }
 
 function getHiddenMenuNamesForDeployProfile(): Set<string> {

@@ -10,6 +10,22 @@ import type { DictDataVO } from '@/api/system/dict/types'
 
 const ls = createLocalStorage()
 
+/** edge/nginx 桩或分页包装后的 simple-list 响应统一转为数组 */
+function normalizeSimpleListResponse(res: unknown): DictDataVO[] {
+  if (Array.isArray(res))
+    return res as DictDataVO[]
+  if (!res || typeof res !== 'object')
+    return []
+  const obj = res as Recordable
+  if (Array.isArray(obj.list))
+    return obj.list as DictDataVO[]
+  if (Array.isArray(obj.data))
+    return obj.data as DictDataVO[]
+  if (obj.data && typeof obj.data === 'object' && Array.isArray(obj.data.list))
+    return obj.data.list as DictDataVO[]
+  return []
+}
+
 export const useDictStore = defineStore({
   id: 'app-dict',
   state: (): DictState => ({
@@ -37,9 +53,10 @@ export const useDictStore = defineStore({
       }
       else {
         const res = await listSimpleDictData()
+        const dictList = normalizeSimpleListResponse(res)
         // 设置数据
         const dictDataMap = new Map<string, any>()
-        res.forEach((dictData: DictDataVO) => {
+        dictList.forEach((dictData: DictDataVO) => {
           // 获得 dictType 层级
           const enumValueObj = dictDataMap[dictData.dictType]
           if (!enumValueObj)

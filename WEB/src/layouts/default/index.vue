@@ -17,6 +17,7 @@ import { useAppInject } from '@/hooks/web/useAppInject'
 
 import { useMultipleTabSetting } from '@/hooks/setting/useMultipleTabSetting'
 import { useUserStoreWithOut } from '@/store/modules/user'
+import { isEdgeStandaloneDeployProfile } from '@/utils/deployProfile'
 
 defineOptions({ name: 'DefaultLayout' })
 
@@ -30,8 +31,8 @@ const { getShowFullHeaderRef } = useHeaderSetting()
 const { getShowSidebar, getIsMixSidebar, getShowMenu } = useMenuSetting()
 const { getAutoCollapse } = useMultipleTabSetting()
 const userStore = useUserStoreWithOut()
-/** AI 助手悬浮球：跳转 IDEA 门户 :9300（含 HARNESS） */
-const showIdeaBall = computed(() => !!userStore.getAccessToken)
+/** AI 助手悬浮球：跳转 IDEA 门户 :9300（含 HARNESS）；edge 单机合装不展示 */
+const showIdeaBall = computed(() => !!userStore.getAccessToken && !isEdgeStandaloneDeployProfile())
 
 // Create a lock screen monitor
 const lockEvents = useLockPage()

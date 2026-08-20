@@ -20,6 +20,7 @@ import { Verify } from '@/components/Verifition'
 import { getTenantByWebsite, getTenantIdByName } from '@/api/base/login'
 import { Button } from '@/components/Button'
 import { onMounted } from 'vue'
+import { isLoginCaptchaEnabled, isLoginTenantEnabled } from '@/utils/deployProfile'
 const FormItem = Form.Item
 const InputPassword = Input.Password
 
@@ -30,6 +31,8 @@ const userStore = useUserStore()
 const permissionStore = usePermissionStore()
 
 const { tenantEnable, captchaEnable } = useGlobSetting()
+const loginTenantEnabled = isLoginTenantEnabled()
+const loginCaptchaEnabled = isLoginCaptchaEnabled()
 
 const { setLoginState, getLoginState } = useLoginState()
 const { getFormRules } = useFormRules()
@@ -61,7 +64,7 @@ const getShow = computed(() => unref(getLoginState) === LoginStateEnum.LOGIN)
 // 获取验证码
 async function getCode() {
   // 情况一，未开启：则直接登录
-  if (captchaEnable === 'false') {
+  if (!loginCaptchaEnabled || captchaEnable === 'false') {
     await handleLogin({})
   }
   else {
@@ -73,7 +76,7 @@ async function getCode() {
 
 // 根据域名，获得租户信息 && 获取租户ID
 async function getTenantId() {
-  if (tenantEnable === 'true') {
+  if (loginTenantEnabled && tenantEnable === 'true') {
     const website = location.host
     const tenant = await getTenantByWebsite(website)
     if (tenant.id != null) {
@@ -84,6 +87,9 @@ async function getTenantId() {
       const res = await getTenantIdByName(formData.tenantName)
       authUtil.setTenantId(res.id)
     }
+  }
+  else {
+    authUtil.setTenantId(1)
   }
 }
 
@@ -103,7 +109,10 @@ async function handleLogin(params) {
     })
     if (userInfo) {
       console.log(JSON.stringify(userInfo));
-      await permissionStore.changePermissionCode(userInfo.permissions)
+    if (userInfo) {
+      const perms = userInfo.permissions
+      await permissionStore.changePermissionCode(Array.isArray(perms) ? perms : [])
+    }
       notification.success({
         message: t('sys.login.loginSuccessTitle'),
         description: `${t('sys.login.loginSuccessDesc')}: ${userInfo.user.nickname}`,
@@ -129,11 +138,10 @@ async function handleLogin(params) {
   <LoginFormTitle v-show="getShow" class="enter-x" />
   <Form
     v-show="getShow" ref="formRef" class="enter-x p-4" :model="formData" :rules="getFormRules"
-    @keypress.enter="handleLogin"
+    @keypress.enter="getCode"
   >
-    <FormItem name="tenantName" class="enter-x">
+    <FormItem v-if="loginTenantEnabled && tenantEnable === 'true'" name="tenantName" class="enter-x">
       <Input
-        v-if="tenantEnable === 'true'"
         v-model:value="formData.tenantName"
         size="large"
         :placeholder="t('sys.login.tenantName')"
@@ -184,5 +192,12 @@ async function handleLogin(params) {
       </Button> -->
     </FormItem>
   </Form>
-  <Verify ref="verify" mode="pop" :captcha-type="captchaType" :img-size="{ width: '360px', height: '180px' }" @success="handleLogin" />
+  <Verify
+    v-if="loginCaptchaEnabled && captchaEnable !== 'false'"
+    ref="verify"
+    mode="pop"
+    :captcha-type="captchaType"
+    :img-size="{ width: '360px', height: '180px' }"
+    @success="handleLogin"
+  />
 </template>

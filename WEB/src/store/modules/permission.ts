@@ -230,12 +230,8 @@ export const usePermissionStore = defineStore('app-permission', {
           // this function may only need to be executed once, and the actual project can be put at the right time by itself
           // 这个功能可能只需要执行一次，实际项目可以自己放在合适的时间
           let routeList: AppRouteRecordRaw[] = []
-          try {
-            routeList = userInfo.menus as AppRouteRecordRaw[]
-          } catch (error) {
-            console.error(error)
-            console.error(error)
-          }
+          const menus = userInfo?.menus
+          routeList = Array.isArray(menus) ? (menus as AppRouteRecordRaw[]) : []
           routeList = filterRoutesByDeployProfile(routeList)
           // Dynamically introduce components
           // 动态引入组件
@@ -256,8 +252,10 @@ export const usePermissionStore = defineStore('app-permission', {
       }
 
       // 从用户中获取权限
-      if (userInfo)
-        this.setPermCodeList(userInfo.permissions)
+      if (userInfo) {
+        const perms = userInfo.permissions
+        this.setPermCodeList(Array.isArray(perms) ? perms : [])
+      }
 
       patchHomeAffix(routes)
       return routes

@@ -14,6 +14,8 @@ import { propTypes } from '@/utils/propTypes'
 import { openWindow } from '@/utils'
 import { useGo } from '@/hooks/web/usePage'
 import { createAsyncComponent } from '@/utils/factory/createAsyncComponent'
+import { isEdgeStandaloneDeployProfile } from '@/utils/deployProfile'
+import PasswordModal from '@/views/base/profile/PasswordModal.vue'
 
 defineOptions({ name: 'UserDropdown' })
 
@@ -23,7 +25,7 @@ defineProps({
 
 const go = useGo()
 
-type MenuEvent = 'profile' | 'logout' | 'doc' | 'lock'
+type MenuEvent = 'profile' | 'logout' | 'doc' | 'lock' | 'password'
 
 const MenuItem = createAsyncComponent(() => import('./DropMenuItem.vue'))
 const LockAction = createAsyncComponent(() => import('../lock/LockModal.vue'))
@@ -32,6 +34,7 @@ const { prefixCls } = useDesign('header-user-dropdown')
 const { t } = useI18n()
 const { getShowDoc, getUseLockPage } = useHeaderSetting()
 const userStore = useUserStore()
+const edgeStandalone = isEdgeStandaloneDeployProfile()
 
 const getUserInfo = computed(() => {
   const { nickname = '', avatar } = userStore.getUserInfo.user || {}
@@ -39,17 +42,16 @@ const getUserInfo = computed(() => {
 })
 
 const [register, { openModal }] = useModal()
+const [registerPwd, { openModal: openChangePasswordModal }] = useModal()
 
 function handleLock() {
   openModal(true)
 }
 
-//  login out
 function handleLoginOut() {
   userStore.confirmLoginOut()
 }
 
-// open doc
 function openDoc() {
   openWindow(DOC_URL)
 }
@@ -60,6 +62,9 @@ function openProfile() {
 
 function handleMenuClick(e: MenuInfo) {
   switch (e.key as MenuEvent) {
+    case 'password':
+      openChangePasswordModal(true)
+      break
     case 'profile':
       openProfile()
       break
@@ -93,21 +98,29 @@ function handleMenuClick(e: MenuInfo) {
 
     <template #overlay>
       <Menu @click="handleMenuClick">
-        <MenuItem key="profile" :text="t('layout.header.accountCenter')" icon="ion:person-outline" />
-        <MenuItem
-          v-if="getShowDoc" key="doc" :text="t('layout.header.dropdownItemDoc')"
-          icon="ion:document-text-outline"
-        />
-        <MenuDivider v-if="getShowDoc" />
-        <MenuItem
-          v-if="getUseLockPage" key="lock" :text="t('layout.header.tooltipLock')"
-          icon="ion:lock-closed-outline"
-        />
-        <MenuItem key="logout" :text="t('layout.header.dropdownItemLoginOut')" icon="ion:power-outline" />
+        <template v-if="edgeStandalone">
+          <MenuItem key="password" text="修改密码" icon="ion:key-outline" />
+          <MenuDivider />
+          <MenuItem key="logout" :text="t('layout.header.dropdownItemLoginOut')" icon="ion:power-outline" />
+        </template>
+        <template v-else>
+          <MenuItem key="profile" :text="t('layout.header.accountCenter')" icon="ion:person-outline" />
+          <MenuItem
+            v-if="getShowDoc" key="doc" :text="t('layout.header.dropdownItemDoc')"
+            icon="ion:document-text-outline"
+          />
+          <MenuDivider v-if="getShowDoc" />
+          <MenuItem
+            v-if="getUseLockPage" key="lock" :text="t('layout.header.tooltipLock')"
+            icon="ion:lock-closed-outline"
+          />
+          <MenuItem key="logout" :text="t('layout.header.dropdownItemLoginOut')" icon="ion:power-outline" />
+        </template>
       </Menu>
     </template>
   </Dropdown>
   <LockAction @register="register" />
+  <PasswordModal @register="registerPwd" />
 </template>
 
 <style lang="less">
