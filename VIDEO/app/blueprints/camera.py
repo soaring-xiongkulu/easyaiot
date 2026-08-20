@@ -80,13 +80,21 @@ def _resolve_auth_check_url() -> str:
 
 
 def _check_login(req) -> bool:
-    """用请求里的 JWT 调网关校验登录态：HTTP 200 且业务 code==0 才算有效。
+    """用请求里的 JWT 校验登录态：HTTP 200 且业务 code==0 才算有效。
 
     nginx 把 /dev-api/video/ 直连 VIDEO 绕过了网关，故签发接口必须自校验登录。
+    edge 规格下优先本地校验 VIDEO 签发的 token，避免再绕一圈 HTTP。
     """
     auth = (req.headers.get('Authorization') or req.headers.get('X-Authorization') or '').strip()
     if not auth:
         return False
+    try:
+        from app.auth.auth_api import is_video_auth_enabled
+        from app.auth.token_service import verify_access_token
+        if is_video_auth_enabled() and verify_access_token(auth):
+            return True
+    except Exception as e:
+        logger.debug(f'本地 VIDEO token 校验跳过: {e}')
     try:
         r = requests.get(
             _resolve_auth_check_url(),

@@ -877,6 +877,15 @@ def create_app(start_background_tasks=None):
         traceback.print_exc()
 
     try:
+        from app.auth.auth_api import register_auth_blueprints
+        register_auth_blueprints(app)
+        print(f"✅ VIDEO Auth Blueprint 注册成功")
+    except Exception as e:
+        print(f"❌ VIDEO Auth Blueprint 注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+    try:
         from app.blueprints import audio_talk
         app.register_blueprint(audio_talk.audio_talk_bp, url_prefix='/video/camera/audio/talk')
         print(f"✅ Audio Talk Blueprint 注册成功")
