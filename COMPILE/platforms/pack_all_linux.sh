@@ -94,4 +94,14 @@ ls -lh \
   2>/dev/null || true
 echo "panel-version-after=$(cat COMPILE/.panel-version 2>/dev/null || echo none)"
 echo "log=${LOG}"
+
+echo ""
+echo "=== RUNTIME C++ 矩阵与 COMPILE 覆盖校验 ==="
+if bash RUNTIME/scripts/verify_runtime_compile_matrix.sh; then
+  echo "[pack_all] RUNTIME 矩阵校验通过（离线包需另跑: bash RUNTIME/build_runtime_matrix.sh）"
+else
+  echo "[pack_all] RUNTIME 矩阵校验失败，请检查 RUNTIME/scripts/runtime_os_matrix.sh"
+  fail=1
+fi
+
 exit "$fail"

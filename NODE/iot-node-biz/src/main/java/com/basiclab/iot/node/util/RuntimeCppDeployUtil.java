@@ -193,7 +193,7 @@ public final class RuntimeCppDeployUtil {
                 + "。请在对应 OS 容器内编译并导出（与 COMPILE 矩阵对齐）：\n"
                 + "  bash RUNTIME/" + EXPORT_OS_CONTAINER_SCRIPT + " " + osFamily + "\n"
                 + "或批量：\n"
-                + "  bash RUNTIME/" + EXPORT_ALL_SCRIPT + " --default\n"
+                + "  bash RUNTIME/" + EXPORT_ALL_SCRIPT + " --compile-target all-linux\n"
                 + "分发前预检：\n"
                 + "  bash RUNTIME/" + PREFLIGHT_SCRIPT + " " + osFamily + " " + archKey + "\n"
                 + "产物应落到：\n"
