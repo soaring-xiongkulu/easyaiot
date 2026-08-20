@@ -11,6 +11,7 @@ SHANGHAI_TZ = timezone(timedelta(hours=8))
 LEGACY_PLAYBACK_TZ_OFFSET_SECONDS = 8 * 3600
 
 _MINI_PROFILES = frozenset({'mini', '1', 'minimal', '4g'})
+_EDGE_PROFILES = frozenset({'edge', '0', 'pure-edge', 'standalone-edge'})
 _NON_MINI_PROFILES = frozenset({'standard', '2', 'std', '16g', 'full', '3', 'complete'})
 _LEGACY_GATEWAY_BASES = frozenset({
     'http://localhost:48080',
@@ -19,11 +20,17 @@ _LEGACY_GATEWAY_BASES = frozenset({
 _MINI_SYSTEM_PORTS = frozenset({'48099'})
 
 
+def is_edge_deploy_profile() -> bool:
+    profile = (os.getenv('EASYAIOT_DEPLOY_PROFILE') or '').strip().lower()
+    return profile in _EDGE_PROFILES
+
+
 def is_mini_deploy_profile() -> bool:
+    """mini 或 edge：本地存储热路径 / 直连落库等行为共用。"""
     profile = (os.getenv('EASYAIOT_DEPLOY_PROFILE') or '').strip().lower()
     if profile in _NON_MINI_PROFILES:
         return False
-    if profile in _MINI_PROFILES:
+    if profile in _MINI_PROFILES or profile in _EDGE_PROFILES:
         return True
     # 未显式声明形态时，根据 mini 直连端口推断（iot-system:48099）
     for key in ('GATEWAY_URL', 'JAVA_BACKEND_URL'):
@@ -34,11 +41,13 @@ def is_mini_deploy_profile() -> bool:
 
 
 def minio_storage_enabled() -> bool:
-    """mini 形态亦部署 MinIO（sink 归档）；可通过 MINIO_ENABLED 显式关闭。"""
+    """edge 默认关闭 MinIO；其余形态可用 MINIO_ENABLED 显式开关。"""
     explicit = (os.getenv('MINIO_ENABLED') or '').strip().lower()
     if explicit in ('1', 'true', 'yes', 'on'):
         return True
     if explicit in ('0', 'false', 'no', 'off'):
+        return False
+    if is_edge_deploy_profile():
         return False
     return True
 
