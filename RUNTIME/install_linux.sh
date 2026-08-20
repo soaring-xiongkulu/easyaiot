@@ -15,9 +15,14 @@
 #       默认 docker：在 VIDEO 同源容器内用系统 g++ 编译（推荐，免 sysroot 降级）
 #       host：本机 conda 编译（新 glibc 主机上产物可能无法进 VIDEO 容器）
 #   EASYAIOT_RUNTIME_BUILD_IMAGE         # 覆盖构建镜像（默认优先 video-service:latest）
+#   EASYAIOT_RUNTIME_DEPLOY_MODE=integrated
+#       云边一体：需 VIDEO/Gateway/MQTT/SRS 地址，本机只装 RUNTIME
+#       单机合装（汇聚面也在本机）请用平台安装：EASYAIOT_DEPLOY_PROFILE=edge ... install
 #   VIDEO_BASE_URL / EASYAIOT_VIDEO_BASE_URL
-#       原子模式必填：汇聚面 VIDEO 根地址，如 http://192.168.1.10:6000
-#   EASYAIOT_RUNTIME_INSTALL_DIR         # 原子模式安装目录（默认 /opt/easyaiot/RUNTIME）
+#       云边一体必填：VIDEO 根地址，如 http://192.168.1.10:6000（本机合装则为本机 :6000）
+#   GATEWAY_URL / EASYAIOT_GATEWAY_URL
+#       云边一体可选：Gateway，如 http://192.168.1.10:48080
+#   EASYAIOT_RUNTIME_INSTALL_DIR         # 节点安装目录（默认 /opt/easyaiot/RUNTIME）
 # ============================================
 set -euo pipefail
 
@@ -32,6 +37,8 @@ BUILD_MODE="${EASYAIOT_RUNTIME_BUILD_MODE:-docker}"
 source "$ROOT/scripts/version_meta.sh"
 # shellcheck disable=SC1091
 source "$ROOT/scripts/os_family.sh"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/runtime_os_matrix.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -55,9 +62,11 @@ detect_arch() {
 find_conda_sh() {
   local candidates=(
     "${CONDA_EXE%/*}/../etc/profile.d/conda.sh"
+    "${MINICONDA_PREFIX:-/opt/miniconda3}/etc/profile.d/conda.sh"
     "$HOME/miniconda3/etc/profile.d/conda.sh"
     "$HOME/anaconda3/etc/profile.d/conda.sh"
     /opt/conda/etc/profile.d/conda.sh
+    /opt/miniconda3/etc/profile.d/conda.sh
     /usr/local/miniconda3/etc/profile.d/conda.sh
     /home/ubuntu/miniconda3/etc/profile.d/conda.sh
   )
@@ -79,6 +88,104 @@ find_conda_sh() {
   return 1
 }
 
+runtime_needs_glibc217_env() {
+  if [[ "${RUNTIME_OS_FAMILY:-}" == "el7" ]]; then
+    return 0
+  fi
+  local glibc_ver
+  glibc_ver="$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 || true)"
+  [[ "$glibc_ver" == "2.17" ]]
+}
+
+finalize_runtime_env_links() {
+  # conda 的 libstdc++ 常在 gcc 子目录；挂载到 VIDEO 容器时需出现在 $CONDA_PREFIX/lib
+  # 勿链到 gcc/.../libstdc++.so.6（其常指回 lib/libstdc++.so.6，形成环导致 cmake 落到系统 libstdc++）
+  local gcc_rel ver real
+  shopt -s nullglob
+  for real in "${CONDA_PREFIX}/lib/libstdc++.so.6.0."*; do
+    ver="$(basename "$real")"
+    ln -sfn "$ver" "${CONDA_PREFIX}/lib/libstdc++.so.6"
+    break
+  done
+  if [[ ! -e "${CONDA_PREFIX}/lib/libstdc++.so.6" ]]; then
+    gcc_rel="$(ls -d "${CONDA_PREFIX}/lib/gcc/"*/*/ 2>/dev/null | tail -1 | sed "s|^${CONDA_PREFIX}/lib/||" || true)"
+    for real in "${CONDA_PREFIX}/lib/${gcc_rel}"libstdc++.so.6.0.*; do
+      ver="$(basename "$real")"
+      ln -sfn "${gcc_rel}${ver}" "${CONDA_PREFIX}/lib/libstdc++.so.6"
+      break
+    done
+  fi
+  gcc_rel="$(ls -d "${CONDA_PREFIX}/lib/gcc/"*/*/ 2>/dev/null | tail -1 | sed "s|^${CONDA_PREFIX}/lib/||" || true)"
+  if [[ -n "$gcc_rel" && -f "${CONDA_PREFIX}/lib/${gcc_rel}libgcc_s.so.1" ]]; then
+    ln -sfn "${gcc_rel}libgcc_s.so.1" "${CONDA_PREFIX}/lib/libgcc_s.so.1"
+  fi
+  shopt -u nullglob
+  export PATH="$CONDA_PREFIX/bin:$PATH"
+}
+
+activate_runtime_env_el7_x86() {
+  # gxx 包的 activate/deactivate 脚本会引用可能未设置的 CONDA_BACKUP_*，与 set -u 冲突
+  set +u
+  trap 'set -u' RETURN
+  conda config --set channel_priority flexible >/dev/null 2>&1 || true
+  if ! conda env list | awk '{print $1}' | grep -qx "$CONDA_ENV_NAME"; then
+    print_info "创建 EL7 x86_64 conda 环境（分步安装，兼容 glibc 2.17）"
+    conda create -y -n "$CONDA_ENV_NAME" python=3.9
+    conda activate "$CONDA_ENV_NAME"
+    # 先装 gxx/libstdc++，再装 opencv；避免 opencv 已带入 gxx16 后再降级触发 200+ 包重求解
+    conda install -y -c conda-forge \
+      "gxx_linux-64=12.*" "libstdcxx-ng=12.*" "libgcc-ng=12.*" \
+      "cmake=3.26.*" pkg-config
+    conda install -y -c conda-forge "libopencv=5.0.0=qt6_hbf336e1_606" || \
+      conda install -y -c conda-forge "opencv=5"
+    conda install -y -c conda-forge \
+      "glog=0.6.0" "gflags=2.2.2" "jsoncpp=1.9.5" \
+      libcurl libjpeg-turbo libtiff libxml2 openh264 libva libdeflate libpng
+  else
+    conda activate "$CONDA_ENV_NAME"
+  fi
+  if [[ ! -x "${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-g++" ]]; then
+    conda install -y -c conda-forge \
+      "gxx_linux-64=12.*" "libstdcxx-ng=12.*" "libgcc-ng=12.*" "cmake=3.26.*" pkg-config
+  fi
+  if [[ ! -f "${CONDA_PREFIX}/lib/libopencv_core.so" ]]; then
+    conda install -y -c conda-forge "libopencv=5.0.0=qt6_hbf336e1_606" || \
+      conda install -y -c conda-forge "opencv=5"
+    conda install -y -c conda-forge \
+      "glog=0.6.0" "gflags=2.2.2" "jsoncpp=1.9.5" \
+      libcurl libjpeg-turbo libtiff libxml2 openh264 libva libdeflate libpng
+  fi
+  finalize_runtime_env_links
+}
+
+activate_runtime_env_el7_arm() {
+  set +u
+  trap 'set -u' RETURN
+  local mm="${MAMBA_EXE:-/opt/micromamba/bin/micromamba}"
+  local root="${MAMBA_ROOT_PREFIX:-/opt/micromamba-root}"
+  local env_prefix="${MINICONDA_PREFIX:-/opt/miniconda3}/envs/${CONDA_ENV_NAME}"
+  if [[ ! -x "$mm" ]]; then
+    print_error "EL7 aarch64 需要 micromamba（Miniconda 安装器要求 glibc>=2.25）"
+    return 1
+  fi
+  export MAMBA_EXE="$mm"
+  export MAMBA_ROOT_PREFIX="$root"
+  eval "$("$mm" shell hook -s bash)"
+  if [[ ! -x "$env_prefix/bin/python" ]]; then
+    print_info "创建 EL7 aarch64 micromamba 环境（兼容 glibc 2.17）"
+    "$mm" create -y -p "$env_prefix" python=3.11 -c conda-forge
+  fi
+  micromamba activate "$env_prefix"
+  if [[ ! -f "${CONDA_PREFIX}/lib/libopencv_core.so" ]]; then
+    micromamba install -y -p "$CONDA_PREFIX" -c conda-forge \
+      "opencv=5" glog gflags jsoncpp cmake pkg-config "gxx_linux-aarch64=12.*" \
+      ffmpeg libcurl libjpeg-turbo libtiff libxml2 openh264 libva libdeflate libpng
+  elif [[ ! -x "${CONDA_PREFIX}/bin/aarch64-conda-linux-gnu-g++" ]]; then
+    micromamba install -y -p "$CONDA_PREFIX" -c conda-forge "gxx_linux-aarch64=12.*"
+  fi
+  finalize_runtime_env_links
+}
+
 # 宿主机 conda 仅提供运行/链接依赖（OpenCV5、glog…），不强制使用其 cxx-compiler sysroot
 activate_runtime_env() {
   local conda_sh
@@ -88,6 +195,15 @@ activate_runtime_env() {
   fi
   # shellcheck disable=SC1090
   source "$conda_sh"
+
+  if runtime_needs_glibc217_env; then
+    case "$(uname -m)" in
+      aarch64|arm64) activate_runtime_env_el7_arm ;;
+      *) activate_runtime_env_el7_x86 ;;
+    esac
+    return 0
+  fi
+
   if ! conda env list | awk '{print $1}' | grep -qx "$CONDA_ENV_NAME"; then
     print_info "创建 conda 环境: $CONDA_ENV_NAME（依赖库；编译默认走 VIDEO 同源容器）"
     conda create -y -n "$CONDA_ENV_NAME" -c conda-forge \
@@ -107,15 +223,7 @@ activate_runtime_env() {
     libxml2 libxml2-16 openh264 libstdcxx-ng libgcc-ng \
     libdovi vulkan-loader libva libdeflate libpng \
     libjpeg-turbo libtiff openexr imath openjph libavif >/dev/null 2>&1 || true
-  # conda 的 libstdc++ 常在 gcc 子目录；挂载到 VIDEO 容器时需出现在 $CONDA_PREFIX/lib（相对链接）
-  local gcc_rel
-  gcc_rel="$(ls -d "${CONDA_PREFIX}/lib/gcc/"*/*/ 2>/dev/null | tail -1 | sed "s|^${CONDA_PREFIX}/lib/||" || true)"
-  if [[ -n "$gcc_rel" && -f "${CONDA_PREFIX}/lib/${gcc_rel}libstdc++.so.6" ]]; then
-    ln -sfn "${gcc_rel}libstdc++.so.6" "${CONDA_PREFIX}/lib/libstdc++.so.6"
-    [[ -f "${CONDA_PREFIX}/lib/${gcc_rel}libgcc_s.so.1" ]] && \
-      ln -sfn "${gcc_rel}libgcc_s.so.1" "${CONDA_PREFIX}/lib/libgcc_s.so.1"
-  fi
-  export PATH="$CONDA_PREFIX/bin:$PATH"
+  finalize_runtime_env_links
 }
 
 has_nvidia_gpu() {
@@ -150,12 +258,14 @@ cuda_lib_paths() {
     fi
   done
   local out="" s
-  for s in "${paths[@]}"; do
-    case ":$out:" in
-      *":$s:"*) ;;
-      *) out="${out:+$out:}$s" ;;
-    esac
-  done
+  if ((${#paths[@]})); then
+    for s in "${paths[@]}"; do
+      case ":$out:" in
+        *":$s:"*) ;;
+        *) out="${out:+$out:}$s" ;;
+      esac
+    done
+  fi
   echo "$out"
 }
 
@@ -177,12 +287,14 @@ cuda_toolkit_mount_paths() {
     fi
   done
   local out="" s
-  for s in "${paths[@]}"; do
-    case ":$out:" in
-      *":$s:"*) ;;
-      *) out="${out:+$out:}$s" ;;
-    esac
-  done
+  if ((${#paths[@]})); then
+    for s in "${paths[@]}"; do
+      case ":$out:" in
+        *":$s:"*) ;;
+        *) out="${out:+$out:}$s" ;;
+      esac
+    done
+  fi
   echo "$out"
 }
 
@@ -610,6 +722,19 @@ build_runtime_in_docker() {
   fi
 }
 
+runtime_el7_conda_cxx() {
+  local c
+  for c in \
+    "${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-g++" \
+    "${CONDA_PREFIX}/bin/aarch64-conda-linux-gnu-g++"; do
+    if [[ -x "$c" ]]; then
+      echo "$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
 build_runtime_on_host() {
   print_warning "EASYAIOT_RUNTIME_BUILD_MODE=host：本机 conda 编译；新 glibc 主机产物可能无法在 VIDEO(22.04) 容器内运行"
   export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${ORT_ROOT}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -621,6 +746,21 @@ build_runtime_on_host() {
   export PKG_CONFIG_PATH="${CONDA_PREFIX}/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
   export CMAKE_PREFIX_PATH="${CONDA_PREFIX}${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 
+  local el7_link_flags=""
+  if runtime_needs_glibc217_env; then
+    local conda_cxx conda_cc
+    if ! conda_cxx="$(runtime_el7_conda_cxx)"; then
+      print_error "EL7 需要 conda gxx（与 conda OpenCV/jsoncpp ABI 一致；devtoolset 默认旧 ABI 无法链接）"
+      return 1
+    fi
+    conda_cc="${conda_cxx/g++/gcc}"
+    export CC="$conda_cc"
+    export CXX="$conda_cxx"
+    el7_link_flags="-L${CONDA_PREFIX}/lib -Wl,-rpath-link,${CONDA_PREFIX}/lib"
+    export LDFLAGS="${el7_link_flags}${LDFLAGS:+ $LDFLAGS}"
+    print_info "EL7 使用 conda 编译器: $CXX"
+  fi
+
   local build_dir="$ROOT/build"
   mkdir -p "$build_dir"
   export TMPDIR="${TMPDIR:-$REPO/.tmp}"
@@ -628,20 +768,30 @@ build_runtime_on_host() {
 
   runtime_resolve_version_meta "$ROOT" "$REPO"
   print_info "cmake 配置（host, version=${RUNTIME_VERSION}）..."
-  if ! cmake "$ROOT" \
+  local cmake_bin="cmake"
+  if runtime_needs_glibc217_env && [[ -x "${CONDA_PREFIX}/bin/cmake" ]]; then
+    cmake_bin="${CONDA_PREFIX}/bin/cmake"
+  fi
+  local -a cmake_extra=()
+  if [[ -n "$el7_link_flags" ]]; then
+    cmake_extra+=(-DCMAKE_EXE_LINKER_FLAGS="$el7_link_flags")
+    cmake_extra+=(-DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX")
+  fi
+  if ! "$cmake_bin" "$ROOT" \
     -B "$build_dir" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
     -DOpenCV_DIR="$CONDA_PREFIX/lib/cmake/opencv5" \
     -DONNXRUNTIME_ROOT="$ORT_ROOT" \
     -DRUNTIME_VERSION_STR="${RUNTIME_VERSION}" \
-    -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/opencv5"; then
+    -DCMAKE_CXX_FLAGS="-I$CONDA_PREFIX/include/opencv5" \
+    "${cmake_extra[@]}"; then
     print_error "cmake 配置失败"
     return 1
   fi
 
   print_info "编译中..."
-  if ! cmake --build "$build_dir" -j"$(nproc 2>/dev/null || echo 4)"; then
+  if ! "$cmake_bin" --build "$build_dir" -j"$(nproc 2>/dev/null || echo 4)"; then
     print_error "cmake 编译失败"
     return 1
   fi
@@ -735,6 +885,18 @@ normalize_video_base_url() {
   esac
 }
 
+normalize_gateway_url() {
+  local raw="${1:-}"
+  raw="${raw%%/}"
+  if [[ -z "$raw" ]]; then
+    return 1
+  fi
+  case "$raw" in
+    http://*|https://*) echo "$raw" ;;
+    *) echo "http://${raw}" ;;
+  esac
+}
+
 resolve_video_base_url() {
   local raw="${VIDEO_BASE_URL:-${EASYAIOT_VIDEO_BASE_URL:-${1:-}}}"
   if [[ -z "$raw" ]]; then
@@ -743,48 +905,154 @@ resolve_video_base_url() {
   normalize_video_base_url "$raw"
 }
 
-write_atomic_node_env() {
-  local install_dir="$1"
-  local video_base="$2"
+resolve_gateway_url() {
+  local raw="${GATEWAY_URL:-${EASYAIOT_GATEWAY_URL:-${CONTROL_PLANE_URL:-${1:-}}}}"
+  if [[ -z "$raw" ]]; then
+    return 1
+  fi
+  normalize_gateway_url "$raw"
+}
+
+runtime_detect_local_ip() {
+  if [[ -n "${EDGE_HOST:-${EASYAIOT_EDGE_HOST:-}}" ]]; then
+    echo "${EDGE_HOST:-${EASYAIOT_EDGE_HOST}}"
+    return 0
+  fi
+  local ip
+  ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+  if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
+    echo "$ip"
+    return 0
+  fi
+  ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' || true)"
+  [[ -n "$ip" ]] && echo "$ip" || echo "127.0.0.1"
+}
+
+runtime_assert_os_supported() {
+  local os_family arch
+  os_family="$(runtime_detect_os_family)"
+  arch="$(runtime_arch_key)"
+  print_info "检测操作系统: os_family=${os_family} arch=${arch}"
+  if ! runtime_matrix_assert_supported "$os_family" "$arch"; then
+    print_error "当前操作系统不在 RUNTIME 覆盖矩阵内，无法部署"
+    print_info "支持的 os_family:arch 见 RUNTIME/scripts/runtime_os_matrix.sh"
+    return 1
+  fi
+  print_success "操作系统已支持: ${os_family}:${arch}"
+  return 0
+}
+
+runtime_find_bundle_tarball() {
+  local os_family="$1"
+  local arch="$2"
+  local candidates=(
+    "$ROOT/.bundle-runtime/${os_family}/${arch}/easyaiot-runtime-${os_family}-${arch}.tar.gz"
+    "$ROOT/.bundle-runtime/${arch}/easyaiot-runtime-${arch}.tar.gz"
+  )
+  local c
+  for c in "${candidates[@]}"; do
+    if [[ -f "$c" ]]; then
+      echo "$c"
+      return 0
+    fi
+  done
+  find "$ROOT/.bundle-runtime" -name "easyaiot-runtime-${os_family}-${arch}.tar.gz" 2>/dev/null | head -1 || true
+}
+
+runtime_ensure_bundle_tarball() {
+  local -n _out_ref="${1:?output variable name required}"
+  local os_family arch tar_path export_sh
+  os_family="$(runtime_detect_os_family)"
+  arch="$(runtime_arch_key)"
+  tar_path="$(runtime_find_bundle_tarball "$os_family" "$arch")"
+  if [[ -n "$tar_path" && -f "$tar_path" ]]; then
+    print_success "已有离线包: $tar_path"
+    _out_ref="$tar_path"
+    return 0
+  fi
+
+  print_info "未找到 ${os_family}/${arch} 离线包，开始按本机 OS 编译导出..."
+  build_runtime
+
+  export_sh="$ROOT/export_runtime_cpp.sh"
+  if [[ ! -f "$export_sh" ]]; then
+    print_error "缺少 $export_sh"
+    return 1
+  fi
+  RUNTIME_AUTO_INSTALL=0 RUNTIME_OS_FAMILY="$os_family" bash "$export_sh"
+
+  tar_path="$(runtime_find_bundle_tarball "$os_family" "$arch")"
+  if [[ -z "${tar_path:-}" || ! -f "$tar_path" ]]; then
+    print_error "编译导出后仍未找到 offline tarball（os=${os_family} arch=${arch}）"
+    print_info "可尝试容器内导出: bash RUNTIME/scripts/export_runtime_os_container.sh ${os_family}"
+    return 1
+  fi
+  print_success "已生成离线包: $tar_path"
+  _out_ref="$tar_path"
+  return 0
+}
+
+write_node_env() {
+  local mode="$1"
+  local install_dir="$2"
+  local video_base="$3"
+  local gateway_base="${4:-}"
+  local edge_host="${5:-}"
   local node_env="$install_dir/node.env"
   local hb_realtime="${video_base}/video/algorithm/heartbeat/realtime"
   local hb_patrol="${video_base}/video/algorithm/heartbeat/patrol"
-  # 可选媒体面：手工调试推检测流时用；正式任务由 VIDEO 下发 ini 自带 ai_rtmp
   local srs_base="${SRS_RTMP_BASE:-${EASYAIOT_SRS_RTMP_BASE:-}}"
   local ai_rtmp="${AI_RTMP_URL:-${EASYAIOT_AI_RTMP_URL:-}}"
+  local mqtt_urls="${MQTT_BROKER_URLS:-}"
+  local enable_rtmp="false"
+  local deploy_mode="$mode"
+  local mode_comment=""
+
+  case "$mode" in
+    integrated|atomic|edge-integrated|cloud-edge|"")
+      deploy_mode="integrated"
+      mode_comment="云边一体 — 本机只装 RUNTIME，汇聚面指向 VIDEO/Gateway（可在远端或本机）"
+      ;;
+    *)
+      print_error "未知部署形态: $mode（仅支持 integrated / atomic）"
+      print_info "单机合装请用: EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install"
+      return 1
+      ;;
+  esac
+
   if [[ -z "$ai_rtmp" && -n "$srs_base" ]]; then
     ai_rtmp="${srs_base%/}/ai/atomic_demo"
   fi
-  local enable_rtmp="false"
   if [[ -n "$ai_rtmp" ]]; then
     enable_rtmp="true"
   fi
 
   cat > "$node_env" <<EOF
-# Auto-generated by RUNTIME atomic mode — compute node aggregation endpoints
-# 本节点不部署 VIDEO；心跳回中心 HTTP；告警经 MQTT → iot-sink。
+# Auto-generated by RUNTIME ${deploy_mode} mode — ${mode_comment}
+EASYAIOT_RUNTIME_DEPLOY_MODE=${deploy_mode}
 VIDEO_BASE_URL=${video_base}
+GATEWAY_URL=${gateway_base}
+EDGE_HOST=${edge_host}
 ALGO_BUS_TRANSPORT=mqtt
-MQTT_BROKER_URLS=${MQTT_BROKER_URLS:-}
+MQTT_BROKER_URLS=${mqtt_urls}
 MQTT_ALGO_TENANT=${MQTT_ALGO_TENANT:-default}
 MQTT_ALGO_USERNAME=${MQTT_ALGO_USERNAME:-}
 MQTT_ALGO_PASSWORD=${MQTT_ALGO_PASSWORD:-}
-MQTT_ALGO_CLIENT_ID=${MQTT_ALGO_CLIENT_ID:-algo-runtime-atomic}
+MQTT_ALGO_CLIENT_ID=${MQTT_ALGO_CLIENT_ID:-algo-runtime-${deploy_mode}}
 ALERT_IMAGES_DIR=${ALERT_IMAGES_DIR:-${install_dir}/cache/alerts}
 HEARTBEAT_URL=${hb_realtime}
 HEARTBEAT_URL_PATROL=${hb_patrol}
 RUNTIME_BIN=${install_dir}/bin/RUNTIME
 RUNTIME_PREFER_GPU=true
 USE_GPU=true
-# 可选：手工调试推带框检测流（非原子安装必填）
 SRS_RTMP_BASE=${srs_base}
 AI_RTMP_URL=${ai_rtmp}
+CONTROL_PLANE_URL=${CONTROL_PLANE_URL:-${gateway_base}/admin-api/node/agent}
 EOF
 
-  # 覆盖/增强 env.sh，供 Agent 或手工 source
   cat > "$install_dir/env.sh" <<EOF
 #!/usr/bin/env bash
-# Sourced on compute nodes (atomic / iot-node install)
+# Sourced on compute nodes (${deploy_mode} / iot-node install)
 RUNTIME_ROOT="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 export RUNTIME_ROOT
 export EASYAIOT_RUNTIME_INSTALL_DIR="\${EASYAIOT_RUNTIME_INSTALL_DIR:-\$RUNTIME_ROOT}"
@@ -799,7 +1067,10 @@ for _cuda in /usr/local/cuda/lib64 /usr/local/cuda/lib; do
 done
 export RUNTIME_PREFER_GPU="\${RUNTIME_PREFER_GPU:-true}"
 export USE_GPU="\${USE_GPU:-true}"
+export EASYAIOT_RUNTIME_DEPLOY_MODE="\${EASYAIOT_RUNTIME_DEPLOY_MODE:-${deploy_mode}}"
 export VIDEO_BASE_URL="\${VIDEO_BASE_URL:-}"
+export GATEWAY_URL="\${GATEWAY_URL:-}"
+export EDGE_HOST="\${EDGE_HOST:-}"
 export ALGO_BUS_TRANSPORT="\${ALGO_BUS_TRANSPORT:-mqtt}"
 export MQTT_BROKER_URLS="\${MQTT_BROKER_URLS:-}"
 export HEARTBEAT_URL="\${HEARTBEAT_URL:-\${VIDEO_BASE_URL}/video/algorithm/heartbeat/realtime}"
@@ -811,9 +1082,8 @@ EOF
 
   mkdir -p "$install_dir/config"
   cat > "$install_dir/config/atomic.example.ini" <<EOF
-# 原子节点示例任务配置（手工调试用）
+# ${deploy_mode} 节点示例任务配置（手工调试用）
 # 正式任务由 VIDEO/Agent 生成 task_*.ini（realtime 默认 enable_rtmp + 独立 ai/ 地址）
-# 手工推检测流：安装前设置 SRS_RTMP_BASE=rtmp://<SRS>:1935 或 AI_RTMP_URL=rtmp://…/ai/<id>
 
 [video]
 rtsp_url=rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101
@@ -855,12 +1125,12 @@ heartbeat_interval_sec=10
 log_path=${install_dir}/cache/atomic_demo
 alert_image_dir=${ALERT_IMAGES_DIR:-${install_dir}/cache/alerts}
 algo_bus_transport=mqtt
-mqtt_broker_urls=${MQTT_BROKER_URLS:-}
+mqtt_broker_urls=${mqtt_urls}
 mqtt_tenant=${MQTT_ALGO_TENANT:-default}
 headless=true
 
 [mqtt]
-broker_urls=${MQTT_BROKER_URLS:-}
+broker_urls=${mqtt_urls}
 tenant=${MQTT_ALGO_TENANT:-default}
 transport=mqtt
 
@@ -870,63 +1140,54 @@ enable_draw=true
 enable_alarm=true
 EOF
 
-  print_success "已写入汇聚面配置: $node_env"
-  print_info "告警: MQTT → iot-sink (MQTT_BROKER_URLS=\${MQTT_BROKER_URLS:-unset})"
+  print_success "已写入节点配置 (${deploy_mode}): $node_env"
+  print_info "告警: MQTT → iot-sink (MQTT_BROKER_URLS=${mqtt_urls:-unset})"
   print_info "心跳: $hb_realtime"
   if [[ -n "$ai_rtmp" ]]; then
-    print_info "可选检测推流 AI_RTMP_URL=$ai_rtmp (enable_rtmp=$enable_rtmp)"
-  else
-    print_info "未设置 SRS_RTMP_BASE/AI_RTMP_URL：示例 ini 不推流；正式任务仍由 VIDEO 下发 ai_rtmp"
+    print_info "检测推流 AI_RTMP_URL=$ai_rtmp (enable_rtmp=$enable_rtmp)"
   fi
 }
 
-# 原子模式：只部署 RUNTIME 到本机计算节点目录（不装 VIDEO/WEB 等）
-# 用法:
-#   VIDEO_BASE_URL=http://<中心VIDEO>:6000 ./install_linux.sh atomic
-#   ./install_linux.sh atomic http://192.168.1.10:6000
-atomic_install_runtime() {
-  local video_base
-  if ! video_base="$(resolve_video_base_url "${1:-}")"; then
-    print_error "原子模式必须指定汇聚面 VIDEO 地址"
-    print_info "示例: VIDEO_BASE_URL=http://192.168.1.10:6000 $0 atomic"
-    print_info "  或: $0 atomic http://192.168.1.10:6000"
-    print_info "结果上报: alert → MQTT(iot-sink) ；heartbeat → …/video/algorithm/heartbeat/*"
-    return 1
-  fi
+write_atomic_node_env() {
+  write_node_env "integrated" "$1" "$2" "${GATEWAY_URL:-}" ""
+}
 
+install_node_env_files() {
+  local mode="$1"
+  local install_dir="$2"
+  local video_base="$3"
+  local gateway_base="${4:-}"
+  local edge_host="${5:-}"
+
+  if [[ -w "$install_dir" ]]; then
+    write_node_env "$mode" "$install_dir" "$video_base" "$gateway_base" "$edge_host"
+    return 0
+  fi
+  local tmp_env
+  tmp_env="$(mktemp -d)"
+  write_node_env "$mode" "$tmp_env" "$video_base" "$gateway_base" "$edge_host"
+  sudo cp -f "$tmp_env/node.env" "$install_dir/node.env"
+  sudo cp -f "$tmp_env/env.sh" "$install_dir/env.sh"
+  sudo mkdir -p "$install_dir/config"
+  sudo cp -f "$tmp_env/config/atomic.example.ini" "$install_dir/config/atomic.example.ini"
+  sudo chmod +x "$install_dir/env.sh"
+  rm -rf "$tmp_env"
+}
+
+deploy_runtime_common() {
+  local mode="$1"
   local install_dir="${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}"
-  print_info "===== RUNTIME 原子模式 ====="
-  print_info "只安装高性能执行器，不部署 VIDEO/WEB/DEVICE 等业务面"
-  print_info "汇聚面 VIDEO_BASE_URL=$video_base"
-  print_info "安装目录: $install_dir"
+  local tar_path install_sh
 
-  build_runtime
-
-  local export_sh="$ROOT/export_runtime_cpp.sh"
-  if [[ ! -f "$export_sh" ]]; then
-    print_error "缺少 $export_sh"
-    return 1
-  fi
-  print_info "导出离线包..."
-  # 已编译则跳过 export 内二次 install
-  RUNTIME_AUTO_INSTALL=0 bash "$export_sh"
-
-  local bundle_arch bundle_os
-  bundle_arch="$(runtime_arch_key)"
-  bundle_os="$(runtime_detect_os_family)"
-  local tar_path="$ROOT/.bundle-runtime/${bundle_os}/${bundle_arch}/easyaiot-runtime-${bundle_os}-${bundle_arch}.tar.gz"
-  if [[ ! -f "$tar_path" ]]; then
-    tar_path="$ROOT/.bundle-runtime/${bundle_arch}/easyaiot-runtime-${bundle_arch}.tar.gz"
-  fi
-  if [[ ! -f "$tar_path" ]]; then
-    tar_path="$(find "$ROOT/.bundle-runtime" -name "easyaiot-runtime-${bundle_os}-${bundle_arch}.tar.gz" 2>/dev/null | head -1 || true)"
-  fi
-  if [[ -z "${tar_path:-}" || ! -f "$tar_path" ]]; then
-    print_error "未找到导出包（export_runtime_cpp.sh 未产出 tar.gz）"
+  if ! runtime_assert_os_supported; then
     return 1
   fi
 
-  local install_sh="$ROOT/install_runtime_cpp.sh"
+  if ! runtime_ensure_bundle_tarball tar_path; then
+    return 1
+  fi
+
+  install_sh="$ROOT/install_runtime_cpp.sh"
   if [[ ! -f "$install_sh" ]]; then
     print_error "缺少 $install_sh"
     return 1
@@ -934,33 +1195,65 @@ atomic_install_runtime() {
 
   print_info "安装离线包到 $install_dir ..."
   bash "$install_sh" "$install_dir" "$tar_path"
+  return 0
+}
 
-  if [[ -w "$install_dir" ]]; then
-    write_atomic_node_env "$install_dir" "$video_base"
-  else
-    local tmp_env
-    tmp_env="$(mktemp -d)"
-    write_atomic_node_env "$tmp_env" "$video_base"
-    sudo cp -f "$tmp_env/node.env" "$install_dir/node.env"
-    sudo cp -f "$tmp_env/env.sh" "$install_dir/env.sh"
-    sudo mkdir -p "$install_dir/config"
-    sudo cp -f "$tmp_env/config/atomic.example.ini" "$install_dir/config/atomic.example.ini"
-    sudo chmod +x "$install_dir/env.sh"
-    rm -rf "$tmp_env"
+# 云边一体形态：只部署 RUNTIME 到边缘节点，汇聚面指向中心平台
+# 用法:
+#   VIDEO_BASE_URL=http://<中心VIDEO>:6000 GATEWAY_URL=http://<中心>:48080 ./install_linux.sh integrated
+#   ./install_linux.sh integrated http://192.168.1.10:6000
+integrated_install_runtime() {
+  local video_base gateway_base
+  if ! video_base="$(resolve_video_base_url "${1:-}")"; then
+    print_error "云边一体形态必须指定中心 VIDEO 地址"
+    print_info "示例: VIDEO_BASE_URL=http://192.168.1.10:6000 $0 integrated"
+    print_info "  或: $0 integrated http://192.168.1.10:6000"
+    print_info "可选: GATEWAY_URL MQTT_BROKER_URLS SRS_RTMP_BASE CONTROL_PLANE_URL"
+    return 1
+  fi
+  gateway_base="$(resolve_gateway_url "${2:-}" || true)"
+  if [[ -z "$gateway_base" ]]; then
+    # 从 VIDEO 地址推断 Gateway（同主机不同端口）
+    local host
+    host="$(echo "$video_base" | sed -E 's#^https?://([^:/]+).*#\1#')"
+    gateway_base="http://${host}:48080"
+    print_info "未指定 GATEWAY_URL，默认推断为 $gateway_base"
   fi
 
+  local install_dir="${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}"
+  print_info "===== RUNTIME 云边一体形态 ====="
+  print_info "本机只装 RUNTIME；汇聚面指向中心平台"
+  print_info "VIDEO_BASE_URL=$video_base"
+  print_info "GATEWAY_URL=$gateway_base"
+  print_info "安装目录: $install_dir"
+
+  if ! deploy_runtime_common "integrated"; then
+    return 1
+  fi
+
+  install_node_env_files "integrated" "$install_dir" "$video_base" "$gateway_base" ""
+
   cat > "$ROOT/atomic.env" <<EOF
-# Local pointer after atomic install
+# Local pointer after integrated install
+EASYAIOT_RUNTIME_DEPLOY_MODE=integrated
 EASYAIOT_RUNTIME_INSTALL_DIR=$install_dir
 VIDEO_BASE_URL=$video_base
+GATEWAY_URL=$gateway_base
 RUNTIME_BIN=$install_dir/bin/RUNTIME
 EOF
 
-  print_success "原子模式部署完成"
+  print_success "云边一体形态部署完成"
   print_info "二进制: $install_dir/bin/RUNTIME"
-  print_info "汇聚: 告警/心跳 → $video_base （本节点不落库）"
-  print_info "调试: source $install_dir/env.sh && \$RUNTIME_BIN $install_dir/config/atomic.example.ini"
-  print_info "正式任务仍由中心 VIDEO + Agent 下发 ini 并拉起本二进制"
+  print_info "正式任务由中心 VIDEO + SENTINEL/Agent 下发 ini 并拉起本二进制"
+  print_info "也可通过 WEB「业务运行时分发 → RUNTIME(C++)」远程安装（需预打 OS 离线包）"
+}
+
+# 原子模式（云边一体别名，向后兼容）
+# 用法:
+#   VIDEO_BASE_URL=http://<中心VIDEO>:6000 ./install_linux.sh atomic
+#   ./install_linux.sh atomic http://192.168.1.10:6000
+atomic_install_runtime() {
+  integrated_install_runtime "${1:-}"
 }
 
 main() {
@@ -985,21 +1278,36 @@ main() {
     stop|clean|logs)
       print_info "RUNTIME 无独立容器服务，${cmd} 为空操作"
       ;;
-    atomic|node|runtime-only|atomic-install)
+    atomic|node|runtime-only|atomic-install|integrated|edge-integrated|cloud-edge)
       shift || true
-      atomic_install_runtime "${1:-}"
+      integrated_install_runtime "${1:-}"
+      ;;
+    standalone|edge|pure-edge|edge-standalone|runtime-standalone)
+      print_error "已取消独立「纯边缘」形态：与云边一体是同一套架构"
+      print_info "算力节点只装 RUNTIME:  $0 integrated <VIDEO_URL>"
+      print_info "单机合装（汇聚面在本机）: EASYAIOT_DEPLOY_PROFILE=edge bash ../.scripts/docker/install_linux.sh install"
+      exit 1
       ;;
     help|-h|--help)
-      sed -n '2,30p' "$0"
+      sed -n '2,35p' "$0"
       echo ""
       echo "命令:"
-      echo "  install|build|update - 编译 RUNTIME（默认 docker 同源容器）"
-      echo "  start|status|restart  - 查看编译/原子安装状态"
-      echo "  stop|clean|logs       - 空操作（无独立容器）"
-      echo "  atomic [VIDEO_BASE_URL] - 原子模式：只装 RUNTIME 到计算节点目录"
+      echo "  install|build|update   - 编译 RUNTIME（默认 docker 同源容器）"
+      echo "  start|status|restart   - 查看编译/节点安装状态"
+      echo "  stop|clean|logs          - 空操作（无独立容器）"
       echo ""
-      echo "原子模式示例:"
-      echo "  VIDEO_BASE_URL=http://192.168.1.10:6000 $0 atomic"
+      echo "云边一体（本机只装 RUNTIME，汇聚面指向 VIDEO；可远端或本机）:"
+      echo "  integrated [VIDEO_URL]   - 安装 RUNTIME 并写入 node.env"
+      echo "  atomic [VIDEO_URL]       - integrated 别名（向后兼容）"
+      echo ""
+      echo "示例:"
+      echo "  VIDEO_BASE_URL=http://192.168.1.10:6000 GATEWAY_URL=http://192.168.1.10:48080 \\"
+      echo "    MQTT_BROKER_URLS=192.168.1.10:1883 $0 integrated"
+      echo ""
+      echo "单机合装（平台 + RUNTIME）请用部署规格，而非 RUNTIME 独立命令:"
+      echo "  EASYAIOT_DEPLOY_PROFILE=edge bash ../.scripts/docker/install_linux.sh install"
+      echo ""
+      echo "支持的操作系统见 RUNTIME/scripts/runtime_os_matrix.sh（不在矩阵内会拒绝部署）"
       ;;
     *)
       print_error "未知命令: $cmd"

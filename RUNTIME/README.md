@@ -25,14 +25,16 @@ EasyAIoT 的 **C++ 帧执行器**。负责拉流、解码、AI 推理与结果�
 | `snap` | Cron 调度抓拍（SnapScheduler）；以结构化结果/告警为主 |
 | `patrol` | 多设备轮巡（PatrolScheduler）；以结构化结果/告警为主 |
 
-> 事件面默认 `ALGO_BUS_TRANSPORT=mqtt`（`mqtt/iot-alert-notification` 等）→ iot-sink；心跳仍 HTTP → VIDEO。原 EDGE 模块已移除，边缘算力请用**原子模式**。
+> 事件面默认 `ALGO_BUS_TRANSPORT=mqtt`（`mqtt/iot-alert-notification` 等）→ iot-sink；心跳仍 HTTP → VIDEO。原 EDGE 模块已移除，边缘算力请用**云边一体**（`integrated` / `atomic`）。
 
 ---
 
 ## 目录
 
 - [部署场景怎么选](#部署场景怎么选)
-- [原子模式（计算节点只装 RUNTIME）](#原子模式计算节点只装-runtime)
+- [云边一体（integrated）](#云边一体integrated)
+- [云边一体 · 单机合装（部署规格 edge）](#云边一体--单机合装部署规格-edge)
+- [原子模式（向后兼容别名）](#原子模式向后兼容别名)
 - [集群分发（iot-node · 一键）](#集群分发iot-node--一键)
 - [本机 VIDEO 一键挂载（推荐中心机）](#本机-video-一键挂载推荐中心机)
 - [编译与依赖](#编译与依赖)
@@ -47,33 +49,163 @@ EasyAIoT 的 **C++ 帧执行器**。负责拉流、解码、AI 推理与结果�
 
 ## 部署场景怎么选
 
+云边一体是**唯一拓扑**：RUNTIME 执行，VIDEO 编排，WEB 管理。差别只在汇聚面装在哪台机器。
+
 | 场景 | 本机装什么 | 入口 | 适用 |
 |------|------------|------|------|
-| **中心 / 一体机** | VIDEO（自动编译并挂载 RUNTIME） | `./VIDEO/install_linux.sh install` | 编排 + 预览 + 告警落库 + 本机执行 |
-| **原子计算节点** | **只装 RUNTIME** | `install_linux.sh runtime` 或 `RUNTIME/install_linux.sh atomic` | 边缘算力盒 / 集群 worker，无本地业务面 |
+| **中心 / 一体机** | 平台（VIDEO 自动挂载 RUNTIME） | `EASYAIOT_DEPLOY_PROFILE=edge\|mini\|... install` | 编排 + 预览 + 本机执行 |
+| **云边一体 · 算力节点** | **只装 RUNTIME** | `install_linux.sh integrated` | 边缘算力接入已有平台 |
+| **云边一体 · 单机合装** | WEB + VIDEO + RUNTIME + 必要中间件 | `EASYAIOT_DEPLOY_PROFILE=edge ... install` | 离线独立站点（汇聚面在本机） |
 | **批量节点** | 只装 RUNTIME | WEB「业务运行时分发」→ RUNTIME(C++) | 多机 SSH 一键 |
-| **开发调试** | 源码树编译 | `./RUNTIME/install_linux.sh build`；或本地启 VIDEO 时自动编译 | 改代码、本地跑示例 ini；VIDEO `run.py`/IDEA 缺二进制时默认 `install` |
+| **开发调试** | 源码树编译 | `./RUNTIME/install_linux.sh build` | 改代码、本地跑示例 ini |
 
-拓扑示意（原子节点）：
+> **操作系统限制**：命令部署会自动检测本机 `os_family + arch`，必须在 [RUNTIME 覆盖矩阵](scripts/runtime_os_matrix.sh) 内（ubuntu/el/openeuler/麒麟等），否则拒绝部署并提示支持的 OS 列表。
+
+### 云边一体怎么装
+
+| 布局 | 命令 | 汇聚面 | 典型场景 |
+|------|------|--------|----------|
+| **算力节点** | `./RUNTIME/install_linux.sh integrated` | 远端 VIDEO/Gateway/MQTT/SRS | 边缘算力盒接入已有平台 |
+| **单机合装** | `EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install` | 本机（同机 WEB/VIDEO） | 一台机器闭环 |
+
+`atomic` 为 `integrated` 的向后兼容别名。`edge` 是**部署规格**（裁剪中间件），不是第二种拓扑。
+
+拓扑示意：
 
 ```text
-摄像头 ──► 中心 VIDEO（live/ 原画预览、任务编排、HTTP 心跳）
+摄像头 ──► VIDEO（live/ 原画预览、任务编排、HTTP 心跳）
               │
-              │ 下发 task_*.ini + 拉起（Agent / 本机守护）
+              │ 下发 task_*.ini + 拉起（本机守护 / Agent）
               ▼
-         计算节点 RUNTIME ──► HTTP heartbeat → 中心 VIDEO
-                           ──► MQTT alert → EMQX → iot-sink（落库/归档/通知）
-                           ──► realtime 默认 RTMP → 中心 SRS ai/{device}
-                           ──► 告警图 → ALERT_IMAGES_DIR（Ceph/共享 FS）
+         RUNTIME ──► HTTP heartbeat → VIDEO
+                  ──► MQTT alert → EMQX → iot-sink
+                  ──► realtime 默认 RTMP → SRS ai/{device}
 ```
+
+VIDEO / WEB / 中间件可在远端（算力节点布局）或本机（单机合装布局）。
 
 ---
 
-## 原子模式（计算节点只装 RUNTIME）
+## 云边一体（integrated）
 
-用于**只装高性能执行器**的机器（边缘算力盒 / 集群计算节点），**本机不部署** VIDEO / WEB / DEVICE。
+用于**只装高性能执行器**的节点，汇聚面指向 VIDEO / Gateway / MQTT / SRS（远端中心或本机均可）。除命令独立部署外，也可通过 WEB「业务运行时分发」或 SENTINEL Agent 远程安装。
 
-> **原子 ≠ 永不推流。** 原子只表示本机无业务面；中心 VIDEO 下发正式 `realtime` 任务时，ini 仍会带独立 `ai_rtmp`，RUNTIME **默认推带框检测流**到中心/集群 SRS。安装阶段不强制本机 SRS。
+> **云边一体 ≠ 永不推流。** VIDEO 下发正式 `realtime` 任务时，ini 仍会带独立 `ai_rtmp`，RUNTIME **默认推带框检测流**到 SRS。
+
+### 前置条件
+
+- Linux x86_64 或 aarch64；操作系统在 RUNTIME 矩阵内
+- Docker（默认同源容器编译）
+- 能访问 VIDEO HTTP 口（默认 `:6000`）；正式推流时还能访问 SRS RTMP（默认 `:1935`）
+
+### 命令独立部署（算力节点）
+
+```bash
+# 方式 A：仓库顶层入口
+VIDEO_BASE_URL=http://<VIDEO>:6000 \
+GATEWAY_URL=http://<Gateway>:48080 \
+MQTT_BROKER_URLS=<EMQX>:1883 \
+SRS_RTMP_BASE=rtmp://<SRS>:1935 \
+  bash .scripts/docker/install_linux.sh runtime-integrated
+
+# 方式 B：模块入口
+VIDEO_BASE_URL=http://192.168.1.10:6000 \
+GATEWAY_URL=http://192.168.1.10:48080 \
+  ./RUNTIME/install_linux.sh integrated
+
+# 向后兼容别名
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+```
+
+脚本会：① 校验 OS 是否在矩阵内 → ② 按本机 OS 自动编译/导出离线包 → ③ 安装到 `/opt/easyaiot/RUNTIME` → ④ 写入 `node.env`（含汇聚地址）。
+
+### 安装过程做了什么
+
+1. 检测 `os_family + arch`，不在矩阵内则拒绝
+2. 查找或按本机 OS 编译导出离线包
+3. `install_runtime_cpp.sh` 安装到 `${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}`
+4. 写入节点配置：
+
+| 文件 | 作用 |
+|------|------|
+| `node.env` | `EASYAIOT_RUNTIME_DEPLOY_MODE=integrated`、`VIDEO_BASE_URL`、`GATEWAY_URL`、MQTT、可选 `AI_RTMP_URL` |
+| `env.sh` | `source` 后导出 `RUNTIME_BIN`、`LD_LIBRARY_PATH`、汇聚变量 |
+| `config/atomic.example.ini` | **手工调试**示例任务 |
+
+### 汇聚上报（必填）
+
+`VIDEO_BASE_URL` 必须指向 VIDEO（远端或本机）。节点上的 HTTP 回调：
+
+| 类型 | URL |
+|------|-----|
+| 告警 | MQTT → EMQX → iot-sink |
+| 心跳 realtime / snap | `${VIDEO_BASE_URL}/video/algorithm/heartbeat/realtime` |
+| 心跳 patrol | `${VIDEO_BASE_URL}/video/algorithm/heartbeat/patrol` |
+
+---
+
+## 云边一体 · 单机合装（部署规格 edge）
+
+汇聚面与 RUNTIME **同机**：用普通平台 `install`，锁定 `edge` 规格，只装必要中间件。不是第二种拓扑。
+
+```bash
+# 推荐
+EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
+
+# 快捷别名（等价）
+bash .scripts/docker/install_linux.sh edge install
+```
+
+### edge 规格范围
+
+**会部署：**
+
+| 类别 | 组件 |
+|------|------|
+| 中间件 | PostgreSQL, Redis, SRS |
+| 业务 | VIDEO、WEB |
+| 执行器 | RUNTIME（VIDEO 自动编译挂载） |
+
+**不部署：**
+
+| 类别 | 跳过项 |
+|------|--------|
+| 中间件 | MinIO, Nacos, EMQX, Kafka, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine |
+| 业务 | DEVICE 全家（gateway/system/sink 等）、AI、RTC、HARNESS、IDEA、PANEL |
+
+能力约定：
+
+- **零 DEVICE**：无 Java 平台服务；登录与摄像头/算法 API 均由 VIDEO 提供
+- **本地存储**：告警图/录像落 `EASYAIOT_MEDIA_ROOT`，经 `/video/alert/image` 等 API 出图，不经 MinIO
+- **告警链路**：RUNTIME HTTP → VIDEO `/video/alert/hook` 直连落库；DVR Hook 由 VIDEO 本地登记 Playback
+
+算法任务默认 `executor=cpp`，由本机 RUNTIME 执行。
+
+### 部署后访问
+
+| 服务 | 默认端口 | 用途 |
+|------|----------|------|
+| WEB | `:8888` | 算法任务、设备管理、实时预览 |
+| VIDEO | `:6000` | 视频编排、登录、心跳、告警落库、推流转发 |
+| SRS RTMP | `:1935` | live/ 原画 + ai/ 检测流 |
+
+### 登录入口（VIDEO 主导）
+
+单机合装由 **VIDEO Python** 提供登录与 Token 签发，WEB 仍走现有 Login 页。
+
+| 项 | 说明 |
+|----|------|
+| 入口 | WEB `:8888` 登录页（仍用现有 Login 页） |
+| 后端 | VIDEO `/video/system/auth/*`（nginx 将 `/dev-api/system/auth` 转到 VIDEO） |
+| 默认账号 | `admin` / `admin123` |
+| 用户库 | SQLite（`VIDEO_AUTH_DB`，默认媒体目录下 `video-auth/users.db`） |
+| 原生 API | 亦可直接调 `/video/auth/login`（REST JSON） |
+
+---
+
+## 原子模式（向后兼容别名）
+
+`atomic` = `integrated`（云边一体算力节点），以下文档保留原有用法说明。
 
 ### 前置条件
 
@@ -305,8 +437,9 @@ EASYAIOT_RUNTIME_BUILD_MODE=host ./RUNTIME/install_linux.sh build
 |------|------|
 | `./install_linux.sh` / `install` | 装依赖并编译（本机开发树） |
 | `build` | 仅编译 |
-| `status` | 检查二进制、`node.env`（若已原子安装） |
-| `atomic [VIDEO_BASE_URL]` | 原子模式：编译 → 导出 → 安装到 `/opt/easyaiot/RUNTIME` |
+| `status` | 检查二进制、`node.env`（若已节点安装） |
+| `integrated [VIDEO_URL]` | 云边一体算力节点：编译 → 导出 → 安装，需 VIDEO 地址 |
+| `atomic [VIDEO_URL]` | `integrated` 别名（向后兼容） |
 | `help` | 帮助 |
 
 ---
@@ -379,7 +512,10 @@ WEB / API 创建算法任务，`executor=cpp` 时由 VIDEO 生成 ini 并拉起�
 
 | 变量 | 含义 |
 |------|------|
-| `VIDEO_BASE_URL` / `EASYAIOT_VIDEO_BASE_URL` | 原子模式必填：中心 VIDEO 根地址 |
+| `VIDEO_BASE_URL` / `EASYAIOT_VIDEO_BASE_URL` | 云边一体必填：中心 VIDEO 根地址 |
+| `GATEWAY_URL` / `EASYAIOT_GATEWAY_URL` | 云边一体可选：中心 Gateway（默认同主机 :48080） |
+| `EASYAIOT_RUNTIME_DEPLOY_MODE` | 固定 `integrated`（云边一体） |
+| `EASYAIOT_DEPLOY_PROFILE` | 单机合装用 `edge`（平台 install 规格，非 RUNTIME 独立形态） |
 | `EASYAIOT_RUNTIME_INSTALL_DIR` | 原子安装目录，默认 `/opt/easyaiot/RUNTIME` |
 | `SRS_RTMP_BASE` / `AI_RTMP_URL` | 原子安装可选：示例 ini 检测流 |
 | `EASYAIOT_RUNTIME_BUILD_MODE` | `docker`（默认）/ `host` |
@@ -508,7 +644,9 @@ export RUNTIME_PYTHON=/path/to/python   # 需已装 ultralytics
 
 | 现象 | 处理 |
 |------|------|
-| 原子安装提示缺少 `VIDEO_BASE_URL` | 安装前导出或作为参数传入中心 VIDEO 地址 |
+| 云边一体安装提示缺少 `VIDEO_BASE_URL` | 安装前导出或作为参数传入中心 VIDEO 地址 |
+| 单机合装安装失败 / 内存不足 | 确认宿主机 ≥ 3 GB；`EASYAIOT_DEPLOY_PROFILE=edge ... install`；查看中间件与 VIDEO 日志 |
+| 提示操作系统不支持 | 当前 OS 不在 RUNTIME 矩阵内，见 `runtime_os_matrix.sh`；麒麟需专用镜像 |
 | 二进制在 VIDEO 容器内无法运行 | 使用默认 `EASYAIOT_RUNTIME_BUILD_MODE=docker` 同源编译，避免新 glibc 主机 `host` 编译 |
 | realtime 无带框预览 | 确认任务为 `executor=cpp` + `realtime`，ini 中 `enable_rtmp=true` 且 `rtmp_url` 为独立 `ai/` 路径（不要写成 `live/`） |
 | 只有告警没有画面 | 抓拍/巡检默认不以长推流为主；看结构化告警即可。需要画面时给 realtime 或显式配置 `ai_rtmp` |
