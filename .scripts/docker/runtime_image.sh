@@ -251,9 +251,9 @@ fi
 
 if [ -n "${_EXPLICIT_PROFILE:-}" ]; then
     case "$(_resolve_deploy_profile_raw)" in
-        mini|standard|full) ;;
+        edge|mini|standard|full) ;;
         *)
-            print_error "无效的部署形态: ${_EXPLICIT_PROFILE}，可选: mini | standard | full"
+            print_error "无效的部署形态: ${_EXPLICIT_PROFILE}，可选: edge | mini | standard | full"
             exit 1 ;;
     esac
     _EXPLICIT_PROFILE="$(_resolve_deploy_profile_raw)"
@@ -1635,8 +1635,16 @@ pull_all_images() {
     echo ""
     for mapping in "${INDEPENDENT_MODULES[@]}"; do
         [ "${_EASYAIOT_DNS_ABORT}" -eq 1 ] && break
-        local rname="${mapping%%|*}"; local tmp="${mapping#*|}"; local lname="${tmp%%|*}"
+        local rname="${mapping%%|*}"; local tmp="${mapping#*|}"; local lname="${tmp%%|*}"; local mod="${tmp##*|}"
         is_profile_dependent "$rname" && continue
+        # edge：跳过未启用的业务模块镜像
+        if [ "$pull_profile" = "edge" ] && declare -F module_enabled_for_deploy_profile >/dev/null 2>&1; then
+            if ! module_enabled_for_deploy_profile "$mod"; then
+                print_info "跳过 ${rname} → ${lname}（edge 不部署 ${mod}）"
+                shared_skipped=$((shared_skipped + 1))
+                continue
+            fi
+        fi
 
         local rref; rref=$(remote_ref "$rname" "" "$CURRENT_ARCH")
         local lref; lref=$(local_ref "$lname")

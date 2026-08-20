@@ -62,7 +62,7 @@ FULL_ONLY_MODULES=(
 
 PROFILE_DEPENDENT_REMOTES=(aiot-web)
 FULL_ONLY_REMOTES=(aiot-app aiot-visualize-web aiot-transform)
-ALL_DEPLOY_PROFILES=(mini standard full)
+ALL_DEPLOY_PROFILES=(edge mini standard full)
 ALL_RUNTIME_ARCHS=(amd64 arm64)
 
 # ============================================================================
@@ -757,6 +757,8 @@ runtime_normalize_registry() {
 runtime_remote_ref() {
     local name="$1" profile="${2:-}" arch="${3:-$(runtime_detect_arch)}"
     local registry; registry=$(runtime_normalize_registry "${REGISTRY:-$RUNTIME_IMAGE_REGISTRY}")
+    # edge 前端与 mini 共用镜像名（无 aiot-web-edge）
+    [ "$profile" = "edge" ] && profile="mini"
     local image_name="${name}"
     [ -n "$profile" ] && [ "$profile" != "full" ] && image_name="${name}-${profile}"
     echo "${registry}${image_name}:${arch}"
@@ -766,6 +768,7 @@ runtime_manifest_ref() {
     local name="$1" profile="${2:-}"
     local registry; registry=$(runtime_normalize_registry "${REGISTRY:-$RUNTIME_IMAGE_REGISTRY}")
     local tag="${TAG:-latest}"
+    [ "$profile" = "edge" ] && profile="mini"
     local image_name="${name}"
     [ -n "$profile" ] && [ "$profile" != "full" ] && image_name="${name}-${profile}"
     echo "${registry}${image_name}:${tag}"
@@ -774,6 +777,7 @@ runtime_manifest_ref() {
 runtime_local_ref() {
     local name="$1" profile="${2:-}"
     local tag="${TAG:-latest}"
+    [ "$profile" = "edge" ] && profile="mini"
     local ref="${name}:${tag}"
     [ -n "$profile" ] && [ "$profile" != "full" ] && ref="${ref}-${profile}"
     echo "$ref"
@@ -797,6 +801,7 @@ runtime_is_full_only() {
 
 runtime_profile_label() {
     case "$1" in
+        edge) echo "云边一体单机合装" ;;
         mini) echo "边缘精简版" ;;
         standard) echo "标准版" ;;
         full) echo "完整版" ;;
@@ -866,6 +871,15 @@ runtime_images_collect_check_refs() {
     local -n _out="$1"
     local profile="${2:-${EASYAIOT_DEPLOY_PROFILE:-full}}"
     local tag="${3:-latest}"
+    _out=()
+    case "$profile" in
+        edge)
+            # 零 DEVICE：仅 VIDEO + WEB（前端镜像与 mini 共用）
+            _out+=("video-service:${tag}")
+            _out+=("web-service:${tag}-mini")
+            return 0
+            ;;
+    esac
     _out=(
         "easyaiot/idea-portal:${tag}"
         "easyaiot/idea-workspace:${tag}"
@@ -1392,7 +1406,7 @@ runtime_print_install_local_build_help() {
     runtime_img_msg info "  rm -f .scripts/docker/.runtime_images_pulled"
     runtime_img_msg info "  bash ${install_script} build && bash ${install_script} install"
     echo ""
-    runtime_img_msg info "当前部署形态: ${profile}（EASYAIOT_DEPLOY_PROFILE=mini|standard|full）"
+    runtime_img_msg info "当前部署形态: ${profile}（EASYAIOT_DEPLOY_PROFILE=edge|mini|standard|full）"
     runtime_img_msg info "预计耗时: 视机器配置约 30 分钟～数小时，请确保磁盘空间充足。"
     runtime_img_msg warn "========================================"
     echo ""
