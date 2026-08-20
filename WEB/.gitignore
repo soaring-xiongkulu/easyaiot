@@ -19,6 +19,11 @@ tests/server/static/upload
 # HTTP/2 开发自签证书（pnpm certs:dev / pnpm dev:http2）
 certs/
 !certs/README.md
+# Docker nginx HTTPS 证书（install 自动生成）
+conf/ssl/*.crt
+conf/ssl/*.key
+conf/ssl/*.pem
+!conf/ssl/.gitkeep
 
 # Log files
 npm-debug.log*

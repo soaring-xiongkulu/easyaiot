@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 /**
- * 生成本机开发用自签证书（localhost / 127.0.0.1），供 HTTP/2 开发服务与可选 nginx 443 使用。
+ * 生成本机开发 / Docker nginx 用自签证书（localhost / 127.0.0.1）。
  *
  *   node ./scripts/gen-dev-certs.mjs
+ *
+ * 产出：
+ *   WEB/certs/localhost.pem + localhost-key.pem   — IDEA `pnpm dev:http2`
+ *   WEB/certs/server.crt + server.key             — 兼容旧文档路径
+ *   WEB/conf/ssl/server.crt + server.key          — docker-compose 挂载到 nginx
  */
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -11,15 +16,29 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const certDir = path.join(root, 'certs')
+const sslDir = path.join(root, 'conf', 'ssl')
 const keyPath = path.join(certDir, 'localhost-key.pem')
 const certPath = path.join(certDir, 'localhost.pem')
 const nginxCrt = path.join(certDir, 'server.crt')
 const nginxKey = path.join(certDir, 'server.key')
+const composeCrt = path.join(sslDir, 'server.crt')
+const composeKey = path.join(sslDir, 'server.key')
 
 fs.mkdirSync(certDir, { recursive: true })
+fs.mkdirSync(sslDir, { recursive: true })
+
+function syncNginxCopies() {
+  fs.copyFileSync(certPath, nginxCrt)
+  fs.copyFileSync(keyPath, nginxKey)
+  fs.copyFileSync(certPath, composeCrt)
+  fs.copyFileSync(keyPath, composeKey)
+}
 
 if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-  console.log(`[gen-dev-certs] already exists:\n  ${certPath}\n  ${keyPath}`)
+  syncNginxCopies()
+  console.log(
+    `[gen-dev-certs] already exists, synced nginx copies:\n  ${certPath}\n  ${keyPath}\n  ${composeCrt}\n  ${composeKey}`,
+  )
   process.exit(0)
 }
 
@@ -77,6 +96,7 @@ try {
   process.exit(1)
 }
 
-fs.copyFileSync(certPath, nginxCrt)
-fs.copyFileSync(keyPath, nginxKey)
-console.log(`[gen-dev-certs] wrote:\n  ${certPath}\n  ${keyPath}\n  ${nginxCrt}\n  ${nginxKey}`)
+syncNginxCopies()
+console.log(
+  `[gen-dev-certs] wrote:\n  ${certPath}\n  ${keyPath}\n  ${nginxCrt}\n  ${nginxKey}\n  ${composeCrt}\n  ${composeKey}`,
+)

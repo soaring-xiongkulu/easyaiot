@@ -489,8 +489,8 @@ install_service() {
         WEB_PORT=$(grep "^WEB_PORT=" .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' | tr -d '"' | tr -d "'")
     fi
     WEB_PORT=${WEB_PORT:-8888}
-    print_info "服务访问地址: http://localhost:${WEB_PORT}"
-    print_info "健康检查地址: http://localhost:${WEB_PORT}/health"
+    print_info "服务访问地址: https://localhost:${WEB_PORT}  （仅 HTTPS+HTTP/2，首次需信任自签证书）"
+    print_info "健康检查地址: https://localhost:${WEB_PORT}/health"
     print_info "查看日志: ./install_mac.sh logs"
 }
 
