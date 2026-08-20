@@ -5774,6 +5774,7 @@ install_middleware() {
     
     # 清理残留容器
     cleanup_stale_containers
+    cleanup_profile_excluded_containers
     
     # 检查端口占用
     check_and_clean_ports
@@ -5969,6 +5970,7 @@ start_middleware() {
     
     # 清理残留容器
     cleanup_stale_containers
+    cleanup_profile_excluded_containers
     
     # 检查端口占用
     check_and_clean_ports
@@ -6080,8 +6082,50 @@ restart_middleware() {
     # 准备 ZLMediaKit 配置文件
     prepare_zlmediakit_config
 
-    print_info "重启所有中间件服务..."
-    $COMPOSE_CMD -f "$COMPOSE_FILE" restart 2>&1 | tee -a "$LOG_FILE"
+    cleanup_profile_excluded_containers
+
+    local -a _skip_optional=()
+    read -r -a _skip_optional <<< "$(collect_skippable_optional_services)"
+
+    local -a up_services=()
+    local svc should_skip
+    while IFS= read -r svc; do
+        [ -z "$svc" ] && continue
+        should_skip=0
+        for skip in "${_skip_optional[@]}"; do
+            if [ "$svc" = "$skip" ]; then
+                should_skip=1
+                break
+            fi
+        done
+        if [ "$should_skip" -eq 0 ]; then
+            up_services+=("$svc")
+        fi
+    done < <(mw_compose config --services 2>/dev/null)
+
+    if [ ${#_skip_optional[@]} -gt 0 ]; then
+        local -a lingering_skips=()
+        local skip_svc
+        for skip_svc in "${_skip_optional[@]}"; do
+            [ -z "$skip_svc" ] && continue
+            if mw_compose ps -q "$skip_svc" 2>/dev/null | grep -q .; then
+                lingering_skips+=("$skip_svc")
+            fi
+        done
+        if [ ${#lingering_skips[@]} -gt 0 ]; then
+            print_info "停止并移除当前形态不部署的中间件: $(_format_service_list "${lingering_skips[@]}")"
+            mw_compose stop "${lingering_skips[@]}" >/dev/null 2>&1 || true
+            mw_compose rm -f "${lingering_skips[@]}" >/dev/null 2>&1 || true
+        fi
+    fi
+
+    if [ ${#up_services[@]} -eq 0 ]; then
+        print_error "没有可重启的中间件服务"
+        return 1
+    fi
+
+    print_info "重启中间件服务: $(_format_service_list "${up_services[@]}")"
+    mw_compose restart "${up_services[@]}" 2>&1 | tee -a "$LOG_FILE"
     
     print_success "所有中间件重启完成"
     echo ""

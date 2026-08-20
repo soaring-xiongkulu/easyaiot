@@ -1034,6 +1034,7 @@ install_linux() {
     print_section "开始安装所有服务"
 
     select_deploy_profile_for_install
+    cleanup_profile_excluded_containers
     export EASYAIOT_INSTALL_SCRIPT="${EASYAIOT_INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}"
     if ! runtime_images_acquire; then
         print_error "预构建镜像获取失败，已中止安装"
@@ -1119,6 +1120,8 @@ install_linux() {
         echo "  已失败: ${failed_modules[*]}"
     fi
     
+    cleanup_profile_excluded_containers
+
     if [ $success_count -eq $total_count ]; then
         print_success "所有模块安装成功！"
         ensure_platform_agent_after_stack
@@ -1465,6 +1468,7 @@ start_all() {
     print_section "启动所有服务"
     
     ensure_deploy_profile
+    cleanup_profile_excluded_containers
     print_info "部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
     check_docker "$@"
     check_docker_compose
@@ -1590,6 +1594,7 @@ restart_all() {
     print_section "重启所有服务"
     
     ensure_deploy_profile
+    cleanup_profile_excluded_containers
     print_info "部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
     check_docker "$@"
     check_docker_compose

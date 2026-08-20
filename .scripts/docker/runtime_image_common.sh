@@ -801,7 +801,7 @@ runtime_is_full_only() {
 
 runtime_profile_label() {
     case "$1" in
-        edge) echo "云边一体单机合装" ;;
+        edge) echo "边缘单机版" ;;
         mini) echo "边缘精简版" ;;
         standard) echo "标准版" ;;
         full) echo "完整版" ;;

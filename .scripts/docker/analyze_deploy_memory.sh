@@ -52,9 +52,9 @@ while [ $# -gt 0 ]; do
 
 说明:
   容器内存取自 docker stats 的 RSS 用量（运行中容器）。
-  规格上限取自 deploy_profile.sh：edge 3 GB / mini 4 GB / standard 16 GB / full 20 GB。
+  规格上限取自 deploy_profile.sh：edge 2 GB / mini 4 GB / standard 16 GB / full 20 GB。
   edge 典型运行容器：PostgreSQL、Redis、SRS、VIDEO、WEB（零 DEVICE，无 MinIO/Nacos/EMQX）。
-  RUNTIME 为宿主机进程，不在 Docker 统计内；edge 规格 3 GB 含 RUNTIME 与系统缓冲余量。
+  RUNTIME 为宿主机进程，不在 Docker 统计内；edge 规格 2 GB 含 RUNTIME 与系统缓冲余量。
 EOF
             exit 0
             ;;
@@ -486,7 +486,7 @@ main() {
     print_section "部署规格符合性"
     load_saved_deploy_profile
     apply_deploy_profile
-    print_info "已保存规格:   $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE:-未设置})"
+    print_info "当前部署规格: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE:-未设置})"
     print_info "运行态推断:   ${inferred_profile}"
     print_info "本次对比基准: ${target_profile}（上限 $(deploy_profile_budget_label "$target_profile")）"
     echo ""

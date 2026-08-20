@@ -268,7 +268,7 @@ device_compose_profile_flags() {
 # 各形态推荐内存上限（MiB，供 analyze_deploy_memory.sh 等脚本引用）
 deploy_profile_budget_mib() {
     case "${1:-${EASYAIOT_DEPLOY_PROFILE:-full}}" in
-        edge) echo "3072" ;;
+        edge) echo "2048" ;;
         mini|1) echo "4096" ;;
         standard|2) echo "16384" ;;
         full|3|*) echo "20480" ;;
@@ -277,7 +277,7 @@ deploy_profile_budget_mib() {
 
 deploy_profile_budget_label() {
     case "${1:-${EASYAIOT_DEPLOY_PROFILE:-full}}" in
-        edge) echo "3 GB" ;;
+        edge) echo "2 GB" ;;
         mini|1) echo "4 GB" ;;
         standard|2) echo "16 GB" ;;
         full|3|*) echo "20 GB" ;;
@@ -286,11 +286,11 @@ deploy_profile_budget_label() {
 
 _deploy_profile_desc() {
     case "${EASYAIOT_DEPLOY_PROFILE:-}" in
-        edge) echo "云边一体单机合装（WEB+VIDEO+RUNTIME，推荐 ≥ 3 GB）" ;;
-        mini) echo "边缘精简版（推荐 ≥ 4 GB）" ;;
-        standard) echo "标准版（推荐 ≥ 16 GB）" ;;
-        full) echo "完整版（推荐 ≥ 20 GB）" ;;
-        *) echo "完整版（推荐 ≥ 20 GB）" ;;
+        edge) echo "边缘单机版（推荐内存 ≥ 2 GB）" ;;
+        mini) echo "边缘精简版（推荐内存 ≥ 4 GB）" ;;
+        standard) echo "标准版（推荐内存 ≥ 16 GB）" ;;
+        full) echo "完整版（推荐内存 ≥ 20 GB）" ;;
+        *) echo "完整版（推荐内存 ≥ 20 GB）" ;;
     esac
 }
 
@@ -383,6 +383,7 @@ print_deploy_profile_summary() {
   case "${EASYAIOT_DEPLOY_PROFILE}" in
     edge)
       echo "  云边一体 · 单机合装：零 DEVICE；汇聚面与 RUNTIME 同机"
+      echo "  推荐宿主机内存: ≥ 2 GB（含 RUNTIME 宿主机进程与峰值缓冲）"
       echo "  业务: VIDEO + WEB + RUNTIME（算法走 C++ HTTP 告警）"
       echo "  登录: VIDEO(Python) 主导（默认 admin / admin123）"
       echo "  存储: 本地媒体目录（告警图/录像不经 MinIO）"
@@ -717,6 +718,11 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST true
                 _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST true
                 _set_env_docker_kv "$env_file" MINIO_ENABLED false
+                # 模型管理走本机 VIDEO（无 AI / 无 MinIO）
+                _set_env_docker_kv "$env_file" AI_SERVICE_URL "http://127.0.0.1:6000/video"
+                # 容器内媒体卷路径；权重落盘到 local-storage，种子只读挂载 /model-seed-data
+                _set_env_docker_kv "$env_file" LOCAL_STORAGE_ROOT "/mnt/easyaiot-media/local-storage"
+                _set_env_docker_kv "$env_file" MODEL_SEED_DATA_ROOT "/model-seed-data"
                 _set_env_docker_kv "$env_file" ALGO_BUS_TRANSPORT off
                 _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 0
                 _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL ""
@@ -792,6 +798,57 @@ print(f'copied={copied} skipped={skipped}')
     else
         echo "警告: mini MinIO 历史数据同步失败，AI 启动时会再次尝试"
     fi
+}
+
+_profile_print_info() {
+    if type print_info >/dev/null 2>&1; then
+        print_info "$@"
+    else
+        echo "[INFO] $*"
+    fi
+}
+
+_container_exists_by_name() {
+    local name="$1"
+    docker ps -a --filter "name=^${name}$" --format '{{.Names}}' 2>/dev/null | grep -qx "$name"
+}
+
+# 停止并移除当前部署形态不应运行的容器（含从 full/standard 切换后残留）
+cleanup_profile_excluded_containers() {
+    ensure_deploy_profile 2>/dev/null || apply_deploy_profile
+
+    local -a to_stop=()
+    local name skip found
+
+    if is_tdengine_disabled_deploy_profile; then
+        for name in tdengine-server tdengine-init; do
+            _container_exists_by_name "$name" && to_stop+=("$name")
+        done
+    fi
+
+    # edge 零 DEVICE，不会执行 DEVICE/install_linux.sh 的 stop_device_disabled_services
+    if is_edge_deploy_profile || ! module_enabled_for_deploy_profile DEVICE; then
+        for skip in $(device_skipped_services); do
+            [ -z "$skip" ] && continue
+            _container_exists_by_name "$skip" || continue
+            found=0
+            for name in "${to_stop[@]}"; do
+                if [ "$name" = "$skip" ]; then
+                    found=1
+                    break
+                fi
+            done
+            [ "$found" -eq 0 ] && to_stop+=("$skip")
+        done
+    fi
+
+    [ ${#to_stop[@]} -eq 0 ] && return 0
+
+    _profile_print_info "当前形态 (${EASYAIOT_DEPLOY_PROFILE}) 不部署以下容器，停止并移除: ${to_stop[*]}"
+    for name in "${to_stop[@]}"; do
+        docker stop "$name" >/dev/null 2>&1 || true
+        docker rm -f "$name" >/dev/null 2>&1 || true
+    done
 }
 
 # 根据跳过列表判断中间件是否属于当前形态
