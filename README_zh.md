@@ -29,7 +29,55 @@
 
 EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 
-提供产品介绍、特性说明、三档硬件选型、安装包下载与文档入口，便于快速了解平台价值并开始落地。
+提供产品介绍、特性说明、四档硬件选型、安装包下载与文档入口，便于快速了解平台价值并开始落地。
+
+## 🚀 快速开始（edge 边缘单机版）
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+打开 README 就看见一堆模块名，心里默默嘀咕：「这玩意儿……我这破机器装得动吗？」——<strong>能。先别怂。</strong>
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+我们专门给「内存紧张、但手痒想先跑起来」的你准备了 <strong>edge 边缘单机版</strong>：裁掉 DEVICE / MinIO / Nacos / EMQX 等重家伙，只留 WEB + VIDEO + RUNTIME + 必要中间件，一台小机器就能闭环——摄像头接入、实时分析、智能告警，够你 PoC、演示、门店试点先爽一把。
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+实测说话：推荐内存 ≥ <strong>2 GB</strong>，容器总占用约 <strong>1.02 GB</strong>，余量还有将近 1 GB——不是「刚好卡死」，是「还能再喘两口气」。2 GB 边缘盒子、旧笔记本、云上最小机型，都可以先按这个规格上车；装成功了再考虑升 mini / standard / full，完全不丢人。
+</p>
+
+<div align="center">
+  <img src=".image/deploy-profile-edge.png" width="85%" alt="edge 边缘单机版资源符合性（约 1.02 GB / 上限 2 GB）">
+  <p style="font-size: 13px; color: #666; margin-top: 8px;">edge 实测：容器占用约 1.02 GB，规格上限 2 GB，状态「符合」</p>
+</div>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+<strong>三步上车（Linux 示例）：</strong>
+</p>
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# 方式 A：环境变量锁定 edge（推荐）
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# 方式 B：快捷别名（等价）
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+装完浏览器打开 <code>http://&lt;服务器IP&gt;:8888</code>，默认账号 <code>admin</code> / <code>admin123</code>。验证一把：
+</p>
+
+```bash
+.scripts/docker/install_linux.sh verify
+# 可选：再瞄一眼内存是否还在 edge 规格内
+.scripts/docker/install_linux.sh resources
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 12px 0 8px 0;">
+💡 前提很轻：Docker + Compose 可用即可。CentOS / ARM / 麒麟 / 欧拉等入口脚本见 <a href=".doc/部署文档/平台部署文档_zh.md" style="color: #3498db; text-decoration: none; font-weight: 600;">平台部署文档</a>；业务怎么点见 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">操作手册</a>。更大机器、更全能力？往下翻「四档硬件」选档位就行——edge 只是让你先把心放下。
+</p>
 
 ## 📖 项目介绍
 
@@ -38,11 +86,11 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-许多智能物联网项目落地时面临同一困境：视频系统、设备平台、算法服务各自为政，集成成本高、运维割裂、扩容困难。<strong>EasyAIoT 用一套平台化解这一矛盾</strong>——同一套软件既可部署在 4 GB 边缘盒子上实现单点智能，也可搭载于 AI 一体摄像头完成楼面级覆盖，还能装进企业级全栈一体机，一箱配齐 IoT 纳管、海量视频接入与 AI 分析研判，不必维护多套版本、不必反复对接异构系统。
+许多智能物联网项目落地时面临同一困境：视频系统、设备平台、算法服务各自为政，集成成本高、运维割裂、扩容困难。<strong>EasyAIoT 用一套平台化解这一矛盾</strong>——同一套软件既可部署在 <strong>2 GB</strong> 边缘单机（edge）上先跑通智能闭环，也可落在 4～8 GB 边缘盒子（mini）实现单点智能，还可搭载于 AI 一体摄像头完成楼面级覆盖，或装进企业级全栈一体机，一箱配齐 IoT 纳管、海量视频接入与 AI 分析研判，不必维护多套版本、不必反复对接异构系统。
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、三档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
+平台由 <strong>WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、可编排业务后处理、联邦算力集群调度，以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、四档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -68,7 +116,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>缩短验收周期</strong>：到场按 mini / standard / full 选一档即可装机，进度与结果当场可见，少因命令记不全、步骤漏一步导致「装一半不知卡在哪」，PoC 与正式交付都能更快过验收</li>
+  <li><strong>缩短验收周期</strong>：到场按 edge / mini / standard / full 选一档即可装机，进度与结果当场可见，少因命令记不全、步骤漏一步导致「装一半不知卡在哪」，PoC 与正式交付都能更快过验收</li>
   <li><strong>降低驻场与远程成本</strong>：容器是否在跑、资源是否吃紧、日志卡在哪一目了然，重启、清缓存、拉镜像不必先翻文档再等开发支援，值守人员可自助处置常见故障</li>
   <li><strong>多项目一套口径</strong>：同一套装机与运维入口可复用到多台一体机、多处机房，交付、值守、交接口径一致，避免「每台现场各一套口口相传」</li>
 </ul>
@@ -234,25 +282,31 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 | ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
 | ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
 
-### 🎯 三档硬件，一套平台
+### 🎯 四档硬件，一套平台
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-很多智能物联网项目走到落地时都会卡住：<strong>功能做全了，小机器装不下；为了装得下，又得砍能力、拆版本、维护多套部署包。</strong> EasyAIoT 用同一套平台化解这一矛盾——<strong>边缘盒子点上智能、AI 一体摄像头上墙即分析、AIoT 智能全栈一体机一箱配齐全链路</strong>，三类最常见的现场硬件各选一档即可，同一套软件贯穿从单点试点到楼面覆盖再到全栈交付，不必拆版本。
+很多智能物联网项目走到落地时都会卡住：<strong>功能做全了，小机器装不下；为了装得下，又得砍能力、拆版本、维护多套部署包。</strong> EasyAIoT 用同一套平台化解这一矛盾——从 <strong>edge 极简单机合装</strong>，到 <strong>边缘盒子点上智能、AI 一体摄像头上墙即分析、AIoT 智能全栈一体机一箱配齐全链路</strong>，四类最常见的现场硬件各选一档即可，同一套软件贯穿从「先跑起来」到单点试点、楼面覆盖再到全栈交付，不必拆版本。
 </p>
 
 | 选型 | 典型硬件（举例） | 推荐内存 | 你能做到什么 | 实测验证 |
 | :-- | :-- | :--: | :-- | :--: |
+| **edge** 边缘单机版 | <strong>轻量边缘单机</strong>（2 GB 工控机、旧笔记本、云上最小机型、门店试装机） | ≥ 2 GB | <strong>一台机器闭环先跑通</strong>：WEB + VIDEO + RUNTIME；摄像头接入、实时分析、智能告警；零 DEVICE，登录由 VIDEO 主导 | 约 **1.02 GB**，余量近 1 GB |
 | **mini** 边缘精简版 | <strong>边缘盒子</strong>（8 GB 工控机、门店安防一体机、工地现场网关） | ≥ 8 GB | <strong>一个点位装上就有智能</strong>：摄像头接入、实时分析、智能告警、模型推理；事件面与 standard/full 一致（Gateway + iot-sink + EMQX） | 约 4–6 GB，余量充足 |
 | **standard** 标准版 | <strong>AI 一体摄像头</strong>（智能摄像终端、带算力 AI 监控摄像头、多目 AI 分析一体机） | ≥ 16 GB | <strong>每路摄像头即智能节点</strong>：多路摄像头上墙即可楼面/园区级覆盖，设备、规则、算力统一编排，多场景并行运营 | 约 10 GB，运行平稳有余量 |
 | **full** 完整版（默认） | <strong>AIoT 智能全栈一体机</strong>（企业级全栈智控一体机、行业物联网全栈主机、云边端一体智能平台一体机） | ≥ 20 GB | <strong>一箱配齐 IoT + 视频 + AI</strong>：设备纳管、海量接入、智能分析、指挥研判一体化，全量能力长期稳跑 | 约 14 GB，全能力开启仍留足余量 |
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+<strong>edge 怎么装：</strong><code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code>（或 <code>... install_linux.sh edge install</code>）。首次安装交互菜单亦可选档；详情见上方 <a href="#-快速开始edge-边缘单机版">快速开始</a>。
+</p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
 <strong>安装选型与资源符合性（实测）：</strong>
 </p>
 
-| | | |
-|:---:|:---:|:---:|
-| ![边缘盒子 mini](.image/deploy-profile-mini.png) | ![AI 一体摄像头 standard](.image/deploy-profile-standard.png) | ![全栈一体机 full](.image/deploy-profile-full.png) |
+| | |
+|:---:|:---:|
+| ![边缘单机 edge](.image/deploy-profile-edge.png) | ![边缘盒子 mini](.image/deploy-profile-mini.png) |
+| ![AI 一体摄像头 standard](.image/deploy-profile-standard.png) | ![全栈一体机 full](.image/deploy-profile-full.png) |
 
 #### 🧠 AI能力
 
@@ -554,8 +608,8 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>官方价值入口</strong>：面向访客、集成商与终端客户的独立官方网站，把「云边端一体化」讲清楚——先理解价值，再进入下载与部署</li>
-    <li><strong>缩短认知路径</strong>：产品特性、三档硬件选型、安装包入口与文档导览同站完成，减少「翻仓库、问人、找包」的沟通成本</li>
-    <li><strong>支撑选型决策</strong>：按 mini / standard / full 呈现边缘盒子、AI 一体摄像头与全栈一体机适用场景，帮助现场按硬件能力一次选对档位</li>
+    <li><strong>缩短认知路径</strong>：产品特性、四档硬件选型、安装包入口与文档导览同站完成，减少「翻仓库、问人、找包」的沟通成本</li>
+    <li><strong>支撑选型决策</strong>：按 edge / mini / standard / full 呈现轻量单机、边缘盒子、AI 一体摄像头与全栈一体机适用场景，帮助现场按硬件能力一次选对档位</li>
     <li><strong>引流到落地</strong>：官网与演示环境、开源仓库、Releases 安装包形成闭环，让「看懂 → 试用 → 下载 → 装机」可连续完成</li>
   </ul>
 </td>
