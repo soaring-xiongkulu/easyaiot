@@ -65,7 +65,16 @@ if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
 fi
 
 print_info "拉取/确保镜像: $IMAGE (platform=$(runtime_matrix_docker_platform "$ARCH"))"
-docker pull "$IMAGE"
+
+docker_platform=()
+if [[ "$ARCH" == "arm64" ]]; then
+  if [[ -x "$ROOT/scripts/ensure_docker_cross_arch.sh" ]]; then
+    bash "$ROOT/scripts/ensure_docker_cross_arch.sh" arm64
+  fi
+  docker_platform=(--platform "$(runtime_matrix_docker_platform arm64)")
+fi
+
+docker pull "${docker_platform[@]}" "$IMAGE"
 
 uid="$(id -u)"
 gid="$(id -g)"
@@ -75,9 +84,19 @@ mkdir -p "$TMPDIR" "$ROOT/.bundle-runtime" "$CONDA_VOL"
 
 print_info "在容器 ($IMAGE) 内编译 os_family=$OS_FAMILY arch=$ARCH ..."
 
-docker_platform=()
-if [[ "$ARCH" == "arm64" ]]; then
-  docker_platform=(--platform "$(runtime_matrix_docker_platform arm64)")
+ORT_VER="$(runtime_matrix_ort_version "$OS_FAMILY")"
+ORT_HOST_DIR="$(runtime_matrix_ort_deps_dir "$REPO" "$ARCH" "$OS_FAMILY")"
+if [[ ! -d "$ORT_HOST_DIR/include" || ! -d "$ORT_HOST_DIR/lib" ]]; then
+  print_info "缺少 ORT SDK (${ORT_VER})，尝试自动下载..."
+  if [[ -x "$ROOT/scripts/ensure_ort_deps.sh" ]]; then
+    RUNTIME_OS_FAMILY="$OS_FAMILY" ORT_VERSION="$ORT_VER" bash "$ROOT/scripts/ensure_ort_deps.sh" "$ARCH" || true
+  fi
+  ORT_HOST_DIR="$(runtime_matrix_ort_deps_dir "$REPO" "$ARCH" "$OS_FAMILY")"
+fi
+if [[ ! -d "$ORT_HOST_DIR/include" || ! -d "$ORT_HOST_DIR/lib" ]]; then
+  print_error "缺少 ORT SDK: $ORT_HOST_DIR"
+  print_error "请运行: bash RUNTIME/scripts/ensure_ort_deps.sh $ARCH"
+  exit 1
 fi
 
 docker run --rm \
@@ -90,17 +109,17 @@ docker run --rm \
   -e EASYAIOT_RUNTIME_BUILD_MODE=host \
   -e EASYAIOT_AUTO_INSTALL_DEPS=1 \
   -e ORT_ROOT=/opt/ort \
-  -e ORT_VERSION="${ORT_VERSION:-1.23.2}" \
+  -e ORT_VERSION="$ORT_VER" \
   -e MINICONDA_PREFIX=/opt/miniconda3 \
   -v "$REPO:/src:rw" \
-  -v "$REPO/.deps/onnxruntime-linux-x64-${ORT_VERSION:-1.23.2}:/opt/ort:ro" \
+  -v "$ORT_HOST_DIR:/opt/ort:ro" \
   -v "$CONDA_VOL:/opt/miniconda3:rw" \
   -w /src/RUNTIME \
   "$IMAGE" \
   bash /src/RUNTIME/scripts/build_inside_os_container.sh
 
 if [[ "$(id -u)" -ne 0 ]]; then
-  docker run --rm --runtime=runc -e NVIDIA_VISIBLE_DEVICES= \
+  docker run --rm "${docker_platform[@]}" --runtime=runc -e NVIDIA_VISIBLE_DEVICES= \
     -v "$REPO:/src:rw" \
     "$IMAGE" \
     chown -R "${uid}:${gid}" /src/RUNTIME/build /src/RUNTIME/.bundle-runtime /src/RUNTIME/deploy.env /src/RUNTIME/VERSION 2>/dev/null || true

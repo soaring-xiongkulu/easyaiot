@@ -187,7 +187,6 @@ main() {
     cp -f "$ROOT/scripts/smoke_runtime.sh" "$staging/scripts/" || true
     chmod +x "$staging/scripts/smoke_runtime.sh"
   fi
-
   # 内置 ONNX（存在则打入；-L 解引用 yolo11n.onnx → yolov11n.onnx）
   local model_file
   for model_file in \
