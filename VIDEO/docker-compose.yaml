@@ -43,6 +43,8 @@ services:
       - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/playbacks:/data/playbacks:rw
       # 环境变量配置文件（用于Docker部署，使用.env.docker）
       - ./.env.docker:/app/.env:ro
+      # edge/mini：安装包 flat 模型种子（历史目录名 .scripts/minio，仅本地文件，不启 MinIO）
+      - ../.scripts/minio:/model-seed-data:ro
 
     # 环境变量
     environment:

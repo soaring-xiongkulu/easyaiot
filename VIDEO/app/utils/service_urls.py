@@ -52,6 +52,22 @@ def minio_storage_enabled() -> bool:
     return True
 
 
+def resolve_model_service_base_url() -> str:
+    """edge 形态模型 API 走本机 VIDEO；其余形态默认 AI 服务。"""
+    if is_edge_deploy_profile():
+        explicit = (os.getenv('AI_SERVICE_URL') or '').strip().rstrip('/')
+        # edge 无 AI；残留 :5000 配置视为无效，回退 VIDEO
+        if explicit and ':5000' not in explicit:
+            return explicit
+        return f'{resolve_video_service_base_url()}/video'
+    explicit = (os.getenv('AI_SERVICE_URL') or '').strip().rstrip('/')
+    if explicit:
+        return explicit
+    port = (os.getenv('AI_SERVICE_PORT') or '5000').strip()
+    host = (os.getenv('AI_SERVICE_HOST') or '127.0.0.1').strip()
+    return f'http://{host}:{port}'
+
+
 def resolve_video_service_base_url() -> str:
     explicit = (os.getenv('VIDEO_SERVICE_URL') or '').strip().rstrip('/')
     if explicit:

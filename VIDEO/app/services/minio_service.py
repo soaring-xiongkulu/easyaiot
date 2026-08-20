@@ -4,23 +4,48 @@
 @wechat EasyAIoT2025
 """
 import os
+import shutil
 import zipfile
+import tempfile
 import posixpath
 from flask import current_app
 from minio import Minio
 from minio.error import S3Error
 
+from urllib.parse import parse_qs, unquote, urlparse
+
 from app.utils.video_env import load_video_env
 
 load_video_env(override=False)
+
+
+def parse_minio_download_url(url: str):
+    """
+    解析 MinIO 下载 URL，提取 bucket 与 object_key。
+    格式: /api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}
+    """
+    try:
+        parsed = urlparse(url)
+        path_parts = parsed.path.split('/')
+        if len(path_parts) < 5 or path_parts[3] != 'buckets':
+            return None, None
+        bucket_name = path_parts[4]
+        query_params = parse_qs(parsed.query)
+        object_key = query_params.get('prefix', [None])[0]
+        if object_key:
+            object_key = unquote(object_key)
+        return bucket_name, object_key
+    except Exception:
+        return None, None
+
 
 class ModelService:
     @staticmethod
     def get_minio_client():
         """创建并返回Minio客户端（从.env加载配置）"""
-        minio_endpoint = os.getenv('MINIO_ENDPOINT', 'localhost:9000')
+        minio_endpoint = os.getenv('MINIO_ENDPOINT', 'MinIO:9000')
         access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-        secret_key = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+        secret_key = os.getenv('MINIO_SECRET_KEY', 'basiclab@iot975248395')
         secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
 
         return Minio(
@@ -29,35 +54,228 @@ class ModelService:
             secret_key=secret_key,
             secure=secure
         )
+    
+    @staticmethod
+    def _get_minio_config_info():
+        """获取MinIO配置信息（用于诊断，不包含敏感信息）"""
+        minio_endpoint = os.getenv('MINIO_ENDPOINT', 'MinIO:9000')
+        access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+        secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
+        # 只显示访问密钥的前4个字符，用于诊断
+        access_key_display = access_key[:4] + '***' if len(access_key) > 4 else '***'
+        return {
+            'endpoint': minio_endpoint,
+            'access_key': access_key_display,
+            'secure': secure,
+            'access_key_set': bool(access_key),
+            'secret_key_set': bool(os.getenv('MINIO_SECRET_KEY'))
+        }
+    
+    @staticmethod
+    def _format_minio_error(e, operation="操作"):
+        """格式化MinIO错误信息，提供诊断信息"""
+        error_code = getattr(e, 'code', 'Unknown')
+        error_message = str(e)
+        
+        # 针对特定错误提供友好的错误信息
+        if error_code == 'InvalidAccessKeyId':
+            config_info = ModelService._get_minio_config_info()
+            friendly_msg = (
+                f"MinIO访问密钥配置错误：提供的Access Key ID不存在。\n"
+                f"诊断信息：\n"
+                f"  - MinIO端点: {config_info['endpoint']}\n"
+                f"  - Access Key: {config_info['access_key']}\n"
+                f"  - Access Key已设置: {config_info['access_key_set']}\n"
+                f"  - Secret Key已设置: {config_info['secret_key_set']}\n"
+                f"解决方案：\n"
+                f"  1. 检查环境变量 MINIO_ACCESS_KEY 和 MINIO_SECRET_KEY 是否正确设置\n"
+                f"  2. 确认MinIO服务器上的访问密钥与配置一致\n"
+                f"  3. 如果使用Docker，检查 .env.docker 文件或 docker-compose.yaml 中的环境变量配置\n"
+                f"  4. 如果MinIO服务已重新部署，可能需要更新访问密钥配置"
+            )
+            return friendly_msg
+        elif error_code == 'SignatureDoesNotMatch':
+            config_info = ModelService._get_minio_config_info()
+            friendly_msg = (
+                f"MinIO密钥签名不匹配：Secret Key可能不正确。\n"
+                f"诊断信息：\n"
+                f"  - MinIO端点: {config_info['endpoint']}\n"
+                f"  - Access Key: {config_info['access_key']}\n"
+                f"解决方案：检查环境变量 MINIO_SECRET_KEY 是否正确"
+            )
+            return friendly_msg
+        elif error_code == 'NoSuchBucket':
+            friendly_msg = f"MinIO存储桶不存在。请确认存储桶名称正确，或检查是否有权限创建存储桶"
+            return friendly_msg
+        else:
+            return f"MinIO {operation}错误: {error_message} (错误代码: {error_code})"
 
     @staticmethod
     def download_from_minio(bucket_name, object_name, destination_path):
-        """从Minio下载文件"""
+        """从 MinIO 下载文件；mini 形态从本地目录读取。
+        
+        Returns:
+            tuple: (success: bool, error_message: str or None)
+        """
+        from app.utils.service_urls import minio_storage_enabled
+        from app.services.local_storage_service import ensure_local_object
+
+        if not minio_storage_enabled():
+            from app.services.local_storage_service import ensure_local_object
+
+            src = ensure_local_object(bucket_name, object_name)
+            if not src:
+                error_msg = f'本地对象不存在: {bucket_name}/{object_name}'
+                current_app.logger.error(error_msg)
+                return False, error_msg
+            try:
+                os.makedirs(os.path.dirname(destination_path) or '.', exist_ok=True)
+                if os.path.abspath(src) != os.path.abspath(destination_path):
+                    shutil.copy2(src, destination_path)
+                current_app.logger.info(
+                    'mini 形态本地存储读取: %s/%s -> %s',
+                    bucket_name, object_name, destination_path,
+                )
+                return True, None
+            except OSError as exc:
+                error_msg = f'本地对象复制失败: {exc}'
+                current_app.logger.error(error_msg)
+                return False, error_msg
+
         try:
             minio_client = ModelService.get_minio_client()
 
             # 检查对象是否存在
-            stat = minio_client.stat_object(bucket_name, object_name)
-            if not stat:
-                current_app.logger.error(f"Minio对象不存在: {bucket_name}/{object_name}")
-                return False
+            try:
+                stat = minio_client.stat_object(bucket_name, object_name)
+                if not stat:
+                    error_msg = f"Minio对象不存在: {bucket_name}/{object_name}"
+                    current_app.logger.error(error_msg)
+                    return False, error_msg
+            except S3Error as e:
+                if e.code == 'NoSuchKey':
+                    error_msg = f"Minio对象不存在: {bucket_name}/{object_name}"
+                    current_app.logger.error(error_msg)
+                    return False, error_msg
+                else:
+                    raise
 
             # 下载文件
             minio_client.fget_object(bucket_name, object_name, destination_path)
             current_app.logger.info(f"成功下载Minio对象: {bucket_name}/{object_name} -> {destination_path}")
-            return True
+            return True, None
         except S3Error as e:
-            current_app.logger.error(f"Minio下载错误: {str(e)}")
-            return False
+            error_msg = ModelService._format_minio_error(e, "下载")
+            current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO下载原始错误: {str(e)}")
+            return False, error_msg
         except Exception as e:
-            current_app.logger.error(f"Minio下载未知错误: {str(e)}")
-            return False
+            error_msg = f"Minio下载未知错误: {str(e)}"
+            current_app.logger.error(error_msg)
+            return False, error_msg
+
+    @staticmethod
+    def download_directory_from_minio(bucket_name, object_prefix, destination_zip_path):
+        """从Minio下载目录并打包为zip文件
+        
+        Args:
+            bucket_name: Minio存储桶名称
+            object_prefix: 对象前缀（目录路径，应以'/'结尾）
+            destination_zip_path: 目标zip文件路径
+        
+        Returns:
+            tuple: (success: bool, error_message: str or None)
+        """
+        try:
+            minio_client = ModelService.get_minio_client()
+            
+            # 确保前缀以'/'结尾
+            if not object_prefix.endswith('/'):
+                object_prefix = object_prefix + '/'
+            
+            # 列出目录下的所有对象
+            objects = minio_client.list_objects(
+                bucket_name,
+                prefix=object_prefix,
+                recursive=True
+            )
+            
+            objects_list = list(objects)
+            if not objects_list:
+                error_msg = f"Minio目录为空或不存在: {bucket_name}/{object_prefix}"
+                current_app.logger.error(error_msg)
+                return False, error_msg
+            
+            # 创建临时目录用于下载文件
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                # 下载所有文件到临时目录
+                for obj in objects_list:
+                    # 获取相对路径
+                    relative_path = obj.object_name[len(object_prefix):]
+                    if not relative_path:  # 跳过目录本身
+                        continue
+                    
+                    # 构建本地文件路径
+                    local_file_path = os.path.join(tmp_dir, relative_path)
+                    local_dir = os.path.dirname(local_file_path)
+                    if local_dir:
+                        os.makedirs(local_dir, exist_ok=True)
+                    
+                    # 下载文件
+                    minio_client.fget_object(bucket_name, obj.object_name, local_file_path)
+                    current_app.logger.debug(f"已下载: {obj.object_name} -> {local_file_path}")
+                
+                # 打包为zip文件
+                with zipfile.ZipFile(destination_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(tmp_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            # 计算在zip中的相对路径
+                            arcname = os.path.relpath(file_path, tmp_dir)
+                            zipf.write(file_path, arcname)
+                
+                current_app.logger.info(f"成功下载并打包Minio目录: {bucket_name}/{object_prefix} -> {destination_zip_path}")
+                return True, None
+                
+        except S3Error as e:
+            error_msg = ModelService._format_minio_error(e, "目录下载")
+            current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO目录下载原始错误: {str(e)}")
+            return False, error_msg
+        except Exception as e:
+            error_msg = f"Minio目录下载未知错误: {str(e)}"
+            current_app.logger.error(error_msg)
+            return False, error_msg
 
     @staticmethod
     def upload_to_minio(bucket_name, object_name, file_path):
-        """上传文件到Minio存储"""
+        """上传文件到 MinIO；mini 形态无 MinIO 时写入本地目录。
+        
+        Returns:
+            tuple: (success: bool, error_message: str or None)
+        """
+        from app.utils.service_urls import minio_storage_enabled
+        from app.services.local_storage_service import save_local_object
+
+        if not minio_storage_enabled():
+            ok, err = save_local_object(bucket_name, object_name, file_path)
+            if ok:
+                current_app.logger.info(
+                    'mini 形态本地存储写入: %s/%s -> %s',
+                    bucket_name, object_name, file_path,
+                )
+            return ok, err
+
         try:
             minio_client = ModelService.get_minio_client()
+
+            # 检查本地文件是否存在
+            if not os.path.exists(file_path):
+                error_msg = f"本地文件不存在: {file_path}"
+                current_app.logger.error(error_msg)
+                return False, error_msg
 
             # 自动创建存储桶（如果不存在）
             if not minio_client.bucket_exists(bucket_name):
@@ -66,25 +284,56 @@ class ModelService:
 
             # 执行文件上传
             minio_client.fput_object(bucket_name, object_name, file_path)
-            current_app.logger.info(f"文件上传成功: {bucket_name}/{object_name}")
-            return True
+            current_app.logger.info(f"文件上传完成: {bucket_name}/{object_name}")
+
+            # 验证上传是否成功：检查对象是否存在
+            try:
+                stat = minio_client.stat_object(bucket_name, object_name)
+                if stat:
+                    current_app.logger.info(f"文件上传验证成功: {bucket_name}/{object_name}, 大小: {stat.size} 字节")
+                    return True, None
+                else:
+                    error_msg = f"文件上传后验证失败: {bucket_name}/{object_name} 不存在"
+                    current_app.logger.error(error_msg)
+                    return False, error_msg
+            except S3Error as verify_error:
+                error_msg = f"文件上传后验证失败: {bucket_name}/{object_name}, 错误: {str(verify_error)}"
+                current_app.logger.error(error_msg)
+                return False, error_msg
+
         except S3Error as e:
-            current_app.logger.error(f"Minio上传错误: {str(e)}")
-            return False
+            error_msg = ModelService._format_minio_error(e, "上传")
+            current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO上传原始错误: {str(e)}")
+            return False, error_msg
         except Exception as e:
-            current_app.logger.error(f"Minio上传未知错误: {str(e)}")
-            return False
+            error_msg = f"Minio上传未知错误: {str(e)}"
+            current_app.logger.error(error_msg)
+            return False, error_msg
 
     @staticmethod
     def upload_directory_to_minio(bucket_name, object_prefix, local_dir):
-        """上传整个目录到Minio"""
+        """上传整个目录到Minio
+        
+        Returns:
+            tuple: (success: bool, error_message: str or None)
+        """
         try:
             minio_client = ModelService.get_minio_client()
+
+            # 检查本地目录是否存在
+            if not os.path.exists(local_dir):
+                error_msg = f"本地目录不存在: {local_dir}"
+                current_app.logger.error(error_msg)
+                return False, error_msg
 
             # 确保存储桶存在
             if not minio_client.bucket_exists(bucket_name):
                 minio_client.make_bucket(bucket_name)
+                current_app.logger.info(f"创建Minio存储桶: {bucket_name}")
 
+            uploaded_files = []
             # 遍历目录并上传
             for root, _, files in os.walk(local_dir):
                 for file in files:
@@ -95,15 +344,43 @@ class ModelService:
                     minio_client.fput_object(
                         bucket_name, object_name, file_path
                     )
+                    uploaded_files.append(object_name)
                     current_app.logger.info(f"已上传: {object_name}")
 
-            return True
+            # 验证至少有一个文件被上传
+            if not uploaded_files:
+                error_msg = f"目录中没有文件可上传: {local_dir}"
+                current_app.logger.error(error_msg)
+                return False, error_msg
+
+            # 验证第一个文件是否存在（作为上传成功的标志）
+            if uploaded_files:
+                try:
+                    first_object = uploaded_files[0]
+                    stat = minio_client.stat_object(bucket_name, first_object)
+                    if stat:
+                        current_app.logger.info(f"目录上传验证成功: 共上传 {len(uploaded_files)} 个文件")
+                        return True, None
+                    else:
+                        error_msg = f"目录上传后验证失败: {bucket_name}/{first_object} 不存在"
+                        current_app.logger.error(error_msg)
+                        return False, error_msg
+                except S3Error as verify_error:
+                    error_msg = f"目录上传后验证失败: {bucket_name}/{uploaded_files[0]}, 错误: {str(verify_error)}"
+                    current_app.logger.error(error_msg)
+                    return False, error_msg
+
+            return True, None
         except S3Error as e:
-            current_app.logger.error(f"Minio目录上传错误: {str(e)}")
-            return False
+            error_msg = ModelService._format_minio_error(e, "目录上传")
+            current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO目录上传原始错误: {str(e)}")
+            return False, error_msg
         except Exception as e:
-            current_app.logger.error(f"Minio目录上传未知错误: {str(e)}")
-            return False
+            error_msg = f"Minio目录上传未知错误: {str(e)}"
+            current_app.logger.error(error_msg)
+            return False, error_msg
 
     @staticmethod
     def extract_zip(zip_path, extract_path):
@@ -167,3 +444,100 @@ class ModelService:
     def get_posix_path(relative_path):
         """将相对路径转换为POSIX风格路径（使用正斜杠）"""
         return posixpath.join(*relative_path.split(os.sep))
+
+    @staticmethod
+    def delete_from_minio(bucket_name, object_name):
+        """从Minio删除文件或目录"""
+        try:
+            minio_client = ModelService.get_minio_client()
+
+            # 检查存储桶是否存在
+            if not minio_client.bucket_exists(bucket_name):
+                current_app.logger.warning(f"Minio存储桶不存在: {bucket_name}")
+                return False
+
+            # 判断是文件还是目录
+            # 如果 object_name 以 '/' 结尾，需要递归删除目录
+            if object_name.endswith('/'):
+                # 删除目录下的所有对象
+                objects_to_delete = minio_client.list_objects(
+                    bucket_name, 
+                    prefix=object_name, 
+                    recursive=True
+                )
+                objects_list = list(objects_to_delete)
+                
+                if not objects_list:
+                    current_app.logger.warning(f"Minio目录为空或不存在: {bucket_name}/{object_name}")
+                    return True
+                
+                # 批量删除对象
+                from minio.deleteobjects import DeleteObject
+                delete_object_list = [DeleteObject(obj.object_name) for obj in objects_list]
+                errors = minio_client.remove_objects(bucket_name, delete_object_list)
+                
+                # 检查是否有错误
+                error_list = list(errors)
+                if error_list:
+                    for error in error_list:
+                        current_app.logger.error(f"删除Minio对象失败: {error}")
+                    return False
+                
+                current_app.logger.info(f"成功删除Minio目录: {bucket_name}/{object_name} (共 {len(objects_list)} 个对象)")
+                return True
+            else:
+                # 先尝试作为单个文件删除
+                try:
+                    # 检查是否存在以该路径为前缀的多个对象（可能是目录）
+                    objects_to_check = minio_client.list_objects(
+                        bucket_name,
+                        prefix=object_name + '/',
+                        recursive=False
+                    )
+                    objects_list = list(objects_to_check)
+                    
+                    if objects_list:
+                        # 存在以该路径为前缀的对象，作为目录处理
+                        # 删除所有以该路径为前缀的对象
+                        objects_to_delete = minio_client.list_objects(
+                            bucket_name,
+                            prefix=object_name + '/',
+                            recursive=True
+                        )
+                        objects_list = list(objects_to_delete)
+                        
+                        if objects_list:
+                            from minio.deleteobjects import DeleteObject
+                            delete_object_list = [DeleteObject(obj.object_name) for obj in objects_list]
+                            errors = minio_client.remove_objects(bucket_name, delete_object_list)
+                            
+                            error_list = list(errors)
+                            if error_list:
+                                for error in error_list:
+                                    current_app.logger.error(f"删除Minio对象失败: {error}")
+                                return False
+                            
+                            current_app.logger.info(f"成功删除Minio目录: {bucket_name}/{object_name} (共 {len(objects_list)} 个对象)")
+                            return True
+                    
+                    # 作为单个文件删除
+                    minio_client.remove_object(bucket_name, object_name)
+                    current_app.logger.info(f"成功删除Minio对象: {bucket_name}/{object_name}")
+                    return True
+                except S3Error as e:
+                    # 如果文件不存在，记录警告但不视为错误
+                    if e.code == 'NoSuchKey':
+                        current_app.logger.warning(f"Minio对象不存在: {bucket_name}/{object_name}")
+                        return True
+                    else:
+                        raise
+                        
+        except S3Error as e:
+            error_msg = ModelService._format_minio_error(e, "删除")
+            current_app.logger.error(error_msg)
+            # 记录原始错误信息用于调试
+            current_app.logger.debug(f"MinIO删除原始错误: {str(e)}")
+            return False
+        except Exception as e:
+            current_app.logger.error(f"Minio删除未知错误: {str(e)}")
+            return False
