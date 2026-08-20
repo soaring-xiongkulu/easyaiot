@@ -8,17 +8,17 @@
         :tabBarGutter="60"
         @tabClick="handleTabClick"
       >
-        <TabPane key="1" tab="地图分布">
+        <TabPane v-if="showCameraTab('1')" key="1" tab="地图分布">
           <CameraMapDistribution ref="cameraMapDistributionRef" />
         </TabPane>
-        <TabPane key="2" tab="分屏监控">
+        <TabPane v-if="showCameraTab('2')" key="2" tab="分屏监控">
           <SplitScreenMonitor
             ref="splitScreenMonitorRef"
             :initial-mode="splitScreenInitialMode"
             @play="handleCardPlay"
           />
         </TabPane>
-        <TabPane key="3" tab="设备列表">
+        <TabPane v-if="showCameraTab('3')" key="3" tab="设备列表">
           <DeviceCreate
             v-if="deviceCreateVisible"
             :initial-kind="deviceCreateInitial.kind"
@@ -57,10 +57,20 @@
               <template #toolbar>
                 <div class="device-list-toolbar">
                   <Checkbox v-model:checked="enableAi">启用 AI</Checkbox>
-                  <Button type="primary" preIcon="material-symbols:flight-takeoff-rounded" @click="openDjiLiveDrawer()">
+                  <Button
+                    v-if="showDjiRtcDeviceCreate"
+                    type="primary"
+                    preIcon="material-symbols:flight-takeoff-rounded"
+                    @click="openDjiLiveDrawer()"
+                  >
                     接入大疆直播
                   </Button>
-                  <Button type="primary" preIcon="mdi:webcam" @click="openRtcDeviceCreate()">
+                  <Button
+                    v-if="showDjiRtcDeviceCreate"
+                    type="primary"
+                    preIcon="mdi:webcam"
+                    @click="openRtcDeviceCreate()"
+                  >
                     接入 RTC 摄像头
                   </Button>
                   <Button type="primary" preIcon="ant-design:video-camera-add-outlined" @click="openDeviceCreate()">
@@ -147,10 +157,20 @@
                   <template #header>
                     <div class="device-list-toolbar device-list-toolbar--card">
                       <Checkbox v-model:checked="enableAi">启用 AI</Checkbox>
-                      <Button type="primary" preIcon="material-symbols:flight-takeoff-rounded" @click="openDjiLiveDrawer()">
+                      <Button
+                        v-if="showDjiRtcDeviceCreate"
+                        type="primary"
+                        preIcon="material-symbols:flight-takeoff-rounded"
+                        @click="openDjiLiveDrawer()"
+                      >
                         接入大疆直播
                       </Button>
-                      <Button type="primary" preIcon="mdi:webcam" @click="openRtcDeviceCreate()">
+                      <Button
+                        v-if="showDjiRtcDeviceCreate"
+                        type="primary"
+                        preIcon="mdi:webcam"
+                        @click="openRtcDeviceCreate()"
+                      >
                         接入 RTC 摄像头
                       </Button>
                       <Button type="primary" preIcon="ant-design:video-camera-add-outlined" @click="openDeviceCreate()">
@@ -177,13 +197,13 @@
           <Gb28181DeviceModal @register="registerGbDeviceModal" @success="handleSuccess"/>
           <NvrDeviceModal @register="registerNvrDeviceModal" @success="handleSuccess"/>
         </TabPane>
-        <TabPane key="4" tab="存储空间">
+        <TabPane v-if="showCameraTab('4')" key="4" tab="存储空间">
           <StorageSpace ref="storageSpaceRef"/>
         </TabPane>
-        <TabPane key="6" tab="推流转发">
+        <TabPane v-if="showCameraTab('6')" key="6" tab="推流转发">
           <StreamForward ref="streamForwardRef"/>
         </TabPane>
-        <TabPane key="7" tab="算法任务">
+        <TabPane v-if="showCameraTab('7')" key="7" tab="算法任务">
           <AlgorithmTask ref="algorithmTaskRef"/>
         </TabPane>
         <TabPane key="14" v-if="edgeNodeEnabled" tab="边缘节点（联邦集群）">
@@ -198,28 +218,28 @@
         <TabPane key="11" v-if="facePlateLibraryEnabled" tab="车牌库">
           <PlateLibrary ref="plateLibraryRef"/>
         </TabPane>
-        <TabPane :key="CAMERA_TAB_KEYS.NFS_MANAGE" :tab="NODE_PAGE.clusterEnvStorage">
+        <TabPane v-if="showCameraTab(CAMERA_TAB_KEYS.NFS_MANAGE)" :key="CAMERA_TAB_KEYS.NFS_MANAGE" :tab="NODE_PAGE.clusterEnvStorage">
           <StorageEnvBatch
             section="manage"
             :initial-node-ids="nfsInitialNodeIds"
             :focus-node-id="nfsFocusNodeId"
           />
         </TabPane>
-        <TabPane :key="CAMERA_TAB_KEYS.NFS_TOPOLOGY" :tab="NODE_PAGE.clusterEnvStorageTopology">
+        <TabPane v-if="showCameraTab(CAMERA_TAB_KEYS.NFS_TOPOLOGY)" :key="CAMERA_TAB_KEYS.NFS_TOPOLOGY" :tab="NODE_PAGE.clusterEnvStorageTopology">
           <StorageEnvBatch
             section="topology"
             :initial-node-ids="nfsInitialNodeIds"
             :focus-node-id="nfsFocusNodeId"
           />
         </TabPane>
-        <TabPane :key="CAMERA_TAB_KEYS.NFS_DEPLOY" :tab="NODE_PAGE.clusterEnvStorageDeploy">
+        <TabPane v-if="showCameraTab(CAMERA_TAB_KEYS.NFS_DEPLOY)" :key="CAMERA_TAB_KEYS.NFS_DEPLOY" :tab="NODE_PAGE.clusterEnvStorageDeploy">
           <StorageEnvBatch
             section="ops"
             :initial-node-ids="nfsInitialNodeIds"
             :focus-node-id="nfsFocusNodeId"
           />
         </TabPane>
-        <TabPane :key="CAMERA_TAB_KEYS.NFS_FILES" :tab="NODE_PAGE.clusterEnvStorageFiles">
+        <TabPane v-if="showCameraTab(CAMERA_TAB_KEYS.NFS_FILES)" :key="CAMERA_TAB_KEYS.NFS_FILES" :tab="NODE_PAGE.clusterEnvStorageFiles">
           <StorageEnvBatch
             section="files"
             :initial-node-ids="nfsInitialNodeIds"
@@ -302,7 +322,9 @@ import {
   type DeviceKind,
 } from './utils/deviceCreateOptions';
 import {
+  isEdgeCameraTabVisible,
   isEdgeNodeEnabled,
+  isEdgeStandaloneDeployProfile,
   isFacePlateLibraryEnabled,
   isGb28181Enabled,
 } from '@/utils/deployProfile';
@@ -314,6 +336,9 @@ defineOptions({name: 'CAMERA'})
 const gb28181Enabled = isGb28181Enabled();
 const edgeNodeEnabled = isEdgeNodeEnabled();
 const facePlateLibraryEnabled = isFacePlateLibraryEnabled();
+const showCameraTab = (tabKey: string) => isEdgeCameraTabVisible(tabKey);
+/** edge 单机合装不部署大疆司空 / go2rtc，设备列表隐藏对应接入入口 */
+const showDjiRtcDeviceCreate = !isEdgeStandaloneDeployProfile();
 
 const route = useRoute();
 const router = useRouter();

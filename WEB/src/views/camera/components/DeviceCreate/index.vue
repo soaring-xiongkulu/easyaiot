@@ -76,7 +76,7 @@
         </div>
       </TabPane>
 
-      <TabPane key="rtc" tab="RTC 平台">
+      <TabPane v-if="showRtcPlatformTab" key="rtc" tab="RTC 平台">
         <div class="dc-pane">
           <div class="dc-body">
             <RtcPlatformPanel class="panel-host" @success="handlePanelSuccess" />
@@ -103,11 +103,13 @@ import DirectRtspPanel from './panels/DirectRtspPanel.vue';
 import NvrManualPanel from './panels/NvrManualPanel.vue';
 import Gb28181AccessPanel from './panels/Gb28181AccessPanel.vue';
 import RtcPlatformPanel from './panels/RtcPlatformPanel.vue';
-import { isGb28181Enabled } from '@/utils/deployProfile';
+import { isEdgeStandaloneDeployProfile, isGb28181Enabled } from '@/utils/deployProfile';
 
 const TabPane = Tabs.TabPane;
 
 const gb28181Enabled = isGb28181Enabled();
+/** edge 单机合装不部署 go2rtc，添加设备页隐藏 RTC 平台 Tab */
+const showRtcPlatformTab = !isEdgeStandaloneDeployProfile();
 
 const props = defineProps<{
   initialKind?: DeviceKind;
@@ -119,7 +121,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{ back: []; success: [] }>();
 
-const activeTab = ref(props.initialTab || props.initialKind || 'camera');
+const activeTab = ref(normalizeInitialTab(props.initialTab || props.initialKind || 'camera'));
+
+function normalizeInitialTab(tab: string) {
+  if (!showRtcPlatformTab && tab === 'rtc') return 'camera';
+  if (!gb28181Enabled && tab === 'gb28181') return 'camera';
+  return tab;
+}
 
 const kindMethodPrefs = reactive<Record<DeviceKind, CreateMethod>>({
   camera: props.initialMethod || getDefaultMethodForKind('camera'),
@@ -163,7 +171,7 @@ function handlePanelSuccess() {
 watch(
   () => props.initialTab,
   (v) => {
-    if (v) activeTab.value = v;
+    if (v) activeTab.value = normalizeInitialTab(v);
   },
 );
 

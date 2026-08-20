@@ -42,7 +42,7 @@ const dashboardTitle = computed(() => config.value.dashboardTitle)
 
 const handleGoToAdmin = () => {
   const target = getAdminHomeRoute()
-  router.push(target.query ? { path: target.path, query: target.query } : target.path)
+  void router.push(target.query ? { path: target.path, query: target.query } : target.path)
 }
 
 const currentDate = ref('')

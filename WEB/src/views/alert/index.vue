@@ -8,7 +8,7 @@
         :tabBarGutter="60"
         @tabClick="handleTabClick"
       >
-        <TabPane key="1" tab="地图分布">
+        <TabPane v-if="!edgeStandalone" key="1" tab="地图分布">
           <AlertMapView
             ref="alertMapViewRef"
             @view-image="handleCardViewImage"
@@ -113,8 +113,10 @@ import { getDeviceInfo } from '@/api/device/camera';
 import { openDeviceInDialogPlayer } from '@/views/camera/utils/devicePlay';
 import { playAlertRecordInModal } from '@/utils/alertRecordPlayback';
 import { isSnapAlertTask } from '@/views/alert/alertDisplay';
+import { isEdgeStandaloneDeployProfile } from '@/utils/deployProfile';
 
 const router = useRouter();
+const edgeStandalone = isEdgeStandaloneDeployProfile();
 const [registerImageModal, { openModal: openImageModal }] = useModal();
 const [registerVideoModal, { openModal: openVideoModal, closeModal: closeVideoModal, setModalProps: setVideoModalProps }] = useModal();
 const [registerLocationDrawer, { openModal: openLocationModal }] = useModal();
@@ -131,7 +133,7 @@ const ALERT_TAB_ID_SET = new Set<string>(Object.values(ALERT_TAB_KEYS));
 const viewMode = ref<'table' | 'card'>('card');
 
 const state = reactive({
-  activeKey: ALERT_TAB_KEYS.MAP,
+  activeKey: edgeStandalone ? ALERT_TAB_KEYS.EVENTS : ALERT_TAB_KEYS.MAP,
 });
 
 const params = ref<Record<string, any>>({});
@@ -146,7 +148,7 @@ function normalizeAlertRouteTab(tab: unknown): string {
   if (tab === 'events') return ALERT_TAB_KEYS.EVENTS;
   const tabStr = String(tab);
   if (ALERT_TAB_ID_SET.has(tabStr)) return tabStr;
-  return ALERT_TAB_KEYS.MAP;
+  return edgeStandalone ? ALERT_TAB_KEYS.EVENTS : ALERT_TAB_KEYS.MAP;
 }
 
 async function activateMapTab() {
@@ -171,7 +173,9 @@ function handleTabClick(activeKey: string) {
 const refreshData = () => {
   const route = router.currentRoute.value;
   const rawTab = route.query.tab ?? (route.query.view === 'map' ? ALERT_TAB_KEYS.MAP : undefined);
-  const tab = rawTab ? normalizeAlertRouteTab(rawTab) : ALERT_TAB_KEYS.MAP;
+  const tab = rawTab
+    ? normalizeAlertRouteTab(rawTab)
+    : (edgeStandalone ? ALERT_TAB_KEYS.EVENTS : ALERT_TAB_KEYS.MAP);
   if (tab === ALERT_TAB_KEYS.MAP) {
     void activateMapTab();
     return;
