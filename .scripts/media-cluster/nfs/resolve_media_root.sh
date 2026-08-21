@@ -66,6 +66,24 @@ is_snap_confined_docker() {
     return 1
 }
 
+# 带超时的路径探测，避免僵死 NFS（如 /root/easyaiot/data）让 install/build 无输出挂起
+_MEDIA_PATH_PROBE_TIMEOUT="${EASYAIOT_MEDIA_PATH_PROBE_TIMEOUT:-2}"
+
+_media_path_test() {
+    local op="$1"
+    local path="$2"
+    [ -n "$path" ] || return 1
+    case "$op" in
+        -d|-e|-L|-w|-f) ;;
+        *) return 1 ;;
+    esac
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "${_MEDIA_PATH_PROBE_TIMEOUT}" test "$op" "$path" 2>/dev/null
+        return $?
+    fi
+    test "$op" "$path" 2>/dev/null
+}
+
 # 安全判断挂载点：避免僵死 NFS 上 mountpoint/stat 永久卡死
 _is_media_mountpoint_safe() {
     local path="$1"
@@ -93,25 +111,29 @@ _easyaiot_media_root_candidates() {
 # 路径是否可作为 Docker bind 源（必须是目录；挂载点也算目录）
 _is_usable_media_bind_dir() {
     local path="$1"
-    [ -d "$path" ] || return 1
+    _media_path_test -d "$path" || return 1
     # 拒绝指向非目录的 symlink（Docker MkdirAll 同样会失败）
-    if [ -L "$path" ]; then
+    if _media_path_test -L "$path"; then
         local target
-        target="$(readlink -f "$path" 2>/dev/null || true)"
-        [ -n "$target" ] && [ -d "$target" ] || return 1
+        if command -v timeout >/dev/null 2>&1; then
+            target="$(timeout "${_MEDIA_PATH_PROBE_TIMEOUT}" readlink -f "$path" 2>/dev/null || true)"
+        else
+            target="$(readlink -f "$path" 2>/dev/null || true)"
+        fi
+        [ -n "$target" ] && _media_path_test -d "$target" || return 1
     fi
-    [ -w "$path" ] || return 1
+    _media_path_test -w "$path" || return 1
     return 0
 }
 
 # 若路径存在但不是目录（普通文件 / 坏链路），挪走后重建目录
 _repair_non_dir_media_path() {
     local path="$1"
-    [ -e "$path" ] || [ -L "$path" ] || return 0
-    if [ -d "$path" ] && ! [ -L "$path" ]; then
+    _media_path_test -e "$path" || _media_path_test -L "$path" || return 0
+    if _media_path_test -d "$path" && ! _media_path_test -L "$path"; then
         return 0
     fi
-    if [ -d "$path" ] && [ -L "$path" ]; then
+    if _media_path_test -d "$path" && _media_path_test -L "$path"; then
         # 目录 symlink：若目标仍是目录则可用
         _is_usable_media_bind_dir "$path" && return 0
     fi
@@ -155,7 +177,7 @@ resolve_easyaiot_media_root() {
             echo "$candidate"
             return
         fi
-        if [ -e "$candidate" ] || [ -L "$candidate" ]; then
+        if _media_path_test -e "$candidate" || _media_path_test -L "$candidate"; then
             if _repair_non_dir_media_path "$candidate" && _is_usable_media_bind_dir "$candidate"; then
                 echo "$candidate"
                 return
@@ -177,6 +199,7 @@ resolve_easyaiot_media_root() {
         fi
     fi
 
+    # 已挂载的媒体根优先
     for candidate in $(_easyaiot_media_root_candidates); do
         if _is_media_mountpoint_safe "$candidate" && _is_usable_media_bind_dir "$candidate"; then
             echo "$candidate"
@@ -184,9 +207,18 @@ resolve_easyaiot_media_root() {
         fi
     done
 
-    # 已有本地目录（历史 ~/easyaiot/data 迁移或 prior fallback）
+    # 本地 bind 目录（不必是 mountpoint）。须在探测 ~/easyaiot/data 之前：
+    # root 下该路径常是自挂载 NFS，僵死时 [ -d ] 会卡死交互菜单。
+    for candidate in $(_easyaiot_media_root_candidates); do
+        if _is_usable_media_bind_dir "$candidate"; then
+            echo "$candidate"
+            return
+        fi
+    done
+
+    # 已有本地目录（历史 ~/easyaiot/data 迁移或 prior fallback；全部超时探测）
     for candidate in "$home_root" "${HOME}/easyaiot/data"; do
-        if [ -d "${candidate}/playbacks" ] || [ -d "${candidate}/alert_images" ]; then
+        if _media_path_test -d "${candidate}/playbacks" || _media_path_test -d "${candidate}/alert_images"; then
             echo "$candidate"
             return
         fi
@@ -194,7 +226,7 @@ resolve_easyaiot_media_root() {
 
     # /mnt 可写则优先标准路径（Snap Docker 已在 candidates 中跳过）
     if ! is_snap_confined_docker; then
-        if [ -e /mnt/easyaiot-media ] || [ -L /mnt/easyaiot-media ]; then
+        if _media_path_test -e /mnt/easyaiot-media || _media_path_test -L /mnt/easyaiot-media; then
             _repair_non_dir_media_path /mnt/easyaiot-media || true
         fi
         if mkdir -p /mnt/easyaiot-media 2>/dev/null || _media_run_priv mkdir -p /mnt/easyaiot-media 2>/dev/null; then
@@ -226,7 +258,7 @@ ensure_easyaiot_media_bind_source() {
         root="$(resolve_easyaiot_media_root)"
     fi
 
-    if [ -e "$root" ] || [ -L "$root" ]; then
+    if _media_path_test -e "$root" || _media_path_test -L "$root"; then
         if ! _is_usable_media_bind_dir "$root"; then
             _repair_non_dir_media_path "$root" || true
         fi

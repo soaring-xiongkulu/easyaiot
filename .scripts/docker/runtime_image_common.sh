@@ -414,8 +414,12 @@ runtime_interactive_select_profile() {
     case "${EASYAIOT_DEPLOY_PROFILE:-}" in
         edge|mini|standard|full)
             if declare -F apply_deploy_profile >/dev/null 2>&1; then
-                apply_deploy_profile
-                save_deploy_profile 2>/dev/null || true
+                if [ "$purpose" = "build" ]; then
+                    save_deploy_profile 2>/dev/null || true
+                else
+                    apply_deploy_profile
+                    save_deploy_profile 2>/dev/null || true
+                fi
             fi
             runtime_img_msg info "部署形态: $(runtime_profile_label "${EASYAIOT_DEPLOY_PROFILE}") (${EASYAIOT_DEPLOY_PROFILE})（环境变量已指定）"
             return 0
@@ -424,8 +428,12 @@ runtime_interactive_select_profile() {
     if [ ! -t 0 ] || runtime_is_source_free_runtime; then
         export EASYAIOT_DEPLOY_PROFILE="${EASYAIOT_DEPLOY_PROFILE:-full}"
         if declare -F apply_deploy_profile >/dev/null 2>&1; then
-            apply_deploy_profile
-            save_deploy_profile 2>/dev/null || true
+            if [ "$purpose" = "build" ]; then
+                save_deploy_profile 2>/dev/null || true
+            else
+                apply_deploy_profile
+                save_deploy_profile 2>/dev/null || true
+            fi
         fi
         return 0
     fi
@@ -465,16 +473,26 @@ runtime_interactive_select_profile() {
         esac
     fi
 
-    if declare -F apply_deploy_profile >/dev/null 2>&1; then
-        apply_deploy_profile
-        save_deploy_profile 2>/dev/null || true
-        sync_deploy_profile_to_modules 2>/dev/null || true
-    fi
+    # build-runtime 选「全部形态」时不要 apply/save：会把形态落成 full，并触发媒体根探测；
+    # 僵死 NFS（常见于 root 的 ~/easyaiot/data）会卡住约 1 分钟，期间多次回车会被后续 read 吃掉，表现为“自动选完”。
     if [ "${EASYAIOT_RUNTIME_BUILD_ALL_PROFILES:-0}" = "1" ]; then
         runtime_img_msg info "已选择: 全部形态 (edge + mini + standard + full)"
-    else
-        runtime_img_msg info "已选择: $(runtime_profile_label "${EASYAIOT_DEPLOY_PROFILE}") (${EASYAIOT_DEPLOY_PROFILE})"
+        echo ""
+        return 0
     fi
+
+    if declare -F apply_deploy_profile >/dev/null 2>&1; then
+        if [ "$purpose" = "build" ]; then
+            # 构建菜单只需记住形态；媒体根 sync 放到真正 install/start，避免交互阶段卡死
+            export EASYAIOT_DEPLOY_PROFILE="${EASYAIOT_DEPLOY_PROFILE:-full}"
+            save_deploy_profile 2>/dev/null || true
+        else
+            apply_deploy_profile
+            save_deploy_profile 2>/dev/null || true
+            sync_deploy_profile_to_modules 2>/dev/null || true
+        fi
+    fi
+    runtime_img_msg info "已选择: $(runtime_profile_label "${EASYAIOT_DEPLOY_PROFILE}") (${EASYAIOT_DEPLOY_PROFILE})"
     echo ""
 }
 

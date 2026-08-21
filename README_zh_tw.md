@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、EDGE、NODE、SENTINEL、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度、<strong>SENTINEL 集羣節點哨兵</strong>（按業務摸清節點就緒與可調度能力，缺件可自助補齊，任務按真能力下發），以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，並由 <strong>EDGE C# 邊緣採集運行時</strong>在現場以插件化採集器承接 Modbus RTU/TCP、OPC UA 等工業協議採集、本地調度與 MQTT 云邊對接，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、四檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地；並以 <strong>IDEA 社區貢獻在線 IDE</strong> 讓貢獻者瀏覽器即可打開全倉、用 GitHub Copilot 共創、按改動發佈到本機並提交 PR，把開源共建從「先配環境」變成「打開即改」。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度、<strong>SENTINEL 集羣節點哨兵</strong>（按業務摸清節點就緒與可調度能力，缺件可自助補齊，任務按真能力下發），以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，並由 <strong>EDGE C# 邊緣採集運行時</strong>在現場以插件化採集器承接 Modbus RTU/TCP、OPC UA 等工業協議採集、本地調度與 MQTT 云邊對接，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、四檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地；並以 <strong>IDEA 社區貢獻在線 IDE</strong> 讓貢獻者瀏覽器即可打開全倉、用 GitHub Copilot 共創、按改動發佈到本機並提交 PR，把開源共建從「先配環境」變成「打開即改」。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -421,7 +421,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
   <li><strong>瀏覽器即開發</strong>：基於 code-server 提供 VS Code 風格在線 IDE，默認 clone 完整 EasyAIoT 倉庫，貢獻者不必先配本機環境即可改代碼、跑模組級驗證、提交 PR</li>
   <li><strong>獨立門戶與多人在線</strong>：操作臺獨立運行於 <code>:9300</code>，與 WEB 管控臺解耦；一人一 Docker 工作區，端口池 13338–13437 支持多人同時在線；管控臺懸浮球一鍵跳轉門戶</li>
-  <li><strong>六語言工具鏈對齊本機</strong>：預裝 <strong>JDK 21</strong>、Node 22、Python、Go、CMake/C++、.NET 8，覆蓋 WEB / DEVICE / AI / NODE / RUNTIME / EDGE 的閱讀、輕改與模組級驗證</li>
+  <li><strong>六語言工具鏈對齊本機</strong>：預裝 <strong>JDK 21</strong>、Node 22、Python、Go、CMake/C++、.NET 8，覆蓋 WEB / DEVICE / AI / RUNTIME / EDGE 的閱讀、輕改與模組級驗證</li>
   <li><strong>AI 共創</strong>：預裝 GitHub Copilot（用自己的 GitHub 帳號登入，平臺不代持密鑰）；無 Copilot 訂閱時可自備 OpenAI 兼容 API Key，經 Continue 輔助改代碼；工具欄可分屏打開 HARNESS AI 助手，拖文件自動 <code>@</code> 引用，邊改邊問</li>
   <li><strong>本機發佈</strong>：按工作區改動路徑建議待發模組，一鍵執行構建並替換本機正在跑的同名容器，刷新現網即可驗收，縮短「改完—看到效果」的閉環</li>
   <li><strong>OAuth 與閒置回收</strong>：支持 Gitee / GitHub 登入（可強制），一人一區綁定帳號；閒置默認 8 小時自動停機，心跳與打開 IDE 會刷新活躍時間，避免算力空轉</li>
@@ -558,7 +558,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、SENTINEL、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
+EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -628,19 +628,6 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、SENTINEL、VIDEO、RTC、AI、RU
     <li><strong>配置雙通道</strong>：本地 <code>device-jobs.json</code> 與雲端 MQTT 配置推送均可驅動採集任務</li>
     <li><strong>Linux 打包發佈</strong>：<code>pack_linux.sh</code> 產出 x86_64 / ARM64 獨立部署包，適配工控機與邊緣網關</li>
     <li><strong>聯調開箱</strong>：內置 E2E Demo，一鍵驗證採集 → MQTT 上行 → 雲端入庫；配套雲平臺對接能力</li>
-  </ul>
-</td>
-</tr>
-<tr>
-<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>NODE模組</strong></td>
-<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
-  <ul style="margin: 5px 0; padding-left: 20px;">
-    <li><strong>節點代理</strong>：邊緣/遠程節點 Agent，一鍵安裝部署後自動接入平臺</li>
-    <li><strong>狀態上報</strong>：週期性心跳，即時上報 CPU、記憶體、磁盤、GPU 利用率及在運工作負載狀態</li>
-    <li><strong>遠程工作負載</strong>：接收平臺下發的部署/停止指令，在節點本地拉起 AI 模型服務、算法任務、音視頻轉碼等工作負載</li>
-    <li><strong>媒體節點池</strong>：支持在節點上遠程部署流媒體能力，實現設備與媒體節點綁定及流地址生成</li>
-    <li><strong>節點角色</strong>：支持算力、媒體、混合三種角色，支撐跨節點調度與彈性擴容；算力節點可承接中心下發的即時 / 抓拍 / 巡檢與高性能轉發</li>
-    <li><strong>離線友好</strong>：支持離線依賴打包與 Agent 熱更新，適配無外網或受限網路環境下的批量節點納管</li>
   </ul>
 </td>
 </tr>
