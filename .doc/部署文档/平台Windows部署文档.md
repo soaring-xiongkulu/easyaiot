@@ -12,6 +12,27 @@ Chinese detail: [平台Windows部署文档_zh.md](./平台Windows部署文档_zh
 
 ---
 
+## Quick Start
+
+Open the docs and mutter: “Windows… can this even run?” — **Yes. Don’t panic.**
+
+Desktop uses pre-built images; start light with **edge / mini**. Then open `https://localhost:8888` (default `admin` / `admin123`).
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+.\.scripts\docker\install_windows.ps1 bootstrap
+$env:EASYAIOT_DEPLOY_PROFILE = "edge"
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+.\.scripts\docker\install_windows.ps1 resources
+```
+
+All green? You’re done—easier than you feared. Go grab that coffee early.
+
+> Full prerequisites, mirrors, and troubleshooting: see “Recommended: Image-Only Deploy” below.
+
 ## 0. Recommended: Image-Only Deploy (2026)
 
 On Windows desktop, as on macOS, deploy **only via remote pre-built images**. Do not build Java / frontend / Python business images on the local machine.
@@ -103,7 +124,7 @@ bash .scripts/docker/install_windows.sh install
 .\.scripts\docker\install_windows.ps1 update
 ```
 
-After install, open: `http://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
+After install, open: `https://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
 
 ### 0.5 Troubleshooting Quick Reference
 

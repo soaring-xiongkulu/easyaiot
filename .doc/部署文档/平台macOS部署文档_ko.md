@@ -171,7 +171,7 @@ bash .scripts/docker/install_mac.sh install
 
 | 서비스 | 주소 |
 |--------|------|
-| WEB | http://localhost:8888 |
+| WEB | https://localhost:8888 |
 | Gateway | http://localhost:48080 |
 | Nacos | http://localhost:8848/nacos |
 | MinIO | http://localhost:9001 |

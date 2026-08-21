@@ -117,11 +117,40 @@ sudo .scripts/docker/install_linux.sh install
 
 ## 빠른 시작
 
+README를 열자마자 속으로: 「이거… 내 허접한 기계에서 돌아갈까?」 — **됩니다. 겁먹지 마세요.**
+
+가장 가벼운 등급 **edge**, 컨테이너 총 사용 약 **1 GB**. 카메라 접속·실시간 분석·스마트 경보, 작은 기계로도 폐루프. 낡은 노트북부터 돌려 보세요 — 맛 들리면 그때 올려타도 됩니다.
+
+### 세 단계로 탑승 (권장 경량 등급)
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# 방식 A: 환경 변수로 가장 가벼운 등급 고정 (권장)
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# 방식 B: 단축 별칭 (동일)
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+설치 후 브라우저에서 `https://<서버IP>:8888` — 기본 계정 `admin` / `admin123`. 검증:
+
+```bash
+.scripts/docker/install_linux.sh verify
+# 선택: 메모리가 등급 한도 안인지 한 번 더 확인
+.scripts/docker/install_linux.sh resources
+```
+
+초록불이 떴다면 퇴근입니다 — 생각보다 쉽죠. 오늘 커피는 일찍 마셔도 됩니다.
+
+> 전체 프로필·대화형 메뉴·CentOS / ARM / openEuler 진입이 필요하면 아래 사전 요건과 두 가지 설치 방식을 이어 보세요.
+
 ### 사전 요건
 
 - OS: **Ubuntu 24.04+** (26.04 권장); **CentOS/RHEL**, ARM, **Kylin (麒麟) / openEuler (欧拉)**도 지원
 - Docker + Docker Compose **v2.35+** (CentOS / **openEuler (欧拉)**에서는 OS 전용 진입 스크립트로 Docker CE 설치/업그레이드 가능)
-- **≥ 300 GB** 여유 디스크 공간
+- **≥ 300 GB** 여유 디스크 공간 (경량 **edge**는 훨씬 여유; 풀 등급은 이 정도 권장)
 
 ```bash
 docker --version && docker compose version && docker ps
@@ -140,7 +169,7 @@ sudo .scripts/docker/install_linux.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
 
-첫 설치 시 프로필을 대화형으로 선택합니다. 완료 후 `http://<server-ip>:8888`을 엽니다.
+첫 설치 시 프로필(**edge** 포함)을 대화형으로 선택합니다. 완료 후 `https://<server-ip>:8888`을 엽니다 (기본 `admin` / `admin123`).
 
 ### 옵션 2: 직접 명령
 
@@ -160,7 +189,11 @@ sudo .scripts/docker/install_linux.sh install
 # openEuler: sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
+# 선택: 메모리가 등급 한도 안인지 한 번 더 확인
+.scripts/docker/install_linux.sh resources
 ```
+
+설치 후 `https://<server-ip>:8888`을 엽니다. 초록불이 떴다면 퇴근입니다 — 생각보다 쉽죠.
 
 ### CentOS / RHEL 참고
 
@@ -202,6 +235,7 @@ bash .scripts/docker/install_windows.sh install
 
 | 옵션 | 이름 | 권장 RAM | 사용 사례 |
 |:------:|------|-----------------|----------|
+| 0 | **edge** | ≥ 2 GB | 최경량 엣지 ( [빠른 시작](#빠른-시작) 참고) |
 | 1 | **mini** | ≥ 8 GB | 엣지 노드, PoC |
 | 2 | **standard** | ≥ 16 GB | 일반 프로덕션 |
 | 3 | **full** (기본값) | ≥ 20 GB | 전체 기능 + APP H5 |
@@ -305,7 +339,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 
 | 서비스 | URL |
 |------|-----|
-| WEB 콘솔 | http://\<server-ip\>:8888 |
+| WEB 콘솔 | https://\<server-ip\>:8888 |
 | API Gateway | http://\<server-ip\>:48080 |
 | Nacos | http://\<server-ip\>:8848/nacos |
 | MinIO Console | http://\<server-ip\>:9001 |

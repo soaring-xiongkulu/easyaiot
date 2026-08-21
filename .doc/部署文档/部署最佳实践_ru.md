@@ -153,6 +153,21 @@ cd .scripts/docker
 
 ---
 
+## Быстрый старт
+
+«А моя железяка это потянет?» — **Потянет. Не паникуйте.**
+
+Самый лёгкий уровень **edge** (~**1 ГБ**). Сначала старый ноутбук.
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git && cd easyaiot
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+.scripts/docker/install_linux.sh verify
+.scripts/docker/install_linux.sh resources
+```
+
+Откройте `https://<server-ip>:8888` (`admin` / `admin123`). Всё зелёное? Готово — проще, чем казалось.
+
 ## Процесс развертывания за 5 минут
 
 ```bash
@@ -168,7 +183,7 @@ sudo .scripts/docker/install_linux.sh install
 # Вариант B: Интерактивный
 sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Verify
 
-# Доступ: http://<server-ip>:8888
+# Доступ: https://<server-ip>:8888
 ```
 
 ### Длительность установки

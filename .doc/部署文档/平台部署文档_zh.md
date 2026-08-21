@@ -120,12 +120,41 @@ sudo .scripts/docker/install_linux.sh install
 
 ## 快速开始
 
+打开文档心里嘀咕：「我这破机器……装得动吗？」——**能。先别怂。**
+
+最轻一档 **edge**，容器总占用大约就 **1 GB**。摄像头接入、实时分析、智能告警，小机器也能闭环——旧笔记本先爽一把，上瘾了再升档也不迟。
+
+### 三步上车（推荐轻量档）
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# 方式 A：环境变量锁定最轻量档（推荐）
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# 方式 B：快捷别名（等价）
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+装完浏览器打开 `https://<服务器IP>:8888`，默认账号 `admin` / `admin123`。验证一把：
+
+```bash
+.scripts/docker/install_linux.sh verify
+# 可选：再瞄一眼内存是否还在规格内
+.scripts/docker/install_linux.sh resources
+```
+
+绿灯齐了就收工——比你想的轻松，今天可以提前喝杯咖啡了。
+
+> 需要完整规格、交互菜单或 CentOS / ARM / 欧拉等入口时，继续看下面的「环境前提」与两种安装方式。
+
 ### 环境前提
 
 - 操作系统：**Ubuntu 24.04+**（建议 26.04）；亦支持 **CentOS/RHEL 系 7～9**（含 Stream / Rocky / Alma，以及 **CentOS ARM**）、ARM、**麒麟(Kylin) / 欧拉(openEuler)**
 - Docker + Docker Compose **v2.35+**（CentOS / CentOS ARM / **欧拉(openEuler)** 可用对应入口脚本自动安装/升级 Docker CE）
 - PANEL 安装包：CentOS/RHEL 按 **el7 / el8 / el9**（x86 + aarch64）分别产出，详见 [COMPILE/README.md](../../COMPILE/README.md)
-- 磁盘可用空间 **≥ 300 GB**
+- 磁盘可用空间 **≥ 300 GB**（轻量 **edge** 可显著放宽；完整档建议按此预留）
 
 ```bash
 docker --version && docker compose version && docker ps
@@ -152,7 +181,7 @@ sudo .scripts/docker/install_linux.sh
 # 1 部署 → 1 首次安装 → 7 健康验证
 ```
 
-首次安装会交互选择部署规格，完成后浏览器访问 `http://<服务器IP>:8888`。
+首次安装会交互选择部署规格（含 **edge**），完成后浏览器访问 `https://<服务器IP>:8888`（默认 `admin` / `admin123`）。
 
 ### 方式二：指定命令
 
@@ -175,7 +204,12 @@ sudo .scripts/docker/install_linux.sh install
 # CentOS x86：.scripts/docker/install_linux_centos.sh verify
 # CentOS ARM：.scripts/docker/install_linux_centos_arm.sh verify
 # openEuler：.scripts/docker/install_linux_openeuler.sh verify
+
+# 可选：再瞄一眼内存是否还在规格内
+.scripts/docker/install_linux.sh resources
 ```
+
+装完浏览器打开 `https://<服务器IP>:8888`。绿灯齐了就收工——比你想的轻松。
 
 ### CentOS / RHEL 系说明
 
@@ -368,7 +402,7 @@ EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_windows.sh install
 | 宿主机 IP | `ip` / `hostname` 探测 | macOS `ipconfig`；Windows `ipconfig` / PowerShell；可用 `HOST_IP=` 覆盖 |
 | 典型场景 | 生产 / CI | 开发机、演示、PoC |
 
-访问地址与 Linux 相同，本机一般为 `http://localhost:8888`。
+访问地址与 Linux 相同，本机一般为 `https://localhost:8888`。
 
 ---
 
@@ -378,6 +412,7 @@ EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_windows.sh install
 
 | 选项 | 名称 | Linux 主机建议 | 桌面 Docker 引擎目标 | 适用场景 |
 |:----:|------|----------------|----------------------|----------|
+| 0 | **edge** | ≥ 2 GB | — | 最轻量边缘 / 旧机器尝鲜（见 [快速开始](#快速开始)） |
 | 1 | **mini** | ≥ 8 GB | 8 GB | 边缘节点、PoC 验证 |
 | 2 | **standard** | ≥ 16 GB | 16 GB | 常规生产 / 演示 |
 | 3 | **full**（默认） | ≥ 20 GB | 24 GB（主机建议 ≥32 GB） | 完整功能，含 APP H5 / FUXA |
@@ -492,7 +527,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 
 | 服务 | 地址 |
 |------|------|
-| WEB 管理平台 | http://\<服务器IP\>:8888 |
+| WEB 管理平台 | https://\<服务器IP\>:8888 |
 | API Gateway | http://\<服务器IP\>:48080 |
 | Nacos | http://\<服务器IP\>:8848/nacos |
 | MinIO Console | http://\<服务器IP\>:9001 |

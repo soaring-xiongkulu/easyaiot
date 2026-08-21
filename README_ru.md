@@ -79,7 +79,7 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 ```
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
-После установки откройте <code>http://&lt;IP-сервера&gt;:8888</code> — по умолчанию <code>admin</code> / <code>admin123</code>. Проверка:
+После установки откройте <code>https://&lt;IP-сервера&gt;:8888</code> — по умолчанию <code>admin</code> / <code>admin123</code>. Проверка:
 </p>
 
 ```bash
@@ -87,6 +87,10 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 # По желанию: глянуть память относительно бюджета уровня
 .scripts/docker/install_linux.sh resources
 ```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+Всё зелёное? Готово — проще, чем казалось. Можно раньше взять кофе.
+</p>
 
 ## 🌟 Размышления о проекте
 

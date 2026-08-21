@@ -79,7 +79,7 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 ```
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
-裝完瀏覽器打開 <code>http://&lt;伺服器IP&gt;:8888</code>，預設帳號 <code>admin</code> / <code>admin123</code>。驗證一把：
+裝完瀏覽器打開 <code>https://&lt;伺服器IP&gt;:8888</code>，預設帳號 <code>admin</code> / <code>admin123</code>。驗證一把：
 </p>
 
 ```bash
@@ -87,6 +87,10 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 # 可選：再瞄一眼記憶體是否還在規格內
 .scripts/docker/install_linux.sh resources
 ```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+綠燈齊了就收工——比你想的輕鬆，今天可以提前喝杯咖啡了。
+</p>
 
 ## 🌟 關於項目的一些思考
 

@@ -153,6 +153,21 @@ cd .scripts/docker
 
 ---
 
+## 빠른 시작
+
+「이거… 내 허접한 기계에서 돌아갈까?」 — **됩니다. 겁먹지 마세요.**
+
+가장 가벼운 등급 **edge**(약 **1 GB**). 낡은 노트북부터 돌려 보세요.
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git && cd easyaiot
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+.scripts/docker/install_linux.sh verify
+.scripts/docker/install_linux.sh resources
+```
+
+브라우저에서 `https://<server-ip>:8888` (`admin` / `admin123`). 초록불이 떴다면 퇴근입니다 — 생각보다 쉽죠.
+
 ## 5분 배포 흐름
 
 ```bash
@@ -168,7 +183,7 @@ sudo .scripts/docker/install_linux.sh install
 # 옵션 B: 대화형
 sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Verify
 
-# 접속: http://<server-ip>:8888
+# 접속: https://<server-ip>:8888
 ```
 
 ### 설치 소요 시간

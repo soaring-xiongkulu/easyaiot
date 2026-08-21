@@ -11,6 +11,27 @@ PANEL 安装包编译见 [COMPILE/README.md](../../COMPILE/README.md)。
 
 ---
 
+## 快速开始
+
+打开文档心里嘀咕：「Windows 这环境……装得动吗？」——**能。先别怂。**
+
+桌面端走预构建镜像，最轻可先用 **edge / mini** 尝鲜。装完浏览器打开 `https://localhost:8888`（默认 `admin` / `admin123`）。
+
+```powershell
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+.\.scripts\docker\install_windows.ps1 bootstrap
+$env:EASYAIOT_DEPLOY_PROFILE = "edge"
+.\.scripts\docker\install_windows.ps1 install
+.\.scripts\docker\install_windows.ps1 verify
+.\.scripts\docker\install_windows.ps1 resources
+```
+
+绿灯齐了就收工——比你想的轻松，今天可以提前喝杯咖啡了。
+
+> 完整前置检测、镜像加速与排障见下方「推荐：镜像一键部署」。
+
 ## 0. 推荐：镜像一键部署（2026）
 
 Windows 桌面端与 macOS 一样，**只通过远程预构建镜像部署**，不在本机编译 Java / 前端 / Python 业务镜像。
@@ -102,7 +123,7 @@ bash .scripts/docker/install_windows.sh install
 .\.scripts\docker\install_windows.ps1 update
 ```
 
-安装完成后访问：`http://localhost:8888`（Gateway `:48080`，Nacos `:8848/nacos`，FUXA full `:1881`）。
+安装完成后访问：`https://localhost:8888`（Gateway `:48080`，Nacos `:8848/nacos`，FUXA full `:1881`）。
 
 ### 0.5 排障速查
 

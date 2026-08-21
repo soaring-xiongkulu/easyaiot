@@ -153,6 +153,21 @@ Orchestration complète de la plateforme + guide interactif + analyse inter-modu
 
 ---
 
+## Démarrage rapide
+
+Vous ouvrez la doc et murmurez : « Mon petit PC peut vraiment faire tourner ça ? » — **Oui. Pas de panique.**
+
+Niveau le plus léger **edge** (~**1 Go**). Lancez d’abord ce vieux laptop.
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git && cd easyaiot
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+.scripts/docker/install_linux.sh verify
+.scripts/docker/install_linux.sh resources
+```
+
+Puis ouvrez `https://<server-ip>:8888` (`admin` / `admin123`). Tout vert ? C’est plié — plus simple que vous ne le craigniez.
+
 ## Flux de déploiement en 5 minutes
 
 ```bash
@@ -168,7 +183,7 @@ sudo .scripts/docker/install_linux.sh install
 # Option B : Interactif
 sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Verify
 
-# Accès : http://<server-ip>:8888
+# Accès : https://<server-ip>:8888
 ```
 
 ### Durée d'installation

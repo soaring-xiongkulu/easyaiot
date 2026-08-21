@@ -8,7 +8,8 @@
 ## 目錄
 
 - [兩種使用模式（詳細）](#兩種使用模式詳細)
-- [5 分鐘部署流程](#5-分鐘部署流程)
+- [快速開始](#快速開始)
+- [5 分鐘完整檔備忘](#5-分鐘完整檔備忘)
 - [部署規格選型](#部署規格選型)
 - [環境要求與部署前檢查](#環境要求與部署前檢查清單)
 - [一鍵部署與分步部署](#一鍵部署與分步部署)
@@ -151,14 +152,33 @@ cd .scripts/docker
 
 ---
 
-## 5 分鐘部署流程
+## 快速開始
+
+打開文件心裏嘀咕：「我這破機器……裝得動嗎？」——**能。先別慫。**
+
+最輕一檔 **edge**，容器總佔用大約就 **1 GB**。舊筆記本先爽一把，上癮了再升檔也不遲。
 
 ```bash
 git clone https://gitee.com/volara/easyaiot.git && cd easyaiot
 
-docker --version && docker compose version
+# 推薦：最輕量檔
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# 方式 A：指定命令
+# 或互動引導（選單裡也可選 edge / mini / standard / full）
+# sudo .scripts/docker/install_linux.sh
+
+.scripts/docker/install_linux.sh verify
+# 可選：再瞄一眼記憶體是否還在規格內
+.scripts/docker/install_linux.sh resources
+```
+
+裝完瀏覽器打開 `https://<伺服器IP>:8888`，預設 `admin` / `admin123`。  
+綠燈齊了就收工——比你想的輕鬆，今天可以提前喝杯咖啡了。
+
+### 5 分鐘完整檔備忘
+
+```bash
+# 方式 A：指定命令（完整檔示例）
 sudo .scripts/docker/install_linux.sh pull    # 可選，拉預建構映像
 sudo .scripts/docker/install_linux.sh install
 .scripts/docker/install_linux.sh verify
@@ -166,7 +186,7 @@ sudo .scripts/docker/install_linux.sh install
 # 方式 B：互動引導
 sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗證
 
-# 存取：http://<伺服器IP>:8888
+# 存取：https://<伺服器IP>:8888
 ```
 
 ### 安裝耗時
@@ -180,11 +200,12 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 
 ## 部署規格選型
 
-首次 `install` 互動選擇，或 `export EASYAIOT_DEPLOY_PROFILE=mini|standard|full`。  
+首次 `install` 互動選擇，或 `export EASYAIOT_DEPLOY_PROFILE=edge|mini|standard|full`。  
 結果保存在 `.scripts/docker/.deploy_profile`，後續 `start` / `stop` / `update` 自動沿用。
 
 | 規格 | 別名 | 建議記憶體 | 適用場景 |
 |------|------|----------|----------|
+| **edge** | `0` | ≥ 2 GB | 最輕量邊緣 / 舊機器嘗鮮 |
 | **mini** | `1` / `4g` | ≥ 8 GB | 邊緣節點、PoC |
 | **standard** | `2` / `16g` | ≥ 16 GB | 常規生產 |
 | **full** | `3`（預設） | ≥ 20 GB | 完整功能 + APP H5 |

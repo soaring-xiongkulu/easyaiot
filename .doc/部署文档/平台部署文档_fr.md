@@ -118,11 +118,40 @@ sudo .scripts/docker/install_linux.sh install
 
 ## Démarrage rapide
 
+Vous ouvrez la doc et murmurez : « Mon petit PC peut vraiment faire tourner ça ? » — **Oui. Pas de panique.**
+
+Niveau le plus léger **edge**, les conteneurs consomment environ **1 Go**. Caméras, analyse temps réel, alertes intelligentes — une petite machine ferme déjà la boucle. Lancez d’abord ce vieux laptop ; montez de niveau quand vous aurez pris goût.
+
+### Trois étapes (niveau le plus léger recommandé)
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# Option A : verrouiller le niveau le plus léger via l'env (recommandé)
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# Option B : alias raccourci (équivalent)
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+Puis ouvrez `https://<IP-serveur>:8888` — compte par défaut `admin` / `admin123`. Vérifiez :
+
+```bash
+.scripts/docker/install_linux.sh verify
+# Optionnel : jeter un œil à la mémoire vs le budget du niveau
+.scripts/docker/install_linux.sh resources
+```
+
+Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendre un café plus tôt.
+
+> Besoin des profils complets, menus interactifs ou entrées CentOS / ARM / openEuler ? Poursuivez avec les prérequis et les deux options d’installation ci-dessous.
+
 ### Prérequis
 
 - OS : **Ubuntu 24.04+** (26.04 recommandé) ; également **CentOS/RHEL**, ARM, **Kylin (麒麟) / openEuler (欧拉)**
 - Docker + Docker Compose **v2.35+** (sous CentOS / **openEuler (欧拉)** : le script d'entrée OS peut installer/mettre à niveau Docker CE)
-- **≥ 300 Go** d'espace disque libre
+- **≥ 300 Go** d'espace disque libre (**edge** peut être bien plus léger ; réservez ceci pour les niveaux complets)
 
 ```bash
 docker --version && docker compose version && docker ps
@@ -141,7 +170,7 @@ sudo .scripts/docker/install_linux.sh
 # 1 Deploy → 1 First install → 7 Health verify
 ```
 
-Le profil est sélectionné de manière interactive lors de la première installation. Ouvrez `http://<server-ip>:8888` une fois terminé.
+Le profil (y compris **edge**) est sélectionné de manière interactive lors de la première installation. Ouvrez `https://<server-ip>:8888` une fois terminé (`admin` / `admin123` par défaut).
 
 ### Option 2 : Commande directe
 
@@ -161,7 +190,11 @@ sudo .scripts/docker/install_linux.sh install
 # openEuler : sudo .scripts/docker/install_linux_openeuler.sh install
 
 .scripts/docker/install_linux.sh verify
+# Optionnel : jeter un œil à la mémoire vs le budget du niveau
+.scripts/docker/install_linux.sh resources
 ```
+
+Puis ouvrez `https://<server-ip>:8888`. Tout vert ? C’est plié — plus simple que vous ne le craigniez.
 
 ### Notes CentOS / RHEL
 
@@ -203,6 +236,7 @@ Sélectionné de manière interactive lors du premier `install`, enregistré dan
 
 | Option | Nom | RAM recommandée | Cas d'usage |
 |:------:|------|-----------------|-------------|
+| 0 | **edge** | ≥ 2 Go | Edge le plus léger (voir [Démarrage rapide](#démarrage-rapide)) |
 | 1 | **mini** | ≥ 8 Go | Nœuds edge, PoC |
 | 2 | **standard** | ≥ 16 Go | Production courante |
 | 3 | **full** (par défaut) | ≥ 20 Go | Fonctionnalités complètes + APP H5 |
@@ -306,7 +340,7 @@ Une fois `verify` réussi :
 
 | Service | URL |
 |---------|-----|
-| Console WEB | http://\<server-ip\>:8888 |
+| Console WEB | https://\<server-ip\>:8888 |
 | Passerelle API | http://\<server-ip\>:48080 |
 | Nacos | http://\<server-ip\>:8848/nacos |
 | Console MinIO | http://\<server-ip\>:9001 |

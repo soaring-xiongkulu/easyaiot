@@ -103,7 +103,7 @@ bash .scripts/docker/install_windows.sh install
 .\.scripts\docker\install_windows.ps1 update
 ```
 
-После установки откройте: `http://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
+После установки откройте: `https://localhost:8888` (Gateway `:48080`, Nacos `:8848/nacos`, FUXA full `:1881`).
 
 ### 0.5 Краткая диагностика
 

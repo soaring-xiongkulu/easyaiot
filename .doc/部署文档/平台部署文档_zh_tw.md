@@ -120,11 +120,40 @@ sudo .scripts/docker/install_linux.sh install
 
 ## 快速開始
 
+打開文件心裏嘀咕：「我這破機器……裝得動嗎？」——**能。先別慫。**
+
+最輕一檔 **edge**，容器總佔用大約就 **1 GB**。攝像頭接入、即時分析、智能告警，小機器也能閉環——舊筆記本先爽一把，上癮了再升檔也不遲。
+
+### 三步上車（推薦輕量檔）
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# 方式 A：環境變數鎖定最輕量檔（推薦）
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# 方式 B：快捷別名（等價）
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+裝完瀏覽器打開 `https://<伺服器IP>:8888`，預設帳號 `admin` / `admin123`。驗證一把：
+
+```bash
+.scripts/docker/install_linux.sh verify
+# 可選：再瞄一眼記憶體是否還在規格內
+.scripts/docker/install_linux.sh resources
+```
+
+綠燈齊了就收工——比你想的輕鬆，今天可以提前喝杯咖啡了。
+
+> 需要完整規格、互動選單或 CentOS / ARM / 歐拉等入口時，繼續看下面的「環境前提」與兩種安裝方式。
+
 ### 環境前提
 
 - 作業系統：**Ubuntu 24.04+**（建議 26.04）；亦支援 **CentOS/RHEL 系**、ARM、**麒麟(Kylin) / 歐拉(openEuler)**
 - Docker + Docker Compose **v2.35+**（CentOS / **歐拉(openEuler)** 可用對應入口腳本自動安裝/升級 Docker CE）
-- 磁碟可用空間 **≥ 300 GB**
+- 磁碟可用空間 **≥ 300 GB**（輕量 **edge** 可顯著放寬；完整檔建議按此預留）
 
 ```bash
 docker --version && docker compose version && docker ps
@@ -151,7 +180,7 @@ sudo .scripts/docker/install_linux.sh
 # 1 部署 → 1 首次安裝 → 7 健康驗證
 ```
 
-首次安裝會互動選擇部署規格，完成後瀏覽器存取 `http://<伺服器IP>:8888`。
+首次安裝會互動選擇部署規格（含 **edge**），完成後瀏覽器存取 `https://<伺服器IP>:8888`（預設 `admin` / `admin123`）。
 
 ### 方式二：指定命令
 
@@ -174,7 +203,12 @@ sudo .scripts/docker/install_linux.sh install
 # CentOS x86：.scripts/docker/install_linux_centos.sh verify
 # CentOS ARM：.scripts/docker/install_linux_centos_arm.sh verify
 # openEuler：.scripts/docker/install_linux_openeuler.sh verify
+
+# 可選：再瞄一眼記憶體是否還在規格內
+.scripts/docker/install_linux.sh resources
 ```
+
+裝完瀏覽器打開 `https://<伺服器IP>:8888`。綠燈齊了就收工——比你想的輕鬆。
 
 ### CentOS / RHEL 系說明
 
@@ -220,7 +254,7 @@ bash .scripts/docker/install_windows.sh install
 .\.scripts\docker\install_windows.ps1 install
 ```
 
-不支援：`build` / `build-runtime`。訪問位址：`http://localhost:8888`。
+不支援：`build` / `build-runtime`。訪問位址：`https://localhost:8888`。
 
 ---
 
@@ -230,6 +264,7 @@ bash .scripts/docker/install_windows.sh install
 
 | 選項 | 名稱 | 建議記憶體 | 適用場景 |
 |:----:|------|----------|----------|
+| 0 | **edge** | ≥ 2 GB | 最輕量邊緣 / 舊機器嘗鮮（見 [快速開始](#快速開始)） |
 | 1 | **mini** | ≥ 8 GB | 邊緣節點、PoC 驗證 |
 | 2 | **standard** | ≥ 16 GB | 常規生產 |
 | 3 | **full**（預設） | ≥ 20 GB | 完整功能，含 APP H5 |
@@ -331,7 +366,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 
 | 服務 | 位址 |
 |------|------|
-| WEB 管理平台 | http://\<伺服器IP\>:8888 |
+| WEB 管理平台 | https://\<伺服器IP\>:8888 |
 | API Gateway | http://\<伺服器IP\>:48080 |
 | Nacos | http://\<伺服器IP\>:8848/nacos |
 | MinIO Console | http://\<伺服器IP\>:9001 |

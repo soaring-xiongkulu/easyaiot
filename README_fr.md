@@ -79,7 +79,7 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 ```
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
-Puis ouvrez <code>http://&lt;IP-serveur&gt;:8888</code> — compte par défaut <code>admin</code> / <code>admin123</code>. Vérifiez :
+Puis ouvrez <code>https://&lt;IP-serveur&gt;:8888</code> — compte par défaut <code>admin</code> / <code>admin123</code>. Vérifiez :
 </p>
 
 ```bash
@@ -87,6 +87,10 @@ Puis ouvrez <code>http://&lt;IP-serveur&gt;:8888</code> — compte par défaut <
 # Optionnel : jeter un œil à la mémoire vs le budget du niveau
 .scripts/docker/install_linux.sh resources
 ```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendre un café plus tôt.
+</p>
 
 ## 🌟 Réflexions sur le projet
 

@@ -10,8 +10,29 @@ PANEL desktop installer build: [COMPILE/README.md](../../COMPILE/README.md).
 
 ---
 
+## Quick Start
+
+Open the docs and mutter: “This Mac… can it run?” — **Yes. Don’t panic.**
+
+Desktop is image-only; start light with **edge / mini**. Then open `https://localhost:8888` (default `admin` / `admin123`).
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+bash .scripts/docker/install_mac.sh bootstrap
+EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_mac.sh install
+bash .scripts/docker/install_mac.sh verify
+bash .scripts/docker/install_mac.sh resources
+```
+
+All green? You’re done—easier than you feared. Go grab that coffee early.
+
+> Environment prep, mirrors, and troubleshooting: see sections below.
+
 ## Table of Contents
 
+0. [Quick Start](#quick-start)
 1. [Overview](#1-overview)
 2. [Environment Preparation](#2-environment-preparation)
 3. [One-Click Deploy](#3-one-click-deploy)
@@ -171,7 +192,7 @@ After install, open:
 
 | Service | URL |
 |---------|-----|
-| WEB | http://localhost:8888 |
+| WEB | https://localhost:8888 |
 | Gateway | http://localhost:48080 |
 | Nacos | http://localhost:8848/nacos |
 | MinIO | http://localhost:9001 |

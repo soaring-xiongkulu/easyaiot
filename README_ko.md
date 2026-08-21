@@ -79,7 +79,7 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 ```
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
-설치 후 브라우저에서 <code>http://&lt;서버IP&gt;:8888</code> — 기본 계정 <code>admin</code> / <code>admin123</code>. 검증:
+설치 후 브라우저에서 <code>https://&lt;서버IP&gt;:8888</code> — 기본 계정 <code>admin</code> / <code>admin123</code>. 검증:
 </p>
 
 ```bash
@@ -87,6 +87,10 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 # 선택: 메모리가 등급 한도 안인지 한 번 더 확인
 .scripts/docker/install_linux.sh resources
 ```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+초록불이 떴다면 퇴근입니다 — 생각보다 쉽죠. 오늘 커피는 일찍 마셔도 됩니다.
+</p>
 
 ## 🌟 프로젝트에 대한 몇 가지 생각
 

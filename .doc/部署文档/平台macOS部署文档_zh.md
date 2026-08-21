@@ -10,8 +10,29 @@ PANEL 桌面安装包编译见仓库根目录 [COMPILE/README.md](../../COMPILE/
 
 ---
 
+## 快速开始
+
+打开文档心里嘀咕：「我这 Mac……装得动吗？」——**能。先别怂。**
+
+桌面端只走预构建镜像，最轻可先用 **edge / mini**。装完浏览器打开 `https://localhost:8888`（默认 `admin` / `admin123`）。
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+bash .scripts/docker/install_mac.sh bootstrap
+EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_mac.sh install
+bash .scripts/docker/install_mac.sh verify
+bash .scripts/docker/install_mac.sh resources
+```
+
+绿灯齐了就收工——比你想的轻松，今天可以提前喝杯咖啡了。
+
+> 环境准备、镜像加速与排障见下方章节。
+
 ## 目录
 
+0. [快速开始](#快速开始)
 1. [概述](#1-概述)
 2. [环境准备](#2-环境准备)
 3. [一键部署](#3-一键部署)
@@ -171,7 +192,7 @@ bash .scripts/docker/install_mac.sh install
 
 | 服务 | 地址 |
 |------|------|
-| WEB | http://localhost:8888 |
+| WEB | https://localhost:8888 |
 | Gateway | http://localhost:48080 |
 | Nacos | http://localhost:8848/nacos |
 | MinIO | http://localhost:9001 |
