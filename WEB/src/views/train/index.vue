@@ -9,30 +9,44 @@
       >
         <TabPane key="1" tab="模型管理">
 <!--          <GpuStackMonitorTip class="page-monitor-tip" />-->
-          <ModelList />
+          <div class="tab-pane-scroll">
+            <ModelList />
+          </div>
         </TabPane>
         <TabPane v-if="showAdvancedTabs" key="6" tab="模型训练">
-          <TrainTaskList
-            :tab-active="state.activeKey === '6'"
-            :auto-open="route.query.launch === '1'"
-            :initial-dataset-id="initialDatasetId"
-          />
+          <div class="tab-pane-scroll">
+            <TrainTaskList
+              :tab-active="state.activeKey === '6'"
+              :auto-open="route.query.launch === '1'"
+              :initial-dataset-id="initialDatasetId"
+            />
+          </div>
         </TabPane>
         <!-- edge：仅 VIDEO 本地模型 CRUD，无 AI 推理服务 -->
         <TabPane v-if="showInferenceTab" key="2" tab="模型推理">
-          <AiModelTool :initialLLMId="initialLLMId" :tab-active="state.activeKey === '2'" />
+          <div class="tab-pane-scroll">
+            <AiModelTool :initialLLMId="initialLLMId" :tab-active="state.activeKey === '2'" />
+          </div>
         </TabPane>
         <TabPane v-if="showAdvancedTabs" key="7" tab="SAM 万物识别">
-          <SamInferencePage />
+          <div class="tab-pane-scroll">
+            <SamInferencePage />
+          </div>
         </TabPane>
         <TabPane v-if="showAdvancedTabs" key="3" tab="模型导出">
-          <ModelExport></ModelExport>
+          <div class="tab-pane-scroll">
+            <ModelExport></ModelExport>
+          </div>
         </TabPane>
         <TabPane v-if="showAdvancedTabs" key="4" tab="模型部署">
-          <DeployService></DeployService>
+          <div class="tab-pane-scroll">
+            <DeployService></DeployService>
+          </div>
         </TabPane>
         <TabPane v-if="showAdvancedTabs" key="5" tab="大模型管理">
-          <LLMManage ref="llmManageRef"></LLMManage>
+          <div class="tab-pane-scroll">
+            <LLMManage ref="llmManageRef"></LLMManage>
+          </div>
         </TabPane>
       </Tabs>
     </div>
@@ -179,6 +193,12 @@ onMounted(() => {
         }
       }
     }
+  }
+
+  .tab-pane-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: 16px; // 底部预留空隙，防止分页贴边
   }
 }
 </style>

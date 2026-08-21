@@ -289,6 +289,8 @@ const handleDownload = async (record) => {
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .model-name-link {

@@ -254,7 +254,7 @@ function handleDownload(record: object) {
   background: #fff;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -271,6 +271,8 @@ function handleDownload(record: object) {
   padding: 0 8px 16px;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   :deep(.ant-list-header) {
     border: 0;
@@ -304,10 +306,12 @@ function handleDownload(record: object) {
   :deep(.ant-spin-nested-loading),
   :deep(.ant-spin-container) {
     background: transparent;
+    height: auto !important;
   }
 
   :deep(.ant-list-pagination) {
     margin-top: 20px;
+    margin-bottom: 8px;
     text-align: center;
   }
 }
