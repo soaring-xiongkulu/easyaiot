@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cstdint>
 #include <opencv2/opencv.hpp>
 
 struct DeviceStreamConfig {
@@ -32,6 +33,10 @@ typedef struct Config {
     int videoWidth{1920};
     int videoHeight{1080};
     int rtmpFps{25};
+    /** RTMP ABR bitrate bits/sec; 0 = auto by encode resolution. Accepts ini/env like 4500k. */
+    int64_t videoBitRate{0};
+    /** Encoder GOP frames; 0 = 2 * fps. */
+    int videoGopSize{0};
 
     float alarmConfidenceThreshold{0.5f};
     int alarmCooldownTime{30};

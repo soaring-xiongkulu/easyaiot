@@ -32,6 +32,29 @@ int ConfigParser::parseInt(const std::string& value) {
     }
 }
 
+int64_t ConfigParser::parseBitRate(const std::string& value) {
+    std::string v = trim(value);
+    if (v.empty()) return 0;
+    std::transform(v.begin(), v.end(), v.begin(), ::tolower);
+    try {
+        if (!v.empty() && (v.back() == 'k' || v.back() == 'm')) {
+            const char unit = v.back();
+            const double n = std::stod(v.substr(0, v.size() - 1));
+            if (n <= 0) return 0;
+            if (unit == 'k') return static_cast<int64_t>(n * 1000.0);
+            return static_cast<int64_t>(n * 1000000.0);
+        }
+        const int64_t n = static_cast<int64_t>(std::stoll(v));
+        // Bare numbers < 100000 are treated as kbps (e.g. 4500 → 4500k).
+        if (n > 0 && n < 100000) {
+            return n * 1000;
+        }
+        return n > 0 ? n : 0;
+    } catch (...) {
+        return 0;
+    }
+}
+
 float ConfigParser::parseFloat(const std::string& value) {
     try {
         return std::stof(trim(value));
@@ -144,6 +167,12 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "fps") {
                 config.rtmpFps = parseInt(value);
                 if (config.rtmpFps <= 0) config.rtmpFps = 25;
+            } else if (key == "bitrate" || key == "video_bitrate") {
+                int64_t br = parseBitRate(value);
+                if (br > 0) config.videoBitRate = br;
+            } else if (key == "gop" || key == "gop_size") {
+                int g = parseInt(value);
+                if (g > 0) config.videoGopSize = g;
             } else if (key == "devices_json") {
                 parseDevicesJson(value, config.devices);
             }
@@ -453,6 +482,24 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         std::string s = trim(v);
         if (!s.empty()) config.nvencPreset = s;
     }
+    // Bitrate / GOP: RUNTIME_* first, then shared FFMPEG_* used by VIDEO
+    if (const char* v = std::getenv("RUNTIME_VIDEO_BITRATE")) {
+        int64_t br = parseBitRate(v);
+        if (br > 0) config.videoBitRate = br;
+    } else if (const char* v = std::getenv("FFMPEG_VIDEO_BITRATE")) {
+        int64_t br = parseBitRate(v);
+        if (br > 0) config.videoBitRate = br;
+    } else if (const char* v = std::getenv("VIEW_FFMPEG_VIDEO_BITRATE")) {
+        int64_t br = parseBitRate(v);
+        if (br > 0) config.videoBitRate = br;
+    }
+    if (const char* v = std::getenv("RUNTIME_GOP_SIZE")) {
+        int g = parseInt(v);
+        if (g > 0) config.videoGopSize = g;
+    } else if (const char* v = std::getenv("FFMPEG_GOP_SIZE")) {
+        int g = parseInt(v);
+        if (g > 0) config.videoGopSize = g;
+    }
     // No GPU for inference → also avoid NVDEC/NVENC contention on CPU-only tasks
     if (config.forceCpu || !config.preferGpu) {
         config.forceSoftAv = true;
@@ -468,7 +515,9 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
               << " prefer_hwaccel=" << (config.preferHwaccel ? "true" : "false")
               << " force_soft_av=" << (config.forceSoftAv ? "true" : "false")
               << " hwaccel_device_id=" << config.hwaccelDeviceId
-              << " nvenc_preset=" << config.nvencPreset;
+              << " nvenc_preset=" << config.nvencPreset
+              << " video_bitrate=" << (config.videoBitRate > 0 ? config.videoBitRate / 1000 : 0) << "k"
+              << " gop=" << config.videoGopSize;
 
     return true;
 }

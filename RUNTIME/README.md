@@ -609,6 +609,8 @@ export RUNTIME_PYTHON=/path/to/python   # 需已装 ultralytics
 | `force_soft_av` / `RUNTIME_FORCE_SOFT_AV` | `false` | 强制软解软编 |
 | `hwaccel_device_id` | 同 `gpu_device_id` | CUDA 设备 |
 | `nvenc_preset` / `RUNTIME_NVENC_PRESET` | `p3` | NVENC preset（对齐 VIDEO） |
+| `bitrate` / `RUNTIME_VIDEO_BITRATE`（或 `FFMPEG_VIDEO_BITRATE`） | 按分辨率自动 | RTMP 重编码 ABR；1080p 默认约 `4500k`（旧版写死 `2500k` 易发糊） |
+| `gop` / `RUNTIME_GOP_SIZE`（或 `FFMPEG_GOP_SIZE`） | `2 * fps` | 关键帧间隔；过短会浪费码率、画面更糊 |
 
 - `prefer_gpu=false` 或 `force_cpu=true` 时会同步 `force_soft_av`，避免 CPU 任务抢 NVENC。
 - 硬解连续 `transfer` 失败会在本会话降级软解；硬编 open 失败用 `libx264`，任务不中断。

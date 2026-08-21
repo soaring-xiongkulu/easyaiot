@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <cstdint>
 #include <glog/logging.h>
 #include "Config.h"
 
@@ -43,6 +44,11 @@ private:
      * Parse integer value
      */
     int parseInt(const std::string& value);
+
+    /**
+     * Parse bitrate: 4500k / 4M / 4500000 / bare kbps (<100000)
+     */
+    int64_t parseBitRate(const std::string& value);
     
     /**
      * Parse float value

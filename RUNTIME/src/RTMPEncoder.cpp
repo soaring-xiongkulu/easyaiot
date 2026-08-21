@@ -1,4 +1,5 @@
 #include "RTMPEncoder.h"
+#include <climits>
 #include <cstdio>
 #include <glog/logging.h>
 #include <algorithm>
@@ -29,6 +30,25 @@ int RTMPEncoder::alignDim(int v, int align) {
     return (v + align - 1) / align * align;
 }
 
+int64_t RTMPEncoder::defaultBitRate(int width, int height) {
+    // RUNTIME keeps source resolution (often 1080p/4K). VIDEO's Python path often
+    // scales to 720p @ 3500k; at full res we need higher ABR or the picture looks soft.
+    const int64_t pixels = static_cast<int64_t>(std::max(1, width)) * std::max(1, height);
+    if (pixels <= 640LL * 360) {
+        return 1500000;
+    }
+    if (pixels <= 1280LL * 720) {
+        return 3500000;
+    }
+    if (pixels <= 1920LL * 1080) {
+        return 4500000;
+    }
+    if (pixels <= 2560LL * 1440) {
+        return 6000000;
+    }
+    return 8000000;
+}
+
 bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEncoderOptions& opts) {
     _codecCtx = avcodec_alloc_context3(codec);
     if (!_codecCtx) {
@@ -36,17 +56,23 @@ bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEnco
         return false;
     }
 
+    const int64_t bitRate = opts.bitRate > 0 ? opts.bitRate : defaultBitRate(_encWidth, _encHeight);
+    const int gop = opts.gopSize > 0 ? opts.gopSize : std::max(1, _fps * 2);
+
     _codecCtx->width = _encWidth;
     _codecCtx->height = _encHeight;
     _codecCtx->time_base = AVRational{1, _fps};
     _codecCtx->framerate = AVRational{_fps, 1};
     _codecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
-    _codecCtx->bit_rate = 2500000;
-    _codecCtx->gop_size = 10;
+    _codecCtx->bit_rate = bitRate;
+    // Align VIDEO: ~2s keyframe interval; short GOP wastes bitrate on I-frames → blurrier P-frames.
+    _codecCtx->gop_size = gop;
+    _codecCtx->keyint_min = std::max(1, _fps);
     _codecCtx->max_b_frames = 0;
-    _codecCtx->rc_buffer_size = _codecCtx->bit_rate / 2;
-    _codecCtx->rc_max_rate = static_cast<int64_t>(_codecCtx->bit_rate * 1.2);
-    _codecCtx->rc_min_rate = static_cast<int64_t>(_codecCtx->bit_rate * 0.8);
+    // bufsize 2x bitrate avoids RC starvation that makes the picture mushy under motion.
+    _codecCtx->rc_buffer_size = static_cast<int>(std::min<int64_t>(bitRate * 2, INT_MAX));
+    _codecCtx->rc_max_rate = bitRate;
+    // Do not clamp rc_min_rate: hard min forces CBR and hurts perceived clarity.
 
     if (_outputCtx->oformat->flags & AVFMT_GLOBALHEADER) {
         _codecCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -58,6 +84,8 @@ bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEnco
         av_opt_set(_codecCtx->priv_data, "tune", "ll", 0);
         av_opt_set(_codecCtx->priv_data, "rc", "vbr", 0);
         av_opt_set(_codecCtx->priv_data, "profile", "main", 0);
+        // Mild CQ bias toward clarity while still respecting bit_rate / rc_max_rate.
+        av_opt_set(_codecCtx->priv_data, "cq", "19", 0);
         char gpuBuf[16];
         snprintf(gpuBuf, sizeof(gpuBuf), "%d", opts.gpuDeviceId < 0 ? 0 : opts.gpuDeviceId);
         av_opt_set(_codecCtx->priv_data, "gpu", gpuBuf, 0);
@@ -67,7 +95,7 @@ bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEnco
         av_opt_set(_codecCtx->priv_data, "preset", "veryfast", 0);
         av_opt_set(_codecCtx->priv_data, "tune", "zerolatency", 0);
         av_opt_set(_codecCtx->priv_data, "profile", "main", 0);
-        av_opt_set(_codecCtx->priv_data, "crf", "23", 0);
+        // ABR only (no CRF): mixing CRF with bit_rate/rc_* fights and often looks worse live.
     }
 
     int ret = avcodec_open2(_codecCtx, codec, nullptr);
@@ -79,6 +107,12 @@ bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEnco
         _codecCtx = nullptr;
         return false;
     }
+
+    LOG(INFO) << "[RTMP] Codec open " << codec->name
+              << " bitrate=" << (bitRate / 1000) << "k"
+              << " gop=" << gop
+              << " bufsize=" << (_codecCtx->rc_buffer_size / 1000) << "k"
+              << " " << _encWidth << "x" << _encHeight << "@" << _fps << "fps";
     return true;
 }
 
@@ -108,7 +142,8 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
               << " (" << width << "x" << height << " -> " << _encWidth << "x" << _encHeight
               << "@" << _fps << "fps)"
               << " prefer_hw=" << (opts.preferHw ? "true" : "false")
-              << " force_soft=" << (opts.forceSoft ? "true" : "false");
+              << " force_soft=" << (opts.forceSoft ? "true" : "false")
+              << " bitrate_hint=" << (opts.bitRate > 0 ? opts.bitRate / 1000 : 0) << "k";
 
     int ret = avformat_alloc_output_context2(&_outputCtx, nullptr, "flv", rtmpUrl.c_str());
     if (ret < 0 || !_outputCtx) {
@@ -209,11 +244,11 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
         return false;
     }
 
-    // BGR -> YUV420P；若 NVENC 对齐导致尺寸变化，在 sws 中一并缩放
+    // BGR -> YUV420P；NVENC 16 对齐偶发缩放时用 bicubic，比 bilinear 更锐
     _swsCtx = sws_getContext(
         _srcWidth, _srcHeight, AV_PIX_FMT_BGR24,
         _encWidth, _encHeight, AV_PIX_FMT_YUV420P,
-        SWS_BILINEAR, nullptr, nullptr, nullptr
+        SWS_BICUBIC, nullptr, nullptr, nullptr
     );
     if (!_swsCtx) {
         LOG(ERROR) << "[RTMP] Failed to create sws context";
@@ -270,7 +305,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
     cv::Mat bgr = frame;
     if (frame.cols != _srcWidth || frame.rows != _srcHeight) {
         // Unexpected size: scale to encoder source geometry
-        cv::resize(frame, bgr, cv::Size(_srcWidth, _srcHeight));
+        cv::resize(frame, bgr, cv::Size(_srcWidth, _srcHeight), 0, 0, cv::INTER_AREA);
     }
 
     const uint8_t* srcData[1] = {bgr.data};

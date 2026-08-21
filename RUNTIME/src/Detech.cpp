@@ -227,6 +227,8 @@ RtmpEncoderOptions makeRtmpOpts(const Config& cfg) {
     opts.forceSoft = cfg.forceSoftAv;
     opts.gpuDeviceId = cfg.hwaccelDeviceId >= 0 ? cfg.hwaccelDeviceId : cfg.gpuDeviceId;
     opts.nvencPreset = cfg.nvencPreset.empty() ? "p3" : cfg.nvencPreset;
+    opts.bitRate = cfg.videoBitRate;
+    opts.gopSize = cfg.videoGopSize;
     return opts;
 }
 }  // namespace

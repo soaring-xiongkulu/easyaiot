@@ -17,6 +17,10 @@ struct RtmpEncoderOptions {
     bool forceSoft{false};
     int gpuDeviceId{0};
     std::string nvencPreset{"p3"};
+    /** Target ABR bitrate in bits/sec; <=0 = auto by resolution (align VIDEO clarity). */
+    int64_t bitRate{0};
+    /** GOP size in frames; <=0 = 2 * fps (keyframe ~every 2s). */
+    int gopSize{0};
 };
 
 /**
@@ -44,6 +48,7 @@ public:
 private:
     bool openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEncoderOptions& opts);
     static int alignDim(int v, int align = 16);
+    static int64_t defaultBitRate(int width, int height);
 
     AVFormatContext* _outputCtx;    // 输出格式上下文
     AVCodecContext* _codecCtx;      // 编码器上下文

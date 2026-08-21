@@ -466,7 +466,11 @@ bool StreamForwarder::ffmpegRelaySession() {
             bitrate = std::getenv("FFMPEG_VIDEO_BITRATE");
         }
         if (!bitrate || !*bitrate) {
-            bitrate = "2000k";
+            bitrate = std::getenv("VIEW_FFMPEG_VIDEO_BITRATE");
+        }
+        if (!bitrate || !*bitrate) {
+            // Align VIDEO default (was 2000k → soft on 1080p HEVC→H264 fallback)
+            bitrate = "3500k";
         }
         const char* preset = std::getenv("FFMPEG_PRESET");
         if (!preset || !*preset) {
@@ -483,9 +487,26 @@ bool StreamForwarder::ffmpegRelaySession() {
         if (!fps || !*fps) {
             fps = "25";
         }
+        // bufsize 2x bitrate — same as VIDEO camera preview path
+        std::string bufsize = "7000k";
+        if (const char* b = std::getenv("FFMPEG_VIDEO_BUFSIZE")) {
+            if (b[0] != '\0') bufsize = b;
+        } else {
+            // crude: if bitrate ends with k, double the numeric prefix
+            std::string br(bitrate);
+            if (!br.empty() && (br.back() == 'k' || br.back() == 'K')) {
+                try {
+                    int k = std::stoi(br.substr(0, br.size() - 1));
+                    if (k > 0) bufsize = std::to_string(k * 2) + "k";
+                } catch (...) {
+                }
+            }
+        }
         args.insert(args.end(), {
             "-c:v", "libx264",
             "-b:v", bitrate,
+            "-maxrate", bitrate,
+            "-bufsize", bufsize,
             "-preset", preset,
             "-tune", "zerolatency",
             "-profile:v", "main",
