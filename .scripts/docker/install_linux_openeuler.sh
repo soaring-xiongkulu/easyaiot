@@ -103,6 +103,7 @@ openEuler 专用选项（须写在子命令之前）:
   sudo ./install_linux_openeuler.sh install
   sudo ./install_linux_openeuler.sh --upgrade-docker-only
   sudo ./install_linux_openeuler.sh --el-release 7 install
+  sudo EASYAIOT_DEPLOY_PROFILE=edge ./install_linux_openeuler.sh install
   sudo EASYAIOT_DEPLOY_PROFILE=mini ./install_linux_openeuler.sh install
 
 说明:

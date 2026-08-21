@@ -10,9 +10,10 @@
 #   ./install_business_linux.sh <命令> [选项] [模块...]
 #
 # 部署形态（EASYAIOT_DEPLOY_PROFILE）：
-#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件；HARNESS 先于 IDEA
-#   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/iot-visualize 等（含 EMQX）；HARNESS 先于 IDEA
-#   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE、TRANSFORM）；HARNESS 先于 IDEA
+#   edge(0)     - 纯边缘（推荐 ≥ 2 GB；汇聚面与算力同机，本地闭环）
+#   mini(1)     - 边缘精简版（推荐 ≥ 4 GB；轻量平台能力）
+#   standard(2) - 标准版（推荐 ≥ 16 GB）
+#   full(3)     - 完整版（默认，推荐 ≥ 20 GB；全栈交付）
 #
 # 示例:
 #   ./install_business_linux.sh install              # 安装全部业务模块
@@ -641,7 +642,14 @@ init_deploy_profile_for_command() {
     local cmd="$1"
     case "$cmd" in
         install)
-            select_deploy_profile_for_install
+            select_deploy_profile_for_install || return 1
+            if [ "${EASYAIOT_EDGE_MORPHOLOGY:-}" = "integrated" ]; then
+                print_info "云边一体形态：委托边缘算力安装"
+                local runtime_script="${PROJECT_ROOT}/RUNTIME/install_linux.sh"
+                [ -f "$runtime_script" ] || { print_error "未找到边缘算力安装脚本"; return 1; }
+                bash "$runtime_script" integrated "${VIDEO_BASE_URL:-}"
+                return $?
+            fi
             check_docker
             configure_docker_mirror
             init_runtime_images_for_install
@@ -709,6 +717,7 @@ EasyAIoT 业务系统统一管理脚本
   update        更新镜像并重启（交互可选拉取/本地重建）
   verify        验证服务健康（HTTP 健康检查 / 端口探测）
   profile       显示当前部署形态与服务范围
+  profile       显示当前部署形态与服务范围
   help          显示帮助
 
 选项:
@@ -736,7 +745,9 @@ EasyAIoT 业务系统统一管理脚本
 说明:
   中间件请使用 .scripts/docker/install_linux.sh 或 install_middleware_linux.sh
   运行时镜像仓库配置: .scripts/docker/runtime_registry.conf
-  环境变量 EASYAIOT_DEPLOY_PROFILE: mini(1) | standard(2) | full(3，默认)
+  环境变量 EASYAIOT_DEPLOY_PROFILE: edge | mini | standard | full（默认）
+  边缘双形态请在 install 中先选 edge，再选 standalone / integrated
+  自动化示例: EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=integrated VIDEO_BASE_URL=http://...
   build-runtime 可选 EASYAIOT_RUNTIME_BUILD_ARCH: all(默认) | amd64 | arm64（单架构时跳过 manifest）
   build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: all(默认) | IDEA | HARNESS | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL
   日志: $LOG_DIR/
@@ -775,6 +786,17 @@ parse_args() {
             install|start|stop|restart|status|logs|build|build-base|clean|clean-all|update|verify|profile|pull|build-runtime|images-pull|images-build)
                 COMMAND="$arg"
                 shift
+                ;;
+            edge|pure-edge|edge-standalone|runtime-standalone)
+                # 兼容旧入口：并入 install 规格选型
+                print_info "边缘部署已并入「install」规格选型，将进入安装向导"
+                COMMAND="install"
+                shift
+                # 丢弃旧 edge 子参数，交由 install 交互菜单选择形态
+                while [ $# -gt 0 ]; do
+                    shift
+                done
+                MODULE_POSITIONAL=()
                 ;;
             -*)
                 print_error "未知选项: $arg"
@@ -838,7 +860,11 @@ main() {
             verify_all || exit 1
             ;;
         install)
-            init_deploy_profile_for_command install
+            init_deploy_profile_for_command install || exit 1
+            if [ "${EASYAIOT_EDGE_MORPHOLOGY:-}" = "integrated" ]; then
+                # 云边一体形态已在 init 中完成算力节点部署
+                exit 0
+            fi
             resolve_modules "${MODULE_POSITIONAL[@]}"
             run_on_modules install "${EXTRA_ARGS[@]}" || exit 1
             ;;

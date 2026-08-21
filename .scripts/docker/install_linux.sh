@@ -27,8 +27,7 @@
 #   check      - 检查 Docker 和 Docker Compose 安装状态
 #   profile    - 显示当前部署形态与服务范围
 #   site [子命令] - 官方网站 SITE 独立部署
-#   runtime|runtime-atomic|runtime-integrated - RUNTIME 云边一体（只装执行器，需 VIDEO_BASE_URL）
-#   edge|runtime-standalone                     - 快捷：EASYAIOT_DEPLOY_PROFILE=edge 后走普通 install（单机合装）
+#   runtime|runtime-integrated - 兼容别名：等价于 install 中选择「云边一体形态」
 #   build-runtime-cpp [target] - RUNTIME C++ 离线包矩阵构建（容器内按 OS 编译，与 COMPILE 对齐）
 #   preflight-runtime-cpp [--node N] - RUNTIME 分发前预检（缺包时提示 export 命令）
 #   export-runtime-cpp <os_family> - 单 OS 导出（如 openeuler22 / kylin10）
@@ -36,11 +35,9 @@
 #   analyze-logs   - 多模块日志合并分析（各模块约 500 行，带分割线）
 #   analyze-disk   - 项目关键目录磁盘占用分析
 #
-# 部署规格（EASYAIOT_DEPLOY_PROFILE）：
-#   edge(0)     - 云边一体单机合装：WEB+VIDEO+RUNTIME + 必要中间件（无 Kafka/AI/RTC 等）
-#   mini(1)     - 4G：iot-gateway+iot-sink+VIDEO/AI/RTC/WEB + 精简中间件（无 TDengine/可视化/iot-node 等）
-#   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/NodeRED/iot-visualize（含 EMQX）
-#   full(3)     - 全量（默认，约 20G）；含 iot-visualize/VISUALIZE、TRANSFORM；启动后自动拉起工业协议演示
+# 部署规格（install 交互选型）：
+#   0) edge / 1) mini / 2) standard / 3) full（默认）
+#   选定 edge 后再选: 1) standalone | 2) integrated
 # ============================================
 
 set -e
@@ -1033,7 +1030,12 @@ verify_service_health() {
 install_linux() {
     print_section "开始安装所有服务"
 
-    select_deploy_profile_for_install
+    select_deploy_profile_for_install || return 1
+    # 规格菜单选 edge → 云边一体形态：改走算力节点部署，不跑平台全量 install
+    if [ "${EASYAIOT_EDGE_MORPHOLOGY:-}" = "integrated" ]; then
+        run_edge_integrated_install
+        return $?
+    fi
     cleanup_profile_excluded_containers
     export EASYAIOT_INSTALL_SCRIPT="${EASYAIOT_INSTALL_SCRIPT:-.scripts/docker/install_linux.sh}"
     if ! runtime_images_acquire; then
@@ -2094,9 +2096,6 @@ show_help() {
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
-    echo "  runtime|runtime-integrated - RUNTIME 云边一体（只装执行器，需 VIDEO_BASE_URL）"
-    echo "  edge                       - 快捷：锁定 edge 规格后走普通 install（单机合装）"
-    echo "  runtime-atomic             - runtime-integrated 别名（向后兼容）"
     echo "  build-runtime-cpp [target|--all|--compile-target NAME] - RUNTIME C++ 离线包矩阵构建"
     echo "  preflight-runtime-cpp [--node N | os_family [arch]] - 分发前预检本地 tarball"
     echo "  export-runtime-cpp <os_family> - 单 OS 容器内导出（openeuler22 / kylin10 等）"
@@ -2117,7 +2116,8 @@ show_help() {
     done
     echo ""
     echo "可选环境变量:"
-    echo "  EASYAIOT_DEPLOY_PROFILE      - 部署形态: edge(0) | mini(1) | standard(2) | full(3，默认 full)"
+    echo "  EASYAIOT_DEPLOY_PROFILE      - 部署形态: edge | mini | standard | full（默认 full）"
+    echo "  EASYAIOT_EDGE_MORPHOLOGY     - edge 子形态: standalone | integrated"
     echo "  PARALLEL_MODULES=true|false  - 业务模块并行开关：start 默认并行；update 默认串行(可能含重建镜像)"
     echo "  PARALLEL_BUILD=true          - build 时并行构建各模块（默认串行，防小内存并行 OOM）"
     echo "  FORCE_NETWORK_RECREATE=true  - 启动时强制重建 easyaiot-network（宿主机 IP 变更后使用）"
@@ -2128,10 +2128,10 @@ show_help() {
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
     echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | HARNESS | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
-    echo "  VIDEO_BASE_URL               - runtime 云边一体：中心 VIDEO 汇聚地址（如 http://192.168.1.10:6000）"
-    echo "  GATEWAY_URL                  - runtime 云边一体：中心 Gateway（如 http://192.168.1.10:48080）"
-    echo "  MQTT_BROKER_URLS             - runtime 云边一体：中心 EMQX 地址"
-    echo "  EASYAIOT_RUNTIME_INSTALL_DIR - runtime 云边一体安装目录（默认 /opt/easyaiot/RUNTIME）"
+    echo "  VIDEO_BASE_URL               - 云边一体：中心汇聚面根地址（如 http://192.168.1.10:6000）"
+    echo "  GATEWAY_URL                  - 云边一体：中心网关地址（如 http://192.168.1.10:48080）"
+    echo "  MQTT_BROKER_URLS             - 云边一体：中心消息总线地址"
+    echo "  EASYAIOT_RUNTIME_INSTALL_DIR - 云边一体：边缘算力安装目录（默认 /opt/easyaiot/RUNTIME）"
     echo "  EASYAIOT_VERIFY_ALERT_ON_VERIFY=0 - verify 时跳过告警 MQTT/共享盘验收"
     echo "  EASYAIOT_VERIFY_ALERT_STRICT=1    - verify-alert 前置缺失时按失败退出"
     echo "  MQTT_BROKER_URLS / ALERT_IMAGES_DIR / VERIFY_DEVICE_ID - 告警验收覆盖项"
@@ -2139,85 +2139,34 @@ show_help() {
     echo ""
 }
 
-# 云边一体 · 单机合装快捷入口：锁定 edge 部署规格后走普通平台 install
-# （不是独立拓扑；汇聚面在本机，RUNTIME 仍由 VIDEO 挂载）
-run_edge_profile_install() {
-    local sub="${1:-install}"
-    shift || true
-    print_section "云边一体 · 单机合装（部署规格 edge）"
-    print_info "与「只装 RUNTIME」是同一套云边一体架构；此处把汇聚面也装在本机"
-    print_info "必要中间件: PostgreSQL, Redis, SRS（本地存储，无 MinIO/Nacos/EMQX）"
-    print_info "业务面: VIDEO + WEB + RUNTIME（零 DEVICE；告警 RUNTIME→VIDEO HTTP）"
-    export EASYAIOT_DEPLOY_PROFILE=edge
-    export EASYAIOT_SKIP_PROFILE_PROMPT=1
-    apply_deploy_profile
-    save_deploy_profile
-    lock_deploy_profile_for_child_installs
-    case "$sub" in
-        install|"")
-            install_linux
-            ;;
-        start)
-            start_all
-            ;;
-        stop)
-            stop_all
-            ;;
-        restart)
-            restart_all
-            ;;
-        status)
-            status_all
-            ;;
-        logs)
-            view_logs "${1:-}"
-            ;;
-        build)
-            build_all
-            ;;
-        update)
-            update_all
-            ;;
-        verify)
-            verify_all
-            ;;
-        profile)
-            print_deploy_profile_summary
-            ;;
-        help|-h|--help)
-            echo "用法: $0 edge [install|start|stop|restart|status|build|update|verify|profile]（默认 install）"
-            echo "等价于: EASYAIOT_DEPLOY_PROFILE=edge $0 install"
-            ;;
-        *)
-            print_error "未知子命令: $sub"
-            echo "用法: $0 edge [install|start|stop|restart|status|build|update|verify|profile]"
-            return 1
-            ;;
-    esac
-}
-
-# RUNTIME 云边一体：只部署计算节点执行器（不装 VIDEO/WEB/DEVICE）
-run_runtime_integrated() {
+# ---------- 云边一体形态（由 install 规格选型触发）----------
+run_edge_integrated_install() {
     local runtime_script="${PROJECT_ROOT}/RUNTIME/install_linux.sh"
     if [ ! -f "$runtime_script" ]; then
-        print_error "未找到 RUNTIME 安装脚本: ${runtime_script}"
+        print_error "未找到边缘算力安装脚本: ${runtime_script}"
         return 1
     fi
-    print_section "RUNTIME 云边一体（只装执行器）"
-    print_info "本机只装 RUNTIME；汇聚面指向 VIDEO（远端中心或本机均可）"
-    if [ -z "${VIDEO_BASE_URL:-${EASYAIOT_VIDEO_BASE_URL:-}}" ] && [ -z "${1:-}" ]; then
-        print_error "请提供 VIDEO 地址，例如:"
-        print_info "  VIDEO_BASE_URL=http://192.168.1.10:6000 GATEWAY_URL=http://192.168.1.10:48080 $0 runtime-integrated"
-        print_info "  $0 runtime-integrated http://192.168.1.10:6000"
-        print_info "单机合装请用: EASYAIOT_DEPLOY_PROFILE=edge $0 install  或  $0 edge install"
+    print_section "云边一体形态部署"
+    print_info "本机仅部署边缘算力；汇聚面接入中心平台（任务编排、预览与告警汇聚）"
+    export EASYAIOT_EDGE_MORPHOLOGY=integrated
+    if ! prompt_cloud_edge_center_config "${1:-}"; then
         return 1
     fi
-    bash "$runtime_script" integrated "$@"
+    bash "$runtime_script" integrated "${VIDEO_BASE_URL}"
 }
 
-run_runtime_atomic() {
-    run_runtime_integrated "$@"
+# 旧「edge」顶层命令：引导至 install 规格选型（不再作为独立入口宣传）
+run_edge_entry() {
+    print_info "边缘部署（纯边缘形态 / 云边一体形态）已并入「install」规格选型"
+    print_info "正在进入安装向导..."
+    unset EASYAIOT_DEPLOY_PROFILE EASYAIOT_SKIP_PROFILE_PROMPT 2>/dev/null || true
+    unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true
+    install_linux
 }
+
+run_edge_profile_install() { run_edge_entry "$@"; }
+run_runtime_integrated() { run_edge_integrated_install "$@"; }
+run_runtime_atomic() { run_edge_integrated_install "$@"; }
 
 # RUNTIME C++ 离线包矩阵（iot-node 分发用，与 COMPILE 目标对齐）
 run_runtime_cpp_bundle_cmd() {
@@ -2353,11 +2302,12 @@ main() {
         site|website|官网)
             run_site_module "${2:-install}"
             ;;
-        runtime|runtime-atomic|install-runtime|atomic-runtime|runtime-integrated|edge-integrated)
-            run_runtime_integrated "${2:-}"
+        runtime|runtime-atomic|install-runtime|atomic-runtime|runtime-integrated|edge-integrated|cloud-edge)
+            # 自动化兼容：直接走云边一体形态；日常请用 install 规格菜单
+            run_edge_integrated_install "${2:-}"
             ;;
         edge|pure-edge|edge-standalone|runtime-standalone|runtime-edge|standalone-runtime)
-            run_edge_profile_install "${2:-install}" "${@:3}"
+            run_edge_entry
             ;;
         build-runtime-cpp|runtime-cpp-build|runtime-cpp-matrix)
             run_runtime_cpp_bundle_cmd build "${@:2}"

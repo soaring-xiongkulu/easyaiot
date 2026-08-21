@@ -726,6 +726,7 @@ EasyAIoT 中间件脚本（macOS / Windows · 仅镜像部署）
   help      查看帮助
 
 说明：本脚本不支持本地 docker build；业务运行时镜像请用上级 install_mac / install_windows 的 pull。
+部署形态：EASYAIOT_DEPLOY_PROFILE=edge|mini|standard|full（默认沿用已保存规格或 full）
 USAGE
 }
 

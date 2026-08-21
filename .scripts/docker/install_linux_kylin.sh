@@ -26,10 +26,9 @@
 #   analyze-logs   - 多模块日志合并分析（各模块约 500 行，带分割线）
 #   analyze-disk   - 项目关键目录磁盘占用分析
 #
-# 部署形态（EASYAIOT_DEPLOY_PROFILE）：
-#   mini(1)     - 4G：iot-system + VIDEO/AI/RTC/WEB + 最小中间件（无 Kafka/iot-sink/Nacos/Gateway/Infra/可视化）
-#   standard(2) - 16G：不含 TDengine/iot-device/iot-tdengine/NodeRED/iot-visualize（含 EMQX）
-#   full(3)     - 全量（默认，约 20G；含 iot-visualize/VISUALIZE、TRANSFORM）；PANEL 全形态启用
+# 部署形态（install 交互选型）：
+#   0) edge / 1) mini / 2) standard / 3) full（默认）
+#   选定 edge 后再选: 1) standalone | 2) integrated
 # ============================================
 
 set -e
@@ -902,7 +901,11 @@ verify_service_health() {
 install_linux() {
     print_section "开始安装所有服务 (麒麟系统)"
     
-    select_deploy_profile_for_install
+    select_deploy_profile_for_install || return 1
+    if [ "${EASYAIOT_EDGE_MORPHOLOGY:-}" = "integrated" ]; then
+        run_edge_integrated_install
+        return $?
+    fi
     export EASYAIOT_INSTALL_SCRIPT=".scripts/docker/install_linux_kylin.sh"
     if ! runtime_images_acquire; then
         print_error "预构建镜像获取失败，已中止安装"
@@ -1614,7 +1617,7 @@ show_help() {
     echo "  - 如需在 x86_64 架构上部署，请使用 install_linux.sh"
     echo ""
     echo "可选环境变量:"
-    echo "  EASYAIOT_DEPLOY_PROFILE      - 部署形态: mini(1) | standard(2) | full(3，默认 full)"
+    echo "  EASYAIOT_DEPLOY_PROFILE      - 部署形态: edge(0) | mini(1) | standard(2) | full(3，默认 full)"
     echo "  PARALLEL_MODULES=true|false  - 业务模块并行开关：start 默认并行；update 默认串行(可能含重建镜像)"
     echo "  PARALLEL_BUILD=true          - build 时并行构建各模块（默认串行，防小内存并行 OOM）"
     echo "  FORCE_NETWORK_RECREATE=true  - 启动时强制重建 easyaiot-network（宿主机 IP 变更后使用）"
@@ -1624,6 +1627,35 @@ show_help() {
     echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
     echo ""
 }
+
+# ---------- 云边一体形态（由 install 规格选型触发）----------
+run_edge_integrated_install() {
+    local runtime_script="${PROJECT_ROOT}/RUNTIME/install_linux.sh"
+    if [ ! -f "$runtime_script" ]; then
+        print_error "未找到边缘算力安装脚本: ${runtime_script}"
+        return 1
+    fi
+    print_section "云边一体形态部署"
+    print_info "本机仅部署边缘算力；汇聚面接入中心平台（任务编排、预览与告警汇聚）"
+    export EASYAIOT_EDGE_MORPHOLOGY=integrated
+    if ! prompt_cloud_edge_center_config "${1:-}"; then
+        return 1
+    fi
+    bash "$runtime_script" integrated "${VIDEO_BASE_URL}"
+}
+
+# 旧「edge」顶层命令：引导至 install 规格选型
+run_edge_entry() {
+    print_info "边缘部署（纯边缘形态 / 云边一体形态）已并入「install」规格选型"
+    print_info "正在进入安装向导..."
+    unset EASYAIOT_DEPLOY_PROFILE EASYAIOT_SKIP_PROFILE_PROMPT 2>/dev/null || true
+    unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true
+    install_linux
+}
+
+run_edge_profile_install() { run_edge_entry "$@"; }
+run_runtime_integrated() { run_edge_integrated_install "$@"; }
+
 
 # 官方网站 SITE：委托 SITE/install_linux.sh
 run_site_module() {
@@ -1716,6 +1748,12 @@ main() {
         profile)
             ensure_deploy_profile
             print_deploy_profile_summary
+            ;;
+        runtime|runtime-integrated|edge-integrated|cloud-edge)
+            run_edge_integrated_install "${2:-}"
+            ;;
+        edge|pure-edge|edge-standalone|runtime-standalone)
+            run_edge_entry
             ;;
         site|website|官网)
             run_site_module "${2:-install}"

@@ -2744,7 +2744,7 @@ _apply_srs_http_hooks() {
         # 零 DEVICE：on_publish / on_dvr 均直连 VIDEO 本地消化
         on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
         on_dvr_url="http://${host_ip}:${video_port}/video/media/hook/srs/on_dvr"
-        print_info "edge 形态：on_publish / on_dvr 均直连 VIDEO（本地存储）"
+        print_info "edge 形态：推流/录像回调走本地闭环（本地存储）"
     elif is_mini_deploy_profile; then
         on_publish_url="http://${host_ip}:${video_port}/video/camera/callback/on_publish"
         on_dvr_url="http://${gateway_ip}:48080/admin-api/sink/media/hook/srs/on_dvr"
@@ -6555,7 +6555,7 @@ show_help() {
     echo "  help            - 显示此帮助信息"
     echo ""
     echo "环境变量:"
-    echo "  EASYAIOT_DEPLOY_PROFILE   - 部署规格: mini(1,≥4GB) | standard(2,≥16GB) | full(3,≥20GB，默认)"
+    echo "  EASYAIOT_DEPLOY_PROFILE   - 部署规格: edge(0,≥2GB) | mini(1,≥4GB) | standard(2,≥16GB) | full(3,≥20GB，默认)"
     echo "  EASYAIOT_ENABLE_TDENGINE  - 完整版自动为 1；mini/standard 为 0"
     echo "  EASYAIOT_ENABLE_EMQX      - mini/standard/完整版均为 1；显式 0 可关闭"
     echo "  FORCE_CHMOD=true    - 对已存在的数据目录强制完整递归 chmod 修复（默认只设顶层，数据量大时慢）"

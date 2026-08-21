@@ -96,6 +96,7 @@ CentOS 专用选项（须写在子命令之前）:
   sudo ./install_linux_centos.sh
   sudo ./install_linux_centos.sh install
   sudo ./install_linux_centos.sh --upgrade-docker-only
+  sudo EASYAIOT_DEPLOY_PROFILE=edge ./install_linux_centos.sh install
   sudo EASYAIOT_DEPLOY_PROFILE=mini ./install_linux_centos.sh install
 
 说明:

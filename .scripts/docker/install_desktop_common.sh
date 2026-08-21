@@ -283,6 +283,7 @@ _desktop_resource_targets() {
   local want_mem want_cpu want_disk
   case "$profile" in
     # Docker 引擎目标内存（不够时由 resources / bootstrap / install 自动调高）
+    edge)     want_mem=2;  want_cpu=2; want_disk=40 ;;
     mini)     want_mem=4;  want_cpu=4; want_disk=60 ;;
     standard) want_mem=16; want_cpu=6; want_disk=80 ;;
     *)        want_mem=24; want_cpu=8; want_disk=100 ;;  # full
@@ -933,7 +934,10 @@ check_desktop_prerequisites() {
   fi
   local profile_hint="${EASYAIOT_DEPLOY_PROFILE:-full}"
   if [ -n "$mem_gb" ] && [ "$mem_gb" -gt 0 ] 2>/dev/null; then
-    if [ "$mem_gb" -lt 8 ]; then
+    if [ "$profile_hint" = "edge" ] && [ "$mem_gb" -lt 4 ]; then
+      warnings+=("物理内存约 ${mem_gb}GB；edge 单机合装建议主机 ≥4GB（引擎目标 2GB）")
+      print_info "主机内存: 约 ${mem_gb}GB"
+    elif [ "$mem_gb" -lt 8 ] && [ "$profile_hint" != "edge" ]; then
       warnings+=("物理内存约 ${mem_gb}GB，建议 ≥16GB（mini 规格至少 ≥8GB）")
     elif [ "$profile_hint" = "full" ] && [ "$mem_gb" -lt 32 ]; then
       warnings+=("物理内存约 ${mem_gb}GB；full 全量建议主机 ≥32GB（引擎目标 24GB）")
@@ -1932,8 +1936,9 @@ ${EASYAIOT_INSTALL_LABEL}
     DOCKER_MIRROR_FALLBACKS（默认 docker.m.daocloud.io,docker.1ms.run,docker.1panel.live）
     EASYAIOT_DOCKER_SKIP_MIRROR=1 可跳过；FUXA 始终优先 pull_fuxa.sh（1ms）
 
-部署形态（EASYAIOT_DEPLOY_PROFILE）:
-  mini(1) / standard(2) / full(3，默认)
+部署形态（install 交互选型）：
+  0) edge / 1) mini / 2) standard / 3) full（默认）
+  选定 edge 后再选: 1) standalone | 2) integrated
 
 不支持的命令（请改用 Linux 服务器脚本）:
   build / build-runtime / clean-build-runtime
@@ -1943,6 +1948,7 @@ ${EASYAIOT_INSTALL_LABEL}
   bash .scripts/docker/install_${EASYAIOT_DESKTOP_OS}.sh check
   bash .scripts/docker/install_${EASYAIOT_DESKTOP_OS}.sh install
   bash .scripts/docker/install_${EASYAIOT_DESKTOP_OS}.sh pull
+  EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_${EASYAIOT_DESKTOP_OS}.sh install
   EASYAIOT_DEPLOY_PROFILE=mini bash .scripts/docker/install_${EASYAIOT_DESKTOP_OS}.sh install
 EOF
 }

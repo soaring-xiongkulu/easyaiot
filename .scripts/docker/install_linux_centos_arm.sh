@@ -96,6 +96,7 @@ CentOS ARM 专用选项（须写在子命令之前）:
   sudo ./install_linux_centos_arm.sh
   sudo ./install_linux_centos_arm.sh install
   sudo ./install_linux_centos_arm.sh --upgrade-docker-only
+  sudo EASYAIOT_DEPLOY_PROFILE=edge ./install_linux_centos_arm.sh install
   sudo EASYAIOT_DEPLOY_PROFILE=mini ./install_linux_centos_arm.sh install
 
 说明:
