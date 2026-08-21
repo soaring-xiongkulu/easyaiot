@@ -9,7 +9,7 @@ import os
 import re
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import parse_qs, urlparse
 
 import requests
@@ -33,6 +33,7 @@ from db_models import db, Model, TrainTask
 train_task_bp = Blueprint('train_task', __name__)
 logger = logging.getLogger(__name__)
 
+BEIJING_TZ = timezone(timedelta(hours=8))
 TASK_NAME_MAX_LEN = 200
 DEFAULT_TASK_BASE_NAME = 'train'
 LEGACY_TIMESTAMP_BASE = re.compile(r'^train_task_\d{8}_\d{6}$')
@@ -479,13 +480,14 @@ def _default_publish_name(task: TrainTask) -> str:
 
 
 def _serialize_utc_datetime(value: datetime | None) -> str | None:
+    """将库内 UTC（naive 或 aware）序列化为北京时间 ISO 字符串。"""
     if value is None:
         return None
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     else:
         value = value.astimezone(timezone.utc)
-    return value.isoformat().replace('+00:00', 'Z')
+    return value.astimezone(BEIJING_TZ).isoformat()
 
 
 def _extract_class_names_from_minio_model(model_url: str) -> list[str]:

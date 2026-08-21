@@ -5,19 +5,24 @@ export const ACTIVE_TRAIN_STATUSES = ['preparing', 'Train', 'train', 'running', 
 export const RETRAINABLE_STATUSES = ['stopped', 'completed', 'error', 'failed'];
 
 const TIMEZONE_SUFFIX_RE = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+/** 训练服务端以 UTC 存储；展示统一用北京时间，避免浏览器时区为 UTC 时差 8 小时 */
+const DISPLAY_TIME_ZONE = 'Asia/Shanghai';
 
 export function formatTrainTaskTime(value?: string): string {
   if (!value) return '--';
   const trimmed = value.trim();
+  // 无时区后缀时按 UTC 解析（与 AI 服务 datetime.utcnow 存储一致）
   const timestamp = TIMEZONE_SUFFIX_RE.test(trimmed) ? trimmed : `${trimmed}Z`;
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('zh-CN', {
+    timeZone: DISPLAY_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   });
 }
 
