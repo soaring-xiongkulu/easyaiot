@@ -162,7 +162,9 @@ RUNTIME/.test-hwaccel/** -diff
 RUNTIME/.test-yolo-link/** -diff
 RUNTIME/.test-*/** -diff
 
-# WEB 预构建前端缓存（runtime_image.sh 提取，体积大，不参与 diff）
+# WEB 构建产物与预构建前端缓存（runtime_image.sh 提取，体积大，不参与 diff）
+WEB/dist/** -diff
+WEB/dist-prebuilt-edge/** -diff
 WEB/dist-prebuilt-full/** -diff
 WEB/dist-prebuilt-mini/** -diff
 WEB/dist-prebuilt-standard/** -diff
