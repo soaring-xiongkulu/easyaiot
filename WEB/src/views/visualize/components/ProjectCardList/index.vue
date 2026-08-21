@@ -24,7 +24,7 @@
                 class="project-card"
                 :class="isScadaProject(item.projectType) ? 'project-card--scada' : 'project-card--dashboard'"
                 @mouseenter="hoverId = item.id"
-                @mouseleave="hoverId = null"
+                @mouseleave="onCardMouseLeave(item.id)"
               >
                 <div class="project-card-cover" @click="emit('view', item)">
                   <div class="project-card-cover-inner">
@@ -45,7 +45,7 @@
                     {{ isScadaProject(item.projectType) ? '组态' : '大屏' }}
                   </span>
                   <div
-                    v-show="hoverId === item.id"
+                    v-show="isOverlayVisible(item.id)"
                     class="project-card-overlay"
                     @click="emit('view', item)"
                   >
@@ -71,12 +71,21 @@
                           <StopOutlined v-else />
                         </button>
                       </Tooltip>
-                      <Popconfirm title="是否确认删除？" @confirm="emit('delete', item)">
-                        <Tooltip title="删除">
-                          <button class="overlay-btn overlay-btn--danger">
-                            <DeleteOutlined />
-                          </button>
-                        </Tooltip>
+                      <Popconfirm
+                        title="是否确认删除？"
+                        placement="top"
+                        :get-popup-container="getPopupContainer"
+                        @open-change="(open) => onDeleteConfirmOpenChange(item.id, open)"
+                        @confirm="emit('delete', item)"
+                      >
+                        <button
+                          type="button"
+                          class="overlay-btn overlay-btn--danger"
+                          title="删除"
+                          aria-label="删除"
+                        >
+                          <DeleteOutlined />
+                        </button>
                       </Popconfirm>
                     </div>
                   </div>
@@ -139,11 +148,30 @@ const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'open-editor', 
 
 const data = ref<any[]>([])
 const hoverId = ref<number | null>(null)
+/** 删除确认气泡打开时锁定对应卡片遮罩，避免移入弹层触发 mouseleave 导致确认失效 */
+const deleteConfirmId = ref<number | string | null>(null)
 const brokenCovers = reactive<Record<string | number, boolean>>({})
 const state = reactive({ loading: true })
 const page = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
+
+function isOverlayVisible(id: number | string) {
+  return hoverId.value === id || deleteConfirmId.value === id
+}
+
+function onCardMouseLeave(id: number | string) {
+  if (deleteConfirmId.value === id) return
+  if (hoverId.value === id) hoverId.value = null
+}
+
+function onDeleteConfirmOpenChange(id: number | string, open: boolean) {
+  deleteConfirmId.value = open ? id : null
+}
+
+function getPopupContainer() {
+  return document.body
+}
 
 const [registerForm, { validate }] = useForm({
   schemas: [
@@ -479,7 +507,6 @@ function prefetchCover(item: any) {
   position: absolute;
   inset: 0;
   z-index: 3;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
