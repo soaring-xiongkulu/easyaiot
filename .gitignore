@@ -203,6 +203,7 @@ AI/yolov*.names.json
 # WEB 日志目录（与 WEB/.gitignore 中 logs/*、!logs/.gitkeep 一致）
 # WEB 构建产物与预构建前端缓存（runtime_image.sh 提取，体积大，勿提交）
 /WEB/dist/
+/WEB/dist-prebuilt/
 /WEB/dist-prebuilt-edge/
 /WEB/dist-prebuilt-full/
 /WEB/dist-prebuilt-mini/
