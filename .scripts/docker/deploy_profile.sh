@@ -2,13 +2,14 @@
 # EasyAIoT 部署形态配置
 #
 # EASYAIOT_DEPLOY_PROFILE 取值（默认 full）：
-#   edge     | 0  — 边缘部署（install 后再选 standalone / integrated）
+#   edge     | 0  — 边缘部署（交互选型后再选 standalone / integrated；
+#                   环境变量指定 edge 时默认 standalone，便于快速开始）
 #   mini     | 1  — 边缘精简版，推荐宿主机内存 ≥ 4 GB
 #   standard | 2  — 标准版，推荐宿主机内存 ≥ 16 GB
 #   full     | 3  — 完整版，推荐宿主机内存 ≥ 20 GB（默认）
 #
 # edge 子形态（EASYAIOT_EDGE_MORPHOLOGY）：
-#   standalone  — 纯边缘形态（汇聚面与算力同机）
+#   standalone  — 纯边缘形态（汇聚面与算力同机）【快速开始默认】
 #   integrated  — 云边一体形态（本机仅算力，接入中心）
 #
 # 各形态能力说明见 print_deploy_profile_summary；内存占用分析见 analyze_deploy_memory.sh。
@@ -450,12 +451,25 @@ select_deploy_profile_for_install() {
 
   # 已通过环境变量显式指定形态时不弹菜单（含交互终端）
   # 例: EASYAIOT_DEPLOY_PROFILE=full bash .../install_linux.sh install
-  # edge/integrated: EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=integrated VIDEO_BASE_URL=...
+  # 快速开始: EASYAIOT_DEPLOY_PROFILE=edge → 默认 standalone，不再二次弹窗
+  # 云边一体: EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=integrated VIDEO_BASE_URL=...
   case "${EASYAIOT_DEPLOY_PROFILE:-}" in
     mini|standard|full|edge)
       apply_deploy_profile
-      if [ "${EASYAIOT_DEPLOY_PROFILE}" = "edge" ] && declare -F ensure_edge_morphology_for_install >/dev/null 2>&1; then
-        ensure_edge_morphology_for_install || return 1
+      if [ "${EASYAIOT_DEPLOY_PROFILE}" = "edge" ]; then
+        # 显式指定 edge 且未给子形态时，默认纯边缘（快速开始一键路径）
+        local _edge_morph=""
+        if declare -F normalize_edge_morphology >/dev/null 2>&1; then
+          _edge_morph="$(normalize_edge_morphology "${EASYAIOT_EDGE_MORPHOLOGY:-}")"
+        fi
+        if [ -z "${_edge_morph}" ]; then
+          export EASYAIOT_EDGE_MORPHOLOGY=standalone
+        else
+          export EASYAIOT_EDGE_MORPHOLOGY="${_edge_morph}"
+        fi
+        if declare -F ensure_edge_morphology_for_install >/dev/null 2>&1; then
+          ensure_edge_morphology_for_install || return 1
+        fi
       fi
       save_deploy_profile
       lock_deploy_profile_for_child_installs

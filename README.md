@@ -71,10 +71,10 @@ Lightest tier, containers use about <strong>1 GB</strong> total. Cameras, real-t
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# Option A: lock the lightest tier via env (recommended)
+# Option A: one-shot pure edge (local loop; defaults to standalone, no second prompt)
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# Option B: shortcut alias (equivalent)
+# Option B: shortcut entry (equivalent; also defaults to pure edge)
 # sudo bash .scripts/docker/install_linux.sh edge install
 ```
 

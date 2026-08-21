@@ -71,10 +71,10 @@ Niveau le plus léger, les conteneurs consomment environ <strong>1 Go</strong>. 
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# Option A : verrouiller le niveau le plus léger via l'env (recommandé)
+# Option A : edge pur en une commande (boucle locale ; standalone par défaut, sans 2e choix)
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# Option B : alias raccourci (équivalent)
+# Option B : raccourci équivalent (également edge pur)
 # sudo bash .scripts/docker/install_linux.sh edge install
 ```
 

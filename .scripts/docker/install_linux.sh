@@ -37,7 +37,10 @@
 #
 # 部署规格（install 交互选型）：
 #   0) edge / 1) mini / 2) standard / 3) full（默认）
-#   选定 edge 后再选: 1) standalone | 2) integrated
+#   交互选 edge 后再选: 1) standalone | 2) integrated
+# 快速开始（纯边缘，一键、不再二次选型）：
+#   EASYAIOT_DEPLOY_PROFILE=edge ./install_linux.sh install
+#   ./install_linux.sh edge install   # 等价快捷入口，默认 standalone
 # ============================================
 
 set -e
@@ -2155,12 +2158,13 @@ run_edge_integrated_install() {
     bash "$runtime_script" integrated "${VIDEO_BASE_URL}"
 }
 
-# 旧「edge」顶层命令：引导至 install 规格选型（不再作为独立入口宣传）
+# 「edge」快捷入口：等价于 EASYAIOT_DEPLOY_PROFILE=edge 的纯边缘一键安装（不再二次选型）
+# 云边一体请用交互 install 选 edge→integrated，或 edge-integrated / runtime
 run_edge_entry() {
-    print_info "边缘部署（纯边缘形态 / 云边一体形态）已并入「install」规格选型"
-    print_info "正在进入安装向导..."
-    unset EASYAIOT_DEPLOY_PROFILE EASYAIOT_SKIP_PROFILE_PROMPT 2>/dev/null || true
-    unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true
+    print_info "快速安装：edge / standalone（纯边缘形态，本地闭环）"
+    export EASYAIOT_DEPLOY_PROFILE=edge
+    export EASYAIOT_EDGE_MORPHOLOGY=standalone
+    unset EASYAIOT_SKIP_PROFILE_PROMPT 2>/dev/null || true
     install_linux
 }
 
