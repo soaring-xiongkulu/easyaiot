@@ -2,6 +2,7 @@
 // Created by basiclab on 25-10-15.
 //
 #include "AlgoMqttBus.h"
+#include "AlarmCallback.h"
 #include "Detech.h"
 #include "YoloThreadPool.h"
 #include "Datatype.h"
@@ -32,6 +33,24 @@ std::string formatUtcNow() {
     std::ostringstream oss;
     oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
     return oss.str();
+}
+
+std::string resolveAlertHookUrl(const Config& config) {
+    if (!config.alertHookUrl.empty()) {
+        return config.alertHookUrl;
+    }
+    return config.hookHttpUrl;
+}
+
+bool httpAlertFallbackEnabled(const Config& config) {
+    if (AlgoMqttBus::busEnabled(config)) {
+        return false;
+    }
+    return !resolveAlertHookUrl(config).empty();
+}
+
+bool alarmDeliveryEnabled(const Config& config) {
+    return AlgoMqttBus::busEnabled(config) || httpAlertFallbackEnabled(config);
 }
 
 bool parseHttpUrl(const std::string& url, std::string& host, int& port, std::string& path) {
@@ -774,21 +793,25 @@ bool Detech::_init_media_alarmer() {
         LOG(INFO) << "[INIT] Alarm detection disabled";
         return true;
     }
-    
-    if (!AlgoMqttBus::busEnabled(_config)) {
-        LOG(WARNING) << "[INIT] Alarm enabled but ALGO_BUS_TRANSPORT disabled";
+
+    if (AlgoMqttBus::busEnabled(_config)) {
+        if (_config.mqttBrokerUrls.empty()) {
+            LOG(WARNING) << "[INIT] Alarm enabled but MQTT broker URLs empty "
+                         << "(set mqtt_broker_urls / MQTT_BROKER_URLS)";
+        }
+        LOG(INFO) << "[INIT] Alarm callback initialized (MQTT → iot-sink)";
+        LOG(INFO) << "  → MQTT brokers: " << _config.mqttBrokerUrls;
+    } else if (httpAlertFallbackEnabled(_config)) {
+        LOG(INFO) << "[INIT] Alarm callback initialized (HTTP → VIDEO hook)";
+        LOG(INFO) << "  → hook: " << resolveAlertHookUrl(_config);
+    } else {
+        LOG(WARNING) << "[INIT] Alarm enabled but no MQTT bus and no alert_hook_url";
         return true;
     }
-    if (_config.mqttBrokerUrls.empty()) {
-        LOG(WARNING) << "[INIT] Alarm enabled but MQTT broker URLs empty "
-                     << "(set mqtt_broker_urls / MQTT_BROKER_URLS)";
-    }
-    
-    LOG(INFO) << "[INIT] Alarm callback initialized (MQTT → iot-sink)";
-    LOG(INFO) << "  → MQTT brokers: " << _config.mqttBrokerUrls;
+
     LOG(INFO) << "  → Confidence threshold: " << _config.alarmConfidenceThreshold;
     LOG(INFO) << "  → Cooldown time: " << _config.alarmCooldownTime << "s";
-    
+
     return true;
 }
 
@@ -912,8 +935,8 @@ bool Detech::_checkAlarmCooldown() {
 
 // 启动告警发送线程
 void Detech::_startAlarmSenderThread() {
-    if (!_config.enableAlarm || !AlgoMqttBus::busEnabled(_config)) {
-        LOG(INFO) << "[ALARM] Alarm disabled or no hook URL, skipping alarm thread";
+    if (!_config.enableAlarm || !alarmDeliveryEnabled(_config)) {
+        LOG(INFO) << "[ALARM] Alarm disabled or no delivery path (MQTT/HTTP hook), skipping alarm thread";
         return;
     }
     
@@ -1038,12 +1061,34 @@ void Detech::_alarmSenderThreadFunc() {
             std::string jsonStr = Json::writeString(writer, root);
 
             const bool snapshot = (_config.taskType == "snap" || _config.taskType == "snapshot");
-            if (!AlgoMqttBus::busEnabled(_config)) {
-                LOG(ERROR) << "[ALARM-THREAD] ALGO_BUS_TRANSPORT disabled; alert dropped (HTTP hook removed)";
-            } else if (AlgoMqttBus::publishAlert(_config, jsonStr, snapshot)) {
-                LOG(INFO) << "[ALARM-THREAD] MQTT alert published device=" << did;
+            if (AlgoMqttBus::busEnabled(_config)) {
+                if (AlgoMqttBus::publishAlert(_config, jsonStr, snapshot)) {
+                    LOG(INFO) << "[ALARM-THREAD] MQTT alert published device=" << did;
+                } else {
+                    LOG(ERROR) << "[ALARM-THREAD] MQTT alert publish failed device=" << did;
+                }
+            } else if (httpAlertFallbackEnabled(_config)) {
+                const std::string hookUrl = resolveAlertHookUrl(_config);
+                AlarmCallback callback(hookUrl);
+                VideoAlertContext ctx;
+                ctx.taskId = _config.taskId;
+                ctx.deviceId = did;
+                ctx.deviceName = dname;
+                ctx.taskType = _config.taskType.empty() ? "realtime" : _config.taskType;
+                ctx.algorithmName = _config.algorithmName.empty() ? "detection" : _config.algorithmName;
+                if (callback.sendVideoAlert(
+                        ctx,
+                        alarmData.detections,
+                        alarmData.regionName,
+                        ts,
+                        alarmData.imagePath)) {
+                    LOG(INFO) << "[ALARM-THREAD] HTTP alert accepted device=" << did;
+                } else {
+                    LOG(ERROR) << "[ALARM-THREAD] HTTP alert failed device=" << did
+                               << " hook=" << hookUrl;
+                }
             } else {
-                LOG(ERROR) << "[ALARM-THREAD] MQTT alert publish failed device=" << did;
+                LOG(ERROR) << "[ALARM-THREAD] No MQTT/HTTP alert delivery path; alert dropped";
             }
         } catch (const std::exception& e) {
             LOG(ERROR) << "[ALARM-THREAD] Exception while sending alarm: " << e.what();
@@ -1160,7 +1205,7 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
     if (!_config.enableAlarm) {
         return;
     }
-    if (!AlgoMqttBus::busEnabled(_config)) {
+    if (!alarmDeliveryEnabled(_config)) {
         return;
     }
     if (!_alarmThreadRunning.load()) {
