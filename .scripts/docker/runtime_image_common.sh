@@ -432,15 +432,15 @@ runtime_interactive_select_profile() {
 
     echo ""
     if [ "$purpose" = "build" ]; then
-        echo "Select profile to build:"
-        echo "  0) edge     — edge profile (WEB tag shares mini image name)"
-        echo "  1) mini     — mini profile"
-        echo "  2) standard — standard profile"
-        echo "  3) full     — full profile (default)"
-        echo "  4) all      — edge + mini + standard + full"
+        echo "请选择要构建的部署形态："
+        echo "  0) edge     — 边缘版"
+        echo "  1) mini     — 精简版"
+        echo "  2) standard — 标准版"
+        echo "  3) full     — 完整版（默认）"
+        echo "  4) all      — 全部形态（edge + mini + standard + full）"
         echo ""
         local choice=""
-        read -r -p "Enter choice [0-4, default 3]: " choice
+        read -r -p "请输入选项 [0-4，默认 3]: " choice
         case "${choice:-3}" in
             0) export EASYAIOT_DEPLOY_PROFILE=edge; unset EASYAIOT_RUNTIME_BUILD_ALL_PROFILES ;;
             1) export EASYAIOT_DEPLOY_PROFILE=mini; unset EASYAIOT_RUNTIME_BUILD_ALL_PROFILES ;;
@@ -449,14 +449,14 @@ runtime_interactive_select_profile() {
             *) export EASYAIOT_DEPLOY_PROFILE=full; unset EASYAIOT_RUNTIME_BUILD_ALL_PROFILES ;;
         esac
     else
-        echo "Select profile to pull:"
-        echo "  0) edge      — edge profile"
-        echo "  1) mini      — mini profile"
-        echo "  2) standard  — standard profile"
-        echo "  3) full      — full profile (default)"
+        echo "请选择要拉取的部署形态："
+        echo "  0) edge      — 边缘版"
+        echo "  1) mini      — 精简版"
+        echo "  2) standard  — 标准版"
+        echo "  3) full      — 完整版（默认）"
         echo ""
         local choice=""
-        read -r -p "Enter choice [0-3, default 3]: " choice
+        read -r -p "请输入选项 [0-3，默认 3]: " choice
         case "${choice:-3}" in
             0) export EASYAIOT_DEPLOY_PROFILE=edge ;;
             1) export EASYAIOT_DEPLOY_PROFILE=mini ;;

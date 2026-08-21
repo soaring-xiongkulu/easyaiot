@@ -311,7 +311,7 @@ _deploy_profile_desc() {
 
 _print_deploy_profile_menu() {
     echo ""
-    echo "Select deploy profile:"
+    echo "请选择部署形态："
     echo "  0) edge      — 边缘部署（随后选择 standalone / integrated）"
     echo "  1) mini      — 边缘精简版（推荐内存 ≥ 4 GB）"
     echo "  2) standard  — 标准版（推荐内存 ≥ 16 GB）"
@@ -487,7 +487,7 @@ select_deploy_profile_for_install() {
 
   _print_deploy_profile_menu
   local choice=""
-  read -r -p "Enter choice [0-3, default 3]: " choice
+  read -r -p "请输入选项 [0-3，默认 3]: " choice
   case "${choice:-3}" in
     0|edge)
       export EASYAIOT_DEPLOY_PROFILE=edge
@@ -538,7 +538,7 @@ select_deploy_profile_interactive() {
 
     _print_deploy_profile_menu
     local choice=""
-    read -r -p "Enter choice [0-3, default 3]: " choice
+    read -r -p "请输入选项 [0-3，默认 3]: " choice
     case "${choice:-3}" in
         0|edge)
             export EASYAIOT_DEPLOY_PROFILE=edge
