@@ -127,10 +127,10 @@ sudo .scripts/docker/install_linux.sh install
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# Вариант A: чистый edge одной командой (standalone по умолчанию)
+# Вариант A (рекомендуется)
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# Вариант B: короткий вход (тоже чистый edge)
+# Вариант B
 # sudo bash .scripts/docker/install_linux.sh edge install
 ```
 

@@ -163,11 +163,11 @@ Lightest tier **edge**, containers use about **1 GB**. Spin up that old laptop f
 ```bash
 git clone https://gitee.com/volara/easyaiot.git && cd easyaiot
 
-# Recommended: one-shot pure edge (defaults to standalone, no second prompt)
+# Recommended
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
-# Equivalent: sudo bash .scripts/docker/install_linux.sh edge install
+# sudo bash .scripts/docker/install_linux.sh edge install
 
-# Or interactive (choosing edge still offers standalone / integrated)
+# Or interactive
 # sudo .scripts/docker/install_linux.sh
 
 .scripts/docker/install_linux.sh verify

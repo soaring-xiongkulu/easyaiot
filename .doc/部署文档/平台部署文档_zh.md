@@ -124,20 +124,18 @@ sudo .scripts/docker/install_linux.sh install
 
 最轻一档 **edge**，容器总占用大约就 **1 GB**。摄像头接入、实时分析、智能告警，小机器也能闭环——旧笔记本先爽一把，上瘾了再升档也不迟。
 
-### 三步上车（推荐轻量档 · 纯边缘）
+### 三步上车（推荐轻量档）
 
 ```bash
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# 方式 A：一键纯边缘（本地闭环；默认 standalone，不再二次选型）
+# 方式 A（推荐）
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# 方式 B：快捷入口（等价，同样默认纯边缘）
+# 方式 B
 # sudo bash .scripts/docker/install_linux.sh edge install
 ```
-
-> 云边一体（本机只装算力、接入中心）请用交互 `install` 选 edge → integrated，或设 `EASYAIOT_EDGE_MORPHOLOGY=integrated`。
 
 装完浏览器打开 `https://<服务器IP>:8888`，默认账号 `admin` / `admin123`。验证一把：
 

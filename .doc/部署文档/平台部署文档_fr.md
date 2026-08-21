@@ -128,10 +128,10 @@ Niveau le plus léger **edge**, les conteneurs consomment environ **1 Go**. Cam�
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# Option A : edge pur en une commande (standalone par défaut, sans 2e choix)
+# Option A (recommandé)
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# Option B : raccourci équivalent (également edge pur)
+# Option B
 # sudo bash .scripts/docker/install_linux.sh edge install
 ```
 

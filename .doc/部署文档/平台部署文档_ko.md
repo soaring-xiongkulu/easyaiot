@@ -127,10 +127,10 @@ README를 열자마자 속으로: 「이거… 내 허접한 기계에서 돌아
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# 방식 A: 순수 엣지 원클릭 (기본 standalone, 2차 선택 없음)
+# 방식 A (권장)
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# 방식 B: 단축 진입점 (동일, 역시 순수 엣지)
+# 방식 B
 # sudo bash .scripts/docker/install_linux.sh edge install
 ```
 

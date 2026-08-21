@@ -71,10 +71,10 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# 方式 A：一鍵純邊緣（本地閉環；預設 standalone，不再二次選型）
+# 方式 A（推薦）
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
-# 方式 B：快捷入口（等價，同樣預設純邊緣）
+# 方式 B
 # sudo bash .scripts/docker/install_linux.sh edge install
 ```
 
