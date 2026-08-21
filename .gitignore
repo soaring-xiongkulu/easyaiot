@@ -101,11 +101,14 @@ RUNTIME/.atomic-test/
 RUNTIME/.atomic-verify/
 RUNTIME/.bundle-runtime/
 RUNTIME/build/
+RUNTIME/build-edgehub/
+RUNTIME/build-host/
 RUNTIME/build-linux/
 RUNTIME/cmake-build-debug/
 RUNTIME/cmake-build-local/
 RUNTIME/cmake-build-orangepi/
 RUNTIME/deploy.env
+RUNTIME/.local-install/
 RUNTIME/VERSION
 RUNTIME/models/*
 !RUNTIME/models/coco.names
@@ -113,6 +116,8 @@ RUNTIME/config/task_*.ini
 RUNTIME/.test-hwaccel/
 RUNTIME/.test-yolo-link/
 RUNTIME/.test-*/
+# 本机媒体根目录（EASYAIOT_MEDIA_ROOT / 录像告警落盘，体积大，勿提交）
+.runtime-media/
 # .scripts/docker 中间件数据目录和日志目录
 .scripts/docker/db_data/
 .scripts/docker/.deploy_profile

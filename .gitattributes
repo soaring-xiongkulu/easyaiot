@@ -139,6 +139,12 @@ RUNTIME/models/**/*.names -diff
 RUNTIME/models/**/*.names.json -diff
 RUNTIME/.bundle-runtime/** -diff
 RUNTIME/.bundle-runtime/**/*.tar.gz binary -diff
+RUNTIME/.local-install/** binary -diff
+RUNTIME/build-edgehub/** -diff
+RUNTIME/build-edgehub/**/EDGE_HUB binary -diff
+RUNTIME/build-host/** -diff
+# 本机媒体根目录（录像/告警图等，体积大；与 .gitignore 对齐）
+.runtime-media/** binary -diff
 # VIDEO 离线 ffmpeg 运行时打包产物（体积大，不参与 diff；与 .gitignore 对齐）
 VIDEO/.bundle-ffmpeg/** -diff
 VIDEO/.bundle-ffmpeg/**/*.tar.gz binary -diff
