@@ -680,21 +680,49 @@ _apply_python_sink_media_env() {
     local compose_env="${2:-}"
     local with_sink_hooks="${3:-1}"
     local mount_root
-    mount_root="$(ensure_easyaiot_media_bind_source 2>/dev/null || resolve_easyaiot_media_root)"
+    _deploy_profile_load_media_root_helpers
+    # 宿主机绑定源（供 docker-compose ${EASYAIOT_MEDIA_ROOT} 替换）
+    mount_root="$(ensure_easyaiot_media_bind_source 2>/dev/null || resolve_easyaiot_media_root 2>/dev/null || true)"
+    if [ -z "$mount_root" ]; then
+        local repo_root
+        repo_root="$(_deploy_profile_repo_root)"
+        if [ -d "${repo_root}/.runtime-media" ]; then
+            mount_root="${repo_root}/.runtime-media"
+        else
+            mount_root="/mnt/easyaiot-media"
+        fi
+    fi
+    # 容器内固定挂载点（与 VIDEO/AI docker-compose.yaml 一致；勿把宿主机路径写进 .env.docker）
+    local container_media_root="/mnt/easyaiot-media"
     if [ "$with_sink_hooks" = "1" ]; then
         _set_env_docker_kv "$env_file" MINIO_ENABLED true
         _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 1
         _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
         _set_env_docker_kv "$env_file" IOT_SINK_MEDIA_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
     fi
-    _set_env_docker_kv "$env_file" ALERT_IMAGES_DIR "${mount_root}/alert_images"
-    _set_env_docker_kv "$env_file" SRS_HOST_DATA_ROOT "$mount_root"
-    _set_env_docker_kv "$env_file" SRS_RECORD_DIR "${mount_root}/playbacks"
-    _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$mount_root"
-    # compose 文件变量替换读项目目录 .env（不是 .env.docker），同步写入避免仍用默认 /mnt
+    _set_env_docker_kv "$env_file" ALERT_IMAGES_DIR "${container_media_root}/alert_images"
+    _set_env_docker_kv "$env_file" SRS_HOST_DATA_ROOT "$container_media_root"
+    _set_env_docker_kv "$env_file" SRS_RECORD_DIR "${container_media_root}/playbacks"
+    _set_env_docker_kv "$env_file" EASYAIOT_MEDIA_ROOT "$container_media_root"
+    # 全形态：录像守护默认策略（live+ai 双写易撑盘）
+    _set_env_docker_kv "$env_file" PLAYBACK_CLEANUP_ENABLED true
+    _set_env_docker_kv "$env_file" PLAYBACK_GUARD_INTERVAL_MINUTES 5
+    _set_env_docker_kv "$env_file" PLAYBACK_MAX_AGE_HOURS "${PLAYBACK_MAX_AGE_HOURS:-24}"
+    _set_env_docker_kv "$env_file" PLAYBACK_GLOBAL_MAX_FILES "${PLAYBACK_GLOBAL_MAX_FILES:-1500}"
+    _set_env_docker_kv "$env_file" PLAYBACK_GLOBAL_MAX_GB "${PLAYBACK_GLOBAL_MAX_GB:-50}"
+    _set_env_docker_kv "$env_file" PLAYBACK_DEVICE_MAX_FILES "${PLAYBACK_DEVICE_MAX_FILES:-60}"
+    _set_env_docker_kv "$env_file" PLAYBACK_DISK_WARN_PERCENT 80
+    _set_env_docker_kv "$env_file" PLAYBACK_DISK_CRITICAL_PERCENT 85
+    _set_env_docker_kv "$env_file" PLAYBACK_DISK_TARGET_PERCENT 70
+    _set_env_docker_kv "$env_file" PLAYBACK_LEGACY_DIRS "${HOME:-/home/ubuntu}/easyaiot/data/playbacks"
+    # compose 文件变量替换读项目目录 .env（不是 .env.docker），同步写入宿主机路径
     if [ -n "$compose_env" ]; then
-        touch "$compose_env"
-        _set_env_docker_kv "$compose_env" EASYAIOT_MEDIA_ROOT "$mount_root"
+        touch "$compose_env" 2>/dev/null || true
+        if [ -w "$compose_env" ] || [ -w "$(dirname "$compose_env")" ]; then
+            _set_env_docker_kv "$compose_env" EASYAIOT_MEDIA_ROOT "$mount_root"
+        else
+            echo "[media] 警告: 无法写入 ${compose_env}（权限不足），请手动设置 EASYAIOT_MEDIA_ROOT=${mount_root}" >&2
+        fi
     fi
 }
 
@@ -723,7 +751,12 @@ apply_python_service_deploy_env() {
                 # 容器内媒体卷路径；权重落盘到 local-storage，种子只读挂载 /model-seed-data
                 _set_env_docker_kv "$env_file" LOCAL_STORAGE_ROOT "/mnt/easyaiot-media/local-storage"
                 _set_env_docker_kv "$env_file" MODEL_SEED_DATA_ROOT "/model-seed-data"
-                _set_env_docker_kv "$env_file" ALGO_BUS_TRANSPORT off
+                # edge 无 EMQX：RUNTIME HTTP → VIDEO /video/alert/hook 直连落库
+                _set_env_docker_kv "$env_file" ALGO_BUS_TRANSPORT http
+                _set_env_docker_kv "$env_file" ALERT_HOOK_URL "http://127.0.0.1:6000/video/alert/hook"
+                # 本地 DVR：勿在「上传后删本地」（edge 无 MinIO）；录像守护扫容器内目录
+                _set_env_docker_kv "$env_file" PLAYBACK_DELETE_AFTER_UPLOAD false
+                _set_env_docker_kv "$env_file" PLAYBACK_MAX_AGE_HOURS 24
                 _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 0
                 _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL ""
                 _set_env_docker_kv "$env_file" IOT_SINK_MEDIA_HOOK_URL ""
