@@ -33,7 +33,7 @@ EasyAIoT 的 **C++ 帧执行器**。负责拉流、解码、AI 推理与结果�
 
 - [部署场景怎么选](#部署场景怎么选)
 - [云边一体（integrated）](#云边一体integrated)
-- [云边一体 · 单机合装（部署规格 edge）](#云边一体--单机合装部署规格-edge)
+- [纯边缘（部署规格 edge）](#纯边缘部署规格-edge)
 - [原子模式（向后兼容别名）](#原子模式向后兼容别名)
 - [集群分发（iot-node · 一键）](#集群分发iot-node--一键)
 - [本机 VIDEO 一键挂载（推荐中心机）](#本机-video-一键挂载推荐中心机)
@@ -49,48 +49,48 @@ EasyAIoT 的 **C++ 帧执行器**。负责拉流、解码、AI 推理与结果�
 
 ## 部署场景怎么选
 
-云边一体是**唯一拓扑**：RUNTIME 执行，VIDEO 编排，WEB 管理。差别只在汇聚面装在哪台机器。
+边缘侧有两种正式部署形态；平台规格 `mini` / `standard` / `full` 用于中心或一体机交付。
 
-| 场景 | 本机装什么 | 入口 | 适用 |
-|------|------------|------|------|
-| **中心 / 一体机** | 平台（VIDEO 自动挂载 RUNTIME） | `EASYAIOT_DEPLOY_PROFILE=edge\|mini\|... install` | 编排 + 预览 + 本机执行 |
-| **云边一体 · 算力节点** | **只装 RUNTIME** | `install_linux.sh integrated` | 边缘算力接入已有平台 |
-| **云边一体 · 单机合装** | WEB + VIDEO + RUNTIME + 必要中间件 | `EASYAIOT_DEPLOY_PROFILE=edge ... install` | 离线独立站点（汇聚面在本机） |
-| **批量节点** | 只装 RUNTIME | WEB「业务运行时分发」→ RUNTIME(C++) | 多机 SSH 一键 |
-| **开发调试** | 源码树编译 | `./RUNTIME/install_linux.sh build` | 改代码、本地跑示例 ini |
+| 场景 | 定位 | 入口 | 适用 |
+|------|------|------|------|
+| **纯边缘形态** | 汇聚面与边缘算力同机，业务本地闭环 | `install` → `edge` → `standalone` | 独立站点、轻量边缘主机 |
+| **云边一体形态** | 本机仅部署算力节点，汇聚面在中心 | `install` → `edge` → `integrated` | 算力扩展、多节点推理 |
+| **中心 / 一体机** | 平台全量或精简规格 | `EASYAIOT_DEPLOY_PROFILE=mini\|standard\|full ... install` | 编排、预览与集中管理 |
+| **批量节点** | 多机分发算力 | WEB「业务运行时分发」 | 集群一键 |
+| **开发调试** | 源码树编译 | `./RUNTIME/install_linux.sh build` | 改代码、本地联调 |
 
 > **操作系统限制**：命令部署会自动检测本机 `os_family + arch`，必须在 [RUNTIME 覆盖矩阵](scripts/runtime_os_matrix.sh) 内（ubuntu/el/openeuler/麒麟等），否则拒绝部署并提示支持的 OS 列表。
 
-### 云边一体怎么装
+### 边缘两种形态怎么装
 
-| 布局 | 命令 | 汇聚面 | 典型场景 |
+| 形态 | 命令 | 汇聚面 | 典型场景 |
 |------|------|--------|----------|
-| **算力节点** | `./RUNTIME/install_linux.sh integrated` | 远端 VIDEO/Gateway/MQTT/SRS | 边缘算力盒接入已有平台 |
-| **单机合装** | `EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install` | 本机（同机 WEB/VIDEO） | 一台机器闭环 |
+| **纯边缘形态** | `install` → 选 `edge` → 选 `standalone` | 本机 | 一台机器闭环 |
+| **云边一体形态** | `install` → 选 `edge` → 选 `integrated` | 远端中心 | 边缘算力盒接入已有平台 |
 
-`atomic` 为 `integrated` 的向后兼容别名。`edge` 是**部署规格**（裁剪中间件），不是第二种拓扑。
+兼容：`EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=standalone ... install`；  
+`EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=integrated VIDEO_BASE_URL=... install`。`atomic` / `runtime-integrated` 为历史别名。
 
-拓扑示意：
+拓扑示意（能力视角）：
 
 ```text
-摄像头 ──► VIDEO（live/ 原画预览、任务编排、HTTP 心跳）
+摄像头 ──► 汇聚面（原画预览、任务编排、心跳）
               │
-              │ 下发 task_*.ini + 拉起（本机守护 / Agent）
+              │ 下发任务配置并拉起执行器
               ▼
-         RUNTIME ──► HTTP heartbeat → VIDEO
-                  ──► MQTT alert → EMQX → iot-sink
-                  ──► realtime 默认 RTMP → SRS ai/{device}
+         边缘算力 ──► 心跳 / 告警回传汇聚面
+                   ──► 检测流推送至流媒体
 ```
 
-VIDEO / WEB / 中间件可在远端（算力节点布局）或本机（单机合装布局）。
+汇聚面与中间件可在远端（云边一体）或本机（纯边缘）。
 
 ---
 
 ## 云边一体（integrated）
 
-用于**只装高性能执行器**的节点，汇聚面指向 VIDEO / Gateway / MQTT / SRS（远端中心或本机均可）。除命令独立部署外，也可通过 WEB「业务运行时分发」或 SENTINEL Agent 远程安装。
+用于**仅部署边缘算力节点**的场景：汇聚面指向已有中心平台。除命令独立部署外，也可通过控制台「业务运行时分发」或 Agent 远程安装。
 
-> **云边一体 ≠ 永不推流。** VIDEO 下发正式 `realtime` 任务时，ini 仍会带独立 `ai_rtmp`，RUNTIME **默认推带框检测流**到 SRS。
+> **云边一体 ≠ 永不推流。** 中心下发正式实时任务时，执行器仍会按配置推送带框检测流。
 
 ### 前置条件
 
@@ -144,92 +144,72 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 
 ---
 
-## 云边一体 · 单机合装（部署规格 edge）
+## 纯边缘形态（部署规格 edge）
 
-汇聚面与 RUNTIME **同机**：用普通平台 `install`，锁定 `edge` 规格，只装必要中间件。不是第二种拓扑。
+汇聚面与边缘算力**同机**：在平台 `install` 中选择 `edge` → `standalone`。
 
 ```bash
-# 推荐
-EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
+# 推荐：install 交互 → edge → standalone
+bash .scripts/docker/install_linux.sh install
 
-# 快捷别名（等价）
-bash .scripts/docker/install_linux.sh edge install
+# 非交互等价
+EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=standalone \
+  bash .scripts/docker/install_linux.sh install
 ```
 
-### edge 规格范围
+### 能力约定
 
-**会部署：**
-
-| 类别 | 组件 |
-|------|------|
-| 中间件 | PostgreSQL, Redis, SRS |
-| 业务 | VIDEO、WEB |
-| 执行器 | RUNTIME（VIDEO 自动编译挂载） |
-
-**不部署：**
-
-| 类别 | 跳过项 |
-|------|--------|
-| 中间件 | MinIO, Nacos, EMQX, Kafka, Milvus, ZLMediaKit, NodeRED, FUXA, TDengine |
-| 业务 | DEVICE 全家（gateway/system/sink 等）、AI、RTC、HARNESS、IDEA、PANEL |
-
-能力约定：
-
-- **零 DEVICE**：无 Java 平台服务；登录与摄像头/算法 API 均由 VIDEO 提供
-- **本地存储**：告警图/录像落 `EASYAIOT_MEDIA_ROOT`，经 `/video/alert/image` 等 API 出图，不经 MinIO
-- **告警链路**：RUNTIME HTTP → VIDEO `/video/alert/hook` 直连落库；DVR Hook 由 VIDEO 本地登记 Playback
-
-算法任务默认 `executor=cpp`，由本机 RUNTIME 执行。
+- **同机闭环**：编排、预览与边缘推理部署在同一主机
+- **本地存储**：告警图与录像落本地媒体目录，不经对象存储
+- **告警链路**：边缘推理经 HTTP 直连业务面落库；录像回调本地登记
 
 ### 部署后访问
 
-| 服务 | 默认端口 | 用途 |
+| 入口 | 默认端口 | 用途 |
 |------|----------|------|
-| WEB | `:8888` | 算法任务、设备管理、实时预览 |
-| VIDEO | `:6000` | 视频编排、登录、心跳、告警落库、推流转发 |
-| SRS RTMP | `:1935` | live/ 原画 + ai/ 检测流 |
+| 控制台 | `:8888` | 算法任务、设备管理、实时预览 |
+| 业务 API | `:6000` | 编排、登录、心跳、告警与推流协作 |
+| 流媒体 RTMP | `:1935` | 原画与检测流 |
 
-### 登录入口（VIDEO 主导）
+### 登录
 
-单机合装由 **VIDEO Python** 提供登录与 Token 签发，WEB 仍走现有 Login 页。
+默认账号：`admin` / `admin123`（控制台 `:8888`）。
 
-| 项 | 说明 |
-|----|------|
-| 入口 | WEB `:8888` 登录页（仍用现有 Login 页） |
-| 后端 | VIDEO `/video/system/auth/*`（nginx 将 `/dev-api/system/auth` 转到 VIDEO） |
-| 默认账号 | `admin` / `admin123` |
-| 用户库 | SQLite（`VIDEO_AUTH_DB`，默认媒体目录下 `video-auth/users.db`） |
-| 原生 API | 亦可直接调 `/video/auth/login`（REST JSON） |
+与「云边一体形态」的区别：纯边缘形态不依赖远端中心；云边一体形态本机仅部署算力，须在 install 中选择 `edge` → `integrated` 并填写中心汇聚面地址。
 
 ---
 
 ## 原子模式（向后兼容别名）
 
-`atomic` = `integrated`（云边一体算力节点），以下文档保留原有用法说明。
+`atomic` = `integrated`（云边一体），以下文档保留原有用法说明。
 
 ### 前置条件
 
 - Linux x86_64 或 aarch64；Docker（默认同源容器编译）
-- 能访问中心 VIDEO HTTP 口（默认 `:6000`）；正式推流时还能访问中心/集群 SRS RTMP（默认 `:1935`）
+- 能访问中心汇聚面 HTTP 口（默认 `:6000`）；正式推流时还能访问中心/集群流媒体 RTMP（默认 `:1935`）
 - 有 GPU 时建议装好驱动 + `nvidia-smi`（可选，失败会回退 CPU）
 
 ### 一键安装
 
 ```bash
-# 方式 A：仓库顶层入口（与平台部署脚本一致）
-VIDEO_BASE_URL=http://<中心VIDEO主机>:6000 \
-  bash .scripts/docker/install_linux.sh runtime
+# 方式 A：平台 install → edge → integrated
+bash .scripts/docker/install_linux.sh install
 
-# 等价别名
-# ... install_linux.sh runtime-atomic
-# ... install_linux.sh atomic-runtime
+# 方式 A（自动化）
+EASYAIOT_DEPLOY_PROFILE=edge \
+EASYAIOT_EDGE_MORPHOLOGY=integrated \
+VIDEO_BASE_URL=http://<中心主机>:6000 \
+  bash .scripts/docker/install_linux.sh install
+
+# 兼容别名
+# ... install_linux.sh runtime-integrated
 
 # 方式 B：模块入口
-VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
+VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh integrated
 # 或把地址当参数：
-./RUNTIME/install_linux.sh atomic http://192.168.1.10:6000
+./RUNTIME/install_linux.sh integrated http://192.168.1.10:6000
 
-# 可选：安装时就写好手工调试用的检测流地址（正式任务仍由 VIDEO 下发 ini）
+# 可选：安装时就写好手工调试用的检测流地址（正式任务仍由中心下发）
 SRS_RTMP_BASE=rtmp://192.168.1.10:1935 \
   VIDEO_BASE_URL=http://192.168.1.10:6000 \
   ./RUNTIME/install_linux.sh atomic

@@ -17,7 +17,7 @@
 #   EASYAIOT_RUNTIME_BUILD_IMAGE         # 覆盖构建镜像（默认优先 video-service:latest）
 #   EASYAIOT_RUNTIME_DEPLOY_MODE=integrated
 #       云边一体：需 VIDEO/Gateway/MQTT/SRS 地址，本机只装 RUNTIME
-#       单机合装（汇聚面也在本机）请用平台安装：EASYAIOT_DEPLOY_PROFILE=edge ... install
+#       纯边缘形态请用平台安装：bash .scripts/docker/install_linux.sh install（选 edge → standalone）
 #   VIDEO_BASE_URL / EASYAIOT_VIDEO_BASE_URL
 #       云边一体必填：VIDEO 根地址，如 http://192.168.1.10:6000（本机合装则为本机 :6000）
 #   GATEWAY_URL / EASYAIOT_GATEWAY_URL
@@ -1015,7 +1015,7 @@ write_node_env() {
       ;;
     *)
       print_error "未知部署形态: $mode（仅支持 integrated / atomic）"
-      print_info "单机合装请用: EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install"
+      print_info "纯边缘形态请用: bash .scripts/docker/install_linux.sh install（选 edge → standalone）"
       return 1
       ;;
   esac
@@ -1198,22 +1198,23 @@ deploy_runtime_common() {
   return 0
 }
 
-# 云边一体形态：只部署 RUNTIME 到边缘节点，汇聚面指向中心平台
+# 云边一体：本机仅部署边缘算力，汇聚面指向中心平台
 # 用法:
-#   VIDEO_BASE_URL=http://<中心VIDEO>:6000 GATEWAY_URL=http://<中心>:48080 ./install_linux.sh integrated
+#   VIDEO_BASE_URL=http://<中心>:6000 GATEWAY_URL=http://<中心>:48080 ./install_linux.sh integrated
 #   ./install_linux.sh integrated http://192.168.1.10:6000
 integrated_install_runtime() {
   local video_base gateway_base
   if ! video_base="$(resolve_video_base_url "${1:-}")"; then
-    print_error "云边一体形态必须指定中心 VIDEO 地址"
+    print_error "云边一体部署必须指定中心汇聚面地址"
     print_info "示例: VIDEO_BASE_URL=http://192.168.1.10:6000 $0 integrated"
     print_info "  或: $0 integrated http://192.168.1.10:6000"
     print_info "可选: GATEWAY_URL MQTT_BROKER_URLS SRS_RTMP_BASE CONTROL_PLANE_URL"
+    print_info "纯边缘形态（同机闭环）请用: bash ../.scripts/docker/install_linux.sh install（选 edge → standalone）"
     return 1
   fi
   gateway_base="$(resolve_gateway_url "${2:-}" || true)"
   if [[ -z "$gateway_base" ]]; then
-    # 从 VIDEO 地址推断 Gateway（同主机不同端口）
+    # 从汇聚面地址推断网关（同主机不同端口）
     local host
     host="$(echo "$video_base" | sed -E 's#^https?://([^:/]+).*#\1#')"
     gateway_base="http://${host}:48080"
@@ -1221,10 +1222,10 @@ integrated_install_runtime() {
   fi
 
   local install_dir="${EASYAIOT_RUNTIME_INSTALL_DIR:-/opt/easyaiot/RUNTIME}"
-  print_info "===== RUNTIME 云边一体形态 ====="
-  print_info "本机只装 RUNTIME；汇聚面指向中心平台"
-  print_info "VIDEO_BASE_URL=$video_base"
-  print_info "GATEWAY_URL=$gateway_base"
+  print_info "===== 云边一体部署（算力节点）====="
+  print_info "本机仅部署边缘算力；汇聚面接入中心平台"
+  print_info "汇聚面地址=$video_base"
+  print_info "网关地址=$gateway_base"
   print_info "安装目录: $install_dir"
 
   if ! deploy_runtime_common "integrated"; then
@@ -1283,29 +1284,29 @@ main() {
       integrated_install_runtime "${1:-}"
       ;;
     standalone|edge|pure-edge|edge-standalone|runtime-standalone)
-      print_error "已取消独立「纯边缘」形态：与云边一体是同一套架构"
-      print_info "算力节点只装 RUNTIME:  $0 integrated <VIDEO_URL>"
-      print_info "单机合装（汇聚面在本机）: EASYAIOT_DEPLOY_PROFILE=edge bash ../.scripts/docker/install_linux.sh install"
+      print_error "纯边缘形态请通过平台 install 规格菜单部署，本模块仅提供云边一体形态算力节点入口"
+      print_info "纯边缘形态: bash ../.scripts/docker/install_linux.sh install（选 edge → standalone）"
+      print_info "云边一体形态: $0 integrated <中心汇聚地址>（或平台 install → edge → integrated）"
       exit 1
       ;;
     help|-h|--help)
       sed -n '2,35p' "$0"
       echo ""
       echo "命令:"
-      echo "  install|build|update   - 编译 RUNTIME（默认 docker 同源容器）"
+      echo "  install|build|update   - 编译边缘算力二进制（默认 docker 同源容器）"
       echo "  start|status|restart   - 查看编译/节点安装状态"
       echo "  stop|clean|logs          - 空操作（无独立容器）"
       echo ""
-      echo "云边一体（本机只装 RUNTIME，汇聚面指向 VIDEO；可远端或本机）:"
-      echo "  integrated [VIDEO_URL]   - 安装 RUNTIME 并写入 node.env"
-      echo "  atomic [VIDEO_URL]       - integrated 别名（向后兼容）"
+      echo "云边一体形态（本机仅部署算力节点，汇聚面在中心）:"
+      echo "  integrated [汇聚面URL]   - 安装并写入 node.env"
+      echo "  atomic [汇聚面URL]       - integrated 别名（向后兼容）"
       echo ""
       echo "示例:"
       echo "  VIDEO_BASE_URL=http://192.168.1.10:6000 GATEWAY_URL=http://192.168.1.10:48080 \\"
       echo "    MQTT_BROKER_URLS=192.168.1.10:1883 $0 integrated"
       echo ""
-      echo "单机合装（平台 + RUNTIME）请用部署规格，而非 RUNTIME 独立命令:"
-      echo "  EASYAIOT_DEPLOY_PROFILE=edge bash ../.scripts/docker/install_linux.sh install"
+      echo "纯边缘形态（汇聚面与算力同机）请用平台 install："
+      echo "  bash ../.scripts/docker/install_linux.sh install   # 选 edge → standalone"
       echo ""
       echo "支持的操作系统见 RUNTIME/scripts/runtime_os_matrix.sh（不在矩阵内会拒绝部署）"
       ;;
