@@ -60,9 +60,9 @@ export function isGb28181Enabled(): boolean {
   return !isMiniDeployProfile();
 }
 
-/** mini 形态仅保留模型管理与推理，隐藏训练/导出/部署/大模型/SAM 等 */
+/** mini / edge 仅保留模型管理（edge 再隐藏推理）；隐藏训练/导出/部署/大模型/SAM 等 */
 export function isTrainAdvancedEnabled(): boolean {
-  return !isMiniDeployProfile();
+  return !isMiniDeployProfile() && !isEdgeStandaloneDeployProfile();
 }
 
 /** mini 形态不展示人脸库 / 车牌库 / 场景姿态库 Tab */
