@@ -1909,7 +1909,7 @@ verify_all() {
         echo -e "  AI服务:                http://localhost:5000"
         echo -e "  RTC服务:               http://localhost:6100"
         echo -e "  Video服务:             http://localhost:6000"
-        echo -e "  Web前端:               http://localhost:8888"
+        echo -e "  Web前端:               https://localhost:8888"
         if module_enabled_for_deploy_profile APP; then
             echo -e "  App移动端H5:           http://localhost:9010"
         fi
