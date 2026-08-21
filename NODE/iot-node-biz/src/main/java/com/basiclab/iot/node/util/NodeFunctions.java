@@ -32,6 +32,8 @@ public final class NodeFunctions {
 
     private static final Map<String, List<String>> CAPABILITY_MAP = new LinkedHashMap<>();
     private static final Map<String, List<String>> WORKLOAD_MAP = new LinkedHashMap<>();
+    /** 历史单角色 → 功能列表（旧版控制面常用 hybrid） */
+    private static final Map<String, List<String>> LEGACY_ROLE_MAP = new LinkedHashMap<>();
 
     static {
         List<String> ids = new ArrayList<>();
@@ -39,6 +41,16 @@ public final class NodeFunctions {
             ids.add(value.getId());
         }
         ALL_IDS = Collections.unmodifiableList(ids);
+
+        LEGACY_ROLE_MAP.put("hybrid", PLATFORM_DEFAULT);
+        LEGACY_ROLE_MAP.put("compute", List.of(
+                NodeFunctionEnum.ALGORITHM.getId(), NodeFunctionEnum.INFER.getId()));
+        LEGACY_ROLE_MAP.put("gpu", List.of(
+                NodeFunctionEnum.ALGORITHM.getId(), NodeFunctionEnum.TRAIN.getId(), NodeFunctionEnum.LLM.getId()));
+        LEGACY_ROLE_MAP.put("media", List.of(
+                NodeFunctionEnum.LIVE.getId(), NodeFunctionEnum.FORWARD.getId()));
+        LEGACY_ROLE_MAP.put("edge", List.of(
+                NodeFunctionEnum.ALGORITHM.getId(), NodeFunctionEnum.FORWARD.getId(), NodeFunctionEnum.LIVE.getId()));
 
         CAPABILITY_MAP.put("algorithm", List.of("algorithm_realtime", "algorithm_snap", "algorithm_patrol"));
         CAPABILITY_MAP.put("forward", List.of("stream_forward"));
@@ -69,12 +81,25 @@ public final class NodeFunctions {
     private NodeFunctions() {
     }
 
+    public static boolean isLegacyRole(String role) {
+        if (StrUtil.isBlank(role)) {
+            return false;
+        }
+        String key = role.trim().toLowerCase(Locale.ROOT);
+        return LEGACY_ROLE_MAP.containsKey(key);
+    }
+
     public static List<String> parse(String csv) {
         if (StrUtil.isBlank(csv)) {
             return Collections.emptyList();
         }
+        String trimmed = csv.trim();
+        List<String> legacy = LEGACY_ROLE_MAP.get(trimmed.toLowerCase(Locale.ROOT));
+        if (legacy != null) {
+            return new ArrayList<>(legacy);
+        }
         LinkedHashSet<String> set = new LinkedHashSet<>();
-        for (String part : csv.split("[,\\s]+")) {
+        for (String part : trimmed.split("[,\\s]+")) {
             NodeFunctionEnum fn = NodeFunctionEnum.of(part);
             if (fn != null) {
                 set.add(fn.getId());

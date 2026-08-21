@@ -181,11 +181,27 @@ type FunctionBearer = {
   nodeRole?: string | null;
 } | null | undefined;
 
+/** 历史单角色 → 功能 CSV（旧版控制面节点常用 hybrid） */
+const LEGACY_NODE_ROLE_FUNCTIONS: Record<string, NodeFunctionId[]> = {
+  hybrid: ['algorithm', 'forward', 'live', 'nfs'],
+  compute: ['algorithm', 'infer'],
+  gpu: ['algorithm', 'train', 'llm'],
+  media: ['live', 'forward'],
+  edge: ['algorithm', 'forward', 'live'],
+};
+
 export function parseNodeFunctions(node?: FunctionBearer): string[] {
   if (Array.isArray(node?.functions) && node.functions.length) {
     return node.functions.map((id) => String(id).trim()).filter((id) => id in NODE_FUNCTION_MAP);
   }
-  const csv = node?.nodeRole || '';
+  const csv = (node?.nodeRole || '').trim();
+  if (!csv) {
+    return [];
+  }
+  const legacy = LEGACY_NODE_ROLE_FUNCTIONS[csv.toLowerCase()];
+  if (legacy) {
+    return [...legacy];
+  }
   return csv
     .split(/[,\s]+/)
     .map((id) => id.trim())

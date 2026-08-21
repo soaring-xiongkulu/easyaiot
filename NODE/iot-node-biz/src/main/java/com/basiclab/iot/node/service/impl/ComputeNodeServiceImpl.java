@@ -271,7 +271,9 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                 caps.put(PLATFORM_CAPABILITY_KEY, true);
                 changed = true;
             }
-            if (NodeFunctions.parse(platformNode).isEmpty()) {
+            // 旧版 hybrid 等单角色，或无法解析的 node_role，统一迁移到 PLATFORM_DEFAULT
+            if (NodeFunctions.parse(platformNode).isEmpty()
+                    || NodeFunctions.isLegacyRole(platformNode.getNodeRole())) {
                 platformNode.setNodeRole(NodeFunctions.toCsv(NodeFunctions.PLATFORM_DEFAULT));
                 caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
                 changed = true;
@@ -289,7 +291,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                     ? new HashMap<>(byHost.getCapabilities())
                     : NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT);
             caps.put(PLATFORM_CAPABILITY_KEY, true);
-            if (NodeFunctions.parse(byHost).isEmpty()) {
+            if (NodeFunctions.parse(byHost).isEmpty() || NodeFunctions.isLegacyRole(byHost.getNodeRole())) {
                 byHost.setNodeRole(NodeFunctions.toCsv(NodeFunctions.PLATFORM_DEFAULT));
                 caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
             }

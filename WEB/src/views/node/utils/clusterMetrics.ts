@@ -1,5 +1,6 @@
 import type { ComputeNodeVO } from '@/api/device/node';
 import { NODE_INSIGHT, NODE_METRIC, NODE_TERM, parseGpuInfo, isSchedulableComputeNode, nodeHasAnyFunction, type GpuInfoItem } from './constants';
+import { isPlatformNode } from './platformNode';
 
 const MB_BYTES = 1024 * 1024;
 
@@ -161,6 +162,10 @@ function num(val?: number | null): number {
 }
 
 export function isComputeNode(node: ComputeNodeVO): boolean {
+  // 控制面节点即使仍是旧角色 hybrid，也必须参与集群内存/磁盘/负载汇总
+  if (isPlatformNode(node)) {
+    return true;
+  }
   return isSchedulableComputeNode(node);
 }
 
