@@ -60,6 +60,11 @@ export function isGb28181Enabled(): boolean {
   return !isMiniDeployProfile();
 }
 
+/** mini / edge 不部署 go2rtc，前端隐藏 RTC 平台接入入口 */
+export function isRtcEnabled(): boolean {
+  return !isMiniDeployProfile() && !isEdgeStandaloneDeployProfile();
+}
+
 /** mini / edge 仅保留模型管理（edge 再隐藏推理）；隐藏训练/导出/部署/大模型/SAM 等 */
 export function isTrainAdvancedEnabled(): boolean {
   return !isMiniDeployProfile() && !isEdgeStandaloneDeployProfile();

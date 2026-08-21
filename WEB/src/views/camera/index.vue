@@ -58,7 +58,7 @@
                 <div class="device-list-toolbar">
                   <Checkbox v-model:checked="enableAi">启用 AI</Checkbox>
                   <Button
-                    v-if="showDjiRtcDeviceCreate"
+                    v-if="showDjiDeviceCreate"
                     type="primary"
                     preIcon="material-symbols:flight-takeoff-rounded"
                     @click="openDjiLiveDrawer()"
@@ -66,7 +66,7 @@
                     接入大疆直播
                   </Button>
                   <Button
-                    v-if="showDjiRtcDeviceCreate"
+                    v-if="showRtcDeviceCreate"
                     type="primary"
                     preIcon="mdi:webcam"
                     @click="openRtcDeviceCreate()"
@@ -158,7 +158,7 @@
                     <div class="device-list-toolbar device-list-toolbar--card">
                       <Checkbox v-model:checked="enableAi">启用 AI</Checkbox>
                       <Button
-                        v-if="showDjiRtcDeviceCreate"
+                        v-if="showDjiDeviceCreate"
                         type="primary"
                         preIcon="material-symbols:flight-takeoff-rounded"
                         @click="openDjiLiveDrawer()"
@@ -166,7 +166,7 @@
                         接入大疆直播
                       </Button>
                       <Button
-                        v-if="showDjiRtcDeviceCreate"
+                        v-if="showRtcDeviceCreate"
                         type="primary"
                         preIcon="mdi:webcam"
                         @click="openRtcDeviceCreate()"
@@ -327,6 +327,7 @@ import {
   isEdgeStandaloneDeployProfile,
   isFacePlateLibraryEnabled,
   isGb28181Enabled,
+  isRtcEnabled,
 } from '@/utils/deployProfile';
 import StorageEnvBatch from '@/views/node/components/StorageEnvBatch/index.vue';
 import { CAMERA_NFS_TAB, NODE_PAGE } from '@/views/node/utils/constants';
@@ -337,8 +338,10 @@ const gb28181Enabled = isGb28181Enabled();
 const edgeNodeEnabled = isEdgeNodeEnabled();
 const facePlateLibraryEnabled = isFacePlateLibraryEnabled();
 const showCameraTab = (tabKey: string) => isEdgeCameraTabVisible(tabKey);
-/** edge 单机合装不部署大疆司空 / go2rtc，设备列表隐藏对应接入入口 */
-const showDjiRtcDeviceCreate = !isEdgeStandaloneDeployProfile();
+/** edge 单机合装不部署大疆司空，设备列表隐藏对应接入入口 */
+const showDjiDeviceCreate = !isEdgeStandaloneDeployProfile();
+/** mini / edge 不部署 go2rtc，设备列表隐藏 RTC 接入入口 */
+const showRtcDeviceCreate = isRtcEnabled();
 
 const route = useRoute();
 const router = useRouter();

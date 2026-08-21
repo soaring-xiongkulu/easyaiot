@@ -103,13 +103,13 @@ import DirectRtspPanel from './panels/DirectRtspPanel.vue';
 import NvrManualPanel from './panels/NvrManualPanel.vue';
 import Gb28181AccessPanel from './panels/Gb28181AccessPanel.vue';
 import RtcPlatformPanel from './panels/RtcPlatformPanel.vue';
-import { isEdgeStandaloneDeployProfile, isGb28181Enabled } from '@/utils/deployProfile';
+import { isGb28181Enabled, isRtcEnabled } from '@/utils/deployProfile';
 
 const TabPane = Tabs.TabPane;
 
 const gb28181Enabled = isGb28181Enabled();
-/** edge 单机合装不部署 go2rtc，添加设备页隐藏 RTC 平台 Tab */
-const showRtcPlatformTab = !isEdgeStandaloneDeployProfile();
+/** mini / edge 不部署 go2rtc，添加设备页隐藏 RTC 平台 Tab */
+const showRtcPlatformTab = isRtcEnabled();
 
 const props = defineProps<{
   initialKind?: DeviceKind;

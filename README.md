@@ -31,18 +31,36 @@ EasyAIoT Official Website: [http://36.111.47.113:8090/](http://36.111.47.113:809
 
 Product introduction, feature overview, four hardware tiers, installer downloads, and documentation entry—so you can quickly understand the platform and start deploying.
 
+## 📖 Project Overview
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+<strong>EasyAIoT</strong> (Easy AI Internet of Things) is a <strong>cloud-edge-device integrated intelligent algorithm application platform</strong> dedicated to deeply fusing artificial intelligence with the Internet of Things—enabling cameras, sensors, and edge compute to work together on site. From device onboarding and data collection to real-time visual analysis, intelligent assessment, and alert orchestration, the entire chain runs on a single software stack.
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Many smart IoT projects hit the same wall at deployment: video systems, device platforms, and algorithm services live in silos—integration is costly, operations are fragmented, and scaling is painful. <strong>EasyAIoT resolves this with one platform</strong>—the same software can run a closed smart loop on a <strong>2 GB</strong> edge standalone (edge), land on a 4–8 GB edge box (mini) for single-point intelligence, ride AI all-in-one cameras for floor-level coverage, or pack into an enterprise full-stack appliance with IoT management, massive video access, and AI analysis—no multiple versions to maintain, no repeated integration across heterogeneous systems.
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery (including Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, packages per el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>RTC consumer-camera P2P bridging</strong> (based on go2rtc, covering <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, and Roborock</strong>—store Tapo fill-in, Tuya white-label onboarding, overseas Ring/Nest doorbells, Xiaomi reuse, Wyze low-cost scale-out, DoorBird intercom, GoPro mobile views, Roborock vacuum cameras—with one-click Web onboarding into unified video and AI judgment), <strong>DJI dock and drone aerial view access</strong>, real-time / snapshot / patrol algorithm tasks, <strong>RUNTIME native high-speed execution layer</strong> (compiled binary owns pull/decode, YOLO inference, boxed push, and multi-channel raw forward—lower CPU/memory and steadier latency than interpreted paths; one binary covers realtime / snap / patrol / forward), YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, with the <strong>EDGE C# edge collection runtime</strong> handling Modbus RTU/TCP, OPC UA, and other on-site industrial protocols via pluggable collectors, local scheduling, and MQTT cloud-edge integration, plus <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, four hardware tiers, and installer entry—so visitors understand first, then download and deploy; and <strong>IDEA community cloud IDE</strong> so contributors can open the full repo in a browser, co-create with GitHub Copilot, publish local changes, and submit PRs—turning open-source collaboration from “set up the environment first” into “open and edit”. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+<strong>In one sentence:</strong> EasyAIoT = AI + IoT—interconnect everything while enabling intelligent vision and intelligent control for everything.
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+📄 For a more complete illustrated introduction, see <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT Project Introduction V2.0 (PPT)</a>, and <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI Video Surveillance Analytics Platform (PDF)</a>. For day-to-day platform operations after deployment, see the <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Platform Operations Manual</a>.
+</p>
+
 ## 🚀 Quick Start
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-You open the README, see a wall of module names, and quietly wonder: “Can my little machine even run this?” — <strong>Yes. Don’t panic.</strong>
+Open the README and mutter: “Can my little box even run this?” — <strong>Yes. Don’t panic.</strong>
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-For “tight on RAM, but itching to try it,” we prepared the lightest tier: strip DEVICE / MinIO / Nacos / EMQX and keep WEB + VIDEO + RUNTIME + essential middleware. One small box closes the loop—camera access, real-time analysis, smart alerts—enough for PoC, demos, and store pilots.
-</p>
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-Numbers, not vibes: recommended RAM ≥ <strong>2 GB</strong>, containers use about <strong>1.02 GB</strong>, nearly 1 GB left—not “barely gasping,” more “still room to breathe.” A 2 GB edge box, an old laptop, or the smallest cloud VM can board first; upgrade later when you’re ready. No shame.
+Lightest tier, containers use about <strong>1 GB</strong> total. Cameras, real-time analysis, smart alerts—small machines still close the loop. Spin up that old laptop first; upgrade later when you’re hooked.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -69,32 +87,6 @@ Then open <code>http://&lt;server-ip&gt;:8888</code> — default <code>admin</co
 # Optional: peek at memory vs the tier budget
 .scripts/docker/install_linux.sh resources
 ```
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 12px 0 8px 0;">
-💡 Light prerequisites: Docker + Compose. CentOS / ARM / Kylin / openEuler entry scripts: <a href=".doc/部署文档/平台部署文档.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Platform Deployment Docs</a>; day-to-day ops: <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Operations Manual</a>. Need more hardware / full capabilities? Scroll to <strong>Four Hardware Tiers</strong>—this section only gets you over the fear of installing.
-</p>
-
-## 📖 Project Overview
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-<strong>EasyAIoT</strong> (Easy AI Internet of Things) is a <strong>cloud-edge-device integrated intelligent algorithm application platform</strong> dedicated to deeply fusing artificial intelligence with the Internet of Things—enabling cameras, sensors, and edge compute to work together on site. From device onboarding and data collection to real-time visual analysis, intelligent assessment, and alert orchestration, the entire chain runs on a single software stack.
-</p>
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-Many smart IoT projects hit the same wall at deployment: video systems, device platforms, and algorithm services live in silos—integration is costly, operations are fragmented, and scaling is painful. <strong>EasyAIoT resolves this with one platform</strong>—the same software can run a closed smart loop on a <strong>2 GB</strong> edge standalone (edge), land on a 4–8 GB edge box (mini) for single-point intelligence, ride AI all-in-one cameras for floor-level coverage, or pack into an enterprise full-stack appliance with IoT management, massive video access, and AI analysis—no multiple versions to maintain, no repeated integration across heterogeneous systems.
-</p>
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, and SITE</strong>, with <strong>COMPILE</strong> handling multi-platform packaging and delivery (including Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, packages per el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). On the capability side, the platform covers GB28181 / ONVIF multi-protocol camera access, <strong>RTC consumer-camera P2P bridging</strong> (based on go2rtc, covering <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, and Roborock</strong>—store Tapo fill-in, Tuya white-label onboarding, overseas Ring/Nest doorbells, Xiaomi reuse, Wyze low-cost scale-out, DoorBird intercom, GoPro mobile views, Roborock vacuum cameras—with one-click Web onboarding into unified video and AI judgment), <strong>DJI dock and drone aerial view access</strong>, real-time / snapshot / patrol algorithm tasks, <strong>RUNTIME native high-speed execution layer</strong> (compiled binary owns pull/decode, YOLO inference, boxed push, and multi-channel raw forward—lower CPU/memory and steadier latency than interpreted paths; one binary covers realtime / snap / patrol / forward), YOLO object detection and SAM zero-shot auto-annotation, face/plate recognition, orchestrable business post-processing, federated compute cluster scheduling, and <strong>Infinite Federated Edge Cluster mode</strong> (ordinary development boards ready out of the box, on-site intelligence for local decisions, alerts and evidence automatically aggregated to the cloud, compute scaling with business as needed), plus MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT device lifecycle management, with the <strong>EDGE C# edge collection runtime</strong> handling Modbus RTU/TCP, OPC UA, and other on-site industrial protocols via pluggable collectors, local scheduling, and MQTT cloud-edge integration, plus <strong>visualization dashboards and Web SCADA configuration</strong>, so device data can be displayed as command-center situational awareness and mapped back to process screens; plus the new <strong>TRANSFORM multidirectional data-flow engine</strong>, which delivers platform-side business events to external systems such as MES / ERP / CRM / WMS by contract—multi-party integration that is configurable, traceable, and reusable; and the companion <strong>PANEL delivery & watch entry</strong>, so appliances can be installed and accepted on arrival day, and watch/troubleshooting no longer wait on developers running remote commands every time; plus the <strong>SITE official website</strong> to present product value, four hardware tiers, and installer entry—so visitors understand first, then download and deploy; and <strong>IDEA community cloud IDE</strong> so contributors can open the full repo in a browser, co-create with GitHub Copilot, publish local changes, and submit PRs—turning open-source collaboration from “set up the environment first” into “open and edit”. On the experience side, the Web console and mobile App / mini-program are capability-aligned, so command centers and field inspections share the same business logic—handle incidents anytime, anywhere.
-</p>
-
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-<strong>In one sentence:</strong> EasyAIoT = AI + IoT—interconnect everything while enabling intelligent vision and intelligent control for everything.
-</p>
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 For a more complete illustrated introduction, see <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT Project Introduction V2.0 (PPT)</a>, and <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI Video Surveillance Analytics Platform (PDF)</a>. For day-to-day platform operations after deployment, see the <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Platform Operations Manual</a>.
-</p>
 
 ## 🌟 Some Thoughts on the Project
 
