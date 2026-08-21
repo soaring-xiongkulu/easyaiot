@@ -27,8 +27,8 @@
 #   --tag <tag>      指定镜像标签（默认 latest）
 #   --registry <url> 指定推送/拉取仓库地址（默认见 runtime_registry.conf）
 #   --force-rebuild  强制重新构建，忽略已存在的镜像（默认跳过已有镜像）
-#   --profile <name> 指定部署形态：mini | standard | full
-#                    - build: 不指定则构建全部 3 种形态；指定则只构建该形态
+#   --profile <name> 指定部署形态：edge | mini | standard | full
+#                    - build: 不指定则构建全部 4 种形态；指定则只构建该形态（edge 的 WEB 与 mini 共用镜像名）
 #                    - pull:  不指定则交互选择（默认 full）；指定则直接拉取该形态
 #   --arch <arch>    指定构建架构：all | amd64 | arm64（默认 all=全部架构）
 #                    单架构模式仅构建/推送该架构镜像，跳过多架构 manifest 更新
@@ -1575,13 +1575,15 @@ select_pull_profile() {
     fi
     echo ""
     echo "请选择要拉取的部署形态镜像："
-    echo "  1) mini     — 边缘精简版"
-    echo "  2) standard — 标准版"
-    echo "  3) full     — 完整版（默认）"
+    echo "  0) edge      — edge profile"
+    echo "  1) mini      — mini profile"
+    echo "  2) standard  — standard profile"
+    echo "  3) full      — full profile (default)"
     echo ""
     local choice=""
-    read -r -p "请输入选项 [1-3，默认 3]: " choice
+    read -r -p "Enter choice [0-3, default 3]: " choice
     case "${choice:-3}" in
+        0) export EASYAIOT_DEPLOY_PROFILE=edge ;;
         1) export EASYAIOT_DEPLOY_PROFILE=mini ;;
         2) export EASYAIOT_DEPLOY_PROFILE=standard ;;
         *) export EASYAIOT_DEPLOY_PROFILE=full ;;

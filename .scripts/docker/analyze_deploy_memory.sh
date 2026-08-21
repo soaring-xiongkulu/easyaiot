@@ -53,8 +53,8 @@ while [ $# -gt 0 ]; do
 说明:
   容器内存取自 docker stats 的 RSS 用量（运行中容器）。
   规格上限取自 deploy_profile.sh：edge 2 GB / mini 4 GB / standard 16 GB / full 20 GB。
-  edge 典型运行容器：PostgreSQL、Redis、SRS、VIDEO、WEB（零 DEVICE，无 MinIO/Nacos/EMQX）。
-  RUNTIME 为宿主机进程，不在 Docker 统计内；edge 规格 2 GB 含 RUNTIME 与系统缓冲余量。
+  纯边缘典型运行精简中间件与业务面容器；边缘推理进程可能在宿主机侧，不计入 Docker 统计。
+  edge 规格 2 GB 含推理与系统缓冲余量。
 EOF
             exit 0
             ;;
@@ -480,7 +480,7 @@ main() {
         if awk -v e="$edge_extra" 'BEGIN { exit (e > 0.01) ? 0 : 1 }'; then
             print_warn "另有非 edge 典型容器占用 $(format_mib "$edge_extra")（如历史 full/standard 残留，可 stop 后重跑本脚本）"
         fi
-        print_info "edge 推荐内存上限: $(deploy_profile_budget_label edge)（含 RUNTIME 宿主机进程与峰值缓冲）"
+        print_info "edge 推荐内存上限: $(deploy_profile_budget_label edge)（含边缘推理与峰值缓冲）"
     fi
 
     print_section "部署规格符合性"

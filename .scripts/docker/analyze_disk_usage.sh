@@ -41,7 +41,7 @@ LOCAL_PLAYBACK_CANDIDATES=(
     "${MEDIA_RECORD_DIR:-}|MEDIA_RECORD_DIR（本地录像根目录）"
     "${SRS_RECORD_DIR:-}|SRS_RECORD_DIR（本地录像根目录）"
     "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/playbacks|NFS 媒体根 playbacks（EASYAIOT_MEDIA_ROOT）"
-    "${PROJECT_ROOT}/.runtime-media/playbacks|项目 .runtime-media/playbacks（edge 单机合装常用）"
+    "${PROJECT_ROOT}/.runtime-media/playbacks|项目 .runtime-media/playbacks（纯边缘常用）"
     "${HOME}/easyaiot/media/playbacks|~/easyaiot/media/playbacks（无 sudo 本地 bind）"
     "${HOME}/easyaiot/data/playbacks|~/easyaiot/data/playbacks（历史路径）"
     "${SCRIPT_DIR}/srs_data/playbacks|中间件 srs_data/playbacks 挂载"
@@ -375,7 +375,7 @@ collect_alert_record_summary() {
     ensure_deploy_profile
     if is_local_storage_deploy_profile; then
         if is_edge_deploy_profile; then
-            print_info "edge 形态：零 DEVICE + 本地存储；告警图/录像均在【3】【4】本地目录，不经 MinIO"
+            print_info "edge 形态：本地存储闭环；告警图/录像均在【3】【4】本地目录，不经对象存储"
         else
             print_info "mini 形态：告警录像主要在【3】本地 playbacks，不一定写入 MinIO"
         fi
@@ -541,16 +541,16 @@ collect_profile_hint() {
     echo ""
     case "${EASYAIOT_DEPLOY_PROFILE}" in
         edge)
-            echo "edge 形态要点:"
-            echo "  - 中间件: PostgreSQL + Redis + SRS（无 MinIO/Nacos/EMQX/Kafka）"
-            echo "  - 业务: VIDEO + WEB + RUNTIME（零 DEVICE）"
-            echo "  - 媒体: 本地 EASYAIOT_MEDIA_ROOT（playbacks / alert_images）"
-            echo "  - 内存: 典型 5 容器约 600 MiB–1.2 GB，推荐上限 3 GB（含 RUNTIME 宿主机进程）"
+            echo "纯边缘形态要点:"
+            echo "  - 汇聚面与边缘算力同机，业务本地闭环"
+            echo "  - 中间件精简；媒体走本地目录"
+            echo "  - 内存: 典型约 600 MiB–1.2 GB 容器占用，推荐上限 3 GB（含边缘推理与峰值缓冲）"
+            echo "  - 云边一体形态请在 install 中选择 edge → integrated"
             ;;
         mini)
-            echo "mini 形态要点:"
-            echo "  - 含 DEVICE(gateway/system/sink) + MinIO；告警/DVR 可走 sink"
-            echo "  - 本地 playbacks 与 MinIO 可能并存，注意双重占用"
+            echo "边缘精简版要点:"
+            echo "  - 轻量平台能力，适于点位智能化"
+            echo "  - 事件经平台网关汇聚；注意本地媒体与对象存储可能并存"
             ;;
     esac
     echo ""

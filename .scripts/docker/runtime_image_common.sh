@@ -412,7 +412,7 @@ runtime_interactive_select_profile() {
         return 0
     fi
     case "${EASYAIOT_DEPLOY_PROFILE:-}" in
-        mini|standard|full)
+        edge|mini|standard|full)
             if declare -F apply_deploy_profile >/dev/null 2>&1; then
                 apply_deploy_profile
                 save_deploy_profile 2>/dev/null || true
@@ -432,29 +432,33 @@ runtime_interactive_select_profile() {
 
     echo ""
     if [ "$purpose" = "build" ]; then
-        echo "请选择要构建的部署形态："
-        echo "  1) mini     — 边缘精简版"
-        echo "  2) standard — 标准版"
-        echo "  3) full     — 完整版（默认）"
-        echo "  4) 全部     — mini + standard + full"
+        echo "Select profile to build:"
+        echo "  0) edge     — edge profile (WEB tag shares mini image name)"
+        echo "  1) mini     — mini profile"
+        echo "  2) standard — standard profile"
+        echo "  3) full     — full profile (default)"
+        echo "  4) all      — edge + mini + standard + full"
         echo ""
         local choice=""
-        read -r -p "请输入选项 [1-4，默认 3]: " choice
+        read -r -p "Enter choice [0-4, default 3]: " choice
         case "${choice:-3}" in
+            0) export EASYAIOT_DEPLOY_PROFILE=edge; unset EASYAIOT_RUNTIME_BUILD_ALL_PROFILES ;;
             1) export EASYAIOT_DEPLOY_PROFILE=mini; unset EASYAIOT_RUNTIME_BUILD_ALL_PROFILES ;;
             2) export EASYAIOT_DEPLOY_PROFILE=standard; unset EASYAIOT_RUNTIME_BUILD_ALL_PROFILES ;;
             4) export EASYAIOT_RUNTIME_BUILD_ALL_PROFILES=1; unset EASYAIOT_DEPLOY_PROFILE ;;
             *) export EASYAIOT_DEPLOY_PROFILE=full; unset EASYAIOT_RUNTIME_BUILD_ALL_PROFILES ;;
         esac
     else
-        echo "请选择要拉取的部署形态："
-        echo "  1) mini     — 边缘精简版"
-        echo "  2) standard — 标准版"
-        echo "  3) full     — 完整版（默认）"
+        echo "Select profile to pull:"
+        echo "  0) edge      — edge profile"
+        echo "  1) mini      — mini profile"
+        echo "  2) standard  — standard profile"
+        echo "  3) full      — full profile (default)"
         echo ""
         local choice=""
-        read -r -p "请输入选项 [1-3，默认 3]: " choice
+        read -r -p "Enter choice [0-3, default 3]: " choice
         case "${choice:-3}" in
+            0) export EASYAIOT_DEPLOY_PROFILE=edge ;;
             1) export EASYAIOT_DEPLOY_PROFILE=mini ;;
             2) export EASYAIOT_DEPLOY_PROFILE=standard ;;
             *) export EASYAIOT_DEPLOY_PROFILE=full ;;
@@ -467,7 +471,7 @@ runtime_interactive_select_profile() {
         sync_deploy_profile_to_modules 2>/dev/null || true
     fi
     if [ "${EASYAIOT_RUNTIME_BUILD_ALL_PROFILES:-0}" = "1" ]; then
-        runtime_img_msg info "已选择: 全部形态 (mini + standard + full)"
+        runtime_img_msg info "已选择: 全部形态 (edge + mini + standard + full)"
     else
         runtime_img_msg info "已选择: $(runtime_profile_label "${EASYAIOT_DEPLOY_PROFILE}") (${EASYAIOT_DEPLOY_PROFILE})"
     fi
@@ -801,7 +805,7 @@ runtime_is_full_only() {
 
 runtime_profile_label() {
     case "$1" in
-        edge) echo "边缘单机版" ;;
+        edge) echo "edge" ;;
         mini) echo "边缘精简版" ;;
         standard) echo "标准版" ;;
         full) echo "完整版" ;;
@@ -1706,7 +1710,7 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
 
 非交互（CI）可用环境变量:
   EASYAIOT_RUNTIME_REGISTRY  远程仓库地址
-  EASYAIOT_DEPLOY_PROFILE    部署形态 mini|standard|full
+  EASYAIOT_DEPLOY_PROFILE    部署形态 edge|mini|standard|full
   EASYAIOT_RUNTIME_TAG         镜像标签（默认 latest）
   EASYAIOT_RUNTIME_PUSH=1      构建后推送（仅 build-runtime）
   EASYAIOT_RUNTIME_BUILD_ALL_PROFILES=1  构建全部形态（仅 build-runtime）
