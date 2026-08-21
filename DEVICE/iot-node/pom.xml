@@ -6,7 +6,7 @@
         <groupId>com.basiclab.iot</groupId>
         <artifactId>iot</artifactId>
         <version>${revision}</version>
-        <relativePath>../DEVICE/pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <modules>

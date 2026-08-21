@@ -119,7 +119,7 @@ easyaiot:
     remote-root: ${EASYAIOT_AI_REMOTE_ROOT:/opt/easyaiot/AI}
     auto-sync-before-deploy: ${EASYAIOT_AI_AUTO_SYNC:true}
   agent:
-    # Agent 源码目录（含 export_pip_wheels.sh）；未设置时自动探测 repo/NODE，优于 /opt/easyaiot/node-agent 运行时目录
+    # Agent 源码目录（含 export_pip_wheels.sh）；未设置时自动探测 repo/SENTINEL
     source-path: ${EASYAIOT_AGENT_SOURCE_PATH:}
     # 可选：显式指定控制面 URL；留空则与 media.hook-host 同样自动探测
     control-plane-url: ${EASYAIOT_AGENT_CONTROL_PLANE_URL:}

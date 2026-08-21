@@ -937,17 +937,11 @@ build_device_all() {
     fi
 
     if [ $rc -ne 0 ]; then
-        # 检查是否至少部分镜像成功
-        local any_exist=false
-        for lname in "${DEVICE_LOCAL_NAMES[@]}"; do
-            docker image inspect "$(local_ref "$lname")" >/dev/null 2>&1 && { any_exist=true; break; }
-        done
-        if ! $any_exist; then
-            print_error "DEVICE 构建失败，日志: ${build_log}"
-            tail -40 "$build_log" | while IFS= read -r line; do echo "  $line"; done
-            return 1
-        fi
-        print_warning "DEVICE 部分镜像构建失败，继续处理已成功的镜像"
+        # install 脚本非 0 表示本轮构建未成功完成。本地可能仍有「上次成功」的旧镜像，
+        # 若当作「部分成功」继续推送，会把陈旧层重新打到仓库（强制重建时尤其误导）。
+        print_error "DEVICE 构建失败（退出码 ${rc}），中止推送，避免上传旧镜像。日志: ${build_log}"
+        tail -40 "$build_log" | while IFS= read -r line; do echo "  $line"; done
+        return 1
     fi
     rm -f "$build_log"
     return 0
@@ -1287,25 +1281,29 @@ build_all_modules() {
 
         # ── DEVICE ──
         if runtime_build_includes_module DEVICE; then
-            build_device_all "$target_arch"
-            for i in "${!DEVICE_REMOTE_NAMES[@]}"; do
-                local drname="${DEVICE_REMOTE_NAMES[$i]}"; local dlname="${DEVICE_LOCAL_NAMES[$i]}"
-                local dlref; dlref=$(local_ref "$dlname" "" "$target_arch")
-                local drref; drref=$(remote_ref "$drname" "" "$target_arch")
-                local dmref; dmref=$(manifest_ref "$drname" "")
-                if docker image inspect "$dlref" >/dev/null 2>&1; then
-                    print_step "推送: ${drname} [${target_arch}]"
-                    if tag_and_push "$dlref" "$drref"; then
-                        _MANIFEST_ARCH_REFS["$dmref"]="${_MANIFEST_ARCH_REFS["$dmref"]:+${_MANIFEST_ARCH_REFS["$dmref"]} }${drref}"
-                        success_all=$((success_all + 1))
+            if ! build_device_all "$target_arch"; then
+                print_error "DEVICE 构建失败，跳过本架构全部 DEVICE 镜像推送（避免上传旧镜像）"
+                failed_all=$((failed_all + ${#DEVICE_REMOTE_NAMES[@]}))
+            else
+                for i in "${!DEVICE_REMOTE_NAMES[@]}"; do
+                    local drname="${DEVICE_REMOTE_NAMES[$i]}"; local dlname="${DEVICE_LOCAL_NAMES[$i]}"
+                    local dlref; dlref=$(local_ref "$dlname" "" "$target_arch")
+                    local drref; drref=$(remote_ref "$drname" "" "$target_arch")
+                    local dmref; dmref=$(manifest_ref "$drname" "")
+                    if docker image inspect "$dlref" >/dev/null 2>&1; then
+                        print_step "推送: ${drname} [${target_arch}]"
+                        if tag_and_push "$dlref" "$drref"; then
+                            _MANIFEST_ARCH_REFS["$dmref"]="${_MANIFEST_ARCH_REFS["$dmref"]:+${_MANIFEST_ARCH_REFS["$dmref"]} }${drref}"
+                            success_all=$((success_all + 1))
+                        else
+                            failed_all=$((failed_all + 1))
+                        fi
                     else
+                        print_warning "DEVICE 镜像未找到: ${dlref}"
                         failed_all=$((failed_all + 1))
                     fi
-                else
-                    print_warning "DEVICE 镜像未找到: ${dlref}"
-                    failed_all=$((failed_all + 1))
-                fi
-            done
+                done
+            fi
         fi
 
         # ── WEB 各形态 ──

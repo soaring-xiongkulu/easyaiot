@@ -20,7 +20,7 @@
 #   EASYAIOT_GATEWAY_URL              Gateway 地址，默认 http://127.0.0.1:48080
 #   EASYAIOT_AGENT_CONTROL_PLANE_URL  Agent 上报地址（可选，默认由 Gateway 推导）
 #   EASYAIOT_AGENT_LOCAL_INSTALL_DIR  安装目录，默认 /opt/easyaiot/node-agent
-#   EASYAIOT_AGENT_SOURCE_PATH        源码目录，默认 <repo>/NODE
+#   EASYAIOT_AGENT_SOURCE_PATH        源码目录，默认 <repo>/SENTINEL
 #   EASYAIOT_AGENT_PORT               监听端口，默认 9100
 #   EASYAIOT_AGENT_LOCAL_PYTHON       Python 命令，默认自动探测
 #   AGENT_USE_CACHED_ENV=1            跳过 bootstrap，仅使用本地 agent.env（离线环境）
@@ -140,7 +140,7 @@ resolve_default_python() {
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATEWAY_URL="${EASYAIOT_GATEWAY_URL:-http://127.0.0.1:48080}"
 INSTALL_DIR="${EASYAIOT_AGENT_LOCAL_INSTALL_DIR:-/opt/easyaiot/node-agent}"
-SOURCE_DIR="${EASYAIOT_AGENT_SOURCE_PATH:-$ROOT/NODE}"
+SOURCE_DIR="${EASYAIOT_AGENT_SOURCE_PATH:-$ROOT/SENTINEL}"
 AGENT_PORT="${EASYAIOT_AGENT_PORT:-9100}"
 PYTHON="$(resolve_default_python)"
 AGENT_BOOTSTRAP_WAIT_SECONDS="${AGENT_BOOTSTRAP_WAIT_SECONDS:-180}"
@@ -461,7 +461,7 @@ restart_agent_service() {
         print_info "CentOS 7 可先安装: sudo yum install -y python3 python3-pip"
       fi
       print_info "无宿主机 pip 时可使用 AI 镜像生成离线依赖:"
-      print_info "sudo docker run --rm --entrypoint bash -v \"${repo_root}:/repo\" -w /repo/NODE ai-service:latest -lc 'AGENT_TARGET_PYTHON=${target_python} PYTHON=python bash export_pip_wheels.sh'"
+      print_info "sudo docker run --rm --entrypoint bash -v \"${repo_root}:/repo\" -w /repo/SENTINEL ai-service:latest -lc 'AGENT_TARGET_PYTHON=${target_python} PYTHON=python bash export_pip_wheels.sh'"
       print_info "然后执行: sudo bash ${SOURCE_DIR}/install.sh install"
       return 1
     fi

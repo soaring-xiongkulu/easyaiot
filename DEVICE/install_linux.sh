@@ -545,7 +545,7 @@ RUNTIME_IMAGE_SPECS=(
     "iot-infra/iot-infra-biz/Dockerfile|iot-module-infra-biz:latest"
     "iot-device/iot-device-biz/Dockerfile|iot-module-device-biz:latest"
     "iot-dataset/iot-dataset-biz/Dockerfile|iot-module-dataset-biz:latest"
-    "../NODE/iot-node-biz/Dockerfile|iot-module-node-biz:latest"
+    "iot-node/iot-node-biz/Dockerfile|iot-module-node-biz:latest"
     "iot-visualize/iot-visualize-biz/Dockerfile|iot-module-visualize-biz:latest"
     "iot-tdengine/iot-tdengine-biz/Dockerfile|iot-module-tdengine-biz:latest"
     "iot-file/iot-file-biz/Dockerfile|iot-module-file-biz:latest"
@@ -784,7 +784,7 @@ _normalize_build_ownership() {
         return 0
     fi
     print_warning "Maven 产物目录不可写（常见原因：Docker userns-remap 写成 nobody 属主），正在修复..."
-    chown -R "${uid}:${gid}" "$SCRIPT_DIR"/*/target "$JARS_DIR" 2>/dev/null || true
+    chown -R "${uid}:${gid}" "$SCRIPT_DIR"/*/target "$SCRIPT_DIR"/iot-node/*/target "$JARS_DIR" 2>/dev/null || true
     if touch "$probe" 2>/dev/null; then
         rm -f "$probe"
         return 0
@@ -854,14 +854,17 @@ ensure_mvnd_image() {
 # 确保常驻 builder 容器在运行（卷挂载源码 + m2 + settings）。失败返回非 0 → 调用方回退 C1。
 ensure_mvnd_builder() {
     ensure_mvnd_image || return 1
-    # 已在运行
+    # 已在运行：若仍是旧版双挂载（/NODE+/DEVICE），重建为仅 /build
     if [ "$(docker inspect -f '{{.State.Running}}' "$MVND_CONTAINER" 2>/dev/null)" = "true" ]; then
-        return 0
+        if docker exec "$MVND_CONTAINER" test -f /build/iot-node/pom.xml 2>/dev/null \
+            && ! docker exec "$MVND_CONTAINER" test -d /NODE 2>/dev/null; then
+            return 0
+        fi
+        print_info "mvnd builder 挂载布局已过时，重建容器..."
+        docker rm -f "$MVND_CONTAINER" >/dev/null 2>&1 || true
     fi
-    # 存在但已停止 → 启动
+    # 存在但已停止 → 删除重建（避免沿用旧挂载）
     if docker inspect "$MVND_CONTAINER" >/dev/null 2>&1; then
-        docker start "$MVND_CONTAINER" >/dev/null 2>&1 && return 0
-        # 启动失败（卷/配置可能变化）→ 删除重建
         docker rm -f "$MVND_CONTAINER" >/dev/null 2>&1 || true
     fi
     print_info "启动常驻 mvnd builder 容器 $MVND_CONTAINER ..."

@@ -39,13 +39,13 @@ WEB / 业务编排
 
 ```bash
 cd DEVICE
-mvn -pl ../NODE/iot-node-biz -am package
+mvn -pl iot-node/iot-node-biz -am package
 ```
 
-Docker 服务名仍为 `iot-node-biz`（兼容现有部署）。
+Docker 服务名仍为 `iot-node`（镜像 `iot-module-node-biz`）。
 
 ## 相关文档
 
-- [Sentinel 设计](../.doc/设计文档/Sentinel集群节点哨兵模块设计.md)
-- [SENTINEL 边缘 Agent](../SENTINEL/README.md)
+- [Sentinel 设计](../../.doc/设计文档/Sentinel集群节点哨兵模块设计.md)
+- [SENTINEL 边缘 Agent](../../SENTINEL/README.md)
 - 节点功能注册表：`SENTINEL/registry/functions.yaml`

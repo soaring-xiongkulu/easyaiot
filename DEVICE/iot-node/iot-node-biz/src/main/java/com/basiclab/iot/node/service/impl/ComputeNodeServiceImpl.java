@@ -1130,25 +1130,21 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     }
 
     /**
-     * Sentinel Agent 源码候选目录（优先 SENTINEL/，兼容历史 NODE/ 与运行时目录）。
+     * Sentinel Agent 源码候选目录（仓库 SENTINEL/ 或容器内挂载点）。
      */
     private List<String> listAgentSourceCandidates() {
         LinkedHashMap<String, Boolean> ordered = new LinkedHashMap<>();
         if (agentSourcePath != null && !agentSourcePath.isBlank()) {
             ordered.put(agentSourcePath.trim(), Boolean.TRUE);
         }
-        ordered.put("/opt/easyaiot/sentinel-agent", Boolean.TRUE);
-        ordered.put("/opt/easyaiot/NODE", Boolean.TRUE);
         ordered.put("/opt/easyaiot/SENTINEL", Boolean.TRUE);
+        ordered.put("/opt/easyaiot/sentinel-agent", Boolean.TRUE);
         String userDir = System.getProperty("user.dir");
         if (userDir != null && !userDir.isBlank()) {
             ordered.put(userDir + "/SENTINEL", Boolean.TRUE);
             ordered.put(userDir + "/../SENTINEL", Boolean.TRUE);
             ordered.put(userDir + "/../../SENTINEL", Boolean.TRUE);
-            ordered.put(userDir + "/NODE", Boolean.TRUE);
-            ordered.put(userDir + "/../NODE", Boolean.TRUE);
         }
-        ordered.put(AgentDeployUtil.LEGACY_REMOTE_INSTALL_DIR, Boolean.TRUE);
         return new ArrayList<>(ordered.keySet());
     }
 

@@ -47,7 +47,7 @@ resolve_python_with_pip() {
 
 collect_build_cache_find_links() {
   local links="" dir
-  for dir in "${EASYAIOT_ROOT}/.build-cache"/*/pip-wheels "${EASYAIOT_ROOT}/NODE/pip-wheels"; do
+  for dir in "${EASYAIOT_ROOT}/.build-cache"/*/pip-wheels "${EASYAIOT_ROOT}/SENTINEL/pip-wheels"; do
     if [[ -d "${dir}" ]] && compgen -G "${dir}"/*.{whl,tar.gz,zip} >/dev/null 2>&1; then
       links="${links} --find-links ${dir}"
     fi
