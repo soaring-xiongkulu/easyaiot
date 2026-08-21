@@ -11,8 +11,9 @@ export function getPanelConsoleUrl(): string {
     return configured.replace(/\/$/, '')
   }
   if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location
-    return `${protocol}//${hostname}:${PANEL_DEFAULT_PORT}`
+    const { hostname } = window.location
+    // PANEL 仅提供 HTTP（:9200），勿继承平台 HTTPS
+    return `http://${hostname}:${PANEL_DEFAULT_PORT}`
   }
   return `http://localhost:${PANEL_DEFAULT_PORT}`
 }

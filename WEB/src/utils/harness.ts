@@ -64,8 +64,9 @@ export function getHarnessServiceUrl(): string {
     return configured.replace(/\/$/, '')
   }
   if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location
-    return `${protocol}//${hostname}:${HARNESS_DEFAULT_PORT}`
+    const { hostname } = window.location
+    // HARNESS 仅提供 HTTP（:3080），勿继承平台 HTTPS
+    return `http://${hostname}:${HARNESS_DEFAULT_PORT}`
   }
   return `http://localhost:${HARNESS_DEFAULT_PORT}`
 }

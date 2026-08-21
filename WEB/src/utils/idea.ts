@@ -11,8 +11,10 @@ export function getIdeaPortalUrl(): string {
     return configured.replace(/\/$/, '')
   }
   if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location
-    return `${protocol}//${hostname}:${IDEA_DEFAULT_PORT}`
+    const { hostname } = window.location
+    // IDEA 门户仅提供 HTTP（:9300）。平台 WEB 常走 HTTPS（:8888→443），
+    // 若继承 https 会打开 https://host:9300 并触发 ERR_SSL_PROTOCOL_ERROR。
+    return `http://${hostname}:${IDEA_DEFAULT_PORT}`
   }
   return `http://localhost:${IDEA_DEFAULT_PORT}`
 }
