@@ -212,6 +212,7 @@ def _query_alert_event_task(device_id: str, task_type: str = None) -> Optional[D
             'face_detection_enabled': bool(task.face_detection_enabled),
             'plate_detection_enabled': bool(task.plate_detection_enabled),
             'alert_event_suppress_time': task.alert_event_suppress_time,
+            'alert_class_names': getattr(task, 'alert_class_names', None),
         }
     except Exception as e:
         logger.error(f"查询告警事件任务失败: device_id={device_id}, error={e}", exc_info=True)
@@ -761,16 +762,55 @@ def _fallback_persist_on_kafka_failure(
         return {'status': 'failed', 'error': kafka_error}
 
 
+def _apply_alert_class_filter(alert_data: Dict, alert_event_task: Optional[Dict]) -> Optional[Dict]:
+    """按任务 alert_class_names 过滤 detections；无匹配时返回 skip 结果。"""
+    if not alert_event_task:
+        return None
+    raw_names = alert_event_task.get('alert_class_names')
+    if not raw_names:
+        return None
+    try:
+        from app.utils.alert_class_filter import filter_detections_for_alert, parse_alert_class_names
+        import json as _json
+    except Exception:
+        return None
+
+    allowed = parse_alert_class_names(raw_names)
+    if not allowed:
+        return None
+
+    info = alert_data.get('information')
+    if isinstance(info, str):
+        try:
+            info = _json.loads(info)
+        except Exception:
+            info = None
+    if not isinstance(info, dict):
+        return None
+    detections = info.get('detections')
+    if not isinstance(detections, list) or not detections:
+        return None
+
+    filtered = filter_detections_for_alert(detections, allowed)
+    if not filtered:
+        return {'status': 'skipped', 'reason': 'alert_class_filtered'}
+
+    info = dict(info)
+    info['detections'] = filtered
+    info['detection_count'] = len(filtered)
+    alert_data['information'] = _json.dumps(info, ensure_ascii=False, separators=(',', ':'))
+    primary = filtered[0].get('class_name') if isinstance(filtered[0], dict) else None
+    if primary:
+        alert_data['object'] = primary
+    return None
+
+
 def process_alert_hook(alert_data: Dict) -> Dict:
     """
-    [DEPRECATED] 旧 HTTP/Kafka 告警入口。正式路径为 MQTT → iot-sink。
+    HTTP 告警入口（edge/mini：直连落库；其它形态可兼容转发）。
 
-    仅在 ALGO_BUS_TRANSPORT=http/off 时由 /video/alert/hook 兼容调用。
+    正式 full/standard 主路径仍为 MQTT → iot-sink；edge 无 EMQX 时由 RUNTIME HTTP 调用本接口。
     """
-    logger.warning(
-        'process_alert_hook 已废弃：事件应走 MQTT 算法总线。device_id=%s',
-        (alert_data or {}).get('device_id'),
-    )
     global _producer, _last_kafka_unavailable_warning_time, _kafka_unavailable_warning_interval
     try:
         if 'time' in alert_data:
@@ -803,6 +843,15 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                     f"设备未关联已启用的告警事件任务，跳过: device_id={device_id}, task_type={task_type}"
                 )
                 return {'status': 'skipped', 'reason': 'alert_event_disabled'}
+
+        filtered = _apply_alert_class_filter(alert_data, alert_event_task)
+        if filtered is not None:
+            logger.info(
+                '告警类别过滤跳过: device_id=%s, allowed=%s',
+                device_id,
+                (alert_event_task or {}).get('alert_class_names'),
+            )
+            return filtered
 
         notification_config = None
         if device_id:

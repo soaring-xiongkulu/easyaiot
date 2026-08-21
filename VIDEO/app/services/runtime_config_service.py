@@ -910,6 +910,7 @@ def _build_runtime_ini_text(
     mqtt_client_id: str,
     mqtt_tenant: str,
     algo_bus_transport: str,
+    alert_hook_url: str,
     compute_node_id: str,
     resolved_urls: Dict[str, str],
 ) -> str:
@@ -943,6 +944,7 @@ enable={'true' if task.alert_event_enabled else 'false'}
 confidence_threshold={conf}
 cooldown_time={cooldown}
 image_dir={alert_image_dir}
+alert_hook_url={alert_hook_url}
 
 [task]
 id={task.id}
@@ -958,6 +960,7 @@ heartbeat_interval_sec={'15' if task_type == 'patrol' else '10'}
 log_path={log_path}
 alert_image_dir={alert_image_dir}
 algo_bus_transport={algo_bus_transport}
+alert_hook_url={alert_hook_url}
 mqtt_broker_urls={mqtt_broker_urls}
 mqtt_username={mqtt_username}
 mqtt_password={mqtt_password}
@@ -1068,6 +1071,19 @@ def generate_runtime_inis(
     mqtt_password = (os.getenv('MQTT_ALGO_PASSWORD') or '').strip()
     mqtt_tenant = (os.getenv('MQTT_ALGO_TENANT') or 'default').strip()
     algo_bus_transport = (os.getenv('ALGO_BUS_TRANSPORT') or 'mqtt').strip() or 'mqtt'
+    alert_hook_url = ''
+    # edge：无 EMQX/iot-sink，强制 HTTP → VIDEO /video/alert/hook 直连落库
+    try:
+        from app.utils.service_urls import is_edge_deploy_profile, resolve_alert_hook_url
+        if is_edge_deploy_profile() and algo_bus_transport.lower() in (
+            'off', '0', 'false', 'no', 'mqtt', '',
+        ):
+            algo_bus_transport = 'http'
+        if algo_bus_transport.lower() in ('http', 'off'):
+            alert_hook_url = resolve_alert_hook_url()
+    except Exception:
+        if algo_bus_transport.lower() in ('http', 'off'):
+            alert_hook_url = f'{resolve_video_service_base_url().rstrip("/")}/video/alert/hook'
     compute_node_id = (os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or '').strip()
 
     hook_tt = _hook_task_type(task_type)
@@ -1200,6 +1216,7 @@ def generate_runtime_inis(
             mqtt_client_id=mqtt_client_id,
             mqtt_tenant=mqtt_tenant,
             algo_bus_transport=algo_bus_transport,
+            alert_hook_url=alert_hook_url,
             compute_node_id=compute_node_id,
             resolved_urls=resolved_urls,
         )

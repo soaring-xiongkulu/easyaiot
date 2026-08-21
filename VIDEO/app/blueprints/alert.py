@@ -56,6 +56,24 @@ def api_response(code=200, message="success", data=None):
     return jsonify(response), 200
 
 
+@alert_bp.route('/hook', methods=['POST'])
+def alert_hook():
+    """edge/mini：RUNTIME HTTP 告警入口 → 直连落库（无 MQTT/iot-sink）。"""
+    try:
+        alert_data = request.get_json(silent=True) or {}
+        if not isinstance(alert_data, dict) or not alert_data:
+            return api_response(400, '告警数据不能为空')
+        from app.services.alert_hook_service import process_alert_hook
+        result = process_alert_hook(alert_data)
+        status = (result or {}).get('status')
+        if status in ('failed', 'error'):
+            return api_response(500, (result or {}).get('error') or '告警处理失败', result)
+        return api_response(200, 'success', result)
+    except Exception as e:
+        logger.error(f'处理告警 hook 失败: {str(e)}', exc_info=True)
+        return api_response(500, f'处理失败: {str(e)}')
+
+
 @alert_bp.route('/page')
 def get_alert_list_route():
     """获取报警列表"""
