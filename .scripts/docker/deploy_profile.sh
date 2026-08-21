@@ -2,12 +2,22 @@
 # EasyAIoT 部署形态配置
 #
 # EASYAIOT_DEPLOY_PROFILE 取值（默认 full）：
-#   edge     | 0  — 纯边缘单机合装：零 DEVICE；WEB+VIDEO+RUNTIME + 本地存储；告警走 RUNTIME→VIDEO HTTP
-#   mini     | 1  — 边缘精简版，推荐宿主机内存 ≥ 4 GB（事件面统一 Gateway→iot-sink）
+#   edge     | 0  — 边缘部署（install 后再选 standalone / integrated）
+#   mini     | 1  — 边缘精简版，推荐宿主机内存 ≥ 4 GB
 #   standard | 2  — 标准版，推荐宿主机内存 ≥ 16 GB
 #   full     | 3  — 完整版，推荐宿主机内存 ≥ 20 GB（默认）
 #
-# 各形态服务范围详见 print_deploy_profile_summary；内存占用分析见 analyze_deploy_memory.sh。
+# edge 子形态（EASYAIOT_EDGE_MORPHOLOGY）：
+#   standalone  — 纯边缘形态（汇聚面与算力同机）
+#   integrated  — 云边一体形态（本机仅算力，接入中心）
+#
+# 各形态能力说明见 print_deploy_profile_summary；内存占用分析见 analyze_deploy_memory.sh。
+
+# shellcheck source=edge_deploy_common.sh
+_EDGE_COMMON="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/edge_deploy_common.sh"
+# shellcheck disable=SC1090
+[ -f "$_EDGE_COMMON" ] && source "$_EDGE_COMMON"
+unset _EDGE_COMMON
 
 _resolve_deploy_profile_raw() {
     local p="${EASYAIOT_DEPLOY_PROFILE:-full}"
@@ -286,20 +296,26 @@ deploy_profile_budget_label() {
 
 _deploy_profile_desc() {
     case "${EASYAIOT_DEPLOY_PROFILE:-}" in
-        edge) echo "边缘单机版（推荐内存 ≥ 2 GB）" ;;
-        mini) echo "边缘精简版（推荐内存 ≥ 4 GB）" ;;
-        standard) echo "标准版（推荐内存 ≥ 16 GB）" ;;
-        full) echo "完整版（推荐内存 ≥ 20 GB）" ;;
-        *) echo "完整版（推荐内存 ≥ 20 GB）" ;;
+        edge)
+            case "${EASYAIOT_EDGE_MORPHOLOGY:-standalone}" in
+                integrated) echo "edge / integrated（云边一体形态）" ;;
+                *) echo "edge / standalone（纯边缘形态，推荐 ≥ 2 GB）" ;;
+            esac
+            ;;
+        mini) echo "mini（边缘精简版，推荐 ≥ 4 GB）" ;;
+        standard) echo "standard（标准版，推荐 ≥ 16 GB）" ;;
+        full) echo "full（完整版，推荐 ≥ 20 GB）" ;;
+        *) echo "full（完整版，推荐 ≥ 20 GB）" ;;
     esac
 }
 
 _print_deploy_profile_menu() {
     echo ""
-    echo "请选择部署规格（按目标宿主机内存选型）："
-    echo "  1) mini     — 边缘精简版（推荐内存 ≥ 4 GB）"
-    echo "  2) standard — 标准版（推荐内存 ≥ 16 GB）"
-    echo "  3) full     — 完整版（推荐内存 ≥ 20 GB，默认）"
+    echo "Select deploy profile:"
+    echo "  0) edge      — 边缘部署（随后选择 standalone / integrated）"
+    echo "  1) mini      — 边缘精简版（推荐内存 ≥ 4 GB）"
+    echo "  2) standard  — 标准版（推荐内存 ≥ 16 GB）"
+    echo "  3) full      — 完整版（推荐内存 ≥ 20 GB，默认）"
     echo ""
 }
 
@@ -382,36 +398,35 @@ print_deploy_profile_summary() {
   warn_web_rebuild_if_profile_changed
   case "${EASYAIOT_DEPLOY_PROFILE}" in
     edge)
-      echo "  云边一体 · 单机合装：零 DEVICE；汇聚面与 RUNTIME 同机"
-      echo "  推荐宿主机内存: ≥ 2 GB（含 RUNTIME 宿主机进程与峰值缓冲）"
-      echo "  业务: VIDEO + WEB + RUNTIME（算法走 C++ HTTP 告警）"
-      echo "  登录: VIDEO(Python) 主导（默认 admin / admin123）"
-      echo "  存储: 本地媒体目录（告警图/录像不经 MinIO）"
-      echo "  中间件: PostgreSQL, Redis, SRS"
-      echo "  不启动: DEVICE 全家、MinIO, Nacos, EMQX, Kafka, AI, RTC, HARNESS, IDEA, PANEL, TDengine, Milvus, NodeRED, FUXA"
-      echo "  API 路由: nginx → 登录与业务 API 走 VIDEO:6000（无平台 Java）"
+      if [ "${EASYAIOT_EDGE_MORPHOLOGY:-standalone}" = "integrated" ]; then
+        echo "  定位: edge / integrated — 云边一体形态（本机仅部署边缘算力）"
+        echo "  能力: 接入中心汇聚面，执行边缘推理任务"
+      else
+        echo "  定位: edge / standalone — 纯边缘形态（汇聚面与算力同机，本地闭环）"
+        echo "  推荐内存: ≥ 2 GB（含边缘推理与峰值缓冲）"
+        echo "  能力: 视频接入、实时推理、告警与录像本地闭环"
+        echo "  存储: 本地媒体目录"
+        echo "  中间件: 精简为数据库、缓存与流媒体必要组件"
+        echo "  访问: 控制台本机直连（默认端口见部署说明）"
+      fi
       ;;
     mini)
-      echo "  业务: iot-gateway + iot-system + iot-sink + VIDEO/AI/RTC/WEB（告警/DVR 统一经 Gateway→sink）"
-      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
-      echo "  贡献: IDEA 在线 IDE（:9300）"
-      echo "  Agent: HARNESS AI 助手（:3080）"
-      echo "  中间件: PostgreSQL, Redis, SRS, Nacos, MinIO, EMQX, Kafka"
-      echo "  不启动: TDengine, Milvus, ZLMediaKit, NodeRED, FUXA、iot-device/iot-node/iot-visualize/TRANSFORM 等"
-      echo "  API 路由: nginx → Gateway:48080 → Nacos LB（含 /admin-api/sink/**）"
+      echo "  定位: 边缘精简版 — 轻量平台能力，适于点位智能化"
+      echo "  推荐内存: ≥ 4 GB"
+      echo "  能力: 设备接入、视频智能、实时通信与管理控制台"
+      echo "  事件面: 经平台网关统一汇聚"
+      echo "  精简: 不含时序库、工业可视化与部分扩展组件"
       ;;
     standard)
-      echo "  不启动: TDengine, NodeRED, FUXA, iot-device, iot-tdengine, iot-visualize/VISUALIZE、TRANSFORM（相关菜单不启用）"
-      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
-      echo "  贡献: IDEA 在线 IDE（:9300）"
-      echo "  Agent: HARNESS AI 助手（:3080）"
-      echo "  其余模块与中间件全部启动（含 EMQX、RTC）"
+      echo "  定位: 标准版 — 完整业务主干，适于楼层/园区级覆盖"
+      echo "  推荐内存: ≥ 16 GB"
+      echo "  能力: 在精简版基础上启用更完整的中间件与业务能力"
+      echo "  精简: 不含时序库、部分工业组态与可视化扩展"
       ;;
     full)
-      echo "  启动全部业务模块与中间件（含 APP 移动端 H5、iot-visualize/VISUALIZE、TRANSFORM、FUXA、RTC，推荐宿主机内存 ≥ 20 GB）"
-      echo "  运维: PANEL 独立控制台（:9200，所有形态默认启用）"
-      echo "  贡献: IDEA 在线 IDE（:9300）"
-      echo "  Agent: HARNESS AI 助手（:3080）"
+      echo "  定位: 完整版 — 全栈能力，适于一体机/机房级交付"
+      echo "  推荐内存: ≥ 20 GB"
+      echo "  能力: 全量业务与中间件（含移动端、可视化、工业协议演示等）"
       ;;
   esac
 }
@@ -426,20 +441,33 @@ lock_deploy_profile_for_child_installs() {
 select_deploy_profile_for_install() {
   if [ "${EASYAIOT_SKIP_PROFILE_PROMPT:-}" = "1" ]; then
     ensure_deploy_profile
+    if declare -F ensure_edge_morphology_for_install >/dev/null 2>&1; then
+      ensure_edge_morphology_for_install || return 1
+    fi
     lock_deploy_profile_for_child_installs
     return 0
   fi
 
   # 已通过环境变量显式指定形态时不弹菜单（含交互终端）
   # 例: EASYAIOT_DEPLOY_PROFILE=full bash .../install_linux.sh install
+  # edge/integrated: EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=integrated VIDEO_BASE_URL=...
   case "${EASYAIOT_DEPLOY_PROFILE:-}" in
     mini|standard|full|edge)
       apply_deploy_profile
+      if [ "${EASYAIOT_DEPLOY_PROFILE}" = "edge" ] && declare -F ensure_edge_morphology_for_install >/dev/null 2>&1; then
+        ensure_edge_morphology_for_install || return 1
+      fi
       save_deploy_profile
       lock_deploy_profile_for_child_installs
       echo ""
       if declare -F print_info >/dev/null 2>&1; then
-        print_info "使用环境变量指定的部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
+        if [ "${EASYAIOT_EDGE_MORPHOLOGY:-}" = "integrated" ]; then
+          print_info "已选定: edge / integrated（云边一体形态）"
+        elif [ "${EASYAIOT_DEPLOY_PROFILE}" = "edge" ]; then
+          print_info "已选定: edge / standalone（纯边缘形态）"
+        else
+          print_info "使用环境变量指定的部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
+        fi
       else
         echo "[INFO] 使用环境变量指定的部署形态: $(_deploy_profile_desc) (EASYAIOT_DEPLOY_PROFILE=${EASYAIOT_DEPLOY_PROFILE})"
       fi
@@ -459,11 +487,33 @@ select_deploy_profile_for_install() {
 
   _print_deploy_profile_menu
   local choice=""
-  read -r -p "请输入选项 [1-3，默认 3]: " choice
+  read -r -p "Enter choice [0-3, default 3]: " choice
   case "${choice:-3}" in
-    1) export EASYAIOT_DEPLOY_PROFILE=mini ;;
-    2) export EASYAIOT_DEPLOY_PROFILE=standard ;;
-    *) export EASYAIOT_DEPLOY_PROFILE=full ;;
+    0|edge)
+      export EASYAIOT_DEPLOY_PROFILE=edge
+      unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true
+      if declare -F ensure_edge_morphology_for_install >/dev/null 2>&1; then
+        ensure_edge_morphology_for_install || return 1
+      else
+        export EASYAIOT_EDGE_MORPHOLOGY=standalone
+      fi
+      if [ "${EASYAIOT_EDGE_MORPHOLOGY}" = "integrated" ]; then
+        apply_deploy_profile
+        lock_deploy_profile_for_child_installs
+        echo ""
+        if declare -F print_info >/dev/null 2>&1; then
+          print_info "已选定: edge / integrated（云边一体形态）"
+        else
+          echo "[INFO] 已选定: edge / integrated（云边一体形态）"
+        fi
+        echo ""
+        return 0
+      fi
+      export EASYAIOT_EDGE_MORPHOLOGY=standalone
+      ;;
+    1|mini) export EASYAIOT_DEPLOY_PROFILE=mini; unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true ;;
+    2|standard) export EASYAIOT_DEPLOY_PROFILE=standard; unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true ;;
+    *) export EASYAIOT_DEPLOY_PROFILE=full; unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true ;;
   esac
   apply_deploy_profile
   save_deploy_profile
@@ -488,11 +538,28 @@ select_deploy_profile_interactive() {
 
     _print_deploy_profile_menu
     local choice=""
-    read -r -p "请输入选项 [1-3，默认 3]: " choice
+    read -r -p "Enter choice [0-3, default 3]: " choice
     case "${choice:-3}" in
-        1) export EASYAIOT_DEPLOY_PROFILE=mini ;;
-        2) export EASYAIOT_DEPLOY_PROFILE=standard ;;
-        *) export EASYAIOT_DEPLOY_PROFILE=full ;;
+        0|edge)
+            export EASYAIOT_DEPLOY_PROFILE=edge
+            unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true
+            if declare -F ensure_edge_morphology_for_install >/dev/null 2>&1; then
+                ensure_edge_morphology_for_install || return 1
+            else
+                export EASYAIOT_EDGE_MORPHOLOGY=standalone
+            fi
+            if [ "${EASYAIOT_EDGE_MORPHOLOGY}" = "integrated" ]; then
+                apply_deploy_profile
+                echo ""
+                echo "[INFO] 已选定: edge / integrated（云边一体形态）"
+                echo ""
+                return 0
+            fi
+            export EASYAIOT_EDGE_MORPHOLOGY=standalone
+            ;;
+        1|mini) export EASYAIOT_DEPLOY_PROFILE=mini; unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true ;;
+        2|standard) export EASYAIOT_DEPLOY_PROFILE=standard; unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true ;;
+        *) export EASYAIOT_DEPLOY_PROFILE=full; unset EASYAIOT_EDGE_MORPHOLOGY 2>/dev/null || true ;;
     esac
     apply_deploy_profile
     save_deploy_profile
