@@ -72,7 +72,7 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         node.setStatus(NodeStatusEnum.ONLINE.getStatus());
         node.setLastHeartbeatAt(LocalDateTime.now());
         // 显式 register 仅在原 Agent 心跳过期时允许换绑主机名
-        bindOrValidateAgentHostname(node, reqVO.getHostname(), true, null);
+        bindOrValidateAgentHostname(node, reqVO.getHostname(), true, null, null);
         if (reqVO.getCapabilities() != null && !reqVO.getCapabilities().isEmpty()) {
             Map<String, Boolean> caps = node.getCapabilities() != null
                     ? new HashMap<>(node.getCapabilities()) : new HashMap<>();
@@ -92,7 +92,8 @@ public class NodeAgentServiceImpl implements NodeAgentService {
     @Transactional(rollbackFor = Exception.class)
     public void heartbeat(NodeAgentHeartbeatReqVO reqVO) {
         ComputeNodeDO node = validateAgent(reqVO.getNodeId(), reqVO.getAgentToken());
-        bindOrValidateAgentHostname(node, reqVO.getHostname(), false, reqVO.getMemTotalBytes());
+        bindOrValidateAgentHostname(node, reqVO.getHostname(), false,
+                reqVO.getMemTotalBytes(), reqVO.getDiskTotalBytes());
         // 即使 hostname 相同/缺失，也要按内存总量指纹拦截两套硬件交叉上报
         bindOrValidateAgentCapacity(node, reqVO.getMemTotalBytes(), reqVO.getDiskTotalBytes(), false);
         node.setStatus(NodeStatusEnum.ONLINE.getStatus());
@@ -157,7 +158,8 @@ public class NodeAgentServiceImpl implements NodeAgentService {
      *   否则冲突 Agent 会通过 register 与本机来回抢绑）。
      */
     private void bindOrValidateAgentHostname(ComputeNodeDO node, String hostname,
-                                             boolean allowRebindWhenStale, Long memTotalBytes) {
+                                             boolean allowRebindWhenStale,
+                                             Long memTotalBytes, Long diskTotalBytes) {
         if (StrUtil.isBlank(hostname)) {
             return;
         }
@@ -167,10 +169,10 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         String bound = tags.get(TAG_AGENT_HOSTNAME);
         if (StrUtil.isNotBlank(bound) && !bound.equalsIgnoreCase(reported)) {
             boolean staleTakeover = allowRebindWhenStale && !hasFreshHeartbeat(node.getId());
-            // 同机改名：仅 heartbeat 带容量且指纹一致时允许
+            // 同机改名：内存 + 磁盘指纹都接近时才允许（仅内存会把两台 ~32G 机器误判为同机）
             boolean sameMachineRename = memTotalBytes != null
                     && memTotalBytes > 0
-                    && capacityMatchesBound(node, memTotalBytes);
+                    && capacityMatchesBound(node, memTotalBytes, diskTotalBytes);
             // 演示库 hostname=demo-node：允许平台节点换绑到真实主机名，否则心跳被拒、GPU 不上报
             boolean seedHostnameTakeover = ComputeNodeServiceImpl.isPlatformNode(node)
                     && isDemoSeedHostname(bound);
@@ -191,12 +193,38 @@ public class NodeAgentServiceImpl implements NodeAgentService {
         node.setTags(tags);
     }
 
-    private boolean capacityMatchesBound(ComputeNodeDO node, long memTotalBytes) {
+    private boolean capacityMatchesBound(ComputeNodeDO node, long memTotalBytes, Long diskTotalBytes) {
         Long boundMem = readBoundMemTotal(node, CAPACITY_KEY_PREFIX + node.getId());
         if (boundMem == null || boundMem <= 0) {
             return false;
         }
-        return relativeDiff(boundMem, memTotalBytes) <= CAPACITY_MISMATCH_RATIO;
+        if (relativeDiff(boundMem, memTotalBytes) > CAPACITY_MISMATCH_RATIO) {
+            return false;
+        }
+        Long boundDisk = readBoundDiskTotal(node);
+        if (boundDisk != null && boundDisk > 0 && diskTotalBytes != null && diskTotalBytes > 0) {
+            return relativeDiff(boundDisk, diskTotalBytes) <= CAPACITY_MISMATCH_RATIO;
+        }
+        return true;
+    }
+
+    private boolean capacityMatchesBound(ComputeNodeDO node, long memTotalBytes) {
+        return capacityMatchesBound(node, memTotalBytes, null);
+    }
+
+    private Long readBoundDiskTotal(ComputeNodeDO node) {
+        if (node.getTags() == null) {
+            return null;
+        }
+        String raw = node.getTags().get("agent_disk_total_bytes");
+        if (StrUtil.isBlank(raw)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(raw.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private boolean isDemoSeedHostname(String hostname) {
