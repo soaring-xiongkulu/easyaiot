@@ -35,15 +35,20 @@ def create_stream():
     update = bool(body.get("update"))
 
     try:
-        if platform_id:
-            result = _svc().register_platform_stream(name, platform_id, params, update=update)
-        elif source:
+        # 若同时给了 source，优先用原始源流（与 VIDEO 侧约定一致）
+        if source:
             result = _svc().register_raw_stream(name, source, update=update)
+            if platform_id:
+                result['platform'] = platform_id
+        elif platform_id:
+            result = _svc().register_platform_stream(name, platform_id, params, update=update)
         else:
             return jsonify({"error": "需提供 platform+params 或 source"}), 400
         return jsonify(result), 201 if not update else 200
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
+    except KeyError as exc:
+        return jsonify({"error": f"缺少参数: {exc}"}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 502
 

@@ -6,7 +6,7 @@ import os
 import re
 import time
 from typing import Any, Dict, Optional
-from urllib.parse import urlencode
+from urllib.parse import quote
 
 import requests
 
@@ -37,7 +37,11 @@ def rtc_rtsp_port() -> int:
 
 
 def rtc_go2rtc_web_url() -> str:
-    return rtc_env('RTC_GO2RTC_WEB_URL', 'http://127.0.0.1:1984').rstrip('/')
+    # 浏览器侧应走 nginx 反代；保留尾斜杠避免 301 丢端口
+    url = rtc_env('RTC_GO2RTC_WEB_URL', '/dev-api/go2rtc/')
+    if url.startswith('/') and not url.endswith('/'):
+        url = f'{url}/'
+    return url
 
 
 def is_rtc_device(device) -> bool:
@@ -98,11 +102,13 @@ def register_rtc_stream(
     update: bool = False,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {'name': stream_name, 'update': update}
-    if platform:
+    # 前端 OAuth/WebUI 会同时传 platform + source；必须优先用已拼好的 source，
+    # 否则 RTC 会按 platform 用空 params 重建 URL 并 502。
+    if source:
+        body['source'] = source
+    elif platform:
         body['platform'] = platform
         body['params'] = params or {}
-    elif source:
-        body['source'] = source
     else:
         raise ValueError('platform 或 source 至少提供一个')
 
@@ -120,8 +126,8 @@ def delete_rtc_stream(stream_name: str) -> None:
     if not stream_name:
         return
     try:
-        params = urlencode({'src': stream_name})
-        _rtc_request('DELETE', f'/api/streams?{params}')
+        # RTC Flask：DELETE /api/streams/<name>（非 go2rtc 的 ?src= 风格）
+        _rtc_request('DELETE', f'/api/streams/{quote(stream_name, safe="")}')
     except Exception as exc:
         _logger.warning('删除 RTC 流 %s 失败: %s', stream_name, exc)
 
@@ -228,9 +234,25 @@ def register_rtc_live(data: dict) -> Dict[str, Any]:
             source=source,
             update=update,
         )
+    except requests.HTTPError as exc:
+        detail = ''
+        try:
+            detail = (exc.response.json() or {}).get('error') or exc.response.text or ''
+        except Exception:
+            detail = getattr(exc.response, 'text', '') or ''
+        detail = (detail or str(exc)).strip()
+        status = int(getattr(exc.response, 'status_code', 502) or 502)
+        _logger.error('RTC 流注册失败: %s', detail, exc_info=True)
+        return {
+            'ok': False,
+            'code': status if status >= 400 else 502,
+            'msg': f'RTC 流注册失败: {detail}' if detail else f'RTC 流注册失败: {exc}',
+        }
     except requests.RequestException as exc:
         _logger.error('RTC 流注册失败: %s', exc, exc_info=True)
         return {'ok': False, 'code': 502, 'msg': f'RTC 服务不可用: {exc}'}
+    except ValueError as exc:
+        return {'ok': False, 'code': 400, 'msg': str(exc)}
 
     rtsp_url = result.get('rtsp_url') or ''
     register_info = build_register_info(

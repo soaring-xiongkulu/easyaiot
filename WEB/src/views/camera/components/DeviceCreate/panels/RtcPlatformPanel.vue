@@ -54,14 +54,18 @@ const { createMessage } = useMessage();
 const submitting = ref(false);
 const previewing = ref(false);
 const platforms = ref<RtcPlatform[]>([]);
-const go2rtcWebUrl = ref('http://127.0.0.1:1984');
+const go2rtcWebUrl = ref(`${typeof window !== 'undefined' ? window.location.origin : ''}/dev-api/go2rtc/`);
 const selectedPlatformId = ref('tapo');
 
 const selectedPlatform = computed(() =>
   platforms.value.find((p) => p.id === selectedPlatformId.value),
 );
 
-const oauthPlatforms = new Set(['ring', 'nest', 'xiaomi', 'wyze', 'roborock', 'tuya']);
+const oauthOrWebuiModes = new Set(['oauth', 'webui']);
+
+function needsManualSource(platform: RtcPlatform | undefined) {
+  return !!platform && oauthOrWebuiModes.has(platform.auth_mode);
+}
 
 function platformFieldSchemas(platform: RtcPlatform | undefined) {
   const schemas: any[] = [
@@ -98,11 +102,11 @@ function platformFieldSchemas(platform: RtcPlatform | undefined) {
           { label: '子码流 (SD)', value: 'sub' },
         ],
       },
-      ifShow: () => !!selectedPlatform.value?.supports_substream,
+      ifShow: () => !!selectedPlatform.value?.supports_substream && !needsManualSource(selectedPlatform.value),
     },
   ];
 
-  if (platform && !oauthPlatforms.has(platform.id)) {
+  if (platform && !needsManualSource(platform)) {
     for (const f of platform.fields) {
       schemas.push({
         field: `param_${f.name}`,
@@ -155,9 +159,13 @@ function collectParams(values: Record<string, unknown>): Record<string, unknown>
 async function loadPlatforms() {
   try {
     const [cfg, data] = await Promise.all([getRtcConfig(), getRtcPlatforms()]);
-    go2rtcWebUrl.value = cfg?.go2rtc_web_url?.startsWith('/')
-      ? `${window.location.origin}${cfg.go2rtc_web_url}`
-      : (cfg?.go2rtc_web_url || go2rtcWebUrl.value);
+    const rawWeb = (cfg?.go2rtc_web_url || go2rtcWebUrl.value || '').trim();
+    if (rawWeb.startsWith('/')) {
+      const withSlash = rawWeb.endsWith('/') ? rawWeb : `${rawWeb}/`;
+      go2rtcWebUrl.value = `${window.location.origin}${withSlash}`;
+    } else {
+      go2rtcWebUrl.value = rawWeb || go2rtcWebUrl.value;
+    }
     platforms.value = data?.platforms || [];
     if (platforms.value.length && !platforms.value.some((p) => p.id === selectedPlatformId.value)) {
       selectedPlatformId.value = platforms.value[0].id;
@@ -183,7 +191,7 @@ async function handlePreview() {
   }
   const values = getFieldsValue();
   const platform = String(values.platform || selectedPlatformId.value);
-  if (oauthPlatforms.has(platform)) {
+  if (needsManualSource(selectedPlatform.value)) {
     createMessage.info('OAuth/WebUI 平台请直接使用 go2rtc WebUI 生成的源流 URL');
     return;
   }
@@ -210,18 +218,18 @@ async function handleSubmit() {
   const payload: Record<string, unknown> = {
     name: values.name || undefined,
     enable_forward: true,
+    platform,
   };
 
-  if (oauthPlatforms.has(platform)) {
+  if (needsManualSource(selectedPlatform.value)) {
     const source = String(values.source || '').trim();
     if (!source) {
       createMessage.error('请填写 go2rtc 生成的源流 URL');
       return;
     }
+    // 同时带 platform（元数据）与 source；VIDEO 侧会优先使用 source 注册流
     payload.source = source;
-    payload.platform = platform;
   } else {
-    payload.platform = platform;
     payload.params = collectParams(values);
   }
 

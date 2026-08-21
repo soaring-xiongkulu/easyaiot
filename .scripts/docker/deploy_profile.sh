@@ -845,6 +845,11 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" MEDIA_UPLOAD_MODE sync
                 _set_env_docker_kv "$env_file" VIDEO_AUTH_ENABLED 1
                 _set_env_docker_kv "$env_file" AUTH_CHECK_URL "http://127.0.0.1:6000/video/system/auth/get-permission-info"
+                # edge 默认不部署 RTC；仍写入占位，避免 VIDEO 读到 127.0.0.1:1984 误导前端
+                _set_env_docker_kv "$env_file" RTC_SERVICE_URL "http://127.0.0.1:6100"
+                _set_env_docker_kv "$env_file" RTC_GO2RTC_WEB_URL "/dev-api/go2rtc/"
+                _set_env_docker_kv "$env_file" RTC_RTSP_HOST "127.0.0.1"
+                _set_env_docker_kv "$env_file" RTC_RTSP_PORT "8554"
                 _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0
             else
                 _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0
@@ -861,6 +866,11 @@ apply_python_service_deploy_env() {
             _set_env_docker_kv "$env_file" NODE_REMOTE_DEPLOY true
         fi
         if [ "$module" = "VIDEO" ]; then
+            # RTC / go2rtc：存量 .env.docker 可能缺项，安装/切形态时补齐
+            _set_env_docker_kv "$env_file" RTC_SERVICE_URL "http://127.0.0.1:6100"
+            _set_env_docker_kv "$env_file" RTC_GO2RTC_WEB_URL "/dev-api/go2rtc/"
+            _set_env_docker_kv "$env_file" RTC_RTSP_HOST "127.0.0.1"
+            _set_env_docker_kv "$env_file" RTC_RTSP_PORT "8554"
             if is_mini_deploy_profile || is_local_storage_deploy_profile; then
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST true
             else

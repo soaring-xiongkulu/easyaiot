@@ -465,6 +465,13 @@ create_env_file() {
     else
         print_info "${EASYAIOT_DEPLOY_PROFILE:-full} 形态：已配置网关部署（JAVA_BACKEND_URL=48080, MinIO 启用）"
     fi
+
+    # RTC / go2rtc（存量 .env.docker 可能缺项）
+    _set_env_docker_kv .env.docker RTC_SERVICE_URL "http://127.0.0.1:6100"
+    _set_env_docker_kv .env.docker RTC_GO2RTC_WEB_URL "/dev-api/go2rtc/"
+    _set_env_docker_kv .env.docker RTC_RTSP_HOST "127.0.0.1"
+    _set_env_docker_kv .env.docker RTC_RTSP_PORT "8554"
+
 }
 
 # 安装服务
