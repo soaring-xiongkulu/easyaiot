@@ -29,7 +29,50 @@ Mon souhait est que ce système soit utilisé dans le monde entier, rendant l'IA
 
 Site officiel EasyAIoT : [http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 
-Présentation produit, fonctionnalités, trois niveaux matériels, téléchargement des installateurs et accès à la documentation — pour comprendre rapidement la valeur de la plateforme et démarrer le déploiement.
+Présentation produit, fonctionnalités, quatre niveaux matériels, téléchargement des installateurs et accès à la documentation — pour comprendre rapidement la valeur de la plateforme et démarrer le déploiement.
+
+## 🚀 Démarrage rapide
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Vous ouvrez le README, voyez une armée de noms de modules, et murmurez : « Mon petit PC peut vraiment faire tourner ça ? » — <strong>Oui. Pas de panique.</strong>
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Pour ceux « à court de RAM mais impatients d’essayer », nous avons préparé le niveau le plus léger : on retire DEVICE / MinIO / Nacos / EMQX, on garde WEB + VIDEO + RUNTIME + le middleware essentiel. Une petite machine ferme la boucle — accès caméras, analyse temps réel, alertes intelligentes — assez pour PoC, démos et pilotes magasin.
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Chiffres à l’appui : RAM recommandée ≥ <strong>2 Go</strong>, les conteneurs consomment environ <strong>1,02 Go</strong>, presque 1 Go de marge — pas « juste à l’agonie », plutôt « encore de l’air ». Box 2 Go, vieux laptop ou plus petite VM cloud : montez d’abord ; montez de niveau ensuite. Aucune honte.
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+<strong>Trois étapes (Linux) :</strong>
+</p>
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# Option A : verrouiller le niveau le plus léger via l'env (recommandé)
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# Option B : alias raccourci (équivalent)
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+Puis ouvrez <code>http://&lt;IP-serveur&gt;:8888</code> — compte par défaut <code>admin</code> / <code>admin123</code>. Vérifiez :
+</p>
+
+```bash
+.scripts/docker/install_linux.sh verify
+# Optionnel : jeter un œil à la mémoire vs le budget du niveau
+.scripts/docker/install_linux.sh resources
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 12px 0 8px 0;">
+💡 Prérequis légers : Docker + Compose. Scripts CentOS / ARM / Kylin / openEuler : <a href=".doc/部署文档/平台部署文档_fr.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Documentation de déploiement</a> ; opérations quotidiennes : <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">manuel d'exploitation</a>. Plus de machine / plus de capacités ? Descendez vers <strong>Quatre profils matériels</strong> — ici, on vous aide juste à oser installer.
+</p>
 
 ## 📖 Présentation du projet
 
@@ -38,11 +81,11 @@ Présentation produit, fonctionnalités, trois niveaux matériels, téléchargem
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-De nombreux projets IoT intelligents se heurtent au même obstacle lors du déploiement : systèmes vidéo, plateformes d'appareils et services algorithmiques fonctionnent en silos — l'intégration est coûteuse, l'exploitation fragmentée et la montée en charge difficile. <strong>EasyAIoT résout ce problème avec une plateforme unique</strong> — le même logiciel se déploie sur une box edge de 4 Go pour l'intelligence ponctuelle, sur des caméras IA tout-en-un pour une couverture à l'échelle d'un étage, ou dans un appliance full-stack d'entreprise regroupant gestion IoT, accès vidéo massif et analyse IA — sans maintenir plusieurs versions ni réintégrer des systèmes hétérogènes.
+De nombreux projets IoT intelligents se heurtent au même obstacle lors du déploiement : systèmes vidéo, plateformes d'appareils et services algorithmiques fonctionnent en silos — l'intégration est coûteuse, l'exploitation fragmentée et la montée en charge difficile. <strong>EasyAIoT résout ce problème avec une plateforme unique</strong> — le même logiciel peut fermer la boucle intelligente sur un standalone edge <strong>2 Go</strong> (edge), atterrir sur une box 4–8 Go (mini) pour l'intelligence ponctuelle, monter sur des caméras IA tout-en-un pour une couverture d'étage, ou entrer dans un appliance full-stack d'entreprise regroupant gestion IoT, accès vidéo massif et analyse IA — sans maintenir plusieurs versions ni réintégrer des systèmes hétérogènes.
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-La plateforme comprend notamment les modules <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS et SITE</strong>, avec <strong>COMPILE</strong> pour le packaging et la livraison multiplateformes (dont Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, paquets el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). Côté capacités : accès caméra multi-protocoles GB28181 / ONVIF, <strong>pont P2P RTC pour caméras grand public</strong> (basé sur go2rtc, couvrant <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro et Roborock</strong> — complément Tapo en magasin, onboarding Tuya white-label, sonnettes Ring/Nest à l'étranger, réutilisation Xiaomi, scale-out Wyze, interphone DoorBird, vues mobiles GoPro, caméras Roborock — onboarding Web en un clic vers vidéo unifiée et jugement IA), <strong>accès vue aérienne dock/drone DJI</strong>, tâches algorithmiques temps réel / capture / patrouille, <strong>couche d’exécution native haute vitesse RUNTIME</strong> (binaire compilé pour pull/décodage, inférence YOLO, push à cadres et relais multi-canal brut — moins de CPU/mémoire et latence plus stable qu’une chaîne interprétée ; un seul binaire couvre temps réel / capture / patrouille / relais), détection d'objets YOLO et annotation automatique SAM zero-shot, reconnaissance faciale/plaques, post-traitement métier orchestrable, planification de clusters de calcul fédérés, et <strong>mode cluster edge fédéré illimité</strong> (cartes de développement ordinaires prêtes à l'emploi, décision intelligente sur site, alertes et preuves agrégées automatiquement vers le cloud, puissance de calcul déployable selon les besoins), ainsi que la gestion du cycle de vie des appareils IoT MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA, avec le <strong>runtime de collecte edge EDGE C#</strong> qui prend en charge sur site les protocoles industriels Modbus RTU/TCP, OPC UA et autres via des collecteurs pluginnés, une planification locale et l'intégration MQTT cloud-edge, et <strong>grands écrans de visualisation et synoptiques de processus Web</strong>, pour que les données alimentent la situation de commandement et les synoptiques de processus ; plus le nouvel <strong>engine TRANSFORM de flux de données multidirectionnel</strong>, qui livre les événements métier de la plateforme vers MES / ERP / CRM / WMS selon contrat — intégration multipartite configurable, traçable et réutilisable ; et l'<strong>entrée de livraison et de permanence PANEL</strong> pour installer et réceptionner l'appliance dès l'arrivée, sans attendre à chaque fois que les développeurs tapent des commandes à distance ; ainsi que le <strong>site officiel SITE</strong> pour présenter la valeur produit, trois niveaux matériels et l'entrée téléchargement — comprendre d'abord, puis télécharger et déployer ; et l'<strong>IDEA IDE communautaire en ligne</strong> pour que les contributeurs ouvrent le dépôt complet dans le navigateur, co-créent avec GitHub Copilot, publient les changements en local et soumettent des PR — la contribution open source passe de « d'abord configurer l'environnement » à « ouvrir et modifier ». Côté expérience : console Web et App mobile / mini-programme alignées — centres de commande et inspections terrain partagent la même logique métier, partout et à tout moment.
+La plateforme comprend notamment les modules <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS et SITE</strong>, avec <strong>COMPILE</strong> pour le packaging et la livraison multiplateformes (dont Ubuntu / CentOS·RHEL <strong>7–9</strong> (x86 + <strong>CentOS ARM</strong>, paquets el7/el8/el9) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM). Côté capacités : accès caméra multi-protocoles GB28181 / ONVIF, <strong>pont P2P RTC pour caméras grand public</strong> (basé sur go2rtc, couvrant <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro et Roborock</strong> — complément Tapo en magasin, onboarding Tuya white-label, sonnettes Ring/Nest à l'étranger, réutilisation Xiaomi, scale-out Wyze, interphone DoorBird, vues mobiles GoPro, caméras Roborock — onboarding Web en un clic vers vidéo unifiée et jugement IA), <strong>accès vue aérienne dock/drone DJI</strong>, tâches algorithmiques temps réel / capture / patrouille, <strong>couche d’exécution native haute vitesse RUNTIME</strong> (binaire compilé pour pull/décodage, inférence YOLO, push à cadres et relais multi-canal brut — moins de CPU/mémoire et latence plus stable qu’une chaîne interprétée ; un seul binaire couvre temps réel / capture / patrouille / relais), détection d'objets YOLO et annotation automatique SAM zero-shot, reconnaissance faciale/plaques, post-traitement métier orchestrable, planification de clusters de calcul fédérés, et <strong>mode cluster edge fédéré illimité</strong> (cartes de développement ordinaires prêtes à l'emploi, décision intelligente sur site, alertes et preuves agrégées automatiquement vers le cloud, puissance de calcul déployable selon les besoins), ainsi que la gestion du cycle de vie des appareils IoT MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA, avec le <strong>runtime de collecte edge EDGE C#</strong> qui prend en charge sur site les protocoles industriels Modbus RTU/TCP, OPC UA et autres via des collecteurs pluginnés, une planification locale et l'intégration MQTT cloud-edge, et <strong>grands écrans de visualisation et synoptiques de processus Web</strong>, pour que les données alimentent la situation de commandement et les synoptiques de processus ; plus le nouvel <strong>engine TRANSFORM de flux de données multidirectionnel</strong>, qui livre les événements métier de la plateforme vers MES / ERP / CRM / WMS selon contrat — intégration multipartite configurable, traçable et réutilisable ; et l'<strong>entrée de livraison et de permanence PANEL</strong> pour installer et réceptionner l'appliance dès l'arrivée, sans attendre à chaque fois que les développeurs tapent des commandes à distance ; ainsi que le <strong>site officiel SITE</strong> pour présenter la valeur produit, quatre niveaux matériels et l'entrée téléchargement — comprendre d'abord, puis télécharger et déployer ; et l'<strong>IDEA IDE communautaire en ligne</strong> pour que les contributeurs ouvrent le dépôt complet dans le navigateur, co-créent avec GitHub Copilot, publient les changements en local et soumettent des PR — la contribution open source passe de « d'abord configurer l'environnement » à « ouvrir et modifier ». Côté expérience : console Web et App mobile / mini-programme alignées — centres de commande et inspections terrain partagent la même logique métier, partout et à tout moment.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -68,7 +111,7 @@ Les projets IoT intelligents butent le plus souvent sur le « dernier kilomètre
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Recette plus rapide</strong> : Sur place, choisir mini / standard / full, installer, voir progrès et résultats immédiatement — moins de « bloqué à mi-chemin sans savoir où » ; PoC et livraison série passent la recette plus vite</li>
+  <li><strong>Recette plus rapide</strong> : Sur place, choisir edge / mini / standard / full, installer, voir progrès et résultats immédiatement — moins de « bloqué à mi-chemin sans savoir où » ; PoC et livraison série passent la recette plus vite</li>
   <li><strong>Moins de coût présence et remote</strong> : Conteneurs actifs, pression ressources, logs bloqués — visibles d'un coup d'œil ; redémarrer, nettoyer le cache, tirer les images sans d'abord fouiller la doc ni attendre le support développeur ; la permanence traite seule les pannes courantes</li>
   <li><strong>Un même référentiel multi-projets</strong> : La même entrée d'install et d'ops se réutilise sur appliances et salles — livraison, permanence et handover partagent un standard, sans « chaque site a sa tradition orale »</li>
 </ul>
@@ -180,25 +223,31 @@ La contribution open source et les PoC terrain butent souvent au même endroit :
 | ![Connexion IDEA](.image/banner/banner1203.png) | ![Espace IDEA](.image/banner/banner1204.png) | ![Développement IDEA](.image/banner/banner1205.png) |
 | ![Dialogue Assistant IA](.image/banner/banner1210.png) | ![Analyse Assistant IA](.image/banner/banner1211.png) | ![Collaboration Assistant IA](.image/banner/banner1212.png) |
 
-### 🎯 Trois profils matériels, une plateforme
+### 🎯 Quatre profils matériels, une plateforme
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-Beaucoup de projets IoT intelligents butent au déploiement : <strong>les fonctionnalités complètes ne tiennent pas sur de petites machines ; pour les faire tenir, on réduit les capacités, on scinde les versions et on maintient plusieurs packages de déploiement.</strong> EasyAIoT résout ce dilemme avec une seule plateforme — <strong>boîtier edge pour l'intelligence ponctuelle, caméra tout-en-un IA pour l'analyse au mur, tout-en-un full-stack AIoT pour la chaîne complète en une seule boîte</strong>. Choisissez le niveau adapté à votre matériel terrain ; le même logiciel couvre le pilote mono-site, la couverture d'un bâtiment et la livraison full-stack — sans versions séparées.
+Beaucoup de projets IoT intelligents butent au déploiement : <strong>les fonctionnalités complètes ne tiennent pas sur de petites machines ; pour les faire tenir, on réduit les capacités, on scinde les versions et on maintient plusieurs packages de déploiement.</strong> EasyAIoT résout ce dilemme avec une seule plateforme — du <strong>standalone edge ultra-léger</strong> au <strong>boîtier edge pour l'intelligence ponctuelle, caméra tout-en-un IA pour l'analyse au mur, tout-en-un full-stack AIoT pour la chaîne complète en une seule boîte</strong>. Choisissez parmi les quatre classes de matériel terrain courantes ; le même logiciel couvre « juste démarrer », le pilote mono-site, la couverture d'un bâtiment et la livraison full-stack — sans versions séparées.
 </p>
 
 | Niveau | Matériel typique (exemples) | RAM recommandée | Ce que vous pouvez faire | Vérifié |
 | :-- | :-- | :--: | :-- | :--: |
+| **edge** Edge Standalone | <strong>Standalone edge léger</strong> (PC industriel 2 Go, vieux laptop, plus petite VM cloud, boîte d'essai magasin) | ≥ 2 Go | <strong>Une machine ferme d'abord la boucle</strong> : WEB + VIDEO + RUNTIME ; accès caméras, analyse temps réel, alertes ; zéro DEVICE, login mené par VIDEO | ~**1,02 Go**, presque 1 Go de marge |
 | **mini** Edge Lite | <strong>Boîtier edge</strong> (PC industriel 8 GB, tout-en-un sécurité magasin, passerelle de site) | ≥ 8 GB | <strong>Intelligence à un point</strong> : accès caméras, analyse temps réel, alertes intelligentes, inférence ; plan événements identique à standard/full (Gateway + iot-sink + EMQX) | ~4–6 GB utilisés, marge confortable |
 | **standard** Standard | <strong>Caméra tout-en-un IA</strong> (terminal caméra intelligent, caméra de surveillance IA avec calcul, analyseur IA multi-capteurs) | ≥ 16 GB | <strong>Chaque caméra est un nœud intelligent</strong> : plusieurs caméras au mur couvrent un étage/campus ; appareils, règles et calcul orchestrés ensemble | ~10 GB, stable avec marge |
 | **full** Complet (défaut) | <strong>Tout-en-un full-stack AIoT</strong> (tout-en-un pilotage full-stack entreprise, hôte IoT full-stack sectoriel, plateforme intelligente cloud-bord-périphérique) | ≥ 20 GB | <strong>IoT + vidéo + IA en une boîte</strong> : gestion des appareils, accès massif, analyse intelligente, commandement unifié — capacités complètes à long terme | ~14 GB, pleine capacité avec marge |
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+<strong>Installer edge :</strong> <code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code> (ou <code>... install_linux.sh edge install</code>). Le premier install peut aussi choisir le niveau en interactif ; voir <a href="#-démarrage-rapide">Démarrage rapide</a> ci-dessus.
+</p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
 <strong>Sélection du niveau et conformité des ressources (vérifié) :</strong>
 </p>
 
-| | | |
-|:---:|:---:|:---:|
-| ![Boîtier edge mini](.image/deploy-profile-mini.png) | ![Caméra tout-en-un IA standard](.image/deploy-profile-standard.png) | ![Tout-en-un full-stack full](.image/deploy-profile-full.png) |
+| | |
+|:---:|:---:|
+| ![Standalone edge](.image/deploy-profile-edge.png) | ![Boîtier edge mini](.image/deploy-profile-mini.png) |
+| ![Caméra tout-en-un IA standard](.image/deploy-profile-standard.png) | ![Tout-en-un full-stack full](.image/deploy-profile-full.png) |
 
 #### 🧠 Capacités d'IA
 
@@ -499,8 +548,8 @@ EasyAIoT comprend notamment WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIM
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>Entrée officielle</strong> : Site officiel indépendant pour visiteurs, intégrateurs et clients finaux — expliquer clairement l'intégration cloud-bord-périphérie, puis guider vers le téléchargement et le déploiement</li>
-    <li><strong>Parcours plus court</strong> : Fonctionnalités, trois niveaux matériels, installateurs et documentation sur un même site — moins de recherche dans le dépôt et d'explications orales</li>
-    <li><strong>Aide au choix de niveau</strong> : mini / standard / full pour boxes edge, caméras IA et appliances full-stack — choisir le bon niveau dès le départ</li>
+    <li><strong>Parcours plus court</strong> : Fonctionnalités, quatre niveaux matériels, installateurs et documentation sur un même site — moins de recherche dans le dépôt et d'explications orales</li>
+    <li><strong>Aide au choix de niveau</strong> : edge / mini / standard / full pour standalone léger, boxes edge, caméras IA et appliances full-stack — choisir le bon niveau dès le départ</li>
     <li><strong>De l'intérêt à l'installation</strong> : Site, démo, dépôts open source et Releases forment une boucle — comprendre → essayer → télécharger → installer</li>
   </ul>
 </td>

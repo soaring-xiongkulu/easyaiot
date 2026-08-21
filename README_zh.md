@@ -31,24 +31,19 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 
 提供产品介绍、特性说明、四档硬件选型、安装包下载与文档入口，便于快速了解平台价值并开始落地。
 
-## 🚀 快速开始（edge 边缘单机版）
+## 🚀 快速开始
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 打开 README 就看见一堆模块名，心里默默嘀咕：「这玩意儿……我这破机器装得动吗？」——<strong>能。先别怂。</strong>
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-我们专门给「内存紧张、但手痒想先跑起来」的你准备了 <strong>edge 边缘单机版</strong>：裁掉 DEVICE / MinIO / Nacos / EMQX 等重家伙，只留 WEB + VIDEO + RUNTIME + 必要中间件，一台小机器就能闭环——摄像头接入、实时分析、智能告警，够你 PoC、演示、门店试点先爽一把。
+我们专门给「内存紧张、但手痒想先跑起来」的你准备了最轻量的一档：裁掉 DEVICE / MinIO / Nacos / EMQX 等重家伙，只留 WEB + VIDEO + RUNTIME + 必要中间件，一台小机器就能闭环——摄像头接入、实时分析、智能告警，够你 PoC、演示、门店试点先爽一把。
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-实测说话：推荐内存 ≥ <strong>2 GB</strong>，容器总占用约 <strong>1.02 GB</strong>，余量还有将近 1 GB——不是「刚好卡死」，是「还能再喘两口气」。2 GB 边缘盒子、旧笔记本、云上最小机型，都可以先按这个规格上车；装成功了再考虑升 mini / standard / full，完全不丢人。
+实测说话：推荐内存 ≥ <strong>2 GB</strong>，容器总占用约 <strong>1.02 GB</strong>，余量还有将近 1 GB——不是「刚好卡死」，是「还能再喘两口气」。2 GB 边缘盒子、旧笔记本、云上最小机型，都可以先按这个规格上车；装成功了再考虑升档，完全不丢人。
 </p>
-
-<div align="center">
-  <img src=".image/deploy-profile-edge.png" width="85%" alt="edge 边缘单机版资源符合性（约 1.02 GB / 上限 2 GB）">
-  <p style="font-size: 13px; color: #666; margin-top: 8px;">edge 实测：容器占用约 1.02 GB，规格上限 2 GB，状态「符合」</p>
-</div>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
 <strong>三步上车（Linux 示例）：</strong>
@@ -58,7 +53,7 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# 方式 A：环境变量锁定 edge（推荐）
+# 方式 A：环境变量锁定最轻量档（推荐）
 EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
 # 方式 B：快捷别名（等价）
@@ -71,12 +66,12 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
 ```bash
 .scripts/docker/install_linux.sh verify
-# 可选：再瞄一眼内存是否还在 edge 规格内
+# 可选：再瞄一眼内存是否还在规格内
 .scripts/docker/install_linux.sh resources
 ```
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 12px 0 8px 0;">
-💡 前提很轻：Docker + Compose 可用即可。CentOS / ARM / 麒麟 / 欧拉等入口脚本见 <a href=".doc/部署文档/平台部署文档_zh.md" style="color: #3498db; text-decoration: none; font-weight: 600;">平台部署文档</a>；业务怎么点见 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">操作手册</a>。更大机器、更全能力？往下翻「四档硬件」选档位就行——edge 只是让你先把心放下。
+💡 前提很轻：Docker + Compose 可用即可。CentOS / ARM / 麒麟 / 欧拉等入口脚本见 <a href=".doc/部署文档/平台部署文档_zh.md" style="color: #3498db; text-decoration: none; font-weight: 600;">平台部署文档</a>；业务怎么点见 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">操作手册</a>。更大机器、更全能力？往下翻「四档硬件」选档位就行——这里只是让你先把心放下。
 </p>
 
 ## 📖 项目介绍
@@ -296,7 +291,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 | **full** 完整版（默认） | <strong>AIoT 智能全栈一体机</strong>（企业级全栈智控一体机、行业物联网全栈主机、云边端一体智能平台一体机） | ≥ 20 GB | <strong>一箱配齐 IoT + 视频 + AI</strong>：设备纳管、海量接入、智能分析、指挥研判一体化，全量能力长期稳跑 | 约 14 GB，全能力开启仍留足余量 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>edge 怎么装：</strong><code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code>（或 <code>... install_linux.sh edge install</code>）。首次安装交互菜单亦可选档；详情见上方 <a href="#-快速开始edge-边缘单机版">快速开始</a>。
+<strong>edge 怎么装：</strong><code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code>（或 <code>... install_linux.sh edge install</code>）。首次安装交互菜单亦可选档；详情见上方 <a href="#-快速开始">快速开始</a>。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

@@ -29,7 +29,50 @@
 
 EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 
-提供產品介紹、特性說明、三檔硬體選型、安裝包下載與文件入口，便於快速了解平臺價值並開始落地。
+提供產品介紹、特性說明、四檔硬體選型、安裝包下載與文件入口，便於快速了解平臺價值並開始落地。
+
+## 🚀 快速開始
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+打開 README 就看見一堆模組名，心裏默默嘀咕：「這玩意兒……我這破機器裝得動嗎？」——<strong>能。先別慫。</strong>
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+我們專門給「記憶體緊張、但手癢想先跑起來」的你準備了最輕量的一檔：裁掉 DEVICE / MinIO / Nacos / EMQX 等重傢伙，只留 WEB + VIDEO + RUNTIME + 必要中介軟體，一台小機器就能閉環——攝像頭接入、即時分析、智能告警，夠你 PoC、演示、門店試點先爽一把。
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+實測說話：推薦記憶體 ≥ <strong>2 GB</strong>，容器總佔用約 <strong>1.02 GB</strong>，餘量還有將近 1 GB——不是「剛好卡死」，是「還能再喘兩口氣」。2 GB 邊緣盒子、舊筆記本、雲上最小機型，都可以先按這個規格上車；裝成功了再考慮升檔，完全不丟人。
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+<strong>三步上車（Linux 示例）：</strong>
+</p>
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# 方式 A：環境變數鎖定最輕量檔（推薦）
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# 方式 B：快捷別名（等價）
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+裝完瀏覽器打開 <code>http://&lt;伺服器IP&gt;:8888</code>，預設帳號 <code>admin</code> / <code>admin123</code>。驗證一把：
+</p>
+
+```bash
+.scripts/docker/install_linux.sh verify
+# 可選：再瞄一眼記憶體是否還在規格內
+.scripts/docker/install_linux.sh resources
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 12px 0 8px 0;">
+💡 前提很輕：Docker + Compose 可用即可。CentOS / ARM / 麒麟 / 歐拉等入口腳本見 <a href=".doc/部署文档/平台部署文档_zh_tw.md" style="color: #3498db; text-decoration: none; font-weight: 600;">平臺部署文件</a>；業務怎麼點見 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">操作手冊</a>。更大機器、更全能力？往下翻「四檔硬體」選檔位就行——這裏只是讓你先把心放下。
+</p>
 
 ## 📖 項目介紹
 
@@ -38,11 +81,11 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-許多智能物聯網項目落地時面臨同一困境：視頻系統、設備平臺、算法服務各自爲政，集成成本高、運維割裂、擴容困難。<strong>EasyAIoT 用一套平臺化解這一矛盾</strong>——同一套軟體既可部署在 4 GB 邊緣盒子上實現單點智能，也可搭載於 AI 一體攝像頭完成樓面級覆蓋，還能裝進企業級全棧一體機，一箱配齊 IoT 納管、海量視頻接入與 AI 分析研判，不必維護多套版本、不必反覆對接異構系統。
+許多智能物聯網項目落地時面臨同一困境：視頻系統、設備平臺、算法服務各自爲政，集成成本高、運維割裂、擴容困難。<strong>EasyAIoT 用一套平臺化解這一矛盾</strong>——同一套軟體既可部署在 <strong>2 GB</strong> 邊緣單機（edge）上先跑通智能閉環，也可落在 4～8 GB 邊緣盒子（mini）實現單點智能，還可搭載於 AI 一體攝像頭完成樓面級覆蓋，或裝進企業級全棧一體機，一箱配齊 IoT 納管、海量視頻接入與 AI 分析研判，不必維護多套版本、不必反覆對接異構系統。
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，並由 <strong>EDGE C# 邊緣採集運行時</strong>在現場以插件化採集器承接 Modbus RTU/TCP、OPC UA 等工業協議採集、本地調度與 MQTT 云邊對接，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、三檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地；並以 <strong>IDEA 社區貢獻在線 IDE</strong> 讓貢獻者瀏覽器即可打開全倉、用 GitHub Copilot 共創、按改動發佈到本機並提交 PR，把開源共建從「先配環境」變成「打開即改」。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度，以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，並由 <strong>EDGE C# 邊緣採集運行時</strong>在現場以插件化採集器承接 Modbus RTU/TCP、OPC UA 等工業協議採集、本地調度與 MQTT 云邊對接，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、四檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地；並以 <strong>IDEA 社區貢獻在線 IDE</strong> 讓貢獻者瀏覽器即可打開全倉、用 GitHub Copilot 共創、按改動發佈到本機並提交 PR，把開源共建從「先配環境」變成「打開即改」。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -68,7 +111,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>縮短驗收週期</strong>：到場按 mini / standard / full 選一檔即可裝機，進度與結果當場可見，少因命令記不全、步驟漏一步導致「裝一半不知卡在哪」，PoC 與正式交付都能更快過驗收</li>
+  <li><strong>縮短驗收週期</strong>：到場按 edge / mini / standard / full 選一檔即可裝機，進度與結果當場可見，少因命令記不全、步驟漏一步導致「裝一半不知卡在哪」，PoC 與正式交付都能更快過驗收</li>
   <li><strong>降低駐場與遠程成本</strong>：容器是否在跑、資源是否吃緊、日誌卡在哪一目了然，重啓、清緩存、拉鏡像不必先翻文檔再等開發支援，值守人員可自助處置常見故障</li>
   <li><strong>多項目一套口徑</strong>：同一套裝機與運維入口可複用到多臺一體機、多處機房，交付、值守、交接口徑一致，避免「每臺現場各一套口口相傳」</li>
 </ul>
@@ -189,25 +232,31 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 | ![IDEA登入](.image/banner/banner1203.png) | ![IDEA工作區](.image/banner/banner1204.png) | ![IDEA開發](.image/banner/banner1205.png) |
 | ![AI助手對話](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手協作](.image/banner/banner1212.png) |
 
-### 🎯 三檔硬體，一套平臺
+### 🎯 四檔硬體，一套平臺
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-很多智能物聯網項目走到落地時都會卡住：<strong>功能做全了，小機器裝不下；爲了裝得下，又得砍能力、拆版本、維護多套部署包。</strong> EasyAIoT 用同一套平臺化解這一矛盾——<strong>邊緣盒子點上智能、AI 一體攝像頭上牆即分析、AIoT 智能全棧一體機一箱配齊全鏈路</strong>，三類最常見的現場硬體各選一檔即可，同一套軟體貫穿從單點試點到樓面覆蓋再到全棧交付，不必拆版本。
+很多智能物聯網項目走到落地時都會卡住：<strong>功能做全了，小機器裝不下；爲了裝得下，又得砍能力、拆版本、維護多套部署包。</strong> EasyAIoT 用同一套平臺化解這一矛盾——從 <strong>edge 極簡單機合裝</strong>，到 <strong>邊緣盒子點上智能、AI 一體攝像頭上牆即分析、AIoT 智能全棧一體機一箱配齊全鏈路</strong>，四類最常見的現場硬體各選一檔即可，同一套軟體貫穿從「先跑起來」到單點試點、樓面覆蓋再到全棧交付，不必拆版本。
 </p>
 
 | 選型 | 典型硬體（舉例） | 推薦記憶體 | 你能做到什麼 | 實測驗證 |
 | :-- | :-- | :--: | :-- | :--: |
+| **edge** 邊緣單機版 | <strong>輕量邊緣單機</strong>（2 GB 工控機、舊筆記本、雲上最小機型、門店試裝機） | ≥ 2 GB | <strong>一台機器閉環先跑通</strong>：WEB + VIDEO + RUNTIME；攝像頭接入、即時分析、智能告警；零 DEVICE，登入由 VIDEO 主導 | 約 **1.02 GB**，餘量近 1 GB |
 | **mini** 邊緣精簡版 | <strong>邊緣盒子</strong>（8 GB 工控機、門店安防一體機、工地現場網關） | ≥ 8 GB | <strong>一個點位裝上就有智能</strong>：攝像頭接入、即時分析、智能告警、模型推理；事件面與 standard/full 一致（Gateway + iot-sink + EMQX） | 約 4–6 GB，餘量充足 |
 | **standard** 標準版 | <strong>AI 一體攝像頭</strong>（智能攝像終端、帶算力 AI 監控攝像頭、多目 AI 分析一體機） | ≥ 16 GB | <strong>每路攝像頭即智能節點</strong>：多路攝像頭上牆即可樓面/園區級覆蓋，設備、規則、算力統一編排，多場景並行運營 | 約 10 GB，運行平穩有餘量 |
 | **full** 完整版（預設） | <strong>AIoT 智能全棧一體機</strong>（企業級全棧智控一體機、行業物聯網全棧主機、雲邊端一體智能平臺一體機） | ≥ 20 GB | <strong>一箱配齊 IoT + 視頻 + AI</strong>：設備納管、海量接入、智能分析、指揮研判一體化，全量能力長期穩跑 | 約 14 GB，全能力開啓仍留足餘量 |
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+<strong>edge 怎麼裝：</strong><code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code>（或 <code>... install_linux.sh edge install</code>）。首次安裝互動選單亦可選檔；詳情見上方 <a href="#-快速開始">快速開始</a>。
+</p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
 <strong>安裝選型與資源符合性（實測）：</strong>
 </p>
 
-| | | |
-|:---:|:---:|:---:|
-| ![邊緣盒子 mini](.image/deploy-profile-mini.png) | ![AI 一體攝像頭 standard](.image/deploy-profile-standard.png) | ![全棧一體機 full](.image/deploy-profile-full.png) |
+| | |
+|:---:|:---:|
+| ![邊緣單機 edge](.image/deploy-profile-edge.png) | ![邊緣盒子 mini](.image/deploy-profile-mini.png) |
+| ![AI 一體攝像頭 standard](.image/deploy-profile-standard.png) | ![全棧一體機 full](.image/deploy-profile-full.png) |
 
 #### 🧠 AI能力
 
@@ -509,8 +558,8 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、NODE、VIDEO、RTC、AI、RUNTIME、VIS
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>官方價值入口</strong>：面向訪客、集成商與終端客戶的獨立官方網站，把「雲邊端一體化」講清楚——先理解價值，再進入下載與部署</li>
-    <li><strong>縮短認知路徑</strong>：產品特性、三檔硬體選型、安裝包入口與文件導覽同站完成，減少「翻倉庫、問人、找包」的溝通成本</li>
-    <li><strong>支撐選型決策</strong>：按 mini / standard / full 呈現邊緣盒子、AI 一體攝像頭與全棧一體機適用場景，幫助現場按硬體能力一次選對檔位</li>
+    <li><strong>縮短認知路徑</strong>：產品特性、四檔硬體選型、安裝包入口與文件導覽同站完成，減少「翻倉庫、問人、找包」的溝通成本</li>
+    <li><strong>支撐選型決策</strong>：按 edge / mini / standard / full 呈現輕量單機、邊緣盒子、AI 一體攝像頭與全棧一體機適用場景，幫助現場按硬體能力一次選對檔位</li>
     <li><strong>引流到落地</strong>：官網與演示環境、開源倉庫、Releases 安裝包形成閉環，讓「看懂 → 試用 → 下載 → 裝機」可連續完成</li>
   </ul>
 </td>

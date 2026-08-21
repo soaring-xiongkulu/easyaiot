@@ -29,7 +29,50 @@
 
 EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 
-제품 소개, 기능 설명, 3단계 하드웨어 선택, 설치 패키지 다운로드와 문서 진입점을 제공하여 플랫폼 가치를 빠르게 이해하고 배포를 시작할 수 있습니다.
+제품 소개, 기능 설명, 4단계 하드웨어 선택, 설치 패키지 다운로드와 문서 진입점을 제공하여 플랫폼 가치를 빠르게 이해하고 배포를 시작할 수 있습니다.
+
+## 🚀 빠른 시작
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+README를 열자마자 모듈 이름이 잔뜩 보이고, 속으로 중얼거립니다: 「이거… 내 허접한 기계에서 돌아갈까?」 — <strong>됩니다. 겁먹지 마세요.</strong>
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+「메모리는 빠듯한데 일단 돌려보고 싶은」 분들을 위해 가장 가벼운 등급을 준비했습니다. DEVICE / MinIO / Nacos / EMQX 같은 무거운 것은 빼고 WEB + VIDEO + RUNTIME + 필수 미들웨어만 남깁니다. 작은 한 대로 폐루프 — 카메라 접속, 실시간 분석, 스마트 경보. PoC·데모·매장 파일럿에 충분합니다.
+</p>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+실측으로 말합니다: 권장 메모리 ≥ <strong>2 GB</strong>, 컨테이너 총 사용 약 <strong>1.02 GB</strong>, 여유 거의 1 GB — 「겨우겨우」가 아니라 「숨 쉴 공간」입니다. 2 GB 엣지 박스, 낡은 노트북, 클라우드 최소 사양도 먼저 탑승 가능. 성공한 뒤 올려타도 전혀 창피하지 않습니다.
+</p>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+<strong>세 단계로 탑승 (Linux 예):</strong>
+</p>
+
+```bash
+git clone https://gitee.com/volara/easyaiot.git
+cd easyaiot
+
+# 방식 A: 환경 변수로 가장 가벼운 등급 고정 (권장)
+EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+
+# 방식 B: 단축 별칭 (동일)
+# sudo bash .scripts/docker/install_linux.sh edge install
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+설치 후 브라우저에서 <code>http://&lt;서버IP&gt;:8888</code> — 기본 계정 <code>admin</code> / <code>admin123</code>. 검증:
+</p>
+
+```bash
+.scripts/docker/install_linux.sh verify
+# 선택: 메모리가 등급 한도 안인지 한 번 더 확인
+.scripts/docker/install_linux.sh resources
+```
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 12px 0 8px 0;">
+💡 전제는 가볍습니다: Docker + Compose만 있으면 됩니다. CentOS / ARM / Kylin / openEuler 진입 스크립트는 <a href=".doc/部署文档/平台部署文档_ko.md" style="color: #3498db; text-decoration: none; font-weight: 600;">플랫폼 배포 문서</a>; 업무 조작은 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">조작 매뉴얼</a>. 더 큰 장비·더 많은 기능? 아래로 「네 가지 하드웨어」에서 고르면 됩니다 — 여기는 설치 공포만 먼저 내려놓게 하려는 곳입니다.
+</p>
 
 ## 📖 프로젝트 소개
 
@@ -38,11 +81,11 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-많은 스마트 IoT 프로젝트가 배포 단계에서 같은 벽에 부딪힙니다. 영상 시스템, 디바이스 플랫폼, 알고리즘 서비스가 각각 분리되어 있어 통합 비용이 높고, 운영이 파편화되며, 확장이 어렵습니다. <strong>EasyAIoT는 하나의 플랫폼으로 이 모순을 해소합니다</strong>—동일한 소프트웨어를 4 GB 엣지 박스에 배포해 단일 지점 지능을 구현하거나, AI 일체형 카메라에 탑재해 층 단위 커버리지를 달성하거나, 기업용 풀스택 어플라이언스에 탑재해 IoT 관리, 대규모 영상 접속, AI 분석 판단을 한 상자에 담을 수 있습니다. 여러 버전을 유지하거나 이기종 시스템을 반복 연동할 필요가 없습니다.
+많은 스마트 IoT 프로젝트가 배포 단계에서 같은 벽에 부딪힙니다. 영상 시스템, 디바이스 플랫폼, 알고리즘 서비스가 각각 분리되어 있어 통합 비용이 높고, 운영이 파편화되며, 확장이 어렵습니다. <strong>EasyAIoT는 하나의 플랫폼으로 이 모순을 해소합니다</strong>—동일한 소프트웨어를 <strong>2 GB</strong> 엣지 단기기(edge)에서 먼저 지능 폐루프를 돌리거나, 4–8 GB 엣지 박스(mini)에 단일 지점 지능을 올리거나, AI 일체형 카메라로 층 단위 커버리지를 달성하거나, 기업용 풀스택 어플라이언스에 IoT 관리·대규모 영상 접속·AI 분석 판단을 한 상자에 담을 수 있습니다. 여러 버전을 유지하거나 이기종 시스템을 반복 연동할 필요가 없습니다.
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME 네이티브 고속 실행 계층</strong>(컴파일 바이너리가 풀링·디코딩·YOLO 추론·박스 푸시·다중 원본 전달을 담당 — 인터프리터 경로 대비 CPU/메모리 더 낮고 지연 더 안정; 단일 바이너리가 실시간 / 스냅샷 / 순찰 / 전달을 커버), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리와 <strong>EDGE C# 엣지 수집 런타임</strong>이 현장에서 Modbus RTU/TCP, OPC UA 등 산업 프로토콜 수집, 로컬 스케줄링, MQTT 클라우드-엣지 연동을 플러그인형 수집기로 담당하며, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·3단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 하며; <strong>IDEA 커뮤니티 온라인 IDE</strong>로 기여자가 브라우저에서 전체 저장소를 열고 GitHub Copilot으로 공동 창작하며, 변경분을 로컬에 배포하고 PR을 제출할 수 있게 해 오픈소스 협업을 「먼저 환경 구성」에서 「열고 바로 수정」으로 바꿉니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME 네이티브 고속 실행 계층</strong>(컴파일 바이너리가 풀링·디코딩·YOLO 추론·박스 푸시·다중 원본 전달을 담당 — 인터프리터 경로 대비 CPU/메모리 더 낮고 지연 더 안정; 단일 바이너리가 실시간 / 스냅샷 / 순찰 / 전달을 커버), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리와 <strong>EDGE C# 엣지 수집 런타임</strong>이 현장에서 Modbus RTU/TCP, OPC UA 등 산업 프로토콜 수집, 로컬 스케줄링, MQTT 클라우드-엣지 연동을 플러그인형 수집기로 담당하며, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·4단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 하며; <strong>IDEA 커뮤니티 온라인 IDE</strong>로 기여자가 브라우저에서 전체 저장소를 열고 GitHub Copilot으로 공동 창작하며, 변경분을 로컬에 배포하고 PR을 제출할 수 있게 해 오픈소스 협업을 「먼저 환경 구성」에서 「열고 바로 수정」으로 바꿉니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -68,7 +111,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>인수 주기 단축</strong>: 도착 후 mini / standard / full 중 하나를 골라 설치하고 진행·결과를 현장에서 확인 — 명령 누락·단계 누락으로 「중간에 멈춤」 감소; PoC와 정식 납품 모두 인수에 더 빨리 도달</li>
+  <li><strong>인수 주기 단축</strong>: 도착 후 edge / mini / standard / full 중 하나를 골라 설치하고 진행·결과를 현장에서 확인 — 명령 누락·단계 누락으로 「중간에 멈춤」 감소; PoC와 정식 납품 모두 인수에 더 빨리 도달</li>
   <li><strong>상주·원격 비용 절감</strong>: 컨테이너 가동·자원 압박·로그 정체 지점이 한눈에 — 문서부터 뒤지거나 개발 지원을 기다리지 않고 재시작·캐시 정리·이미지 pull; 당직자가 흔한 장애를 자체 처리</li>
   <li><strong>다수 프로젝트 동일 기준</strong>: 동일 설치·운영 진입점을 다수 일체형·다수 기기에 재사용 — 납품·당직·인수인계 기준을 맞추고 「현장마다 구두 전승」을 피함</li>
 </ul>
@@ -180,25 +223,31 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 | ![IDEA 로그인](.image/banner/banner1203.png) | ![IDEA 워크스페이스](.image/banner/banner1204.png) | ![IDEA 개발](.image/banner/banner1205.png) |
 | ![AI 어시스턴트 대화](.image/banner/banner1210.png) | ![AI 어시스턴트 분석](.image/banner/banner1211.png) | ![AI 어시스턴트 협업](.image/banner/banner1212.png) |
 
-### 🎯 세 가지 하드웨어, 하나의 플랫폼
+### 🎯 네 가지 하드웨어, 하나의 플랫폼
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-많은 지능형 IoT 프로젝트가 배포 단계에서 막힙니다. <strong>기능을 모두 넣으면 작은 기기에 안 들어가고, 들어가게 하려면 기능을 줄이고 버전을 나누고 여러 배포 패키지를 유지해야 합니다.</strong> EasyAIoT는 하나의 플랫폼으로 이 딜레마를 해결합니다 — <strong>엣지 박스로 점 단위 지능, AI 일체형 카메라로 벽면 즉시 분석, AIoT 풀스택 일체기로 한 박스에 전체 스택</strong>. 현장 하드웨어에 맞는 등급을 선택하면, 단일 지점 시범부터 층면 커버리지, 풀스택 납품까지 동일 소프트웨어로 진행 — 버전 분리 없음.
+많은 지능형 IoT 프로젝트가 배포 단계에서 막힙니다. <strong>기능을 모두 넣으면 작은 기기에 안 들어가고, 들어가게 하려면 기능을 줄이고 버전을 나누고 여러 배포 패키지를 유지해야 합니다.</strong> EasyAIoT는 하나의 플랫폼으로 이 딜레마를 해결합니다 — <strong>edge 초경량 단기기 합장</strong>부터 <strong>엣지 박스로 점 단위 지능, AI 일체형 카메라로 벽면 즉시 분석, AIoT 풀스택 일체기로 한 박스에 전체 스택</strong>까지. 네 가지 흔한 현장 하드웨어 중 하나를 고르면, 「일단 기동」부터 단일 지점 시범·층면 커버리지·풀스택 납품까지 동일 소프트웨어로 진행 — 버전 분리 없음.
 </p>
 
 | 등급 | 대표 하드웨어 (예) | 권장 메모리 | 할 수 있는 것 | 실측 검증 |
 | :-- | :-- | :--: | :-- | :--: |
+| **edge** 엣지 단기기 | <strong>경량 엣지 단기기</strong> (2 GB 산업용 PC, 낡은 노트북, 클라우드 최소 사양, 매장 시범기) | ≥ 2 GB | <strong>한 대로 먼저 폐루프</strong>: WEB + VIDEO + RUNTIME; 카메라 접속·실시간 분석·스마트 경보; DEVICE 없음, 로그인은 VIDEO 주도 | 약 **1.02 GB**, 여유 거의 1 GB |
 | **mini** 엣지 경량판 | <strong>엣지 박스</strong> (8 GB 산업용 PC, 매장 보안 일체기, 현장 게이트웨이) | ≥ 8 GB | <strong>한 지점에 지능 설치</strong>: 카메라 접속·실시간 분석·스마트 경보·모델 추론; 이벤트 평면은 standard/full과 동일(Gateway + iot-sink + EMQX) | 약 4–6 GB, 여유 충분 |
 | **standard** 표준판 | <strong>AI 일체형 카메라</strong> (스마트 카메라 단말, 연산 내장 AI 감시 카메라, 다목 AI 분석 일체기) | ≥ 16 GB | <strong>각 카메라가 스마트 노드</strong>: 다수 카메라 벽면 배치로 층/단지 커버, 장치·규칙·연산 통합 오케스트레이션 | 약 10 GB, 안정적 여유 |
 | **full** 완전판 (기본) | <strong>AIoT 풀스택 일체기</strong> (엔터프라이즈 풀스택 지능관제 일체기, 산업 IoT 풀스택 호스트, 클라우드-엣지-디바이스 통합 플랫폼) | ≥ 20 GB | <strong>한 박스에 IoT + 영상 + AI</strong>: 장치 통합관리·대량 접속·지능 분석·지휘 판단 일체화, 전량 역량 장기 안정 | 약 14 GB, 전 기능 여유 확보 |
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
+<strong>edge 설치:</strong> <code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code> (또는 <code>... install_linux.sh edge install</code>). 최초 설치 대화형 메뉴에서도 선택 가능; 자세한 내용은 위 <a href="#-빠른-시작">빠른 시작</a> 참고.
+</p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
 <strong>설치 등급 선택 및 리소스 적합성 (실측):</strong>
 </p>
 
-| | | |
-|:---:|:---:|:---:|
-| ![엣지 박스 mini](.image/deploy-profile-mini.png) | ![AI 일체형 카메라 standard](.image/deploy-profile-standard.png) | ![풀스택 일체형 full](.image/deploy-profile-full.png) |
+| | |
+|:---:|:---:|
+| ![엣지 단기기 edge](.image/deploy-profile-edge.png) | ![엣지 박스 mini](.image/deploy-profile-mini.png) |
+| ![AI 일체형 카메라 standard](.image/deploy-profile-standard.png) | ![풀스택 일체형 full](.image/deploy-profile-full.png) |
 
 #### 🧠 AI 기능
 
@@ -499,8 +548,8 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, NODE, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TR
 <td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>공식 가치 진입점</strong>: 방문자·통합사·최종 고객을 위한 독립 공식 웹사이트 — 클라우드-엣지-디바이스 통합 가치를 명확히 설명한 뒤 다운로드와 배포로 안내</li>
-    <li><strong>인지 경로 단축</strong>: 제품 특성, 3단계 하드웨어 선택, 설치 패키지, 문서를 한 사이트에서 제공 — 저장소 검색·문의·패키지 찾기 비용 감소</li>
-    <li><strong>선택 의사결정 지원</strong>: mini / standard / full로 엣지 박스, AI 일체형 카메라, 풀스택 일체기 시나리오를 제시해 현장에서 한 번에 맞는 등급을 선택</li>
+    <li><strong>인지 경로 단축</strong>: 제품 특성, 4단계 하드웨어 선택, 설치 패키지, 문서를 한 사이트에서 제공 — 저장소 검색·문의·패키지 찾기 비용 감소</li>
+    <li><strong>선택 의사결정 지원</strong>: edge / mini / standard / full로 경량 단기기, 엣지 박스, AI 일체형 카메라, 풀스택 일체기 시나리오를 제시해 현장에서 한 번에 맞는 등급을 선택</li>
     <li><strong>관심에서 설치까지</strong>: 공식 사이트, 데모, 오픈소스 저장소, Releases가 하나의 흐름을 형성 — 이해 → 체험 → 다운로드 → 설치</li>
   </ul>
 </td>
