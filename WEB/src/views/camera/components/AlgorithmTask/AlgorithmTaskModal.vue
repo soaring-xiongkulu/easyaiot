@@ -471,6 +471,14 @@ const loadModels = async () => {
     // 即使加载失败，也确保默认模型显示
     modelOptions.value = defaultModels;
   }
+
+  // BasicForm cloneDeep schema：必须把 options 写回 schema，否则下拉仍是初始默认项
+  updateSchema({
+    field: 'model_ids',
+    componentProps: {
+      options: modelOptions.value,
+    },
+  });
 };
 
 const refreshAlertClassOptions = async (modelIds: unknown, selectedNames?: string[]) => {
@@ -1533,7 +1541,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'device_ids', componentProps: { disabled: true } },
         { field: 'cron_expression', componentProps: { disabled: true } },
         { field: 'frame_skip', componentProps: { disabled: true } },
-        { field: 'model_ids', componentProps: { disabled: true } },
+        { field: 'model_ids', componentProps: { disabled: true, options: modelOptions.value } },
         { field: 'extract_interval', componentProps: { disabled: true } },
         { field: 'detect_conf', componentProps: { disabled: true } },
         { field: 'motion_gate_enabled', componentProps: { disabled: true } },
@@ -1564,7 +1572,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'device_ids', componentProps: { disabled: false } },
         { field: 'cron_expression', componentProps: { disabled: false } },
         { field: 'frame_skip', componentProps: { disabled: false } },
-        { field: 'model_ids', componentProps: { disabled: false } },
+        { field: 'model_ids', componentProps: { disabled: false, options: modelOptions.value } },
         { field: 'extract_interval', componentProps: { disabled: false } },
         { field: 'detect_conf', componentProps: { disabled: false } },
         { field: 'tracking_enabled', componentProps: { disabled: false } },
@@ -1595,7 +1603,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       { field: 'device_ids', componentProps: { disabled: false } },
       { field: 'cron_expression', componentProps: { disabled: false } },
       { field: 'frame_skip', componentProps: { disabled: false } },
-      { field: 'model_ids', componentProps: { disabled: false } },
+      { field: 'model_ids', componentProps: { disabled: false, options: modelOptions.value } },
       { field: 'extract_interval', componentProps: { disabled: false } },
       { field: 'detect_conf', componentProps: { disabled: false } },
       { field: 'tracking_enabled', componentProps: { disabled: false } },
