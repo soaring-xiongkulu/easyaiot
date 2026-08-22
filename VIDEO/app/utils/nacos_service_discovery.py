@@ -1,10 +1,12 @@
-"""Nacos 服务发现（与 AI/app/utils/nacos_service_discovery 对齐，供 POST 探活/模板推送）。"""
+"""
+Nacos 服务发现（VIDEO 模块）。
+"""
 from __future__ import annotations
 
 import logging
 import os
 import random
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +17,9 @@ def get_nacos_client():
     global _nacos_client
     if _nacos_client is not None:
         return _nacos_client
-    if not (os.getenv('NACOS_SERVER') or '').strip():
-        return None
     try:
         from nacos import NacosClient
+
         _nacos_client = NacosClient(
             server_addresses=os.getenv('NACOS_SERVER', 'localhost:8848'),
             namespace=os.getenv('NACOS_NAMESPACE', ''),
@@ -26,65 +27,78 @@ def get_nacos_client():
             password=os.getenv('NACOS_PASSWORD', 'basiclab@iot78475418754'),
         )
         return _nacos_client
-    except Exception as e:
-        logger.warning('Nacos 客户端不可用: %s', e)
+    except Exception as exc:
+        logger.warning('Nacos 客户端初始化失败: %s', exc)
         return None
 
 
-def get_service_instances(service_name: str, healthy_only: bool = True) -> List[Dict]:
-    client = get_nacos_client()
-    if not client:
+def _normalize_instances(raw: Any) -> List[Dict[str, Any]]:
+    if not raw:
         return []
-    try:
-        instances = client.list_naming_instance(
-            service_name=service_name,
-            healthy_only=healthy_only,
-        )
-    except Exception as e:
-        logger.warning('list_naming_instance failed: %s', e)
+    if isinstance(raw, dict):
+        for key in ('hosts', 'instances', 'data', 'list'):
+            if key in raw and isinstance(raw[key], list):
+                raw = raw[key]
+                break
+        else:
+            if any(k in raw for k in ('ip', 'IP', 'port', 'PORT')):
+                raw = [raw]
+            else:
+                return []
+    if not isinstance(raw, list):
         return []
-    if isinstance(instances, dict):
-        instances = instances.get('hosts') or instances.get('instances') or instances.get('data') or []
-    if not isinstance(instances, list):
-        return []
-    out = []
-    for inst in instances:
+
+    out: List[Dict[str, Any]] = []
+    for inst in raw:
         if not isinstance(inst, dict):
             continue
-        ip = inst.get('ip') or inst.get('IP') or ''
-        port = inst.get('port') or inst.get('PORT') or 0
+        ip = str(inst.get('ip') or inst.get('IP') or '').strip()
+        port = inst.get('port') or inst.get('PORT') or 8089
         if not ip:
             continue
         try:
             port = int(port)
-        except Exception:
+        except (TypeError, ValueError):
             port = 8089
+        healthy = inst.get('healthy')
+        if healthy is False:
+            continue
         out.append({'ip': ip, 'port': port})
     return out
 
 
-def get_random_service_url(service_name: str) -> Optional[str]:
-    instances = get_service_instances(service_name, healthy_only=True)
-    if not instances:
-        return None
-    inst = random.choice(instances)
-    return f"http://{inst['ip']}:{inst['port']}"
+def get_service_instances(service_name: str, *, healthy_only: bool = True) -> List[Dict[str, Any]]:
+    client = get_nacos_client()
+    if not client:
+        return []
+    try:
+        raw = client.list_naming_instance(service_name=service_name, healthy_only=healthy_only)
+        return _normalize_instances(raw)
+    except Exception as exc:
+        logger.warning('Nacos 查询 %s 失败: %s', service_name, exc)
+        return []
 
 
-def post_nacos_service() -> str:
+def post_service_name() -> str:
     return (os.getenv('POST_NACOS_SERVICE') or 'easyaiot-post').strip()
 
 
-def list_post_instances() -> List[Dict]:
-    return get_service_instances(post_nacos_service(), healthy_only=True)
+def list_post_instances() -> List[Dict[str, Any]]:
+    return get_service_instances(post_service_name(), healthy_only=True)
 
 
 def pick_post_base_urls() -> List[str]:
-    """返回可用 POST base URL 列表：Nacos healthy 优先，静态 POST_BASE_URL 兜底。"""
+    explicit = (os.getenv('POST_BASE_URL') or '').strip().rstrip('/')
+    if explicit:
+        return [explicit]
     urls = []
     for inst in list_post_instances():
         urls.append(f"http://{inst['ip']}:{inst['port']}")
-    static = (os.getenv('POST_BASE_URL') or '').strip().rstrip('/')
-    if static and static not in urls:
-        urls.append(static)
     return urls
+
+
+def pick_post_base_url() -> Optional[str]:
+    urls = pick_post_base_urls()
+    if not urls:
+        return None
+    return random.choice(urls)
