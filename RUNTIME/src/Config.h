@@ -40,6 +40,8 @@ typedef struct Config {
 
     float alarmConfidenceThreshold{0.5f};
     int alarmCooldownTime{30};
+    /** 告警触发类别；为空时任意检测均可触发（与 VIDEO alert_class_filter.py 一致） */
+    std::vector<std::string> alertClassNames;
 
     std::string taskId;
     int controlPort{8000};

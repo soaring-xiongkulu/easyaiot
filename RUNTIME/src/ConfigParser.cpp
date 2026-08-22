@@ -3,6 +3,7 @@
  */
 
 #include "ConfigParser.h"
+#include "AlertClassFilter.h"
 #include "AlgoMqttBus.h"
 #include <json/json.h>
 #include <sstream>
@@ -227,6 +228,12 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 }
             } else if (key == "image_dir") {
                 config.alertImageDir = value;
+            } else if (key == "alert_class_names") {
+                config.alertClassNames = AlertClassFilter::parseAlertClassNames(value);
+                if (!config.alertClassNames.empty()) {
+                    LOG(INFO) << "[CONFIG] alert_class_names loaded: "
+                              << config.alertClassNames.size() << " labels";
+                }
             }
         }
         else if (currentSection == "task") {

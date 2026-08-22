@@ -4,6 +4,7 @@
 #include "AlgoMqttBus.h"
 #include "AlarmCallback.h"
 #include "Detech.h"
+#include "AlertClassFilter.h"
 #include "YoloThreadPool.h"
 #include "Datatype.h"
 #include "ffmpeg_hw.h"
@@ -1073,7 +1074,8 @@ void Detech::_alarmSenderThreadFunc() {
                     ev["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId) + "_" + ts;
                 }
                 try {
-                    ev["task_id"] = std::stoll(_config.taskId.empty() ? "0" : _config.taskId);
+                    ev["task_id"] = static_cast<Json::Int64>(
+                        std::stoll(_config.taskId.empty() ? "0" : _config.taskId));
                 } catch (...) {
                     ev["task_id"] = 0;
                 }
@@ -1251,7 +1253,8 @@ void Detech::_heartbeatThreadFunc() {
                     ? ((_config.taskId.empty() ? "runtime" : _config.taskId) + "_hb")
                     : "hb";
                 try {
-                    ev["task_id"] = std::stoll(_config.taskId.empty() ? "0" : _config.taskId);
+                    ev["task_id"] = static_cast<Json::Int64>(
+                        std::stoll(_config.taskId.empty() ? "0" : _config.taskId));
                 } catch (...) {
                     ev["task_id"] = 0;
                 }
@@ -1332,6 +1335,12 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
         return;
     }
 
+    const std::vector<DetectObject> filtered = AlertClassFilter::filterDetectionsForAlert(
+        detections, _config.alertClassNames);
+    if (filtered.empty()) {
+        return;
+    }
+
     std::string imagePath = _saveAlertImage(frame);
 
     {
@@ -1339,7 +1348,7 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
         if (_alarmQueue.size() >= MAX_ALARM_QUEUE_SIZE) {
             _alarmQueue.pop();
         }
-        AlarmData alarmData(detections, regionName, _get_curtime_stamp_ms(), imagePath, deviceId, deviceName);
+        AlarmData alarmData(filtered, regionName, _get_curtime_stamp_ms(), imagePath, deviceId, deviceName);
         _alarmQueue.push(std::move(alarmData));
         LOG(INFO) << "[ALARM] Alarm enqueued, queue size: " << _alarmQueue.size();
     }
