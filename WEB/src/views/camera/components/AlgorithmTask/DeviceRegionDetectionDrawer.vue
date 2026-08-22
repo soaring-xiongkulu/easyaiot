@@ -101,12 +101,13 @@ import { Button } from '@/components/Button';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getDeviceList, getDeviceInfo, type DeviceInfo } from '@/api/device/camera';
 import {
-  getDeviceRegions,
+  listDeviceRegionsSafe,
   type DeviceDetectionRegion,
 } from '@/api/device/device_detection_region';
 import { getTaskStreams, type CameraStreamInfo } from '@/api/device/algorithm_task';
 import DeviceRegionDrawer from '../DeviceRegionDrawer/index.vue';
 import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage';
+import { formatApiErrorMessage } from '@/views/camera/utils/apiErrorMessage';
 import { captureSnapshotWithQuality } from '@/views/camera/utils/deviceSnapshotCapture';
 import {
   isGb28181Device,
@@ -253,27 +254,13 @@ function parseDeviceInfo(response: unknown): DeviceInfo | null {
   return null;
 }
 
-function parseRegionsResponse(response: unknown): DeviceDetectionRegion[] {
-  if (Array.isArray(response)) return response;
-  if (response && typeof response === 'object') {
-    if ('code' in response && (response as any).code === 0 && Array.isArray((response as any).data)) {
-      return (response as any).data;
-    }
-    if ('data' in response && Array.isArray((response as any).data)) {
-      return (response as any).data;
-    }
-  }
-  return [];
-}
-
 async function prefetchDeviceMeta(device: DeviceInfo) {
   if (!taskId.value) {
     deviceRegions.value[device.id] = [];
     return;
   }
   try {
-    const response = await getDeviceRegions(device.id, taskId.value);
-    const regions = parseRegionsResponse(response);
+    const regions = await listDeviceRegionsSafe(device.id, taskId.value);
     deviceRegions.value[device.id] = regions;
 
     if (regions.length > 0 && regions[0].image_path) {
@@ -286,11 +273,12 @@ async function prefetchDeviceMeta(device: DeviceInfo) {
     if (device.cover_image_path) {
       deviceImagePaths.value[device.id] = device.cover_image_path;
     }
-  } catch {
+  } catch (error) {
     deviceRegions.value[device.id] = [];
     if (device.cover_image_path) {
       deviceImagePaths.value[device.id] = device.cover_image_path;
     }
+    console.warn('加载区域配置失败', device.id, error);
   }
 }
 
@@ -547,7 +535,7 @@ async function loadTaskDevices(id: number) {
     }
   } catch (error) {
     console.error('加载任务关联摄像头失败', error);
-    createMessage.error('加载任务关联摄像头失败');
+    createMessage.error(formatApiErrorMessage(error, '加载任务关联摄像头失败'));
     devices.value = [];
   }
 }
@@ -643,7 +631,7 @@ async function loadDevices() {
     devices.value = extractListData(response);
   } catch (error) {
     console.error('加载设备列表失败', error);
-    createMessage.error('加载设备列表失败');
+    createMessage.error(formatApiErrorMessage(error, '加载设备列表失败'));
   }
 }
 </script>
