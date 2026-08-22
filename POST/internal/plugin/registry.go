@@ -10,9 +10,13 @@ import (
 
 // BuiltinNames are always resolved in-process (never via external HTTP).
 var BuiltinNames = map[string]struct{}{
-	"region_gate":  {},
-	"default_pass": {},
-	"user_script":  {},
+	"region_gate":       {},
+	"default_pass":      {},
+	"user_script":       {},
+	"line_cross":        {},
+	"region_enter_exit": {},
+	"dwell_timer":       {},
+	"headcount_gate":    {},
 }
 
 // IsBuiltin reports whether plugin id is a platform builtin.
@@ -24,8 +28,12 @@ func IsBuiltin(id string) bool {
 // NewRegistry builds builtin registry (optionally with configured user_script).
 func NewRegistry(cfg config.Config) pipeline.Registry {
 	reg := pipeline.Registry{
-		"region_gate":  RegionGate{},
-		"default_pass": DefaultPass{},
+		"region_gate":       RegionGate{},
+		"default_pass":      DefaultPass{},
+		"line_cross":        LineCross{},
+		"region_enter_exit": RegionEnterExit{},
+		"dwell_timer":       DwellTimer{},
+		"headcount_gate":    HeadcountGate{},
 	}
 	timeout := cfg.PluginHTTPTimeout
 	if timeout <= 0 {
