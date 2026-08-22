@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 #include <opencv2/opencv.hpp>
 
+#include "AlgoMqttBus.h"
 #include "RTMPEncoder.h"
 #include "YoloThreadPool.h"
 
@@ -586,6 +587,7 @@ void Pipeline::inferLoop() {
 
             if (!lastDetections.empty()) {
                 std::vector<DetectObject> alarmDetections;
+                const bool skipRegionGate = AlgoMqttBus::postEnabled();
                 for (const auto& det : lastDetections) {
                     int x1 = static_cast<int>(det.x1);
                     int y1 = static_cast<int>(det.y1);
@@ -593,7 +595,8 @@ void Pipeline::inferLoop() {
                     int y2 = static_cast<int>(det.y2);
                     int centerX = (x1 + x2) / 2;
                     int centerY = (y1 + y2) / 2;
-                    bool inAlarmRegion = regionFn_ ? regionFn_(centerX, centerY) : true;
+                    bool inAlarmRegion = skipRegionGate ? true
+                        : (regionFn_ ? regionFn_(centerX, centerY) : true);
                     if (inAlarmRegion) {
                         detectCount++;
                         if (config_.enableAlarm && det.class_score >= config_.alarmConfidenceThreshold) {

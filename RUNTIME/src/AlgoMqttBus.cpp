@@ -5,6 +5,7 @@
 #include "AlgoMqttBus.h"
 
 #include <glog/logging.h>
+#include <httplib.h>
 #include <json/json.h>
 
 #include <arpa/inet.h>
@@ -21,6 +22,7 @@
 #include <memory>
 #include <random>
 #include <sstream>
+#include <thread>
 
 namespace {
 
@@ -384,4 +386,264 @@ bool AlgoMqttBus::publishAlert(const Config& config, const std::string& flatAler
 
 bool AlgoMqttBus::publishPostProcess(const Config& config, const std::string& payloadJson) {
     return publishRaw(config, "mqtt/iot-post-process-request", "post_process.request", payloadJson);
+}
+
+bool AlgoMqttBus::postEnabled() {
+    const char* env = std::getenv("POST_ENABLED");
+    // v1.7 default true when unset for Phase1 cutover; empty treated as true
+    if (!env || !*env) return true;
+    std::string v(env);
+    for (auto& c : v) {
+        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+    }
+    return v == "1" || v == "true" || v == "yes" || v == "on";
+}
+
+bool AlgoMqttBus::postFailoverOpen() {
+    const char* env = std::getenv("POST_FAILOVER_OPEN");
+    if (!env || !*env) return true;
+    std::string v(env);
+    for (auto& c : v) {
+        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+    }
+    return v == "1" || v == "true" || v == "yes" || v == "on";
+}
+
+std::string AlgoMqttBus::postBaseUrl() {
+    const char* env = std::getenv("POST_BASE_URL");
+    std::string u = (env && *env) ? env : "";
+    while (!u.empty() && (u.back() == '/' || u.back() == ' ')) u.pop_back();
+    return u;
+}
+
+int AlgoMqttBus::healthIntervalSec() {
+    const char* env = std::getenv("POST_HEALTH_INTERVAL_SEC");
+    if (!env || !*env) return 5;
+    int n = std::atoi(env);
+    return n > 0 ? n : 5;
+}
+
+int AlgoMqttBus::healthFailThreshold() {
+    const char* env = std::getenv("POST_HEALTH_FAIL_THRESHOLD");
+    if (!env || !*env) return 3;
+    int n = std::atoi(env);
+    return n > 0 ? n : 3;
+}
+
+namespace {
+std::atomic<bool> g_postReady{true};
+std::atomic<int> g_failStreak{0};
+std::atomic<int> g_okStreak{0};
+std::atomic<bool> g_healthStarted{false};
+
+bool parseHttpUrlParts(const std::string& url, std::string& host, int& port, std::string& path) {
+    // minimal http://host:port/path
+    std::string u = url;
+    if (u.rfind("http://", 0) == 0) u = u.substr(7);
+    else if (u.rfind("https://", 0) == 0) u = u.substr(8);
+    path = "/";
+    auto slash = u.find('/');
+    std::string hostPort = slash == std::string::npos ? u : u.substr(0, slash);
+    if (slash != std::string::npos) path = u.substr(slash);
+    auto colon = hostPort.rfind(':');
+    if (colon != std::string::npos) {
+        host = hostPort.substr(0, colon);
+        port = std::atoi(hostPort.substr(colon + 1).c_str());
+        if (port <= 0) port = 80;
+    } else {
+        host = hostPort;
+        port = 80;
+    }
+    return !host.empty();
+}
+
+std::string envOr(const char* key, const char* def) {
+    const char* v = std::getenv(key);
+    if (v && *v) return std::string(v);
+    return std::string(def);
+}
+
+bool probeReadyzAt(const std::string& base) {
+    std::string host;
+    int port = 80;
+    std::string unusedPath = "/";
+    if (!parseHttpUrlParts(base, host, port, unusedPath)) return false;
+    httplib::Client cli(host, port);
+    cli.set_connection_timeout(2, 0);
+    cli.set_read_timeout(2, 0);
+    auto res = cli.Get("/readyz");
+    if (!res || res->status != 200) return false;
+    Json::Value root;
+    Json::CharReaderBuilder rb;
+    std::string errs;
+    std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
+    if (reader->parse(res->body.data(), res->body.data() + res->body.size(), &root, &errs)) {
+        if (root.isMember("ready")) return root["ready"].asBool();
+    }
+    return true;
+}
+
+/** v1.9: Nacos list healthy_only for POST service; empty NACOS_SERVER → skip. */
+bool nacosHasHealthyPost() {
+    std::string server = envOr("NACOS_SERVER", "");
+    if (server.empty()) return false;
+    if (server.rfind("http://", 0) != 0 && server.rfind("https://", 0) != 0) {
+        server = "http://" + server;
+    }
+    while (!server.empty() && server.back() == '/') server.pop_back();
+
+    std::string host;
+    int port = 8848;
+    std::string path;
+    if (!parseHttpUrlParts(server, host, port, path)) return false;
+
+    std::string service = envOr("POST_NACOS_SERVICE", "easyaiot-post");
+    std::string group = envOr("NACOS_GROUP", "DEFAULT_GROUP");
+    std::string ns = envOr("NACOS_NAMESPACE", "");
+    std::string user = envOr("NACOS_USERNAME", "nacos");
+    std::string pass = envOr("NACOS_PASSWORD", "nacos");
+
+    std::ostringstream qs;
+    qs << "/nacos/v1/ns/instance/list?serviceName=" << httplib::detail::encode_query_param(service)
+       << "&healthyOnly=true&groupName=" << httplib::detail::encode_query_param(group)
+       << "&username=" << httplib::detail::encode_query_param(user)
+       << "&password=" << httplib::detail::encode_query_param(pass);
+    if (!ns.empty()) {
+        qs << "&namespaceId=" << httplib::detail::encode_query_param(ns);
+    }
+
+    httplib::Client cli(host, port);
+    cli.set_connection_timeout(2, 0);
+    cli.set_read_timeout(2, 0);
+    auto res = cli.Get(qs.str().c_str());
+    if (!res || res->status != 200) return false;
+
+    Json::Value root;
+    Json::CharReaderBuilder rb;
+    std::string errs;
+    std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
+    if (!reader->parse(res->body.data(), res->body.data() + res->body.size(), &root, &errs)) {
+        return false;
+    }
+    const Json::Value& hosts = root["hosts"];
+    if (!hosts.isArray()) return false;
+    for (const auto& h : hosts) {
+        if (!h.isObject()) continue;
+        bool healthy = true;
+        if (h.isMember("healthy") && h["healthy"].isBool()) healthy = h["healthy"].asBool();
+        std::string ip = h.get("ip", "").asString();
+        int p = h.get("port", 0).asInt();
+        if (healthy && !ip.empty() && p > 0) return true;
+    }
+    return false;
+}
+}  // namespace
+
+bool AlgoMqttBus::probePostReady() {
+    // v1.9 主路径：Nacos healthy 实例数 > 0
+    if (nacosHasHealthyPost()) {
+        return true;
+    }
+    // 静态兜底抽检 /readyz
+    std::string base = postBaseUrl();
+    if (base.empty()) return false;
+    return probeReadyzAt(base);
+}
+
+void AlgoMqttBus::ensureHealthProbe() {
+    if (!postEnabled()) return;
+    bool expected = false;
+    if (!g_healthStarted.compare_exchange_strong(expected, true)) return;
+
+    // initial probe
+    bool ok = probePostReady();
+    if (!ok) {
+        g_failStreak.store(healthFailThreshold());
+        g_postReady.store(false);
+        LOG(WARNING) << "[POST-HEALTH] initial readyz failed → bypass if FAILOVER_OPEN";
+    } else {
+        g_postReady.store(true);
+    }
+
+    std::thread([]() {
+        const int thr = healthFailThreshold();
+        const int interval = healthIntervalSec();
+        while (true) {
+            bool ok = probePostReady();
+            if (ok) {
+                g_failStreak.store(0);
+                int okSt = g_okStreak.fetch_add(1) + 1;
+                if (!g_postReady.load() && okSt >= thr) {
+                    g_postReady.store(true);
+                    LOG(INFO) << "[POST-HEALTH] recovered → exit bypass";
+                }
+            } else {
+                g_okStreak.store(0);
+                int fs = g_failStreak.fetch_add(1) + 1;
+                if (g_postReady.load() && fs >= thr) {
+                    g_postReady.store(false);
+                    LOG(WARNING) << "[POST-HEALTH] failed " << thr << "x → bypass";
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(interval));
+        }
+    }).detach();
+}
+
+bool AlgoMqttBus::postIsReady() {
+    ensureHealthProbe();
+    return g_postReady.load();
+}
+
+bool AlgoMqttBus::postInBypass() {
+    if (!postEnabled()) return false;
+    if (!postFailoverOpen()) return false;
+    return !postIsReady();
+}
+
+bool AlgoMqttBus::shouldPublishInferEvent() {
+    if (!postEnabled()) return false;
+    if (postFailoverOpen() && !postIsReady()) return false;
+    return true;
+}
+
+bool AlgoMqttBus::publishBytes(const Config& config, const std::string& topic, const std::string& body, int /*qos*/) {
+    if (!busEnabled(config)) return false;
+    auto brokers = resolveBrokers(config);
+    if (brokers.empty()) {
+        LOG(WARNING) << "[AlgoMqttBus] MQTT_BROKER_URLS empty, skip topic=" << topic;
+        return false;
+    }
+    std::string username = config.mqttUsername;
+    if (username.empty()) {
+        const char* env = std::getenv("MQTT_ALGO_USERNAME");
+        if (env) username = env;
+    }
+    std::string password = config.mqttPassword;
+    if (password.empty()) {
+        const char* env = std::getenv("MQTT_ALGO_PASSWORD");
+        if (env) password = env;
+    }
+    std::string clientBase = config.mqttClientId;
+    if (clientBase.empty()) {
+        const char* env = std::getenv("MQTT_ALGO_CLIENT_ID");
+        clientBase = env && *env ? env : "algo-runtime-bus";
+    }
+    std::string clientId = clientBase + "-infer-" + makeUuid().substr(0, 8);
+
+    for (const auto& bp : brokers) {
+        if (mqttPublishOnce(bp.first, bp.second, clientId, username, password, topic, body)) {
+            LOG(INFO) << "[AlgoMqttBus] InferEvent published topic=" << topic
+                      << " broker=" << bp.first << ":" << bp.second;
+            return true;
+        }
+    }
+    LOG(ERROR) << "[AlgoMqttBus] InferEvent publish failed topic=" << topic;
+    return false;
+}
+
+bool AlgoMqttBus::publishInferEvent(const Config& config, const std::string& inferEventJson) {
+    const char* topicEnv = std::getenv("TOPIC_INFER_EVENT");
+    std::string topic = (topicEnv && *topicEnv) ? topicEnv : "mqtt/iot-infer-event";
+    return publishBytes(config, topic, inferEventJson, 1);
 }

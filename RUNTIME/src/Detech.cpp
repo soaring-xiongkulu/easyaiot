@@ -1063,7 +1063,67 @@ void Detech::_alarmSenderThreadFunc() {
             std::string jsonStr = Json::writeString(writer, root);
 
             const bool snapshot = (_config.taskType == "snap" || _config.taskType == "snapshot");
-            if (AlgoMqttBus::busEnabled(_config)) {
+            AlgoMqttBus::ensureHealthProbe();
+            if (AlgoMqttBus::shouldPublishInferEvent()) {
+                Json::Value ev;
+                ev["schema"] = "infer_event.v1";
+                ev["event_kind"] = "infer";
+                ev["correlation_id"] = root.get("correlation_id", "").asString();
+                if (ev["correlation_id"].asString().empty()) {
+                    ev["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId) + "_" + ts;
+                }
+                try {
+                    ev["task_id"] = std::stoll(_config.taskId.empty() ? "0" : _config.taskId);
+                } catch (...) {
+                    ev["task_id"] = 0;
+                }
+                ev["task_name"] = _config.algorithmName;
+                ev["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
+                ev["device_id"] = did;
+                ev["device_name"] = dname;
+                ev["timestamp"] = ts;
+                ev["frame_width"] = _videoWidth;
+                ev["frame_height"] = _videoHeight;
+                ev["image_path"] = alarmData.imagePath;
+                Json::Value dets(Json::arrayValue);
+                for (const auto& det : alarmData.detections) {
+                    Json::Value d;
+                    d["class_name"] = det.class_name;
+                    d["confidence"] = det.class_score;
+                    d["class_id"] = det.class_id;
+                    d["track_id"] = 0;
+                    Json::Value bbox(Json::arrayValue);
+                    bbox.append(det.x1);
+                    bbox.append(det.y1);
+                    bbox.append(det.x2);
+                    bbox.append(det.y2);
+                    d["bbox"] = bbox;
+                    dets.append(d);
+                }
+                ev["detections"] = dets;
+                ev["model_ids"] = Json::arrayValue;
+                std::string inferJson = Json::writeString(writer, ev);
+                if (AlgoMqttBus::publishInferEvent(_config, inferJson)) {
+                    LOG(INFO) << "[ALARM-THREAD] InferEvent published device=" << did;
+                } else {
+                    LOG(ERROR) << "[ALARM-THREAD] InferEvent publish failed device=" << did;
+                }
+            } else if (AlgoMqttBus::busEnabled(_config)) {
+                if (AlgoMqttBus::postInBypass()) {
+                    Json::Value infoObj;
+                    Json::CharReaderBuilder rb;
+                    std::string errs;
+                    std::string infoStr = root.get("information", "{}").asString();
+                    std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
+                    if (!reader->parse(infoStr.data(), infoStr.data() + infoStr.size(), &infoObj, &errs)) {
+                        infoObj = Json::objectValue;
+                    }
+                    infoObj["post_bypass"] = true;
+                    infoObj["post_bypass_reason"] = "post_unready";
+                    root["information"] = Json::writeString(compact, infoObj);
+                    jsonStr = Json::writeString(writer, root);
+                    LOG(WARNING) << "[ALARM-THREAD] POST bypass direct alert device=" << did;
+                }
                 if (AlgoMqttBus::publishAlert(_config, jsonStr, snapshot)) {
                     LOG(INFO) << "[ALARM-THREAD] MQTT alert published device=" << did;
                 } else {
@@ -1101,16 +1161,14 @@ void Detech::_alarmSenderThreadFunc() {
 }
 
 void Detech::_startHeartbeatThread() {
-    if (_config.heartbeatUrl.empty()) {
-        LOG(INFO) << "[HEARTBEAT] heartbeat_url not set, heartbeat disabled";
-        return;
-    }
+    // Always start: VIDEO HTTP heartbeat (if URL) + InferEvent heartbeat (POST)
     if (_heartbeatRunning.load()) {
         return;
     }
     _heartbeatRunning.store(true);
     _heartbeatThread = std::thread(&Detech::_heartbeatThreadFunc, this);
-    LOG(INFO) << "[HEARTBEAT] thread started -> " << _config.heartbeatUrl;
+    LOG(INFO) << "[HEARTBEAT] thread started"
+              << (_config.heartbeatUrl.empty() ? " (InferEvent only)" : (" -> " + _config.heartbeatUrl));
 }
 
 void Detech::_stopHeartbeatThread() {
@@ -1128,9 +1186,11 @@ void Detech::_heartbeatThreadFunc() {
     std::string host;
     int port = 80;
     std::string path = "/video/algorithm/heartbeat/realtime";
-    if (!parseHttpUrl(_config.heartbeatUrl, host, port, path)) {
+    bool httpOk = false;
+    if (!_config.heartbeatUrl.empty() && parseHttpUrl(_config.heartbeatUrl, host, port, path)) {
+        httpOk = true;
+    } else if (!_config.heartbeatUrl.empty()) {
         LOG(ERROR) << "[HEARTBEAT] invalid URL: " << _config.heartbeatUrl;
-        return;
     }
     httplib::Client client(host, port);
     client.set_connection_timeout(3, 0);
@@ -1138,35 +1198,92 @@ void Detech::_heartbeatThreadFunc() {
     client.set_write_timeout(3, 0);
 
     int interval = _config.heartbeatIntervalSec > 0 ? _config.heartbeatIntervalSec : 10;
+    int inferHbSec = 60;
+    if (const char* env = std::getenv("INFER_HEARTBEAT_SEC")) {
+        int n = std::atoi(env);
+        if (n >= 15) inferHbSec = n;
+    }
+    auto lastInferHb = std::chrono::steady_clock::now() - std::chrono::seconds(inferHbSec);
+
+    AlgoMqttBus::ensureHealthProbe();
+
     while (_heartbeatRunning.load() && _isRun) {
         try {
-            Json::Value root;
-            int taskIdNum = 0;
-            try {
-                taskIdNum = std::stoi(_config.taskId);
-            } catch (...) {
-                taskIdNum = 0;
-            }
-            root["task_id"] = taskIdNum;
-            root["server_ip"] = "127.0.0.1";
-            root["port"] = _config.controlPort;
-            root["process_id"] = static_cast<int>(::getpid());
-            root["log_path"] = _config.logPath;
-            if (_patrolScheduler) {
-                root["total_patrols"] = (Json::UInt64)_patrolScheduler->totalPatrols.load();
-                root["total_detections"] = (Json::UInt64)_patrolScheduler->totalDetections.load();
-            }
-            Json::StreamWriterBuilder writer;
-            writer["indentation"] = "";
-            std::string body = Json::writeString(writer, root);
-            auto res = client.Post(path.c_str(), body, "application/json");
-            if (!(res && res->status == 200)) {
-                LOG(WARNING) << "[HEARTBEAT] post failed status="
-                             << (res ? res->status : -1);
+            if (httpOk) {
+                Json::Value root;
+                int taskIdNum = 0;
+                try {
+                    taskIdNum = std::stoi(_config.taskId);
+                } catch (...) {
+                    taskIdNum = 0;
+                }
+                root["task_id"] = taskIdNum;
+                root["server_ip"] = "127.0.0.1";
+                root["port"] = _config.controlPort;
+                root["process_id"] = static_cast<int>(::getpid());
+                root["log_path"] = _config.logPath;
+                if (_patrolScheduler) {
+                    root["total_patrols"] = (Json::UInt64)_patrolScheduler->totalPatrols.load();
+                    root["total_detections"] = (Json::UInt64)_patrolScheduler->totalDetections.load();
+                }
+                Json::StreamWriterBuilder writer;
+                writer["indentation"] = "";
+                std::string body = Json::writeString(writer, root);
+                auto res = client.Post(path.c_str(), body, "application/json");
+                if (!(res && res->status == 200)) {
+                    LOG(WARNING) << "[HEARTBEAT] post failed status="
+                                 << (res ? res->status : -1);
+                }
             }
         } catch (const std::exception& e) {
             LOG(WARNING) << "[HEARTBEAT] exception: " << e.what();
         }
+
+        // InferEvent heartbeat for POST TTL (skip while bypass)
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - lastInferHb).count() >= inferHbSec) {
+            lastInferHb = now;
+            if (AlgoMqttBus::shouldPublishInferEvent()) {
+                Json::Value ev;
+                ev["schema"] = "infer_event.v1";
+                ev["event_kind"] = "heartbeat";
+                ev["correlation_id"] = AlgoMqttBus::postEnabled()
+                    ? ((_config.taskId.empty() ? "runtime" : _config.taskId) + "_hb")
+                    : "hb";
+                try {
+                    ev["task_id"] = std::stoll(_config.taskId.empty() ? "0" : _config.taskId);
+                } catch (...) {
+                    ev["task_id"] = 0;
+                }
+                ev["task_name"] = _config.algorithmName;
+                ev["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
+                ev["device_id"] = _config.deviceId.empty() ? "unknown" : _config.deviceId;
+                ev["device_name"] = _config.deviceName;
+                ev["timestamp"] = formatUtcNow();
+                ev["frame_width"] = _videoWidth;
+                ev["frame_height"] = _videoHeight;
+                ev["detections"] = Json::arrayValue;
+                ev["model_ids"] = Json::arrayValue;
+                // multi-device: also emit for each configured device
+                auto publishOne = [&](const std::string& did, const std::string& dname) {
+                    ev["device_id"] = did;
+                    ev["device_name"] = dname;
+                    ev["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId)
+                        + "_hb_" + did;
+                    Json::StreamWriterBuilder wb;
+                    wb["indentation"] = "";
+                    AlgoMqttBus::publishInferEvent(_config, Json::writeString(wb, ev));
+                };
+                if (!_config.devices.empty()) {
+                    for (const auto& d : _config.devices) {
+                        publishOne(d.deviceId, d.deviceName);
+                    }
+                } else {
+                    publishOne(ev["device_id"].asString(), _config.deviceName);
+                }
+            }
+        }
+
         for (int i = 0; i < interval * 10 && _heartbeatRunning.load() && _isRun; ++i) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
@@ -1373,8 +1490,10 @@ void Detech::_display_video_loop() {
                     int centerX = (x1 + x2) / 2;
                     int centerY = (y1 + y2) / 2;
                     
-                    // 检查是否在报警区域内
-                    bool inAlarmRegion = _isInAlarmRegion(centerX, centerY, img.cols, img.rows);
+                    // POST 启用时告警不做本地区域过滤（几何仅在 POST region_gate）
+                    bool inAlarmRegion = AlgoMqttBus::postEnabled()
+                        ? true
+                        : _isInAlarmRegion(centerX, centerY, img.cols, img.rows);
                     if (inAlarmRegion) {
                         inRegionCount++;
                         

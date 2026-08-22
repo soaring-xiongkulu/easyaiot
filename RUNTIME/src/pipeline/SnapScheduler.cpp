@@ -7,6 +7,7 @@
 #include <opencv2/geometry.hpp>
 #include <sstream>
 
+#include "AlgoMqttBus.h"
 #include "YoloThreadPool.h"
 
 namespace runtime {
@@ -198,17 +199,20 @@ void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame) {
 
     std::vector<DetectObject> alarmDetections;
     std::string regionName = "全画面";
+    const bool skipRegionGate = AlgoMqttBus::postEnabled();
     for (const auto& det : detections) {
         if (config_.enableAlarm && det.class_score < config_.alarmConfidenceThreshold) {
             continue;
         }
-        int cx = (static_cast<int>(det.x1) + static_cast<int>(det.x2)) / 2;
-        int cy = (static_cast<int>(det.y1) + static_cast<int>(det.y2)) / 2;
-        std::string matched;
-        if (!pointInRegions(config_, cx, cy, frame.cols, frame.rows, matched)) {
-            continue;
+        if (!skipRegionGate) {
+            int cx = (static_cast<int>(det.x1) + static_cast<int>(det.x2)) / 2;
+            int cy = (static_cast<int>(det.y1) + static_cast<int>(det.y2)) / 2;
+            std::string matched;
+            if (!pointInRegions(config_, cx, cy, frame.cols, frame.rows, matched)) {
+                continue;
+            }
+            regionName = matched;
         }
-        regionName = matched;
         alarmDetections.push_back(det);
     }
 
