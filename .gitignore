@@ -116,6 +116,8 @@ RUNTIME/VERSION
 RUNTIME/models/*
 !RUNTIME/models/coco.names
 RUNTIME/config/task_*.ini
+# VIDEO stream-forward 运行时自动生成（含设备凭据，勿提交；示例见 forward.example.ini）
+RUNTIME/config/forward_task_*.ini
 RUNTIME/.test-hwaccel/
 RUNTIME/.test-yolo-link/
 RUNTIME/.test-*/
