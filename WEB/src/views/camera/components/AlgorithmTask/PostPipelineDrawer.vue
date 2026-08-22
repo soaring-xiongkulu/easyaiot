@@ -54,10 +54,11 @@
 
         <div class="pp-workspace">
           <aside class="pp-panel pp-panel--library">
-            <div class="pp-panel__head">
-              <span>可选插件</span>
+            <div class="pp-panel__head pp-panel__head--library">
+              <span class="pp-panel__title">可选插件</span>
               <a-input-search
                 v-model:value="pluginSearch"
+                class="pp-panel__search"
                 allow-clear
                 placeholder="搜索"
                 size="small"
@@ -736,10 +737,28 @@ watch(localSteps, () => {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    flex-wrap: nowrap;
     padding: 12px 14px;
     font-weight: 600;
     border-bottom: 1px solid #f0f0f0;
     background: #fafafa;
+
+    &--library {
+      .pp-panel__title {
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+
+      .pp-panel__search {
+        flex: 1 1 auto;
+        min-width: 72px;
+        max-width: 148px;
+      }
+    }
+  }
+
+  &__title {
+    line-height: 1.4;
   }
 
   &__meta {
@@ -784,15 +803,27 @@ watch(localSteps, () => {
 
   &__top {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 6px;
-    padding-right: 20px;
+    padding-right: 24px;
+    min-width: 0;
+    overflow: hidden;
+
+    :deep(.ant-tag) {
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin: 0;
+    }
   }
 
   &__name {
     font-weight: 600;
     font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   &__desc {
