@@ -919,6 +919,8 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 
 | | | |
 |:---:|:---:|:---:|
+| ![영역 검출](.image/banner/banner1213.png) | ![영역 검출](.image/banner/banner1214.png) | ![영역 검출](.image/banner/banner1218.png) |
+| ![후처리 규칙 체인](.image/banner/banner1216.png) | ![후처리 규칙 체인](.image/banner/banner1217.png) | ![후처리 규칙 체인](.image/banner/banner1215.png) |
 | ![라이브](.image/banner/banner1145.jpg) | ![미리보기](.image/banner/banner1146.jpg) | ![카메라](.image/banner/banner1051.jpg) |
 | ![목록](.image/banner/banner1053.jpg) | ![푸시](.image/banner/banner1083.jpg) | ![전달](.image/banner/banner1084.jpg) |
 | ![저장](.image/banner/banner1121.png) | ![스냅샷](.image/banner/banner1122.png) | ![녹화](.image/banner/banner1123.png) |

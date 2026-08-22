@@ -929,6 +929,8 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 
 | | | |
 |:---:|:---:|:---:|
+| ![區域檢測](.image/banner/banner1213.png) | ![區域檢測](.image/banner/banner1214.png) | ![區域檢測](.image/banner/banner1218.png) |
+| ![後處理規則鏈](.image/banner/banner1216.png) | ![後處理規則鏈](.image/banner/banner1217.png) | ![後處理規則鏈](.image/banner/banner1215.png) |
 | ![直播](.image/banner/banner1145.jpg) | ![預覽](.image/banner/banner1146.jpg) | ![攝像頭](.image/banner/banner1051.jpg) |
 | ![列表](.image/banner/banner1053.jpg) | ![推流](.image/banner/banner1083.jpg) | ![轉發](.image/banner/banner1084.jpg) |
 | ![存儲](.image/banner/banner1121.png) | ![抓拍](.image/banner/banner1122.png) | ![錄像](.image/banner/banner1123.png) |
