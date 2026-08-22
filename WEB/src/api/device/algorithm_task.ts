@@ -790,3 +790,63 @@ export const listPostProcessResults = (
   });
 };
 
+// ====================== POST 后处理规则链 ======================
+export interface PostPipelineCatalogResponse {
+  builtins: Array<{
+    id: string;
+    name: string;
+    kinds: string[];
+    builtin: boolean;
+    description?: string;
+    params_schema?: Record<string, unknown>;
+    version?: string;
+  }>;
+  externals: Array<{
+    id: string;
+    name: string;
+    kinds: string[];
+    builtin: boolean;
+    description?: string;
+    params_schema?: Record<string, unknown>;
+    version?: string;
+    service?: Record<string, unknown>;
+  }>;
+}
+
+export interface PostPipelineDebugPayload {
+  pipeline_override?: AlgorithmTask['post_pipeline'];
+  until_plugin?: string;
+  task_id?: number;
+  task_name?: string;
+  task_type?: string;
+  device_ids?: string[];
+  event?: Record<string, unknown>;
+  regions?: Record<string, unknown>[];
+}
+
+export interface PostPipelineDebugResponse {
+  result?: string;
+  drop_reason?: string;
+  trace?: Array<Record<string, unknown>>;
+  alert_payload?: Record<string, unknown> | null;
+  error?: string;
+}
+
+export const getPostPipelineCatalog = () => {
+  return commonApi<PostPipelineCatalogResponse>(
+    'get',
+    `${ALGORITHM_PREFIX}/task/post-pipeline/catalog`,
+    { errorMessageMode: 'none' },
+  );
+};
+
+export const debugPostPipeline = (payload: PostPipelineDebugPayload, taskId?: number | null) => {
+  const url = taskId
+    ? `${ALGORITHM_PREFIX}/task/${taskId}/post-pipeline/debug`
+    : `${ALGORITHM_PREFIX}/task/post-pipeline/debug`;
+  return commonApi<PostPipelineDebugResponse>('post', url, {
+    data: payload,
+    errorMessageMode: 'none',
+  });
+};
+
