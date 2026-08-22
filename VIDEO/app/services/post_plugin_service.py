@@ -314,9 +314,199 @@ def delete_plugin(plugin_id: str, force: bool = False) -> None:
             if (s.status or '') == 'running':
                 raise ValueError('服务运行中，请先停止或 force=true')
     for s in svc:
+        if (s.status or '') == 'running':
+            try:
+                stop_service(plugin_id, version=s.version)
+            except Exception as exc:
+                logger.warning('stop on delete %s: %s', plugin_id, exc)
         db.session.delete(s)
     db.session.delete(row)
     db.session.commit()
+
+
+def _parse_manifest(row: PostPlugin) -> dict:
+    try:
+        return json.loads(row.manifest_json or '{}')
+    except Exception:
+        return {}
+
+
+def _get_or_create_service(plugin_id: str, version: str) -> PostPluginService:
+    svc = PostPluginService.query.filter_by(plugin_id=plugin_id, version=version).first()
+    if svc is None:
+        svc = PostPluginService(
+            plugin_id=plugin_id,
+            version=version,
+            replicas=1,
+            status='stopped',
+            deploy_mode='endpoint',
+            updated_at=_now(),
+        )
+        db.session.add(svc)
+        db.session.flush()
+    return svc
+
+
+def start_service(
+    plugin_id: str,
+    *,
+    version: Optional[str] = None,
+    deploy_mode: Optional[str] = None,
+    endpoint: Optional[str] = None,
+    replicas: Optional[int] = None,
+    target_node_id: Optional[int] = None,
+) -> PostPluginService:
+    row = get_plugin(plugin_id)
+    if not row.enabled:
+        raise ValueError('插件已禁用')
+    ver = (version or row.latest_version or '0.0.0').strip()
+    svc = _get_or_create_service(plugin_id, ver)
+    mode = (deploy_mode or svc.deploy_mode or 'endpoint').strip().lower()
+    if replicas is not None:
+        svc.replicas = max(1, int(replicas))
+
+    if mode == 'endpoint':
+        ep = (endpoint or svc.endpoint or '').strip().rstrip('/')
+        if not ep:
+            raise ValueError('endpoint 模式需要提供 endpoint')
+        svc.endpoint = ep
+        svc.deploy_mode = 'endpoint'
+        svc.status = 'running'
+        svc.binding_json = None
+        svc.updated_at = _now()
+        db.session.commit()
+        return svc
+
+    if mode != 'docker':
+        raise ValueError(f'未知 deploy_mode: {mode}')
+
+    manifest = _parse_manifest(row)
+    entry = manifest.get('entrypoint') or {}
+    image = (entry.get('image') or '').strip()
+    if not image:
+        raise ValueError('docker 模式要求 manifest.entrypoint.image')
+    container_port = int(entry.get('port') or 8091)
+    start_port = int(os.getenv('POST_PLUGIN_START_PORT', '49091'))
+
+    from app.utils import node_client
+
+    if not node_client.is_remote_deploy_enabled():
+        raise ValueError('未启用 NODE_REMOTE_DEPLOY，无法 docker 部署；请用 endpoint 模式')
+
+    bindings: List[dict] = []
+    endpoints: List[str] = []
+    _stop_docker_bindings(svc)
+
+    n = max(1, int(svc.replicas or 1))
+    assigned: List[int] = []
+    for i in range(n):
+        wid = f'{plugin_id}-v{ver}-r{i}'
+        allocation = node_client.allocate_node(
+            workload_type=WORKLOAD_TYPE,
+            workload_id=wid,
+            capabilities=None,
+            gpu_count=0,
+            prefer_gpu=False,
+            sticky=True,
+            target_node_id=target_node_id,
+            exclude_node_ids=assigned or None,
+        )
+        node_id = int(allocation['nodeId'])
+        host = allocation.get('host') or allocation.get('ip') or ''
+        prefer_port = start_port + i
+        env = {
+            'RUNTIME': 'docker',
+            'IMAGE': image,
+            'PORT': str(prefer_port),
+            'START_PORT': str(start_port),
+            'CONTAINER_PORT': str(container_port),
+            'PLUGIN_ID': plugin_id,
+            'PLUGIN_VERSION': ver,
+        }
+        result = node_client.deploy_workload(
+            node_id=node_id,
+            workload_type=WORKLOAD_TYPE,
+            workload_id=wid,
+            command=[],
+            work_dir='',
+            log_dir='',
+            env=env,
+            runtime='docker',
+            image=image,
+        )
+        port = int(result.get('port') or prefer_port)
+        ep = f'http://{host}:{port}'
+        endpoints.append(ep)
+        bindings.append({
+            'node_id': node_id,
+            'host': host,
+            'workload_id': wid,
+            'port': port,
+            'container': result.get('containerName'),
+        })
+        assigned.append(node_id)
+
+    svc.endpoint = endpoints[0] if endpoints else None
+    svc.deploy_mode = 'docker'
+    svc.status = 'running'
+    svc.binding_json = json.dumps(bindings, ensure_ascii=False)
+    svc.updated_at = _now()
+    db.session.commit()
+    return svc
+
+
+def _stop_docker_bindings(svc: PostPluginService) -> None:
+    if not svc.binding_json:
+        return
+    try:
+        bindings = json.loads(svc.binding_json)
+    except Exception:
+        return
+    if not isinstance(bindings, list):
+        return
+    from app.utils import node_client
+    for b in bindings:
+        try:
+            node_client.stop_workload(
+                node_id=int(b['node_id']),
+                workload_type=WORKLOAD_TYPE,
+                workload_id=str(b['workload_id']),
+            )
+        except Exception as exc:
+            logger.warning('stop plugin workload %s: %s', b, exc)
+
+
+def stop_service(plugin_id: str, version: Optional[str] = None) -> PostPluginService:
+    row = get_plugin(plugin_id)
+    ver = (version or row.latest_version or '').strip()
+    svc = PostPluginService.query.filter_by(plugin_id=plugin_id, version=ver).first()
+    if svc is None:
+        svc = PostPluginService.query.filter_by(plugin_id=plugin_id).first()
+    if svc is None:
+        raise ValueError('服务记录不存在')
+    if (svc.deploy_mode or '') == 'docker':
+        _stop_docker_bindings(svc)
+    svc.status = 'stopped'
+    if (svc.deploy_mode or '') == 'docker':
+        svc.endpoint = None
+        svc.binding_json = None
+    svc.updated_at = _now()
+    db.session.commit()
+    return svc
+
+
+def scale_service(plugin_id: str, replicas: int, version: Optional[str] = None) -> PostPluginService:
+    replicas = max(1, int(replicas))
+    row = get_plugin(plugin_id)
+    ver = (version or row.latest_version or '').strip()
+    svc = _get_or_create_service(plugin_id, ver)
+    svc.replicas = replicas
+    svc.updated_at = _now()
+    db.session.commit()
+    if (svc.status or '') == 'running' and (svc.deploy_mode or '') == 'docker':
+        return start_service(plugin_id, version=ver, deploy_mode='docker', replicas=replicas)
+    return svc
+
 
 
 def _lookup_endpoint(plugin_id: str, version: str = '') -> Optional[str]:
