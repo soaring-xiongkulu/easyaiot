@@ -9,40 +9,60 @@ import logging
 from typing import List, Dict, Optional
 from datetime import datetime
 
-from models import db, DeviceDetectionRegion, Device, Image
+from models import db, DeviceDetectionRegion, Device, Image, AlgorithmTask
 
 logger = logging.getLogger(__name__)
 
 
-def get_device_regions(device_id: str) -> List[DeviceDetectionRegion]:
-    """获取设备的所有检测区域"""
+def _validate_task_device(task_id: int, device_id: str) -> AlgorithmTask:
+    """校验任务存在且设备属于该任务"""
+    task = AlgorithmTask.query.get(task_id)
+    if not task:
+        raise ValueError(f"算法任务不存在: {task_id}")
+
+    device = Device.query.get(device_id)
+    if not device:
+        raise ValueError(f"设备不存在: {device_id}")
+
+    task_device_ids = {d.id for d in (task.devices or [])}
+    if device_id not in task_device_ids:
+        raise ValueError(f"设备 {device_id} 不属于算法任务 {task_id}")
+
+    return task
+
+
+def get_device_regions(device_id: str, task_id: int) -> List[DeviceDetectionRegion]:
+    """获取指定任务下设备的检测区域"""
     try:
-        regions = DeviceDetectionRegion.query.filter_by(device_id=device_id).order_by(DeviceDetectionRegion.sort_order).all()
+        _validate_task_device(task_id, device_id)
+        regions = DeviceDetectionRegion.query.filter_by(
+            device_id=device_id,
+            task_id=task_id,
+        ).order_by(DeviceDetectionRegion.sort_order).all()
         return regions
+    except ValueError:
+        raise
     except Exception as e:
         logger.error(f"获取设备检测区域失败: {str(e)}", exc_info=True)
         raise RuntimeError(f"获取设备检测区域失败: {str(e)}")
 
 
-def create_device_region(device_id: str, region_name: str, region_type: str, points: List[Dict],
+def create_device_region(device_id: str, task_id: int, region_name: str, region_type: str, points: List[Dict],
                         image_id: Optional[int] = None, color: str = '#FF5252', opacity: float = 0.3,
                         is_enabled: bool = True, sort_order: int = 0, model_ids: Optional[List[int]] = None) -> DeviceDetectionRegion:
-    """创建设备检测区域"""
+    """创建设备检测区域（绑定到算法任务）"""
     try:
-        # 验证设备是否存在
-        device = Device.query.get(device_id)
-        if not device:
-            raise ValueError(f"设备不存在: {device_id}")
-        
+        _validate_task_device(task_id, device_id)
+
         # 验证图片是否存在（如果提供了image_id）
         if image_id:
             image = Image.query.get(image_id)
             if not image:
                 raise ValueError(f"图片不存在: {image_id}")
-        
+
         # 将points转换为JSON字符串
         points_json = json.dumps(points)
-        
+
         # 处理 model_ids
         model_ids_json = None
         if model_ids:
@@ -56,8 +76,9 @@ def create_device_region(device_id: str, region_name: str, region_type: str, poi
                         model_ids_json = model_ids
                 except:
                     pass
-        
+
         region = DeviceDetectionRegion(
+            task_id=task_id,
             device_id=device_id,
             region_name=region_name,
             region_type=region_type,
@@ -69,11 +90,11 @@ def create_device_region(device_id: str, region_name: str, region_type: str, poi
             sort_order=sort_order,
             model_ids=model_ids_json
         )
-        
+
         db.session.add(region)
         db.session.commit()
-        
-        logger.info(f"创建设备检测区域成功: device_id={device_id}, region_name={region_name}")
+
+        logger.info(f"创建设备检测区域成功: task_id={task_id}, device_id={device_id}, region_name={region_name}")
         return region
     except ValueError as e:
         db.session.rollback()
@@ -90,7 +111,7 @@ def update_device_region(region_id: int, **kwargs) -> DeviceDetectionRegion:
         region = DeviceDetectionRegion.query.get(region_id)
         if not region:
             raise ValueError(f"检测区域不存在: {region_id}")
-        
+
         # 更新字段
         if 'region_name' in kwargs:
             region.region_name = kwargs['region_name']
@@ -134,10 +155,10 @@ def update_device_region(region_id: int, **kwargs) -> DeviceDetectionRegion:
                     region.model_ids = None
             else:
                 region.model_ids = None
-        
+
         region.updated_at = datetime.utcnow()
         db.session.commit()
-        
+
         logger.info(f"更新设备检测区域成功: region_id={region_id}")
         return region
     except ValueError as e:
@@ -155,10 +176,10 @@ def delete_device_region(region_id: int) -> bool:
         region = DeviceDetectionRegion.query.get(region_id)
         if not region:
             raise ValueError(f"检测区域不存在: {region_id}")
-        
+
         db.session.delete(region)
         db.session.commit()
-        
+
         logger.info(f"删除设备检测区域成功: region_id={region_id}")
         return True
     except ValueError as e:
@@ -176,11 +197,11 @@ def update_device_cover_image(device_id: str, image_path: str) -> Device:
         device = Device.query.get(device_id)
         if not device:
             raise ValueError(f"设备不存在: {device_id}")
-        
+
         device.cover_image_path = image_path
         device.updated_at = datetime.utcnow()
         db.session.commit()
-        
+
         logger.info(f"更新设备封面图成功: device_id={device_id}, image_path={image_path}")
         return device
     except ValueError as e:
@@ -190,4 +211,3 @@ def update_device_cover_image(device_id: str, image_path: str) -> Device:
         db.session.rollback()
         logger.error(f"更新设备封面图失败: {str(e)}", exc_info=True)
         raise RuntimeError(f"更新设备封面图失败: {str(e)}")
-
