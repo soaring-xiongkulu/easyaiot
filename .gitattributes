@@ -86,6 +86,10 @@ COMPILE/platforms/ubuntu/deb/copyright text eol=lf
 *.cmake        text eol=lf
 CMakeLists.txt text eol=lf
 *.ini          text eol=lf
+# Go 源码与模块定义（POST 等；Linux 构建，强制 LF）
+*.go           text eol=lf
+go.mod         text eol=lf
+go.sum         text eol=lf
 
 *.png binary
 *.jpg binary
@@ -189,6 +193,14 @@ IDEA/workspace-template/.vscode/** text eol=lf
 # TRANSFORM 运行时数据与离线构建产物：不参与 diff
 TRANSFORM/data/** -diff
 TRANSFORM/dist/** -diff
+
+# POST 本地构建产物 / vendor：不参与 diff（与 .gitignore 对齐，防误加入仓库）
+POST/bin/** -diff
+POST/out/** binary -diff
+POST/vendor/** -diff
+# POST 契约 schema / 示例 JSON（Linux 解析，强制 LF）
+POST/schemas/** text eol=lf
+POST/examples/**/*.json text eol=lf
 
 # RTC 运行时数据与 vendor 源码：不参与 diff（vendor 含嵌套 .git，体积大）
 RTC/data/** -diff
