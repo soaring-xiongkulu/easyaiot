@@ -420,6 +420,29 @@ def create_app(start_background_tasks=None):
                         db.session.commit()
                         print("✅ device_detection_region.model_ids 列添加成功")
 
+                    result = db.session.execute(text("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.columns 
+                            WHERE table_schema = 'public' 
+                            AND table_name = 'device_detection_region' 
+                            AND column_name = 'task_id'
+                        );
+                    """))
+                    task_id_exists = result.scalar()
+
+                    if not task_id_exists:
+                        print("⚠️  device_detection_region.task_id 列不存在，正在添加...")
+                        db.session.execute(text("""
+                            ALTER TABLE device_detection_region 
+                            ADD COLUMN task_id INTEGER REFERENCES algorithm_task(id) ON DELETE CASCADE;
+                        """))
+                        db.session.execute(text("""
+                            CREATE INDEX IF NOT EXISTS idx_device_detection_region_task_device
+                            ON device_detection_region (task_id, device_id);
+                        """))
+                        db.session.commit()
+                        print("✅ device_detection_region.task_id 列添加成功")
+
                 # 轨迹回放表：device_track_session / device_track_point
                 for track_table in ('device_track_session', 'device_track_point'):
                     r = db.session.execute(text("""

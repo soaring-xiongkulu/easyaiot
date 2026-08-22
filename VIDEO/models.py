@@ -2076,10 +2076,11 @@ class RegionModelService(db.Model):
 
 
 class DeviceDetectionRegion(db.Model):
-    """设备检测区域表（独立于算法任务的区域检测配置）"""
+    """设备检测区域表（按算法任务 + 设备隔离的区域检测配置）"""
     __tablename__ = 'device_detection_region'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('algorithm_task.id', ondelete='CASCADE'), nullable=True, comment='算法任务ID')
     device_id = db.Column(db.String(100), db.ForeignKey('device.id', ondelete='CASCADE'), nullable=False, comment='设备ID')
     region_name = db.Column(db.String(255), nullable=False, comment='区域名称')
     region_type = db.Column(db.String(50), default='polygon', nullable=False, comment='区域类型[polygon:多边形,line:线条]')
@@ -2101,6 +2102,7 @@ class DeviceDetectionRegion(db.Model):
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
     # 关联关系
+    task = db.relationship('AlgorithmTask', backref='detection_regions', lazy=True)
     device = db.relationship('Device', backref='detection_regions', lazy=True)
     image = db.relationship('Image', backref='device_detection_regions', lazy=True)
     
@@ -2122,6 +2124,7 @@ class DeviceDetectionRegion(db.Model):
         
         return {
             'id': self.id,
+            'task_id': self.task_id,
             'device_id': self.device_id,
             'region_name': self.region_name,
             'region_type': self.region_type,

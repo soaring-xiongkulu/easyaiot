@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict b7rim1lkXsLVOItyAjFbWDbbPaJ1dd7EfqCTOE3BcG1Q32HNpKs9thKTRYHDeDS
+\restrict y3F5zXOrADRVgu20z4tei6gebQLUqjPFxI7IXTWdjbc7saRDdeGfLNEQW86rXbc
 
 -- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
 -- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
@@ -27,10 +27,10 @@ DROP DATABASE IF EXISTS "iot-video20";
 CREATE DATABASE "iot-video20" WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict b7rim1lkXsLVOItyAjFbWDbbPaJ1dd7EfqCTOE3BcG1Q32HNpKs9thKTRYHDeDS
+\unrestrict y3F5zXOrADRVgu20z4tei6gebQLUqjPFxI7IXTWdjbc7saRDdeGfLNEQW86rXbc
 \encoding SQL_ASCII
 \connect -reuse-previous=on "dbname='iot-video20'"
-\restrict b7rim1lkXsLVOItyAjFbWDbbPaJ1dd7EfqCTOE3BcG1Q32HNpKs9thKTRYHDeDS
+\restrict y3F5zXOrADRVgu20z4tei6gebQLUqjPFxI7IXTWdjbc7saRDdeGfLNEQW86rXbc
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1484,7 +1484,8 @@ CREATE TABLE public.device_detection_region (
     sort_order integer NOT NULL,
     model_ids text,
     created_at timestamp without time zone,
-    updated_at timestamp without time zone
+    updated_at timestamp without time zone,
+    task_id integer
 );
 
 
@@ -1556,6 +1557,13 @@ COMMENT ON COLUMN public.device_detection_region.sort_order IS '排序顺序';
 --
 
 COMMENT ON COLUMN public.device_detection_region.model_ids IS '关联的算法模型ID列表（JSON格式，如[1,2,3]）';
+
+
+--
+-- Name: COLUMN device_detection_region.task_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.device_detection_region.task_id IS '算法任务ID';
 
 
 --
@@ -5901,7 +5909,7 @@ COPY public.device (id, name, source, rtmp_stream, http_stream, ai_rtmp_stream, 
 -- Data for Name: device_detection_region; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.device_detection_region (id, device_id, region_name, region_type, points, image_id, color, opacity, is_enabled, sort_order, model_ids, created_at, updated_at) FROM stdin;
+COPY public.device_detection_region (id, device_id, region_name, region_type, points, image_id, color, opacity, is_enabled, sort_order, model_ids, created_at, updated_at, task_id) FROM stdin;
 \.
 
 
@@ -7009,6 +7017,13 @@ CREATE INDEX idx_alert_time ON public.alert USING btree ("time" DESC);
 
 
 --
+-- Name: idx_device_detection_region_task_device; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_device_detection_region_task_device ON public.device_detection_region USING btree (task_id, device_id);
+
+
+--
 -- Name: idx_face_match_record_correlation_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7270,6 +7285,14 @@ ALTER TABLE ONLY public.device_detection_region
 
 
 --
+-- Name: device_detection_region device_detection_region_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.device_detection_region
+    ADD CONSTRAINT device_detection_region_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.algorithm_task(id) ON DELETE CASCADE;
+
+
+--
 -- Name: device device_directory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7481,5 +7504,5 @@ ALTER TABLE ONLY public.tracking_target
 -- PostgreSQL database dump complete
 --
 
-\unrestrict b7rim1lkXsLVOItyAjFbWDbbPaJ1dd7EfqCTOE3BcG1Q32HNpKs9thKTRYHDeDS
+\unrestrict y3F5zXOrADRVgu20z4tei6gebQLUqjPFxI7IXTWdjbc7saRDdeGfLNEQW86rXbc
 
