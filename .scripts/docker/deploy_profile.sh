@@ -182,6 +182,7 @@ is_full_deploy_profile() {
 
 # 按部署形态判断业务模块是否启用
 #   APP / VISUALIZE / TRANSFORM — 仅 full 全量形态
+#   POST — 仅 standard / full（mini / edge 不部署定制后处理）
 #   PANEL — 源码/Docker 部署默认启用；安装包（deb/桌面端）本身即为 PANEL，
 #           由 systemd/二进制托管，部署时不应再拉 Docker PANEL（EASYAIOT_ENABLE_PANEL=0）。
 #           无源码 runtime 未显式开启时也默认跳过。
@@ -190,6 +191,12 @@ is_full_deploy_profile() {
 module_enabled_for_deploy_profile() {
     case "$1" in
         APP|VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
+        POST)
+            case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
+                standard|full) return 0 ;;
+                *) return 1 ;;
+            esac
+            ;;
         DEVICE)
             # edge：零 DEVICE（无 gateway/system/sink）；告警/DVR 由 VIDEO 本地消化
             is_edge_deploy_profile && return 1
@@ -827,6 +834,8 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST true
                 _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST true
                 _set_env_docker_kv "$env_file" MINIO_ENABLED false
+                # edge 不部署 POST：Infer 走直发 / 本地落盘路径
+                _set_env_docker_kv "$env_file" POST_ENABLED false
                 # 模型管理走本机 VIDEO（无 AI / 无 MinIO）
                 _set_env_docker_kv "$env_file" AI_SERVICE_URL "http://127.0.0.1:6000/video"
                 # 容器内媒体卷路径；权重落盘到 local-storage，种子只读挂载 /model-seed-data
@@ -871,6 +880,12 @@ apply_python_service_deploy_env() {
             _set_env_docker_kv "$env_file" RTC_GO2RTC_WEB_URL "/dev-api/go2rtc/"
             _set_env_docker_kv "$env_file" RTC_RTSP_HOST "127.0.0.1"
             _set_env_docker_kv "$env_file" RTC_RTSP_PORT "8554"
+            # POST 仅 standard/full；mini 关闭定制后处理切流
+            if is_mini_deploy_profile; then
+                _set_env_docker_kv "$env_file" POST_ENABLED false
+            else
+                _set_env_docker_kv "$env_file" POST_ENABLED true
+            fi
             if is_mini_deploy_profile || is_local_storage_deploy_profile; then
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST true
             else

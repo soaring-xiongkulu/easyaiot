@@ -63,6 +63,7 @@ MODULES=(
   "DEVICE"
   "AI"
   "RTC"
+  "POST"
   "VIDEO"
   "WEB"
   "APP"
@@ -113,6 +114,7 @@ module_name() {
     "DEVICE") echo "Device服务" ;;
     "AI") echo "AI服务" ;;
     "RTC") echo "RTC服务" ;;
+    "POST") echo "POST服务" ;;
     "VIDEO") echo "Video服务" ;;
     "WEB") echo "Web前端服务" ;;
     "APP") echo "App移动端H5" ;;
@@ -131,6 +133,7 @@ module_port() {
     "DEVICE") echo "48080" ;;
     "AI") echo "5000" ;;
     "RTC") echo "6100" ;;
+    "POST") echo "8089" ;;
     "VIDEO") echo "6000" ;;
     "WEB") echo "8888" ;;
     "APP") echo "9010" ;;
@@ -149,6 +152,7 @@ module_health() {
     "DEVICE") echo "/actuator/health" ;;
     "AI") echo "/actuator/health" ;;
     "RTC") echo "/actuator/health" ;;
+    "POST") echo "/readyz" ;;
     "VIDEO") echo "/actuator/health" ;;
     "WEB") echo "/health" ;;
     "APP") echo "/health" ;;
@@ -1211,7 +1215,7 @@ execute_module_command() {
   # Docker Desktop：host 网络无法把端口暴露到宿主机，启用 bridge override
   unset COMPOSE_FILE 2>/dev/null || true
   case "$module" in
-    VIDEO|AI|RTC|DEVICE)
+    VIDEO|AI|RTC|POST|DEVICE)
       export EASYAIOT_COMPOSE_DESKTOP=1
       if [ -f docker-compose.desktop.yaml ]; then
         local base_compose="docker-compose.yaml"
@@ -1235,7 +1239,7 @@ execute_module_command() {
 
   local defer_agent_sync=0
   case "$module" in
-    DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
+    DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
   esac
   if [ "$defer_agent_sync" -eq 1 ]; then
     export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1

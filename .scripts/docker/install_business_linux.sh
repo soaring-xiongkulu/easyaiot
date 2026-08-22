@@ -3,7 +3,7 @@
 # ============================================
 # EasyAIoT 业务系统统一管理脚本
 # ============================================
-# 管理模块: IDEA、DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含中间件；IDEA 全形态优先；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
+# 管理模块: IDEA、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
 # 各模块实际逻辑委托给对应目录下的 install_linux.sh
 #
 # 用法:
@@ -114,8 +114,8 @@ ensure_industrial_demo_after_business_stack() {
     fi
 }
 
-# 业务模块（按依赖顺序：HARNESS 先于 IDEA -> 网关/微服务 -> AI/RTC/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(HARNESS IDEA DEVICE AI RTC VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+# 业务模块（按依赖顺序：HARNESS 先于 IDEA -> 网关/微服务 -> AI/RTC/POST/视频 -> 前端 -> 全量模块 -> 运维控制台）
+ALL_MODULES=(HARNESS IDEA DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
 
 declare -A MODULE_NAMES=(
     [IDEA]="IDEA 在线 IDE"
@@ -123,6 +123,7 @@ declare -A MODULE_NAMES=(
     [DEVICE]="Device 服务"
     [AI]="AI 服务"
     [RTC]="RTC 服务"
+    [POST]="POST 服务"
     [VIDEO]="Video 服务"
     [WEB]="Web 前端"
     [APP]="App 移动端 H5"
@@ -137,6 +138,7 @@ declare -A MODULE_PORTS=(
     [DEVICE]="48080"
     [AI]="5000"
     [RTC]="6100"
+    [POST]="8089"
     [VIDEO]="6000"
     [WEB]="8888"
     [APP]="9010"
@@ -151,6 +153,7 @@ declare -A MODULE_HEALTH_ENDPOINTS=(
     [DEVICE]="/actuator/health"
     [AI]="/actuator/health"
     [RTC]="/actuator/health"
+    [POST]="/readyz"
     [VIDEO]="/actuator/health"
     [WEB]="/health"
     [APP]="/health"
@@ -696,7 +699,7 @@ usage() {
     cat <<EOF
 EasyAIoT 业务系统统一管理脚本
 
-管理模块: HARNESS、IDEA、DEVICE、AI、RTC、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含 Nacos/PostgreSQL 等中间件；APP/VISUALIZE/TRANSFORM 仅 full）
+管理模块: HARNESS、IDEA、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TRANSFORM 仅 full）
 
 用法:
   $0 <命令> [选项] [模块...]
@@ -727,7 +730,7 @@ EasyAIoT 业务系统统一管理脚本
   --stop-on-error        某模块失败后立即中止（恢复旧行为）
 
 模块:
-  未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> DEVICE -> AI -> RTC -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
+  未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> DEVICE -> AI -> RTC -> POST -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
   stop / clean / clean-all 时自动逆序执行
   默认某模块失败后继续其余模块；可用环境/行为保持兼容，--continue-on-error 仍可用
 
@@ -749,7 +752,7 @@ EasyAIoT 业务系统统一管理脚本
   边缘双形态请在 install 中先选 edge，再选 standalone / integrated
   自动化示例: EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=integrated VIDEO_BASE_URL=http://...
   build-runtime 可选 EASYAIOT_RUNTIME_BUILD_ARCH: all(默认) | amd64 | arm64（单架构时跳过 manifest）
-  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: all(默认) | IDEA | HARNESS | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL
+  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: $(runtime_build_module_help)
   日志: $LOG_DIR/
 EOF
 }

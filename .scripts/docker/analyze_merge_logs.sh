@@ -49,7 +49,7 @@ ALL_LOG_UNITS=(
     mw-srs mw-nodered mw-fuxa mw-tdengine mw-tdengine-init mw-emqx mw-zlmediakit
     dev-iot-gateway dev-iot-system dev-iot-infra dev-iot-device dev-iot-dataset
     dev-iot-node dev-iot-visualize dev-iot-tdengine dev-iot-file dev-iot-message dev-iot-sink dev-iot-gb28181
-    biz-ai biz-rtc biz-video biz-web biz-app biz-visualize
+    biz-ai biz-rtc biz-post biz-video biz-web biz-app biz-visualize
     mw-install-logs
 )
 
@@ -82,6 +82,7 @@ declare -A UNIT_DISPLAY=(
     [dev-iot-gb28181]="DEVICE/GB28181 (iot-gb28181)"
     [biz-ai]="AI 服务 (ai-service)"
     [biz-rtc]="RTC 服务 (rtc-service)"
+    [biz-post]="POST 服务 (post-service)"
     [biz-video]="Video 服务 (video-service 等)"
     [biz-web]="Web 前端 (web-service)"
     [biz-app]="App 移动端 H5 (app-service)"
@@ -119,6 +120,7 @@ declare -A UNIT_COMPOSE_SERVICE=(
     [dev-iot-gb28181]=iot-gb28181
     [biz-ai]=ai-service
     [biz-rtc]=rtc-service
+    [biz-post]=post-service
     [biz-video]=video-service
     [biz-web]=web-service
     [biz-app]=app-service
@@ -154,6 +156,7 @@ declare -A UNIT_CONTAINERS=(
     [dev-iot-gb28181]=iot-gb28181
     [biz-ai]="ai-service"
     [biz-rtc]="rtc-service"
+    [biz-post]="post-service"
     [biz-video]="video-service pusher-service sorter-service frame-extractor-service"
     [biz-web]=web-service
     [biz-app]=app-service
@@ -216,6 +219,7 @@ declare -A UNIT_COMPOSE_FILE=(
     [dev-iot-gb28181]="${DEVICE_COMPOSE_FILE}"
     [biz-ai]="${AI_COMPOSE_FILE}"
     [biz-rtc]="${PROJECT_ROOT}/RTC/docker-compose.yaml"
+    [biz-post]="${PROJECT_ROOT}/POST/docker-compose.yaml"
     [biz-video]="${VIDEO_COMPOSE_FILE}"
     [biz-web]="${WEB_COMPOSE_FILE}"
     [biz-app]="${PROJECT_ROOT}/APP/docker-compose.yaml"
@@ -229,6 +233,7 @@ LEGACY_MODULE_EXPAND=(
     "DEVICE:dev-iot-gateway,dev-iot-system,dev-iot-infra,dev-iot-device,dev-iot-dataset,dev-iot-node,dev-iot-tdengine,dev-iot-file,dev-iot-message,dev-iot-sink,dev-iot-gb28181"
     "AI:biz-ai"
     "RTC:biz-rtc"
+    "POST:biz-post"
     "VIDEO:biz-video"
     "WEB:biz-web"
     "APP:biz-app"
@@ -329,6 +334,7 @@ log_unit_enabled() {
             ;;
         biz-ai) module_enabled_for_deploy_profile AI ;;
         biz-rtc) module_enabled_for_deploy_profile RTC ;;
+        biz-post) module_enabled_for_deploy_profile POST ;;
         biz-video) module_enabled_for_deploy_profile VIDEO ;;
         biz-web) module_enabled_for_deploy_profile WEB ;;
         biz-app) module_enabled_for_deploy_profile APP ;;

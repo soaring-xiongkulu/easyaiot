@@ -93,6 +93,7 @@ MODULES=(
     "DEVICE"           # Device服务（网关和微服务）
     "AI"               # AI服务
     "RTC"              # RTC / go2rtc 消费级摄像头桥接（全形态）
+    "POST"             # POST 服务（Infer 流水线；仅 standard/full）
     "VIDEO"            # Video服务
     "WEB"              # Web前端服务
     "APP"              # App移动端H5（仅 full 全量形态）
@@ -117,6 +118,7 @@ MODULE_NAMES[".scripts/docker"]="基础服务"
 MODULE_NAMES["DEVICE"]="Device服务"
 MODULE_NAMES["AI"]="AI服务"
 MODULE_NAMES["RTC"]="RTC服务"
+MODULE_NAMES["POST"]="POST服务"
 MODULE_NAMES["VIDEO"]="Video服务"
 MODULE_NAMES["WEB"]="Web前端服务"
 MODULE_NAMES["APP"]="App移动端H5"
@@ -132,6 +134,7 @@ MODULE_PORTS[".scripts/docker"]="8848"  # Nacos端口
 MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
 MODULE_PORTS["AI"]="5000"
 MODULE_PORTS["RTC"]="6100"
+MODULE_PORTS["POST"]="8089"
 MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
 MODULE_PORTS["APP"]="9010"
@@ -147,6 +150,7 @@ MODULE_HEALTH_ENDPOINTS[".scripts/docker"]="/nacos/actuator/health"
 MODULE_HEALTH_ENDPOINTS["DEVICE"]="/actuator/health"  # Gateway健康检查
 MODULE_HEALTH_ENDPOINTS["AI"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["RTC"]="/actuator/health"
+MODULE_HEALTH_ENDPOINTS["POST"]="/readyz"
 MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
 MODULE_HEALTH_ENDPOINTS["APP"]="/health"
@@ -801,7 +805,7 @@ execute_module_command() {
 
     local defer_agent_sync=0
     case "$module" in
-        DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
+        DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
     esac
     if [ "$defer_agent_sync" -eq 1 ]; then
         export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1
@@ -1468,6 +1472,7 @@ verify_all() {
         echo -e "  Device服务 (Gateway):  http://localhost:48080"
         echo -e "  AI服务:                http://localhost:5000"
         echo -e "  RTC服务:               http://localhost:6100"
+        echo -e "  POST服务:              http://localhost:8089/readyz"
         echo -e "  Video服务:             http://localhost:6000"
         echo -e "  Web前端:               https://localhost:8888"
         if module_enabled_for_deploy_profile APP; then
@@ -1585,7 +1590,7 @@ show_help() {
     echo "  logs            - 查看所有服务日志"
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
-    echo "  build-runtime [模块] - 构建/推送运行时镜像到远程仓库（可选 IDEA|DEVICE|AI|RTC|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）"
+    echo "  build-runtime [模块] - 构建/推送运行时镜像到远程仓库（可选 $(runtime_build_module_pipe_list)）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
     echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
@@ -1624,7 +1629,7 @@ show_help() {
     echo "  HOST_IP=<ip>                 - 跳过自动探测，强制指定宿主机 IP"
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: all(默认) | IDEA | DEVICE | AI | RTC | VIDEO | WEB | APP | VISUALIZE | TRANSFORM | PANEL"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: $(runtime_build_module_help)（默认 all=全部）"
     echo ""
 }
 

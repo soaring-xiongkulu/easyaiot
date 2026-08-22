@@ -90,6 +90,7 @@ check_skip "$ROOT/VIDEO/install_linux.sh" "VIDEO"
 check_skip "$ROOT/WEB/install_linux.sh" "WEB"
 check_skip "$ROOT/DEVICE/install_linux.sh" "DEVICE"
 check_skip "$ROOT/RTC/install_linux.sh" "RTC"
+check_skip "$ROOT/POST/install_linux.sh" "POST"
 
 # 5) update_all 进度输出与 SKIP_PROFILE 导出
 note "5) update_all 防卡死改动..."
@@ -165,7 +166,7 @@ else
   bad "缺少 module_update_helpers.sh"
 fi
 for f in \
-  AI/install_linux.sh VIDEO/install_linux.sh WEB/install_linux.sh APP/install_linux.sh VISUALIZE/install_linux.sh RTC/install_linux.sh \
+  AI/install_linux.sh VIDEO/install_linux.sh WEB/install_linux.sh APP/install_linux.sh VISUALIZE/install_linux.sh RTC/install_linux.sh POST/install_linux.sh \
   AI/install_linux_arm.sh VIDEO/install_linux_arm.sh \
   AI/install_linux_kylin.sh VIDEO/install_linux_kylin.sh \
   AI/install_mac.sh VIDEO/install_mac.sh WEB/install_mac.sh APP/install_mac.sh VISUALIZE/install_mac.sh
