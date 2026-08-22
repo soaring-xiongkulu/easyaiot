@@ -1307,11 +1307,22 @@ start_services() {
     ensure_platform_agent_after_device_stack
 }
 
+# stop/clean 用的 down：必须带上 compose profile。
+# iot-tdengine 声明了 profiles: [tdengine]，裸 docker compose down 不会停止/删除该容器。
+# 无论当前部署形态是否 full，down 时都启用 tdengine profile，避免从 full 切走后残留。
+device_compose_down() {
+    refresh_device_compose_profile_args
+    if [[ ! " ${DEVICE_COMPOSE_PROFILE_ARGS[*]} " =~ [[:space:]]tdengine[[:space:]] ]]; then
+        DEVICE_COMPOSE_PROFILE_ARGS+=(--profile tdengine)
+    fi
+    device_compose down "$@"
+}
+
 # 停止所有服务
 stop_services() {
     print_info "停止所有服务..."
     cd "$SCRIPT_DIR"
-    $DOCKER_COMPOSE down
+    device_compose_down
     print_success "服务已停止"
 }
 
@@ -1467,7 +1478,7 @@ clean() {
         done
     fi
     cd "$SCRIPT_DIR"
-    $DOCKER_COMPOSE down
+    device_compose_down
     print_success "容器清理完成"
 
     print_info "清理各模块 target 目录下的 .jar 包..."
@@ -1532,7 +1543,7 @@ clean_all() {
         done
     fi
     cd "$SCRIPT_DIR"
-    $DOCKER_COMPOSE down --rmi all
+    device_compose_down --rmi all
     stop_mvnd_builder
     print_success "完全清理完成"
 }
