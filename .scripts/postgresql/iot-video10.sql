@@ -552,7 +552,12 @@ CREATE TABLE public.algorithm_task (
     created_at timestamp without time zone,
     updated_at timestamp without time zone,
     face_library_id integer,
-    plate_library_id integer
+    plate_library_id integer,
+    executor character varying(20) DEFAULT 'cpp'::character varying,
+    runtime_bin_path character varying(500),
+    runtime_control_port integer,
+    device_deployments text,
+    post_pipeline text
 );
 
 
@@ -1030,6 +1035,14 @@ COMMENT ON COLUMN public.algorithm_task.post_process_script IS '后处理脚本�
 --
 
 COMMENT ON COLUMN public.algorithm_task.post_process_replicas IS '后处理 Worker 副本数（集群水平扩展）';
+
+
+--
+-- Name: COLUMN algorithm_task.post_pipeline; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.algorithm_task.post_pipeline IS 'POST 定制后处理 pipeline JSON';
+
 
 
 --
@@ -2727,6 +2740,31 @@ CREATE TABLE public.image (
     device_id character varying(100)
 );
 
+--
+-- Name: model; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.model (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    description text,
+    model_path character varying(500),
+    image_url character varying(500),
+    version character varying(20),
+    status integer NOT NULL,
+    class_names text,
+    selected_class_names text,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone,
+    onnx_model_path character varying(500),
+    torchscript_model_path character varying(500),
+    tensorrt_model_path character varying(500),
+    openvino_model_path character varying(500),
+    model_origin character varying(32),
+    origin_ref character varying(128)
+);
+
+
 
 --
 -- Name: image_id_seq; Type: SEQUENCE; Schema: public; Owner: -
@@ -2746,6 +2784,25 @@ CREATE SEQUENCE public.image_id_seq
 --
 
 ALTER SEQUENCE public.image_id_seq OWNED BY public.image.id;
+
+--
+-- Name: model_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.model_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: model_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.model_id_seq OWNED BY public.model.id;
+
 
 
 --
@@ -3524,6 +3581,86 @@ CREATE TABLE public.pose_intent_match_record (
     task_type character varying(20),
     created_at timestamp without time zone
 );
+
+
+--
+-- Name: post_plugin; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.post_plugin (
+    id character varying(128) NOT NULL,
+    name character varying(256) NOT NULL,
+    latest_version character varying(32),
+    runtime character varying(16) NOT NULL,
+    enabled boolean NOT NULL,
+    manifest_json text NOT NULL,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+--
+-- Name: post_plugin_service; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.post_plugin_service (
+    plugin_id character varying(128) NOT NULL,
+    version character varying(32) NOT NULL,
+    replicas integer NOT NULL,
+    status character varying(32) NOT NULL,
+    endpoint text,
+    deploy_mode character varying(16),
+    binding_json text,
+    updated_at timestamp without time zone
+);
+
+--
+-- Name: COLUMN post_plugin.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin.id IS '插件 id，如 acme.echo';
+
+--
+-- Name: COLUMN post_plugin.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin.name IS '显示名';
+
+--
+-- Name: COLUMN post_plugin.latest_version; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin.latest_version IS '当前版本';
+
+--
+-- Name: COLUMN post_plugin.runtime; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin.runtime IS 'builtin|http|grpc|script';
+
+--
+-- Name: COLUMN post_plugin.manifest_json; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin.manifest_json IS 'plugin.json 全文';
+
+--
+-- Name: COLUMN post_plugin_service.endpoint; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin_service.endpoint IS 'http://host:port';
+
+--
+-- Name: COLUMN post_plugin_service.deploy_mode; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin_service.deploy_mode IS 'endpoint|docker';
+
+--
+-- Name: COLUMN post_plugin_service.binding_json; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.post_plugin_service.binding_json IS '节点绑定 JSON';
+
 
 
 --
@@ -5068,7 +5205,9 @@ CREATE TABLE public.stream_forward_task (
     last_success_time timestamp without time zone,
     description character varying(500),
     created_at timestamp without time zone,
-    updated_at timestamp without time zone
+    updated_at timestamp without time zone,
+    executor character varying(20) DEFAULT 'cpp'::character varying,
+    runtime_bin_path character varying(500)
 );
 
 
@@ -5539,6 +5678,13 @@ ALTER TABLE ONLY public.frame_extractor ALTER COLUMN id SET DEFAULT nextval('pub
 
 ALTER TABLE ONLY public.image ALTER COLUMN id SET DEFAULT nextval('public.image_id_seq'::regclass);
 
+--
+-- Name: model id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.model ALTER COLUMN id SET DEFAULT nextval('public.model_id_seq'::regclass);
+
+
 
 --
 -- Name: nvr id; Type: DEFAULT; Schema: public; Owner: -
@@ -5715,7 +5861,7 @@ COPY public.algorithm_post_process_result (id, task_id, task_name, task_code, ta
 -- Data for Name: algorithm_task; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.algorithm_task (id, task_name, task_code, task_type, model_ids, model_names, detect_conf, extract_interval, rtmp_input_url, rtmp_output_url, tracking_enabled, tracking_similarity_threshold, tracking_max_age, tracking_smooth_alpha, alert_event_enabled, alert_event_suppress_time, alert_class_names, face_detection_enabled, plate_detection_enabled, face_matching_enabled, face_library_ids, face_matching_threshold, plate_matching_enabled, plate_library_ids, matching_business_tags, alert_notification_enabled, alert_notification_config, alarm_suppress_time, last_notify_time, space_id, cron_expression, frame_skip, patrol_mode, patrol_interval_sec, patrol_pool_size, focus_device_id, status, is_enabled, run_status, exception_reason, schedule_policy, prefer_gpu, target_node_id, node_id, service_server_ip, service_port, service_process_id, service_last_heartbeat, service_log_path, total_frames, total_detections, total_captures, last_process_time, last_success_time, last_capture_time, description, sam_supplement_enabled, sam_supplement_config, motion_gate_enabled, motion_gate_config, pose_analysis_enabled, pose_analysis_config, pose_intent_enabled, pose_library_ids, pose_intent_threshold, pose_intent_config, post_process_enabled, post_process_script, post_process_replicas, defense_mode, defense_schedule, created_at, updated_at, face_library_id, plate_library_id) FROM stdin;
+COPY public.algorithm_task (id, task_name, task_code, task_type, model_ids, model_names, detect_conf, extract_interval, rtmp_input_url, rtmp_output_url, tracking_enabled, tracking_similarity_threshold, tracking_max_age, tracking_smooth_alpha, alert_event_enabled, alert_event_suppress_time, alert_class_names, face_detection_enabled, plate_detection_enabled, face_matching_enabled, face_library_ids, face_matching_threshold, plate_matching_enabled, plate_library_ids, matching_business_tags, alert_notification_enabled, alert_notification_config, alarm_suppress_time, last_notify_time, space_id, cron_expression, frame_skip, patrol_mode, patrol_interval_sec, patrol_pool_size, focus_device_id, status, is_enabled, run_status, exception_reason, schedule_policy, prefer_gpu, target_node_id, node_id, service_server_ip, service_port, service_process_id, service_last_heartbeat, service_log_path, total_frames, total_detections, total_captures, last_process_time, last_success_time, last_capture_time, description, sam_supplement_enabled, sam_supplement_config, motion_gate_enabled, motion_gate_config, pose_analysis_enabled, pose_analysis_config, pose_intent_enabled, pose_library_ids, pose_intent_threshold, pose_intent_config, post_process_enabled, post_process_script, post_process_replicas, defense_mode, defense_schedule, created_at, updated_at, face_library_id, plate_library_id, executor, runtime_bin_path, runtime_control_port, device_deployments, post_pipeline) FROM stdin;
 \.
 
 
@@ -5839,6 +5985,14 @@ COPY public.frame_extractor (id, extractor_name, extractor_code, extractor_type,
 COPY public.image (id, filename, original_filename, path, width, height, created_at, device_id) FROM stdin;
 \.
 
+--
+-- Data for Name: model; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.model (id, name, description, model_path, image_url, version, status, class_names, selected_class_names, created_at, updated_at, onnx_model_path, torchscript_model_path, tensorrt_model_path, openvino_model_path, model_origin, origin_ref) FROM stdin;
+\.
+
+
 
 --
 -- Data for Name: nvr; Type: TABLE DATA; Schema: public; Owner: -
@@ -5902,6 +6056,21 @@ COPY public.playback (id, file_path, event_time, device_id, device_name, duratio
 
 COPY public.pose_intent_match_record (id, task_id, task_name, device_id, device_name, library_id, library_name, entry_id, entry_name, similarity, intent_event, matched, pose_snapshot, alert_id, correlation_id, task_type, created_at) FROM stdin;
 \.
+
+--
+-- Data for Name: post_plugin; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.post_plugin (id, name, latest_version, runtime, enabled, manifest_json, created_at, updated_at) FROM stdin;
+\.
+
+--
+-- Data for Name: post_plugin_service; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.post_plugin_service (plugin_id, version, replicas, status, endpoint, deploy_mode, binding_json, updated_at) FROM stdin;
+\.
+
 
 
 --
@@ -5996,7 +6165,7 @@ COPY public.space_group_save_policy (id, group_type, group_key, snap_save_time, 
 -- Data for Name: stream_forward_task; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.stream_forward_task (id, task_name, task_code, output_format, output_quality, output_bitrate, status, is_enabled, exception_reason, service_server_ip, service_port, service_process_id, service_last_heartbeat, service_log_path, schedule_policy, prefer_gpu, target_node_id, node_id, device_deployments, total_streams, last_process_time, last_success_time, description, created_at, updated_at) FROM stdin;
+COPY public.stream_forward_task (id, task_name, task_code, output_format, output_quality, output_bitrate, status, is_enabled, exception_reason, service_server_ip, service_port, service_process_id, service_last_heartbeat, service_log_path, schedule_policy, prefer_gpu, target_node_id, node_id, device_deployments, total_streams, last_process_time, last_success_time, description, created_at, updated_at, executor, runtime_bin_path) FROM stdin;
 \.
 
 
@@ -6133,6 +6302,13 @@ SELECT pg_catalog.setval('public.frame_extractor_id_seq', 1, false);
 --
 
 SELECT pg_catalog.setval('public.image_id_seq', 1, false);
+
+--
+-- Name: model_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.model_id_seq', 1, false);
+
 
 
 --
@@ -6489,6 +6665,21 @@ ALTER TABLE ONLY public.frame_extractor
 ALTER TABLE ONLY public.image
     ADD CONSTRAINT image_pkey PRIMARY KEY (id);
 
+--
+-- Name: model model_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.model
+    ADD CONSTRAINT model_name_key UNIQUE (name);
+
+--
+-- Name: model model_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.model
+    ADD CONSTRAINT model_pkey PRIMARY KEY (id);
+
+
 
 --
 -- Name: nvr nvr_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -6568,6 +6759,21 @@ ALTER TABLE ONLY public.playback
 
 ALTER TABLE ONLY public.pose_intent_match_record
     ADD CONSTRAINT pose_intent_match_record_pkey PRIMARY KEY (id);
+
+--
+-- Name: post_plugin post_plugin_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_plugin
+    ADD CONSTRAINT post_plugin_pkey PRIMARY KEY (id);
+
+--
+-- Name: post_plugin_service post_plugin_service_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_plugin_service
+    ADD CONSTRAINT post_plugin_service_pkey PRIMARY KEY (plugin_id, version);
+
 
 
 --
