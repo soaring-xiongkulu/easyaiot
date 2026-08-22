@@ -1025,7 +1025,9 @@ class AlgorithmTask(db.Model):
     post_process_enabled = db.Column(db.Boolean, default=False, nullable=False, comment='是否启用 AI 后处理脚本')
     post_process_script = db.Column(db.String(255), nullable=True, comment='后处理脚本文件名，默认 post_process.py')
     post_process_replicas = db.Column(db.Integer, default=1, nullable=False, comment='后处理 Worker 副本数（集群水平扩展）')
-    
+    # POST 定制后处理流水线 JSON（NULL = 默认 region_gate → default_pass）
+    post_pipeline = db.Column(db.Text, nullable=True, comment='POST 定制后处理 pipeline JSON')
+
     # 布防时段配置
     defense_mode = db.Column(db.String(20), default='half', nullable=False, comment='布防模式[full:全防模式,half:半防模式,day:白天模式,night:夜间模式]')
     defense_schedule = db.Column(db.Text, nullable=True, comment='布防时段配置（JSON格式，7天×24小时的二维数组）')
@@ -1202,9 +1204,20 @@ class AlgorithmTask(db.Model):
             'post_process_enabled': bool(self.post_process_enabled),
             'post_process_script': self.post_process_script,
             'post_process_replicas': int(self.post_process_replicas or 1),
+            'post_pipeline': self._parse_post_pipeline(),
             'created_at': utc_isoformat_z(self.created_at),
             'updated_at': utc_isoformat_z(self.updated_at)
         }
+
+    def _parse_post_pipeline(self):
+        raw = getattr(self, 'post_pipeline', None)
+        if not raw:
+            return None
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+            return data if isinstance(data, list) else None
+        except Exception:
+            return None
 
 
 class AlgorithmPostProcessResult(db.Model):
@@ -1245,6 +1258,79 @@ class AlgorithmPostProcessResult(db.Model):
             'payload': json.loads(self.payload) if self.payload else None,
             'correlation_id': self.correlation_id,
             'created_at': utc_isoformat_z(self.created_at),
+        }
+
+
+class PostPlugin(db.Model):
+    """POST 外置插件登记（Manifest；无市场包仓）。"""
+    __tablename__ = 'post_plugin'
+
+    id = db.Column(db.String(128), primary_key=True, comment='插件 id，如 acme.echo')
+    name = db.Column(db.String(256), nullable=False, comment='显示名')
+    latest_version = db.Column(db.String(32), nullable=True, comment='当前版本')
+    runtime = db.Column(db.String(16), nullable=False, default='http', comment='builtin|http|grpc|script')
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    manifest_json = db.Column(db.Text, nullable=False, comment='plugin.json 全文')
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+    def to_dict(self, include_service: bool = True):
+        import json
+        manifest = {}
+        try:
+            manifest = json.loads(self.manifest_json) if self.manifest_json else {}
+        except Exception:
+            manifest = {}
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'latest_version': self.latest_version,
+            'runtime': self.runtime,
+            'enabled': bool(self.enabled),
+            'manifest': manifest,
+            'created_at': utc_isoformat_z(self.created_at),
+            'updated_at': utc_isoformat_z(self.updated_at),
+        }
+        if include_service:
+            svc = PostPluginService.query.filter_by(
+                plugin_id=self.id, version=self.latest_version or ''
+            ).first()
+            if svc is None and self.latest_version:
+                svc = PostPluginService.query.filter_by(plugin_id=self.id).first()
+            data['service'] = svc.to_dict() if svc else None
+        return data
+
+
+class PostPluginService(db.Model):
+    """外置插件服务运行态。"""
+    __tablename__ = 'post_plugin_service'
+
+    plugin_id = db.Column(db.String(128), primary_key=True)
+    version = db.Column(db.String(32), primary_key=True, default='')
+    replicas = db.Column(db.Integer, default=1, nullable=False)
+    status = db.Column(db.String(32), default='stopped', nullable=False)
+    endpoint = db.Column(db.Text, nullable=True, comment='http://host:port')
+    deploy_mode = db.Column(db.String(16), default='endpoint', comment='endpoint|docker')
+    binding_json = db.Column(db.Text, nullable=True, comment='节点绑定 JSON')
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+    def to_dict(self):
+        import json
+        binding = None
+        if self.binding_json:
+            try:
+                binding = json.loads(self.binding_json)
+            except Exception:
+                binding = self.binding_json
+        return {
+            'plugin_id': self.plugin_id,
+            'version': self.version,
+            'replicas': int(self.replicas or 1),
+            'status': self.status,
+            'endpoint': self.endpoint,
+            'deploy_mode': self.deploy_mode or 'endpoint',
+            'binding': binding,
+            'updated_at': utc_isoformat_z(self.updated_at),
         }
 
 
@@ -2438,6 +2524,7 @@ def ensure_algorithm_task_post_process_columns(engine):
         'post_process_enabled': 'BOOLEAN DEFAULT FALSE',
         'post_process_script': 'VARCHAR(255)',
         'post_process_replicas': 'INTEGER DEFAULT 1',
+        'post_pipeline': 'TEXT',
     }
     try:
         inspector = inspect(engine)
@@ -2578,3 +2665,45 @@ def ensure_algorithm_task_alert_class_columns(engine):
             log.info('已为 algorithm_task 表添加 %s 列', col)
     except Exception as e:
         log.warning('ensure_algorithm_task_alert_class_columns: %s', e)
+
+
+def ensure_post_plugin_tables(engine):
+    """创建 post_plugin / post_plugin_service（若不存在）。"""
+    import logging
+    from sqlalchemy import text
+
+    log = logging.getLogger(__name__)
+    ddl = [
+        """
+        CREATE TABLE IF NOT EXISTS post_plugin (
+          id VARCHAR(128) PRIMARY KEY,
+          name VARCHAR(256) NOT NULL,
+          latest_version VARCHAR(32),
+          runtime VARCHAR(16) NOT NULL DEFAULT 'http',
+          enabled BOOLEAN DEFAULT TRUE,
+          manifest_json TEXT NOT NULL,
+          created_at TIMESTAMP,
+          updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS post_plugin_service (
+          plugin_id VARCHAR(128) NOT NULL,
+          version VARCHAR(32) NOT NULL DEFAULT '',
+          replicas INTEGER DEFAULT 1,
+          status VARCHAR(32) DEFAULT 'stopped',
+          endpoint TEXT,
+          deploy_mode VARCHAR(16) DEFAULT 'endpoint',
+          binding_json TEXT,
+          updated_at TIMESTAMP,
+          PRIMARY KEY (plugin_id, version)
+        )
+        """,
+    ]
+    try:
+        with engine.begin() as conn:
+            for stmt in ddl:
+                conn.execute(text(stmt))
+        log.info('ensure_post_plugin_tables ok')
+    except Exception as e:
+        log.warning('ensure_post_plugin_tables: %s', e)

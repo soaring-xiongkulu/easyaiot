@@ -1415,6 +1415,64 @@ def try_send_snapshot_detection_alert(
     )
     algorithm_name = getattr(task_config, 'task_name', None) or 'detection'
     correlation_id = str(uuid.uuid4())
+
+    try:
+        from app.utils.algo_mqtt_bus import (
+            should_publish_infer_event,
+            post_in_bypass,
+            build_infer_event,
+            publish_infer_event,
+            inject_post_bypass_info,
+            ensure_post_health_probe,
+        )
+    except ImportError:
+        try:
+            from algo_mqtt_bus import (  # type: ignore
+                should_publish_infer_event,
+                post_in_bypass,
+                build_infer_event,
+                publish_infer_event,
+                inject_post_bypass_info,
+                ensure_post_health_probe,
+            )
+        except ImportError:
+            should_publish_infer_event = lambda: False  # type: ignore
+            post_in_bypass = lambda: False  # type: ignore
+
+    ensure_post_health_probe()
+    if should_publish_infer_event():
+        fh, fw = 0, 0
+        if frame_image is not None and hasattr(frame_image, 'shape'):
+            fh, fw = int(frame_image.shape[0]), int(frame_image.shape[1])
+        model_ids = []
+        if getattr(task_config, 'model_ids', None):
+            try:
+                raw = task_config.model_ids
+                model_ids = json.loads(raw) if isinstance(raw, str) else list(raw or [])
+            except Exception:
+                model_ids = []
+        ev = build_infer_event(
+            task_id=int(TASK_ID),
+            task_type='snap',
+            device_id=device_id,
+            detections=detections,
+            event_kind='infer',
+            task_name=algorithm_name,
+            device_name=device_name,
+            frame_number=frame_number,
+            frame_width=fw,
+            frame_height=fh,
+            image_path=image_path or '',
+            model_ids=model_ids,
+            correlation_id=correlation_id,
+            hints={'alert_class_names': get_task_alert_class_names(task_config)},
+        )
+        publish_infer_event(ev)
+        logger.info(
+            f"📨 设备 {device_id} InferEvent(POST): 帧 {frame_number}, {len(detections)} 个目标"
+        )
+        return
+
     alert_data = {
         'object': primary,
         'event': algorithm_name,
@@ -1435,6 +1493,9 @@ def try_send_snapshot_detection_alert(
         }),
         'image_path': image_path,
     }
+    if post_in_bypass():
+        alert_data = inject_post_bypass_info(alert_data)
+        logger.warning(f"⚠️ POST bypass 直发 sink: device={device_id} frame={frame_number}")
     logger.info(
         f"🚨 设备 {device_id} 检测告警: 帧 {frame_number}, "
         f"{len(detections)} 个目标 {object_counts}, correlation_id={correlation_id}"
@@ -2618,6 +2679,39 @@ def main():
     logger.info("💓 启动心跳上报线程...")
     heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)
     heartbeat_thread.start()
+
+    try:
+        from app.utils.algo_mqtt_bus import post_enabled, start_infer_heartbeat
+    except ImportError:
+        try:
+            from algo_mqtt_bus import post_enabled, start_infer_heartbeat  # type: ignore
+        except ImportError:
+            post_enabled = lambda: False  # type: ignore
+            start_infer_heartbeat = None  # type: ignore
+    if post_enabled() and start_infer_heartbeat:
+        def _hb_ctx():
+            if not task_config:
+                return None
+            model_ids = []
+            try:
+                raw = getattr(task_config, 'model_ids', None)
+                if raw:
+                    model_ids = json.loads(raw) if isinstance(raw, str) else list(raw)
+            except Exception:
+                model_ids = []
+            items = []
+            streams = getattr(task_config, 'device_streams', None) or {}
+            for did in streams.keys():
+                items.append({
+                    'task_id': int(TASK_ID),
+                    'task_type': 'snap',
+                    'task_name': getattr(task_config, 'task_name', '') or '',
+                    'device_id': did,
+                    'model_ids': model_ids,
+                })
+            return items or None
+        start_infer_heartbeat(stop_event=stop_event, get_context=_hb_ctx)
+        logger.info("❤️  POST Infer 心跳已启动")
 
     # 启动SRS录像清理线程
     logger.info("🧹 启动SRS录像清理线程...")

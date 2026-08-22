@@ -37,6 +37,22 @@ def _stop_post_process_cluster(task_id: int, task: Optional[AlgorithmTask] = Non
     stop_post_process_workers(task_id, task)
 
 
+def _push_post_template(task: AlgorithmTask) -> None:
+    """任务真正启动成功后推送 POST 定制后处理模板。"""
+    try:
+        from app.services.post_template_client import parse_pipeline, push_template_on_start
+        from app.services.post_plugin_service import ensure_external_services_ready
+        pipeline = parse_pipeline(getattr(task, 'post_pipeline', None))
+        ok, msg = ensure_external_services_ready(pipeline)
+        if not ok:
+            logger.error('任务 %s POST 外置插件未就绪: %s', task.id, msg)
+            return
+        if not push_template_on_start(task):
+            logger.error('任务 %s 启动后推送 POST 模板失败', task.id)
+    except Exception as e:
+        logger.error('任务 %s 推送 POST 模板异常: %s', getattr(task, 'id', None), e, exc_info=True)
+
+
 # 存储已启动的守护进程对象（参考 AI 模块的 deploy_service.py）
 _running_daemons: Dict[int, AlgorithmTaskDaemon] = {}
 _daemons_lock = threading.Lock()
@@ -861,6 +877,12 @@ def stop_service_process(task_id: int, service_type: str, stop_request_id: int =
 
     _stop_post_process_cluster(task_id, task)
 
+    try:
+        from app.services.post_template_client import push_template_on_stop
+        push_template_on_stop(task_id)
+    except Exception as e:
+        logger.warning('任务 %s 删除 POST 模板失败: %s', task_id, e)
+
     daemon_to_join = None
     with _daemons_lock:
         if task_id in _running_daemons:
@@ -994,6 +1016,8 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     ):
                         logger.info('任务 %s 分片已在集群运行，跳过重复部署', task_id)
                         ok_pp, _ = _start_post_process_cluster(task)
+                        if ok_pp:
+                            _push_post_template(task)
                         return (True, '任务已在远程分片运行', True) if ok_pp else (False, '后处理集群启动失败', False)
                     logger.info('任务 %s 分片未健康或心跳超时，重新按设备分片部署', task_id)
                     stop_all_shards(task)
@@ -1002,12 +1026,15 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     result = deploy_sharded_algorithm_task(task_id, task, fresh_allocate=True)
                     if result[0]:
                         _start_post_process_cluster(task)
+                        _push_post_template(task)
                     return result
 
                 if task.node_id and not _heartbeat_stale(task.service_last_heartbeat, failover_sec):
                     if _is_compute_node_online(int(task.node_id)):
                         logger.info('任务 %s 已在远程节点 %s 运行，跳过重复部署', task_id, task.node_id)
                         ok_pp, _ = _start_post_process_cluster(task)
+                        if ok_pp:
+                            _push_post_template(task)
                         return (True, '任务已在远程节点运行', True) if ok_pp else (False, '后处理集群启动失败', False)
                 if task.node_id:
                     logger.info(
@@ -1023,6 +1050,7 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                 result = _deploy_task_on_remote_node(task_id, task)
                 if result[0]:
                     _start_post_process_cluster(task)
+                    _push_post_template(task)
                 return result
 
             ok, sync_msg = _ensure_task_models_on_cluster(task)
@@ -1189,6 +1217,7 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             }.get(task.task_type, task.task_type)
             logger.info(f"✅ 任务 {task_id} 的{task_type_name}服务启动成功（守护进程已启动）")
             _start_post_process_cluster(task)
+            _push_post_template(task)
             return (True, "启动成功", False)
         else:
             # 未知的任务类型

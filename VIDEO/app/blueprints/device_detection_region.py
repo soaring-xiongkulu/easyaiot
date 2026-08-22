@@ -105,6 +105,12 @@ def create_region(device_id):
             sort_order=data.get('sort_order', 0),
             model_ids=model_ids
         )
+
+        try:
+            from app.services.post_template_client import refresh_running_tasks_for_device
+            refresh_running_tasks_for_device(device_id)
+        except Exception as e:
+            logger.error('区域创建后刷新 POST 模板失败: %s', e, exc_info=True)
         
         return jsonify({
             'code': 0,
@@ -163,6 +169,12 @@ def update_region(region_id):
             return jsonify({'code': 400, 'msg': '区域类型必须是 polygon、line 或 rectangle'}), 400
         
         region = update_device_region(region_id, **data)
+
+        try:
+            from app.services.post_template_client import refresh_running_tasks_for_device
+            refresh_running_tasks_for_device(region.device_id)
+        except Exception as e:
+            logger.error('区域更新后刷新 POST 模板失败: %s', e, exc_info=True)
         
         return jsonify({
             'code': 0,
@@ -180,7 +192,16 @@ def update_region(region_id):
 def delete_region(region_id):
     """删除设备检测区域"""
     try:
+        from models import DeviceDetectionRegion
+        existing = DeviceDetectionRegion.query.get(region_id)
+        device_id = existing.device_id if existing else None
         delete_device_region(region_id)
+        if device_id:
+            try:
+                from app.services.post_template_client import refresh_running_tasks_for_device
+                refresh_running_tasks_for_device(device_id)
+            except Exception as e:
+                logger.error('区域删除后刷新 POST 模板失败: %s', e, exc_info=True)
         return jsonify({
             'code': 0,
             'msg': '删除成功'

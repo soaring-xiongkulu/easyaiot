@@ -232,12 +232,14 @@ def deploy_workload(
     env: Dict[str, str],
     gpu_ids: Optional[str] = None,
     files: Optional[List[Dict[str, str]]] = None,
+    runtime: Optional[str] = None,
+    image: Optional[str] = None,
 ) -> Dict[str, Any]:
     payload = {
         'nodeId': node_id,
         'workloadType': workload_type,
         'workloadId': workload_id,
-        'command': command,
+        'command': command or [],
         'workDir': work_dir,
         'logDir': log_dir,
         'gpuIds': gpu_ids,
@@ -245,6 +247,10 @@ def deploy_workload(
     }
     if files:
         payload['files'] = files
+    if runtime:
+        payload['runtime'] = runtime
+    if image:
+        payload['image'] = image
     return _post('/workload/deploy', payload)
 
 

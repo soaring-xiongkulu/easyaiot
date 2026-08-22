@@ -148,6 +148,7 @@ def create_task():
             pose_intent_config=data.get('pose_intent_config'),
             post_process_enabled=data.get('post_process_enabled', False),
             post_process_replicas=data.get('post_process_replicas', 1),
+            post_pipeline=data.get('post_pipeline'),
             executor=data.get('executor', 'cpp'),
             runtime_bin_path=data.get('runtime_bin_path'),
             runtime_control_port=data.get('runtime_control_port'),
@@ -178,10 +179,12 @@ def update_task(task_id):
         if not data:
             return jsonify({'code': 400, 'msg': '请求数据不能为空'}), 400
         
-        # 校验：只有在停用状态下才能编辑（排除is_enabled字段本身的更新）
+        # 校验：只有在停用状态下才能编辑（排除 is_enabled；运行中允许仅改 post_pipeline）
         task = AlgorithmTask.query.get_or_404(task_id)
         if task.is_enabled and 'is_enabled' not in data:
-            return jsonify({'code': 400, 'msg': '任务运行中，无法编辑，请先停止任务'}), 400
+            keys = set(data.keys())
+            if keys - {'post_pipeline'}:
+                return jsonify({'code': 400, 'msg': '任务运行中，无法编辑，请先停止任务'}), 400
         
         task = update_algorithm_task(task_id, **data)
         

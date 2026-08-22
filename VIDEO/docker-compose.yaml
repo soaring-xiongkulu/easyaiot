@@ -84,6 +84,15 @@ services:
       # 如果Kafka运行在宿主机上，使用localhost:9092
       # 如果Kafka运行在其他机器上，使用宿主机IP，例如：192.168.1.100:9092
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # POST 定制后处理（v1.9：Nacos 发现优先；POST_BASE_URL 仅兜底）
+      - POST_BASE_URL=${POST_BASE_URL:-http://127.0.0.1:8089}
+      - POST_NACOS_SERVICE=${POST_NACOS_SERVICE:-easyaiot-post}
+      - POST_ADMIN_TOKEN=${POST_ADMIN_TOKEN:-}
+      - POST_ENABLED=${POST_ENABLED:-true}
+      - POST_FAILOVER_OPEN=${POST_FAILOVER_OPEN:-true}
+      - POST_HEALTH_INTERVAL_SEC=${POST_HEALTH_INTERVAL_SEC:-5}
+      - POST_HEALTH_FAIL_THRESHOLD=${POST_HEALTH_FAIL_THRESHOLD:-3}
+      - INFER_HEARTBEAT_SEC=${INFER_HEARTBEAT_SEC:-60}
       # TDengine配置（使用localhost，因为使用host网络模式）
       - TDENGINE_HOST=${TDENGINE_HOST:-localhost}
       - TDENGINE_PORT=${TDENGINE_PORT:-6030}
