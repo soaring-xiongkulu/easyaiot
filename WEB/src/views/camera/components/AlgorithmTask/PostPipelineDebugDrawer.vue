@@ -9,6 +9,7 @@
     :showCancelBtn="false"
     :showOkBtn="false"
     destroy-on-close
+    :z-index="1300"
   >
     <template #footer>
       <div class="footer-buttons">

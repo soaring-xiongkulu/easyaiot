@@ -24,26 +24,19 @@
           </div>
         </div>
       </a-tab-pane>
-      <a-tab-pane key="post" tab="后处理规则">
-        <PostPipelineEditor
-          v-model="postPipeline"
-          :disabled="isViewMode"
-          :task-id="taskId"
-          :post-process-enabled="!!formValues?.post_process_enabled"
-          :task-context="postTaskContext"
-        />
-      </a-tab-pane>
       <a-tab-pane key="status" tab="服务状态" :disabled="!taskId">
         <ServiceStatusTab v-if="taskId && formValues" :task="formValues" />
         <a-empty v-else description="请先保存基础配置" />
       </a-tab-pane>
     </a-tabs>
+    <PostPipelineDrawer @register="registerPostPipelineDrawer" />
+    <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
   </BasicDrawer>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, nextTick, h, watch } from 'vue';
-import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
+import { BasicDrawer, useDrawer, useDrawerInner } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
 import { useMessage } from '@/hooks/web/useMessage';
 import { QuestionCircleOutlined } from '@ant-design/icons-vue';
@@ -65,7 +58,9 @@ import { notifyTemplateQueryByType } from '@/api/device/notice';
 import { getDeviceChannels, queryVideoList } from '@/api/device/gb28181';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 import ServiceStatusTab from './ServiceStatusTab.vue';
-import PostPipelineEditor from './PostPipelineEditor.vue';
+import PostPipelineDrawer from './PostPipelineDrawer.vue';
+import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
+import { isCustomPipeline, summarizePipeline } from './postPipelineTypes';
 import CronExpressionField from './CronExpressionField.vue';
 import {
   DEFAULT_SNAP_CRON,
@@ -119,6 +114,10 @@ const taskId = ref<number | null>(null);
 const formValues = ref<any>({});
 const confirmLoading = ref(false);
 const postPipeline = ref<any[] | null>(null);
+const [registerPostPipelineDrawer, { openDrawer: openPostPipelineDrawer }] = useDrawer();
+const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
+/** 任务是否运行中（运行中不可编辑区域） */
+const taskIsEnabled = ref(false);
 /** VIDEO 本机 RUNTIME 版本（高性能模式下展示） */
 const runtimeInfo = ref<{ ready?: boolean; version?: string | null; binPath?: string | null } | null>(null);
 const runtimeInfoTaskMode = ref<string>('realtime_cpp');
@@ -730,6 +729,46 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
     },
     {
+      field: 'region_detection_entry',
+      label: '区域检测',
+      component: 'Input',
+      render: () =>
+        h('div', { class: 'region-detection-entry' }, [
+          h(
+            Button,
+            {
+              type: 'link',
+              size: 'small',
+              disabled: taskIsEnabled.value,
+              onClick: (e: Event) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void openRegionDetectionEditor();
+              },
+            },
+            () => (isViewMode.value ? '查看区域绘制' : '打开区域绘制'),
+          ),
+          h(
+            'span',
+            {
+              class: taskIsEnabled.value
+                ? 'region-detection-entry__hint muted'
+                : 'region-detection-entry__hint muted',
+            },
+            taskIsEnabled.value
+              ? '任务运行中，请先停止后再配置'
+              : '在摄像头画面上绘制检测区域',
+          ),
+        ]),
+      helpMessage: '区域按摄像头保存，可在保存任务前配置；后处理「区域过滤」步骤将统一按几何范围过滤检测结果',
+      ifShow: ({ values }) =>
+        (baseTaskType(values.task_mode) === 'realtime' ||
+          baseTaskType(values.task_mode) === 'snap' ||
+          baseTaskType(values.task_mode) === 'patrol') &&
+        Array.isArray(values.device_ids) &&
+        values.device_ids.length > 0,
+    },
+    {
       field: 'model_ids',
       label: '关联模型',
       component: 'Select',
@@ -938,6 +977,38 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       ifShow: ({ values }) =>
         (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol')
         && !!values.alert_event_enabled,
+    },
+    {
+      field: 'post_pipeline_entry',
+      label: '后处理规则链',
+      component: 'Input',
+      render: () =>
+        h('div', { class: 'post-pipeline-entry' }, [
+          h(
+            Button,
+            {
+              type: 'link',
+              size: 'small',
+              onClick: (e: Event) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openPostPipelineEditor();
+              },
+            },
+            () => (isViewMode.value ? '查看后处理规则链' : '配置后处理规则链'),
+          ),
+          h(
+            'span',
+            { class: 'post-pipeline-entry__hint muted' },
+            summarizePipeline(postPipeline.value),
+          ),
+        ]),
+      helpMessage: '启用告警事件后，可配置后处理规则链对推理结果进行过滤与告警输出',
+      ifShow: ({ values }) =>
+        (baseTaskType(values.task_mode) === 'realtime' ||
+          baseTaskType(values.task_mode) === 'snap' ||
+          baseTaskType(values.task_mode) === 'patrol') &&
+        !!values.alert_event_enabled,
     },
     {
       field: 'alert_event_suppress_time',
@@ -1388,6 +1459,7 @@ const isViewMode = computed(() => modalData.value.type === 'view');
 const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {
   modalData.value = data || {};
   taskId.value = null;
+  taskIsEnabled.value = false;
   confirmLoading.value = false;
   resetFields();
   runtimeInfo.value = null;
@@ -1402,6 +1474,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   if (modalData.value.record) {
     const record = modalData.value.record;
     taskId.value = record.id;
+    taskIsEnabled.value = !!record.is_enabled;
     // 从 model_ids 中提取模型ID列表（用于回显）
     const modelIds: number[] = [];
     if (record.model_ids && Array.isArray(record.model_ids)) {
@@ -1691,6 +1764,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     notificationChannels.value = [];
     channelTemplates.value = {};
     alertNotificationEnabled.value = false;
+    postPipeline.value = null;
     alertNotificationConfig.value = {
       enabled: false,
       channels: [],
@@ -1706,6 +1780,75 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     setDrawerProps({ showOkBtn: true });
   }
 });
+
+function openPostPipelineEditor() {
+  if (!formValues.value?.alert_event_enabled) {
+    createMessage.warning('请先启用告警事件');
+    return;
+  }
+  const mode = fromTaskMode(formValues.value?.task_mode);
+  openPostPipelineDrawer(true, {
+    pipeline: postPipeline.value,
+    disabled: isViewMode.value,
+    postProcessEnabled: !!formValues.value?.post_process_enabled,
+    taskContext: {
+      id: taskId.value,
+      task_name: formValues.value?.task_name,
+      task_type: mode.task_type,
+      device_ids: Array.isArray(formValues.value?.device_ids)
+        ? formValues.value.device_ids.map(String)
+        : [],
+    },
+    onApply: (pipeline) => {
+      postPipeline.value = pipeline;
+    },
+  });
+}
+
+async function openRegionDetectionEditor() {
+  if (taskIsEnabled.value) {
+    createMessage.warning('任务运行中，无法配置，请先停止任务');
+    return;
+  }
+  if (!taskId.value) {
+    createMessage.warning('请先保存算法任务后再配置区域检测');
+    return;
+  }
+  const values = await getFieldsValue();
+  const rawIds = Array.isArray(values.device_ids) ? values.device_ids.map(String) : [];
+  if (!rawIds.length) {
+    createMessage.warning('请先配置关联摄像头');
+    return;
+  }
+
+  let deviceIds: string[] = [];
+  const deviceLabels: Record<string, string> = {};
+  try {
+    deviceIds = await syncSelectedDeviceIds(rawIds);
+    rawIds.forEach((raw, index) => {
+      const opt = deviceOptions.value.find((o) => String(o.value) === raw);
+      const label = typeof opt?.label === 'string' ? opt.label : raw;
+      const resolvedId = deviceIds[index];
+      if (resolvedId) {
+        deviceLabels[resolvedId] = label;
+      }
+    });
+  } catch (error: any) {
+    createMessage.error(error?.message || '摄像头同步失败，请确认所选通道可用');
+    return;
+  }
+
+  if (!deviceIds.length) {
+    createMessage.warning('请先配置关联摄像头');
+    return;
+  }
+
+  openRegionDrawer(true, {
+    taskId: taskId.value || undefined,
+    deviceIds,
+    deviceLabels,
+  });
+}
 
 // 处理表单字段值变化
 const handleFieldValueChange = async (key: string, value: any) => {
@@ -1731,8 +1874,9 @@ const handleFieldValueChange = async (key: string, value: any) => {
       };
     }
   } else if (key === 'alert_event_enabled') {
-    // 如果关闭告警事件，同时关闭告警通知
+    // 如果关闭告警事件，同时关闭告警通知并清空后处理规则链
     if (!value) {
+      postPipeline.value = null;
       alertNotificationEnabled.value = false;
       alertNotificationConfig.value = {
         enabled: false,
@@ -2048,7 +2192,9 @@ const handleSubmit = async () => {
     } else {
       values.post_process_replicas = 1;
     }
-    values.post_pipeline = postPipeline.value;
+    values.post_pipeline = values.alert_event_enabled && isCustomPipeline(postPipeline.value)
+      ? postPipeline.value
+      : null;
 
     if (baseTaskType(values.task_mode) === 'snap' && values.cron_expression) {
       const cronCheck = validateSnapCronMinInterval(values.cron_expression);
@@ -2400,5 +2546,27 @@ const handleReset = () => {
   background-color: #000;
   color: #fff;
   border-bottom-color: #333;
+}
+
+.post-pipeline-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &__hint {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+.region-detection-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &__hint {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.45);
+  }
 }
 </style>
