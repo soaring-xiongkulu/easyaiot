@@ -105,14 +105,6 @@
                     >
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
                     </div>
-                    <div 
-                      class="btn" 
-                      :class="{ disabled: item.is_enabled || !hasModels(item) || !hasCameras(item) }"
-                      @click="!item.is_enabled && hasModels(item) && hasCameras(item) && handleOpenRegionDetection(item)" 
-                      :title="item.is_enabled ? '任务运行中，无法配置' : !hasModels(item) ? '请先配置算法模型列表' : !hasCameras(item) ? '请先配置摄像头列表' : '区域检测配置'"
-                    >
-                      <Icon icon="ant-design:aim-outlined" :size="15" color="#3B82F6" />
-                    </div>
                     <div
                       class="btn"
                       @click="handleOpenPostProcess(item)"
@@ -197,9 +189,6 @@
     <!-- 服务管理抽屉 -->
     <ServiceManageDrawer @register="registerServiceDrawer" @success="handleSuccess" />
     
-    <!-- 区域检测配置抽屉 -->
-    <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
-    
     <!-- 抓拍空间抽屉 -->
     <SnapSpaceDrawer @register="registerSnapSpaceDrawer" />
     
@@ -250,7 +239,6 @@ import {
 } from '@/api/device/algorithm_task';
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import ServiceManageDrawer from './ServiceManageDrawer.vue';
-import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
 import SnapSpaceDrawer from './SnapSpaceDrawer.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import CameraStreamSelectModal from '../CameraStreamSelectModal/index.vue';
@@ -288,7 +276,6 @@ const setTaskPending = (id: number, pending: boolean) => {
 };
 const [registerModal, { openDrawer }] = useDrawer();
 const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
-const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
 const [registerSnapSpaceDrawer, { openDrawer: openSnapSpaceDrawer }] = useDrawer();
 const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
 
@@ -362,11 +349,6 @@ const hasCameras = (record: AlgorithmTask) => {
          (record.device_names && record.device_names.length > 0);
 };
 
-// 检查任务是否有算法模型列表
-const hasModels = (record: AlgorithmTask) => {
-  return record.model_ids && Array.isArray(record.model_ids) && record.model_ids.length > 0;
-};
-
 // 复制摄像头名称
 const handleCopyDeviceNames = (item: AlgorithmTask) => {
   if (!item.device_names || item.device_names.length === 0) {
@@ -395,32 +377,6 @@ const getTableActions = (record: AlgorithmTask) => {
           return;
         }
         handleEdit(record);
-      },
-    },
-    {
-      icon: 'ant-design:aim-outlined',
-      tooltip: record.is_enabled
-        ? '任务运行中，无法配置'
-        : !hasModels(record) 
-        ? '请先配置算法模型列表' 
-        : !hasCameras(record) 
-        ? '请先配置摄像头列表' 
-        : '区域检测配置',
-      disabled: record.is_enabled || !hasModels(record) || !hasCameras(record),
-      onClick: () => {
-        if (record.is_enabled) {
-          createMessage.warning('任务运行中，无法配置，请先停止任务');
-          return;
-        }
-        if (!hasModels(record)) {
-          createMessage.warning('请先配置算法模型列表');
-          return;
-        }
-        if (!hasCameras(record)) {
-          createMessage.warning('请先配置摄像头列表');
-          return;
-        }
-        handleOpenRegionDetection(record);
       },
     },
     {
@@ -629,21 +585,6 @@ const handleEdit = (record: AlgorithmTask) => {
 
 const handleManageServices = (record: AlgorithmTask) => {
   openServiceDrawer(true, { taskId: record.id });
-};
-
-const handleOpenRegionDetection = (record?: AlgorithmTask) => {
-  // 校验：只有在停用状态下才能配置区域检测
-  if (record && record.is_enabled) {
-    createMessage.warning('任务运行中，无法配置，请先停止任务');
-    return;
-  }
-  if (record) {
-    // 传入任务ID，只显示该任务关联的摄像头
-    openRegionDrawer(true, { taskId: record.id });
-  } else {
-    // 兼容旧逻辑：不传入任务ID，显示所有摄像头
-    openRegionDrawer(true);
-  }
 };
 
 const handleOpenSnapSpace = (record: AlgorithmTask) => {
