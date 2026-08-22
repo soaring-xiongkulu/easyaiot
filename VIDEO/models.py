@@ -2101,9 +2101,9 @@ class DeviceDetectionRegion(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
     
-    # 关联关系
-    task = db.relationship('AlgorithmTask', backref='detection_regions', lazy=True)
-    device = db.relationship('Device', backref='detection_regions', lazy=True)
+    # 关联关系（backref 勿用 detection_regions，AlgorithmTask 已占用该名指向旧 DetectionRegion 表）
+    task = db.relationship('AlgorithmTask', backref='device_detection_regions', lazy=True)
+    device = db.relationship('Device', backref='device_detection_regions', lazy=True)
     image = db.relationship('Image', backref='device_detection_regions', lazy=True)
     
     def to_dict(self):
