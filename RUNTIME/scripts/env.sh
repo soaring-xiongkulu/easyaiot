@@ -13,20 +13,21 @@ _ORT="${ORT_ROOT:-$_REPO/.deps/onnxruntime-linux-${_ARCH_TAG}-1.23.2}"
 
 _find_conda_sh() {
   local c
-  for c in \
-    "$HOME/miniconda3/etc/profile.d/conda.sh" \
-    "$HOME/anaconda3/etc/profile.d/conda.sh" \
-    /opt/conda/etc/profile.d/conda.sh \
-    /usr/local/miniconda3/etc/profile.d/conda.sh \
-    /home/ubuntu/miniconda3/etc/profile.d/conda.sh
-  do
-    [[ -f "$c" ]] && { echo "$c"; return 0; }
-  done
   if command -v conda >/dev/null 2>&1; then
     local base
     base="$(conda info --base 2>/dev/null || true)"
     [[ -n "$base" && -f "$base/etc/profile.d/conda.sh" ]] && { echo "$base/etc/profile.d/conda.sh"; return 0; }
   fi
+  for c in \
+    "${CONDA_EXE:+${CONDA_EXE%/*}/../etc/profile.d/conda.sh}" \
+    "$HOME/miniconda3/etc/profile.d/conda.sh" \
+    "$HOME/anaconda3/etc/profile.d/conda.sh" \
+    /opt/conda/etc/profile.d/conda.sh \
+    /opt/miniconda3/etc/profile.d/conda.sh \
+    /usr/local/miniconda3/etc/profile.d/conda.sh
+  do
+    [[ -n "$c" && -f "$c" ]] && { echo "$c"; return 0; }
+  done
   return 1
 }
 
