@@ -1,15 +1,20 @@
 """
-POST 外置插件登记与 pipeline endpoint 注入。
+POST 外置插件登记、启停与 pipeline endpoint 注入。
 """
 from __future__ import annotations
 
 import json
 import logging
+import os
+import re
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+
+from models import db, PostPlugin, PostPluginService
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_PLUGIN_IDS = frozenset({
+BUILTIN_PLUGINS = frozenset({
     'region_gate',
     'default_pass',
     'user_script',
@@ -18,6 +23,9 @@ BUILTIN_PLUGIN_IDS = frozenset({
     'dwell_timer',
     'headcount_gate',
 })
+BUILTIN_PLUGIN_IDS = BUILTIN_PLUGINS
+WORKLOAD_TYPE = 'post_plugin'
+PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9._-]{1,126}$')
 
 BUILTIN_PLUGIN_CATALOG: List[Dict[str, Any]] = [
     {
@@ -159,9 +167,13 @@ BUILTIN_PLUGIN_CATALOG: List[Dict[str, Any]] = [
 ]
 
 
+def _now():
+    return datetime.utcnow()
+
+
 def _ensure_tables() -> None:
     try:
-        from models import db, ensure_post_plugin_tables
+        from models import ensure_post_plugin_tables
         ensure_post_plugin_tables(db.engine)
     except Exception as exc:
         logger.debug('ensure_post_plugin_tables: %s', exc)
@@ -169,8 +181,6 @@ def _ensure_tables() -> None:
 
 def list_plugin_catalog() -> Dict[str, Any]:
     _ensure_tables()
-    from models import PostPlugin
-
     builtins = list(BUILTIN_PLUGIN_CATALOG)
     externals: List[Dict[str, Any]] = []
     try:
@@ -190,6 +200,123 @@ def list_plugin_catalog() -> Dict[str, Any]:
     except Exception as exc:
         logger.warning('读取 post_plugin 表失败: %s', exc)
     return {'builtins': builtins, 'externals': externals}
+
+
+def validate_manifest(manifest: dict) -> dict:
+    if not isinstance(manifest, dict):
+        raise ValueError('manifest 必须是对象')
+    pid = str(manifest.get('id') or '').strip()
+    if not pid or not PLUGIN_ID_RE.match(pid):
+        raise ValueError('manifest.id 非法（建议 org.name 小写点分）')
+    if pid in BUILTIN_PLUGINS:
+        raise ValueError(f'{pid} 为平台内置插件，不可登记为外置')
+    name = str(manifest.get('name') or pid).strip()
+    version = str(manifest.get('version') or '0.0.0').strip()
+    runtime = str(manifest.get('runtime') or 'http').strip().lower()
+    if runtime not in ('http', 'grpc', 'script'):
+        raise ValueError(f'不支持的 runtime: {runtime}')
+    entry = manifest.get('entrypoint') or {}
+    if not isinstance(entry, dict):
+        entry = {}
+    return {
+        'id': pid,
+        'name': name,
+        'version': version,
+        'runtime': runtime,
+        'entrypoint': entry,
+        'manifest': manifest,
+    }
+
+
+def register_plugin(manifest: dict, endpoint: Optional[str] = None) -> PostPlugin:
+    """登记 / 覆盖 Manifest；可选预填静态 endpoint。"""
+    _ensure_tables()
+    meta = validate_manifest(manifest)
+    row = PostPlugin.query.get(meta['id'])
+    raw = json.dumps(meta['manifest'], ensure_ascii=False)
+    if row is None:
+        row = PostPlugin(
+            id=meta['id'],
+            name=meta['name'],
+            latest_version=meta['version'],
+            runtime=meta['runtime'],
+            enabled=True,
+            manifest_json=raw,
+            created_at=_now(),
+            updated_at=_now(),
+        )
+        db.session.add(row)
+    else:
+        row.name = meta['name']
+        row.latest_version = meta['version']
+        row.runtime = meta['runtime']
+        row.manifest_json = raw
+        row.updated_at = _now()
+
+    svc = PostPluginService.query.filter_by(plugin_id=meta['id'], version=meta['version']).first()
+    if svc is None:
+        svc = PostPluginService(
+            plugin_id=meta['id'],
+            version=meta['version'],
+            replicas=1,
+            status='stopped',
+            deploy_mode='endpoint',
+            updated_at=_now(),
+        )
+        db.session.add(svc)
+    if endpoint:
+        svc.endpoint = endpoint.rstrip('/')
+        svc.deploy_mode = 'endpoint'
+        svc.status = 'running'
+        svc.updated_at = _now()
+    db.session.commit()
+    return row
+
+
+def list_plugins(enabled: Optional[bool] = None) -> List[dict]:
+    _ensure_tables()
+    q = PostPlugin.query.order_by(PostPlugin.id.asc())
+    if enabled is not None:
+        q = q.filter(PostPlugin.enabled.is_(bool(enabled)))
+    return [p.to_dict() for p in q.all()]
+
+
+def get_plugin(plugin_id: str) -> PostPlugin:
+    _ensure_tables()
+    row = PostPlugin.query.get(plugin_id)
+    if not row:
+        raise ValueError(f'插件不存在: {plugin_id}')
+    return row
+
+
+def update_plugin(plugin_id: str, *, enabled: Optional[bool] = None, manifest: Optional[dict] = None) -> PostPlugin:
+    row = get_plugin(plugin_id)
+    if manifest is not None:
+        meta = validate_manifest(manifest)
+        if meta['id'] != plugin_id:
+            raise ValueError('manifest.id 与路径不一致')
+        row.name = meta['name']
+        row.latest_version = meta['version']
+        row.runtime = meta['runtime']
+        row.manifest_json = json.dumps(meta['manifest'], ensure_ascii=False)
+    if enabled is not None:
+        row.enabled = bool(enabled)
+    row.updated_at = _now()
+    db.session.commit()
+    return row
+
+
+def delete_plugin(plugin_id: str, force: bool = False) -> None:
+    row = get_plugin(plugin_id)
+    svc = PostPluginService.query.filter_by(plugin_id=plugin_id).all()
+    if not force:
+        for s in svc:
+            if (s.status or '') == 'running':
+                raise ValueError('服务运行中，请先停止或 force=true')
+    for s in svc:
+        db.session.delete(s)
+    db.session.delete(row)
+    db.session.commit()
 
 
 def _lookup_endpoint(plugin_id: str, version: str = '') -> Optional[str]:
