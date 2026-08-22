@@ -118,7 +118,7 @@ func Load() Config {
 		HTTPAddr:     getenv("POST_HTTP_ADDR", ":8089"),
 		AdminToken:   os.Getenv("POST_ADMIN_TOKEN"),
 		Debug:        getenvBool("POST_DEBUG", false),
-		DebugHTTP:    getenvBool("POST_DEBUG_HTTP", false),
+		DebugHTTP:    getenvBool("POST_DEBUG_HTTP", true),
 		Enabled:      getenvBool("POST_ENABLED", true),
 		InstanceID:   instance,
 		Timezone:     getenv("TZ", "Asia/Shanghai"),
