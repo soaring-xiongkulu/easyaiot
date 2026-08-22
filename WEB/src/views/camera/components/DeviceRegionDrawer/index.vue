@@ -164,7 +164,7 @@ import { Input } from 'ant-design-vue';
 import { Icon } from '@/components/Icon';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
-  getDeviceRegions,
+  listDeviceRegionsSafe,
   createDeviceRegion,
   updateDeviceRegion,
   deleteDeviceRegion,
@@ -172,6 +172,7 @@ import {
 } from '@/api/device/device_detection_region';
 import type { DeviceInfo } from '@/api/device/camera';
 import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage';
+import { formatApiErrorMessage } from '@/views/camera/utils/apiErrorMessage';
 import { captureSnapshotWithQuality } from '@/views/camera/utils/deviceSnapshotCapture';
 import { isGb28181Device, verifySnapshotQuality } from '@/views/camera/utils/snapshotQuality';
 defineOptions({ name: 'DeviceRegionDrawer' });
@@ -212,7 +213,7 @@ function schedulePersist(delay = 400) {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
     persistTimer = null;
-    void persistRegions({ silent: true });
+    void persistRegions({ silent: true }).catch(() => {});
   }, delay);
 }
 
@@ -963,7 +964,7 @@ const handleMouseUp = () => {
         selectedRegionId.value = getRegionKey(newRegion, regions.value.length - 1);
         markRegionsDirty();
         draw();
-        void persistRegions({ silent: true });
+        void persistRegions({ silent: true }).catch(() => {});
       }
     } else if (activeTool.value === ToolType.POLYGON) {
       currentPoints.value.push({ x: startX.value, y: startY.value });
@@ -1001,7 +1002,7 @@ const finishPolygon = () => {
     selectedRegionId.value = getRegionKey(newRegion, regions.value.length - 1);
     markRegionsDirty();
     draw();
-    void persistRegions({ silent: true });
+    void persistRegions({ silent: true }).catch(() => {});
 
     isDrawing.value = false;
     currentPoints.value = [];
@@ -1036,7 +1037,7 @@ const deleteRegion = async (id: number | string) => {
       selectedRegionId.value = null;
     }
     draw();
-    void persistRegions({ silent: true });
+    void persistRegions({ silent: true }).catch(() => {});
   }
 };
 
@@ -1098,7 +1099,7 @@ const handleClear = () => {
   isDrawing.value = false;
   markRegionsDirty();
   draw();
-  void persistRegions({ silent: true });
+  void persistRegions({ silent: true }).catch(() => {});
 };
 
 async function persistRegions(options: { silent?: boolean } = {}) {
@@ -1128,8 +1129,7 @@ async function persistRegions(options: { silent?: boolean } = {}) {
     try {
       saving.value = true;
 
-      const existingRegionsResponse = await getDeviceRegions(props.deviceId, props.taskId);
-      const existingRegions = parseRegionsList(existingRegionsResponse);
+      const existingRegions = await listDeviceRegionsSafe(props.deviceId, props.taskId);
       const existingRegionIds = new Set(existingRegions.map(r => r.id));
       const currentRegionIds = new Set(
         regions.value.map(r => r.id).filter(id => id && typeof id === 'number' && id > 0),
@@ -1200,8 +1200,7 @@ async function persistRegions(options: { silent?: boolean } = {}) {
         }
       }
 
-      const response = await getDeviceRegions(props.deviceId, props.taskId);
-      const list = parseRegionsList(response);
+      const list = await listDeviceRegionsSafe(props.deviceId, props.taskId);
       regions.value = list.map(region => ({
         ...region,
         color: region.color || generateRandomColor(),
@@ -1228,7 +1227,9 @@ async function persistRegions(options: { silent?: boolean } = {}) {
       }
     } catch (error) {
       console.error('保存失败', error);
-      createMessage.error('区域保存失败，请稍后重试');
+      if (!options.silent) {
+        createMessage.error(formatApiErrorMessage(error, '区域保存失败，请稍后重试'));
+      }
     } finally {
       saving.value = false;
     }
@@ -1365,45 +1366,32 @@ onMounted(async () => {
     loadImage(props.initialImagePath, { retryCaptureOnFail: !!props.autoCapture });
   }
 
-  // 加载现有区域
-  // 优先使用 props.initialRegions，如果没有则从服务器加载
-  console.log('onMounted: props.initialRegions:', props.initialRegions, 'length:', props.initialRegions?.length);
+  // 加载现有区域：优先使用 props.initialRegions，否则从服务器加载
   if (props.deviceId) {
-    // 如果已经有初始区域配置，优先使用它（即使为空数组也要检查，因为可能是异步传入的）
     if (props.initialRegions && Array.isArray(props.initialRegions)) {
       if (props.initialRegions.length > 0) {
         regions.value = props.initialRegions.map(region => ({
           ...region,
           color: region.color || generateRandomColor(),
         }));
-        // 规范化区域名称，确保唯一性
         normalizeRegionNames(regions.value);
-        console.log('onMounted: 使用 props.initialRegions，区域数量:', regions.value.length);
-        // 如果有区域，尝试加载对应的图片（优先使用区域图片）
         if (props.initialRegions[0].image_path) {
           currentImagePath.value = props.initialRegions[0].image_path;
           loadImage(props.initialRegions[0].image_path, { retryCaptureOnFail: true });
         } else if (props.initialImagePath && !currentImage.value) {
-          // 如果没有区域图片，但有初始图片（封面图），使用封面图
           currentImagePath.value = props.initialImagePath;
           loadImage(props.initialImagePath, { retryCaptureOnFail: true });
         }
       } else {
-        // 如果 initialRegions 是空数组，说明已经加载过了但没有数据，不需要从服务器加载
-        console.log('onMounted: props.initialRegions 是空数组，不重新加载');
         regions.value = [];
-        // 如果有初始图片，加载它
         if (props.initialImagePath && !currentImage.value) {
           currentImagePath.value = props.initialImagePath;
           loadImage(props.initialImagePath, { retryCaptureOnFail: true });
         }
       }
     } else {
-      // 如果没有初始区域配置，从服务器加载
-      console.log('onMounted: 从服务器加载区域配置');
       try {
-        const response = await getDeviceRegions(props.deviceId, props.taskId);
-        const list = parseRegionsList(response);
+        const list = await listDeviceRegionsSafe(props.deviceId, props.taskId);
         if (list.length > 0) {
           regions.value = list.map(region => ({
             ...region,
@@ -1422,8 +1410,7 @@ onMounted(async () => {
           loadImage(props.initialImagePath, { retryCaptureOnFail: true });
         }
       } catch (error) {
-        console.error('加载区域失败', error);
-        // 如果加载区域失败，但有初始图片（封面图），使用封面图
+        console.warn('加载区域失败', error);
         if (props.initialImagePath && !currentImage.value) {
           currentImagePath.value = props.initialImagePath;
           loadImage(props.initialImagePath, { retryCaptureOnFail: true });
