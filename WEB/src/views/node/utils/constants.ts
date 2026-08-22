@@ -558,12 +558,12 @@ export const WORKLOAD_BUNDLE_TYPES = [
   },
   {
     key: 'post_process',
-    label: 'AI 后处理',
+    label: '业务脚本',
     module: 'VIDEO',
     remoteRoot: '/opt/easyaiot/VIDEO',
     pythonLauncher: '/opt/easyaiot/VIDEO/.bundles/post_process/run-python.sh',
     scriptMarker: 'services/post_process_worker/run_worker.py',
-    desc: '批量分发 AI 后处理 Kafka Worker/Sink 运行时与脚本（集群订阅处理与落库）',
+    desc: '批量分发业务脚本运行时与处理进程（集群订阅告警并落库）',
   },
   {
     key: 'transform_runtime',

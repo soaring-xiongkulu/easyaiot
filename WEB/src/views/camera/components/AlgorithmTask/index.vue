@@ -116,7 +116,7 @@
                     <div
                       class="btn"
                       @click="handleOpenPostProcess(item)"
-                      :title="item.post_process_enabled ? '编辑后处理脚本' : '编辑后处理脚本（需先在任务配置中开启后处理）'"
+                      :title="item.post_process_enabled ? '编辑业务脚本' : '编辑业务脚本（需先在任务配置中开启）'"
                     >
                       <Icon icon="ant-design:code-outlined" :size="15" color="#3B82F6" />
                     </div>
@@ -425,7 +425,7 @@ const getTableActions = (record: AlgorithmTask) => {
     },
     {
       icon: 'ant-design:code-outlined',
-      tooltip: record.post_process_enabled ? '编辑后处理脚本' : '编辑后处理脚本（需先在任务配置中开启后处理）',
+      tooltip: record.post_process_enabled ? '编辑业务脚本' : '编辑业务脚本（需先在任务配置中开启）',
       onClick: () => handleOpenPostProcess(record),
     },
     {

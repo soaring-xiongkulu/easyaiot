@@ -130,6 +130,15 @@ export interface AlgorithmTask {
   post_process_script?: string;
   /** 后处理 Worker 副本数 */
   post_process_replicas?: number;
+  /** POST 定制后处理 pipeline JSON */
+  post_pipeline?: Array<{
+    plugin: string;
+    version?: string;
+    enabled?: boolean;
+    params?: Record<string, unknown>;
+    fail_strategy?: string;
+    endpoint?: string;
+  }> | null;
   created_at?: string;
   updated_at?: string;
 }

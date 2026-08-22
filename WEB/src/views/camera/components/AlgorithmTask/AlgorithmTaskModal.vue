@@ -24,6 +24,14 @@
           </div>
         </div>
       </a-tab-pane>
+      <a-tab-pane key="post" tab="后处理规则">
+        <PostPipelineEditor
+          v-model="postPipeline"
+          :disabled="isViewMode"
+          :task-id="taskId"
+          :post-process-enabled="!!formValues?.post_process_enabled"
+        />
+      </a-tab-pane>
       <a-tab-pane key="status" tab="服务状态" :disabled="!taskId">
         <ServiceStatusTab v-if="taskId && formValues" :task="formValues" />
         <a-empty v-else description="请先保存基础配置" />
@@ -56,6 +64,7 @@ import { notifyTemplateQueryByType } from '@/api/device/notice';
 import { getDeviceChannels, queryVideoList } from '@/api/device/gb28181';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 import ServiceStatusTab from './ServiceStatusTab.vue';
+import PostPipelineEditor from './PostPipelineEditor.vue';
 import CronExpressionField from './CronExpressionField.vue';
 import {
   DEFAULT_SNAP_CRON,
@@ -108,6 +117,7 @@ const activeTab = ref('basic');
 const taskId = ref<number | null>(null);
 const formValues = ref<any>({});
 const confirmLoading = ref(false);
+const postPipeline = ref<any[] | null>(null);
 /** VIDEO 本机 RUNTIME 版本（高性能模式下展示） */
 const runtimeInfo = ref<{ ready?: boolean; version?: string | null; binPath?: string | null } | null>(null);
 const runtimeInfoTaskMode = ref<string>('realtime_cpp');
@@ -632,7 +642,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           { label: '周期巡检分析（全功能）', value: 'patrol' },
         ],
       },
-      helpMessage: '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、后处理等完整能力集',
+      helpMessage: '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、业务脚本等完整能力集',
       defaultValue: 'realtime_cpp',
     },
     {
@@ -1078,7 +1088,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       component: 'Switch',
       defaultValue: false,
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
-      helpMessage: '开启后由 iot-sink Worker 异步分析人体骨骼（COCO-17），不占用算法任务算力；默认关闭',
+      helpMessage: '开启后异步分析人体骨骼（COCO-17），不占用算法任务算力；默认关闭',
       ifShow: ({ values }) =>
         baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
@@ -1196,20 +1206,21 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
     },
     {
       field: 'post_process_enabled',
-      label: '启用 AI 后处理',
+      label: '启用业务脚本',
       component: 'Switch',
       defaultValue: false,
       componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
-      helpMessage: '开启后检测结果将投递至后处理脚本进行业务判断；关闭时走默认告警逻辑',
+      helpMessage:
+        '开启后可用自定义脚本做业务判断。与「后处理规则」相互独立：规则页负责区域过滤与步骤编排，此处负责脚本执行。',
       ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
     },
     {
       field: 'post_process_replicas',
-      label: '后处理副本数',
+      label: '业务脚本副本数',
       component: 'InputNumber',
       defaultValue: 1,
       componentProps: { min: 1, max: 8, style: { width: '100%' } },
-      helpMessage: '后处理 Worker 水平扩展副本数，多副本可提升并发处理能力',
+      helpMessage: '脚本处理进程的水平扩展副本数，多副本可提升并发能力',
       ifShow: ({ values }) =>
         (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') &&
         !!values.post_process_enabled,
@@ -1522,6 +1533,9 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       notification_channels: notificationChannels.value,
       is_full_day_defense: fullDayDefense,
     });
+    postPipeline.value = Array.isArray((record as any).post_pipeline)
+      ? (record as any).post_pipeline
+      : null;
 
     // 更新告警通知启用状态
     alertNotificationEnabled.value = record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false;
@@ -2021,6 +2035,7 @@ const handleSubmit = async () => {
     } else {
       values.post_process_replicas = 1;
     }
+    values.post_pipeline = postPipeline.value;
 
     if (baseTaskType(values.task_mode) === 'snap' && values.cron_expression) {
       const cronCheck = validateSnapCronMinInterval(values.cron_expression);
@@ -2131,6 +2146,7 @@ const handleReset = () => {
       alarm_suppress_time: 300,
       is_full_day_defense: true, // 默认全天布防
     });
+    postPipeline.value = null;
     alertNotificationConfig.value = { enabled: false, channels: [], suppress_time: 300 };
     // 重置布防时段为默认值（全天布防）
     defenseSchedule.value = {
@@ -2188,6 +2204,9 @@ const handleReset = () => {
       alert_notification_enabled: record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false,
       is_full_day_defense: fullDayDefense,
     });
+    postPipeline.value = Array.isArray((record as any).post_pipeline)
+      ? (record as any).post_pipeline
+      : null;
 
     // 恢复布防时段配置
     if (fullDayDefense) {

@@ -195,13 +195,13 @@ export const SAM_MODEL_SETUP_ROUTE: AppRouteRecordRaw = {
   ],
 }
 
-/** 算法任务 AI 后处理 IDE（内嵌 OpenVSCode） */
+/** 算法任务业务脚本 IDE（内嵌 OpenVSCode） */
 export const ALGORITHM_POST_PROCESS_IDE_ROUTE: AppRouteRecordRaw = {
   path: '/algorithm-post-process',
   component: LAYOUT,
   name: 'AlgorithmPostProcessLayout',
   meta: {
-    title: 'AI后处理',
+    title: '业务脚本',
     hideMenu: true,
     hideBreadcrumb: true,
   },
@@ -211,7 +211,7 @@ export const ALGORITHM_POST_PROCESS_IDE_ROUTE: AppRouteRecordRaw = {
       name: 'AlgorithmPostProcessIde',
       component: () => import('@/views/system/iframe/FrameDynamic.vue'),
       meta: {
-        title: 'AI后处理',
+        title: '业务脚本',
         hideMenu: true,
         canTo: true,
         activeMenu: 'camera/index',
