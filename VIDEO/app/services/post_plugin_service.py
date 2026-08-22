@@ -508,13 +508,10 @@ def scale_service(plugin_id: str, replicas: int, version: Optional[str] = None) 
     return svc
 
 
-
-def _lookup_endpoint(plugin_id: str, version: str = '') -> Optional[str]:
-    if plugin_id in BUILTIN_PLUGIN_IDS:
+def resolve_endpoint(plugin_id: str, version: Optional[str] = None) -> Optional[str]:
+    """供模板注入：取 running 服务的 endpoint。"""
+    if plugin_id in BUILTIN_PLUGINS:
         return None
-    _ensure_tables()
-    from models import PostPlugin, PostPluginService
-
     row = PostPlugin.query.get(plugin_id)
     if not row or not row.enabled:
         return None
@@ -522,30 +519,14 @@ def _lookup_endpoint(plugin_id: str, version: str = '') -> Optional[str]:
     svc = PostPluginService.query.filter_by(plugin_id=plugin_id, version=ver).first()
     if svc is None:
         svc = PostPluginService.query.filter_by(plugin_id=plugin_id).first()
-    if not svc or (svc.status or '').lower() != 'running':
+    if not svc or (svc.status or '') != 'running':
         return None
-    ep = (svc.endpoint or '').strip()
+    ep = (svc.endpoint or '').strip().rstrip('/')
     return ep or None
 
 
-def inject_pipeline_endpoints(pipeline: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
-    if not pipeline:
-        return []
-    out = []
-    for step in pipeline:
-        if not isinstance(step, dict):
-            continue
-        item = dict(step)
-        plugin = str(item.get('plugin') or '').strip()
-        if plugin and plugin not in BUILTIN_PLUGIN_IDS and not (item.get('endpoint') or '').strip():
-            ep = _lookup_endpoint(plugin, str(item.get('version') or ''))
-            if ep:
-                item['endpoint'] = ep
-        out.append(item)
-    return out
-
-
 def ensure_external_services_ready(pipeline: Optional[List[Dict[str, Any]]]) -> Tuple[bool, str]:
+    """任务启动前检查：外置步骤对应服务须 running。"""
     if not pipeline:
         return True, 'ok'
     missing = []
@@ -554,12 +535,71 @@ def ensure_external_services_ready(pipeline: Optional[List[Dict[str, Any]]]) -> 
             continue
         if step.get('enabled') is False:
             continue
-        plugin = str(step.get('plugin') or '').strip()
-        if not plugin or plugin in BUILTIN_PLUGIN_IDS:
+        pid = str(step.get('plugin') or '').strip()
+        if not pid or pid in BUILTIN_PLUGINS:
             continue
-        ep = (step.get('endpoint') or '').strip() or (_lookup_endpoint(plugin, str(step.get('version') or '')) or '')
+        ep = (step.get('endpoint') or '').strip() or (resolve_endpoint(pid, str(step.get('version') or '')) or '')
         if not ep:
-            missing.append(plugin)
+            missing.append(pid)
     if missing:
         return False, f'外置插件未就绪: {", ".join(sorted(set(missing)))}'
     return True, 'ok'
+
+
+def inject_pipeline_endpoints(pipeline: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    """深拷贝并注入 endpoint / 默认 fail_strategy。"""
+    out: List[Dict[str, Any]] = []
+    for step in pipeline or []:
+        if not isinstance(step, dict):
+            continue
+        s = dict(step)
+        pid = str(s.get('plugin') or '').strip()
+        if pid and pid not in BUILTIN_PLUGINS and not s.get('endpoint'):
+            ep = resolve_endpoint(pid, s.get('version'))
+            if ep:
+                s['endpoint'] = ep
+        if pid and pid not in BUILTIN_PLUGINS and not s.get('fail_strategy'):
+            s['fail_strategy'] = 'fail_open'
+        out.append(s)
+    return out
+
+
+def list_tasks_using_plugin(plugin_id: str, limit: int = 50) -> List[dict]:
+    """粗查 algorithm_task.post_pipeline JSON 文本中引用了 plugin_id 的任务。"""
+    from models import AlgorithmTask
+
+    pid = str(plugin_id or '').strip()
+    if not pid:
+        return []
+    needle = f'"{pid}"'
+    rows = (
+        AlgorithmTask.query.filter(AlgorithmTask.post_pipeline.isnot(None))
+        .filter(AlgorithmTask.post_pipeline.contains(needle))
+        .order_by(AlgorithmTask.id.desc())
+        .limit(max(1, min(int(limit or 50), 200)))
+        .all()
+    )
+    out: List[dict] = []
+    for t in rows:
+        try:
+            raw = t.post_pipeline
+            pipe = json.loads(raw) if isinstance(raw, str) else (raw or [])
+        except Exception:
+            continue
+        if not isinstance(pipe, list):
+            continue
+        hit = False
+        for step in pipe:
+            if isinstance(step, dict) and str(step.get('plugin') or '').strip() == pid:
+                hit = True
+                break
+        if not hit:
+            continue
+        out.append({
+            'id': t.id,
+            'task_name': t.task_name,
+            'task_type': t.task_type,
+            'is_enabled': bool(t.is_enabled),
+            'run_status': getattr(t, 'run_status', None),
+        })
+    return out
