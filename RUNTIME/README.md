@@ -391,7 +391,24 @@ VIDEO 各 Linux 安装入口通过 [`VIDEO/scripts/ensure_runtime_cpp.sh`](../VI
 
 ## 编译与依赖
 
-默认 **方案 1：VIDEO 同源容器编译**（系统 `g++`，与 `video-service` 同 Ubuntu/glibc，无需降级 conda sysroot）：
+**统一入口（推荐）：**
+
+```bash
+./RUNTIME/install_linux.sh
+```
+
+在终端（TTY）下会弹出交互菜单：选择「编译」后，再选择 **本机 conda** 或 **Docker 同源容器** 编译方式；脚本会自动识别当前用户的 conda 与 ORT 路径。
+
+非交互环境（CI/脚本）默认 Docker 编译，可用 `EASYAIOT_RUNTIME_BUILD_MODE=host|docker` 覆盖。
+
+```bash
+./RUNTIME/install_linux.sh build          # 直接编译（TTY 下仍可选方式）
+EASYAIOT_RUNTIME_BUILD_MODE=host ./RUNTIME/install_linux.sh build   # 强制本机 conda
+./RUNTIME/install_linux.sh compile        # 强制本机 conda（跳过交互）
+./RUNTIME/install_linux.sh status         # 查看编译产物
+```
+
+Docker 同源容器编译（与 `video-service` 同 Ubuntu/glibc）：
 
 ```bash
 ./RUNTIME/install_linux.sh build
@@ -415,8 +432,9 @@ EASYAIOT_RUNTIME_BUILD_MODE=host ./RUNTIME/install_linux.sh build
 
 | 命令 | 说明 |
 |------|------|
-| `./install_linux.sh` / `install` | 装依赖并编译（本机开发树） |
-| `build` | 仅编译 |
+| `./install_linux.sh` | 交互式菜单（TTY）或安装并编译 |
+| `build` / `install` | 编译（TTY 下可选 conda / Docker） |
+| `compile` | 本机 conda 编译（跳过方式选择） |
 | `status` | 检查二进制、`node.env`（若已节点安装） |
 | `integrated [VIDEO_URL]` | 云边一体算力节点：编译 → 导出 → 安装，需 VIDEO 地址 |
 | `atomic [VIDEO_URL]` | `integrated` 别名（向后兼容） |
