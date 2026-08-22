@@ -1,156 +1,80 @@
-"""POST 外置插件管理 API（登记 / 启停 / 扩缩；无市场）。"""
+"""
+POST 定制后处理：插件目录与调试代理。
+"""
 from __future__ import annotations
 
 import logging
 
 from flask import Blueprint, jsonify, request
 
-from app.services import post_plugin_service as svc
-
-post_plugin_bp = Blueprint('post_plugin', __name__)
 logger = logging.getLogger(__name__)
 
+post_plugin_bp = Blueprint('post_plugin', __name__)
 
-@post_plugin_bp.route('/plugins', methods=['GET'])
-def list_plugins():
+
+@post_plugin_bp.route('/plugins/catalog', methods=['GET'])
+def plugin_catalog():
     try:
-        enabled = request.args.get('enabled')
-        en = None
-        if enabled is not None and enabled != '':
-            en = enabled in ('1', 'true', 'True', 'yes')
-        return jsonify({'code': 0, 'msg': 'success', 'data': svc.list_plugins(en)})
-    except Exception as e:
-        logger.error('list post plugins: %s', e, exc_info=True)
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins', methods=['POST'])
-def register_plugin():
-    try:
-        data = request.get_json(force=True) or {}
-        manifest = data.get('manifest') or data
-        endpoint = data.get('endpoint')
-        row = svc.register_plugin(manifest, endpoint=endpoint)
-        return jsonify({'code': 0, 'msg': 'success', 'data': row.to_dict()})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error('register post plugin: %s', e, exc_info=True)
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins/<plugin_id>', methods=['GET'])
-def get_plugin(plugin_id: str):
-    try:
-        row = svc.get_plugin(plugin_id)
-        return jsonify({'code': 0, 'msg': 'success', 'data': row.to_dict()})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins/<plugin_id>', methods=['PATCH', 'PUT'])
-def update_plugin(plugin_id: str):
-    try:
-        data = request.get_json(force=True) or {}
-        row = svc.update_plugin(
-            plugin_id,
-            enabled=data.get('enabled'),
-            manifest=data.get('manifest'),
-        )
-        return jsonify({'code': 0, 'msg': 'success', 'data': row.to_dict()})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins/<plugin_id>', methods=['DELETE'])
-def delete_plugin(plugin_id: str):
-    try:
-        force = request.args.get('force', 'false').lower() in ('1', 'true', 'yes')
-        svc.delete_plugin(plugin_id, force=force)
-        return jsonify({'code': 0, 'msg': 'success'})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins/<plugin_id>/start', methods=['POST'])
-def start_plugin(plugin_id: str):
-    try:
-        data = request.get_json(silent=True) or {}
-        row = svc.start_service(
-            plugin_id,
-            version=data.get('version'),
-            deploy_mode=data.get('deploy_mode'),
-            endpoint=data.get('endpoint'),
-            replicas=data.get('replicas'),
-            target_node_id=data.get('target_node_id'),
-        )
-        return jsonify({'code': 0, 'msg': 'success', 'data': row.to_dict()})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error('start post plugin: %s', e, exc_info=True)
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins/<plugin_id>/stop', methods=['POST'])
-def stop_plugin(plugin_id: str):
-    try:
-        data = request.get_json(silent=True) or {}
-        row = svc.stop_service(plugin_id, version=data.get('version'))
-        return jsonify({'code': 0, 'msg': 'success', 'data': row.to_dict()})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins/<plugin_id>/replicas', methods=['PUT', 'POST'])
-def scale_plugin(plugin_id: str):
-    try:
-        data = request.get_json(force=True) or {}
-        replicas = data.get('replicas')
-        if replicas is None:
-            return jsonify({'code': 400, 'msg': 'replicas required'}), 400
-        row = svc.scale_service(plugin_id, int(replicas), version=data.get('version'))
-        return jsonify({'code': 0, 'msg': 'success', 'data': row.to_dict()})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        return jsonify({'code': 500, 'msg': str(e)}), 500
-
-
-@post_plugin_bp.route('/plugins/<plugin_id>/tasks', methods=['GET'])
-def plugin_tasks(plugin_id: str):
-    """列出 post_pipeline 引用了该插件的算法任务（粗匹配）。"""
-    try:
-        return jsonify({'code': 0, 'msg': 'success', 'data': svc.list_tasks_using_plugin(plugin_id)})
-    except Exception as e:
-        logger.error('list plugin tasks: %s', e, exc_info=True)
-        return jsonify({'code': 500, 'msg': str(e)}), 500
+        from app.services.post_plugin_service import list_plugin_catalog
+        data = list_plugin_catalog()
+        return jsonify({'code': 0, 'msg': 'success', 'data': data})
+    except Exception as exc:
+        logger.error('获取 POST 插件目录失败: %s', exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(exc)}), 500
 
 
 @post_plugin_bp.route('/debug/pipeline', methods=['POST'])
-def debug_pipeline_proxy():
-    """WEB → VIDEO → POST /debug/pipeline，避免浏览器直连 POST 地址。"""
+def debug_pipeline_route():
     try:
-        from app.services import post_template_client as post_client
-        body = request.get_json(force=True) or {}
-        result = post_client.debug_pipeline(body)
-        if not result.get('ok'):
-            return jsonify({
-                'code': int(result.get('status') or 502),
-                'msg': result.get('error') or 'POST debug 失败',
-                'data': result.get('data'),
-            }), int(result.get('status') or 502)
-        return jsonify({'code': 0, 'msg': 'success', 'data': result.get('data')})
-    except ValueError as e:
-        return jsonify({'code': 400, 'msg': str(e)}), 400
-    except Exception as e:
-        logger.error('debug pipeline proxy: %s', e, exc_info=True)
-        return jsonify({'code': 502, 'msg': str(e)}), 502
+        from app.services.post_template_client import debug_pipeline
+        from app.services.post_plugin_service import inject_pipeline_endpoints
+
+        body = request.get_json(silent=True) or {}
+        if body.get('pipeline_override'):
+            body['pipeline_override'] = inject_pipeline_endpoints(body['pipeline_override'])
+        status, payload = debug_pipeline(body)
+        if status >= 400:
+            return jsonify({'code': status, 'msg': payload.get('error') if isinstance(payload, dict) else str(payload), 'data': payload}), status
+        return jsonify({'code': 0, 'msg': 'success', 'data': payload})
+    except Exception as exc:
+        logger.error('POST pipeline 调试失败: %s', exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(exc)}), 500
+
+
+@post_plugin_bp.route('/debug/plugin', methods=['POST'])
+def debug_plugin_route():
+    try:
+        from app.services.post_template_client import debug_plugin
+
+        body = request.get_json(silent=True) or {}
+        status, payload = debug_plugin(body)
+        if status >= 400:
+            return jsonify({'code': status, 'msg': payload.get('error') if isinstance(payload, dict) else str(payload), 'data': payload}), status
+        return jsonify({'code': 0, 'msg': 'success', 'data': payload})
+    except Exception as exc:
+        logger.error('POST plugin 调试失败: %s', exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(exc)}), 500
+
+
+@post_plugin_bp.route('/debug/sample-event/<int:task_id>', methods=['GET'])
+def sample_event(task_id: int):
+    try:
+        from models import AlgorithmTask
+        from app.services.post_template_client import build_sample_event, _task_regions
+
+        task = AlgorithmTask.query.get_or_404(task_id)
+        device_id = (request.args.get('device_id') or '').strip()
+        fw = int(request.args.get('frame_width') or 1920)
+        fh = int(request.args.get('frame_height') or 1080)
+        event = build_sample_event(task, device_id=device_id, frame_width=fw, frame_height=fh)
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'event': event,
+                'regions': _task_regions(task),
+            },
+        })
+    except Exception as exc:
+        logger.error('生成样例事件失败 task=%s: %s', task_id, exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(exc)}), 500
