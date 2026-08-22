@@ -28,6 +28,7 @@ const commonApi = <T = any>(
 // ====================== 设备区域检测接口 ======================
 export interface DeviceDetectionRegion {
   id: number;
+  task_id?: number;
   device_id: string;
   region_name: string;
   region_type: 'polygon' | 'line' | 'rectangle'; // polygon:多边形, line:线条, rectangle:四边形
@@ -44,19 +45,19 @@ export interface DeviceDetectionRegion {
 }
 
 /**
- * 获取设备的检测区域列表
+ * 获取指定任务下设备的检测区域列表
  */
-export const getDeviceRegions = (device_id: string) => {
+export const getDeviceRegions = (device_id: string, task_id: number) => {
   return commonApi<{ code: number; msg: string; data: DeviceDetectionRegion[] }>(
     'get',
-    `${DEVICE_DETECTION_PREFIX}/device/${device_id}/regions`,
+    `${DEVICE_DETECTION_PREFIX}/task/${task_id}/device/${device_id}/regions`,
   );
 };
 
 /**
- * 创建设备检测区域
+ * 在指定任务下创建设备检测区域
  */
-export const createDeviceRegion = (device_id: string, data: {
+export const createDeviceRegion = (device_id: string, task_id: number, data: {
   region_name: string;
   region_type?: 'polygon' | 'line' | 'rectangle';
   points: Array<{ x: number; y: number }>;
@@ -69,7 +70,7 @@ export const createDeviceRegion = (device_id: string, data: {
 }) => {
   return commonApi<{ code: number; msg: string; data: DeviceDetectionRegion }>(
     'post',
-    `${DEVICE_DETECTION_PREFIX}/device/${device_id}/regions`,
+    `${DEVICE_DETECTION_PREFIX}/task/${task_id}/device/${device_id}/regions`,
     {},
     data,
   );
@@ -141,4 +142,3 @@ export const updateDeviceCoverImage = (device_id: string) => {
     false,
   );
 };
-
