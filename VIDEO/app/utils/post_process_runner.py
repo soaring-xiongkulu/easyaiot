@@ -118,13 +118,16 @@ def _parse_model_ids(raw) -> List[int]:
     return []
 
 
-def load_regions_for_device(device_id: str) -> List[Dict[str, Any]]:
+def load_regions_for_device(device_id: str, task_id: Optional[int] = None) -> List[Dict[str, Any]]:
     try:
         from models import DeviceDetectionRegion
-        regions = DeviceDetectionRegion.query.filter_by(
+        query = DeviceDetectionRegion.query.filter_by(
             device_id=device_id,
             is_enabled=True,
-        ).order_by(DeviceDetectionRegion.sort_order).all()
+        )
+        if task_id is not None:
+            query = query.filter_by(task_id=task_id)
+        regions = query.order_by(DeviceDetectionRegion.sort_order).all()
         return [r.to_dict() for r in regions]
     except Exception as exc:
         logger.debug('加载设备检测区域失败 device=%s: %s', device_id, exc)
@@ -338,7 +341,8 @@ def enqueue_post_process_request(
     """将检测结果 HTTP 投递至 iot-sink 入队，姿态分析在 Worker 内异步执行。"""
     if not task_needs_sink_processing(task_config):
         return
-    regions = load_regions_for_device(device_id)
+    task_id = getattr(task_config, 'id', None)
+    regions = load_regions_for_device(device_id, task_id)
     ctx = build_task_context(
         task_config,
         device_id=device_id,
