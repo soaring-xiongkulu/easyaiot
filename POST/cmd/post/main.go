@@ -18,6 +18,7 @@ import (
 	"easyaiot/post/internal/metrics"
 	mqttbus "easyaiot/post/internal/mqtt"
 	"easyaiot/post/internal/nacos"
+	"easyaiot/post/internal/plugin"
 	"easyaiot/post/internal/template"
 )
 
@@ -101,6 +102,7 @@ func main() {
 		defer t.Stop()
 		for range t.C {
 			cache.SweepExpired()
+			plugin.SweepTrackState()
 		}
 	}()
 
