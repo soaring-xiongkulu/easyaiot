@@ -28,6 +28,15 @@ const certDir = path.join(root, 'certs')
 const keyPath = path.join(certDir, 'localhost-key.pem')
 const certPath = path.join(certDir, 'localhost.pem')
 
+// 在 chokidar / Vite 初始化前强制轮询，避免 Linux inotify 配额耗尽 (ENOSPC)
+// 系统侧仍建议：sudo sysctl -w fs.inotify.max_user_watches=524288
+if (process.env.CHOKIDAR_USEPOLLING == null) {
+  process.env.CHOKIDAR_USEPOLLING = '1'
+}
+if (process.env.CHOKIDAR_INTERVAL == null) {
+  process.env.CHOKIDAR_INTERVAL = '1000'
+}
+
 function ensureCerts() {
   if (fs.existsSync(keyPath) && fs.existsSync(certPath)) return
   console.log('[dev-http2] generating self-signed certs...')
@@ -43,6 +52,7 @@ ensureCerts()
 const mode = 'development'
 const env = loadEnv(mode, root, '')
 const port = Number(env.VITE_PORT || process.env.VITE_PORT || 8888)
+const usePolling = env.VITE_USE_POLLING !== 'false'
 const tls = {
   key: fs.readFileSync(keyPath),
   cert: fs.readFileSync(certPath),
@@ -143,6 +153,12 @@ const vite = await createViteServer({
   server: {
     middlewareMode: true,
     // 勿设 server.https：会触发 vite-plugin-mkcert；TLS 由外层 http2.createSecureServer 负责
+    // 显式传入 watch，避免与 vite.config 合并后仍落到原生 inotify
+    watch: {
+      usePolling,
+      interval: Number(process.env.CHOKIDAR_INTERVAL || 1000),
+      ignored: ['**/node_modules/**', '**/.git/**', '**/__pycache__/**'],
+    },
     hmr: {
       server,
       protocol: 'wss',
