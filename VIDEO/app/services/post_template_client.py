@@ -134,7 +134,10 @@ def build_template_from_task(task) -> Dict[str, Any]:
             model_ids = json.loads(raw_models) if isinstance(raw_models, str) else list(raw_models)
         except Exception:
             model_ids = []
-    pipeline = inject_pipeline_endpoints(parse_pipeline(getattr(task, 'post_pipeline', None)))
+    if getattr(task, 'alert_event_enabled', False):
+        pipeline = inject_pipeline_endpoints(parse_pipeline(getattr(task, 'post_pipeline', None)))
+    else:
+        pipeline = None
     return {
         'schema': 'post_task_template.v1',
         'task': {

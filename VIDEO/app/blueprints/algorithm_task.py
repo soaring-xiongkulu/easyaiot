@@ -185,6 +185,8 @@ def update_task(task_id):
             keys = set(data.keys())
             if keys - {'post_pipeline'}:
                 return jsonify({'code': 400, 'msg': '任务运行中，无法编辑，请先停止任务'}), 400
+            if 'post_pipeline' in data and not task.alert_event_enabled:
+                return jsonify({'code': 400, 'msg': '未启用告警事件，无法配置后处理规则链'}), 400
         
         task = update_algorithm_task(task_id, **data)
         

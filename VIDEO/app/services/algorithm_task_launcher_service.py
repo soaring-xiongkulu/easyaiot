@@ -39,6 +39,9 @@ def _stop_post_process_cluster(task_id: int, task: Optional[AlgorithmTask] = Non
 
 def _push_post_template(task: AlgorithmTask) -> None:
     """任务真正启动成功后推送 POST 定制后处理模板。"""
+    if not getattr(task, 'alert_event_enabled', False):
+        logger.info('任务 %s 未启用告警事件，跳过后处理规则链模板推送', task.id)
+        return
     try:
         from app.services.post_template_client import parse_pipeline, push_template_on_start
         from app.services.post_plugin_service import ensure_external_services_ready

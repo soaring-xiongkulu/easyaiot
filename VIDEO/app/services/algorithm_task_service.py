@@ -45,6 +45,13 @@ def _serialize_post_pipeline(raw) -> Optional[str]:
     raise ValueError('post_pipeline 类型不支持')
 
 
+def _resolve_post_pipeline_for_alert(post_pipeline, alert_event_enabled: bool) -> Optional[str]:
+    """后处理规则链仅在启用告警事件时保存与生效。"""
+    if not alert_event_enabled:
+        return None
+    return _serialize_post_pipeline(post_pipeline)
+
+
 def _parse_defense_schedule_matrix(defense_schedule) -> Optional[list]:
     if not defense_schedule:
         return None
@@ -1087,7 +1094,7 @@ def create_algorithm_task(task_name: str,
             pose_intent_config=_serialize_pose_intent_config(pose_intent_config),
             post_process_enabled=bool(post_process_enabled),
             post_process_replicas=max(1, int(post_process_replicas or 1)),
-            post_pipeline=_serialize_post_pipeline(post_pipeline),
+            post_pipeline=_resolve_post_pipeline_for_alert(post_pipeline, alert_event_enabled),
             executor=executor or 'cpp',
             runtime_bin_path=(runtime_bin_path or None),
             runtime_control_port=runtime_control_port,
@@ -1398,8 +1405,8 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         if 'alert_class_names' in kwargs:
             kwargs['alert_class_names'] = _serialize_alert_class_names(kwargs['alert_class_names'])
 
-        if 'post_pipeline' in kwargs:
-            kwargs['post_pipeline'] = _serialize_post_pipeline(kwargs['post_pipeline'])
+        if 'post_pipeline' in kwargs and not kwargs.get('alert_event_enabled', task.alert_event_enabled):
+            kwargs['post_pipeline'] = None
 
         if 'alert_event_enabled' in kwargs or 'alert_class_names' in kwargs:
             from app.utils.alert_class_filter import parse_alert_class_names
@@ -1465,6 +1472,11 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         )
         kwargs['defense_mode'] = merged_defense_mode
         kwargs['defense_schedule'] = merged_defense_schedule
+
+        if not alert_event_on:
+            kwargs['post_pipeline'] = None
+        elif 'post_pipeline' in kwargs:
+            kwargs['post_pipeline'] = _serialize_post_pipeline(kwargs['post_pipeline'])
         
         for field in updatable_fields:
             if field in kwargs:
@@ -1506,20 +1518,28 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                 if task_devices:
                     from models import DeviceDetectionRegion
                     for device in task_devices:
-                        # 禁用该设备的所有区域检测配置
-                        regions = DeviceDetectionRegion.query.filter_by(device_id=device.id).all()
+                        regions = DeviceDetectionRegion.query.filter_by(
+                            device_id=device.id,
+                            task_id=task.id,
+                        ).all()
                         for region in regions:
                             region.is_enabled = False
                         logger.info(f"算法任务模型列表为空，自动禁用设备 {device.id} 的所有区域检测配置")
         
         db.session.commit()
 
-        if 'post_pipeline' in kwargs and getattr(task, 'is_enabled', False):
+        if getattr(task, 'is_enabled', False) and (
+            'post_pipeline' in kwargs or 'alert_event_enabled' in kwargs
+        ):
             try:
-                from app.services.post_template_client import put_template
-                put_template(task.id, task=task)
+                if task.alert_event_enabled:
+                    from app.services.post_template_client import put_template
+                    put_template(task.id, task=task)
+                else:
+                    from app.services.post_template_client import push_template_on_stop
+                    push_template_on_stop(task.id)
             except Exception as e:
-                logger.warning('post_pipeline 变更后推送模板失败 task=%s: %s', task_id, e)
+                logger.warning('后处理规则链/告警开关变更后同步 POST 模板失败 task=%s: %s', task_id, e)
         
         logger.info(f"更新算法任务成功: task_id={task_id}, task_type={task_type}, device_ids={device_id_list}, model_ids={model_ids}")
         return task
