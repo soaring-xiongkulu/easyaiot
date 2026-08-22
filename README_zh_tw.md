@@ -238,6 +238,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>上線前可試跑</strong>：用樣例或真實檢測事件在線回放當前規則，逐步看清「通過還是丟棄、會不會產生告警」，聯調與驗收能回答「這條規則到底攔了什麼」，少靠上線後再靠客訴調參</li>
   <li><strong>改規則即時生效</strong>：運行中的任務保存規則即可跟上新口徑，不必停分析、不必重推畫面。現場臨時改禁區、加一道判斷，值守當天就能按新標準管，縮短「等窗口停機—再改—再驗」的空窗</li>
   <li><strong>感知與研判互不拖垮</strong>：監控畫面繼續流暢分析，業務判斷按需擴展；研判失敗可選擇「本步跳過繼續告警」或「寧可不報以免錯告」，在漏報與誤報之間按現場風險偏好取值。樓面級（standard）與全棧一體機（full）默認具備該能力，輕量單機仍可先跑通檢測告警，需要深度運營時再升檔</li>
+  <li><strong>四類內置研判插件（免登記）</strong>：<strong><code>line_cross</code></strong>（越線檢測，配合 <code>line</code> 檢測線與追蹤）、<strong><code>region_enter_exit</code></strong>（區域進出）、<strong><code>dwell_timer</code></strong>（停留/滯留超時）、<strong><code>headcount_gate</code></strong>（人數閾值）——可與區域閘門、放行、業務腳本及行業插件編排成貼現場的規則鏈</li>
 </ul>
 
 ### 🤖 AI助手：IDEA 分屏共創，邊改代碼邊問架構查健康
@@ -728,6 +729,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME�
     <li><strong>少誤報、可驗收</strong>：區域外不刷屏；上線前可試跑規則，看清攔什麼、會不會產生告警</li>
     <li><strong>改口徑不停分析</strong>：運行中保存規則即時生效，不必爲改禁區或加判斷而停任務</li>
     <li><strong>感知與研判解耦</strong>：畫面分析繼續跑，業務邏輯按需擴展；行業能力可插拔，多項目複用同一套檢測</li>
+    <li><strong>內置插件</strong>：<code>line_cross</code> 越線檢測、<code>region_enter_exit</code> 區域進出、<code>dwell_timer</code> 停留超時、<code>headcount_gate</code> 人數閾值——算法任務「後處理規則」中直接選用，無需登記；越線/進出/停留需開啓目標追蹤（<code>track_id</code>）</li>
   </ul>
 </td>
 </tr>

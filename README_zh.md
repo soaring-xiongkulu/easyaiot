@@ -282,6 +282,7 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>上线前可试跑</strong>：用样例或真实检测事件在线回放当前规则，逐步看清「通过还是丢弃、会不会产生告警」，联调与验收能回答「这条规则到底拦了什么」，少靠上线后再靠客诉调参</li>
   <li><strong>改规则即时生效</strong>：运行中的任务保存规则即可跟上新口径，不必停分析、不必重推画面。现场临时改禁区、加一道判断，值守当天就能按新标准管，缩短「等窗口停机—再改—再验」的空窗</li>
   <li><strong>感知与研判互不拖垮</strong>：监控画面继续流畅分析，业务判断按需扩展；研判失败可选择「本步跳过继续告警」或「宁可不报以免错告」，在漏报与误报之间按现场风险偏好取值。楼面级（standard）与全栈一体机（full）默认具备该能力，轻量单机仍可先跑通检测告警，需要深度运营时再升档</li>
+  <li><strong>四类内置研判插件（免登记）</strong>：<strong><code>line_cross</code></strong>（越线检测，配合 <code>line</code> 检测线与追踪）、<strong><code>region_enter_exit</code></strong>（区域进出）、<strong><code>dwell_timer</code></strong>（停留/滞留超时）、<strong><code>headcount_gate</code></strong>（人数阈值）——可与区域闸门、放行、业务脚本及行业插件编排成贴现场的规则链</li>
 </ul>
 
 ### 🤖 AI助手：IDEA 分屏共创，边改代码边问架构查健康
@@ -784,6 +785,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME�
     <li><strong>少误报、可验收</strong>：区域外不刷屏；上线前可试跑规则，看清拦什么、会不会产生告警</li>
     <li><strong>改口径不停分析</strong>：运行中保存规则即时生效，不必为改禁区或加判断而停任务</li>
     <li><strong>感知与研判解耦</strong>：画面分析继续跑，业务逻辑按需扩展；行业能力可插拔，多项目复用同一套检测</li>
+    <li><strong>内置插件</strong>：<code>line_cross</code> 越线检测、<code>region_enter_exit</code> 区域进出、<code>dwell_timer</code> 停留超时、<code>headcount_gate</code> 人数阈值——算法任务「后处理规则」中直接选用，无需登记；越线/进出/停留需开启目标追踪（<code>track_id</code>）</li>
   </ul>
 </td>
 </tr>

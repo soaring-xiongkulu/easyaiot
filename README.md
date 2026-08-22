@@ -237,6 +237,7 @@ Vision projects often stall at “the model already boxed people/vehicles/object
   <li><strong>Trial-run before go-live</strong>: Replay current rules online with sample or real detection events—step through pass vs drop and whether an alert will fire. Integration and acceptance can answer “what did this rule actually block,” instead of tuning after go-live from complaints</li>
   <li><strong>Rule changes take effect immediately</strong>: Saving rules on a running task adopts the new standard—no need to stop analysis or re-push video. Temporary forbidden-zone changes or an extra judgment step can be operated the same day, shortening the “wait for a maintenance window → change → re-accept” idle gap</li>
   <li><strong>Perception and judgment do not drag each other down</strong>: Monitoring keeps analyzing smoothly while business judgment scales on demand; on judgment failure choose “skip this step and keep alerting” or “prefer no alert over a wrong one,” matching field risk preference between misses and false alarms. Floor-level (standard) and full-stack appliances (full) include this capability by default; light standalones can first close the detection-alert loop and upgrade when deeper operations are needed</li>
+  <li><strong>Four built-in judgment plugins (no registration)</strong>: <strong><code>line_cross</code></strong> (line crossing with <code>line</code> detection lines + tracking), <strong><code>region_enter_exit</code></strong> (enter/exit polygon zones), <strong><code>dwell_timer</code></strong> (dwell/loiter timeout in zone), <strong><code>headcount_gate</code></strong> (headcount threshold in zone)—compose with region gate, pass-through, business scripts, and industry plugins into field-ready rule chains</li>
 </ul>
 
 ### 🤖 AI Assistant: IDEA split-pane co-creation—edit code while asking about architecture and health
@@ -739,6 +740,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, SENTINEL, VIDE
     <li><strong>Fewer false alarms, ready to accept</strong>: Outside regions do not flood screens; trial-run rules before go-live to see what is blocked and whether alerts fire</li>
     <li><strong>Change standards without stopping analysis</strong>: Saving rules on a running task takes effect immediately—no need to stop tasks to adjust forbidden zones or add a judgment step</li>
     <li><strong>Perception and judgment decoupled</strong>: Video analysis keeps running while business logic scales on demand; industry capabilities are pluggable so one detection stack serves many projects</li>
+    <li><strong>Built-in plugins</strong>: <code>line_cross</code> line crossing, <code>region_enter_exit</code> zone enter/exit, <code>dwell_timer</code> dwell timeout, <code>headcount_gate</code> headcount threshold—select in algorithm task post-processing rules without plugin registration; line crossing, enter/exit, and dwell require target tracking (<code>track_id</code>)</li>
   </ul>
 </td>
 </tr>

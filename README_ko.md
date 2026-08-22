@@ -229,6 +229,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>상선 전 시운전</strong>: 샘플·실제 검출 이벤트로 현재 규칙을 온라인 재생 — 통과/폐기와 경보 발생 여부를 단계별로 확인. 「이 규칙이 무엇을 막았는지」를 인수에서 답할 수 있음</li>
   <li><strong>규칙 변경 즉시 반영</strong>: 실행 중 작업에 규칙을 저장하면 새 기준이 적용 — 분석 중단·영상 재푸시 불필요. 금지 구역 임시 변경·판단 단계 추가도 당일 운영 가능</li>
   <li><strong>인식과 판정이 서로를 끌어내리지 않음</strong>: 감시 화면은 계속 분석하고 업무 판단은 필요에 따라 확장; 판정 실패 시 「이 단계 건너뛰고 경보 유지」 또는 「잘못된 경보보다 미경보」를 선택. standard/full은 기본 포함, 경량 단기는 먼저 검출-경보 루프를 닫고 심화 운영 시 승급</li>
+  <li><strong>내장 판정 플러그인 4종(등록 불필요)</strong>: <strong><code>line_cross</code></strong>(선 넘기, <code>line</code> 검출선+추적), <strong><code>region_enter_exit</code></strong>(구역 진입/이탈), <strong><code>dwell_timer</code></strong>(체류/잔류 초과), <strong><code>headcount_gate</code></strong>(인원 임계값) — 구역 게이트·통과·업무 스크립트·산업 플러그인과 조합해 현장형 규칙 체인 구성</li>
 </ul>
 
 ### 🤖 AI 어시스턴트: IDEA 분할 화면 공동 창작 — 코드를 고치며 아키텍처·상태를 질문
@@ -718,6 +719,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VIS
     <li><strong>오경보 감소·인수 가능</strong>: 구역 밖 폭주 없음; 상선 전 규칙 시운전</li>
     <li><strong>기준 변경해도 분석 유지</strong>: 실행 중 규칙 저장이 즉시 반영</li>
     <li><strong>인식·판정 분리</strong>: 화면 분석은 계속, 업무 로직은 확장; 산업 능력 플러그형</li>
+    <li><strong>내장 플러그인</strong>: <code>line_cross</code> 선 넘기, <code>region_enter_exit</code> 구역 진입/이탈, <code>dwell_timer</code> 체류 초과, <code>headcount_gate</code> 인원 임계값 — 알고리즘 작업 「후처리 규칙」에서 바로 선택, 등록 불필요; 선 넘기/진입·이탈/체류는 목표 추적(<code>track_id</code>) 필요</li>
   </ul>
 </td>
 </tr>

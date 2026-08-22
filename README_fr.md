@@ -229,6 +229,7 @@ Les projets vision butent souvent sur « le modèle a déjà encadré personnes/
   <li><strong>Essai avant mise en production</strong> : rejouer les règles en ligne avec des événements d’exemple ou réels — voir passer/rejeter et si une alerte part. L’acceptance répond « qu’a vraiment bloqué cette règle »</li>
   <li><strong>Changement de règles à effet immédiat</strong> : sauvegarder les règles d’une tâche en cours adopte le nouveau standard — sans arrêter l’analyse ni republier la vidéo</li>
   <li><strong>Perception et jugement ne se freinent pas</strong> : la surveillance continue d’analyser ; le jugement s’étend à la demande. En échec : « sauter l’étape et continuer » ou « préférer ne pas alerter qu’alerter à tort ». Inclus par défaut en standard/full ; les standalone légers peuvent d’abord boucler détection-alerte puis monter de niveau</li>
+  <li><strong>Quatre plugins de jugement intégrés (sans enregistrement)</strong> : <strong><code>line_cross</code></strong> (franchissement de ligne avec lignes <code>line</code> + suivi), <strong><code>region_enter_exit</code></strong> (entrée/sortie de zone), <strong><code>dwell_timer</code></strong> (séjour prolongé / timeout), <strong><code>headcount_gate</code></strong> (seuil d’effectif) — composables avec porte de zone, passage, scripts métier et plugins sectoriels en chaînes prêtes pour le terrain</li>
 </ul>
 
 ### 🤖 Assistant IA : co-création en écran partagé IDEA — modifier le code tout en interrogeant architecture et santé
@@ -718,6 +719,7 @@ EasyAIoT comprend notamment WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RU
     <li><strong>Moins de fausses alertes, prêt à accepter</strong> : hors zone sans flood ; essai des règles avant mise en production</li>
     <li><strong>Changer le standard sans arrêter l’analyse</strong> : sauvegarde à chaud sur tâche en cours</li>
     <li><strong>Perception et jugement découplés</strong> : l’analyse continue ; la logique métier s’étend à la demande ; capacités sectorielles enfichables</li>
+    <li><strong>Plugins intégrés</strong> : <code>line_cross</code> franchissement de ligne, <code>region_enter_exit</code> entrée/sortie de zone, <code>dwell_timer</code> timeout de séjour, <code>headcount_gate</code> seuil d’effectif — sélection directe dans les règles de post-traitement des tâches algorithmiques, sans enregistrement ; franchissement, entrée/sortie et séjour requièrent le suivi des cibles (<code>track_id</code>)</li>
   </ul>
 </td>
 </tr>
