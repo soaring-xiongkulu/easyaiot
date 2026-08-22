@@ -85,6 +85,15 @@ SENTINEL/agent.env
 *.pyc
 **/.pytest_cache/
 *.rar
+# POST 本地开发产物（与 POST/.gitignore 对齐；.env 含密钥勿提交；.env.docker 为默认可跟踪模板）
+POST/.env
+POST/bin/
+POST/out/
+POST/logs/
+POST/vendor/
+POST/post
+POST/post-replay
+
 # RTC 本地运行数据与 vendor 源码（go2rtc 由 install_linux.sh vendor 拉取，不随仓库分发）
 RTC/data/
 RTC/.env

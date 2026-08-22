@@ -2,19 +2,31 @@
 .env.*
 !.env.docker
 
+# install 脚本自动生成的架构配置（与 AI/VIDEO/RTC 一致）
+.env.arch
+
 # 日志
 logs/
 *.log
 
-# Go
+# Go 构建产物
 *.exe
 *.test
+*.out
 /bin/
 /out/
+# 本地 go build 落到模块根目录的二进制（勿与 cmd/post 目录混淆）
+/post
+/post-replay
+
+# 覆盖率 / delve 调试
+coverage.out
+coverage.html
+__debug_bin*
 
 # IDE
 .idea/
 *.iml
 
-# local binaries / vendor
+# local vendor（若 go mod vendor）
 vendor/
