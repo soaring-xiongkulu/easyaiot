@@ -3,295 +3,514 @@
     v-bind="$attrs"
     @register="register"
     title="区域检测配置"
-    width="95%"
+    width="96%"
     placement="right"
     :showFooter="false"
+    destroy-on-close
   >
-    <div class="device-region-detection-drawer">
-      <!-- 摄像头列表 -->
-      <div class="device-list-panel">
-        <div class="panel-header">
-          <a-input-search
-            v-model:value="searchKeyword"
-            placeholder="搜索摄像头"
-            style="width: 100%"
-            @search="handleSearch"
-          />
-        </div>
-        <div class="device-list">
-          <div
-            v-for="device in filteredDevices"
-            :key="device.id"
-            class="device-item"
-            :class="{ active: selectedDeviceId === device.id }"
-            @click="selectDevice(device)"
-          >
-            <div class="device-cover">
-              <img
-                v-if="device.cover_image_path"
-                :src="device.cover_image_path"
-                :alt="device.name"
-                @error="handleImageError"
-              />
-              <div v-else class="no-cover">
-                <CameraOutlined style="font-size: 32px; color: #ccc" />
-              </div>
-            </div>
-            <div class="device-info">
-              <div class="device-name">{{ device.name || device.id }}</div>
-            </div>
-          </div>
-          <a-empty v-if="filteredDevices.length === 0" description="暂无摄像头" :image="false" />
-        </div>
+    <div class="region-config-shell">
+      <div v-if="initializing" class="region-config-loading">
+        <a-spin :tip="initializingTip" size="large" />
       </div>
 
-      <!-- 区域检测绘制区域 -->
-      <div class="region-drawer-panel" v-if="selectedDeviceId">
-        <DeviceRegionDrawer
-          :device-id="selectedDeviceId"
-          :initial-regions="deviceRegions[selectedDeviceId] || []"
-          :initial-image-id="deviceImageIds[selectedDeviceId]"
-          :initial-image-path="deviceImagePaths[selectedDeviceId]"
-          :model-ids="taskModelIds || undefined"
-          @save="handleRegionSave"
-          @image-captured="handleImageCaptured"
-          @cover-updated="handleCoverUpdated"
-        />
-      </div>
-      <div v-else class="empty-selection">
-        <a-empty description="请选择一个摄像头进行区域检测配置" />
-      </div>
+      <!-- 紧凑摄像头切换条 -->
+        <div v-if="devices.length > 0" class="camera-bar">
+          <div
+            ref="cameraListRef"
+            class="camera-bar__list"
+            @wheel="onCameraListWheel"
+          >
+            <div
+              v-for="device in devices"
+              :key="device.id"
+              class="camera-chip"
+              :class="{
+                'is-active': selectedDeviceId === device.id,
+                'is-loading': capturingDeviceIds.has(device.id),
+                'is-failed': captureFailedDeviceIds.has(device.id),
+              }"
+              @click="selectDevice(device)"
+            >
+              <span class="camera-chip__thumb">
+                <img
+                  v-if="getDeviceThumb(device.id)"
+                  :src="getDeviceThumb(device.id)"
+                  :alt="device.name"
+                  @error="(e) => handleThumbError(e, device.id)"
+                />
+                <Icon v-else icon="ant-design:video-camera-outlined" :size="14" />
+                <span v-if="capturingDeviceIds.has(device.id)" class="camera-chip__spin">
+                  <LoadingOutlined spin />
+                </span>
+              </span>
+              <span class="camera-chip__name">{{ device.name || device.id }}</span>
+              <a-tag
+                v-if="captureFailedDeviceIds.has(device.id)"
+                color="error"
+                class="camera-chip__tag"
+              >
+                失败
+              </a-tag>
+              <span v-else class="camera-chip__count">{{ getRegionCount(device.id) }}</span>
+            </div>
+          </div>
+          <Button
+            class="camera-bar__refresh"
+            type="default"
+            preIcon="ant-design:reload-outlined"
+            :loading="refreshingAll"
+            @click="refreshAllSnapshots"
+          >
+            刷新
+          </Button>
+        </div>
+        <div v-else-if="!initializing" class="camera-bar camera-bar--empty">
+          <a-empty description="未加载到任务关联的摄像头" :image="false" />
+        </div>
+
+        <!-- 主工作区：画布占满剩余空间 -->
+        <div class="region-workspace">
+          <DeviceRegionDrawer
+            v-if="selectedDeviceId && taskId"
+            :key="`${taskId}-${selectedDeviceId}`"
+            :task-id="taskId"
+            :device-id="selectedDeviceId"
+            :device-meta="getSelectedDevice()"
+            :initial-regions="deviceRegions[selectedDeviceId] || []"
+            :initial-image-id="deviceImageIds[selectedDeviceId]"
+            :initial-image-path="deviceImagePaths[selectedDeviceId]"
+            :auto-capture="!deviceImagePaths[selectedDeviceId] || captureFailedDeviceIds.has(selectedDeviceId)"
+            @save="handleRegionSave"
+            @image-captured="handleImageCaptured"
+            @cover-updated="handleCoverUpdated"
+          />
+          <div v-else class="region-workspace__empty">
+            <a-empty description="暂无关联摄像头" :image="false" />
+          </div>
+        </div>
     </div>
   </BasicDrawer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { computed, onUnmounted, ref } from 'vue';
+import { LoadingOutlined } from '@ant-design/icons-vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
-import { CameraOutlined } from '@ant-design/icons-vue';
+import { Icon } from '@/components/Icon';
+import { Button } from '@/components/Button';
 import { useMessage } from '@/hooks/web/useMessage';
-import { getDeviceList, type DeviceInfo } from '@/api/device/camera';
-import { getDeviceRegions, type DeviceDetectionRegion } from '@/api/device/device_detection_region';
-import { getTaskStreams, getAlgorithmTask, type CameraStreamInfo } from '@/api/device/algorithm_task';
+import { getDeviceList, getDeviceInfo, type DeviceInfo } from '@/api/device/camera';
+import {
+  getDeviceRegions,
+  type DeviceDetectionRegion,
+} from '@/api/device/device_detection_region';
+import { getTaskStreams, type CameraStreamInfo } from '@/api/device/algorithm_task';
 import DeviceRegionDrawer from '../DeviceRegionDrawer/index.vue';
+import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage';
+import { captureSnapshotWithQuality } from '@/views/camera/utils/deviceSnapshotCapture';
+import {
+  isGb28181Device,
+  sleep,
+  verifySnapshotQuality,
+} from '@/views/camera/utils/snapshotQuality';
 
 defineOptions({ name: 'DeviceRegionDetectionDrawer' });
 
 const { createMessage } = useMessage();
 
-const [register, { closeDrawer }] = useDrawerInner(async (data) => {
-  // 重置状态
-  selectedDeviceId.value = null;
-  deviceRegions.value = {};
-  deviceImageIds.value = {};
-  deviceImagePaths.value = {};
-  searchKeyword.value = '';
-  taskModelIds.value = null;
-  
-  // 接收传入的参数：taskId
-  if (data?.taskId) {
-    taskId.value = data.taskId;
-    // 加载任务信息，获取关联的模型ID列表
-    await loadTaskInfo(data.taskId);
-    await loadTaskDevices(data.taskId);
-  } else {
-    // 如果没有传入taskId，则加载所有设备（兼容旧逻辑）
-    taskId.value = null;
-    await loadDevices();
-  }
-});
-
-// 状态
 const taskId = ref<number | null>(null);
-const taskModelIds = ref<number[] | null>(null); // 任务关联的模型ID列表
+/** 打开抽屉时锁定的设备 ID，防止抓图后列表被全量设备污染 */
+const pinnedDeviceIds = ref<string[] | null>(null);
+
 const devices = ref<DeviceInfo[]>([]);
-const searchKeyword = ref('');
 const selectedDeviceId = ref<string | null>(null);
 const deviceRegions = ref<Record<string, DeviceDetectionRegion[]>>({});
 const deviceImageIds = ref<Record<string, number>>({});
 const deviceImagePaths = ref<Record<string, string>>({});
 
-// 过滤后的设备列表
-const filteredDevices = computed(() => {
-  if (!searchKeyword.value) {
-    return devices.value;
+const initializing = ref(false);
+const refreshingAll = ref(false);
+const capturingDeviceIds = ref<Set<string>>(new Set());
+const captureFailedDeviceIds = ref<Set<string>>(new Set());
+const cameraListRef = ref<HTMLElement | null>(null);
+
+function onCameraListWheel(e: WheelEvent) {
+  const el = cameraListRef.value;
+  if (!el || el.scrollWidth <= el.clientWidth) return;
+  el.scrollLeft += e.deltaY;
+  e.preventDefault();
+}
+
+const hasGbDevice = computed(() => devices.value.some((d) => isGb28181Device(d)));
+
+const loadingElapsedSec = ref(0);
+let loadingTimer: ReturnType<typeof setInterval> | null = null;
+
+function startLoadingTimer() {
+  loadingElapsedSec.value = 0;
+  stopLoadingTimer();
+  loadingTimer = setInterval(() => {
+    loadingElapsedSec.value += 1;
+  }, 1000);
+}
+
+function stopLoadingTimer() {
+  if (loadingTimer) {
+    clearInterval(loadingTimer);
+    loadingTimer = null;
   }
-  const keyword = searchKeyword.value.toLowerCase();
-  return devices.value.filter(
-    device =>
-      (device.name || '').toLowerCase().includes(keyword) ||
-      device.id.toLowerCase().includes(keyword)
-  );
+}
+
+const initializingTip = computed(() => {
+  if (!hasGbDevice.value) {
+    return '正在加载摄像头并抓取基准图…';
+  }
+  if (loadingElapsedSec.value <= 5) {
+    return 'GB 设备出图中，请稍候…';
+  }
+  return `GB 设备出图中，已等待 ${loadingElapsedSec.value} 秒…`;
 });
 
-// 选择设备
-const selectDevice = async (device: DeviceInfo) => {
-  // 先加载该设备的区域配置和图片路径，再设置 selectedDeviceId
-  // 这样可以确保 DeviceRegionDrawer 组件在渲染时就能获取到图片路径
-  
-  // 加载该设备的区域配置（即使已经加载过，也重新加载以确保数据最新）
-  try {
-    const response = await getDeviceRegions(device.id);
-    console.log('selectDevice: 获取区域数据响应:', response);
-    
-    // 处理响应：可能是直接返回数据，也可能是包含 code 的对象
-    let regions: DeviceDetectionRegion[] = [];
-    if (response && typeof response === 'object' && 'code' in response) {
-      if (response.code === 0 && response.data) {
-        regions = Array.isArray(response.data) ? response.data : [];
-      } else {
-        console.warn('获取区域数据失败:', response.msg);
-        regions = [];
-      }
-    } else if (Array.isArray(response)) {
-      // 如果直接返回数组
-      regions = response;
-    } else if (response && typeof response === 'object' && 'data' in response) {
-      // 如果响应有 data 字段
-      regions = Array.isArray(response.data) ? response.data : [];
+onUnmounted(() => {
+  stopLoadingTimer();
+});
+
+function getSelectedDevice(): DeviceInfo | undefined {
+  if (!selectedDeviceId.value) return undefined;
+  return devices.value.find((d) => d.id === selectedDeviceId.value);
+}
+
+function getDeviceById(deviceId: string): DeviceInfo | undefined {
+  return devices.value.find((d) => d.id === deviceId);
+}
+
+function getCaptureGapMs(prevDevice?: DeviceInfo, nextDevice?: DeviceInfo): number {
+  const prevGb = isGb28181Device(prevDevice);
+  const nextGb = isGb28181Device(nextDevice);
+  if (prevGb || nextGb) return 4000;
+  return 1500;
+}
+
+const [register] = useDrawerInner(async (data) => {
+  selectedDeviceId.value = null;
+  deviceRegions.value = {};
+  deviceImageIds.value = {};
+  deviceImagePaths.value = {};
+  captureFailedDeviceIds.value = new Set();
+  pinnedDeviceIds.value = null;
+  taskId.value = null;
+
+  const incomingIds = Array.isArray(data?.deviceIds)
+    ? data.deviceIds.map(String).filter(Boolean)
+    : [];
+  const incomingLabels =
+    data?.deviceLabels && typeof data.deviceLabels === 'object' ? data.deviceLabels : {};
+
+  if (data?.taskId) {
+    taskId.value = data.taskId;
+  }
+
+  // 优先使用表单传入的设备 ID（与任务配置一致），taskId 仅作封面等信息补充
+  if (incomingIds.length > 0) {
+    pinnedDeviceIds.value = incomingIds;
+    await loadDevicesByIds(incomingIds, incomingLabels);
+    if (taskId.value) {
+      await enrichDevicesFromStreams(taskId.value);
     }
-    
-    console.log('selectDevice: 解析后的区域数据:', regions, '数量:', regions.length);
-    
-    // 确保即使数据为空数组，也要设置，这样组件知道已经加载过了
+  } else if (taskId.value) {
+    await loadTaskDevices(taskId.value);
+    pinnedDeviceIds.value = devices.value.map((d) => String(d.id));
+  } else {
+    await loadDevices();
+    pinnedDeviceIds.value = devices.value.map((d) => String(d.id));
+  }
+
+  await bootstrapDevices();
+});
+
+function extractListData(response: unknown): DeviceInfo[] {
+  if (Array.isArray(response)) return response as DeviceInfo[];
+  if (response && typeof response === 'object') {
+    const obj = response as Record<string, unknown>;
+    if (Array.isArray(obj.data)) return obj.data as DeviceInfo[];
+    if (obj.data && typeof obj.data === 'object' && Array.isArray((obj.data as any).list)) {
+      return (obj.data as any).list as DeviceInfo[];
+    }
+    if (Array.isArray(obj.list)) return obj.list as DeviceInfo[];
+  }
+  return [];
+}
+
+function parseDeviceInfo(response: unknown): DeviceInfo | null {
+  if (!response || typeof response !== 'object') return null;
+  const obj = response as Record<string, unknown>;
+  if (obj.code === 0 && obj.data && typeof obj.data === 'object' && (obj.data as any).id) {
+    return obj.data as DeviceInfo;
+  }
+  if ('id' in obj && obj.id) {
+    return obj as DeviceInfo;
+  }
+  return null;
+}
+
+function parseRegionsResponse(response: unknown): DeviceDetectionRegion[] {
+  if (Array.isArray(response)) return response;
+  if (response && typeof response === 'object') {
+    if ('code' in response && (response as any).code === 0 && Array.isArray((response as any).data)) {
+      return (response as any).data;
+    }
+    if ('data' in response && Array.isArray((response as any).data)) {
+      return (response as any).data;
+    }
+  }
+  return [];
+}
+
+async function prefetchDeviceMeta(device: DeviceInfo) {
+  if (!taskId.value) {
+    deviceRegions.value[device.id] = [];
+    return;
+  }
+  try {
+    const response = await getDeviceRegions(device.id, taskId.value);
+    const regions = parseRegionsResponse(response);
     deviceRegions.value[device.id] = regions;
-    
-    // 如果有区域，获取对应的图片路径
+
     if (regions.length > 0 && regions[0].image_path) {
       deviceImagePaths.value[device.id] = regions[0].image_path;
       if (regions[0].image_id) {
         deviceImageIds.value[device.id] = regions[0].image_id;
       }
-      console.log('selectDevice: 设置区域图片路径:', regions[0].image_path);
-    } else {
-      // 如果没有区域图片，使用封面图作为初始图片
-      // 优先使用最新的封面图，即使 deviceImagePaths 已经有值，也要检查并更新
-      if (device.cover_image_path) {
-        deviceImagePaths.value[device.id] = device.cover_image_path;
-        console.log('selectDevice: 使用封面图作为初始图片:', device.cover_image_path);
-      }
+      return;
     }
-  } catch (error) {
-    console.error('加载设备区域配置失败', error);
-    // 加载失败时，设置为空数组，表示已尝试加载但没有数据
-    deviceRegions.value[device.id] = [];
-    // 加载失败时，如果有封面图，使用封面图作为初始图片
     if (device.cover_image_path) {
       deviceImagePaths.value[device.id] = device.cover_image_path;
-      console.log('selectDevice: 加载区域失败，使用封面图作为初始图片:', device.cover_image_path);
+    }
+  } catch {
+    deviceRegions.value[device.id] = [];
+    if (device.cover_image_path) {
+      deviceImagePaths.value[device.id] = device.cover_image_path;
     }
   }
-  
-  console.log('selectDevice: 准备设置 selectedDeviceId, deviceRegions:', deviceRegions.value[device.id], 'deviceImagePaths:', deviceImagePaths.value[device.id]);
-  
-  // 确保图片路径已设置后再设置 selectedDeviceId，这样组件渲染时就能获取到图片路径
-  // 使用 nextTick 确保响应式更新已完成
-  await nextTick();
+}
+
+async function captureSnapshotForDevice(
+  deviceId: string,
+  silent = true,
+  options?: { skipPreWait?: boolean },
+): Promise<boolean> {
+  if (capturingDeviceIds.value.has(deviceId)) return false;
+  capturingDeviceIds.value = new Set([...capturingDeviceIds.value, deviceId]);
+  try {
+    const device = getDeviceById(deviceId);
+    const result = await captureSnapshotWithQuality(deviceId, {
+      silent,
+      device,
+      skipPreWait: options?.skipPreWait,
+    });
+    if (result.ok && result.imageUrl) {
+      deviceImageIds.value[deviceId] = result.imageId!;
+      deviceImagePaths.value[deviceId] = result.imageUrl;
+      const idx = devices.value.findIndex((d) => d.id === deviceId);
+      if (idx >= 0) {
+        devices.value[idx] = {
+          ...devices.value[idx],
+          cover_image_path: result.imageUrl,
+        };
+      }
+      if (!silent) {
+        createMessage.success(isGb28181Device(device) ? '抓图成功' : '抓图成功');
+      }
+      return true;
+    }
+    if (!silent) {
+      createMessage.error(
+        isGb28181Device(device)
+          ? '抓图失败或画面未就绪，请稍后重试'
+          : '抓图失败，请稍后重试',
+      );
+    }
+    return false;
+  } catch (error) {
+    console.error('抓图失败', deviceId, error);
+    if (!silent) {
+      createMessage.error('抓图失败');
+    }
+    return false;
+  } finally {
+    const next = new Set(capturingDeviceIds.value);
+    next.delete(deviceId);
+    capturingDeviceIds.value = next;
+  }
+}
+
+function clearDeviceImageCache(deviceId: string) {
+  delete deviceImagePaths.value[deviceId];
+  delete deviceImageIds.value[deviceId];
+  const idx = devices.value.findIndex((d) => d.id === deviceId);
+  if (idx >= 0 && devices.value[idx].cover_image_path) {
+    devices.value[idx] = { ...devices.value[idx], cover_image_path: '' };
+  }
+}
+
+function markCaptureFailed(deviceId: string) {
+  captureFailedDeviceIds.value = new Set([...captureFailedDeviceIds.value, deviceId]);
+}
+
+function markCaptureSucceeded(deviceId: string) {
+  const next = new Set(captureFailedDeviceIds.value);
+  next.delete(deviceId);
+  captureFailedDeviceIds.value = next;
+}
+
+/** 校验封面是否可用，无效则清除缓存并带重试抓图 */
+async function ensureDeviceSnapshot(
+  deviceId: string,
+  silent = true,
+  options?: { skipPreWait?: boolean },
+): Promise<boolean> {
+  const cachedPath = deviceImagePaths.value[deviceId];
+  if (cachedPath) {
+    const quality = await verifySnapshotQuality(cachedPath, { bustCache: true });
+    if (quality.loadable && quality.valid) {
+      markCaptureSucceeded(deviceId);
+      return true;
+    }
+    clearDeviceImageCache(deviceId);
+  }
+  const ok = await captureSnapshotForDevice(deviceId, silent, options);
+  if (ok) {
+    markCaptureSucceeded(deviceId);
+    return true;
+  }
+  clearDeviceImageCache(deviceId);
+  markCaptureFailed(deviceId);
+  if (!silent) {
+    const device = getDeviceById(deviceId);
+    createMessage.error(
+      isGb28181Device(device)
+        ? 'GB 设备出图较慢，抓图失败或仍为灰屏，请稍后重试'
+        : '抓图失败，请稍后重试',
+    );
+  }
+  return false;
+}
+
+/** 后台依次为其余摄像头抓图，不阻塞界面 */
+async function prefetchRemainingSnapshots(fromIndex = 1) {
+  for (let i = fromIndex; i < devices.value.length; i++) {
+    if (i > fromIndex) {
+      await sleep(getCaptureGapMs(devices.value[i - 1], devices.value[i]));
+    }
+    if (deviceImagePaths.value[devices.value[i].id]) continue;
+    await ensureDeviceSnapshot(devices.value[i].id, true, { skipPreWait: true });
+  }
+}
+
+async function bootstrapDevices() {
+  if (devices.value.length === 0) return;
+  initializing.value = true;
+  startLoadingTimer();
+  captureFailedDeviceIds.value = new Set();
+  try {
+    await Promise.all(devices.value.map((d) => prefetchDeviceMeta(d)));
+
+    selectedDeviceId.value = devices.value[0].id;
+
+    // 仅首路摄像头阻塞界面，其余后台抓图
+    await ensureDeviceSnapshot(devices.value[0].id, true);
+  } finally {
+    initializing.value = false;
+    stopLoadingTimer();
+  }
+
+  if (devices.value.length > 1) {
+    void prefetchRemainingSnapshots(1);
+  }
+}
+
+async function refreshAllSnapshots() {
+  if (devices.value.length === 0) return;
+  refreshingAll.value = true;
+  captureFailedDeviceIds.value = new Set();
+  try {
+    for (let i = 0; i < devices.value.length; i++) {
+      if (i > 0) {
+        await sleep(getCaptureGapMs(devices.value[i - 1], devices.value[i]));
+      }
+      clearDeviceImageCache(devices.value[i].id);
+      await ensureDeviceSnapshot(devices.value[i].id, true);
+    }
+    createMessage.success('已全部刷新基准图');
+  } finally {
+    refreshingAll.value = false;
+  }
+}
+
+async function selectDevice(device: DeviceInfo) {
+  if (selectedDeviceId.value === device.id) return;
+
+  if (!deviceRegions.value[device.id]) {
+    await prefetchDeviceMeta(device);
+  }
+
   selectedDeviceId.value = device.id;
-  
-  console.log('selectDevice: selectedDeviceId 已设置，传递给子组件的区域数据:', deviceRegions.value[device.id]);
-  
-  // 再次使用 nextTick 确保组件已渲染，然后触发图片加载
-  await nextTick();
-};
 
-// 搜索
-const handleSearch = () => {
-  // 搜索逻辑已在computed中处理
-};
+  if (!deviceImagePaths.value[device.id]) {
+    void ensureDeviceSnapshot(device.id, true, { skipPreWait: true });
+  }
+}
 
-// 图片加载错误处理
-const handleImageError = (e: Event) => {
+function getDeviceThumb(deviceId: string) {
+  const raw =
+    deviceImagePaths.value[deviceId] ||
+    devices.value.find((d) => d.id === deviceId)?.cover_image_path;
+  return raw ? resolveAlertImageDisplayUrl(raw) : '';
+}
+
+function getRegionCount(deviceId: string) {
+  return deviceRegions.value[deviceId]?.length ?? 0;
+}
+
+function handleThumbError(e: Event, deviceId: string) {
   const img = e.target as HTMLImageElement;
   img.style.display = 'none';
-};
+  clearDeviceImageCache(deviceId);
+  void ensureDeviceSnapshot(deviceId, true);
+}
 
-// 区域保存
-const handleRegionSave = (regions: DeviceDetectionRegion[]) => {
+function handleRegionSave(regions: DeviceDetectionRegion[]) {
   if (selectedDeviceId.value) {
     deviceRegions.value[selectedDeviceId.value] = regions;
-    createMessage.success('区域配置已保存');
   }
-};
+}
 
-// 图片抓拍
-const handleImageCaptured = (imageId: number, imagePath: string) => {
-  if (selectedDeviceId.value) {
-    deviceImageIds.value[selectedDeviceId.value] = imageId;
-    deviceImagePaths.value[selectedDeviceId.value] = imagePath;
+function handleImageCaptured(imageId: number, imagePath: string) {
+  if (!selectedDeviceId.value) return;
+  deviceImageIds.value[selectedDeviceId.value] = imageId;
+  deviceImagePaths.value[selectedDeviceId.value] = imagePath;
+  markCaptureSucceeded(selectedDeviceId.value);
+}
+
+function handleCoverUpdated(imagePath: string) {
+  if (!selectedDeviceId.value) return;
+  const deviceId = selectedDeviceId.value;
+  deviceImagePaths.value[deviceId] = imagePath;
+  markCaptureSucceeded(deviceId);
+  const idx = devices.value.findIndex((d) => d.id === deviceId);
+  if (idx >= 0) {
+    devices.value[idx] = { ...devices.value[idx], cover_image_path: imagePath };
   }
-};
+}
 
-// 封面更新
-const handleCoverUpdated = async (imagePath: string) => {
-  if (selectedDeviceId.value) {
-    // 更新设备列表中的封面图
-    const device = devices.value.find(d => d.id === selectedDeviceId.value);
-    if (device) {
-      (device as any).cover_image_path = imagePath;
-    }
-    
-    // 同步更新 deviceImagePaths，确保下次打开canvas时使用最新的封面图
-    // 如果没有区域图片，则使用新的封面图作为canvas的初始图片
-    const regions = deviceRegions.value[selectedDeviceId.value] || [];
-    const hasRegionImage = regions.length > 0 && regions[0].image_path;
-    if (!hasRegionImage) {
-      deviceImagePaths.value[selectedDeviceId.value] = imagePath;
-      console.log('封面更新: 同步更新 deviceImagePaths 为新的封面图:', imagePath);
-    }
-    
-    createMessage.success('封面图已更新');
-    
-    // 重新加载设备列表以获取最新的封面图信息
-    if (taskId.value) {
-      await loadTaskDevices(taskId.value);
-    } else {
-      await loadDevices();
-    }
-  }
-};
-
-// 加载任务信息，获取关联的模型ID列表
-const loadTaskInfo = async (taskId: number) => {
+async function loadTaskDevices(id: number) {
   try {
-    const response = await getAlgorithmTask(taskId);
-    // 处理响应：可能是直接返回任务对象，也可能是包含 code 的对象
-    let task: any = null;
-    if (response && typeof response === 'object' && 'code' in response) {
-      if (response.code === 0 && response.data) {
-        task = response.data;
-      } else {
-        console.warn('获取任务信息失败:', response.msg);
-        return;
-      }
-    } else if (response && typeof response === 'object' && 'id' in response) {
-      // 直接是任务对象
-      task = response;
-    }
-    
-    if (task && task.model_ids && Array.isArray(task.model_ids) && task.model_ids.length > 0) {
-      taskModelIds.value = task.model_ids;
-      console.log('任务关联的模型ID列表:', taskModelIds.value);
-    } else {
-      taskModelIds.value = null;
-      console.log('任务未关联模型或模型列表为空');
-    }
-  } catch (error) {
-    console.error('加载任务信息失败', error);
-    taskModelIds.value = null;
-  }
-};
-
-// 根据任务ID加载关联的摄像头列表
-const loadTaskDevices = async (taskId: number) => {
-  try {
-    const response = await getTaskStreams(taskId);
-    // 处理响应：可能是数组，也可能是包含 code 的对象
+    const response = await getTaskStreams(id);
     let streams: CameraStreamInfo[] = [];
     if (Array.isArray(response)) {
       streams = response;
     } else if (response && typeof response === 'object' && 'code' in response) {
-      if (response.code === 0 && response.data && Array.isArray(response.data)) {
+      if (response.code === 0 && Array.isArray(response.data)) {
         streams = response.data;
       } else {
         createMessage.warning(response.msg || '该任务未关联摄像头');
@@ -299,299 +518,333 @@ const loadTaskDevices = async (taskId: number) => {
         return;
       }
     } else {
-      createMessage.warning('该任务未关联摄像头');
       devices.value = [];
       return;
     }
-    
-    // 将 CameraStreamInfo 转换为 DeviceInfo 格式
-    devices.value = streams.map(stream => ({
-      id: stream.device_id,
-      name: stream.device_name,
-      http_stream: stream.http_stream,
-      rtmp_stream: stream.rtmp_stream,
-      source: stream.source,
-      cover_image_path: stream.cover_image_path, // 保留封面图路径
-    } as DeviceInfo));
-    
-    // 如果设备有封面图且已被选择，但没有区域图片，使用封面图作为初始图片
-    await nextTick();
-    if (selectedDeviceId.value) {
-      const selectedDevice = devices.value.find(d => d.id === selectedDeviceId.value);
-      if (selectedDevice?.cover_image_path && !deviceImagePaths.value[selectedDeviceId.value]) {
-        deviceImagePaths.value[selectedDeviceId.value] = selectedDevice.cover_image_path;
-      }
-    }
-    
+
+    const seen = new Set<string>();
+    devices.value = streams
+      .filter((stream) => {
+        const did = String(stream.device_id);
+        if (seen.has(did)) return false;
+        seen.add(did);
+        return true;
+      })
+      .map(
+        (stream) =>
+          ({
+            id: stream.device_id,
+            name: stream.device_name,
+            http_stream: stream.http_stream,
+            rtmp_stream: stream.rtmp_stream,
+            source: stream.source,
+            cover_image_path: stream.cover_image_path,
+          }) as DeviceInfo,
+      );
+
     if (devices.value.length === 0) {
       createMessage.warning('该任务未关联摄像头');
     }
   } catch (error) {
-    console.error('加载任务关联摄像头列表失败', error);
-    createMessage.error('加载任务关联摄像头列表失败');
+    console.error('加载任务关联摄像头失败', error);
+    createMessage.error('加载任务关联摄像头失败');
     devices.value = [];
   }
-};
+}
 
-// 加载所有设备列表（兼容旧逻辑，当没有传入taskId时使用）
-const loadDevices = async () => {
+async function loadDevicesByIds(
+  deviceIds: string[],
+  labelMap: Record<string, string> = {},
+) {
+  const idSet = new Set(deviceIds.map(String));
+  const foundMap = new Map<string, DeviceInfo>();
+
   try {
-    const response = await getDeviceList();
-    if (response.code === 0 && response.data) {
-      devices.value = response.data;
+    const response = await getDeviceList({ pageNo: 1, pageSize: 1000 });
+    for (const device of extractListData(response)) {
+      if (idSet.has(String(device.id))) {
+        foundMap.set(String(device.id), device);
+      }
     }
+  } catch (error) {
+    console.warn('批量加载设备列表失败，将逐个查询', error);
+  }
+
+  for (const id of deviceIds) {
+    const key = String(id);
+    if (foundMap.has(key)) continue;
+    try {
+      const response = await getDeviceInfo(key);
+      const device = parseDeviceInfo(response);
+      if (device) {
+        foundMap.set(key, device);
+      }
+    } catch (error) {
+      console.warn('查询设备失败', key, error);
+    }
+  }
+
+  devices.value = deviceIds.map((id) => {
+    const key = String(id);
+    const existing = foundMap.get(key);
+    if (existing) {
+      return {
+        ...existing,
+        name: labelMap[key] || existing.name || key,
+      };
+    }
+    return {
+      id: key,
+      name: labelMap[key] || key,
+    } as DeviceInfo;
+  });
+
+  if (devices.value.length === 0) {
+    createMessage.warning('未找到所选摄像头');
+  }
+}
+
+async function enrichDevicesFromStreams(id: number) {
+  try {
+    const response = await getTaskStreams(id);
+    let streams: CameraStreamInfo[] = [];
+    if (Array.isArray(response)) {
+      streams = response;
+    } else if (response && typeof response === 'object' && 'code' in response) {
+      if (response.code === 0 && Array.isArray(response.data)) {
+        streams = response.data;
+      }
+    }
+    const streamMap = new Map(streams.map((s) => [String(s.device_id), s]));
+    devices.value = devices.value.map((device) => {
+      const stream = streamMap.get(String(device.id));
+      if (!stream) return device;
+      return {
+        ...device,
+        name: device.name || stream.device_name || device.id,
+        http_stream: stream.http_stream ?? device.http_stream,
+        rtmp_stream: stream.rtmp_stream ?? device.rtmp_stream,
+        source: stream.source ?? device.source,
+        cover_image_path: stream.cover_image_path ?? device.cover_image_path,
+      } as DeviceInfo;
+    });
+  } catch (error) {
+    console.warn('补充任务流信息失败', error);
+  }
+}
+
+async function loadDevices() {
+  if (pinnedDeviceIds.value?.length) {
+    await loadDevicesByIds(pinnedDeviceIds.value);
+    return;
+  }
+  try {
+    const response = await getDeviceList({ pageNo: 1, pageSize: 1000 });
+    devices.value = extractListData(response);
   } catch (error) {
     console.error('加载设备列表失败', error);
     createMessage.error('加载设备列表失败');
   }
-};
+}
 </script>
 
 <style lang="less" scoped>
-// 变量定义 - 专业简洁配色方案（与 train 模型推理界面保持一致）
-@primary-color: #2C3E50;
-@secondary-color: #34495E;
-@accent-color: #495057;
-@success-color: #28A745;
-@warning-color: #FFC107;
-@error-color: #DC3545;
-@light-bg: #F8F9FA;
-@light-text: #212529;
-@text-secondary: #6C757D;
-@text-muted: #868E96;
-@gray-color: #ADB5BD;
-@border-color: #DEE2E6;
-@border-hover: #CED4DA;
-@shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-@shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-@shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-@shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+@text: rgba(0, 0, 0, 0.65);
+@text-muted: rgba(0, 0, 0, 0.45);
+@border: #f0f0f0;
+@surface: #fff;
 
-.device-region-detection-drawer {
+.region-config-shell {
+  position: relative;
   display: flex;
-  height: calc(100vh - 120px);
-  min-height: 800px;
-  gap: 20px;
-  padding: 16px;
-  background: @light-bg;
+  flex-direction: column;
+  height: calc(100vh - 96px);
+  min-height: 720px;
+  min-width: 0;
+  gap: 12px;
+  padding: 12px 16px 16px;
+  background: #fff;
+}
 
-  .device-list-panel {
-    width: 280px;
-    background: #ffffff;
-    border-radius: 12px;
+.region-config-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+
+  :deep(.ant-spin-text) {
+    color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+.camera-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 0;
+  min-height: 52px;
+  padding: 9px 16px;
+  background: @surface;
+  border: 1px solid @border;
+  border-radius: 8px;
+  overflow: hidden;
+
+  &__list {
+    flex: 1 1 0;
     display: flex;
-    flex-direction: column;
-    box-shadow: @shadow-md;
-    border: 1px solid @border-color;
-    overflow: hidden;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: 0;
+    height: 34px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 6px;
+    margin-bottom: -6px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
 
-      .panel-header {
-        padding: 20px;
-        border-bottom: 1px solid @border-color;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: 600;
-        font-size: 16px;
-        color: @light-text;
-        background: @light-bg;
-        position: relative;
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
 
-        &::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 40px;
-          height: 2px;
-          background: @primary-color;
-        }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-        :deep(.ant-input-search) {
-          .ant-input {
-            border-radius: 6px;
-            border: 1px solid @border-color;
-            transition: all 0.2s ease;
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.12);
+      border-radius: 2px;
+    }
 
-            &:focus {
-              border-color: @primary-color;
-              box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.1);
-            }
-          }
-
-          .ant-input-search-button {
-            border-radius: 0 6px 6px 0;
-            background: @primary-color;
-            border-color: @primary-color;
-
-            &:hover {
-              background: @secondary-color;
-              border-color: @secondary-color;
-            }
-          }
-        }
-      }
-
-    .device-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px;
-
-      &::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: @light-bg;
-        border-radius: 3px;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: @gray-color;
-        border-radius: 3px;
-
-        &:hover {
-          background: @border-hover;
-        }
-      }
-
-      .device-item {
-        display: flex;
-        padding: 14px;
-        margin-bottom: 12px;
-        border: 2px solid @border-color;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background: #ffffff;
-        position: relative;
-        overflow: hidden;
-
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 4px;
-          height: 100%;
-          background: transparent;
-          transition: all 0.3s ease;
-        }
-
-        &:hover {
-          background: @light-bg;
-          border-color: @border-hover;
-          box-shadow: @shadow-sm;
-
-          &::before {
-            background: @border-hover;
-          }
-        }
-
-        &.active {
-          border-color: @primary-color;
-          background: @light-bg;
-          box-shadow: @shadow-sm;
-
-          &::before {
-            background: @primary-color;
-          }
-        }
-
-        .device-cover {
-          width: 90px;
-          height: 68px;
-          border-radius: 6px;
-          overflow: hidden;
-          margin-right: 14px;
-          background: @light-bg;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: @shadow-sm;
-          border: 1px solid @border-color;
-          flex-shrink: 0;
-
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-          }
-
-          &:hover img {
-            transform: scale(1.05);
-          }
-
-          .no-cover {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-          }
-        }
-
-        .device-info {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          min-width: 0;
-
-          .device-name {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: @light-text;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-
-          .device-region-count {
-            font-size: 12px;
-            color: @text-secondary;
-            padding: 4px 8px;
-            background: @light-bg;
-            border-radius: 4px;
-            display: inline-block;
-            width: fit-content;
-            font-weight: 500;
-            border: 1px solid @border-color;
-          }
-        }
-      }
+    &:hover::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.22);
     }
   }
 
-  .region-drawer-panel {
-    flex: 1;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: @shadow-md;
-    border: 1px solid @border-color;
-    overflow: hidden;
+  &__refresh {
+    flex-shrink: 0;
+    height: 34px !important;
+    padding-inline: 12px !important;
+    line-height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
   }
 
-  .empty-selection {
-    flex: 1;
+  &--empty {
+    justify-content: center;
+    min-height: 64px;
+  }
+}
+
+.camera-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  max-width: 180px;
+  padding: 0 10px 0 4px;
+  border-radius: 17px;
+  border: 1px solid @border;
+  background: @surface;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.2s, background 0.2s;
+
+  &:hover {
+    border-color: #d9d9d9;
+    background: #fafafa;
+  }
+
+  &.is-active {
+    border-color: rgba(22, 119, 255, 0.45);
+    background: #fafafa;
+  }
+
+  &.is-failed {
+    border-color: #ffccc7;
+    background: #fff;
+  }
+
+  &__thumb {
+    position: relative;
+    width: 28px;
+    height: 26px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #f0f0f0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: @shadow-md;
-    border: 1px solid @border-color;
+    color: @text-muted;
+    flex-shrink: 0;
 
-    :deep(.ant-empty) {
-      .ant-empty-description {
-        color: @text-secondary;
-        font-size: 14px;
-      }
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__spin {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    color: @text-muted;
+    font-size: 12px;
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    max-width: 96px;
+    font-size: 12px;
+    color: @text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__count {
+    font-size: 12px;
+    color: @text-muted;
+    min-width: 14px;
+    text-align: center;
+  }
+
+  &__tag {
+    margin: 0;
+    line-height: 18px;
+    font-size: 11px;
+  }
+}
+
+.region-workspace {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid @border;
+  border-radius: 6px;
+  background: @surface;
+
+  &__empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+
+    :deep(.ant-empty-description) {
+      color: @text-muted;
     }
   }
 }
 </style>
-
