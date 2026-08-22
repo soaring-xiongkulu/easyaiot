@@ -3,8 +3,8 @@
 # RUNTIME (C++ 高性能执行器) 一键安装 / 编译
 # ============================================
 # 用法:
-#   ./install_linux.sh              # 安装依赖并编译
-#   ./install_linux.sh build        # 仅编译（依赖已就绪）
+#   ./install_linux.sh              # 交互式菜单（TTY）或安装并编译（非 TTY）
+#   ./install_linux.sh build        # 编译（TTY 下可选本机 conda / Docker）
 #   ./install_linux.sh status       # 检查二进制与依赖
 #
 # 环境变量:
@@ -31,7 +31,8 @@ ROOT="$SCRIPT_DIR"
 REPO="$(cd "$ROOT/.." && pwd)"
 ORT_VERSION="${ORT_VERSION:-1.23.2}"
 CONDA_ENV_NAME="${EASYAIOT_RUNTIME_CONDA_ENV:-easyaiot-runtime}"
-BUILD_MODE="${EASYAIOT_RUNTIME_BUILD_MODE:-docker}"
+# 未显式指定时由交互菜单或非 TTY 默认值填充
+BUILD_MODE="${EASYAIOT_RUNTIME_BUILD_MODE:-}"
 
 # shellcheck disable=SC1091
 source "$ROOT/scripts/version_meta.sh"
@@ -51,6 +52,72 @@ print_success() { echo -e "${GREEN}[RUNTIME]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[RUNTIME]${NC} $1"; }
 print_error() { echo -e "${RED}[RUNTIME]${NC} $1"; }
 
+# 交互：主菜单（无子命令 + TTY）
+prompt_main_command() {
+  echo ""
+  print_info "RUNTIME — 请选择操作:"
+  echo "  1) 编译 RUNTIME"
+  echo "  2) 查看编译/安装状态"
+  echo "  3) 云边一体算力节点安装 (integrated)"
+  echo "  4) 帮助"
+  echo "  5) 退出"
+  local choice
+  read -r -p "请输入选项 [1]: " choice || choice="1"
+  choice="${choice:-1}"
+  case "$choice" in
+    1|build|install|compile|update) echo "build" ;;
+    2|status|start|restart) echo "status" ;;
+    3|integrated|atomic|node) echo "integrated" ;;
+    4|help|-h|--help) echo "help" ;;
+    5|q|Q|exit|cancel) echo "exit" ;;
+    *)
+      print_warning "无效选项，默认：编译 RUNTIME"
+      echo "build"
+      ;;
+  esac
+}
+
+# 交互：编译方式（install/build/update + TTY + 未设 EASYAIOT_RUNTIME_BUILD_MODE）
+prompt_build_mode_if_needed() {
+  if [[ -n "${EASYAIOT_RUNTIME_BUILD_MODE:-}" ]]; then
+    BUILD_MODE="$EASYAIOT_RUNTIME_BUILD_MODE"
+    return 0
+  fi
+  if [[ -n "${BUILD_MODE:-}" ]]; then
+    return 0
+  fi
+  if [[ ! -t 0 ]]; then
+    BUILD_MODE=docker
+    export BUILD_MODE
+    return 0
+  fi
+  echo ""
+  print_info "请选择 RUNTIME 编译方式:"
+  echo "  1) 本机 conda 一键编译（开发联调，自动识别用户 conda/ORT 路径）"
+  echo "  2) Docker 同源容器编译（与 VIDEO 容器 glibc 一致，生产推荐）"
+  echo "  3) 取消"
+  local choice
+  read -r -p "请输入选项 [1]: " choice || choice="1"
+  choice="${choice:-1}"
+  case "$choice" in
+    1|host|conda|native)
+      BUILD_MODE=host
+      ;;
+    2|docker|container)
+      BUILD_MODE=docker
+      ;;
+    3|q|Q|cancel)
+      print_info "已取消"
+      exit 0
+      ;;
+    *)
+      print_warning "无效选项，默认：本机 conda 编译"
+      BUILD_MODE=host
+      ;;
+  esac
+  export BUILD_MODE EASYAIOT_RUNTIME_BUILD_MODE="$BUILD_MODE"
+}
+
 detect_arch() {
   case "$(uname -m)" in
     x86_64|amd64) echo "x64" ;;
@@ -60,15 +127,17 @@ detect_arch() {
 }
 
 find_conda_sh() {
-  local candidates=(
-    "${CONDA_EXE%/*}/../etc/profile.d/conda.sh"
+  local candidates=()
+  if [[ -n "${CONDA_EXE:-}" ]]; then
+    candidates+=("${CONDA_EXE%/*}/../etc/profile.d/conda.sh")
+  fi
+  candidates+=(
     "${MINICONDA_PREFIX:-/opt/miniconda3}/etc/profile.d/conda.sh"
     "$HOME/miniconda3/etc/profile.d/conda.sh"
     "$HOME/anaconda3/etc/profile.d/conda.sh"
     /opt/conda/etc/profile.d/conda.sh
     /opt/miniconda3/etc/profile.d/conda.sh
     /usr/local/miniconda3/etc/profile.d/conda.sh
-    /home/ubuntu/miniconda3/etc/profile.d/conda.sh
   )
   local c
   for c in "${candidates[@]}"; do
@@ -736,6 +805,12 @@ runtime_el7_conda_cxx() {
 }
 
 build_runtime_on_host() {
+  if ! runtime_needs_glibc217_env; then
+    print_info "本机 conda 一键编译（自动识别 conda/ORT 路径）..."
+    bash "$ROOT/scripts/build_linux.sh"
+    return $?
+  fi
+
   print_warning "EASYAIOT_RUNTIME_BUILD_MODE=host：本机 conda 编译；新 glibc 主机产物可能无法在 VIDEO(22.04) 容器内运行"
   export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${ORT_ROOT}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   local cuda_libs
@@ -803,20 +878,23 @@ build_runtime_on_host() {
 }
 
 build_runtime() {
+  prompt_build_mode_if_needed
+
   # 部署前检查/自动补齐（仅 RUNTIME；失败给出详细诊断）
   if ! prepare_runtime_build_env; then
     return 1
   fi
 
-  activate_runtime_env
   ensure_ort_sdk
-  # Prefer GPU at runtime by default
   export RUNTIME_PREFER_GPU="${RUNTIME_PREFER_GPU:-true}"
   export USE_GPU="${USE_GPU:-true}"
 
   case "$BUILD_MODE" in
     docker|container)
       BUILD_MODE=docker
+      if ! activate_runtime_env; then
+        return 1
+      fi
       if ! build_runtime_in_docker; then
         dump_runtime_build_failure docker
         return 1
@@ -828,6 +906,8 @@ build_runtime() {
         dump_runtime_build_failure host
         return 1
       fi
+      # shellcheck disable=SC1091
+      source "$ROOT/scripts/env.sh" >/dev/null 2>&1 || true
       ;;
     *)
       print_error "未知 EASYAIOT_RUNTIME_BUILD_MODE=$BUILD_MODE（可选 docker|host）"
@@ -1263,9 +1343,22 @@ main() {
     exit 0
   fi
 
-  local cmd="${1:-install}"
+  local cmd="${1:-}"
+  if [[ -z "$cmd" ]]; then
+    if [[ -t 0 ]]; then
+      cmd="$(prompt_main_command)"
+      [[ "$cmd" == "exit" ]] && exit 0
+    else
+      cmd="install"
+    fi
+  fi
+
   case "$cmd" in
-    install|build|update)
+    install|build|update|compile)
+      if [[ "$cmd" == "compile" ]]; then
+        BUILD_MODE=host
+        export BUILD_MODE EASYAIOT_RUNTIME_BUILD_MODE=host
+      fi
       if ! build_runtime; then
         print_error "RUNTIME 编译失败"
         dump_runtime_build_failure "$cmd"
@@ -1293,7 +1386,9 @@ main() {
       sed -n '2,35p' "$0"
       echo ""
       echo "命令:"
-      echo "  install|build|update   - 编译边缘算力二进制（默认 docker 同源容器）"
+      echo "  (无参数)               - 交互式菜单（TTY）"
+      echo "  install|build|update   - 编译（TTY 下交互选择 conda / Docker）"
+      echo "  compile                - 本机 conda 编译（等同 build + host，非交互）"
       echo "  start|status|restart   - 查看编译/节点安装状态"
       echo "  stop|clean|logs          - 空操作（无独立容器）"
       echo ""
