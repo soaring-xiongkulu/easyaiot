@@ -919,6 +919,8 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 
 | | | |
 |:---:|:---:|:---:|
+| ![Détection de zone](.image/banner/banner1213.png) | ![Détection de zone](.image/banner/banner1214.png) | ![Détection de zone](.image/banner/banner1218.png) |
+| ![Chaîne de règles post-traitement](.image/banner/banner1216.png) | ![Chaîne de règles post-traitement](.image/banner/banner1217.png) | ![Chaîne de règles post-traitement](.image/banner/banner1215.png) |
 | ![Direct](.image/banner/banner1145.jpg) | ![Aperçu](.image/banner/banner1146.jpg) | ![Caméra](.image/banner/banner1051.jpg) |
 | ![Liste](.image/banner/banner1053.jpg) | ![Push flux](.image/banner/banner1083.jpg) | ![Relais](.image/banner/banner1084.jpg) |
 | ![Stockage](.image/banner/banner1121.png) | ![Capture](.image/banner/banner1122.png) | ![Enregistrement](.image/banner/banner1123.png) |

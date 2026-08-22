@@ -943,6 +943,8 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 
 | | | |
 |:---:|:---:|:---:|
+| ![Region Detection](.image/banner/banner1213.png) | ![Region Detection](.image/banner/banner1214.png) | ![Region Detection](.image/banner/banner1218.png) |
+| ![Post-processing Rule Chain](.image/banner/banner1216.png) | ![Post-processing Rule Chain](.image/banner/banner1217.png) | ![Post-processing Rule Chain](.image/banner/banner1215.png) |
 | ![Live Stream](.image/banner/banner1145.jpg) | ![Preview](.image/banner/banner1146.jpg) | ![Camera](.image/banner/banner1051.jpg) |
 | ![List](.image/banner/banner1053.jpg) | ![Stream Push](.image/banner/banner1083.jpg) | ![Relay](.image/banner/banner1084.jpg) |
 | ![Storage](.image/banner/banner1121.png) | ![Snapshot](.image/banner/banner1122.png) | ![Recording](.image/banner/banner1123.png) |

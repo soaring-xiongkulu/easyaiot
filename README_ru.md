@@ -920,6 +920,8 @@ EasyAIoT — это проект с открытым исходным кодом
 
 | | | |
 |:---:|:---:|:---:|
+| ![Обнаружение зоны](.image/banner/banner1213.png) | ![Обнаружение зоны](.image/banner/banner1214.png) | ![Обнаружение зоны](.image/banner/banner1218.png) |
+| ![Цепочка правил постобработки](.image/banner/banner1216.png) | ![Цепочка правил постобработки](.image/banner/banner1217.png) | ![Цепочка правил постобработки](.image/banner/banner1215.png) |
 | ![Прямой эфир](.image/banner/banner1145.jpg) | ![Просмотр](.image/banner/banner1146.jpg) | ![Камера](.image/banner/banner1051.jpg) |
 | ![Список](.image/banner/banner1053.jpg) | ![Пуш-поток](.image/banner/banner1083.jpg) | ![Ретрансляция](.image/banner/banner1084.jpg) |
 | ![Хранилище](.image/banner/banner1121.png) | ![Снимок](.image/banner/banner1122.png) | ![Запись](.image/banner/banner1123.png) |
