@@ -42,7 +42,7 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平臺由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、可編排業務後處理、聯邦算力集羣調度、<strong>SENTINEL 集羣節點哨兵</strong>（按業務摸清節點就緒與可調度能力，缺件可自助補齊，任務按真能力下發），以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，並由 <strong>EDGE C# 邊緣採集運行時</strong>在現場以插件化採集器承接 Modbus RTU/TCP、OPC UA 等工業協議採集、本地調度與 MQTT 云邊對接，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、四檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地；並以 <strong>IDEA 社區貢獻在線 IDE</strong> 讓貢獻者瀏覽器即可打開全倉、用 GitHub Copilot 共創、按改動發佈到本機並提交 PR，把開源共建從「先配環境」變成「打開即改」。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
+平臺由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模組組成，並以 <strong>COMPILE</strong> 承接多平臺打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 歐拉(openEuler)</strong> / Windows / macOS / ARM）。在能力側，平臺覆蓋 GB28181 / ONVIF 多協議攝像頭接入、<strong>RTC 消費級攝像頭 P2P 橋接</strong>（基於 go2rtc，覆蓋 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——門店 Tapo 補盲、塗鴉白牌納管、海外 Ring/Nest 門鈴、米家存量利舊、Wyze 低成本擴點、DoorBird 門口對講、GoPro 機動機位、石頭掃地機移動視角等場景，Web 一鍵接入並納入統一視頻與 AI 研判閉環）、<strong>大疆機場與無人機空中視角接入</strong>、即時 / 抓拍 / 巡檢算法任務、<strong>RUNTIME 原生高速執行層</strong>（編譯型二進制承接拉流解碼、YOLO 推理、帶框推流與多路原畫轉發——相對解釋型鏈路更低 CPU/內存、更穩時延；同一二進制覆蓋即時 / 抓拍 / 巡檢 / 轉發）、YOLO 目標檢測與 SAM 零樣本自動標註、人臉/車牌識別、<strong>POST 定製研判</strong>（檢出之後按現場規則過濾、複合判斷再告警，改規則不必重訓模型）、聯邦算力集羣調度、<strong>SENTINEL 集羣節點哨兵</strong>（按業務摸清節點就緒與可調度能力，缺件可自助補齊，任務按真能力下發），以及 <strong>無限聯邦邊緣集羣模式</strong>（普通開發板可即開即用、現場智能就地決策、告警與證據自動匯聚上雲，算力隨業務任意鋪開），還有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物聯網設備全生命週期管理，並由 <strong>EDGE C# 邊緣採集運行時</strong>在現場以插件化採集器承接 Modbus RTU/TCP、OPC UA 等工業協議採集、本地調度與 MQTT 云邊對接，以及<strong>可視化大屏與 Web 工藝組態</strong>，讓設備數據既能展成指揮態勢、也能落回工藝畫面；並新增 <strong>POST 定製研判服務</strong>，把檢測結果鍛造成可貼現場的業務事件，誤報少、規則可配、上線可先試跑；配套 <strong>TRANSFORM 多向數據流轉引擎</strong>，把平臺側業務事件按約定投遞到 MES / ERP / CRM / WMS 等外部系統，多方對接可配、可追、可複用；配套 <strong>PANEL 交付與值守入口</strong>，讓一體機到場當天可裝可驗，值守與排障不必事事等開發遠程敲命令；另以 <strong>SITE 官方網站</strong>對外呈現產品價值、四檔硬體選型與安裝包入口，讓訪客先看懂再下載、先選型再落地；並以 <strong>IDEA 社區貢獻在線 IDE</strong> 讓貢獻者瀏覽器即可打開全倉、用 GitHub Copilot 共創、按改動發佈到本機並提交 PR，把開源共建從「先配環境」變成「打開即改」。在體驗側，Web 管控臺與移動 App / 小程序能力對齊，讓指揮中心與現場巡檢同一套業務邏輯、隨時隨地處置。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -223,6 +223,23 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>管控臺一眼可驗</strong>：組件健康與可調度功能同屏可見，驗收與排障少猜、少翻機器，交付口徑統一</li>
 </ul>
 
+
+### 🧭 POST：定製研判，讓「檢出」變成可運營的業務事件
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+視覺項目最容易卡在「模型已經框出人/車/物，告警卻用不起來」——區域外路過也報、正常作業也報、客戶要的是越線、滯留、人數超限，卻只能反覆改模型、停任務、等開發改代碼。EasyAIoT 新增獨立 <strong>POST 定製研判服務</strong>，把<strong>畫面感知</strong>與<strong>業務判斷</strong>拆開：檢測繼續專心「看見」，研判按任務編排「該不該報、報什麼」——規則改了不必重訓模型，分析畫面也不必跟着停，讓告警真正貼工地、園區、交通與廠區的管理口徑。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>按任務編排研判</strong>：每個算法任務可獨立配置後處理步驟，默認先按檢測區域過濾、再進入標準告警；也可插入業務腳本或行業插件，把人數統計、越線通行、停留超時、區域滯留、多條件複合告警配成可貼現場的規則鏈，同類場景一次配好、多任務複用</li>
+  <li><strong>只報業務關心的範圍</strong>：與設備「區域檢測」聯動，區域外目標自動濾掉、不會刷屏；未劃區域時不擋告警，避免「沒配區域就全啞火」。值守精力打在禁區、通道、工位等真正要管的地方，誤報與人工複核成本明顯下降</li>
+  <li><strong>業務腳本與規則鏈可並存</strong>：基礎配置裏的業務腳本負責「用現場語言寫判斷」；規則頁負責過濾與步驟順序。兩條能力相互獨立、可同時啓用，交付時不必在「寫腳本」和「配步驟」裏二選一，複雜現場也能把口徑一次說清</li>
+  <li><strong>行業邏輯可插拔</strong>：園區、工地、交通等差異化研判不必改平臺內核。集成商與方案商可登記、啓停自己的研判能力，並按任務掛上——同一套檢測模型服務多個客戶項目，把「每個現場改一版分析程序」變成「配規則、掛能力、驗收口徑」</li>
+  <li><strong>上線前可試跑</strong>：用樣例或真實檢測事件在線回放當前規則，逐步看清「通過還是丟棄、會不會產生告警」，聯調與驗收能回答「這條規則到底攔了什麼」，少靠上線後再靠客訴調參</li>
+  <li><strong>改規則即時生效</strong>：運行中的任務保存規則即可跟上新口徑，不必停分析、不必重推畫面。現場臨時改禁區、加一道判斷，值守當天就能按新標準管，縮短「等窗口停機—再改—再驗」的空窗</li>
+  <li><strong>感知與研判互不拖垮</strong>：監控畫面繼續流暢分析，業務判斷按需擴展；研判失敗可選擇「本步跳過繼續告警」或「寧可不報以免錯告」，在漏報與誤報之間按現場風險偏好取值。樓面級（standard）與全棧一體機（full）默認具備該能力，輕量單機仍可先跑通檢測告警，需要深度運營時再升檔</li>
+</ul>
+
 ### 🤖 AI助手：IDEA 分屏共創，邊改代碼邊問架構查健康
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -253,8 +270,8 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 | :-- | :-- | :--: | :-- | :--: |
 | **edge** 邊緣單機版 | <strong>輕量邊緣單機</strong>（2 GB 工控機、舊筆記本、雲上最小機型、門店試裝機） | ≥ 2 GB | <strong>一台機器閉環先跑通</strong>：WEB + VIDEO + RUNTIME；攝像頭接入、即時分析、智能告警；零 DEVICE，登入由 VIDEO 主導 | 約 **1.02 GB**，餘量近 1 GB |
 | **mini** 邊緣精簡版 | <strong>邊緣盒子</strong>（8 GB 工控機、門店安防一體機、工地現場網關） | ≥ 8 GB | <strong>一個點位裝上就有智能</strong>：攝像頭接入、即時分析、智能告警、模型推理；事件面與 standard/full 一致（Gateway + iot-sink + EMQX） | 約 4–6 GB，餘量充足 |
-| **standard** 標準版 | <strong>AI 一體攝像頭</strong>（智能攝像終端、帶算力 AI 監控攝像頭、多目 AI 分析一體機） | ≥ 16 GB | <strong>每路攝像頭即智能節點</strong>：多路攝像頭上牆即可樓面/園區級覆蓋，設備、規則、算力統一編排，多場景並行運營 | 約 10 GB，運行平穩有餘量 |
-| **full** 完整版（預設） | <strong>AIoT 智能全棧一體機</strong>（企業級全棧智控一體機、行業物聯網全棧主機、雲邊端一體智能平臺一體機） | ≥ 20 GB | <strong>一箱配齊 IoT + 視頻 + AI</strong>：設備納管、海量接入、智能分析、指揮研判一體化，全量能力長期穩跑 | 約 14 GB，全能力開啓仍留足餘量 |
+| **standard** 標準版 | <strong>AI 一體攝像頭</strong>（智能攝像終端、帶算力 AI 監控攝像頭、多目 AI 分析一體機） | ≥ 16 GB | <strong>每路攝像頭即智能節點</strong>：多路攝像頭上牆即可樓面/園區級覆蓋，設備、規則、算力統一編排，多場景並行運營；<strong>POST 定製研判</strong>讓告警貼現場口徑 | 約 10 GB，運行平穩有餘量 |
+| **full** 完整版（預設） | <strong>AIoT 智能全棧一體機</strong>（企業級全棧智控一體機、行業物聯網全棧主機、雲邊端一體智能平臺一體機） | ≥ 20 GB | <strong>一箱配齊 IoT + 視頻 + AI</strong>：設備納管、海量接入、智能分析、指揮研判一體化，全量能力長期穩跑；含 <strong>POST 定製研判</strong>與對外業務流轉 | 約 14 GB，全能力開啓仍留足餘量 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
 <strong>edge 怎麼裝：</strong><code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code>（或 <code>... install_linux.sh edge install</code>）。首次安裝互動選單亦可選檔；詳情見上方 <a href="#-快速開始">快速開始</a>。
@@ -287,7 +304,7 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>大疆機場 / 無人機空中視角接入</strong>：突破固定攝像頭「只能看地面、難覆蓋廣域」的布控侷限，將大疆司空體系下的機場與無人機高空畫面納入平臺統一視頻與 AI 研判閉環。流媒體模組提供「接入大疆直播」能力：支持<strong>司空 API 開啓直播</strong>與<strong>手動直播源</strong>兩種接入方式——API 模式一鍵拉起廠家直播流並自動登記設備；手動模式則支持直接填入 RTSP / RTMP / HTTP-FLV / HLS 等直播源。接入後空中畫面可與國標/ONVIF 固定點位同屏共管，管理者可像管理固定攝像頭一樣調閱機場與飛行器實況，並進一步掛接即時 AI 分析、告警聯動與證據留存，快速覆蓋廣域巡查、應急勘察、周界補盲等傳統固定點位難以觸及的場景，顯著縮短「發現異常—鎖定現場—聯動處置」的響應鏈條，讓智慧安防從平面布控升級到天地一體協同感知</li>
   <li><strong>RTC 消費級攝像頭 P2P 橋接</strong>：一次打通 <strong>Tapo（TP-Link 家用/門店 IPC）、Tuya（塗鴉系白牌海量設備）、Ring / Nest（海外門鈴生態）、小米米家（國內家庭存量利舊）、Wyze（高性價比補點）、DoorBird（高端門口對講）、GoPro（機動巡檢機位）、Roborock（掃地機移動視角）</strong> 九大品牌——它們原生均不支持標準 RTSP，RTC 模組基於 go2rtc 提供 P2P 橋接與統一管理 API。Web 管控臺「接入 RTC 攝像頭」按品牌動態引導填參或 OAuth 綁定，一鍵完成 go2rtc 流註冊、VIDEO 設備登記與 SRS 推流轉發；橋接後與國標/ONVIF 專業攝像機<strong>同屏共管、同掛 AI 任務、同走告警聯動</strong>，把「家裡/門店已在用的攝像頭」和「項目裡的專業攝像機」納入同一套視頻研判體系</li>
   <li><strong>即時對講與雲臺遠控</strong>：打破「只能看、不能管」的傳統監控侷限，值守人員在即時預覽同屏即可完成語音喊話與雲臺操控——無需切換系統、不必親臨現場，即可遠程溝通、引導疏散或制止違規行爲，把響應從「派人到場」壓縮到「開口即達」。雲臺操控讓攝像頭隨心轉向、變焦聚焦，突發情況可迅速對準事發區域、放大細節，形成「看得清、指得準、喊得到」的一體化現場處置閉環。全面兼容 GB28181 與 ONVIF 設備，利舊現有監控資產，無需額外購置對講主機或第三方軟體，讓存量攝像頭即刻具備遠程溝通與靈活調度能力，顯著降低系統孤島與值守成本</li>
-  <li><strong>可編排算法後處理</strong>：突破「只能檢出、難以研判」的能力瓶頸，在目標檢測之上增設獨立的業務研判層，將畫面感知結果轉化爲可運營、可追責、可統計的業務事件。支持按任務靈活定義人數統計、越線通行、停留超時、區域滯留、多條件複合告警等場景規則，無需反覆調整模型即可快速適配工地安監、園區安防、交通管控等差異化需求，把通用視覺能力鍛造成貼近現場的管理抓手。後處理與即時分析彼此獨立、並行運轉——監控畫面持續流暢研判，業務邏輯按需彈性擴展，研判結果自動沉澱存檔並驅動精準告警，顯著降低誤報漏報與人工複覈成本。業務人員專注規則表達，平臺負責分發執行與規模承載，讓「看得見」真正走向「判得清、管得住、用得起來」</li>
+  <li><strong>POST 定製研判（可編排後處理）</strong>：突破「只能檢出、難以研判」的能力瓶頸，由獨立 <strong>POST</strong> 服務承接業務研判層，將畫面感知結果轉化爲可運營、可追責、可統計的業務事件。算法任務內即可編排規則鏈：默認按檢測區域過濾後再告警，並可疊加業務腳本與行業插件，靈活定義人數統計、越線通行、停留超時、區域滯留、多條件複合告警等場景，無需反覆調整模型即可適配工地安監、園區安防、交通管控等差異化需求。上線前可用樣例事件試跑規則、看清攔什麼、會不會告警；運行中改規則即時生效，不必停分析。感知與研判彼此獨立、並行運轉——畫面持續流暢分析，業務邏輯按需擴展，研判結果自動沉澱並驅動精準告警，顯著降低誤報漏報與人工複核成本。業務人員專注規則表達，集成商可插拔行業能力，平臺負責分發執行與規模承載，讓「看得見」真正走向「判得清、管得住、用得起來」</li>
   <li><strong>多中心節點 × 多工作節點聯邦集羣</strong>：面向跨區域、多機房與雲邊協同部署，平臺採用「N 箇中心節點 + N 個工作節點」聯邦架構——中心節點統一編排，工作節點承載算力與媒體執行，可橫向擴展。每個中心節點納管本域工作節點，支持流媒體、音視頻轉碼、視頻分析、模型推理與訓練等能力的遠程分發與一鍵部署；多中心可互聯同步，集羣泳道視圖直觀呈現「中心—工作」拓撲與資源水位。算法任務、自動標註流水線、推流轉發等工作負載按節點角色與 GPU 能力智能調度，讓海量路數接入、高併發推理與分佈式訓練在同一集羣中協同運轉，真正做到「納得進、分得清、擴得開、管得全」</li>
   <li><strong>SENTINEL 集羣節點哨兵</strong>：面向聯邦擴容與跨機房算力池，解決「機器加進來了、卻不知道能不能接活」的交付痛點——按業務功能持續摸清每臺節點的就緒度與可調度能力，任務只派到真正就緒的機器；缺件時可自動請求環境補齊，無公網現場也能離線納管擴容，讓集羣真正做到「納得進、認得清、派得準、少登機」</li>
 
@@ -558,7 +575,7 @@ EasyAIoT積極響應在地化戰略，全面支持在地化硬體和作業系統
 ## 🧩 項目結構
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
+EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE 等核心模組組成，並配套 COMPILE 多平臺打包交付能力：
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -656,6 +673,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME�
     <li><strong>抽幀器與排序器</strong>：支持靈活的抽幀策略與結果排序機制，每個算法任務可綁定獨立的抽幀器和排序器</li>
     <li><strong>佈防時段</strong>：支持全防模式和半防模式的時段化配置</li>
     <li><strong>編排與執行分工</strong>：VIDEO 管設備編排、原畫預覽、告警歸檔與啓停；重活交給 <strong>RUNTIME</strong>（推理與高性能轉發）——「管得住」與「跑得動」分開，路數與時延不再被 Python 編排拖住</li>
+    <li><strong>與 POST 研判銜接</strong>：算法任務可配置後處理規則，檢測結果經定製研判後再進入標準告警，改規則不必停分析</li>
     <li><strong>驗收預覽</strong>：支持原畫與研判畫面並排對照，便於現場快速驗收延時與標註效果</li>
   </ul>
 </td>
@@ -698,6 +716,18 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME�
     <li><strong>事件面 MQTT</strong>：告警/抓拍/後處理發往 EMQX 算法總線，由 <strong>iot-sink</strong> 落庫、歸檔與通知 enrichment</li>
     <li><strong>管理面 HTTP 心跳</strong>：任務存活回 VIDEO，啓停與任務表由 VIDEO 管理</li>
     <li><strong>NFS 媒體根</strong>：告警圖、SRS 錄像統一寫入 <strong>NFS 共享媒體根</strong>（`EASYAIOT_MEDIA_ROOT`，默認 `/mnt/easyaiot-media`；無 sudo 時 fallback 至 `$HOME/easyaiot/media`）；MQTT 只帶路徑，由 <strong>iot-sink</strong> 讀盤歸檔 MinIO</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>POST模組</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>定製研判</strong>：在目標檢測之上獨立做業務判斷，把「框出目標」變成「該不該告警、按什麼口徑告警」</li>
+    <li><strong>按任務配規則</strong>：區域過濾、放行、業務腳本與行業插件可編排成規則鏈，貼工地、園區、交通等現場管理抓手</li>
+    <li><strong>少誤報、可驗收</strong>：區域外不刷屏；上線前可試跑規則，看清攔什麼、會不會產生告警</li>
+    <li><strong>改口徑不停分析</strong>：運行中保存規則即時生效，不必爲改禁區或加判斷而停任務</li>
+    <li><strong>感知與研判解耦</strong>：畫面分析繼續跑，業務邏輯按需擴展；行業能力可插拔，多項目複用同一套檢測</li>
   </ul>
 </td>
 </tr>

@@ -42,7 +42,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME 네이티브 고속 실행 계층</strong>(컴파일 바이너리가 풀링·디코딩·YOLO 추론·박스 푸시·다중 원본 전달을 담당 — 인터프리터 경로 대비 CPU/메모리 더 낮고 지연 더 안정; 단일 바이너리가 실시간 / 스냅샷 / 순찰 / 전달을 커버), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, 오케스트레이션 가능한 업무 후처리, 연합 연산 클러스터 스케줄링, <strong>SENTINEL 클러스터 노드 센티널</strong>(업무별로 노드 준비도와 스케줄 가능 역량을 지속적으로 파악하고, 결손 시 환경 보완을 요청하며, 실제 역량에 따라 작업을 배정), 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리와 <strong>EDGE C# 엣지 수집 런타임</strong>이 현장에서 Modbus RTU/TCP, OPC UA 등 산업 프로토콜 수집, 로컬 스케줄링, MQTT 클라우드-엣지 연동을 플러그인형 수집기로 담당하며, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·4단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 하며; <strong>IDEA 커뮤니티 온라인 IDE</strong>로 기여자가 브라우저에서 전체 저장소를 열고 GitHub Copilot으로 공동 창작하며, 변경분을 로컬에 배포하고 PR을 제출할 수 있게 해 오픈소스 협업을 「먼저 환경 구성」에서 「열고 바로 수정」으로 바꿉니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME 네이티브 고속 실행 계층</strong>(컴파일 바이너리가 풀링·디코딩·YOLO 추론·박스 푸시·다중 원본 전달을 담당 — 인터프리터 경로 대비 CPU/메모리 더 낮고 지연 더 안정; 단일 바이너리가 실시간 / 스냅샷 / 순찰 / 전달을 커버), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, <strong>POST 맞춤 판정</strong>(검출 후 현장 규칙으로 필터·복합 판단 후 경보, 규칙 변경에 재학습 불필요), 연합 연산 클러스터 스케줄링, <strong>SENTINEL 클러스터 노드 센티널</strong>(업무별로 노드 준비도와 스케줄 가능 역량을 지속적으로 파악하고, 결손 시 환경 보완을 요청하며, 실제 역량에 따라 작업을 배정), 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리와 <strong>EDGE C# 엣지 수집 런타임</strong>이 현장에서 Modbus RTU/TCP, OPC UA 등 산업 프로토콜 수집, 로컬 스케줄링, MQTT 클라우드-엣지 연동을 플러그인형 수집기로 담당하며, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>POST 맞춤 판정 서비스</strong>로 검출 결과를 현장에 맞는 업무 이벤트로 단련하고—오경보 감소·규칙 구성·상선 전 시운전; 함께 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·4단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 하며; <strong>IDEA 커뮤니티 온라인 IDE</strong>로 기여자가 브라우저에서 전체 저장소를 열고 GitHub Copilot으로 공동 창작하며, 변경분을 로컬에 배포하고 PR을 제출할 수 있게 해 오픈소스 협업을 「먼저 환경 구성」에서 「열고 바로 수정」으로 바꿉니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -214,6 +214,23 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>콘솔 한눈에 인수</strong>: 컴포넌트 상태와 스케줄 가능 기능이 같은 화면 — 추측·서버 순회를 줄이고 납품 언어를 통일</li>
 </ul>
 
+
+### 🧭 POST: 맞춤 판정 — 「검출」을 운영 가능한 업무 이벤트로
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+비전 프로젝트는 「모델이 이미 사람/차량/물체를 박스로 잡았는데 경보를 쓸 수 없다」에서 자주 막힙니다 — 구역 밖 통행도 울리고, 정상 작업도 울리며, 고객이 원하는 것은 선 넘기·체류·인원 초과인데 팀은 모델만 다시 학습하고 작업을 멈추고 개발을 기다립니다. EasyAIoT는 독립 <strong>POST 맞춤 판정 서비스</strong>를 추가해 <strong>화면 인식</strong>과 <strong>업무 판단</strong>을 분리합니다. 검출은 「보는」 데 집중하고, 판정은 작업별로 「경보할지·무엇을 보고할지」를 편성합니다 — 규칙을 바꿔도 재학습이 없고, 분석도 멈추지 않아 경보가 공사장·단지·교통·공장의 관리 기준에 맞춰집니다.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>작업별 판정 편성</strong>: 알고리즘 작업마다 후처리 단계를 독립 구성 — 기본은 검출 구역 필터 후 표준 경보; 업무 스크립트·산업 플러그인으로 인원 집계·선 넘기·체류 초과·구역 체류·다중 조건 복합 경보를 현장형 규칙 체인으로 구성, 동일 시나리오는 한 번 구성·다작업 재사용</li>
+  <li><strong>업무가 관심 있는 범위만 경보</strong>: 장치 「구역 검출」과 연동해 구역 밖 목표는 자동 필터 — 화면 폭주 없음; 구역을 안 그리면 경보를 막지 않음. 금지 구역·통로·작업대에 집중해 오경보와 수동 검토 비용이 크게 감소</li>
+  <li><strong>업무 스크립트와 규칙 체인 병행</strong>: 기본 설정의 스크립트는 현장 언어로 판단을 쓰고, 규칙 페이지는 필터와 단계 순서를 담당. 두 능력은 독립·동시 사용 가능 — 「스크립트 vs 단계」 양자택일 불필요</li>
+  <li><strong>산업 로직 플러그형</strong>: 단지·공사장·교통의 차별 판정을 위해 플랫폼 코어를 고치지 않음. SI·솔루션사는 판정 능력을 등록·기동/정지하고 작업에 연결 — 동일 검출 모델로 다수 고객 프로젝트 서비스</li>
+  <li><strong>상선 전 시운전</strong>: 샘플·실제 검출 이벤트로 현재 규칙을 온라인 재생 — 통과/폐기와 경보 발생 여부를 단계별로 확인. 「이 규칙이 무엇을 막았는지」를 인수에서 답할 수 있음</li>
+  <li><strong>규칙 변경 즉시 반영</strong>: 실행 중 작업에 규칙을 저장하면 새 기준이 적용 — 분석 중단·영상 재푸시 불필요. 금지 구역 임시 변경·판단 단계 추가도 당일 운영 가능</li>
+  <li><strong>인식과 판정이 서로를 끌어내리지 않음</strong>: 감시 화면은 계속 분석하고 업무 판단은 필요에 따라 확장; 판정 실패 시 「이 단계 건너뛰고 경보 유지」 또는 「잘못된 경보보다 미경보」를 선택. standard/full은 기본 포함, 경량 단기는 먼저 검출-경보 루프를 닫고 심화 운영 시 승급</li>
+</ul>
+
 ### 🤖 AI 어시스턴트: IDEA 분할 화면 공동 창작 — 코드를 고치며 아키텍처·상태를 질문
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -244,8 +261,8 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 | :-- | :-- | :--: | :-- | :--: |
 | **edge** 엣지 단기기 | <strong>경량 엣지 단기기</strong> (2 GB 산업용 PC, 낡은 노트북, 클라우드 최소 사양, 매장 시범기) | ≥ 2 GB | <strong>한 대로 먼저 폐루프</strong>: WEB + VIDEO + RUNTIME; 카메라 접속·실시간 분석·스마트 경보; DEVICE 없음, 로그인은 VIDEO 주도 | 약 **1.02 GB**, 여유 거의 1 GB |
 | **mini** 엣지 경량판 | <strong>엣지 박스</strong> (8 GB 산업용 PC, 매장 보안 일체기, 현장 게이트웨이) | ≥ 8 GB | <strong>한 지점에 지능 설치</strong>: 카메라 접속·실시간 분석·스마트 경보·모델 추론; 이벤트 평면은 standard/full과 동일(Gateway + iot-sink + EMQX) | 약 4–6 GB, 여유 충분 |
-| **standard** 표준판 | <strong>AI 일체형 카메라</strong> (스마트 카메라 단말, 연산 내장 AI 감시 카메라, 다목 AI 분석 일체기) | ≥ 16 GB | <strong>각 카메라가 스마트 노드</strong>: 다수 카메라 벽면 배치로 층/단지 커버, 장치·규칙·연산 통합 오케스트레이션 | 약 10 GB, 안정적 여유 |
-| **full** 완전판 (기본) | <strong>AIoT 풀스택 일체기</strong> (엔터프라이즈 풀스택 지능관제 일체기, 산업 IoT 풀스택 호스트, 클라우드-엣지-디바이스 통합 플랫폼) | ≥ 20 GB | <strong>한 박스에 IoT + 영상 + AI</strong>: 장치 통합관리·대량 접속·지능 분석·지휘 판단 일체화, 전량 역량 장기 안정 | 약 14 GB, 전 기능 여유 확보 |
+| **standard** 표준판 | <strong>AI 일체형 카메라</strong> (스마트 카메라 단말, 연산 내장 AI 감시 카메라, 다목 AI 분석 일체기) | ≥ 16 GB | <strong>각 카메라가 스마트 노드</strong>: 다수 카메라 벽면 배치로 층/단지 커버, 장치·규칙·연산 통합 오케스트레이션; <strong>POST 맞춤 판정</strong>으로 경보를 현장 기준에 맞춤 | 약 10 GB, 안정적 여유 |
+| **full** 완전판 (기본) | <strong>AIoT 풀스택 일체기</strong> (엔터프라이즈 풀스택 지능관제 일체기, 산업 IoT 풀스택 호스트, 클라우드-엣지-디바이스 통합 플랫폼) | ≥ 20 GB | <strong>한 박스에 IoT + 영상 + AI</strong>: 장치 통합관리·대량 접속·지능 분석·지휘 판단 일체화, 전량 역량 장기 안정; <strong>POST 맞춤 판정</strong>과 대외 업무 흐름 포함 | 약 14 GB, 전 기능 여유 확보 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
 <strong>edge 설치:</strong> <code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code> (또는 <code>... install_linux.sh edge install</code>). 최초 설치 대화형 메뉴에서도 선택 가능; 자세한 내용은 위 <a href="#-빠른-시작">빠른 시작</a> 참고.
@@ -278,7 +295,7 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>DJI 도크 / 드론 공중 시야 접속</strong>: 고정 카메라의 「지면만 보고 광역 커버가 어렵다」는 한계를 넘어, DJI FlightHub 체계의 도크·드론 고공 영상을 플랫폼 통합 영상·AI 판정 루프에 포함합니다. 스트리밍 모듈의 「DJI 라이브 접속」: <strong>FlightHub API로 라이브 시작</strong>과 <strong>수동 라이브 소스</strong> 두 가지 접속 방식을 지원 — API 모드에서 원클릭으로 제조사 라이브 스트림을 수신하고 장치를 자동 등록; 수동 모드는 RTSP / RTMP / HTTP-FLV / HLS 등 라이브 소스를 직접 입력. 접속 후 공중 화면은 GB28181/ONVIF 고정 포인트와 동일 화면으로 공관할 수 있으며, 관리자는 고정 카메라처럼 도크·기체 실황을 조회하고 실시간 AI 분석, 경보 연동, 증거 보관을 추가로 연결할 수 있습니다 — 광역 순찰, 비상 정찰, 주경계 보완 등 고정 포인트로는 닿기 어려운 시나리오를 빠르게 커버하고 「발견—위치 확정—대응」 응답 체인을 크게 단축하여, 스마트 보안을 평면 배치에서 천지일체 협동 감지로 고도화합니다.</li>
   <li><strong>RTC 소비자급 카메라 P2P 브리지</strong>: <strong>Tapo, Tuya, Ring/Nest, Xiaomi Mi Home, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드를 한 번에 — 표준 RTSP 미지원. go2rtc 기반 RTC 모듈이 P2P 브리지와 통합 관리 API 제공. Web 콘솔 「RTC 카메라 접속」브랜드별 폼/OAuth; 브리지 후 소비자급·GB28181/ONVIF 전문 카메라 <strong>동일 화면·AI 작업·경보 연동</strong></li>
   <li><strong>실시간 인터콤 및 PTZ 원격 제어</strong>: 전통적인 감시의 「볼 수만 있고, 관리할 수 없는」 한계를 돌파합니다. 감시 담당자는 실시간 미리보기 화면에서 음성 방송과 PTZ 제어를 동시에 수행할 수 있습니다 — 시스템 전환 없이, 현장 방문 없이 원격 소통, 대피 유도, 위반 행위 제지가 가능하며, 대응을 「현장 파견」에서 「말하면 즉시 도달」로 압축합니다. PTZ 제어로 카메라를 자유롭게 회전·줌·포커스할 수 있어, 돌발 상황 시 사고 지역을 신속히 조준하고 세부 사항을 확대하여 「잘 보고, 정확히 지시하고, 말하면 전달된다」는 일체화된 현장 대응 선순환을 형성합니다. GB28181 및 ONVIF 장치와 완벽 호환, 기존 감시 자산을 활용하고 별도의 인터콤 장비나 서드파티 소프트웨어 없이 배포된 카메라에 즉시 원격 소통 및 유연한 디스패치 기능을 부여하여, 시스템 사일로와 감시 비용을 크게 절감합니다</li>
-  <li><strong>오케스트레이션 가능한 알고리즘 후처리</strong>: 「검출은 되지만 판단이 어렵다」는 역량 병목을 돌파하여, 객체 감지 위에 독립적인 업무 판단 계층을 추가하고 화면 인식 결과를 운영·추적·통계 가능한 업무 이벤트로 전환합니다. 작업별로 인원 집계, 경계선 통과, 체류 시간 초과, 구역 장기 체류, 다중 조건 복합 경보 등 시나리오 규칙을 유연하게 정의할 수 있어, 모델을 반복 조정하지 않고도 건설 현장 안전 감독, 단지 보안, 교통 통제 등 차별화된 요구에 빠르게 적응하고, 범용 시각 역량을 현장에 밀착한 관리 도구로 단련합니다. 후처리와 실시간 분석은 서로 독립적으로 병렬 운영됩니다 — 감시 화면은 끊김 없이 판단을 지속하고, 업무 로직은 필요에 따라 탄력적으로 확장되며, 판단 결과는 자동으로 축적·보관되어 정밀 경보를 구동하여 오탐·미탐과 수동 검토 비용을 크게 절감합니다. 업무 담당자는 규칙 표현에 집중하고, 플랫폼이 배포·실행·규모 확장을 담당하여 「볼 수 있다」에서 「명확히 판단하고, 통제하며, 실제로 활용한다」로 나아갑니다</li>
+  <li><strong>POST 맞춤 판정(오케스트레이션 가능 후처리)</strong>: 「검출은 되지만 판단이 어렵다」는 병목을 독립 <strong>POST</strong> 서비스가 업무 판정 계층으로 돌파해, 화면 인식 결과를 운영·추적·통계 가능한 업무 이벤트로 전환합니다. 알고리즘 작업 안에서 규칙 체인을 편성: 기본은 검출 구역 필터 후 경보, 업무 스크립트와 산업 플러그인으로 인원 집계·선 넘기·체류 초과·구역 체류·다중 조건 복합 경보를 구성 — 모델 반복 조정 없이 공사장 안전·단지 보안·교통 통제에 맞춤. 상선 전 샘플 이벤트로 규칙을 시운전하고, 실행 중 규칙 저장은 즉시 반영되어 분석을 멈출 필요 없음. 인식과 판정은 독립 병렬 — 오경보·미경보와 수동 검토 비용을 줄이고 「보이는」 데서 「판단·통제·활용」으로</li>
   <li><strong>다중 센터 노드 × 다중 워커 노드 연합 클러스터</strong>: 지역 간·다중 데이터센터·클라우드-엣지 협업 배포를 위해 플랫폼은 「N개 센터 노드 + N개 워커 노드」 연합 아키텍처를 채택합니다 — 센터 노드가 통합 오케스트레이션을, 워커 노드가 연산·미디어 실행을 담당하며 수평 확장이 가능합니다. 각 센터 노드는 소속 워커 노드를 관리하고, 스트리밍, 오디오·비디오 트랜스코딩, 영상 분석, 모델 추론·학습 등 역량의 원격 배포와 원클릭 배치를 지원합니다. 다중 센터 노드 간 상호 연동·동기화가 가능하며, 클러스터 스윔레인 뷰에서 「센터—워커」 토폴로지와 자원 수위를 직관적으로 표시합니다. 알고리즘 태스크, 자동 라벨링 파이프라인, 스트림 릴레이 등 워크로드는 노드 역할과 GPU 역량에 따라 지능적으로 스케줄링되어, 대량 스트림 접속·고동시성 추론·분산 학습이 동일 클러스터에서 협력 실행됩니다 — 「등록 용이, 스케줄 명확, 확장 유연, 통합 관리」를 실현합니다</li>
   <li><strong>SENTINEL 클러스터 노드 센티널</strong>: 연합 확장과 다중 전산실 연산 풀을 위해 「머신은 들어왔지만 일을 받을 수 있는지 모른다」는 납품 통증을 해결합니다 — 업무 기능별로 각 노드의 준비도와 스케줄 가능 역량을 지속적으로 파악해, 진짜 준비된 머신에만 작업을 배정합니다. 결손 시 환경 보완을 요청할 수 있고, 공인망 없는 현장도 오프라인 등록·확장이 가능하여 클러스터가 「등록 용이, 인식 명확, 배정 정확, 서버 접속 감소」를 실현합니다</li>
 
@@ -548,7 +565,7 @@ EasyAIoT는 현지화 전략에 적극적으로 대응하며, 현지화 하드�
 ## 🧩 프로젝트 구조
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE 등 핵심 모듈로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
+EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE 등 핵심 모듈로 구성되며, COMPILE 다중 플랫폼 패키징·납품 능력을 함께 제공합니다:
 </p>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
@@ -646,6 +663,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, VISUALIZE
     <li><strong>프레임 추출기 및 정렬기</strong>: 유연한 프레임 추출 전략과 결과 정렬 메커니즘을 지원하며, 각 알고리즘 태스크는 독립적인 프레임 추출기와 정렬기에 바인딩할 수 있습니다</li>
     <li><strong>방범 시간대</strong>: 전체 방범 모드 및 반방범 모드의 시간대별 구성 지원</li>
     <li><strong>오케스트레이션과 실행 분담</strong>: VIDEO는 장치 오케스트레이션·원본 미리보기·경보 아카이브·시작/중지; 무거운 일은 <strong>RUNTIME</strong>(추론·고성능 전달) — 「관리」와 「속도」를 분리해 채널·지연이 Python 오케스트레이션에 끌려가지 않음</li>
+    <li><strong>POST 판정 연계</strong>: 알고리즘 작업에 후처리 규칙을 구성해 검출 결과가 맞춤 판정 후 표준 경보로 진입 — 규칙 변경에 분석 중단 불필요</li>
     <li><strong>인수 미리보기</strong>: 원본과 판정 화면을 나란히 대조해 현장 지연·표기 품질을 빠르게 확인</li>
   </ul>
 </td>
@@ -688,6 +706,18 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, VISUALIZE
     <li><strong>이벤트면 MQTT</strong>: 경보/스냅샷/후처리는 EMQX 알고리즘 버스로 전송, <strong>iot-sink</strong>가 저장·아카이브·알림 enrichment</li>
     <li><strong>관리면 HTTP 하트비트</strong>: 태스크 생존은 VIDEO로 보고, 기동/중지와 태스크 테이블은 VIDEO가 관리</li>
     <li><strong>NFS 미디어 루트</strong>: 경보 이미지·SRS 녹화는 <strong>NFS 공유 미디어 루트</strong>에 기록(<code>EASYAIOT_MEDIA_ROOT</code>, 기본 <code>/mnt/easyaiot-media</code>; sudo 없으면 <code>$HOME/easyaiot/media</code>로 fallback); MQTT는 경로만 전달, <strong>iot-sink</strong>가 디스크를 읽어 MinIO에 아카이브</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>POST 모듈</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>맞춤 판정</strong>: 객체 검출 위에서 독립 업무 판단 — 「목표를 박스」에서 「경보할지·어떤 기준으로」로</li>
+    <li><strong>작업별 규칙</strong>: 구역 필터·통과·업무 스크립트·산업 플러그인을 규칙 체인으로 편성</li>
+    <li><strong>오경보 감소·인수 가능</strong>: 구역 밖 폭주 없음; 상선 전 규칙 시운전</li>
+    <li><strong>기준 변경해도 분석 유지</strong>: 실행 중 규칙 저장이 즉시 반영</li>
+    <li><strong>인식·판정 분리</strong>: 화면 분석은 계속, 업무 로직은 확장; 산업 능력 플러그형</li>
   </ul>
 </td>
 </tr>
