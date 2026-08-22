@@ -1,0 +1,29 @@
+{
+  "schema": "post_plugin_invoke.v1",
+  "plugin_id": "acme.echo",
+  "plugin_version": "1.0.0",
+  "params": { "note": "golden" },
+  "context": {
+    "event": {
+      "schema": "infer_event.v1",
+      "event_kind": "infer",
+      "correlation_id": "golden-1",
+      "task_id": 1,
+      "task_type": "realtime",
+      "device_id": "cam1",
+      "timestamp": "2026-08-22T00:00:00Z",
+      "frame_width": 1920,
+      "frame_height": 1080,
+      "detections": [
+        { "bbox": [0.1, 0.1, 0.2, 0.2], "class_name": "person", "confidence": 0.9 }
+      ]
+    },
+    "task": { "id": 1, "task_name": "t", "task_type": "realtime" },
+    "regions": [],
+    "detections": [
+      { "bbox": [0.1, 0.1, 0.2, 0.2], "class_name": "person", "confidence": 0.9 }
+    ],
+    "enrichment": {},
+    "decision": "continue"
+  }
+}

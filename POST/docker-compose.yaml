@@ -1,0 +1,25 @@
+# POST 定制后处理（Go）
+# 默认 host 网络：与 VIDEO/AI 一致，可直连宿主机 EMQX/Nacos/Postgres，
+# VIDEO 侧 POST_BASE_URL=http://127.0.0.1:8089 即可联通。
+services:
+  post-service:
+    image: post-service:latest
+    container_name: post-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.docker
+    network_mode: host
+    volumes:
+      # 告警图只读（overlay 等插件按需读盘；与 VIDEO ALERT_IMAGES_DIR 对齐）
+      - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/alert_images:/app/alert_images:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

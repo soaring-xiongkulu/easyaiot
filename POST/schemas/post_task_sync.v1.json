@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "post_task_sync.v1.json",
+  "title": "PostTaskSync",
+  "type": "object",
+  "required": ["schema", "op", "task_id", "source_instance"],
+  "properties": {
+    "schema": { "const": "post_task_sync.v1" },
+    "op": { "enum": ["upsert", "delete", "touch"] },
+    "task_id": { "type": "integer" },
+    "template": { "type": ["object", "null"] },
+    "ts": { "type": "string" },
+    "source_instance": { "type": "string" }
+  }
+}

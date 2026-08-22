@@ -1,0 +1,20 @@
+.env
+.env.*
+!.env.docker
+
+# 日志
+logs/
+*.log
+
+# Go
+*.exe
+*.test
+/bin/
+/out/
+
+# IDE
+.idea/
+*.iml
+
+# local binaries / vendor
+vendor/

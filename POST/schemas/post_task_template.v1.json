@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "post_task_template.v1.json",
+  "title": "PostTaskTemplate",
+  "type": "object",
+  "required": ["schema", "task"],
+  "properties": {
+    "schema": { "const": "post_task_template.v1" },
+    "task": { "type": "object" },
+    "regions": { "type": "array" }
+  }
+}

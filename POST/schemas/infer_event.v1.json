@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "infer_event.v1.json",
+  "title": "InferEvent",
+  "type": "object",
+  "required": ["schema", "event_kind", "correlation_id", "task_id", "task_type", "device_id", "timestamp", "frame_width", "frame_height", "detections"],
+  "properties": {
+    "schema": { "const": "infer_event.v1" },
+    "event_kind": { "enum": ["infer", "heartbeat"] },
+    "correlation_id": { "type": "string" },
+    "task_id": { "type": "integer" },
+    "task_type": { "type": "string" },
+    "device_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "frame_width": { "type": "integer" },
+    "frame_height": { "type": "integer" },
+    "detections": { "type": "array" }
+  }
+}

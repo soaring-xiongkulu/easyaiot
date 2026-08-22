@@ -1,0 +1,32 @@
+# Git / IDE
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+
+# 环境变量（运行时通过 env_file / 宿主机注入）
+.env
+.env.*
+!.env.example
+
+# 安装 / 运维脚本与编排（镜像内不需要）
+install_linux.sh
+install_mac.sh
+docker-compose.yaml
+docker-compose*.yaml
+docker-compose*.yml
+.dockerignore
+deploy/
+
+# 示例外置插件（独立镜像）
+examples/
+
+# 文档与杂项
+*.md
+README*
+LICENSE
+*.log
+logs/
+.DS_Store
+Thumbs.db

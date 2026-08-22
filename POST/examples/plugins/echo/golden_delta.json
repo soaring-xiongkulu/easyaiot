@@ -1,0 +1,14 @@
+{
+  "schema": "post_plugin_delta.v1",
+  "detections": null,
+  "enrichment_patch": {
+    "echo": true,
+    "plugin_id": "acme.echo",
+    "detections_in": 1,
+    "params": { "note": "golden" }
+  },
+  "layers_append": [],
+  "decision": null,
+  "drop_reason": "",
+  "skip_rest": false
+}

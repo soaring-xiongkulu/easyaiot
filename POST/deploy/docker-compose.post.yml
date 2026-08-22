@@ -1,0 +1,12 @@
+# 外置插件 Sidecar 示例（主编排见 POST/docker-compose.yaml）
+services:
+  post-plugin-echo:
+    build:
+      context: ../examples/plugins/echo
+      dockerfile: Dockerfile
+    image: easyaiot/post-plugin-echo:1.0.0
+    environment:
+      PORT: "8091"
+    ports:
+      - "8091:8091"
+    restart: unless-stopped

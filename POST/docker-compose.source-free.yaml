@@ -1,0 +1,4 @@
+# 无源码 runtime：预构建镜像已含二进制，无需再挂源码（POST 本就不挂 ./）
+# 由 install_linux.sh 在检测到 .source_free_runtime 时自动叠加（占位，保持与其它模块一致）
+services:
+  post-service: {}

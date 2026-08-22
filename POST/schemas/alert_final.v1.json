@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alert_final.v1.json",
+  "title": "AlertFinal",
+  "type": "object",
+  "required": ["schema", "correlation_id", "task_id", "device_id"],
+  "properties": {
+    "schema": { "const": "alert_final.v1" }
+  }
+}

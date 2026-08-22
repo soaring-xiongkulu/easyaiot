@@ -1,0 +1,28 @@
+{
+  "spec_version": "1",
+  "id": "acme.echo",
+  "name": "Echo Enrich",
+  "version": "1.0.0",
+  "kinds": ["enrich"],
+  "runtime": "http",
+  "entrypoint": {
+    "image": "easyaiot/post-plugin-echo:1.0.0",
+    "port": 8091,
+    "path": "/v1/process",
+    "health": "/healthz",
+    "timeout_ms": 2000
+  },
+  "params_schema": {
+    "type": "object",
+    "properties": {
+      "note": { "type": "string", "default": "" }
+    }
+  },
+  "scaling": {
+    "min_replicas": 1,
+    "max_replicas": 4,
+    "stateless": true
+  },
+  "author": "easyaiot",
+  "license": "Apache-2.0"
+}

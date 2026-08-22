@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "post_plugin_invoke.v1.json",
+  "title": "PostPluginInvoke",
+  "type": "object",
+  "required": ["schema", "plugin_id", "context"],
+  "properties": {
+    "schema": { "const": "post_plugin_invoke.v1" },
+    "plugin_id": { "type": "string" },
+    "plugin_version": { "type": "string" },
+    "params": { "type": "object" },
+    "context": { "type": "object" }
+  }
+}

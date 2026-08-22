@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "post_plugin_delta.v1.json",
+  "title": "PostPluginDelta",
+  "type": "object",
+  "required": ["schema"],
+  "properties": {
+    "schema": { "const": "post_plugin_delta.v1" },
+    "detections": { "type": ["array", "null"] },
+    "enrichment_patch": { "type": "object" },
+    "layers_append": { "type": "array" },
+    "decision": { "type": ["string", "null"] },
+    "drop_reason": { "type": "string" },
+    "skip_rest": { "type": "boolean" }
+  }
+}
