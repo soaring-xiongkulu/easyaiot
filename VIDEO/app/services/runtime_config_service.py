@@ -207,7 +207,7 @@ def ensure_runtime_on_video_startup() -> None:
     if existing:
         os.environ.setdefault('RUNTIME_BIN', existing)
         lib = runtime_library_path_env()
-        if lib and not (os.getenv('LD_LIBRARY_PATH') or '').strip():
+        if lib:
             os.environ['LD_LIBRARY_PATH'] = lib
         logger.info('RUNTIME 已就绪: %s', existing)
         return
@@ -1449,16 +1449,60 @@ def normalize_executor(value) -> str:
     return 'cpp'
 
 
+def _deploy_env_library_paths() -> List[str]:
+    """从 RUNTIME/deploy.env 读取库目录（不依赖进程 env，避免被 nvidia 路径抢先占位）。"""
+    deploy_env = _repo_root() / 'RUNTIME' / 'deploy.env'
+    if not deploy_env.is_file():
+        return []
+    kv: Dict[str, str] = {}
+    try:
+        for line in deploy_env.read_text(encoding='utf-8', errors='ignore').splitlines():
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key:
+                kv[key] = value
+    except Exception as e:
+        logger.warning('解析 RUNTIME/deploy.env 库路径失败: %s', e)
+        return []
+
+    paths: List[str] = []
+    for key in (
+        'RUNTIME_CONDA_LIB_HOST',
+        'RUNTIME_ORT_LIB_HOST',
+        'RUNTIME_CUDA_LIB_HOST',
+    ):
+        raw = (kv.get(key) or '').strip()
+        if not raw:
+            continue
+        for segment in raw.split(':'):
+            segment = segment.strip()
+            if segment and os.path.isdir(segment):
+                paths.append(segment)
+
+    ld = (kv.get('LD_LIBRARY_PATH') or '').strip()
+    if ld:
+        for segment in ld.split(':'):
+            segment = segment.strip()
+            if segment and os.path.isdir(segment):
+                paths.append(segment)
+    return paths
+
+
 def runtime_library_path_env() -> str:
     """Build LD_LIBRARY_PATH hint for conda + ORT SDK + CUDA (host or Docker mounts)."""
-    parts = []
-    existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
-    if existing:
-        parts.append(existing)
+    apply_runtime_deploy_env()
+    parts: List[str] = []
+    # deploy.env 中的 OpenCV/ORT 路径优先（须在 nvidia pip 库之前）
+    parts.extend(_deploy_env_library_paths())
     for mounted in (
         '/opt/easyaiot/runtime-conda-lib',
         '/opt/easyaiot/ort-lib',
         '/opt/easyaiot/cuda-lib',
+        '/opt/easyaiot/RUNTIME/lib',
     ):
         if os.path.isdir(mounted):
             parts.append(mounted)
@@ -1467,6 +1511,9 @@ def runtime_library_path_env() -> str:
         parts.append(os.path.join(conda, 'lib'))
     # common local ORT layout (gpu preferred)
     root = _repo_root()
+    runtime_bundle_lib = root / 'RUNTIME' / 'lib'
+    if runtime_bundle_lib.is_dir():
+        parts.append(str(runtime_bundle_lib))
     for arch in ('x64', 'aarch64'):
         for name in (
             f'onnxruntime-linux-{arch}-gpu-1.23.2',
@@ -1479,6 +1526,12 @@ def runtime_library_path_env() -> str:
         else:
             continue
         break
+    existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
+    if existing:
+        for segment in existing.split(':'):
+            segment = segment.strip()
+            if segment:
+                parts.append(segment)
     for cuda_path in (
         '/usr/local/cuda/lib64',
         '/usr/local/cuda/lib',
