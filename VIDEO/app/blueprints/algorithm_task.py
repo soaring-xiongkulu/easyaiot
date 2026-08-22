@@ -919,3 +919,103 @@ def list_post_process_results(task_id):
         logger.error('查询后处理结果失败: %s', e, exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
+
+# ====================== POST 后处理规则链 ======================
+@algorithm_task_bp.route('/task/post-pipeline/catalog', methods=['GET'])
+def get_post_pipeline_catalog():
+    """插件库：内置 + 已登记外置插件"""
+    try:
+        from app.services.post_plugin_service import list_plugin_catalog
+        return jsonify({'code': 0, 'msg': 'success', 'data': list_plugin_catalog()})
+    except Exception as e:
+        logger.error('获取规则链插件库失败: %s', e, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+def _debug_post_pipeline_body(task, data: dict):
+    from app.services.post_template_client import (
+        debug_pipeline,
+        build_sample_event,
+        build_template_from_task,
+        _task_regions,
+    )
+
+    if task and not getattr(task, 'alert_event_enabled', False):
+        return 400, {'error': '未启用告警事件，后处理规则链不可用'}
+
+    event = data.get('event')
+    if not event:
+        event = build_sample_event(task) if task else {
+            'schema': 'infer_event.v1',
+            'event_kind': 'infer',
+            'correlation_id': 'debug-preview',
+            'task_id': int(data.get('task_id') or 0),
+            'task_name': data.get('task_name') or 'preview',
+            'task_type': data.get('task_type') or 'realtime',
+            'device_id': (data.get('device_ids') or ['demo-device'])[0],
+            'timestamp': utc_isoformat_z(datetime.utcnow()),
+            'frame_width': 1920,
+            'frame_height': 1080,
+            'detections': [{
+                'bbox': [0.42, 0.38, 0.58, 0.72],
+                'class_id': 0,
+                'class_name': 'person',
+                'confidence': 0.86,
+                'track_id': 1,
+            }],
+        }
+
+    body = {
+        'event': event,
+        'pipeline_override': data.get('pipeline_override'),
+        'until_plugin': data.get('until_plugin') or '',
+    }
+    if task and not data.get('pipeline_override'):
+        tpl = build_template_from_task(task)
+        body['task'] = tpl['task']
+        body['regions'] = tpl['regions']
+    else:
+        if data.get('task'):
+            body['task'] = data['task']
+        elif task:
+            tpl = build_template_from_task(task)
+            body['task'] = tpl['task']
+        if data.get('regions') is not None:
+            body['regions'] = data['regions']
+        elif task:
+            body['regions'] = _task_regions(task)
+        else:
+            body['regions'] = []
+
+    status, payload = debug_pipeline(body)
+    return status, payload
+
+
+@algorithm_task_bp.route('/task/post-pipeline/debug', methods=['POST'])
+def debug_post_pipeline_preview():
+    """规则链调试（新建任务预览，无需 task_id）"""
+    try:
+        data = request.get_json() or {}
+        status, payload = _debug_post_pipeline_body(None, data)
+        if status >= 400:
+            return jsonify({'code': status, 'msg': payload.get('error') if isinstance(payload, dict) else str(payload), 'data': payload}), status
+        return jsonify({'code': 0, 'msg': 'success', 'data': payload})
+    except Exception as e:
+        logger.error('规则链调试失败: %s', e, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/task/<int:task_id>/post-pipeline/debug', methods=['POST'])
+def debug_post_pipeline(task_id):
+    """规则链调试（带任务上下文与区域）"""
+    try:
+        task = AlgorithmTask.query.get_or_404(task_id)
+        data = request.get_json() or {}
+        status, payload = _debug_post_pipeline_body(task, data)
+        if status >= 400:
+            return jsonify({'code': status, 'msg': payload.get('error') if isinstance(payload, dict) else str(payload), 'data': payload}), status
+        return jsonify({'code': 0, 'msg': 'success', 'data': payload})
+    except Exception as e:
+        logger.error('规则链调试失败 task=%s: %s', task_id, e, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
