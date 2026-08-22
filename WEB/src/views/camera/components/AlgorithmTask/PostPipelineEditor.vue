@@ -134,8 +134,20 @@
         <div v-else-if="record.plugin === 'region_gate'" class="hint-line">
           未配置启用区域时自动跳过。请在任务摄像头上配置「区域检测」。
         </div>
+        <div v-else-if="record.plugin === 'line_cross'" class="hint-line">
+          需在摄像头配置 <code>line</code> 类型检测线；算法需开启追踪（track_id）。参数示例：<code>{"direction":"both","sample_point":"center"}</code>
+        </div>
+        <div v-else-if="record.plugin === 'region_enter_exit'" class="hint-line">
+          检测目标进入/离开多边形区域。需 track_id。参数示例：<code>{"event_type":"both","hit_mode":"center"}</code>
+        </div>
+        <div v-else-if="record.plugin === 'dwell_timer'" class="hint-line">
+          目标在区域内停留超过阈值才告警。需 track_id。参数示例：<code>{"min_dwell_sec":5,"hit_mode":"center"}</code>
+        </div>
+        <div v-else-if="record.plugin === 'headcount_gate'" class="hint-line">
+          统计区域内目标数，满足阈值才放行。参数示例：<code>{"threshold":3,"operator":"gte","hit_mode":"center"}</code>
+        </div>
 
-        <div v-if="!isBuiltin(record.plugin) || record.plugin === 'user_script'" class="params-block">
+        <div v-if="!isBuiltin(record.plugin) || record.plugin === 'user_script' || hasPluginParams(record.plugin)" class="params-block">
           <div class="field-label">高级参数（JSON）</div>
           <a-textarea
             v-model:value="record.paramsText"
@@ -254,10 +266,22 @@ const router = useRouter();
 const steps = ref<PipelineStepUI[]>([]);
 const registered = ref<PostPluginItem[]>([]);
 
-const BUILTIN = new Set(['region_gate', 'default_pass', 'user_script']);
+const BUILTIN = new Set([
+  'region_gate',
+  'default_pass',
+  'user_script',
+  'line_cross',
+  'region_enter_exit',
+  'dwell_timer',
+  'headcount_gate',
+]);
 
 const builtinOptions = [
   { label: '区域闸门', value: 'region_gate' },
+  { label: '越线检测', value: 'line_cross' },
+  { label: '区域进出', value: 'region_enter_exit' },
+  { label: '停留超时', value: 'dwell_timer' },
+  { label: '人数阈值', value: 'headcount_gate' },
   { label: '放行', value: 'default_pass' },
   { label: '用户脚本', value: 'user_script' },
 ];
@@ -314,8 +338,24 @@ function isBuiltin(plugin: string) {
   return BUILTIN.has(plugin);
 }
 
+function hasPluginParams(plugin: string) {
+  return ['line_cross', 'region_enter_exit', 'dwell_timer', 'headcount_gate'].includes(plugin);
+}
+
+function defaultParamsFor(plugin: string): string {
+  if (plugin === 'line_cross') return '{"direction":"both","sample_point":"center"}';
+  if (plugin === 'region_enter_exit') return '{"event_type":"both","hit_mode":"center"}';
+  if (plugin === 'dwell_timer') return '{"min_dwell_sec":5,"hit_mode":"center"}';
+  if (plugin === 'headcount_gate') return '{"threshold":3,"operator":"gte","hit_mode":"center"}';
+  return '{}';
+}
+
 function kindMeta(plugin: string) {
   if (plugin === 'region_gate') return { label: '过滤', short: '区域闸门', color: 'orange' };
+  if (plugin === 'line_cross') return { label: '研判', short: '越线检测', color: 'volcano' };
+  if (plugin === 'region_enter_exit') return { label: '研判', short: '区域进出', color: 'volcano' };
+  if (plugin === 'dwell_timer') return { label: '研判', short: '停留超时', color: 'volcano' };
+  if (plugin === 'headcount_gate') return { label: '研判', short: '人数阈值', color: 'volcano' };
   if (plugin === 'default_pass') return { label: '放行', short: '放行', color: 'green' };
   if (plugin === 'user_script') return { label: '富化', short: '用户脚本', color: 'purple' };
   return { label: '外置', short: plugin || '插件', color: 'cyan' };
@@ -432,6 +472,8 @@ function onPluginChange(record: PipelineStepUI) {
   }
   if (record.plugin === 'default_pass') {
     record.paramsText = '{}';
+  } else if (hasPluginParams(record.plugin)) {
+    record.paramsText = defaultParamsFor(record.plugin);
   }
   emitChange();
 }
