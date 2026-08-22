@@ -294,7 +294,18 @@ def default_auth_db_path() -> str:
     if root:
         return root
     base = os.environ.get("EASYAIOT_MEDIA_ROOT") or "/data"
-    return os.path.join(base, "video-auth", "users.db")
+    candidate = os.path.join(base, "video-auth", "users.db")
+    parent = os.path.dirname(candidate)
+    if os.path.isdir(parent) and os.access(parent, os.W_OK):
+        if not os.path.exists(candidate) or os.access(candidate, os.W_OK):
+            return candidate
+    fallback = os.path.join(os.path.expanduser("~"), ".easyaiot", "video-auth", "users.db")
+    logger.warning(
+        "媒体目录 auth 数据库不可写 (%s)，回退到本地路径: %s",
+        candidate,
+        fallback,
+    )
+    return fallback
 
 
 def get_auth_manager() -> AuthManager:
