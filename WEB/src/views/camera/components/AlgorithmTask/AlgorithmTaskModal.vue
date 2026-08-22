@@ -77,6 +77,7 @@ import {
   loadAlertClassNamesForModels,
   pruneAlertClassNames,
 } from '@/views/camera/utils/modelAlertClasses';
+import { formatApiErrorMessage } from '@/views/camera/utils/apiErrorMessage';
 
 
 defineOptions({ name: 'AlgorithmTaskModal' });
@@ -1834,7 +1835,7 @@ async function openRegionDetectionEditor() {
       }
     });
   } catch (error: any) {
-    createMessage.error(error?.message || '摄像头同步失败，请确认所选通道可用');
+    createMessage.error(formatApiErrorMessage(error, '摄像头同步失败，请确认所选通道可用'));
     return;
   }
 
@@ -2242,21 +2243,7 @@ const handleSubmit = async () => {
       }
     }
   } catch (error: any) {
-    console.error('提交失败', error);
-    // 尝试从错误对象中提取错误消息
-    let errorMsg = '提交失败';
-    if (error?.response?.data?.msg) {
-      errorMsg = error.response.data.msg;
-    } else if (error?.data?.msg) {
-      errorMsg = error.data.msg;
-    } else if (error?.msg) {
-      errorMsg = error.msg;
-    } else if (typeof error === 'string') {
-      errorMsg = error;
-    } else if (error?.message) {
-      errorMsg = error.message;
-    }
-    createMessage.error(errorMsg);
+    createMessage.error(formatApiErrorMessage(error, '提交失败，请稍后重试'));
   } finally {
     confirmLoading.value = false;
     setDrawerProps({ confirmLoading: false });
