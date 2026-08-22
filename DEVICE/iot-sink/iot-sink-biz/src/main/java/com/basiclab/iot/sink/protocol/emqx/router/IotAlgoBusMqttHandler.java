@@ -8,6 +8,7 @@ import com.basiclab.iot.sink.domain.model.AlertNotificationMessage;
 import com.basiclab.iot.sink.domain.model.PostProcessRequestMessage;
 import com.basiclab.iot.sink.service.AlertService;
 import com.basiclab.iot.sink.service.PostProcessService;
+import com.basiclab.iot.sink.util.AlertClassFilter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -17,6 +18,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -132,6 +134,11 @@ public class IotAlgoBusMqttHandler {
         }
         fillEdgeFromNodes(msg, normalized, root);
         enrichNotificationFromVideoDb(msg, snapshot);
+
+        if (!applyAlertClassFilter(msg, snapshot)) {
+            log.info("[IotAlgoBusMqttHandler] 告警类别过滤跳过 deviceId={}", msg.getDeviceId());
+            return;
+        }
 
         Integer alertId;
         if (snapshot) {
@@ -504,6 +511,124 @@ public class IotAlgoBusMqttHandler {
             }
         }
         return null;
+    }
+
+    /**
+     * 按 VIDEO 算法任务 alert_class_names 过滤 MQTT 告警（与 alert_hook_service 一致）。
+     * @return false 表示应跳过落库
+     */
+    @SuppressWarnings("unchecked")
+    private boolean applyAlertClassFilter(AlertNotificationMessage msg, boolean snapshot) {
+        if (msg == null || msg.getAlert() == null || jdbcTemplate == null) {
+            return true;
+        }
+        String deviceId = msg.getDeviceId();
+        if (StrUtil.isBlank(deviceId)) {
+            return true;
+        }
+        String taskType = msg.getAlert().getTaskType();
+        if (StrUtil.isBlank(taskType)) {
+            taskType = snapshot ? "snap" : "realtime";
+        }
+        if ("snapshot".equalsIgnoreCase(taskType)) {
+            taskType = "snap";
+        }
+
+        Object alertClassNamesRaw = null;
+        try {
+            DynamicDataSourceContextHolder.push("video");
+            String sql = "SELECT at.alert_class_names FROM algorithm_task at "
+                    + "INNER JOIN algorithm_task_device atd ON at.id = atd.task_id "
+                    + "WHERE atd.device_id = ? AND at.alert_event_enabled = true "
+                    + "AND at.is_enabled = true AND at.task_type = ? "
+                    + "ORDER BY at.id ASC LIMIT 1";
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, deviceId, taskType);
+            if (rows == null || rows.isEmpty()) {
+                return true;
+            }
+            alertClassNamesRaw = rows.get(0).get("alert_class_names");
+        } catch (Exception e) {
+            log.warn("[IotAlgoBusMqttHandler] 查询 alert_class_names 失败 deviceId={}: {}",
+                    deviceId, e.getMessage());
+            return true;
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+
+        List<String> allowed = AlertClassFilter.parseAlertClassNames(alertClassNamesRaw);
+        if (allowed.isEmpty()) {
+            return true;
+        }
+
+        AlertNotificationMessage.AlertInfo alert = msg.getAlert();
+        Object information = alert.getInformation();
+        Map<String, Object> infoMap = null;
+        if (information instanceof Map) {
+            infoMap = new LinkedHashMap<>((Map<String, Object>) information);
+        } else if (information instanceof String && StrUtil.isNotBlank((String) information)) {
+            try {
+                infoMap = objectMapper.readValue((String) information, Map.class);
+            } catch (Exception ignored) {
+                infoMap = null;
+            }
+        }
+        if (infoMap == null) {
+            String objectName = alert.getObject();
+            if (StrUtil.isBlank(objectName)) {
+                return true;
+            }
+            List<Map<String, Object>> single = new ArrayList<>();
+            Map<String, Object> det = new LinkedHashMap<>();
+            det.put("class_name", objectName);
+            single.add(det);
+            List<Map<String, Object>> filtered = AlertClassFilter.filterDetectionsForAlert(single, allowed);
+            if (filtered.isEmpty()) {
+                return false;
+            }
+            return true;
+        }
+
+        Object detectionsObj = infoMap.get("detections");
+        if (!(detectionsObj instanceof List)) {
+            String objectName = alert.getObject();
+            if (StrUtil.isBlank(objectName)) {
+                return true;
+            }
+            List<Map<String, Object>> single = new ArrayList<>();
+            Map<String, Object> det = new LinkedHashMap<>();
+            det.put("class_name", objectName);
+            single.add(det);
+            return !AlertClassFilter.filterDetectionsForAlert(single, allowed).isEmpty();
+        }
+
+        List<Map<String, Object>> detections = (List<Map<String, Object>>) detectionsObj;
+        List<Map<String, Object>> filtered = AlertClassFilter.filterDetectionsForAlert(detections, allowed);
+        if (filtered.isEmpty()) {
+            return false;
+        }
+
+        infoMap.put("detections", filtered);
+        infoMap.put("detection_count", filtered.size());
+        infoMap.put("total_count", filtered.size());
+        Map<String, Integer> objectCounts = new LinkedHashMap<>();
+        for (Map<String, Object> det : filtered) {
+            Object rawName = det.get("class_name");
+            if (rawName == null) {
+                rawName = det.get("className");
+            }
+            String className = rawName != null ? String.valueOf(rawName) : "unknown";
+            objectCounts.merge(className, 1, Integer::sum);
+        }
+        infoMap.put("object_counts", objectCounts);
+        alert.setInformation(infoMap);
+        String primary = objectCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(alert.getObject());
+        if (StrUtil.isNotBlank(primary)) {
+            alert.setObject(primary);
+        }
+        return true;
     }
 
 }
