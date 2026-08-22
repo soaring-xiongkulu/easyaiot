@@ -22,12 +22,25 @@ function resolveVideoApiPath(path: string): string {
   return `${apiPrefix}${path}`;
 }
 
+function normalizeMinioDownloadPath(path: string): string {
+  const qIndex = path.indexOf('?');
+  if (qIndex < 0) return path;
+  const base = path.slice(0, qIndex);
+  const params = new URLSearchParams(path.slice(qIndex + 1));
+  const prefix = params.get('prefix');
+  if (prefix) {
+    params.set('prefix', prefix);
+    return `${base}?${params.toString()}`;
+  }
+  return path;
+}
+
 export function resolveAlertImageDisplayUrl(imageUrl: string | null | undefined): string {
   if (imageUrl == null || String(imageUrl).trim() === '') return '';
   const u = String(imageUrl).trim();
   if (u.startsWith('http://') || u.startsWith('https://')) return u;
   if (u.startsWith('/api/v1/buckets/')) {
-    return `${window.location.origin}${u}`;
+    return `${window.location.origin}${normalizeMinioDownloadPath(u)}`;
   }
   if (u.startsWith('/video/')) {
     return resolveVideoApiPath(u);
