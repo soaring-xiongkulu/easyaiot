@@ -29,6 +29,8 @@
         @play-alarm="handlePlayAlarm"
       />
     </div>
+
+    <ImageModal @register="registerImageModal" />
   </div>
 </template>
 
@@ -38,9 +40,15 @@ import MonitorHeader from './components/Header.vue'
 import MonitorSidebar from './components/Sidebar.vue'
 import VideoMonitor from './components/VideoMonitor.vue'
 import AlarmPanel from './components/AlarmPanel.vue'
+import ImageModal from '@/views/alert/components/ImageModal/index.vue'
+import { useModal } from '@/components/Modal'
+import { useMessage } from '@/hooks/web/useMessage'
 import { queryAlarmList, getDashboardStatistics } from '@/api/device/calculate'
 import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage'
 import { formatAlertListTitle } from '@/views/alert/alertDisplay'
+
+const { createMessage } = useMessage()
+const [registerImageModal, { openModal: openImageModal }] = useModal()
 
 defineOptions({
   name: 'MonitorDashboard'
@@ -279,11 +287,18 @@ const handleDevicePlay = (device: any) => {
   }
 }
 
-// 告警事件点击播放录像
+// 告警事件点击查看告警图片
 const handlePlayAlarm = (alarm: any) => {
-  if (videoMonitorRef.value) {
-    videoMonitorRef.value.playAlertRecord(alarm)
+  const minioUrl = alarm.image_url
+  if (minioUrl == null || String(minioUrl).trim() === '') {
+    createMessage.warn('告警图片不存在')
+    return
   }
+  openImageModal(true, {
+    image_url: minioUrl,
+    information: alarm.information,
+    event: alarm.event,
+  })
 }
 
 // 处理视频列表变化
