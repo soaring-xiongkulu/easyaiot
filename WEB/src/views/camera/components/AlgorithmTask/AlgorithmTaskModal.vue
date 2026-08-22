@@ -30,6 +30,7 @@
           :disabled="isViewMode"
           :task-id="taskId"
           :post-process-enabled="!!formValues?.post_process_enabled"
+          :task-context="postTaskContext"
         />
       </a-tab-pane>
       <a-tab-pane key="status" tab="服务状态" :disabled="!taskId">
@@ -139,6 +140,18 @@ const runtimeVersionBanner = computed(() => {
     return '本机 RUNTIME 已就绪，但未找到 VERSION 文件（请重新编译以写入版本信息）';
   }
   return '本机推理运行时未就绪：低时延任务将触发自动编译，或请先完成业务运行时安装';
+});
+
+const postTaskContext = computed(() => {
+  const mode = fromTaskMode(formValues.value?.task_mode);
+  return {
+    id: taskId.value,
+    task_name: formValues.value?.task_name,
+    task_type: mode.task_type,
+    device_ids: Array.isArray(formValues.value?.device_ids)
+      ? formValues.value.device_ids.map(String)
+      : [],
+  };
 });
 
 async function loadRuntimeInfo() {
