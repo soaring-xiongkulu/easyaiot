@@ -952,6 +952,10 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 - 账号：admin
 - 密码：admin123
 
+## 🎬 演示视频
+
+- Bilibili：https://www.bilibili.com/video/BV1d3846yEQz/?vd_source=5d3350c0182a2cf35c2739f3d16c1161
+
 ## ⚙️ 项目地址
 
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot

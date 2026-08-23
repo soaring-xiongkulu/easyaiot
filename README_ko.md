@@ -886,6 +886,10 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 - 계정: admin
 - 비밀번호: admin123
 
+## 🎬 데모 영상
+
+- Bilibili: https://www.bilibili.com/video/BV1d3846yEQz/?vd_source=5d3350c0182a2cf35c2739f3d16c1161
+
 ## ⚙️ 프로젝트 주소
 
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot

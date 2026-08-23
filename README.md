@@ -910,6 +910,10 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 - Username: admin
 - Password: admin123
 
+## 🎬 Demo Video
+
+- Bilibili: https://www.bilibili.com/video/BV1d3846yEQz/?vd_source=5d3350c0182a2cf35c2739f3d16c1161
+
 ## ⚙️ Project Repositories
 
 - Gitee: https://gitee.com/soaring-xiongkulu/easyaiot
