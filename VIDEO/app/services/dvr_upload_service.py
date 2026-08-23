@@ -150,6 +150,28 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         db.session.rollback()
         return False
 
+    # 同步写入 record_file，否则录像空间「录像回放」读不到片段
+    try:
+        from models import RecordSpace
+        from app.services.space_file_metadata_service import upsert_record_file
+        record_space = RecordSpace.query.filter_by(device_id=resolved_id).first()
+        if record_space:
+            object_name = os.path.basename(absolute)
+            upsert_record_file(
+                space_id=record_space.id,
+                device_id=resolved_id,
+                object_name=object_name,
+                bucket_name=record_space.bucket_name or 'record-space',
+                filename=object_name,
+                file_size=file_size,
+                url=store_path,
+                duration=duration,
+                event_time=event_time.replace(tzinfo=None) if event_time.tzinfo else event_time,
+                source='dvr',
+            )
+    except Exception as e:
+        logger.warning('本地 DVR：写入 record_file 失败 device=%s error=%s', resolved_id, e)
+
     try:
         patch_alerts_record(
             {

@@ -577,19 +577,42 @@ def list_record_video_dates(space_id: int, device_id: Optional[str] = None) -> L
     record_space = RecordSpace.query.get_or_404(space_id)
     effective_device_id = device_id or record_space.device_id
 
-    query = db.session.query(
-        func.date(RecordFile.event_time).label('record_date'),
-        func.count(RecordFile.id).label('segment_count'),
-    ).filter(RecordFile.space_id == space_id)
+    def _query_dates():
+        query = db.session.query(
+            func.date(RecordFile.event_time).label('record_date'),
+            func.count(RecordFile.id).label('segment_count'),
+        ).filter(RecordFile.space_id == space_id)
 
-    if effective_device_id:
-        query = query.filter(RecordFile.device_id == effective_device_id)
+        if effective_device_id:
+            query = query.filter(RecordFile.device_id == effective_device_id)
 
-    rows = (
-        query.group_by(func.date(RecordFile.event_time))
-        .order_by(func.date(RecordFile.event_time).desc())
-        .all()
-    )
+        return (
+            query.group_by(func.date(RecordFile.event_time))
+            .order_by(func.date(RecordFile.event_time).desc())
+            .all()
+        )
+
+    rows = _query_dates()
+    # record_file 为空但 MinIO/Playback 有数据时（历史上 sink 只写了 playback），自动回填一次
+    if not rows:
+        try:
+            from models import Playback
+            has_playback = False
+            if effective_device_id:
+                has_playback = (
+                    Playback.query.filter_by(device_id=effective_device_id).first() is not None
+                )
+            if has_playback:
+                logger.info(
+                    '录像日期为空但存在 Playback，触发 MinIO 元数据同步 space_id=%s device_id=%s',
+                    space_id,
+                    effective_device_id,
+                )
+                sync_record_files_from_minio(space_id)
+                rows = _query_dates()
+        except Exception as e:
+            logger.warning('录像日期懒同步失败 space_id=%s: %s', space_id, e)
+
     return [
         {
             'date': row.record_date.strftime('%Y-%m-%d') if hasattr(row.record_date, 'strftime') else str(row.record_date),
