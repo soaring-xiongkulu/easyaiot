@@ -3,8 +3,11 @@ package com.basiclab.iot.tdengine.controller;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import com.basiclab.iot.common.domain.R;
+import com.basiclab.iot.common.domain.PageDomain;
 import com.basiclab.iot.common.domain.TableDataInfo;
+import com.basiclab.iot.common.domain.TableSupport;
 import com.basiclab.iot.common.utils.StringUtils;
+import com.basiclab.iot.common.utils.sql.SqlUtil;
 import com.basiclab.iot.common.web.controller.BaseController;
 import com.basiclab.iot.device.domain.device.vo.TDDeviceDataResp;
 import com.basiclab.iot.tdengine.constant.TdsConstants;
@@ -459,16 +462,45 @@ public class TdEngineController extends BaseController {
     @ApiOperation("查询运行时属性历史数据")
     @RequestMapping(value = "/deviceInfo/history", method = RequestMethod.POST)
     public TableDataInfo deviceInfoHistoryPage(@RequestBody TDDeviceDataHistoryRequest request) {
+        resolveHistoryIdentifier(request);
         // 无分页参数时拉最近 1000 条，避免 Feign/脏分页导致偶发空结果
         Integer pageNum = com.basiclab.iot.common.utils.ServletUtils.getParameterToInt("pageNum");
         Integer pageSize = com.basiclab.iot.common.utils.ServletUtils.getParameterToInt("pageSize");
         if (pageNum == null || pageSize == null) {
-            com.github.pagehelper.PageHelper.startPage(1, 1000, false);
+            com.github.pagehelper.PageHelper.startPage(1, 1000, false).using("mysql");
         } else {
-            startPage();
+            startTdEnginePage();
         }
         List<TDDeviceDataResp> list = tdEngineService.deviceInfoHistoryPage(request);
         return getDataTable(list);
+    }
+
+    /** 兼容 query 参数 / propertyCode 别名，确保按属性提取历史值。 */
+    private void resolveHistoryIdentifier(TDDeviceDataHistoryRequest request) {
+        if (StrUtil.isNotBlank(request.getIdentifier())) {
+            return;
+        }
+        String identifier = com.basiclab.iot.common.utils.ServletUtils.getParameter("identifier");
+        if (StrUtil.isBlank(identifier)) {
+            identifier = com.basiclab.iot.common.utils.ServletUtils.getParameter("propertyCode");
+        }
+        if (StrUtil.isNotBlank(identifier)) {
+            request.setIdentifier(identifier);
+        }
+    }
+
+    /** TDengine 显式指定 mysql 方言，避免 autoDialect 识别 JDBC 失败。 */
+    private void startTdEnginePage() {
+        PageDomain pageDomain = TableSupport.buildPageRequest();
+        Integer pageNum = pageDomain.getPageNum();
+        Integer pageSize = pageDomain.getPageSize();
+        if (StringUtils.isNotNull(pageNum) && StringUtils.isNotNull(pageSize)) {
+            String orderBy = SqlUtil.escapeOrderBySql(pageDomain.getOrderBy());
+            Boolean reasonable = pageDomain.getReasonable();
+            com.github.pagehelper.PageHelper.startPage(pageNum, pageSize, orderBy)
+                    .setReasonable(reasonable)
+                    .using("mysql");
+        }
     }
 
     @ApiOperation("查询设备时序数据（通用接口）")

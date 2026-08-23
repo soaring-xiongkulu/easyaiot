@@ -165,3 +165,10 @@ threadBus:
     queue-capacity: 1000
     #线程池名前缀
     thread-name-prefix: iotAsync-
+
+# PageHelper：TDengine JDBC 无法自动识别方言
+pagehelper:
+  helper-dialect: mysql
+  auto-dialect: false
+  reasonable: true
+  support-methods-arguments: true

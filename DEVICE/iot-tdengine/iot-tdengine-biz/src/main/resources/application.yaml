@@ -183,3 +183,10 @@ iot:
     end-code: 9999 # 这里配置 9999 的原因是，测试方便。
 
 debug: false
+
+# PageHelper：TDengine JDBC 无法自动识别方言，显式指定 mysql（LIMIT 语法兼容）
+pagehelper:
+  helper-dialect: mysql
+  auto-dialect: false
+  reasonable: true
+  support-methods-arguments: true
