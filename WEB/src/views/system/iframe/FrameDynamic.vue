@@ -31,22 +31,27 @@
     decodeURIComponent(String(titleQuery || index)) || 'EasyAIoT',
   );
   
-  // 构建完整的 iframe 路径
+  // 构建完整的 iframe 路径（Node-RED 与 nginx /dev-api/nodeRed/ 同源代理一致）
   const _initPath = computed(() => {
-    if (path && code) {
-      // 如果 path 是相对路径，确保以 / 开头
-      const basePath = String(path).startsWith('/') ? path : `/${path}`;
-      // 拼接 code 到路径末尾
-      return `${basePath}${code}`;
+    const flowId = String(code || index || '').trim();
+    const rawPath = String(path || '').trim();
+
+    if (rawPath && flowId) {
+      const basePath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+      return `${basePath}${flowId}`;
     }
-    if (path && folder) {
-      const basePath = String(path).startsWith('/') ? path : `/${path}`;
+    // 规则引擎兜底：无 query.path 时仍按 nginx 路径打开编辑器
+    if (flowId && (route.name === 'RuleChainsNodeRed' || String(route.path).includes('rulechain-editor'))) {
+      return `/dev-api/nodeRed/#flow/${flowId}`;
+    }
+    if (rawPath && folder) {
+      const basePath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
       const folderValue = decodeURIComponent(String(folder));
       const separator = basePath.includes('?') ? '&' : '?';
       return `${basePath}${separator}folder=${encodeURIComponent(folderValue)}`;
     }
-    if (path) {
-      return String(path).startsWith('/') ? path : `/${path}`;
+    if (rawPath) {
+      return rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
     }
     return '';
   });

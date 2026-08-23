@@ -7,6 +7,7 @@ import { usePermissionStore } from '@/store/modules/permission'
 import { useUserStore } from '@/store/modules/user'
 
 import { resetRouter, router } from '@/router'
+import { PAGE_NOT_FOUND_ROUTE, RULE_CHAINS_NODERED_ROUTE } from '@/router/routes/basic'
 
 // import { RootRoute } from '@/router/routes';
 
@@ -55,6 +56,8 @@ export function usePermission() {
         console.error(e)
       }
     })
+    router.addRoute(RULE_CHAINS_NODERED_ROUTE as unknown as RouteRecordRaw)
+    router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw)
     console.log('routes222---', JSON.stringify(router.getRoutes()))
     permissionStore.setLastBuildMenuTime()
     closeAll()

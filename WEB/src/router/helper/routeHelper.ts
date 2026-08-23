@@ -44,9 +44,29 @@ function asyncImportRoute(routes: AppRouteRecordRaw[] | undefined) {
     meta.orderNo = item.sort
     meta.ignoreKeepAlive = !item.keepAlive
     item.meta = meta
-    item.name = item.name = item.componentName && item.componentName.length > 0 ? item.componentName : toCamelCase(item.path, true)
+    // 路由 name 必须全局唯一。菜单里常把组件名填成 FrameBlank，多个 iframe 会互相 addRoute 覆盖导致 404
+    item.name = resolveRouteName(item)
     children && asyncImportRoute(children)
   })
+}
+
+/** 不能作为 vue-router name 的通用组件名（多菜单复用会撞名） */
+const SHARED_ROUTE_COMPONENT_NAMES = new Set(['FrameBlank', 'IFrame', 'IFRAME', 'LAYOUT', 'Layout', 'ParentLayout'])
+
+function routeNameFromPath(path: string) {
+  const normalized = String(path || '')
+    .replace(/^\//, '')
+    .replace(/[/:?*()]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+  return toCamelCase(normalized, true) || 'AnonymousRoute'
+}
+
+function resolveRouteName(item: AppRouteRecordRaw) {
+  const fromComponent = item.componentName && String(item.componentName).trim()
+  if (fromComponent && !SHARED_ROUTE_COMPONENT_NAMES.has(fromComponent))
+    return fromComponent
+  return routeNameFromPath(item.path)
 }
 
 function dynamicImport(dynamicViewsModules: Record<string, () => Promise<Recordable>>, component: string) {

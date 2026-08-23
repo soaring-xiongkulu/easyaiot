@@ -13,16 +13,7 @@ const rulechains: AppRouteModule = {
     hideChildrenInMenu: true,
   },
   children: [
-    {
-      path: 'index/:id(.*)',
-      name: 'RuleChainsNodeRed',
-      component: () => import('@/views/system/iframe/FrameDynamic.vue'),
-      meta: {
-        title: 'EasyAIoT',
-        hideMenu: true,
-        hideBreadcrumb: true,
-      },
-    },
+    // Node-RED 详情：basic.ts RULE_CHAINS_NODERED_ROUTE（绝对路径子路由，BACK 模式可用）
     {
       path: 'index',
       name: 'RuleChainsIndex',
@@ -36,4 +27,3 @@ const rulechains: AppRouteModule = {
 }
 
 export default rulechains
-

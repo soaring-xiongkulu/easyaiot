@@ -6,7 +6,7 @@ import { PageEnum } from '@/enums/pageEnum'
 import { useDictStoreWithOut } from '@/store/modules/dict'
 import { useUserStoreWithOut } from '@/store/modules/user'
 
-import { PAGE_NOT_FOUND_ROUTE } from '@/router/routes/basic'
+import { PAGE_NOT_FOUND_ROUTE, RULE_CHAINS_NODERED_ROUTE } from '@/router/routes/basic'
 
 // import { RootRoute } from '@/router/routes'
 
@@ -109,6 +109,8 @@ export function createPermissionGuard(router: Router) {
       }
     })
 
+    // 动态菜单可能覆盖同名路由；详情页必须在菜单之后重新挂上，再挂 404
+    router.addRoute(RULE_CHAINS_NODERED_ROUTE as unknown as RouteRecordRaw)
     router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw)
 
     permissionStore.setDynamicAddedRoute(true)

@@ -355,13 +355,15 @@ export default defineComponent({
         createMessage.error('规则链信息无效！');
         return;
       }
+      // 与 nginx location /dev-api/nodeRed/ 一致；走独立路由避免菜单 FrameBlank 撞名 404
       const nodeRedPath = '/dev-api/nodeRed/#flow/';
       const title = isNodeRedDemoFlow(record)
         ? `EasyAIoT · ${record.label || '演示规则链'}`
         : (record.label || 'EasyAIoT');
       go({
-        path: `/rulechains/index/${encodeURIComponent(title)}`,
-        query: {code: record.id, path: nodeRedPath, title},
+        name: 'RuleChainsNodeRed',
+        params: { id: String(record.id) },
+        query: { code: String(record.id), path: nodeRedPath, title },
       });
     }
 

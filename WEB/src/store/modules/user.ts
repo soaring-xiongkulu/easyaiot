@@ -8,7 +8,7 @@ import { router } from '@/router'
 import type { RoleEnum } from '@/enums/roleEnum'
 import { PageEnum } from '@/enums/pageEnum'
 import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, ROLES_KEY, USER_INFO_KEY } from '@/enums/cacheEnum'
-import { PAGE_NOT_FOUND_ROUTE } from '@/router/routes/basic'
+import { PAGE_NOT_FOUND_ROUTE, RULE_CHAINS_NODERED_ROUTE } from '@/router/routes/basic'
 import { usePermissionStore } from '@/store/modules/permission'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -162,6 +162,7 @@ export const useUserStore = defineStore('app-user', {
               console.error(e)
             }
           })
+          router.addRoute(RULE_CHAINS_NODERED_ROUTE as unknown as RouteRecordRaw)
           router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw)
           permissionStore.setDynamicAddedRoute(true)
         }
