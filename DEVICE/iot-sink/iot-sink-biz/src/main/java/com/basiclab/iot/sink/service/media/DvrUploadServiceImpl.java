@@ -122,6 +122,8 @@ public class DvrUploadServiceImpl implements DvrUploadService {
                     + URLEncoder.encode(objectName, StandardCharsets.UTF_8);
             int duration = 30;
             upsertPlayback(resolvedDeviceId, minioUrl, objectName, recordTime, fileSize, duration);
+            // 录像空间前端读 record_file，必须与 Playback 同步写入，否则「录像回放」一直为空
+            upsertRecordFile(resolvedDeviceId, bucketName, objectName, minioUrl, recordTime, fileSize, duration);
             patchAlertsRecord(resolvedDeviceId, recordTime, duration, minioUrl);
             if (mediaProperties.isRemoveLocalAfterUpload()) {
                 tryDelete(absolute);
@@ -217,6 +219,53 @@ public class DvrUploadServiceImpl implements DvrUploadService {
                                 + "VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
                         filePathUrl, recordTime, deviceId, deviceName, duration, fileSize);
             }
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+    }
+
+    /**
+     * 写入录像空间元数据表 record_file（WEB「录像回放」按此表查询，不能只写 playback）。
+     */
+    private void upsertRecordFile(
+            String deviceId, String bucketName, String objectName, String filePathUrl,
+            LocalDateTime recordTime, long fileSize, int duration) {
+        if (jdbcTemplate == null || !StringUtils.hasText(deviceId) || !StringUtils.hasText(objectName)) {
+            return;
+        }
+        try {
+            DynamicDataSourceContextHolder.push("video");
+            Integer spaceId = jdbcTemplate.query(
+                    "SELECT id FROM record_space WHERE device_id = ? LIMIT 1",
+                    rs -> rs.next() ? rs.getInt(1) : null,
+                    deviceId);
+            if (spaceId == null) {
+                log.warn("设备无录像空间，跳过 record_file device={}", deviceId);
+                return;
+            }
+            String filename = objectName.contains("/")
+                    ? objectName.substring(objectName.lastIndexOf('/') + 1)
+                    : objectName;
+            Integer existing = jdbcTemplate.query(
+                    "SELECT id FROM record_file WHERE bucket_name = ? AND object_name = ? LIMIT 1",
+                    rs -> rs.next() ? rs.getInt(1) : null,
+                    bucketName, objectName);
+            if (existing != null) {
+                jdbcTemplate.update(
+                        "UPDATE record_file SET space_id = ?, device_id = ?, filename = ?, file_size = ?, "
+                                + "url = ?, duration = ?, event_time = ?, source = ?, updated_at = NOW() WHERE id = ?",
+                        spaceId, deviceId, filename, fileSize, filePathUrl, (short) duration, recordTime, "dvr",
+                        existing);
+            } else {
+                jdbcTemplate.update(
+                        "INSERT INTO record_file (space_id, device_id, object_name, bucket_name, filename, file_size, "
+                                + "content_type, url, duration, event_time, source, created_at, updated_at) "
+                                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                        spaceId, deviceId, objectName, bucketName, filename, fileSize,
+                        "video/x-flv", filePathUrl, (short) duration, recordTime, "dvr");
+            }
+        } catch (Exception e) {
+            log.warn("写入 record_file 失败 device={} object={}: {}", deviceId, objectName, e.getMessage());
         } finally {
             DynamicDataSourceContextHolder.clear();
         }

@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -151,6 +152,8 @@ public class AlertServiceImpl implements AlertService {
             if (minioPath != null && alertId != null) {
                 // 更新数据库中的图片路径
                 updateAlertImagePath(alertId, minioPath);
+                // 同步写入抓拍空间元数据，否则「抓拍图库」为空（算法告警 Tab 仍可读 alert 表）
+                upsertSnapImage(deviceId, minioPath, "algorithm");
                 // 将 MinIO 下载地址回写到消息，使下游通知（HTTP/Webhook 等）推送可访问的图片 URL，而非本地磁盘路径
                 alert.setImagePath(minioPath);
                 log.debug("告警 {} 图片路径已更新: {}", alertId, minioPath);
@@ -276,6 +279,8 @@ public class AlertServiceImpl implements AlertService {
             if (minioPath != null && alertId != null) {
                 // 更新数据库中的图片路径
                 updateAlertImagePath(alertId, minioPath);
+                // 同步写入抓拍图库元数据（snap_image），与 MinIO 对象对应
+                upsertSnapImage(deviceId, minioPath, "snap");
                 // 将 MinIO 下载地址回写到消息，使下游通知（HTTP/Webhook 等）推送可访问的图片 URL，而非本地磁盘路径
                 alert.setImagePath(minioPath);
                 log.debug("抓拍算法任务告警 {} 图片路径已更新: {}", alertId, minioPath);
@@ -1087,6 +1092,76 @@ public class AlertServiceImpl implements AlertService {
         } catch (Exception e) {
             log.error("更新告警图片路径失败: alertId={}, minioPath={}, error={}", 
                     alertId, minioPath, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 将告警/抓拍图片登记到 snap_image，供抓拍空间「抓拍图库」分页查询。
+     * minioPath 形如 /api/v1/buckets/{bucket}/objects/download?prefix={objectName}
+     */
+    private void upsertSnapImage(String deviceId, String minioPath, String source) {
+        if (jdbcTemplate == null || !StringUtils.hasText(deviceId) || !StringUtils.hasText(minioPath)) {
+            return;
+        }
+        try {
+            String bucketName = null;
+            String objectName = null;
+            // /api/v1/buckets/{bucket}/objects/download?prefix=...
+            String marker = "/api/v1/buckets/";
+            int bStart = minioPath.indexOf(marker);
+            if (bStart >= 0) {
+                int bEnd = minioPath.indexOf('/', bStart + marker.length());
+                if (bEnd > bStart) {
+                    bucketName = minioPath.substring(bStart + marker.length(), bEnd);
+                }
+            }
+            int pIdx = minioPath.indexOf("prefix=");
+            if (pIdx >= 0) {
+                String encoded = minioPath.substring(pIdx + "prefix=".length());
+                int amp = encoded.indexOf('&');
+                if (amp >= 0) {
+                    encoded = encoded.substring(0, amp);
+                }
+                objectName = URLDecoder.decode(encoded, StandardCharsets.UTF_8);
+            }
+            if (!StringUtils.hasText(bucketName) || !StringUtils.hasText(objectName)) {
+                log.warn("无法从 minioPath 解析 bucket/object，跳过 snap_image: {}", minioPath);
+                return;
+            }
+
+            DynamicDataSourceContextHolder.push("video");
+            Integer spaceId = jdbcTemplate.query(
+                    "SELECT id FROM snap_space WHERE device_id = ? LIMIT 1",
+                    rs -> rs.next() ? rs.getInt(1) : null,
+                    deviceId);
+            if (spaceId == null) {
+                log.warn("设备无抓拍空间，跳过 snap_image device={}", deviceId);
+                return;
+            }
+            String filename = objectName.contains("/")
+                    ? objectName.substring(objectName.lastIndexOf('/') + 1)
+                    : objectName;
+            Integer existing = jdbcTemplate.query(
+                    "SELECT id FROM snap_image WHERE bucket_name = ? AND object_name = ? LIMIT 1",
+                    rs -> rs.next() ? rs.getInt(1) : null,
+                    bucketName, objectName);
+            if (existing != null) {
+                jdbcTemplate.update(
+                        "UPDATE snap_image SET space_id = ?, device_id = ?, filename = ?, url = ?, source = ?, "
+                                + "captured_at = COALESCE(captured_at, NOW()) WHERE id = ?",
+                        spaceId, deviceId, filename, minioPath, source, existing);
+            } else {
+                jdbcTemplate.update(
+                        "INSERT INTO snap_image (space_id, device_id, object_name, bucket_name, filename, "
+                                + "content_type, url, captured_at, source, created_at) "
+                                + "VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, NOW())",
+                        spaceId, deviceId, objectName, bucketName, filename,
+                        "image/jpeg", minioPath, source);
+            }
+        } catch (Exception e) {
+            log.warn("写入 snap_image 失败 device={}: {}", deviceId, e.getMessage());
+        } finally {
+            DynamicDataSourceContextHolder.clear();
         }
     }
 
