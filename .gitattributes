@@ -21,6 +21,10 @@ WEB/docker-build-logs/** -diff
 # FUXA 运行时数据目录：不参与 diff
 .scripts/docker/fuxa_data/** -diff
 
+# modbus demo 运行结果：不参与 diff
+.scripts/modbus-rtu-demo/results/** -diff
+.scripts/modbus-tcp-demo/results/** -diff
+
 # ZLMediaKit 运行时配置：不参与 diff
 .scripts/zlmediakit/conf/config.ini -diff
 

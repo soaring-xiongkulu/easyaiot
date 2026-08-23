@@ -143,6 +143,9 @@ RUNTIME/.test-*/
 .scripts/docker/vscode_data/
 .scripts/docker/.web_deploy_profile_built
 .scripts/media-cluster/images/*.tar
+# modbus demo 运行结果（本地压测/联调产物，勿提交）
+.scripts/modbus-rtu-demo/results/
+.scripts/modbus-tcp-demo/results/
 # .scripts/nexus3 数据目录
 .scripts/nexus3/nexus_data/
 !.scripts/postgresql/00-init-databases.sh
