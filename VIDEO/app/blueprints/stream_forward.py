@@ -301,15 +301,19 @@ def receive_heartbeat():
         if process_id:
             task.service_process_id = process_id
         if log_path:
-            # executor=cpp 时 RUNTIME 上报的是每设备子目录（forward_{deviceId}），
-            # 会覆盖 Python supervisor 的任务日志目录，导致 UI 读不到 YYYY-MM-DD.log。
+            # executor=cpp 时 RUNTIME 上报的是每设备子目录（runtime_{deviceId}），
+            # 会覆盖 Python supervisor 的分片日志目录，导致 UI 读不到 YYYY-MM-DD.log。
+            # 裁剪到 stream_forward_task_{id}[/shard_N]，保留分片目录。
             norm = str(log_path).replace('\\', '/').rstrip('/')
             marker = f'stream_forward_task_{task_id}'
             if marker in norm:
                 parts = norm.split('/')
                 for i, part in enumerate(parts):
                     if part == marker:
-                        norm = '/'.join(parts[: i + 1])
+                        end = i + 1
+                        if i + 1 < len(parts) and str(parts[i + 1]).startswith('shard_'):
+                            end = i + 2
+                        norm = '/'.join(parts[:end])
                         break
             task.service_log_path = norm
         elif not task.service_log_path:
@@ -406,6 +410,50 @@ def get_task_status(task_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
+def _stream_forward_task_log_dirs(task: StreamForwardTask) -> list:
+    """解析推流转发任务日志目录：只读分片（device_deployments / shard_*），不再回退任务根。"""
+    video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    task_root = os.path.join(video_root, 'logs', f'stream_forward_task_{task.id}')
+    dirs = []
+    seen = set()
+
+    def _add(path: str):
+        if not path:
+            return
+        norm = os.path.abspath(str(path).rstrip('/\\'))
+        if norm in seen or not os.path.isdir(norm):
+            return
+        # 仅接受分片目录，忽略任务根
+        base = os.path.basename(norm)
+        if not base.startswith('shard_'):
+            return
+        seen.add(norm)
+        dirs.append(norm)
+
+    try:
+        deployments = []
+        if hasattr(task, '_parse_device_deployments'):
+            deployments = task._parse_device_deployments() or []
+        elif task.device_deployments:
+            import json
+            raw = task.device_deployments
+            deployments = json.loads(raw) if isinstance(raw, str) else (raw or [])
+        for dep in deployments or []:
+            _add(dep.get('log_dir') or '')
+    except Exception as e:
+        logger.debug('解析推流分片日志目录失败 task_id=%s: %s', task.id, e)
+
+    if os.path.isdir(task_root):
+        try:
+            for name in sorted(os.listdir(task_root)):
+                if name.startswith('shard_'):
+                    _add(os.path.join(task_root, name))
+        except OSError:
+            pass
+
+    return dirs
+
+
 # ====================== 日志查看接口 ======================
 @stream_forward_bp.route('/task/<int:task_id>/logs', methods=['GET'])
 def get_task_logs(task_id):
@@ -417,23 +465,13 @@ def get_task_logs(task_id):
         
         lines = int(request.args.get('lines', 100))
         date = request.args.get('date', '').strip()
-        
-        # 创建一个模拟的服务对象，用于调用get_service_logs
-        class StreamForwardServiceObj:
-            def __init__(self, log_path):
-                self.log_path = log_path
-                self.id = task_id
-        
-        # 确定日志路径
-        if task.service_log_path:
-            log_path = task.service_log_path
-        else:
-            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            log_base_dir = os.path.join(video_root, 'logs')
-            log_path = os.path.join(log_base_dir, f'stream_forward_task_{task_id}')
-        
-        service_obj = StreamForwardServiceObj(log_path)
-        return get_service_logs(service_obj, lines, date if date else None)
+        log_dirs = _stream_forward_task_log_dirs(task)
+        return get_service_logs_from_dirs(
+            log_dirs,
+            lines,
+            date if date else None,
+            task_id=task_id,
+        )
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
@@ -482,86 +520,90 @@ def get_task_streams(task_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
-def get_service_logs(service_obj, lines: int = 100, date: str = None):
-    """获取服务日志的通用函数"""
+def _read_log_file_lines(log_file_path: str):
     try:
-        # 确定日志文件路径
-        video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        log_base_dir = os.path.join(video_root, 'logs')
-        
-        if not service_obj.log_path:
-            # 根据服务类型生成日志目录
-            service_log_dir = os.path.join(log_base_dir, f'stream_forward_task_{service_obj.id}')
-        else:
-            service_log_dir = service_obj.log_path
-        
-        # 根据参数选择日志文件（按日期）
-        if date:
-            log_filename = f"{date}.log"
-        else:
-            # 如果没有指定日期，返回今天的日志文件
-            log_filename = datetime.now().strftime('%Y-%m-%d.log')
-        
-        log_file_path = os.path.join(service_log_dir, log_filename)
-        
-        # 检查日志文件是否存在
-        if not os.path.exists(log_file_path):
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            return f.readlines()
+    except UnicodeDecodeError:
+        with open(log_file_path, 'r', encoding='gbk') as f:
+            return f.readlines()
+
+
+def get_service_logs_from_dirs(log_dirs, lines: int = 100, date: str = None, task_id: int = None):
+    """从多个日志目录聚合读取（推流转发分片场景）。"""
+    try:
+        log_filename = f"{date}.log" if date else datetime.now().strftime('%Y-%m-%d.log')
+        candidates = [d for d in (log_dirs or []) if d]
+        found_files = []
+        for log_dir in candidates:
+            path = os.path.join(log_dir, log_filename)
+            if os.path.isfile(path):
+                found_files.append((os.path.basename(log_dir.rstrip('/\\')) or log_dir, path))
+
+        if not found_files:
+            hint = ''
+            if task_id is not None:
+                hint = f'（已检查 shard_* 分片目录）'
             return jsonify({
                 'code': 0,
                 'msg': 'success',
                 'data': {
-                    'logs': f'日志文件不存在: {log_filename}\n请等待服务运行后生成日志。',
+                    'logs': f'日志文件不存在: {log_filename}{hint}\n请等待服务运行后生成日志。',
                     'total_lines': 0,
                     'log_file': log_filename,
                     'is_all_file': not bool(date)
                 }
             })
-        
-        # 读取日志文件最后N行
-        try:
-            with open(log_file_path, 'r', encoding='utf-8') as f:
-                all_lines = f.readlines()
-                log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
-            
-            return jsonify({
-                'code': 0,
-                'msg': 'success',
-                'data': {
-                    'logs': ''.join(log_lines),
-                    'total_lines': len(all_lines),
-                    'log_file': log_filename,
-                    'is_all_file': not bool(date)
-                }
-            })
-        except UnicodeDecodeError:
-            # 如果UTF-8解码失败，尝试使用其他编码
+
+        merged = []
+        total_lines = 0
+        for label, path in found_files:
             try:
-                with open(log_file_path, 'r', encoding='gbk') as f:
-                    all_lines = f.readlines()
-                    log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
-                
-                return jsonify({
-                    'code': 0,
-                    'msg': 'success',
-                    'data': {
-                        'logs': ''.join(log_lines),
-                        'total_lines': len(all_lines),
-                        'log_file': log_filename,
-                        'is_all_file': not bool(date)
-                    }
-                })
+                file_lines = _read_log_file_lines(path)
             except Exception as e:
-                logger.error(f"读取日志文件失败: {str(e)}")
-                return jsonify({
-                    'code': 500,
-                    'msg': f'读取日志文件失败: {str(e)}'
-                }), 500
+                logger.error('读取日志文件失败 %s: %s', path, e)
+                continue
+            total_lines += len(file_lines)
+            if len(found_files) > 1:
+                merged.append(f'===== {label}/{log_filename} =====\n')
+            merged.extend(file_lines)
+
+        if not merged:
+            return jsonify({
+                'code': 500,
+                'msg': f'读取日志文件失败: {log_filename}'
+            }), 500
+
+        # 多文件聚合后取末尾 N 行；单文件行为与原来一致
+        log_lines = merged[-lines:] if len(merged) > lines else merged
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'logs': ''.join(log_lines),
+                'total_lines': total_lines,
+                'log_file': log_filename,
+                'is_all_file': not bool(date),
+                'log_dirs': [label for label, _ in found_files],
+            }
+        })
     except Exception as e:
         logger.error(f"获取服务日志失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 500,
             'msg': f'服务器内部错误: {str(e)}'
         }), 500
+
+
+def get_service_logs(service_obj, lines: int = 100, date: str = None):
+    """单目录读日志入口（内部走分片聚合）。"""
+    log_dir = getattr(service_obj, 'log_path', None)
+    return get_service_logs_from_dirs(
+        [log_dir] if log_dir else [],
+        lines,
+        date,
+        task_id=getattr(service_obj, 'id', None),
+    )
 
 
 # ====================== 设备推流转发任务检查接口 ======================

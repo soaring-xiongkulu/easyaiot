@@ -329,14 +329,18 @@ def receive_realtime_heartbeat():
         if process_id:
             task.service_process_id = process_id
         if log_path:
-            # cpp 多路：RUNTIME 上报 runtime_{deviceId} 子目录，归一到 task_{id} 以便 UI 读日日志
+            # cpp 多路：RUNTIME 上报 runtime_{deviceId} 子目录；
+            # 裁剪到 task_{id}[/shard_N]，保留分片目录，避免 UI 只读任务根导致「日志不存在」。
             norm = str(log_path).replace('\\', '/').rstrip('/')
             marker = f'task_{task_id}'
             if marker in norm:
                 parts = norm.split('/')
                 for i, part in enumerate(parts):
                     if part == marker:
-                        norm = '/'.join(parts[: i + 1])
+                        end = i + 1
+                        if i + 1 < len(parts) and str(parts[i + 1]).startswith('shard_'):
+                            end = i + 2
+                        norm = '/'.join(parts[:end])
                         break
             task.service_log_path = norm
         elif not task.service_log_path:
@@ -502,6 +506,122 @@ def get_task_services_status(task_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
+def _algorithm_task_log_dirs(task: AlgorithmTask) -> list:
+    """解析算法任务日志目录。
+
+    - 有分片时：只读 shard_* / deployments.log_dir
+    - 无分片时：读现行非分片路径 service_log_path 或 logs/task_{id}
+      （launcher 非集群部署仍写任务根，不是历史兼容）
+    """
+    video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    task_root = os.path.join(video_root, 'logs', f'task_{task.id}')
+    dirs = []
+    seen = set()
+
+    def _add(path: str):
+        if not path:
+            return
+        norm = os.path.abspath(str(path).rstrip('/\\'))
+        if norm in seen or not os.path.isdir(norm):
+            return
+        seen.add(norm)
+        dirs.append(norm)
+
+    try:
+        deployments = []
+        if hasattr(task, '_parse_device_deployments'):
+            deployments = task._parse_device_deployments() or []
+        elif getattr(task, 'device_deployments', None):
+            import json
+            raw = task.device_deployments
+            deployments = json.loads(raw) if isinstance(raw, str) else (raw or [])
+        for dep in deployments or []:
+            log_dir = dep.get('log_dir') or ''
+            if log_dir and os.path.basename(os.path.abspath(str(log_dir).rstrip('/\\'))).startswith('shard_'):
+                _add(log_dir)
+    except Exception as e:
+        logger.debug('解析算法任务分片日志目录失败 task_id=%s: %s', task.id, e)
+
+    if os.path.isdir(task_root):
+        try:
+            for name in sorted(os.listdir(task_root)):
+                if name.startswith('shard_'):
+                    _add(os.path.join(task_root, name))
+        except OSError:
+            pass
+
+    # 无分片时才用现行非分片目录
+    if not dirs:
+        _add(task.service_log_path or '')
+        _add(task_root)
+    return dirs
+
+
+def _read_log_file_lines(log_file_path: str):
+    try:
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            return f.readlines()
+    except UnicodeDecodeError:
+        with open(log_file_path, 'r', encoding='gbk') as f:
+            return f.readlines()
+
+
+def get_service_logs_from_dirs(log_dirs, lines: int = 100, date: str = None, task_id: int = None):
+    """从多个日志目录聚合读取（算法任务分片场景）。"""
+    try:
+        log_filename = f"{date}.log" if date else datetime.now().strftime('%Y-%m-%d.log')
+        found_files = []
+        for log_dir in [d for d in (log_dirs or []) if d]:
+            path = os.path.join(log_dir, log_filename)
+            if os.path.isfile(path):
+                found_files.append((os.path.basename(log_dir.rstrip('/\\')) or log_dir, path))
+
+        if not found_files:
+            hint = '（已检查分片或现行非分片日志目录）' if task_id is not None else ''
+            return jsonify({
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'logs': f'日志文件不存在: {log_filename}{hint}\n请等待服务运行后生成日志。',
+                    'total_lines': 0,
+                    'log_file': log_filename,
+                    'is_all_file': not bool(date),
+                }
+            })
+
+        merged = []
+        total_lines = 0
+        for label, path in found_files:
+            try:
+                file_lines = _read_log_file_lines(path)
+            except Exception as e:
+                logger.error('读取日志文件失败 %s: %s', path, e)
+                continue
+            total_lines += len(file_lines)
+            if len(found_files) > 1:
+                merged.append(f'===== {label}/{log_filename} =====\n')
+            merged.extend(file_lines)
+
+        if not merged:
+            return jsonify({'code': 500, 'msg': f'读取日志文件失败: {log_filename}'}), 500
+
+        log_lines = merged[-lines:] if len(merged) > lines else merged
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'logs': ''.join(log_lines),
+                'total_lines': total_lines,
+                'log_file': log_filename,
+                'is_all_file': not bool(date),
+                'log_dirs': [label for label, _ in found_files],
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取服务日志失败: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
 # ====================== 日志查看接口 ======================
 @algorithm_task_bp.route('/task/<int:task_id>/extractor/logs', methods=['GET'])
 def get_task_extractor_logs(task_id):
@@ -513,26 +633,14 @@ def get_task_extractor_logs(task_id):
         
         # 新架构统一使用算法服务，对于实时算法任务和抓拍算法任务，都使用统一的日志路径
         if task.task_type in ['realtime', 'snap']:
-            # 对于实时算法任务和抓拍算法任务，使用统一的日志路径
             lines = int(request.args.get('lines', 100))
             date = request.args.get('date', '').strip()
-            
-            # 创建一个模拟的服务对象，用于调用get_service_logs
-            class AlgorithmServiceObj:
-                def __init__(self, log_path):
-                    self.log_path = log_path
-                    self.id = task_id
-            
-            # 确定日志路径
-            if task.service_log_path:
-                log_path = task.service_log_path
-            else:
-                video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-                log_base_dir = os.path.join(video_root, 'logs')
-                log_path = os.path.join(log_base_dir, f'task_{task_id}')
-            
-            service_obj = AlgorithmServiceObj(log_path)
-            return get_service_logs(service_obj, lines, date if date else None)
+            return get_service_logs_from_dirs(
+                _algorithm_task_log_dirs(task),
+                lines,
+                date if date else None,
+                task_id=task_id,
+            )
         else:
             # 未知的任务类型
             return jsonify({
@@ -554,32 +662,17 @@ def get_task_sorter_logs(task_id):
         if not task:
             return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
-        # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
+        # 新架构统一使用 realtime 算法服务日志（含分片聚合）
         if task.task_type == 'realtime':
-            # 对于实时算法任务，使用统一的日志路径
             lines = int(request.args.get('lines', 100))
             date = request.args.get('date', '').strip()
-            
-            # 创建一个模拟的服务对象，用于调用get_service_logs
-            class RealtimeServiceObj:
-                def __init__(self, log_path):
-                    self.log_path = log_path
-                    self.id = task_id
-            
-            # 确定日志路径
-            if task.service_log_path:
-                log_path = task.service_log_path
-            else:
-                video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-                log_base_dir = os.path.join(video_root, 'logs')
-                log_path = os.path.join(log_base_dir, f'task_{task_id}')
-            
-            service_obj = RealtimeServiceObj(log_path)
-            return get_service_logs(service_obj, lines, date if date else None)
+            return get_service_logs_from_dirs(
+                _algorithm_task_log_dirs(task),
+                lines,
+                date if date else None,
+                task_id=task_id,
+            )
         else:
-            # 对于抓拍算法任务，检查是否有sorter_id（旧架构）
-            # 注意：新架构的AlgorithmTask模型中没有sorter_id字段
-            # 这里为了兼容性，直接返回提示信息
             return jsonify({
                 'code': 400,
                 'msg': '新架构已统一使用实时算法服务，请使用realtime日志接口'
@@ -599,32 +692,16 @@ def get_task_pusher_logs(task_id):
         if not task:
             return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
         
-        # 新架构统一使用realtime_algorithm_service，对于实时算法任务，使用统一的日志路径
         if task.task_type == 'realtime':
-            # 对于实时算法任务，使用统一的日志路径
             lines = int(request.args.get('lines', 100))
             date = request.args.get('date', '').strip()
-            
-            # 创建一个模拟的服务对象，用于调用get_service_logs
-            class RealtimeServiceObj:
-                def __init__(self, log_path):
-                    self.log_path = log_path
-                    self.id = task_id
-            
-            # 确定日志路径
-            if task.service_log_path:
-                log_path = task.service_log_path
-            else:
-                video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-                log_base_dir = os.path.join(video_root, 'logs')
-                log_path = os.path.join(log_base_dir, f'task_{task_id}')
-            
-            service_obj = RealtimeServiceObj(log_path)
-            return get_service_logs(service_obj, lines, date if date else None)
+            return get_service_logs_from_dirs(
+                _algorithm_task_log_dirs(task),
+                lines,
+                date if date else None,
+                task_id=task_id,
+            )
         else:
-            # 对于抓拍算法任务，检查是否有pusher_id（旧架构）
-            # 注意：新架构的AlgorithmTask模型中没有pusher_id字段
-            # 这里为了兼容性，直接返回提示信息
             return jsonify({
                 'code': 400,
                 'msg': '新架构已统一使用实时算法服务，请使用realtime日志接口'
@@ -649,26 +726,13 @@ def get_task_realtime_logs(task_id):
         
         lines = int(request.args.get('lines', 100))
         date = request.args.get('date', '').strip()
-        
-        # 创建一个模拟的服务对象，用于调用get_service_logs
-        class AlgorithmServiceObj:
-            def __init__(self, log_path):
-                self.log_path = log_path
-                self.id = task_id
-        
-        # 确定日志路径
-        if task.service_log_path:
-            log_path = task.service_log_path
-        else:
-            video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            log_base_dir = os.path.join(video_root, 'logs')
-            log_path = os.path.join(log_base_dir, f'task_{task_id}')
-        
-        service_obj = AlgorithmServiceObj(log_path)
-        resp = get_service_logs(service_obj, lines, date if date else None)
-        # 在日志响应的 data 中附带任务运行状态(task_enabled/task_run_status)，
-        # 便于前端在算法任务关闭后自动停止日志轮询，避免任务停掉后仍每隔数秒
-        # 请求日志接口并反复提示"取日志失败"。
+        resp = get_service_logs_from_dirs(
+            _algorithm_task_log_dirs(task),
+            lines,
+            date if date else None,
+            task_id=task_id,
+        )
+        # 附带任务运行状态，便于前端在任务关闭后停止日志轮询
         resp_obj, status_code = resp if isinstance(resp, tuple) else (resp, 200)
         payload = resp_obj.get_json(silent=True)
         if isinstance(payload, dict) and isinstance(payload.get('data'), dict):
@@ -681,7 +745,6 @@ def get_task_realtime_logs(task_id):
     except Exception as e:
         logger.error(f"获取实时算法服务日志失败: {str(e)}", exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-
 
 # ====================== 推流地址查询接口 ======================
 @algorithm_task_bp.route('/task/<int:task_id>/streams', methods=['GET'])
@@ -731,85 +794,19 @@ def get_task_streams(task_id):
 
 
 def get_service_logs(service_obj, lines: int = 100, date: str = None):
-    """获取服务日志的通用函数"""
-    try:
-        # 确定日志文件路径
-        video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        log_base_dir = os.path.join(video_root, 'logs')
-        
-        if not service_obj.log_path:
-            # 根据服务类型生成日志目录（仅支持实时算法服务）
-            service_log_dir = os.path.join(log_base_dir, str(service_obj.id))
-        else:
-            service_log_dir = service_obj.log_path
-        
-        # 根据参数选择日志文件（按日期）
-        if date:
-            log_filename = f"{date}.log"
-        else:
-            # 如果没有指定日期，返回今天的日志文件
-            log_filename = datetime.now().strftime('%Y-%m-%d.log')
-        
-        log_file_path = os.path.join(service_log_dir, log_filename)
-        
-        # 检查日志文件是否存在
-        if not os.path.exists(log_file_path):
-            return jsonify({
-                'code': 0,
-                'msg': 'success',
-                'data': {
-                    'logs': f'日志文件不存在: {log_filename}\n请等待服务运行后生成日志。',
-                    'total_lines': 0,
-                    'log_file': log_filename,
-                    'is_all_file': not bool(date)
-                }
-            })
-        
-        # 读取日志文件最后N行
-        try:
-            with open(log_file_path, 'r', encoding='utf-8') as f:
-                all_lines = f.readlines()
-                log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
-            
-            return jsonify({
-                'code': 0,
-                'msg': 'success',
-                'data': {
-                    'logs': ''.join(log_lines),
-                    'total_lines': len(all_lines),
-                    'log_file': log_filename,
-                    'is_all_file': not bool(date)
-                }
-            })
-        except UnicodeDecodeError:
-            # 如果UTF-8解码失败，尝试使用其他编码
-            try:
-                with open(log_file_path, 'r', encoding='gbk') as f:
-                    all_lines = f.readlines()
-                    log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
-                
-                return jsonify({
-                    'code': 0,
-                    'msg': 'success',
-                    'data': {
-                        'logs': ''.join(log_lines),
-                        'total_lines': len(all_lines),
-                        'log_file': log_filename,
-                        'is_all_file': not bool(date)
-                    }
-                })
-            except Exception as e:
-                logger.error(f"读取日志文件失败: {str(e)}")
-                return jsonify({
-                    'code': 500,
-                    'msg': f'读取日志文件失败: {str(e)}'
-                }), 500
-    except Exception as e:
-        logger.error(f"获取服务日志失败: {str(e)}", exc_info=True)
-        return jsonify({
-            'code': 500,
-            'msg': f'服务器内部错误: {str(e)}'
-        }), 500
+    """获取服务日志（单目录入口；内部复用分片聚合逻辑）。"""
+    video_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    log_base_dir = os.path.join(video_root, 'logs')
+    if not getattr(service_obj, 'log_path', None):
+        service_log_dir = os.path.join(log_base_dir, f'task_{service_obj.id}')
+    else:
+        service_log_dir = service_obj.log_path
+    return get_service_logs_from_dirs(
+        [service_log_dir],
+        lines,
+        date,
+        task_id=getattr(service_obj, 'id', None),
+    )
 
 
 # ====================== AI 后处理 ======================
