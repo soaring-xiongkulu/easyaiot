@@ -2,12 +2,14 @@
 import { ref, watch } from 'vue';
 import { Spin } from 'ant-design-vue';
 import Jessibuca from '@/components/Player/module/jessibuca.vue';
-import { getDeviceInfo } from '@/api/device/camera';
-import { resolveMonitorPlayUrl } from '@/views/camera/utils/devicePlay';
+import { resolveDeviceInlinePlayUrl } from '@/views/camera/utils/devicePlay';
 
 defineOptions({ name: 'CameraInlinePreview' });
 
-const props = defineProps<{ deviceId?: string | null }>();
+const props = defineProps<{
+  deviceId?: string | null;
+  deviceName?: string | null;
+}>();
 
 const loading = ref(false);
 const error = ref('');
@@ -15,21 +17,23 @@ const url = ref('');
 
 let seq = 0;
 
-async function load(id: string) {
+async function load(id: string, name?: string | null) {
   const mySeq = ++seq;
   loading.value = true;
   error.value = '';
   url.value = '';
   try {
-    const info = await getDeviceInfo(id);
-    const u = await resolveMonitorPlayUrl(info, 'video');
+    const u = await resolveDeviceInlinePlayUrl(id, {
+      name: name?.trim() || undefined,
+      enableAi: false,
+    });
     if (mySeq !== seq) return;
     if (!u) {
       error.value = '未获取到可播放的视频流';
       return;
     }
     url.value = u;
-  } catch (e) {
+  } catch {
     if (mySeq !== seq) return;
     error.value = '加载视频流失败';
   } finally {
@@ -38,10 +42,13 @@ async function load(id: string) {
 }
 
 watch(
-  () => props.deviceId,
-  (id) => {
-    if (id) load(id);
-    else { url.value = ''; error.value = ''; }
+  () => [props.deviceId, props.deviceName] as const,
+  ([id, name]) => {
+    if (id) load(id, name);
+    else {
+      url.value = '';
+      error.value = '';
+    }
   },
   { immediate: true },
 );

@@ -198,6 +198,8 @@ import {
   schedulePendingAiStreamUpgrade,
   resolveGbChannelPlayUrls,
   isAiStreamPlayUrl,
+  isGb28181LivePlaceholderStreamUrl,
+  isGb28181PlaceholderStreamUrl,
   toMultiViewPlayUrl,
 } from '@/views/camera/utils/devicePlay';
 import {
@@ -747,7 +749,7 @@ function handleCellStreamError(cellIdx: number) {
   const cell = state.playCells[cellIdx];
   if (!cell) return;
   const fb = cell.fallbackUrl?.trim();
-  if (fb && fb !== cell.url) {
+  if (fb && fb !== cell.url && !isGb28181LivePlaceholderStreamUrl(fb)) {
     clearAiFallbackTimer(cellIdx);
     liveRemountRetries.delete(cellIdx);
     state.playCells[cellIdx] = { ...cell, url: fb, fallbackUrl: null };
@@ -756,7 +758,7 @@ function handleCellStreamError(cellIdx: number) {
   if (!cell.url || !cell.deviceId) return;
   if (isAiStreamPlayUrl(cell.url)) {
     const liveUrl = cell.url.replace(/\/ai\//i, '/live/');
-    if (liveUrl !== cell.url) {
+    if (liveUrl !== cell.url && !isGb28181LivePlaceholderStreamUrl(liveUrl)) {
       clearAiFallbackTimer(cellIdx);
       liveRemountRetries.delete(cellIdx);
       state.playCells[cellIdx] = { ...cell, url: liveUrl, fallbackUrl: null };

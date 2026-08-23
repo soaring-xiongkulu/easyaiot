@@ -231,7 +231,10 @@
                   </button>
                 </div>
               </div>
-              <CameraInlinePreview :device-id="previewDevice.id" />
+              <CameraInlinePreview
+                :device-id="previewDevice.id"
+                :device-name="previewDevice.name"
+              />
               <CameraPtzPad
                 v-if="ptzOpen && canPtzPreview"
                 :device-id="previewDevice.id"
@@ -268,10 +271,6 @@ import { useMessage } from '@/hooks/web/useMessage';
 import { triggerWindowResize } from '@/utils/event';
 import { canSetDeviceLocation, hasDeviceLocation } from '@/views/camera/utils/deviceLocation';
 import { openDeviceInDialogPlayer } from '@/views/camera/utils/devicePlay';
-import {
-  parseGb28181VirtualDeviceId,
-  shouldPlayViaGb28181,
-} from '@/views/camera/utils/deviceLabel';
 import DeviceLocationDrawer from '@/views/camera/components/DeviceLocationDrawer/index.vue';
 
 defineOptions({ name: 'CameraMapPanel' });
@@ -437,41 +436,25 @@ function flyToDevice(item: DeviceLocationInfo) {
 }
 
 /**
- * 先立刻弹框（国标由 DialogPlayer 自行点播；直连先出 loading 再补流地址），
- * 避免等 getDeviceInfo / 拉流完成才开窗导致连点卡顿。
+ * 拉取设备详情后打开弹窗；国标通道在弹窗内 WVP 点播，直连设备预解析流地址。
  */
 async function playDeviceInDialog(item: PreviewCamera | DeviceLocationInfo) {
   const seq = ++playSeq;
   playLoadingId.value = item.id;
 
-  const snapshot = {
-    id: item.id,
-    name: item.name || item.id,
-    device_kind: item.device_kind,
-    _enableAi: true,
-  } as DeviceInfo & { _enableAi?: boolean; _pendingRecord?: boolean };
-
-  const isGb =
-    !!parseGb28181VirtualDeviceId(item.id) || shouldPlayViaGb28181(snapshot as Record<string, any>);
-
   try {
-    if (isGb) {
-      // 国标：弹框内自行 WVP 点播，无需前置 await
-      openPlayerModal(true, snapshot);
-      return;
-    }
+    let record = {
+      ...(item as DeviceInfo),
+      name: item.name || item.id,
+    } as DeviceInfo;
 
-    // 直连 / NVR：先开 loading 壳，再异步补齐流地址
-    openPlayerModal(true, { ...snapshot, _pendingRecord: true });
-
-    let record: DeviceInfo = snapshot;
     try {
       const res = (await getDeviceInfo(item.id, item.name ? { name: item.name } : undefined)) as
         | DeviceInfo
         | { data?: DeviceInfo };
-      record = (res as { data?: DeviceInfo })?.data || (res as DeviceInfo) || snapshot;
+      record = (res as { data?: DeviceInfo })?.data || (res as DeviceInfo) || record;
     } catch {
-      /* 用快照兜底 */
+      /* 用列表快照兜底 */
     }
 
     if (seq !== playSeq) return;

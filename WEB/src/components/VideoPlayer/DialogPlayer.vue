@@ -133,6 +133,8 @@ import {
   pickWvpPlayUrl,
   AI_PLAY_FALLBACK_MS,
   isAiStreamPlayUrl,
+  isGb28181LivePlaceholderStreamUrl,
+  isGb28181PlaceholderStreamUrl,
   pickDirectPlayUrls,
   resolveGbChannelPlayUrls,
   schedulePendingAiStreamUpgrade,
@@ -230,9 +232,18 @@ async function switchToFallbackUrl(url: string) {
 
 function handleStreamError() {
   const fb = state.fallbackUrl?.trim();
-  if (!fb || fb === state.currentUrl) return;
-  clearAiFallbackTimer();
-  void switchToFallbackUrl(fb);
+  if (fb && fb !== state.currentUrl && !isGb28181LivePlaceholderStreamUrl(fb)) {
+    clearAiFallbackTimer();
+    void switchToFallbackUrl(fb);
+    return;
+  }
+  if (state.isGb28181 && state.deviceIdentification && state.presetPos) {
+    void startGb28181WvpPlay();
+  }
+}
+
+async function reloadGb28181Stream() {
+  await startGb28181WvpPlay();
 }
 
 const talkProtocol = computed(() => resolveDeviceTalkProtocol(state.record));
@@ -298,7 +309,7 @@ async function applyResolvedStream(
     pendingAiUrl?: string | null;
   },
 ) {
-  if (!resolved.url) {
+  if (!resolved.url || isGb28181LivePlaceholderStreamUrl(resolved.url)) {
     createMessage.warning(
       enableAi.value ? '该设备暂无 AI 流或原始流播放地址' : '该设备暂无可播放地址',
     );
@@ -348,10 +359,24 @@ async function reloadStreamForAiToggle() {
 
   enableAiReloading.value = true;
   clearAiFallbackTimer();
-  state.playLoading = true;
   state.currentUrl = '';
 
   try {
+    if (state.isGb28181 && state.deviceIdentification && state.presetPos) {
+      let pendingAi: string | null = null;
+      if (enableAi.value) {
+        const resolved = await resolveGbChannelPlayUrls(
+          state.deviceIdentification,
+          state.presetPos,
+          { enableAi: true, synced: record },
+        );
+        pendingAi = resolved.pendingAiUrl?.trim() || null;
+      }
+      await startGb28181WvpPlay(pendingAi);
+      return;
+    }
+
+    state.playLoading = true;
     const resolved = await resolveLivePlayUrls(record);
     await applyResolvedStream(record, resolved);
   } finally {
@@ -371,66 +396,82 @@ watch(enableAi, () => {
   handleEnableAiChange();
 });
 
+async function startGb28181WvpPlay(pendingAiUrl?: string | null) {
+  if (!state.deviceIdentification || !state.presetPos) return;
+  state.currentUrl = '';
+  state.playLoading = true;
+  try {
+    const res = await playByDeviceAndChannel(state.deviceIdentification, state.presetPos);
+    const streamContent = res?.data?.data ?? res?.data;
+    const url = pickWvpPlayUrl(streamContent) || '';
+    if (!url || isGb28181LivePlaceholderStreamUrl(url)) {
+      createMessage.error(streamContent?.msg || res?.data?.msg || '未获取到播放地址');
+      return;
+    }
+    state.vodMode = false;
+    state.fallbackUrl = null;
+    state.preferAi = false;
+    await nextTick();
+    state.currentUrl = url;
+    playerKey.value += 1;
+    const pending = pendingAiUrl?.trim();
+    if (pending && pending !== url && enableAi.value) {
+      schedulePendingAiUpgrade(url, pending);
+    }
+    triggerPlayerFillResize();
+  } catch {
+    createMessage.error('点播失败，请检查设备连接');
+  } finally {
+    state.playLoading = false;
+  }
+}
+
 async function loadStream(record: Record<string, any>) {
   clearAiFallbackTimer();
   state.fallbackUrl = null;
   state.preferAi = false;
 
-  const preResolvedUrl = String(record.http_stream ?? '').trim();
-  const recordFallback = String(record._fallbackUrl ?? '').trim() || null;
-  const recordPreferAi = !!record._preferAi;
-  const recordPendingAi = String(record._pendingAiUrl ?? '').trim() || null;
-
   const gbIds = getGb28181PlayIds(record);
-  const sipDeviceId = gbIds?.sipDeviceId ?? '';
-  const channelId = gbIds?.channelId ?? '';
-  const gbRecord = shouldPlayViaGb28181(record);
+  const sipDeviceId = gbIds?.sipDeviceId ?? String(record.deviceIdentification || '').trim();
+  const channelId =
+    gbIds?.channelId ??
+    String(record.channelId || record.presetPos || record.channel_id || '').trim();
+  const gbRecord = shouldPlayViaGb28181(record) || record._forceGbWvp === true;
 
   state.deviceIdentification = gbRecord ? sipDeviceId : '';
   state.channelId = channelId;
   state.presetPos = gbRecord ? channelId : '';
   state.isGb28181 = gbRecord;
   state.isOnvif = gbRecord ? false : isOnvifDevice(record);
+  state.deviceId = String(record.id ?? '');
 
-  if (preResolvedUrl) {
-    state.deviceId = String(record.id ?? '');
-    state.playLoading = false;
-    state.vodMode = isVodPlaybackUrl(preResolvedUrl);
-    state.fallbackUrl = recordFallback;
-    state.preferAi = recordPreferAi;
-    await nextTick();
-    state.currentUrl = preResolvedUrl;
-    if (preResolvedUrl) {
-      playerKey.value += 1;
-      scheduleAiFallback(preResolvedUrl);
-      if (recordPendingAi && recordPendingAi !== preResolvedUrl) {
-        schedulePendingAiUpgrade(preResolvedUrl, recordPendingAi);
-      }
-      triggerPlayerFillResize();
-    }
+  const recordPendingAi = String(record._pendingAiUrl ?? '').trim() || null;
+
+  // 国标通道：始终 WVP 点播，忽略 record.http_stream 中的 DB 占位地址
+  if (gbRecord && sipDeviceId && channelId) {
+    await startGb28181WvpPlay(recordPendingAi);
     return;
   }
 
-  if (gbRecord) {
-    state.currentUrl = '';
-    state.playLoading = true;
-    try {
-      const res = await playByDeviceAndChannel(sipDeviceId, channelId);
-      const streamContent = res?.data?.data ?? res?.data;
-      const url = pickWvpPlayUrl(streamContent) || '';
-      if (url) {
-        state.vodMode = false;
-        state.currentUrl = url;
-        playerKey.value += 1;
-        triggerPlayerFillResize();
-      } else {
-        createMessage.error(streamContent?.msg || res?.data?.msg || '未获取到播放地址');
-      }
-    } catch {
-      createMessage.error('点播失败，请检查设备连接');
-    } finally {
-      state.playLoading = false;
+  const preResolvedUrl = String(record.http_stream ?? '').trim();
+  const recordFallback = String(record._fallbackUrl ?? '').trim() || null;
+  const recordPreferAi = !!record._preferAi;
+  const recordPendingAiNonGb = String(record._pendingAiUrl ?? '').trim() || null;
+
+  if (preResolvedUrl && !isGb28181LivePlaceholderStreamUrl(preResolvedUrl)) {
+    state.playLoading = false;
+    state.vodMode = isVodPlaybackUrl(preResolvedUrl);
+    state.fallbackUrl =
+      recordFallback && !isGb28181LivePlaceholderStreamUrl(recordFallback) ? recordFallback : null;
+    state.preferAi = recordPreferAi;
+    await nextTick();
+    state.currentUrl = preResolvedUrl;
+    playerKey.value += 1;
+    scheduleAiFallback(preResolvedUrl);
+    if (recordPendingAiNonGb && recordPendingAiNonGb !== preResolvedUrl) {
+      schedulePendingAiUpgrade(preResolvedUrl, recordPendingAiNonGb);
     }
+    triggerPlayerFillResize();
     return;
   }
 
@@ -443,11 +484,17 @@ async function loadStream(record: Record<string, any>) {
     return;
   }
 
+  if (!streamUrl || isGb28181LivePlaceholderStreamUrl(streamUrl)) {
+    state.playLoading = false;
+    state.currentUrl = '';
+    return;
+  }
+
   state.playLoading = false;
   state.vodMode = isVodPlaybackUrl(streamUrl);
   await nextTick();
   state.currentUrl = streamUrl;
-  if (streamUrl) playerKey.value += 1;
+  playerKey.value += 1;
 }
 
 async function loadOnvifPresets() {
