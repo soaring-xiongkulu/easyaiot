@@ -939,7 +939,7 @@ async function initTrainDrawer(data: Record<string, unknown> = {}) {
     await loadDatasets();
     cloudDatasetsLoaded.value = true;
     const matched = datasetList.value.find(
-      (item) => String(item.id) === String(data.datasetId) && !!item.zipUrl,
+      (item) => String(item.id) === String(data.datasetId) && item.isSyncMinio === 1 && !!item.zipUrl,
     );
     if (matched) {
       selectedDatasetId.value = matched.id;
@@ -1175,7 +1175,7 @@ const startTrain = async () => {
       createMessage.warn('请选择云端数据集');
       return;
     }
-    if (!dataset.zipUrl) {
+    if (dataset.isSyncMinio !== 1 || !dataset.zipUrl) {
       if (dataset.isAllocated !== 1) {
         createMessage.warn('该数据集尚未划分用途，请先在数据集管理中点击「按比例划分数据集用途」');
       } else if (dataset.isSyncMinio !== 1) {

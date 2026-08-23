@@ -274,8 +274,14 @@ public class DatasetImageServiceImpl implements DatasetImageService {
         boolean usageAllocated = totalImages > 0 && unallocatedCount == 0;
         boolean annotationCompleted = totalImages > 0 && unannotatedCount == 0;
         boolean syncReady = usageAllocated && annotationCompleted;
-        boolean syncedToMinio = CommonStatusEnum.YES.getStatus().equals(dataset.getIsSyncMinio())
-                || (dataset.getZipUrl() != null && !dataset.getZipUrl().isBlank());
+        boolean syncedToMinio = isDatasetSyncedToMinio(dataset);
+        if (CommonStatusEnum.YES.getStatus().equals(dataset.getIsSyncMinio()) && !syncedToMinio) {
+            // DB 标记已同步但 MinIO 对象缺失（如环境重置、种子 zip_url 残留），自动作废以便重新同步
+            datasetMapper.updateById(new DatasetDO().setId(datasetId)
+                    .setIsSyncMinio(CommonStatusEnum.NO.getStatus())
+                    .setZipUrl(null));
+            syncedToMinio = false;
+        }
         DatasetSyncTaskManager.TaskSnapshot snapshot = datasetSyncTaskManager.getSnapshot(datasetId);
         String syncStatus = syncedToMinio
                 ? DatasetSyncTaskManager.SyncStatus.SUCCEEDED.name()
@@ -554,7 +560,57 @@ public class DatasetImageServiceImpl implements DatasetImageService {
         }
     }
 
+    private boolean isDatasetSyncedToMinio(DatasetDO dataset) {
+        if (dataset == null || !CommonStatusEnum.YES.getStatus().equals(dataset.getIsSyncMinio())) {
+            return false;
+        }
+        return isDatasetZipObjectPresent(dataset.getId(), dataset.getZipUrl());
+    }
+
+    private boolean isDatasetZipObjectPresent(Long datasetId, String zipUrl) {
+        String bucketName = resolveDatasetZipBucketName(zipUrl);
+        String objectName = resolveDatasetZipObjectName(datasetId, zipUrl);
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .build());
+            return true;
+        } catch (ErrorResponseException e) {
+            if ("NoSuchKey".equals(e.errorResponse().code())) {
+                return false;
+            }
+            logger.warn("检查数据集 ZIP 是否存在失败: {}/{} - {}", bucketName, objectName, e.getMessage());
+            return false;
+        } catch (Exception e) {
+            logger.warn("检查数据集 ZIP 是否存在失败: {}/{} - {}", bucketName, objectName, e.getMessage());
+            return false;
+        }
+    }
+
+    private String resolveDatasetZipObjectName(Long datasetId, String zipUrl) {
+        if (zipUrl != null && !zipUrl.isBlank()) {
+            try {
+                return parseObjectNameFromPath(zipUrl);
+            } catch (Exception ignored) {
+                // fall through to default object name
+            }
+        }
+        return "dataset-" + datasetId + ".zip";
+    }
+
+    private String resolveDatasetZipBucketName(String zipUrl) {
+        if (zipUrl != null && zipUrl.contains("/buckets/")) {
+            String[] parts = zipUrl.split("/buckets/");
+            if (parts.length > 1 && !parts[1].isBlank()) {
+                return parts[1].split("/")[0];
+            }
+        }
+        return minioDatasetsBucket;
+    }
+
     private String uploadZipToMinio(Path zipPath, Long datasetId) {
+        createBucketIfNotExists(minioDatasetsBucket);
         try (InputStream is = Files.newInputStream(zipPath)) {
             String objectName = "dataset-" + datasetId + ".zip";
             minioClient.putObject(
