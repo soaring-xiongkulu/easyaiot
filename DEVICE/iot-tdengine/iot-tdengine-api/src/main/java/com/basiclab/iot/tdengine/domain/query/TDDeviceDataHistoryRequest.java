@@ -4,6 +4,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import org.springframework.validation.annotation.Validated;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 import javax.validation.constraints.NotNull;
 
@@ -23,9 +24,10 @@ public class TDDeviceDataHistoryRequest {
     @NotNull
     private String deviceIdentification;
     /**
-     * 标识
+     * 标识（物模型属性编码 propertyCode）
      */
     @ApiModelProperty(value = "标识")
+    @JsonAlias("propertyCode")
     private String identifier;
     /**
      * 方法类型 properties:属性 service:服务 event:事件

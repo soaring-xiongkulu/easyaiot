@@ -576,6 +576,13 @@ function extractRawPayload(raw: unknown, identifier: string): string | null {
   return null;
 }
 
+function extractLoosePropertyValue(text: string, identifier: string): string | null {
+  if (!text || !identifier) return null;
+  const escaped = identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = text.match(new RegExp(`(?:^|[,{\\s])${escaped}\\s*:\\s*([^,}]+)`));
+  return match ? match[1].trim() : null;
+}
+
 function parseHistoryDataValue(raw: unknown, identifier: string): ParsedHistoryValue {
   if (raw == null || raw === '') {
     return { display: '--', numeric: null };
@@ -622,7 +629,15 @@ function parseHistoryDataValue(raw: unknown, identifier: string): ParsedHistoryV
       }
     }
   } catch {
-    // 非 JSON，保留原始文本
+    // 非标准 JSON，尝试 {key:value} 宽松格式
+  }
+
+  const loose = extractLoosePropertyValue(text, identifier);
+  if (loose != null) {
+    return {
+      display: loose,
+      numeric: toChartNumber(loose),
+    };
   }
 
   return {

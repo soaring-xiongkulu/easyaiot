@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +35,12 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class TdEngineServiceImpl implements TdEngineService {
+
+    private static final Set<String> HISTORY_METADATA_KEYS = new HashSet<>(Arrays.asList(
+            "deviceId", "device_id", "serverId", "server_id", "serviceId", "service_id",
+            "requestId", "request_id", "method", "topic", "tenantId", "tenant_id",
+            "productIdentification", "product_identification", "code", "msg", "id"
+    ));
 
     @Resource
     private TdEngineMapper tdengineMapper;
@@ -207,30 +215,30 @@ public class TdEngineServiceImpl implements TdEngineService {
                 result.add(row);
                 continue;
             }
-            JSONObject params;
+            JSONObject params = null;
             try {
                 params = JSONUtil.parseObj(text);
-            } catch (Exception e) {
-                // 非标准 JSON 时保留原值，避免历史完全不可见
-                if (StrUtil.isNotBlank(propertyCode)) {
-                    row.setPropertyCode(propertyCode);
-                }
-                result.add(row);
-                continue;
+            } catch (Exception ignored) {
+                // 设备上报可能是 {key:value} 非标准 JSON（键未加引号）
             }
-            Object value = resolveHistoryValue(params, propertyCode);
+            Object value = params != null ? resolveHistoryValue(params, propertyCode) : null;
+            if (value == null && StrUtil.isNotBlank(propertyCode)) {
+                value = extractLoosePropertyValue(text, propertyCode);
+            }
             if (value == null && StrUtil.isNotBlank(propertyCode)) {
                 // 该上报包不含目标属性，跳过
                 continue;
             }
             if (value != null) {
-                row.setDataValue(String.valueOf(value));
+                row.setDataValue(formatHistoryValue(value));
             }
             if (StrUtil.isNotBlank(propertyCode)) {
                 row.setPropertyCode(propertyCode);
-                Object rawPayload = resolveHistoryRaw(params, propertyCode);
-                if (rawPayload != null) {
-                    row.setRawData(String.valueOf(rawPayload));
+                if (params != null) {
+                    Object rawPayload = resolveHistoryRaw(params, propertyCode);
+                    if (rawPayload != null) {
+                        row.setRawData(String.valueOf(rawPayload));
+                    }
                 }
             }
             result.add(row);
@@ -239,31 +247,41 @@ public class TdEngineServiceImpl implements TdEngineService {
     }
 
     private Object resolveHistoryValue(JSONObject params, String propertyCode) {
-        if (params == null || params.isEmpty()) {
+        JSONObject payload = normalizeHistoryParams(params);
+        if (payload == null || payload.isEmpty()) {
             return null;
         }
         if (StrUtil.isNotBlank(propertyCode)) {
-            if (params.containsKey(propertyCode)) {
-                return params.get(propertyCode);
+            Object direct = readPropertyValue(payload, propertyCode);
+            if (direct != null) {
+                return direct;
             }
-            Object nested = params.get("properties");
-            if (nested instanceof JSONObject && ((JSONObject) nested).containsKey(propertyCode)) {
-                return ((JSONObject) nested).get(propertyCode);
+            Object nested = payload.get("properties");
+            if (nested instanceof JSONObject) {
+                direct = readPropertyValue((JSONObject) nested, propertyCode);
+                if (direct != null) {
+                    return direct;
+                }
             }
-            nested = params.get("data");
-            if (nested instanceof JSONObject && ((JSONObject) nested).containsKey(propertyCode)) {
-                return ((JSONObject) nested).get(propertyCode);
+            nested = payload.get("data");
+            if (nested instanceof JSONObject) {
+                direct = readPropertyValue((JSONObject) nested, propertyCode);
+                if (direct != null) {
+                    return direct;
+                }
             }
-            if (params.get("_value") != null) {
-                return params.get("_value");
+            if (payload.get("_value") != null) {
+                return payload.get("_value");
             }
             return null;
         }
-        if (params.get("_value") != null) {
-            return params.get("_value");
+        if (payload.get("_value") != null) {
+            return payload.get("_value");
         }
-        List<Map.Entry<String, Object>> candidates = params.entrySet().stream()
-                .filter(entry -> entry.getKey() != null && !entry.getKey().startsWith("_"))
+        List<Map.Entry<String, Object>> candidates = payload.entrySet().stream()
+                .filter(entry -> entry.getKey() != null
+                        && !entry.getKey().startsWith("_")
+                        && !isHistoryMetadataKey(entry.getKey()))
                 .collect(Collectors.toList());
         if (candidates.size() == 1) {
             return candidates.get(0).getValue();
@@ -271,11 +289,72 @@ public class TdEngineServiceImpl implements TdEngineService {
         return null;
     }
 
+    private JSONObject normalizeHistoryParams(JSONObject params) {
+        if (params == null) {
+            return null;
+        }
+        JSONObject current = params;
+        Object innerParams = current.get("params");
+        if (innerParams instanceof JSONObject) {
+            current = (JSONObject) innerParams;
+        } else if (innerParams instanceof Map) {
+            current = JSONUtil.parseObj(JSONUtil.toJsonStr(innerParams));
+        }
+        Object properties = current.get("properties");
+        if (properties instanceof JSONObject) {
+            return (JSONObject) properties;
+        }
+        if (properties instanceof Map) {
+            return JSONUtil.parseObj(JSONUtil.toJsonStr(properties));
+        }
+        return current;
+    }
+
+    private Object readPropertyValue(JSONObject payload, String propertyCode) {
+        if (payload == null || StrUtil.isBlank(propertyCode) || !payload.containsKey(propertyCode)) {
+            return null;
+        }
+        return payload.get(propertyCode);
+    }
+
+    private boolean isHistoryMetadataKey(String key) {
+        return HISTORY_METADATA_KEYS.contains(key);
+    }
+
+    private String formatHistoryValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Map || value instanceof JSONObject) {
+            return JSONUtil.toJsonStr(value);
+        }
+        return String.valueOf(value);
+    }
+
+    /**
+     * 从非标准 {key:value} 文本中提取属性值，例如 {deviceId:1,Vbatt:3.39,...}。
+     */
+    private Object extractLoosePropertyValue(String text, String propertyCode) {
+        if (StrUtil.isBlank(text) || StrUtil.isBlank(propertyCode)) {
+            return null;
+        }
+        Pattern pattern = Pattern.compile("(?:^|[,{\\s])" + Pattern.quote(propertyCode) + "\\s*:\\s*([^,}]+)");
+        Matcher matcher = pattern.matcher(text);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+        return null;
+    }
+
     private Object resolveHistoryRaw(JSONObject params, String propertyCode) {
-        if (params == null || StrUtil.isBlank(propertyCode)) {
+        JSONObject payload = normalizeHistoryParams(params);
+        if (payload == null || StrUtil.isBlank(propertyCode)) {
             return null;
         }
         Object rawObj = params.get("_raw");
+        if (rawObj == null) {
+            rawObj = payload.get("_raw");
+        }
         if (rawObj instanceof JSONObject) {
             return ((JSONObject) rawObj).get(propertyCode);
         }
