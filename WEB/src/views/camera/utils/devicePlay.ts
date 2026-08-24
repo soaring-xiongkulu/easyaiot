@@ -3,6 +3,10 @@ import { getDeviceInfo } from '@/api/device/camera';
 import { ensureDeviceStreamForwardTask } from '@/api/device/stream_forward';
 import { playByDeviceAndChannel } from '@/api/device/gb28181';
 import {
+  getDeviceTaskStreams,
+  type CameraStreamInfo,
+} from '@/api/device/algorithm_task';
+import {
   formatCameraDeviceLabel,
   gb28181VirtualDeviceId,
   getGb28181PlayIds,
@@ -71,7 +75,7 @@ export function hasPlayableStream(record: DeviceInfo): boolean {
 type DirectStreamFields = Pick<
   DeviceInfo,
   'http_stream' | 'rtmp_stream' | 'ai_http_stream' | 'ai_rtmp_stream'
->;
+> & { id?: string | number | null };
 
 export interface DirectPlayUrlResult {
   url: string | null;
@@ -81,6 +85,58 @@ export interface DirectPlayUrlResult {
   preferAi?: boolean;
   /** 首帧先播原始流后，后台探测就绪可升级的 AI 地址 */
   pendingAiUrl?: string | null;
+  /** 当前选择的任务级画框流 */
+  aiTask?: CameraStreamInfo;
+  /** 同一摄像头的其他可选任务画框流 */
+  aiTaskOptions?: CameraStreamInfo[];
+}
+
+const AI_TASK_PREFERENCE_KEY = 'easyaiot:camera-ai-task-preference';
+
+function loadAiTaskPreferences(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(AI_TASK_PREFERENCE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/** 保存摄像头默认播放的算法任务，所有监控入口共享该选择。 */
+export function setPreferredAiTaskForDevice(deviceId: string | number, taskId: number) {
+  if (typeof window === 'undefined' || !deviceId || !taskId) return;
+  const preferences = loadAiTaskPreferences();
+  preferences[String(deviceId)] = Number(taskId);
+  window.localStorage.setItem(AI_TASK_PREFERENCE_KEY, JSON.stringify(preferences));
+}
+
+function unwrapTaskStreams(response: unknown): CameraStreamInfo[] {
+  if (Array.isArray(response)) return response as CameraStreamInfo[];
+  if (response && typeof response === 'object') {
+    const data = (response as { data?: unknown }).data;
+    return Array.isArray(data) ? (data as CameraStreamInfo[]) : [];
+  }
+  return [];
+}
+
+async function resolveDeviceTaskAiStream(
+  device: DirectStreamFields,
+  preferredTaskId?: number,
+): Promise<{ selected?: CameraStreamInfo; options: CameraStreamInfo[] }> {
+  const deviceId = String(device.id || '').trim();
+  if (!deviceId) return { options: [] };
+  try {
+    const options = unwrapTaskStreams(await getDeviceTaskStreams(deviceId));
+    if (options.length === 0) return { options };
+    const storedTaskId = loadAiTaskPreferences()[deviceId];
+    const targetTaskId = preferredTaskId || storedTaskId;
+    const selected = options.find((item) => item.task_id === targetTaskId) || options[0];
+    setPreferredAiTaskForDevice(deviceId, selected.task_id);
+    return { selected, options };
+  } catch {
+    return { options: [] };
+  }
 }
 
 /** 探测 AI 流是否在 ZLM 上就绪（毫秒） */
@@ -484,33 +540,52 @@ export async function probeStreamPlayable(
 export async function pickDirectPlayUrl(
   device: DirectStreamFields,
   enableAi = false,
+  preferredTaskId?: number,
 ): Promise<string | null> {
-  return (await pickDirectPlayUrls(device, enableAi)).url;
+  return (await pickDirectPlayUrls(device, enableAi, preferredTaskId)).url;
 }
 
 export async function pickDirectPlayUrls(
   device: DirectStreamFields,
   enableAi = false,
+  preferredTaskId?: number,
 ): Promise<DirectPlayUrlResult> {
   const videoUrl = pickVideoPlayUrl(device);
   if (!enableAi) {
     return { url: videoUrl };
   }
 
-  const aiUrl = pickAiPlayUrl(device);
+  const taskStream = await resolveDeviceTaskAiStream(device, preferredTaskId);
+  const taskAiUrl = taskStream.selected
+    ? toBrowserPlayUrl(taskStream.selected.ai_http_stream) ||
+      toBrowserPlayUrl(taskStream.selected.ai_rtmp_stream)
+    : null;
+  // 设备级 AI 地址只作为旧数据兼容回退；新任务使用 task_id 派生的独立 stream key。
+  const aiUrl = taskAiUrl || pickAiPlayUrl(device);
   if (!aiUrl) {
     return { url: videoUrl };
   }
   if (aiUrl === videoUrl) {
-    return { url: aiUrl };
+    return { url: aiUrl, aiTask: taskStream.selected, aiTaskOptions: taskStream.options };
   }
   if (!videoUrl) {
-    return { url: aiUrl, preferAi: true };
+    return {
+      url: aiUrl,
+      preferAi: true,
+      aiTask: taskStream.selected,
+      aiTaskOptions: taskStream.options,
+    };
   }
 
   // 启用 AI：优先直接播 /ai（算法任务只推 app=ai）；失败再由播放器回退 /live。
   // 若先播空 /live，SRS 会挂起无响应，多分屏会一直「视频加载中」。
-  return { url: aiUrl, fallbackUrl: videoUrl, preferAi: true };
+  return {
+    url: aiUrl,
+    fallbackUrl: videoUrl,
+    preferAi: true,
+    aiTask: taskStream.selected,
+    aiTaskOptions: taskStream.options,
+  };
 }
 
 /** 全局串行 AI 探测，避免多分屏同时 fetch 空 /ai 占满浏览器连接池 */

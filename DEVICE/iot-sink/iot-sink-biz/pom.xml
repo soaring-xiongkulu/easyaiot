@@ -95,6 +95,13 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- Test 测试相关 -->
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- 工具类相关 -->
         <dependency>
             <groupId>io.vertx</groupId>

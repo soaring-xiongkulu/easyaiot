@@ -8,6 +8,7 @@ import com.basiclab.iot.sink.service.AlertService;
 import com.basiclab.iot.sink.service.PostProcessService;
 import com.basiclab.iot.sink.service.PostProcessWorkerResolver;
 import com.basiclab.iot.sink.util.AlertClassFilter;
+import com.basiclab.iot.sink.util.AlertEventGrouper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -306,9 +307,13 @@ public class PostProcessServiceImpl implements PostProcessService {
         }
         List<Map<String, Object>> alertDetections = AlertClassFilter.filterDetectionsForAlert(
                 detections, alertClassNames);
-        Map<String, Object> defaultAlert = buildDefaultAlert(message, alertDetections, payload);
-        if (defaultAlert != null) {
-            postAlertHook(defaultAlert);
+        Map<String, List<Map<String, Object>>> eventGroups = AlertEventGrouper.groupDetections(alertDetections);
+        for (Map.Entry<String, List<Map<String, Object>>> entry : eventGroups.entrySet()) {
+            Map<String, Object> defaultAlert = buildDefaultAlert(
+                    message, entry.getValue(), payload, entry.getKey());
+            if (defaultAlert != null) {
+                postAlertHook(defaultAlert);
+            }
         }
     }
 
@@ -325,6 +330,9 @@ public class PostProcessServiceImpl implements PostProcessService {
         String deviceId = stringValue(message.get("deviceId"), message.get("device_id"));
         String deviceName = stringValue(message.get("deviceName"), message.get("device_name"));
         String taskType = stringValue(message.get("taskType"), message.get("task_type"));
+        Integer taskId = intValue(message.get("taskId"), message.get("task_id"));
+        Object modelIds = message.get("modelIds") != null
+                ? message.get("modelIds") : message.get("model_ids");
         for (Object item : alerts) {
             if (!(item instanceof Map)) {
                 continue;
@@ -334,6 +342,9 @@ public class PostProcessServiceImpl implements PostProcessService {
             alert.putIfAbsent("device_id", deviceId);
             alert.putIfAbsent("device_name", deviceName);
             alert.putIfAbsent("task_type", taskType);
+            alert.putIfAbsent("task_id", taskId);
+            alert.putIfAbsent("model_ids", modelIds);
+            alert.putIfAbsent("schema_version", 2);
             postAlertHook(alert);
         }
     }
@@ -341,7 +352,8 @@ public class PostProcessServiceImpl implements PostProcessService {
     private Map<String, Object> buildDefaultAlert(
             Map<String, Object> message,
             List<Map<String, Object>> detections,
-            Map<String, Object> payload) {
+            Map<String, Object> payload,
+            String eventIdentity) {
         if (detections == null || detections.isEmpty()) {
             return null;
         }
@@ -369,6 +381,7 @@ public class PostProcessServiceImpl implements PostProcessService {
         information.put("detections", detections);
         information.put("frame_number", intValue(message.get("frameNumber"), message.get("frame_number")));
         information.put("correlation_id", stringValue(message.get("correlationId"), message.get("correlation_id")));
+        information.put("event_identity", eventIdentity);
         information.put("source", "post_process_sink");
         Object poseResult = payload.get("pose_result");
         if (poseResult == null) {
@@ -391,6 +404,14 @@ public class PostProcessServiceImpl implements PostProcessService {
         alert.put("device_id", stringValue(message.get("deviceId"), message.get("device_id")));
         alert.put("device_name", stringValue(message.get("deviceName"), message.get("device_name")));
         alert.put("task_type", stringValue(message.get("taskType"), message.get("task_type")));
+        alert.put("task_id", intValue(message.get("taskId"), message.get("task_id")));
+        List<Integer> eventModelIds = AlertEventGrouper.collectModelIds(detections);
+        alert.put("model_ids", eventModelIds.isEmpty()
+                ? (message.get("modelIds") != null ? message.get("modelIds") : message.get("model_ids"))
+                : eventModelIds);
+        alert.put("detections", detections);
+        alert.put("schema_version", 2);
+        alert.put("event_identity", eventIdentity);
         alert.put("correlation_id", stringValue(message.get("correlationId"), message.get("correlation_id")));
         alert.put("time", stringValue(message.get("timestamp"), message.get("eventTime")));
         alert.put("information", JsonUtils.toJsonString(information));

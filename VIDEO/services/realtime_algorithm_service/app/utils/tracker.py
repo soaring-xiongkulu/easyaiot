@@ -30,7 +30,8 @@ class SimpleTracker:
         self.center_similarity_threshold = center_similarity_threshold
         self.leave_time_threshold = leave_time_threshold
         self.leave_percent_threshold = leave_percent_threshold
-        self.tracks = {}  # {track_id: {'bbox': [x1, y1, x2, y2], 'class_id': int, 'class_name': str, 'confidence': float, 'age': int, 'last_seen': int, 'first_seen_time': float, 'leave_time': float, 'ex_trace_count': int, 'total_trace_count': int, 'last_trace_time': float, 'velocity': [vx, vy], 'last_bbox': [x1, y1, x2, y2]}}
+        # 追踪状态保留模型身份，避免多模型检测结果相互合并。
+        self.tracks = {}
         self.next_id = 1  # 下一个追踪ID
         self.lock = threading.Lock()
     
@@ -91,7 +92,7 @@ class SimpleTracker:
         更新追踪器，匹配检测结果和已有追踪目标
         
         Args:
-            detections: 当前帧的检测结果列表，每个元素包含 'bbox', 'class_id', 'class_name', 'confidence'
+            detections: 当前帧检测结果，每个元素包含 model_id、bbox、class_id、class_name、confidence
             frame_number: 当前帧号
             current_time: 当前时间戳（秒），如果为None则使用time.time()
         
@@ -141,6 +142,7 @@ class SimpleTracker:
                     duration = current_time - first_seen_time
                     tracked_detections.append({
                         'track_id': track_id,
+                        'model_id': track.get('model_id'),
                         'bbox': track['bbox'],
                         'class_id': track['class_id'],
                         'class_name': track['class_name'],
@@ -166,6 +168,13 @@ class SimpleTracker:
                 
                 for track_id, track in self.tracks.items():
                     if track_id in matched_tracks:
+                        continue
+                    # 多模型任务中不同模型的框不能合并为同一追踪目标。
+                    if (
+                            detection.get('model_id') is not None
+                            and track.get('model_id') is not None
+                            and detection.get('model_id') != track.get('model_id')
+                    ):
                         continue
                     
                     # 方法1：直接使用当前框位置计算相似度
@@ -236,6 +245,7 @@ class SimpleTracker:
                     first_seen_time = track.get('first_seen_time', current_time)
                     
                     track['bbox'] = smoothed_bbox
+                    track['model_id'] = detection.get('model_id')
                     track['class_id'] = detection['class_id']
                     track['class_name'] = detection['class_name']
                     track['confidence'] = detection['confidence']
@@ -248,6 +258,7 @@ class SimpleTracker:
                     duration = current_time - first_seen_time
                     tracked_detections.append({
                         'track_id': best_track_id,
+                        'model_id': detection.get('model_id'),
                         'bbox': smoothed_bbox,
                         'class_id': detection['class_id'],
                         'class_name': detection['class_name'],
@@ -263,6 +274,7 @@ class SimpleTracker:
                     
                     self.tracks[new_track_id] = {
                         'bbox': bbox,
+                        'model_id': detection.get('model_id'),
                         'class_id': detection['class_id'],
                         'class_name': detection['class_name'],
                         'confidence': detection['confidence'],
@@ -278,6 +290,7 @@ class SimpleTracker:
                     
                     tracked_detections.append({
                         'track_id': new_track_id,
+                        'model_id': detection.get('model_id'),
                         'bbox': bbox,
                         'class_id': detection['class_id'],
                         'class_name': detection['class_name'],
@@ -286,6 +299,8 @@ class SimpleTracker:
                         'first_seen_time': current_time,
                         'duration': 0.0
                     })
+                    # 新建轨迹已由当前检测结果返回，不能再作为未匹配缓存轨迹重复追加。
+                    matched_tracks.add(new_track_id)
             
             # 对于未匹配的追踪目标，也添加到结果中
             for track_id, track in self.tracks.items():
@@ -294,6 +309,7 @@ class SimpleTracker:
                     duration = current_time - first_seen_time
                     tracked_detections.append({
                         'track_id': track_id,
+                        'model_id': track.get('model_id'),
                         'bbox': track['bbox'],
                         'class_id': track['class_id'],
                         'class_name': track['class_name'],
@@ -325,6 +341,7 @@ class SimpleTracker:
                 duration = current_time - first_seen_time
                 tracked_detections.append({
                     'track_id': track_id,
+                    'model_id': track.get('model_id'),
                     'bbox': track['bbox'].copy(),
                     'class_id': track['class_id'],
                     'class_name': track['class_name'],
@@ -344,6 +361,7 @@ class SimpleTracker:
                 if 'leave_time' in track and track['leave_time']:
                     tracks_to_save.append({
                         'track_id': track_id,
+                        'model_id': track.get('model_id'),
                         'class_id': track.get('class_id'),
                         'class_name': track.get('class_name'),
                         'first_seen_time': track.get('first_seen_time'),
@@ -354,4 +372,3 @@ class SimpleTracker:
                         'total_detections': track.get('total_trace_count', 0)
                     })
             return tracks_to_save
-

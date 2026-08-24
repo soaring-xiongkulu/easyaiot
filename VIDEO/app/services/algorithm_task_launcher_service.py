@@ -16,6 +16,7 @@ import signal
 import time
 from typing import Dict, Optional, Tuple
 from datetime import datetime
+from urllib.request import urlopen
 
 from models import db, AlgorithmTask
 from app.utils.node_remote_python import resolve_video_bundle_python
@@ -65,6 +66,228 @@ _starting_lock = threading.Lock()
 # 停止请求代次：start/restart 会递增以作废尚未执行的异步 stop，避免 stop→start 竞态误杀新进程
 _stop_request_id: Dict[int, int] = {}
 _stop_request_lock = threading.Lock()
+# 节点级共享源流服务由 VIDEO 主进程统一托管。
+_camera_source_process = None
+_camera_source_log_handle = None
+_camera_source_lock = threading.Lock()
+_camera_source_watchdog_lock = threading.Lock()
+_camera_source_watchdog_thread = None
+_camera_source_watchdog_stop = threading.Event()
+
+
+def _camera_source_mode() -> str:
+    mode = (os.getenv('CAMERA_SOURCE_MODE') or 'shared').strip().lower()
+    return 'shared' if mode == 'shared' else 'direct'
+
+
+def _camera_source_manager_url() -> str:
+    explicit_url = (os.getenv('CAMERA_SOURCE_MANAGER_URL') or '').strip().rstrip('/')
+    if explicit_url:
+        return explicit_url
+    port = int(os.getenv('CAMERA_SOURCE_MANAGER_PORT', '6010'))
+    return f'http://127.0.0.1:{port}'
+
+
+def _camera_source_fallback_direct_enabled() -> bool:
+    raw_value = (os.getenv('CAMERA_SOURCE_FALLBACK_DIRECT') or 'true').strip().lower()
+    return raw_value not in ('0', 'false', 'no', 'off')
+
+
+def _camera_source_manager_healthy() -> bool:
+    try:
+        with urlopen(f'{_camera_source_manager_url()}/health', timeout=0.8) as response:
+            if response.status != 200:
+                return False
+            payload = json.loads(response.read().decode('utf-8'))
+            return (
+                payload.get('status') == 'ok'
+                and payload.get('service') == 'camera_source_manager'
+                and int(payload.get('protocol_version', 0)) == 1
+            )
+    except Exception:
+        return False
+
+
+def _start_camera_source_watchdog() -> None:
+    """启动节点级源流进程健康监督，避免存量任务永久停留在降级模式。"""
+    global _camera_source_watchdog_thread
+    with _camera_source_watchdog_lock:
+        if (
+                _camera_source_watchdog_thread is not None
+                and _camera_source_watchdog_thread.is_alive()
+        ):
+            return
+
+        _camera_source_watchdog_stop.clear()
+
+        def _watchdog_loop():
+            interval_seconds = max(
+                1.0,
+                float(os.getenv('CAMERA_SOURCE_WATCHDOG_INTERVAL_SEC', '5')),
+            )
+            while not _camera_source_watchdog_stop.wait(interval_seconds):
+                if _camera_source_mode() != 'shared':
+                    continue
+                if _camera_source_manager_healthy():
+                    continue
+                ok, message = ensure_camera_source_manager()
+                if not ok:
+                    logger.error('CameraSourceManager 自动恢复失败: %s', message)
+
+        _camera_source_watchdog_thread = threading.Thread(
+            target=_watchdog_loop,
+            daemon=True,
+            name='camera_source_manager_watchdog',
+        )
+        _camera_source_watchdog_thread.start()
+
+
+def _resolve_camera_source_python(video_root: str) -> str:
+    """选择具备 OpenCV/FFmpeg 解码依赖的 Python 运行时。"""
+    explicit_python = (os.getenv('CAMERA_SOURCE_PYTHON') or '').strip()
+    if explicit_python:
+        return explicit_python
+    bundle_python = resolve_video_bundle_python('algorithm_realtime', video_root)
+    if os.path.exists(bundle_python) and os.access(bundle_python, os.X_OK):
+        return bundle_python
+    conda_candidates = [
+        os.path.expanduser('~/miniconda3/envs/VIDEO-SVC/bin/python'),
+        os.path.expanduser('~/anaconda3/envs/VIDEO-SVC/bin/python'),
+        '/opt/conda/envs/VIDEO-SVC/bin/python',
+        '/usr/local/miniconda3/envs/VIDEO-SVC/bin/python',
+        '/usr/local/anaconda3/envs/VIDEO-SVC/bin/python',
+    ]
+    for candidate in conda_candidates:
+        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return sys.executable
+
+
+def ensure_camera_source_manager() -> Tuple[bool, str]:
+    """确保本节点 CameraSourceManager 已启动。"""
+    global _camera_source_process, _camera_source_log_handle
+    if _camera_source_mode() != 'shared':
+        return True, '共享源流已关闭'
+    _start_camera_source_watchdog()
+    if _camera_source_manager_healthy():
+        return True, 'CameraSourceManager 已运行'
+
+    with _camera_source_lock:
+        if _camera_source_manager_healthy():
+            return True, 'CameraSourceManager 已运行'
+        if _camera_source_process is not None and _camera_source_process.poll() is None:
+            process = _camera_source_process
+        else:
+            video_root = _get_video_root()
+            service_script = os.path.join(
+                video_root, 'services', 'camera_source_manager', 'run_service.py'
+            )
+            log_dir = os.path.join(video_root, 'logs')
+            os.makedirs(log_dir, exist_ok=True)
+            if _camera_source_log_handle is None or _camera_source_log_handle.closed:
+                _camera_source_log_handle = open(
+                    os.path.join(log_dir, 'camera_source_manager.log'),
+                    mode='a',
+                    encoding='utf-8',
+                )
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'
+            env['CAMERA_SOURCE_PARENT_PID'] = str(os.getpid())
+            env['CAMERA_SOURCE_MANAGER_PORT'] = str(
+                int(os.getenv('CAMERA_SOURCE_MANAGER_PORT', '6010'))
+            )
+            try:
+                camera_source_python = _resolve_camera_source_python(video_root)
+                process = subprocess.Popen(
+                    [camera_source_python, service_script],
+                    cwd=os.path.dirname(service_script),
+                    env=env,
+                    stdout=_camera_source_log_handle,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+                _camera_source_process = process
+                logger.info('CameraSourceManager 启动中 pid=%s', process.pid)
+            except Exception as exc:
+                logger.error('CameraSourceManager 启动失败: %s', exc, exc_info=True)
+                return False, str(exc)
+
+        deadline = time.monotonic() + 12.0
+        while time.monotonic() < deadline:
+            if _camera_source_manager_healthy():
+                return True, 'CameraSourceManager 启动成功'
+            if process.poll() is not None:
+                return False, f'CameraSourceManager 已退出，返回码 {process.returncode}'
+            time.sleep(0.2)
+        if _camera_source_process is process and process.poll() is None:
+            logger.error(
+                'CameraSourceManager 健康检查超时，终止失去响应的子进程 pid=%s',
+                process.pid,
+            )
+            try:
+                process.terminate()
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=1)
+            except Exception:
+                logger.exception('终止失去响应的 CameraSourceManager 失败')
+            _camera_source_process = None
+        return False, 'CameraSourceManager 启动超时'
+
+
+def stop_camera_source_manager() -> None:
+    """停止节点级共享源流进程及其监督线程。"""
+    global _camera_source_process, _camera_source_log_handle
+    global _camera_source_watchdog_thread
+
+    _camera_source_watchdog_stop.set()
+    watchdog_thread = _camera_source_watchdog_thread
+    if (
+            watchdog_thread is not None
+            and watchdog_thread is not threading.current_thread()
+            and watchdog_thread.is_alive()
+    ):
+        watchdog_thread.join(timeout=3.0)
+    _camera_source_watchdog_thread = None
+
+    with _camera_source_lock:
+        process = _camera_source_process
+        _camera_source_process = None
+        if process is not None and process.poll() is None:
+            try:
+                process.terminate()
+                process.wait(timeout=5.0)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=2.0)
+            except Exception:
+                logger.exception('停止 CameraSourceManager 失败 pid=%s', process.pid)
+        if _camera_source_log_handle is not None:
+            try:
+                _camera_source_log_handle.close()
+            except Exception:
+                logger.exception('关闭 CameraSourceManager 日志文件失败')
+            finally:
+                _camera_source_log_handle = None
+
+
+def _camera_source_worker_env() -> Dict[str, str]:
+    """构建实时算法 Worker 的共享源流配置。"""
+    env = {
+        'CAMERA_SOURCE_MODE': _camera_source_mode(),
+        'CAMERA_SOURCE_MANAGER_URL': _camera_source_manager_url(),
+        'CAMERA_SOURCE_MANAGER_PORT': str(
+            int(os.getenv('CAMERA_SOURCE_MANAGER_PORT', '6010'))
+        ),
+        'CAMERA_SOURCE_FALLBACK_DIRECT': (
+            'true' if _camera_source_fallback_direct_enabled() else 'false'
+        ),
+    }
+    control_token = (os.getenv('CAMERA_SOURCE_MANAGER_TOKEN') or '').strip()
+    if control_token:
+        env['CAMERA_SOURCE_MANAGER_TOKEN'] = control_token
+    return env
 
 
 def _issue_stop_request(task_id: int) -> int:
@@ -167,6 +390,25 @@ def _parse_task_model_ids(task: AlgorithmTask) -> list:
         return []
 
 
+def _ensure_multi_model_executor_compatible(task: AlgorithmTask) -> bool:
+    """兼容历史多模型任务；返回是否发生了执行器迁移。"""
+    from app.services.algorithm_task_service import _fallback_multi_model_executor
+
+    model_ids = _parse_task_model_ids(task)
+    current = getattr(task, 'executor', None) or 'cpp'
+    resolved = _fallback_multi_model_executor(current, model_ids)
+    if resolved == 'python' and str(current).strip().lower() != 'python':
+        logger.warning(
+            '任务 %s 含多个模型，自动从 C++ RUNTIME 切换为 Python Worker: model_ids=%s',
+            getattr(task, 'id', None),
+            model_ids,
+        )
+        task.executor = 'python'
+        db.session.commit()
+        return True
+    return False
+
+
 def _is_cluster_mode_enabled() -> bool:
     try:
         from cluster_storage import is_cluster_mode
@@ -261,6 +503,50 @@ def _inject_realtime_sampling_env(env: dict, task) -> None:
             env['MOTION_GATE_CONFIG'] = json.dumps(raw, ensure_ascii=False)
 
 
+def _resolve_control_plane_host() -> str:
+    """解析远程 Worker 可回连的控制面地址，禁止把 localhost 下发到边缘节点。"""
+    explicit = (os.getenv('EASYAIOT_PLATFORM_HOST') or '').strip()
+    if explicit and explicit not in ('127.0.0.1', 'localhost'):
+        return explicit
+    try:
+        from app.utils.node_client import resolve_platform_host
+        detected = (resolve_platform_host() or '').strip()
+        if detected and detected not in ('127.0.0.1', 'localhost'):
+            return detected
+    except Exception:
+        pass
+    for key in ('GATEWAY_URL', 'JAVA_BACKEND_URL', 'VIDEO_CONTROL_URL'):
+        raw = (os.getenv(key) or '').strip()
+        if not raw:
+            continue
+        try:
+            from urllib.parse import urlparse
+            host = (urlparse(raw).hostname or '').strip()
+            if host and host not in ('127.0.0.1', 'localhost'):
+                return host
+        except Exception:
+            pass
+    host = (os.getenv('HOST_IP') or '').strip()
+    if host and host not in ('127.0.0.1', 'localhost'):
+        return host
+    return ''
+
+
+def _replace_loopback_host(raw: str, control_plane_host: str) -> str:
+    value = str(raw or '').strip()
+    if not value or not control_plane_host:
+        return value
+    for loopback in ('localhost:', '127.0.0.1:'):
+        if value.startswith(loopback):
+            return f'{control_plane_host}:{value[len(loopback):]}'
+    return (
+        value.replace('://localhost:', f'://{control_plane_host}:')
+        .replace('://127.0.0.1:', f'://{control_plane_host}:')
+        .replace('@localhost:', f'@{control_plane_host}:')
+        .replace('@127.0.0.1:', f'@{control_plane_host}:')
+    )
+
+
 def _build_task_deploy_env(task_id: int, task_type: str, log_path: str, server_host: str, task=None) -> dict:
     env = {}
     for key in (
@@ -285,6 +571,9 @@ def _build_task_deploy_env(task_id: int, task_type: str, log_path: str, server_h
         'STREAM_FORWARD_TARGET_STREAMS', 'STREAM_FORWARD_THREAD_QUEUE_SIZE',
         'STREAM_FORWARD_MAX_MUXING_QUEUE_SIZE', 'STREAM_FORWARD_NVENC_SKIP_TEST',
         'STREAM_FORWARD_NVENC_PRESET', 'STREAM_FORWARD_RELAY_STAGGER_SEC',
+        'CAMERA_SOURCE_MODE', 'CAMERA_SOURCE_MANAGER_URL', 'CAMERA_SOURCE_MANAGER_PORT',
+        'CAMERA_SOURCE_MANAGER_TOKEN', 'CAMERA_SOURCE_FALLBACK_DIRECT',
+        'CAMERA_SOURCE_HEARTBEAT_INTERVAL_SEC', 'CAMERA_SOURCE_STALE_FRAME_SEC',
     ):
         val = os.getenv(key)
         if val is not None and val != '':
@@ -303,6 +592,43 @@ def _build_task_deploy_env(task_id: int, task_type: str, log_path: str, server_h
     env['LOG_PATH'] = log_path
     env['POD_IP'] = server_host
     env['HOST_IP'] = server_host
+    control_plane_host = _resolve_control_plane_host()
+    remote = bool(server_host) and server_host not in (
+        '', '127.0.0.1', 'localhost', control_plane_host,
+    )
+    if remote and control_plane_host:
+        for key in (
+            'DATABASE_URL', 'GATEWAY_URL', 'JAVA_BACKEND_URL', 'AI_SERVICE_URL',
+            'VIDEO_SERVICE_URL', 'IOT_SINK_API_URL', 'ALERT_HOOK_URL',
+            'KAFKA_BOOTSTRAP_SERVERS', 'MINIO_ENDPOINT',
+        ):
+            raw = env.get(key) or os.getenv(key) or ''
+            if raw:
+                env[key] = _replace_loopback_host(raw, control_plane_host)
+        video_base = f'http://{control_plane_host}:{video_service_port}'
+        env['VIDEO_SERVICE_URL'] = video_base
+        env['VIDEO_SERVICE_HOST'] = control_plane_host
+        heartbeat_path = (
+            '/video/algorithm/heartbeat/patrol'
+            if task_type == 'patrol'
+            else '/video/algorithm/heartbeat/realtime'
+        )
+        env['VIDEO_HEARTBEAT_URL'] = f'{video_base}{heartbeat_path}'
+
+        prefer_gpu = bool(getattr(task, 'prefer_gpu', False)) if task is not None else False
+        if not prefer_gpu:
+            env['USE_GPU'] = 'false'
+            env['FFMPEG_HWACCEL'] = 'none'
+            env['ORT_EXECUTION_PROVIDERS'] = 'CPUExecutionProvider'
+            env.pop('GPU_IDS', None)
+            env.pop('CUDA_VISIBLE_DEVICES', None)
+            env.pop('NVIDIA_VISIBLE_DEVICES', None)
+    # 第二阶段 mmap 仅限单节点，远程 Worker 无条件独立拉流，禁止误连控制节点路径。
+    if task_type == 'realtime':
+        env['CAMERA_SOURCE_REMOTE_WORKER'] = 'true'
+        env['CAMERA_SOURCE_MODE'] = 'direct'
+        env.pop('CAMERA_SOURCE_MANAGER_URL', None)
+        env.pop('CAMERA_SOURCE_MANAGER_TOKEN', None)
 
     kafka_bootstrap = env.get('KAFKA_BOOTSTRAP_SERVERS', os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092'))
     if 'Kafka' in kafka_bootstrap or 'kafka-server' in kafka_bootstrap:
@@ -1000,6 +1326,10 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
     _cancel_pending_stop_requests(task_id)
     
     try:
+        # 兼容历史数据：C++ RUNTIME 当前每个进程只加载一个模型。历史多模型任务若仍标记
+        # executor=cpp，会表现为“只有第一个模型生效”，启动前持久化切换到 Python 聚合 Worker。
+        _ensure_multi_model_executor_compatible(task)
+
         # 实时/抓拍/巡检算法任务都需要启动服务进程
         if task.task_type in ['realtime', 'snap', 'patrol']:
             if _use_remote_deploy(task):
@@ -1060,6 +1390,17 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             if not ok:
                 return (False, f'集群模型预同步失败: {sync_msg}', False)
 
+            if task.task_type == 'realtime' and _camera_source_mode() == 'shared':
+                source_ok, source_message = ensure_camera_source_manager()
+                if not source_ok and not _camera_source_fallback_direct_enabled():
+                    return (False, f'共享源流服务启动失败: {source_message}', False)
+                if not source_ok:
+                    logger.warning(
+                        '共享源流服务暂不可用，任务 %s 将降级独立拉流: %s',
+                        task_id,
+                        source_message,
+                    )
+
             # 检查是否已经有运行的守护进程（在清理之前检查，避免误杀正在运行的进程）
             should_cleanup = True
             with _daemons_lock:
@@ -1116,6 +1457,8 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
             # 启动守护进程（传入所有必要参数，不需要数据库连接）
             logger.info(f'启动守护进程，任务ID: {task_id}, 任务类型: {task.task_type}')
             extra_env = {}
+            if task.task_type == 'realtime':
+                extra_env.update(_camera_source_worker_env())
             _inject_sam_supplement_env(extra_env, task)
             _inject_realtime_sampling_env(extra_env, task)
 
@@ -1391,21 +1734,20 @@ def stop_all_daemons():
     with _daemons_lock:
         if not _running_daemons:
             logger.info("没有运行的守护进程，无需停止")
-            return
-        
-        logger.info(f"正在停止 {len(_running_daemons)} 个守护进程...")
-        task_ids = list(_running_daemons.keys())
-        
-        for task_id in task_ids:
-            try:
-                daemon = _running_daemons[task_id]
-                daemon.stop()
-                logger.info(f"✅ 停止守护进程成功: task_id={task_id}")
-            except Exception as e:
-                logger.error(f"❌ 停止守护进程失败: task_id={task_id}, error={str(e)}")
-            finally:
-                if task_id in _running_daemons:
-                    del _running_daemons[task_id]
-        
-        logger.info(f"✅ 所有守护进程已停止")
+        else:
+            logger.info(f"正在停止 {len(_running_daemons)} 个守护进程...")
+            task_ids = list(_running_daemons.keys())
 
+            for task_id in task_ids:
+                try:
+                    daemon = _running_daemons[task_id]
+                    daemon.stop()
+                    logger.info(f"✅ 停止守护进程成功: task_id={task_id}")
+                except Exception as e:
+                    logger.error(f"❌ 停止守护进程失败: task_id={task_id}, error={str(e)}")
+                finally:
+                    if task_id in _running_daemons:
+                        del _running_daemons[task_id]
+
+            logger.info(f"✅ 所有守护进程已停止")
+    stop_camera_source_manager()

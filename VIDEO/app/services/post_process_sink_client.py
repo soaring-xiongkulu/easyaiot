@@ -9,7 +9,7 @@ import os
 import threading
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import requests
 
@@ -114,9 +114,18 @@ def publish_post_process_request_async(
     ctx: Dict[str, Any],
     *,
     alert_image_path: Optional[str] = None,
+    on_failure: Optional[Callable[[], None]] = None,
 ) -> None:
-    thread = threading.Thread(
-        target=lambda: publish_post_process_request(ctx, alert_image_path=alert_image_path),
-        daemon=True,
-    )
-    thread.start()
+    def _publish() -> None:
+        if publish_post_process_request(ctx, alert_image_path=alert_image_path):
+            return
+        if on_failure is not None:
+            on_failure()
+
+    try:
+        thread = threading.Thread(target=_publish, daemon=True)
+        thread.start()
+    except Exception:
+        if on_failure is not None:
+            on_failure()
+        raise

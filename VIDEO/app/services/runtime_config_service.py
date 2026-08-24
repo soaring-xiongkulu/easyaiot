@@ -26,6 +26,7 @@ from app.utils.gb28181_source import (
     resolve_gb28181_alternate_pull_url,
     resolve_gb28181_source,
 )
+from app.utils.algorithm_task_identity import rewrite_task_stream_url
 from app.utils.service_urls import resolve_video_service_base_url
 
 logger = logging.getLogger(__name__)
@@ -835,7 +836,7 @@ def _resolve_ai_rtmp_url(device: Device, task: AlgorithmTask) -> str:
                 raw,
             )
             continue
-        return raw
+        return rewrite_task_stream_url(raw, task.id, device.id) or ''
 
     try:
         from app.services.camera_service import _default_stream_urls
@@ -872,7 +873,7 @@ def _resolve_ai_rtmp_url(device: Device, task: AlgorithmTask) -> str:
                     db.session.rollback()
                 except Exception:
                     pass
-        return ai_rtmp
+        return rewrite_task_stream_url(ai_rtmp, task.id, device.id) or ''
     except Exception as e:
         logger.warning('生成 ai_rtmp 失败 device_id=%s: %s', getattr(device, 'id', None), e)
         return ''

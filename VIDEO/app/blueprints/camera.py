@@ -2514,7 +2514,7 @@ def on_dvr_callback():
     MEDIA_UPLOAD_MODE=kafka 时仅入队 Kafka；否则同步走 dvr_upload_service。
     集群 Hook 推荐使用 /video/media/hook/srs/on_dvr。
     """
-    from app.services.dvr_device_resolver import resolve_device_from_hook
+    from app.services.dvr_device_resolver import resolve_stream_identity_from_hook
     from app.services.dvr_upload_service import process_dvr_event
     from app.services.media_kafka_service import (
         build_event_from_srs_hook,
@@ -2530,12 +2530,14 @@ def on_dvr_callback():
             return jsonify({'code': 0, 'msg': None})
         if not data.get('stream') and not data.get('file'):
             return jsonify({'code': 0, 'msg': None})
-        device_id, _ = resolve_device_from_hook(data.get('stream', ''), data.get('file', ''))
+        task_id, device_id, _ = resolve_stream_identity_from_hook(
+            data.get('stream', ''), data.get('file', '')
+        )
         if is_kafka_upload_mode():
-            enqueue_srs_dvr_hook(data, device_id=device_id)
+            enqueue_srs_dvr_hook(data, device_id=device_id, task_id=task_id)
             if not is_hybrid_upload_mode():
                 return jsonify({'code': 0, 'msg': None})
-        event = build_event_from_srs_hook(data, device_id=device_id)
+        event = build_event_from_srs_hook(data, device_id=device_id, task_id=task_id)
         if is_hybrid_upload_mode() or not is_kafka_upload_mode():
             process_dvr_event(event)
         return jsonify({'code': 0, 'msg': None})

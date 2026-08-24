@@ -80,6 +80,7 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
     file_path = (event.get('file_path') or event.get('file') or '').strip()
     cwd = (event.get('cwd') or '').strip()
     device_id = (event.get('device_id') or stream or '').strip()
+    task_id = event.get('task_id')
     if not file_path:
         logger.warning('本地 DVR：缺少 file_path event=%s', event)
         return False
@@ -97,6 +98,16 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         device = Device.query.filter_by(id=stream).first()
     if device is None and stream:
         device = Device.query.filter(Device.rtmp_stream.contains(f'/{stream}')).first()
+    if device is None and stream:
+        from app.services.dvr_device_resolver import resolve_stream_identity_from_hook
+
+        resolved_task_id, resolved_device_id, resolved_device = resolve_stream_identity_from_hook(
+            stream, absolute
+        )
+        if resolved_device is not None:
+            device = resolved_device
+            device_id = resolved_device_id or device_id
+            task_id = task_id if task_id is not None else resolved_task_id
     if device is None:
         logger.info('本地 DVR：设备不存在，丢弃 stream=%s file=%s', stream, absolute)
         return True
@@ -126,6 +137,7 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         ).first()
         now = datetime.now(shanghai)
         if existing:
+            existing.task_id = task_id
             existing.event_time = event_time
             existing.duration = duration
             existing.file_size = file_size
@@ -137,6 +149,7 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
                     file_path=store_path,
                     event_time=event_time,
                     device_id=resolved_id,
+                    task_id=task_id,
                     device_name=device_name,
                     duration=duration,
                     file_size=file_size,
@@ -156,10 +169,13 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         from app.services.space_file_metadata_service import upsert_record_file
         record_space = RecordSpace.query.filter_by(device_id=resolved_id).first()
         if record_space:
-            object_name = os.path.basename(absolute)
+            filename = os.path.basename(absolute)
+            task_prefix = f'task_{int(task_id)}/' if task_id is not None else ''
+            object_name = f'{task_prefix}{filename}'
             upsert_record_file(
                 space_id=record_space.id,
                 device_id=resolved_id,
+                task_id=task_id,
                 object_name=object_name,
                 bucket_name=record_space.bucket_name or 'record-space',
                 filename=object_name,
@@ -176,6 +192,7 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         patch_alerts_record(
             {
                 'device_id': resolved_id,
+                'task_id': task_id,
                 'event_time': event_time.astimezone(shanghai).strftime('%Y-%m-%d %H:%M:%S'),
                 'duration': duration,
                 'file_path': store_path,
@@ -185,7 +202,8 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         logger.warning('本地 DVR：回写告警 record_path 失败 device=%s error=%s', resolved_id, e)
 
     logger.info(
-        '本地 DVR 已落盘 device=%s path=%s size=%s duration=%s',
+        '本地 DVR 已落盘 task=%s device=%s path=%s size=%s duration=%s',
+        task_id,
         resolved_id,
         store_path,
         file_size,

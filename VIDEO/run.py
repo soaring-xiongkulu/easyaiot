@@ -740,16 +740,74 @@ def create_app(start_background_tasks=None):
                             """))
                             db.session.commit()
                             print(f"✅ {tbl}.correlation_id 列添加成功")
-                        db.session.execute(text(f"""
-                            CREATE INDEX IF NOT EXISTS idx_{tbl}_correlation_id
-                            ON {tbl} (correlation_id);
-                        """))
+                        if tbl == 'alert':
+                            # 历史重复事件保留最早记录的关联ID，其余业务记录仅清空重复键。
+                            db.session.execute(text("""
+                                UPDATE alert
+                                SET correlation_id = NULL
+                                WHERE correlation_id IS NOT NULL
+                                  AND BTRIM(correlation_id) = '';
+                            """))
+                            db.session.execute(text("""
+                                WITH ranked AS (
+                                    SELECT id,
+                                           ROW_NUMBER() OVER (
+                                               PARTITION BY correlation_id ORDER BY id ASC
+                                           ) AS duplicate_rank
+                                    FROM alert
+                                    WHERE correlation_id IS NOT NULL
+                                )
+                                UPDATE alert
+                                SET correlation_id = NULL
+                                FROM ranked
+                                WHERE alert.id = ranked.id
+                                  AND ranked.duplicate_rank > 1;
+                            """))
+                            db.session.execute(text("""
+                                DROP INDEX IF EXISTS idx_alert_correlation_id;
+                            """))
+                            db.session.execute(text("""
+                                CREATE UNIQUE INDEX IF NOT EXISTS uq_alert_correlation_id
+                                ON alert (correlation_id)
+                                WHERE correlation_id IS NOT NULL;
+                            """))
+                        else:
+                            db.session.execute(text(f"""
+                                CREATE INDEX IF NOT EXISTS idx_{tbl}_correlation_id
+                                ON {tbl} (correlation_id);
+                            """))
                         db.session.commit()
                     print("✅ correlation_id 关联字段迁移检查完成")
                 except Exception as e:
                     print(f"⚠️  correlation_id 迁移检查失败: {str(e)}")
                     import traceback
                     traceback.print_exc()
+                    db.session.rollback()
+
+                # 任务级 AI 流录像需要保留 task_id，避免同摄像头多任务录像串联。
+                try:
+                    for tbl in ('playback', 'record_file'):
+                        result = db.session.execute(text(f"""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns
+                                WHERE table_schema = 'public'
+                                  AND table_name = '{tbl}'
+                                  AND column_name = 'task_id'
+                            );
+                        """))
+                        if not result.scalar():
+                            db.session.execute(text(f"""
+                                ALTER TABLE {tbl}
+                                ADD COLUMN task_id INTEGER NULL;
+                            """))
+                        db.session.execute(text(f"""
+                            CREATE INDEX IF NOT EXISTS idx_{tbl}_task_id
+                            ON {tbl} (task_id);
+                        """))
+                    db.session.commit()
+                    print("✅ 任务级录像 task_id 迁移检查完成")
+                except Exception as e:
+                    print(f"⚠️  任务级录像迁移检查失败: {str(e)}")
                     db.session.rollback()
 
                 # alert.time：列表排序、今日统计、时间范围筛选

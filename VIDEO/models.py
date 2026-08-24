@@ -288,7 +288,7 @@ class Alert(db.Model):
     notification_sent = db.Column(db.Boolean, default=False, nullable=False, comment='是否已发送通知')
     notification_sent_time = db.Column(db.DateTime, nullable=True, comment='通知发送时间')
     business_tags = db.Column(db.Text, nullable=True, comment='业务标签（JSON数组，库匹配告警携带匹配库标签）')
-    correlation_id = db.Column(db.String(36), nullable=True, index=True, comment='关联事件ID（同一帧算法告警/人脸/车牌）')
+    correlation_id = db.Column(db.String(36), nullable=True, unique=True, comment='关联事件ID（同一帧算法告警/人脸/车牌，告警表内唯一）')
     # 边缘节点维度（区分多 EDGE 集群数据）
     edge_node_id = db.Column(db.BigInteger, nullable=True, index=True, comment='边缘节点 edge_node.id')
     edge_node_name = db.Column(db.String(128), nullable=True, comment='边缘节点名称（冗余）')
@@ -399,6 +399,7 @@ class RecordFile(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     space_id = db.Column(db.Integer, db.ForeignKey('record_space.id', ondelete='CASCADE'), nullable=False, index=True)
     device_id = db.Column(db.String(100), nullable=False, index=True, comment='设备ID')
+    task_id = db.Column(db.Integer, nullable=True, index=True, comment='算法任务ID，原始流录像为空')
     object_name = db.Column(db.String(500), nullable=False, comment='MinIO 对象路径')
     bucket_name = db.Column(db.String(255), nullable=False, comment='MinIO bucket')
     filename = db.Column(db.String(255), nullable=False, comment='文件名')
@@ -433,6 +434,7 @@ class RecordFile(db.Model):
             'id': self.id,
             'object_name': self.object_name,
             'filename': self.filename,
+            'task_id': self.task_id,
             'size': self.file_size or 0,
             'last_modified': self.event_time.isoformat() if self.event_time else None,
             'etag': self.etag or '',
@@ -1218,6 +1220,50 @@ class AlgorithmTask(db.Model):
             return data if isinstance(data, list) else None
         except Exception:
             return None
+
+
+class AlgorithmTaskStreamRuntime(db.Model):
+    """算法任务在单个摄像头上的实际运行状态。"""
+    __tablename__ = 'algorithm_task_stream_runtime'
+
+    task_id = db.Column(db.Integer, primary_key=True, nullable=False, comment='算法任务ID')
+    device_id = db.Column(db.String(100), primary_key=True, nullable=False, comment='设备ID')
+    node_id = db.Column(db.BigInteger, nullable=True, comment='运行节点ID')
+    stream_key = db.Column(db.String(255), nullable=False, comment='任务级 SRS stream key')
+    source_mode = db.Column(db.String(20), nullable=False, default='pending', comment='实际源流模式')
+    status = db.Column(db.String(20), nullable=False, default='starting', comment='任务设备运行状态')
+    last_frame_time = db.Column(db.DateTime(timezone=True), nullable=True, comment='最后读取帧时间')
+    last_detection_time = db.Column(db.DateTime(timezone=True), nullable=True, comment='最后推理时间')
+    last_alert_time = db.Column(db.DateTime(timezone=True), nullable=True, comment='最后告警时间')
+    error_message = db.Column(db.String(500), nullable=True, comment='最近错误信息')
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+    def to_dict(self):
+        return {
+            'task_id': self.task_id,
+            'device_id': self.device_id,
+            'node_id': self.node_id,
+            'stream_key': self.stream_key,
+            'source_mode': self.source_mode,
+            'status': self.status,
+            'last_frame_time': utc_isoformat_z(self.last_frame_time),
+            'last_detection_time': utc_isoformat_z(self.last_detection_time),
+            'last_alert_time': utc_isoformat_z(self.last_alert_time),
+            'error_message': self.error_message,
+            'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
+class AlgorithmTaskNotificationState(db.Model):
+    """任务、设备、通知渠道维度的通知抑制状态。"""
+    __tablename__ = 'algorithm_task_notification_state'
+
+    task_id = db.Column(db.Integer, primary_key=True, nullable=False, comment='算法任务ID')
+    device_id = db.Column(db.String(100), primary_key=True, nullable=False, comment='设备ID')
+    channel_key = db.Column(db.String(255), primary_key=True, nullable=False, comment='通知渠道稳定键')
+    last_notify_time = db.Column(db.DateTime, nullable=True, comment='最后通知时间')
+    last_event_id = db.Column(db.String(36), nullable=True, comment='最后通知事件ID')
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
 
 
 class AlgorithmPostProcessResult(db.Model):
@@ -2197,6 +2243,7 @@ class Playback(db.Model):
     file_path = db.Column(db.String(500), nullable=False)  # 文件路径
     event_time = db.Column(db.DateTime(timezone=True), nullable=False)  # 录制发生时间
     device_id = db.Column(db.String(100), nullable=False)  # 设备id（与 device.id 一致）
+    task_id = db.Column(db.Integer, nullable=True, index=True, comment='算法任务ID，原始流录像为空')
     device_name = db.Column(db.String(100), nullable=False)  # 设备名称
     duration = db.Column(db.SmallInteger(), nullable=False)  # 时长/秒
     thumbnail_path = db.Column(db.String(500), nullable=True)  # 封面图路径
@@ -2215,6 +2262,7 @@ class Playback(db.Model):
             'video_url': resolve_playback_display_url(file_path),
             'event_time': self.event_time.isoformat() if self.event_time else None,
             'device_id': self.device_id,
+            'task_id': self.task_id,
             'device_name': self.device_name,
             'duration': self.duration,
             'thumbnail_path': self.thumbnail_path,

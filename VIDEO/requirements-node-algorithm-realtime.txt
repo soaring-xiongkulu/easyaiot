@@ -1,5 +1,11 @@
 # 实时算法计算节点离线运行时
 -r requirements-node-stream-forward.txt
+# realtime_algorithm_service/run_deploy.py 直接使用 Ultralytics YOLO 加载并聚合多模型；
+# 不能只安装 ONNX Runtime，否则多模型任务切换到 Python Worker 后会在启动阶段失败。
+ultralytics>=8.4.0,<9.0.0
+# 摄像头配置加载链路会导入 app.utils.onvif_camera（模块名 onvif）。
+onvif-zeep==0.2.12
+WSDiscovery==2.1.2
 # 3.10+ 用 GPU 包；3.9 无 1.20.0，且无 GPU 节点走 CPU 包
 onnxruntime-gpu==1.20.0; python_version >= "3.10"
 onnxruntime==1.16.3; python_version < "3.10"

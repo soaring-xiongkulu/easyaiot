@@ -7,6 +7,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.query import Query
 from models import Alert, db
 
@@ -520,7 +521,12 @@ def create_alert(alert_data: dict) -> dict:
 
         task_id = alert_data.get('task_id')
         task_name = alert_data.get('task_name')
-        correlation_id = alert_data.get('correlation_id') or alert_data.get('correlationId')
+        correlation_id = (
+            alert_data.get('correlation_id')
+            or alert_data.get('correlationId')
+            or alert_data.get('event_id')
+            or alert_data.get('eventId')
+        )
         if correlation_id:
             correlation_id = str(correlation_id).strip() or None
 
@@ -528,6 +534,16 @@ def create_alert(alert_data: dict) -> dict:
         object_value = alert_data['object']
         if task_name and alert_data['event'] not in LIBRARY_MATCH_EVENTS:
             object_value = task_name
+
+        if correlation_id:
+            existing_alert = Alert.query.filter_by(correlation_id=correlation_id).first()
+            if existing_alert:
+                logger.info(
+                    '告警幂等命中 correlation_id=%s alert_id=%s',
+                    correlation_id,
+                    existing_alert.id,
+                )
+                return _alert_to_dict(existing_alert)
 
         # 创建报警记录
         alert = Alert(
@@ -555,7 +571,20 @@ def create_alert(alert_data: dict) -> dict:
         )
         
         db.session.add(alert)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            if correlation_id:
+                existing_alert = Alert.query.filter_by(correlation_id=correlation_id).first()
+                if existing_alert:
+                    logger.info(
+                        '并发告警幂等命中 correlation_id=%s alert_id=%s',
+                        correlation_id,
+                        existing_alert.id,
+                    )
+                    return _alert_to_dict(existing_alert)
+            raise
 
         if not (alert.record_path or '').strip() and task_type != 'snap':
             try:
@@ -582,7 +611,12 @@ def _normalize_to_shanghai_naive(value):
     return normalize_to_shanghai_naive(value)
 
 
-def find_playback_for_alert(device_id: str, alert_time, time_range: int = 300):
+def find_playback_for_alert(
+    device_id: str,
+    alert_time,
+    time_range: int = 300,
+    task_id: Optional[int] = None,
+):
     """查找与告警时间最匹配的 Playback 记录。"""
     from models import Playback
 
@@ -591,11 +625,14 @@ def find_playback_for_alert(device_id: str, alert_time, time_range: int = 300):
     start_time = alert_sh - timedelta(seconds=extended_range)
     end_time = alert_sh + timedelta(seconds=extended_range)
 
-    candidates = Playback.query.filter(
+    query = Playback.query.filter(
         Playback.device_id == device_id,
         Playback.event_time >= start_time,
         Playback.event_time <= end_time,
-    ).all()
+    )
+    if task_id is not None:
+        query = query.filter(Playback.task_id == int(task_id))
+    candidates = query.all()
 
     matched = []
     for playback in candidates:
@@ -609,7 +646,12 @@ def find_playback_for_alert(device_id: str, alert_time, time_range: int = 300):
     return None
 
 
-def find_record_file_for_alert(device_id: str, alert_time, time_range: int = 300):
+def find_record_file_for_alert(
+    device_id: str,
+    alert_time,
+    time_range: int = 300,
+    task_id: Optional[int] = None,
+):
     """在 RecordFile 元数据中查找与告警时间最匹配的录像片段（Playback 未命中时的兜底）。"""
     from models import RecordFile, RecordSpace
 
@@ -625,16 +667,15 @@ def find_record_file_for_alert(device_id: str, alert_time, time_range: int = 300
     start_time = alert_naive - timedelta(seconds=extended_range)
     end_time = alert_naive + timedelta(seconds=extended_range)
 
-    candidates = (
-        RecordFile.query.filter(
+    query = RecordFile.query.filter(
             RecordFile.device_id == device_id,
             RecordFile.space_id == space.id,
             RecordFile.event_time >= start_time,
             RecordFile.event_time <= end_time,
         )
-        .order_by(RecordFile.event_time.asc())
-        .all()
-    )
+    if task_id is not None:
+        query = query.filter(RecordFile.task_id == int(task_id))
+    candidates = query.order_by(RecordFile.event_time.asc()).all()
 
     best = None
     best_score = None
@@ -714,7 +755,8 @@ def resolve_alert_record_video(
     if not device_id or alert_time is None:
         return None
 
-    playback = find_playback_for_alert(device_id, alert_time, time_range)
+    task_id = alert_row.task_id if alert_row else None
+    playback = find_playback_for_alert(device_id, alert_time, time_range, task_id=task_id)
     if playback and (playback.file_path or '').strip():
         from app.utils.service_urls import resolve_playback_display_url
         file_path = playback.file_path.strip()
@@ -729,7 +771,7 @@ def resolve_alert_record_video(
             'source': 'playback_match',
         }
 
-    record_file = find_record_file_for_alert(device_id, alert_time, time_range)
+    record_file = find_record_file_for_alert(device_id, alert_time, time_range, task_id=task_id)
     if record_file:
         item = record_file.to_list_item()
         file_path = (item.get('url') or record_file.url or '').strip()
@@ -746,8 +788,13 @@ def resolve_alert_record_video(
     return None
 
 
-def _find_playback_for_alert(device_id: str, alert_time, time_range: int = 300):
-    return find_playback_for_alert(device_id, alert_time, time_range)
+def _find_playback_for_alert(
+    device_id: str,
+    alert_time,
+    time_range: int = 300,
+    task_id: Optional[int] = None,
+):
+    return find_playback_for_alert(device_id, alert_time, time_range, task_id=task_id)
 
 
 def backfill_alert_records_for_list(alerts) -> None:
@@ -768,7 +815,7 @@ def try_backfill_alert_record_from_playback(alert: Alert) -> bool:
     if alert.task_type == 'snap':
         return False
 
-    playback = _find_playback_for_alert(alert.device_id, alert.time)
+    playback = _find_playback_for_alert(alert.device_id, alert.time, task_id=alert.task_id)
     if not playback or not (playback.file_path or '').strip():
         return False
 
@@ -832,12 +879,16 @@ def patch_alerts_record(dvr_info: dict):
         end_time = begin_time + timedelta(seconds=duration)
         device_id = dvr_info['device_id']
 
-        alerts = Alert.query.filter(
+        query = Alert.query.filter(
             Alert.time >= legacy_start,
             Alert.time <= end_time,
             Alert.device_id == device_id,
             db.or_(Alert.record_path.is_(None), db.func.trim(Alert.record_path) == ''),
-        ).all()
+        )
+        task_id = dvr_info.get('task_id')
+        if task_id is not None:
+            query = query.filter(Alert.task_id == int(task_id))
+        alerts = query.all()
 
         if alerts:
             for alert in alerts:

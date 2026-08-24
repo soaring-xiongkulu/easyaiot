@@ -63,7 +63,11 @@ def _get_producer():
     return _producer
 
 
-def build_event_from_srs_hook(data: Dict[str, Any], device_id: Optional[str] = None) -> Dict[str, Any]:
+def build_event_from_srs_hook(
+    data: Dict[str, Any],
+    device_id: Optional[str] = None,
+    task_id: Optional[int] = None,
+) -> Dict[str, Any]:
     stream = data.get('stream', '') or ''
     file_path = data.get('file', '') or data.get('file_path', '') or ''
     segment_start_ms = None
@@ -74,6 +78,7 @@ def build_event_from_srs_hook(data: Dict[str, Any], device_id: Optional[str] = N
     return {
         'event_id': str(uuid.uuid4()),
         'device_id': device_id or stream,
+        'task_id': task_id,
         'app': data.get('app', 'live'),
         'stream': stream,
         'file_path': file_path,
@@ -85,12 +90,17 @@ def build_event_from_srs_hook(data: Dict[str, Any], device_id: Optional[str] = N
     }
 
 
-def build_event_from_zlm_hook(data: Dict[str, Any], device_id: Optional[str] = None) -> Dict[str, Any]:
+def build_event_from_zlm_hook(
+    data: Dict[str, Any],
+    device_id: Optional[str] = None,
+    task_id: Optional[int] = None,
+) -> Dict[str, Any]:
     stream = data.get('stream', '') or ''
     file_path = data.get('file_path', '') or data.get('file_name', '') or ''
     return {
         'event_id': str(uuid.uuid4()),
         'device_id': device_id or stream,
+        'task_id': task_id,
         'app': data.get('app', 'record'),
         'stream': stream,
         'file_path': file_path,
@@ -126,13 +136,21 @@ def publish_dvr_dlq(event: Dict[str, Any], error: str) -> None:
         logger.error('写入 DLQ 失败: %s', e)
 
 
-def enqueue_srs_dvr_hook(data: Dict[str, Any], device_id: Optional[str] = None) -> bool:
-    event = build_event_from_srs_hook(data, device_id=device_id)
+def enqueue_srs_dvr_hook(
+    data: Dict[str, Any],
+    device_id: Optional[str] = None,
+    task_id: Optional[int] = None,
+) -> bool:
+    event = build_event_from_srs_hook(data, device_id=device_id, task_id=task_id)
     return publish_dvr_event(event)
 
 
-def enqueue_zlm_record_hook(data: Dict[str, Any], device_id: Optional[str] = None) -> bool:
-    event = build_event_from_zlm_hook(data, device_id=device_id)
+def enqueue_zlm_record_hook(
+    data: Dict[str, Any],
+    device_id: Optional[str] = None,
+    task_id: Optional[int] = None,
+) -> bool:
+    event = build_event_from_zlm_hook(data, device_id=device_id, task_id=task_id)
     return publish_dvr_event(event)
 
 

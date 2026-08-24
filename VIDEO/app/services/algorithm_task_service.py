@@ -10,7 +10,16 @@ from datetime import datetime
 from typing import List, Optional, Dict
 from sqlalchemy.orm import joinedload
 
-from models import db, AlgorithmTask, Device, SnapSpace, algorithm_task_device, Pusher
+from models import (
+    db,
+    AlgorithmTask,
+    AlgorithmTaskStreamRuntime,
+    Device,
+    Pusher,
+    SnapSpace,
+    algorithm_task_device,
+)
+from app.utils.algorithm_task_runtime import mark_stream_runtime_stopped
 from app.utils.cron_utils import validate_snap_cron_min_interval
 # 注意：已移除冲突检查，推流转发任务和算法任务可以共存
 # 推流转发任务使用 rtmp_stream/http_stream，算法任务使用 ai_rtmp_stream/ai_http_stream
@@ -23,6 +32,29 @@ ALERT_EVENT_SUPPRESS_MAX = 3600
 ALARM_SUPPRESS_MIN = 0
 ALARM_SUPPRESS_MAX = 86400
 _USERLESS_NOTIFY_METHODS = frozenset({'http', 'webhook'})
+
+
+def _normalize_task_model_ids(raw_model_ids) -> List[int]:
+    """解析任务模型 ID，供执行器能力判断复用。"""
+    if raw_model_ids in (None, ''):
+        return []
+    try:
+        values = json.loads(raw_model_ids) if isinstance(raw_model_ids, str) else raw_model_ids
+        return list(dict.fromkeys(int(value) for value in (values or [])))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+
+
+def _fallback_multi_model_executor(executor: str, raw_model_ids) -> str:
+    """C++ RUNTIME 当前为单模型引擎；多模型任务自动使用支持聚合推理的 Python Worker。"""
+    normalized = str(executor or 'cpp').strip().lower()
+    is_cpp = normalized in ('cpp', 'c++', 'runtime', 'cxx')
+    is_python = normalized in ('python', 'py')
+    if not is_cpp and not is_python:
+        is_cpp = True
+    if is_cpp and len(_normalize_task_model_ids(raw_model_ids)) > 1:
+        return 'python'
+    return 'cpp' if is_cpp else 'python'
 
 
 def _full_defense_schedule_json() -> str:
@@ -822,6 +854,14 @@ def create_algorithm_task(task_name: str,
 
         from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
         executor = normalize_executor(executor)
+        resolved_executor = _fallback_multi_model_executor(executor, model_ids)
+        if resolved_executor != executor:
+            logger.warning(
+                '任务 %s 配置多个模型，C++ RUNTIME 仅支持单模型，自动切换为 Python Worker: model_ids=%s',
+                task_name,
+                _normalize_task_model_ids(model_ids),
+            )
+            executor = resolved_executor
         if executor == 'cpp':
             if task_type not in ('realtime', 'snap', 'patrol'):
                 raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
@@ -1130,13 +1170,31 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         
         task_type = kwargs.get('task_type', task.task_type)
 
-        if 'executor' in kwargs or 'task_type' in kwargs or 'schedule_policy' in kwargs:
+        if (
+                'executor' in kwargs
+                or 'task_type' in kwargs
+                or 'schedule_policy' in kwargs
+                or 'model_ids' in kwargs
+        ):
             from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
             if 'executor' in kwargs:
                 kwargs['executor'] = normalize_executor(kwargs.get('executor'))
             effective_executor = normalize_executor(
                 kwargs.get('executor', getattr(task, 'executor', None) or 'cpp')
             )
+            effective_model_ids = kwargs.get('model_ids', getattr(task, 'model_ids', None))
+            resolved_executor = _fallback_multi_model_executor(
+                effective_executor,
+                effective_model_ids,
+            )
+            if resolved_executor != effective_executor:
+                logger.warning(
+                    '任务 %s 配置多个模型，自动从 C++ RUNTIME 切换为 Python Worker: model_ids=%s',
+                    task_id,
+                    _normalize_task_model_ids(effective_model_ids),
+                )
+                kwargs['executor'] = resolved_executor
+                effective_executor = resolved_executor
             effective_type = kwargs.get('task_type', task.task_type)
             effective_policy = kwargs.get(
                 'schedule_policy', getattr(task, 'schedule_policy', None) or 'local'
@@ -1694,9 +1752,12 @@ def stop_algorithm_task(task_id: int):
     try:
         task = AlgorithmTask.query.get_or_404(task_id)
         device_ids = [d.id for d in (task.devices or [])]
+        stopped_at = datetime.utcnow()
         task.is_enabled = False
         task.run_status = 'stopped'
-        task.updated_at = datetime.utcnow()
+        task.updated_at = stopped_at
+        for runtime in AlgorithmTaskStreamRuntime.query.filter_by(task_id=task_id).all():
+            mark_stream_runtime_stopped(runtime, stopped_at)
         db.session.commit()
 
         # 停止任务相关的服务（抽帧器、推送器、排序器）放到后台线程执行。
@@ -1792,4 +1853,3 @@ def restart_algorithm_task(task_id: int):
         db.session.rollback()
         logger.error(f"重启算法任务失败: {str(e)}", exc_info=True)
         raise RuntimeError(f"重启算法任务失败: {str(e)}")
-

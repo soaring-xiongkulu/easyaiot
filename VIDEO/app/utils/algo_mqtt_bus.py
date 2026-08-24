@@ -436,6 +436,7 @@ def build_infer_event(
         else:
             bbox4 = [0.0, 0.0, 0.0, 0.0]
         dets_out.append({
+            'model_id': d.get('model_id'),
             'bbox': bbox4,
             'class_id': int(d.get('class_id') or 0),
             'class_name': d.get('class_name') or 'unknown',
