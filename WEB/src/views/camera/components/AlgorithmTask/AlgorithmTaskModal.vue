@@ -2109,6 +2109,14 @@ const handleSubmit = async () => {
       values.model_ids = [values.model_ids];
     }
 
+    // C++ RUNTIME 当前每个任务进程只加载一个模型。多模型任务必须交给
+    // Python 聚合 Worker，否则界面虽保存了多个模型，实际只会运行第一个。
+    if (values.executor === 'cpp' && values.model_ids?.length > 1) {
+      values.executor = 'python';
+      values.task_mode = values.task_type;
+      createMessage.warning('低时延 C++ 执行器当前仅支持单模型，已自动切换为全功能执行器以运行全部模型');
+    }
+
     // 算法任务（实时和抓拍）必须指定模型ID列表
     if ((baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && (!values.model_ids || values.model_ids.length === 0)) {
       createMessage.error('算法任务必须选择至少一个模型');

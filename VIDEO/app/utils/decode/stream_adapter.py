@@ -87,10 +87,14 @@ class FfmpegVideoStream:
 
 
 def is_async_stream(cap) -> bool:
-    return isinstance(cap, (AsyncVideoStream, FfmpegVideoStream))
+    return isinstance(cap, (AsyncVideoStream, FfmpegVideoStream)) or bool(
+        getattr(cap, 'is_shared_camera_stream', False)
+    )
 
 
 def stream_mode_label(cap) -> str:
+    if getattr(cap, 'is_shared_camera_stream', False):
+        return 'CameraSourceManager 共享拉流解码，仅消费最新帧'
     if isinstance(cap, FfmpegVideoStream):
         fifo = cap.queue_max
         return (

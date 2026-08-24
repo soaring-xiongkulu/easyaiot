@@ -94,6 +94,29 @@ public class AlertNotificationMessage {
     @JsonAlias("correlation_id")
     private String correlationId;
 
+    /**
+     * 告警协议版本
+     */
+    @JsonAlias("schema_version")
+    private Integer schemaVersion;
+
+    /**
+     * 事件唯一ID
+     */
+    @JsonAlias("event_id")
+    private String eventId;
+
+    /**
+     * 本次事件涉及的任务模型ID
+     */
+    @JsonAlias("model_ids")
+    private List<Integer> modelIds;
+
+    /**
+     * 结构化检测明细
+     */
+    private List<Map<String, Object>> detections;
+
     /** 边缘节点 edge_node.id（多 EDGE 数据区分） */
     @JsonAlias({"edge_node_id", "edgeNodeId"})
     private Long edgeNodeId;
@@ -127,4 +150,3 @@ public class AlertNotificationMessage {
         private String taskType;  // 告警事件类型[realtime:实时算法任务,snap:抓拍算法任务]
     }
 }
-

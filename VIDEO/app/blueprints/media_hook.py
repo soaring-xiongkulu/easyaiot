@@ -5,7 +5,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from app.services.dvr_device_resolver import resolve_device_from_hook
+from app.services.dvr_device_resolver import resolve_stream_identity_from_hook
 from app.services.dvr_upload_service import process_dvr_event
 from app.services.media_kafka_service import (
     build_event_from_srs_hook,
@@ -34,12 +34,14 @@ def srs_on_dvr():
     data = request.get_json(silent=True) or {}
     if not data.get('stream') and not data.get('file'):
         return _hook_ok()
-    device_id, _ = resolve_device_from_hook(data.get('stream', ''), data.get('file', ''))
+    task_id, device_id, _ = resolve_stream_identity_from_hook(
+        data.get('stream', ''), data.get('file', '')
+    )
     if is_kafka_upload_mode():
-        enqueue_srs_dvr_hook(data, device_id=device_id)
+        enqueue_srs_dvr_hook(data, device_id=device_id, task_id=task_id)
         if not is_hybrid_upload_mode():
             return _hook_ok()
-    event = build_event_from_srs_hook(data, device_id=device_id)
+    event = build_event_from_srs_hook(data, device_id=device_id, task_id=task_id)
     if is_hybrid_upload_mode() or not is_kafka_upload_mode():
         process_dvr_event(event)
     return _hook_ok()
@@ -87,12 +89,12 @@ def zlm_on_record():
     stream = data.get('stream', '') or ''
     if not file_path and not stream:
         return _hook_ok()
-    device_id, _ = resolve_device_from_hook(stream, file_path)
+    task_id, device_id, _ = resolve_stream_identity_from_hook(stream, file_path)
     if is_kafka_upload_mode():
-        enqueue_zlm_record_hook(data, device_id=device_id)
+        enqueue_zlm_record_hook(data, device_id=device_id, task_id=task_id)
         if not is_hybrid_upload_mode():
             return _hook_ok()
-    event = build_event_from_zlm_hook(data, device_id=device_id)
+    event = build_event_from_zlm_hook(data, device_id=device_id, task_id=task_id)
     if is_hybrid_upload_mode() or not is_kafka_upload_mode():
         process_dvr_event(event)
     return _hook_ok()

@@ -5,6 +5,7 @@
 @wechat EasyAIoT2025
 """
 import json
+import hashlib
 import logging
 import threading
 import time
@@ -14,7 +15,14 @@ from typing import Dict, Optional, Tuple
 from flask import current_app
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
-from models import db, AlgorithmTask, Device
+from models import db, AlgorithmTask, AlgorithmTaskNotificationState, Device
+from app.utils.algorithm_task_identity import (
+    AmbiguousAlgorithmTaskError,
+    build_alert_suppression_key,
+    normalize_algorithm_task_type,
+    resolve_alert_event_identity,
+    select_unique_legacy_alert_task,
+)
 from app.utils.service_urls import (
     SHANGHAI_TZ,
     now_shanghai_time_str,
@@ -36,7 +44,7 @@ _init_retry_interval = 60  # 初始化失败后，60秒内不再重试
 _last_kafka_unavailable_warning_time = 0
 _kafka_unavailable_warning_interval = 300  # 每5分钟最多输出一次警告
 # 告警事件 Kafka 投递抑制（与算法进程内抑制互补，防止抓拍等路径仍刷 Kafka）
-_last_alert_event_kafka_time: Dict[Tuple[str, str], float] = {}
+_last_alert_event_kafka_time: Dict[Tuple[str, ...], float] = {}
 _alert_event_kafka_lock = threading.Lock()
 
 
@@ -182,16 +190,87 @@ def _kafka_topic_for_alert_task_type(task_type: str) -> str:
         return os.getenv('KAFKA_ALERT_NOTIFICATION_TOPIC', 'iot-alert-notification')
 
 
-def _query_alert_event_task(device_id: str, task_type: str = None) -> Optional[Dict]:
+def _task_event_config(task) -> Dict:
+    """将算法任务转换为告警事件所需的稳定配置。"""
+    model_ids = []
+    raw_model_ids = getattr(task, 'model_ids', None)
+    if raw_model_ids:
+        try:
+            parsed_model_ids = json.loads(raw_model_ids) if isinstance(raw_model_ids, str) else raw_model_ids
+            model_ids = sorted({int(value) for value in (parsed_model_ids or [])})
+        except (TypeError, ValueError, json.JSONDecodeError):
+            model_ids = []
+    return {
+        'task_id': task.id,
+        'task_name': task.task_name,
+        'task_type': task.task_type,
+        'face_detection_enabled': bool(task.face_detection_enabled),
+        'plate_detection_enabled': bool(task.plate_detection_enabled),
+        'alert_event_suppress_time': task.alert_event_suppress_time,
+        'alert_class_names': getattr(task, 'alert_class_names', None),
+        'model_ids': model_ids,
+    }
+
+
+def _normalize_event_model_ids(alert_data: Dict) -> set[int]:
+    """汇总事件顶层和检测明细中的模型ID。"""
+    values = alert_data.get('model_ids') or alert_data.get('modelIds') or []
+    if not isinstance(values, (list, tuple, set)):
+        values = [values]
+    for detection in alert_data.get('detections') or []:
+        if isinstance(detection, dict):
+            model_id = detection.get('model_id') or detection.get('modelId')
+            if model_id is not None:
+                values = [*values, model_id]
+    normalized = set()
+    for value in values:
+        try:
+            if value is not None and str(value).strip():
+                normalized.add(int(value))
+        except (TypeError, ValueError):
+            continue
+    return normalized
+
+
+def _validate_alert_model_ownership(alert_data: Dict, task_config: Dict) -> Optional[Dict]:
+    """校验 v2 告警中的模型均属于指定任务。"""
+    try:
+        schema_version = int(alert_data.get('schema_version') or alert_data.get('schemaVersion') or 1)
+    except (TypeError, ValueError):
+        schema_version = 1
+    if schema_version < 2:
+        return None
+    event_model_ids = _normalize_event_model_ids(alert_data)
+    if not event_model_ids:
+        return {
+            'status': 'rejected',
+            'reason': 'missing_model_ids',
+            'error': 'schema_version=2 告警必须携带 model_ids 或 detections[].model_id',
+        }
+    task_model_ids = {int(value) for value in (task_config.get('model_ids') or [])}
+    foreign_model_ids = sorted(event_model_ids - task_model_ids)
+    if foreign_model_ids:
+        return {
+            'status': 'rejected',
+            'reason': 'foreign_model',
+            'error': f'模型不属于任务: {foreign_model_ids}',
+            'foreign_model_ids': foreign_model_ids,
+        }
+    return None
+
+
+def _query_alert_event_task(
+        device_id: str,
+        task_type: str = None,
+        task_id=None,
+) -> Optional[Dict]:
     """
     查询设备的告警事件任务配置（仅需 alert_event_enabled，不要求告警通知）。
     """
     if not device_id:
         return None
     try:
-        tt = task_type or 'realtime'
-        if tt == 'snapshot':
-            tt = 'snap'
+        tt = normalize_algorithm_task_type(task_type)
 
         filter_conditions = [
             AlgorithmTask.devices.any(Device.id == device_id),
@@ -201,19 +280,24 @@ def _query_alert_event_task(device_id: str, task_type: str = None) -> Optional[D
         if tt:
             filter_conditions.append(AlgorithmTask.task_type == tt)
 
-        task = AlgorithmTask.query.filter(*filter_conditions).order_by(AlgorithmTask.id.asc()).first()
-        if not task:
-            return None
+        if task_id is not None and str(task_id).strip():
+            try:
+                normalized_task_id = int(task_id)
+            except (TypeError, ValueError) as exc:
+                raise ValueError('task_id 必须是正整数') from exc
+            if normalized_task_id <= 0:
+                raise ValueError('task_id 必须是正整数')
+            task = AlgorithmTask.query.filter(
+                *filter_conditions,
+                AlgorithmTask.id == normalized_task_id,
+            ).first()
+            return _task_event_config(task) if task else None
 
-        return {
-            'task_id': task.id,
-            'task_name': task.task_name,
-            'task_type': task.task_type,
-            'face_detection_enabled': bool(task.face_detection_enabled),
-            'plate_detection_enabled': bool(task.plate_detection_enabled),
-            'alert_event_suppress_time': task.alert_event_suppress_time,
-            'alert_class_names': getattr(task, 'alert_class_names', None),
-        }
+        candidates = AlgorithmTask.query.filter(*filter_conditions).order_by(AlgorithmTask.id.asc()).all()
+        task = select_unique_legacy_alert_task(candidates, device_id, tt)
+        return _task_event_config(task) if task else None
+    except (AmbiguousAlgorithmTaskError, ValueError):
+        raise
     except Exception as e:
         logger.error(f"查询告警事件任务失败: device_id={device_id}, error={e}", exc_info=True)
         return None
@@ -252,8 +336,14 @@ def _build_minimal_alert_kafka_message(
     必须与 iot-sink AlertNotificationMessage / Python 驼峰字段一致，否则 sink 无法解析 imagePath、无法上传 MinIO。
     """
     sw = detection_switches or {}
-    task_id = alert_event_task.get('task_id') if alert_event_task else None
-    task_name = alert_event_task.get('task_name') if alert_event_task else None
+    task_id = (
+        alert_event_task.get('task_id')
+        if alert_event_task else alert_data.get('task_id') or alert_data.get('taskId')
+    )
+    task_name = (
+        alert_event_task.get('task_name')
+        if alert_event_task else alert_data.get('task_name') or alert_data.get('taskName')
+    )
     task_type = (
         alert_data.get('task_type')
         or (alert_event_task.get('task_type') if alert_event_task else None)
@@ -285,6 +375,10 @@ def _build_minimal_alert_kafka_message(
     correlation_id = alert_data.get('correlation_id') or alert_data.get('correlationId')
     if correlation_id:
         message['correlationId'] = correlation_id
+    message['schemaVersion'] = alert_data.get('schema_version') or alert_data.get('schemaVersion') or 1
+    message['eventId'] = alert_data.get('event_id') or alert_data.get('eventId') or correlation_id
+    message['modelIds'] = sorted(_normalize_event_model_ids(alert_data))
+    message['detections'] = alert_data.get('detections') or []
     return message
 
 
@@ -304,7 +398,56 @@ def _has_userless_channel(channels: list) -> bool:
     return any(_is_userless_channel(ch) for ch in (channels or []))
 
 
-def _query_alert_notification_config(device_id: str, task_type: str = None) -> Optional[Dict]:
+def _notification_channel_key(channel: Dict) -> str:
+    """生成不依赖渠道列表顺序的稳定抑制键。"""
+    normalized = channel if isinstance(channel, dict) else {'method': str(channel or '')}
+    method = str(normalized.get('method') or 'unknown').strip().lower()
+    canonical = json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+    digest = hashlib.sha256(canonical.encode('utf-8')).hexdigest()[:32]
+    return f'{method}:{digest}'
+
+
+def _filter_notification_channels(
+        task_id: int,
+        device_id: str,
+        channels: list,
+        suppress_seconds: int,
+) -> Tuple[list, list]:
+    """按任务、设备、渠道过滤仍在通知抑制窗口内的渠道。"""
+    if not channels or suppress_seconds <= 0:
+        return list(channels or []), []
+    channel_by_key = {
+        _notification_channel_key(channel): channel
+        for channel in channels
+        if isinstance(channel, dict)
+    }
+    states = AlgorithmTaskNotificationState.query.filter(
+        AlgorithmTaskNotificationState.task_id == int(task_id),
+        AlgorithmTaskNotificationState.device_id == str(device_id),
+        AlgorithmTaskNotificationState.channel_key.in_(list(channel_by_key.keys())),
+    ).all()
+    state_by_key = {state.channel_key: state for state in states}
+    now = datetime.utcnow()
+    allowed = []
+    suppressed = []
+    for channel_key, channel in channel_by_key.items():
+        state = state_by_key.get(channel_key)
+        if (
+                state
+                and state.last_notify_time
+                and (now - state.last_notify_time).total_seconds() < suppress_seconds
+        ):
+            suppressed.append(channel)
+        else:
+            allowed.append(channel)
+    return allowed, suppressed
+
+
+def _query_alert_notification_config(
+        device_id: str,
+        task_type: str = None,
+        task_id=None,
+) -> Optional[Dict]:
     """
     查询设备的告警通知配置
     
@@ -383,6 +526,8 @@ def _query_alert_notification_config(device_id: str, task_type: str = None) -> O
             AlgorithmTask.alert_notification_enabled == True,
             AlgorithmTask.is_enabled == True
         ]
+        if task_id is not None and str(task_id).strip():
+            filter_conditions.append(AlgorithmTask.id == int(task_id))
         
         # 如果指定了task_type，添加过滤条件
         if task_type:
@@ -426,27 +571,20 @@ def _query_alert_notification_config(device_id: str, task_type: str = None) -> O
                 except Exception as e:
                     logger.error(f"❌ 解析告警通知配置失败: device_id={device_id}, task_id={task.id}, error={str(e)}, config={task.alert_notification_config[:200] if task.alert_notification_config else None}")
 
-            # 检查抑制时间（alarm_suppress_time=0 表示不抑制）
-            if task.last_notify_time and (task.alarm_suppress_time or 0) > 0:
-                suppress_seconds = task.alarm_suppress_time
-                time_since_last_notify = (datetime.utcnow() - task.last_notify_time).total_seconds()
-                if time_since_last_notify < suppress_seconds:
-                    logger.debug(
-                        f"告警通知在抑制时间内，本轮不发送通知: device_id={device_id}, "
-                        f"time_since_last_notify={time_since_last_notify:.0f}秒, "
-                        f"suppress_seconds={suppress_seconds}"
-                    )
-                    return {
-                        'task_id': task.id,
-                        'task_name': task.task_name,
-                        'alert_notification_config': notification_config_data,
-                        'notify_users': notify_users_from_config,
-                        'alarm_suppress_time': task.alarm_suppress_time,
-                        'face_detection_enabled': bool(task.face_detection_enabled),
-                        'plate_detection_enabled': bool(task.plate_detection_enabled),
-                        'notification_suppressed': True,
-                        'task_type': task.task_type or task_type or 'realtime',
-                    }
+            channels = (
+                notification_config_data.get('channels', [])
+                if isinstance(notification_config_data, dict)
+                else []
+            )
+            allowed_channels, suppressed_channels = _filter_notification_channels(
+                task.id,
+                device_id,
+                channels,
+                int(task.alarm_suppress_time or 0),
+            )
+            if isinstance(notification_config_data, dict):
+                notification_config_data = dict(notification_config_data)
+                notification_config_data['channels'] = allowed_channels
             
             # 组装通知配置
             config = {
@@ -458,6 +596,8 @@ def _query_alert_notification_config(device_id: str, task_type: str = None) -> O
                 'face_detection_enabled': bool(task.face_detection_enabled),
                 'plate_detection_enabled': bool(task.plate_detection_enabled),
                 'task_type': task.task_type or task_type or 'realtime',
+                'notification_suppressed': bool(channels and not allowed_channels),
+                'suppressed_channel_count': len(suppressed_channels),
             }
             
             return config
@@ -469,7 +609,12 @@ def _query_alert_notification_config(device_id: str, task_type: str = None) -> O
         return None
 
 
-def _mark_task_notification_sent(notification_config: Dict, task_type: str = 'realtime') -> None:
+def _mark_task_notification_sent(
+        notification_config: Dict,
+        device_id: str,
+        event_id: Optional[str] = None,
+        task_type: str = 'realtime',
+) -> None:
     """告警通知消息成功投递 Kafka 后更新抑制时间戳（避免查询阶段提前写入导致误抑制）。"""
     task_id = notification_config.get('task_id')
     if not task_id:
@@ -484,7 +629,28 @@ def _mark_task_notification_sent(notification_config: Dict, task_type: str = 're
             task = AlgorithmTask.query.get(task_id)
         if not task:
             return
-        task.last_notify_time = datetime.utcnow()
+        now = datetime.utcnow()
+        task.last_notify_time = now
+        if resolved_type is not None:
+            channel_config = notification_config.get('alert_notification_config') or {}
+            channels = channel_config.get('channels', []) if isinstance(channel_config, dict) else []
+            for channel in channels:
+                channel_key = _notification_channel_key(channel)
+                state = AlgorithmTaskNotificationState.query.filter_by(
+                    task_id=int(task_id),
+                    device_id=str(device_id),
+                    channel_key=channel_key,
+                ).first()
+                if state is None:
+                    state = AlgorithmTaskNotificationState(
+                        task_id=int(task_id),
+                        device_id=str(device_id),
+                        channel_key=channel_key,
+                    )
+                    db.session.add(state)
+                state.last_notify_time = now
+                state.last_event_id = str(event_id or '')[:36] or None
+                state.updated_at = now
         db.session.commit()
         logger.debug(
             f"已更新告警通知抑制时间: task_id={task_id}, task_type={resolved_type or 'snap'}"
@@ -584,7 +750,11 @@ def _is_robot_fallback_channel(channel: dict) -> bool:
 
 
 
-def _resolve_alert_event_suppress_seconds(device_id: str, task_type: str) -> int:
+def _resolve_alert_event_suppress_seconds(
+        device_id: str,
+        task_type: str,
+        task_id=None,
+) -> int:
     """查询设备关联算法任务的告警事件抑制时间（秒）。"""
     if not device_id:
         return 5
@@ -599,6 +769,8 @@ def _resolve_alert_event_suppress_seconds(device_id: str, task_type: str) -> int
         )
         if tt:
             query = query.filter(AlgorithmTask.task_type == tt)
+        if task_id is not None and str(task_id).strip():
+            query = query.filter(AlgorithmTask.id == int(task_id))
         task = query.order_by(AlgorithmTask.id.asc()).first()
         if task and task.alert_event_suppress_time is not None:
             return max(0, int(task.alert_event_suppress_time))
@@ -607,14 +779,22 @@ def _resolve_alert_event_suppress_seconds(device_id: str, task_type: str) -> int
     return 5
 
 
-def _should_suppress_alert_event_kafka(device_id: str, task_type: str, suppress_seconds: int) -> bool:
-    """同一设备在抑制窗口内不再向 Kafka 投递告警事件。"""
+def _should_suppress_alert_event_kafka(
+        task_id,
+        device_id: str,
+        task_type: str,
+        suppress_seconds: int,
+        event_identity: Optional[str] = None,
+) -> bool:
+    """同一任务、设备及事件在抑制窗口内不再向 Kafka 投递。"""
     if not device_id or suppress_seconds <= 0:
         return False
-    tt = task_type or 'realtime'
-    if tt == 'snapshot':
-        tt = 'snap'
-    key = (str(device_id), tt)
+    key = build_alert_suppression_key(
+        task_id,
+        device_id,
+        task_type,
+        event_identity=event_identity,
+    )
     now = time.time()
     with _alert_event_kafka_lock:
         last = _last_alert_event_kafka_time.get(key, 0)
@@ -816,33 +996,46 @@ def process_alert_hook(alert_data: Dict) -> Dict:
         if 'time' in alert_data:
             alert_data['time'] = _normalize_alert_wall_time_str(alert_data.get('time'))
 
-        # 查询告警通知配置
         device_id = alert_data.get('device_id')
-        task_type = alert_data.get('task_type', 'realtime')  # 默认为实时算法任务
-        # 统一task_type格式（snapshot -> snap）
-        if task_type == 'snapshot':
-            task_type = 'snap'
+        task_type = normalize_algorithm_task_type(alert_data.get('task_type'))
+        request_task_id = alert_data.get('task_id') or alert_data.get('taskId')
 
         use_direct_persist = _should_use_direct_alert_persist()
 
-        # Kafka 抑制仅作用于投递 Kafka；mini 直连落库由算法侧抑制，hook 不再二次拦截
-        if device_id and not use_direct_persist:
-            suppress_seconds = _resolve_alert_event_suppress_seconds(device_id, task_type)
-            if _should_suppress_alert_event_kafka(device_id, task_type, suppress_seconds):
-                logger.debug(
-                    f"告警事件 Kafka 抑制: device_id={device_id}, task_type={task_type}, "
-                    f"interval={suppress_seconds}s"
-                )
-                return {'status': 'suppressed', 'reason': 'alert_event_suppress_interval'}
-
         alert_event_task = None
         if device_id:
-            alert_event_task = _query_alert_event_task(device_id, task_type)
+            try:
+                alert_event_task = _query_alert_event_task(
+                    device_id,
+                    task_type,
+                    request_task_id,
+                )
+            except AmbiguousAlgorithmTaskError as exc:
+                logger.warning('拒绝缺少任务身份的歧义告警: %s', exc)
+                return {'status': 'rejected', 'reason': 'ambiguous_task', 'error': str(exc)}
+            except ValueError as exc:
+                return {'status': 'rejected', 'reason': 'invalid_task_id', 'error': str(exc)}
             if not alert_event_task:
                 logger.info(
-                    f"设备未关联已启用的告警事件任务，跳过: device_id={device_id}, task_type={task_type}"
+                    '未找到匹配且已启用的告警事件任务，跳过: task_id=%s, device_id=%s, task_type=%s',
+                    request_task_id,
+                    device_id,
+                    task_type,
                 )
                 return {'status': 'skipped', 'reason': 'alert_event_disabled'}
+
+        resolved_task_id = alert_event_task.get('task_id') if alert_event_task else request_task_id
+
+        if alert_event_task:
+            model_validation_error = _validate_alert_model_ownership(alert_data, alert_event_task)
+            if model_validation_error:
+                logger.warning(
+                    '拒绝模型归属不匹配的告警: task_id=%s device_id=%s reason=%s',
+                    resolved_task_id,
+                    device_id,
+                    model_validation_error.get('reason'),
+                )
+                return model_validation_error
 
         filtered = _apply_alert_class_filter(alert_data, alert_event_task)
         if filtered is not None:
@@ -853,10 +1046,45 @@ def process_alert_hook(alert_data: Dict) -> Dict:
             )
             return filtered
 
+        # Kafka 抑制仅作用于投递 Kafka；mini 直连落库由算法侧抑制，hook 不再二次拦截。
+        if device_id and resolved_task_id and not use_direct_persist:
+            suppress_seconds = _resolve_alert_event_suppress_seconds(
+                device_id,
+                task_type,
+                resolved_task_id,
+            )
+            event_identity = resolve_alert_event_identity(alert_data)
+            if _should_suppress_alert_event_kafka(
+                    resolved_task_id,
+                    device_id,
+                    task_type,
+                    suppress_seconds,
+                    event_identity,
+            ):
+                logger.debug(
+                    '告警事件 Kafka 抑制: task_id=%s, device_id=%s, task_type=%s, '
+                    'event_identity=%s, interval=%ss',
+                    resolved_task_id,
+                    device_id,
+                    task_type,
+                    event_identity,
+                    suppress_seconds,
+                )
+                return {'status': 'suppressed', 'reason': 'alert_event_suppress_interval'}
+
         notification_config = None
         if device_id:
-            logger.info(f"🔍 查询告警通知配置: device_id={device_id}, task_type={task_type}")
-            notification_config = _query_alert_notification_config(device_id, task_type)
+            logger.info(
+                '🔍 查询告警通知配置: task_id=%s, device_id=%s, task_type=%s',
+                resolved_task_id,
+                device_id,
+                task_type,
+            )
+            notification_config = _query_alert_notification_config(
+                device_id,
+                task_type,
+                resolved_task_id,
+            )
             if notification_config:
                 logger.info(f"✅ 找到告警通知配置: device_id={device_id}, task_id={notification_config.get('task_id')}, "
                           f"task_name={notification_config.get('task_name')}, "
@@ -950,6 +1178,11 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                         if should_notify and notification_config:
                             _mark_task_notification_sent(
                                 notification_config,
+                                device_id,
+                                alert_data.get('event_id')
+                                or alert_data.get('eventId')
+                                or alert_data.get('correlation_id')
+                                or alert_data.get('correlationId'),
                                 alert_data.get('task_type', 'realtime'),
                             )
                         return {
@@ -1261,10 +1494,13 @@ def _build_notification_message_for_kafka(alert_data: Dict, notification_config:
     correlation_id = alert_data.get('correlation_id') or alert_data.get('correlationId')
     if correlation_id:
         message['correlationId'] = correlation_id
+    message['schemaVersion'] = alert_data.get('schema_version') or alert_data.get('schemaVersion') or 1
+    message['eventId'] = alert_data.get('event_id') or alert_data.get('eventId') or correlation_id
+    message['modelIds'] = sorted(_normalize_event_model_ids(alert_data))
+    message['detections'] = alert_data.get('detections') or []
     
     logger.info(f"✅ 告警通知消息构建成功: device_id={device_id}, task_id={task_id}, "
                 f"shouldNotify={should_notify}, notifyUsers数量={len(notify_users)}, "
                 f"notifyMethods={notify_methods}, channels数量={len(channels)}")
     
     return message
-

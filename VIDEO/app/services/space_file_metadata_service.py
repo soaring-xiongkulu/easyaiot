@@ -36,6 +36,7 @@ def upsert_record_file(
     *,
     space_id: int,
     device_id: str,
+    task_id: Optional[int] = None,
     object_name: str,
     bucket_name: str,
     filename: Optional[str] = None,
@@ -57,6 +58,7 @@ def upsert_record_file(
     if record:
         record.space_id = space_id
         record.device_id = device_id
+        record.task_id = task_id
         record.filename = filename
         if file_size is not None:
             record.file_size = file_size
@@ -75,6 +77,7 @@ def upsert_record_file(
         record = RecordFile(
             space_id=space_id,
             device_id=device_id,
+            task_id=task_id,
             object_name=object_name,
             bucket_name=bucket_name,
             filename=filename,

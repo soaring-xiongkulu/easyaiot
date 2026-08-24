@@ -21,6 +21,8 @@ services:
     # 网络模式：使用host模式以访问宿主机局域网（ONVIF发现需要）
     # 注意：使用host模式后，端口映射将失效，服务直接使用宿主机网络
     network_mode: host
+    # BGR 共享帧环使用 tmpfs。生产默认 1 GiB，仍应按分辨率、槽位和摄像头数核算。
+    shm_size: ${VIDEO_SHM_SIZE:-1g}
 
     # 数据卷挂载
     volumes:

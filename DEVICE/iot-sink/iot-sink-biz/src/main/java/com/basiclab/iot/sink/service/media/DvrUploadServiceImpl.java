@@ -55,6 +55,10 @@ public class DvrUploadServiceImpl implements DvrUploadService {
         }
         String cwd = stringVal(event.get("cwd"));
         String deviceId = stringVal(event.get("device_id"));
+        Integer taskId = integerVal(event.get("task_id"));
+        if (taskId == null) {
+            taskId = integerVal(event.get("taskId"));
+        }
         if (!StringUtils.hasText(deviceId)) {
             deviceId = stream;
         }
@@ -100,7 +104,8 @@ public class DvrUploadServiceImpl implements DvrUploadService {
             recordTime = LocalDateTime.now(SHANGHAI);
         }
         String dateDir = recordTime.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        String objectName = resolvedDeviceId + "/" + dateDir + "/" + filename;
+        String taskPrefix = taskId == null ? "" : "task_" + taskId + "/";
+        String objectName = resolvedDeviceId + "/" + taskPrefix + dateDir + "/" + filename;
 
         if (minioClient == null) {
             log.warn("MinIO 不可用，跳过 DVR 上传 device={} file={}", resolvedDeviceId, absolute);
@@ -121,10 +126,10 @@ public class DvrUploadServiceImpl implements DvrUploadService {
             String minioUrl = "/api/v1/buckets/" + bucketName + "/objects/download?prefix="
                     + URLEncoder.encode(objectName, StandardCharsets.UTF_8);
             int duration = 30;
-            upsertPlayback(resolvedDeviceId, minioUrl, objectName, recordTime, fileSize, duration);
+            upsertPlayback(resolvedDeviceId, taskId, minioUrl, objectName, recordTime, fileSize, duration);
             // 录像空间前端读 record_file，必须与 Playback 同步写入，否则「录像回放」一直为空
-            upsertRecordFile(resolvedDeviceId, bucketName, objectName, minioUrl, recordTime, fileSize, duration);
-            patchAlertsRecord(resolvedDeviceId, recordTime, duration, minioUrl);
+            upsertRecordFile(resolvedDeviceId, taskId, bucketName, objectName, minioUrl, recordTime, fileSize, duration);
+            patchAlertsRecord(resolvedDeviceId, taskId, recordTime, duration, minioUrl);
             if (mediaProperties.isRemoveLocalAfterUpload()) {
                 tryDelete(absolute);
             }
@@ -194,7 +199,7 @@ public class DvrUploadServiceImpl implements DvrUploadService {
     }
 
     private void upsertPlayback(
-            String deviceId, String filePathUrl, String objectName,
+            String deviceId, Integer taskId, String filePathUrl, String objectName,
             LocalDateTime recordTime, long fileSize, int duration) {
         if (jdbcTemplate == null) {
             return;
@@ -211,13 +216,13 @@ public class DvrUploadServiceImpl implements DvrUploadService {
                     deviceId, filePathUrl, objectName);
             if (existing != null) {
                 jdbcTemplate.update(
-                        "UPDATE playback SET file_path = ?, file_size = ?, event_time = ?, duration = ?, updated_at = NOW() WHERE id = ?",
-                        filePathUrl, fileSize, recordTime, duration, existing);
+                        "UPDATE playback SET task_id = ?, file_path = ?, file_size = ?, event_time = ?, duration = ?, updated_at = NOW() WHERE id = ?",
+                        taskId, filePathUrl, fileSize, recordTime, duration, existing);
             } else {
                 jdbcTemplate.update(
-                        "INSERT INTO playback (file_path, event_time, device_id, device_name, duration, file_size, created_at, updated_at) "
-                                + "VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
-                        filePathUrl, recordTime, deviceId, deviceName, duration, fileSize);
+                        "INSERT INTO playback (file_path, event_time, device_id, task_id, device_name, duration, file_size, created_at, updated_at) "
+                                + "VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                        filePathUrl, recordTime, deviceId, taskId, deviceName, duration, fileSize);
             }
         } finally {
             DynamicDataSourceContextHolder.clear();
@@ -228,7 +233,7 @@ public class DvrUploadServiceImpl implements DvrUploadService {
      * 写入录像空间元数据表 record_file（WEB「录像回放」按此表查询，不能只写 playback）。
      */
     private void upsertRecordFile(
-            String deviceId, String bucketName, String objectName, String filePathUrl,
+            String deviceId, Integer taskId, String bucketName, String objectName, String filePathUrl,
             LocalDateTime recordTime, long fileSize, int duration) {
         if (jdbcTemplate == null || !StringUtils.hasText(deviceId) || !StringUtils.hasText(objectName)) {
             return;
@@ -252,16 +257,16 @@ public class DvrUploadServiceImpl implements DvrUploadService {
                     bucketName, objectName);
             if (existing != null) {
                 jdbcTemplate.update(
-                        "UPDATE record_file SET space_id = ?, device_id = ?, filename = ?, file_size = ?, "
+                        "UPDATE record_file SET space_id = ?, device_id = ?, task_id = ?, filename = ?, file_size = ?, "
                                 + "url = ?, duration = ?, event_time = ?, source = ?, updated_at = NOW() WHERE id = ?",
-                        spaceId, deviceId, filename, fileSize, filePathUrl, (short) duration, recordTime, "dvr",
+                        spaceId, deviceId, taskId, filename, fileSize, filePathUrl, (short) duration, recordTime, "dvr",
                         existing);
             } else {
                 jdbcTemplate.update(
-                        "INSERT INTO record_file (space_id, device_id, object_name, bucket_name, filename, file_size, "
+                        "INSERT INTO record_file (space_id, device_id, task_id, object_name, bucket_name, filename, file_size, "
                                 + "content_type, url, duration, event_time, source, created_at, updated_at) "
-                                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
-                        spaceId, deviceId, objectName, bucketName, filename, fileSize,
+                                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                        spaceId, deviceId, taskId, objectName, bucketName, filename, fileSize,
                         "video/x-flv", filePathUrl, (short) duration, recordTime, "dvr");
             }
         } catch (Exception e) {
@@ -271,7 +276,8 @@ public class DvrUploadServiceImpl implements DvrUploadService {
         }
     }
 
-    private void patchAlertsRecord(String deviceId, LocalDateTime eventTime, int duration, String filePathUrl) {
+    private void patchAlertsRecord(
+            String deviceId, Integer taskId, LocalDateTime eventTime, int duration, String filePathUrl) {
         if (jdbcTemplate == null || !StringUtils.hasText(filePathUrl)) {
             return;
         }
@@ -279,11 +285,16 @@ public class DvrUploadServiceImpl implements DvrUploadService {
             DynamicDataSourceContextHolder.push("video");
             LocalDateTime legacyStart = eventTime.minusSeconds(Math.max(duration, 1));
             LocalDateTime endTime = eventTime.plusSeconds(Math.max(duration, 1));
+            String taskClause = taskId == null ? "" : "AND task_id = ? ";
+            Object[] args = taskId == null
+                    ? new Object[]{filePathUrl, deviceId, legacyStart, endTime}
+                    : new Object[]{filePathUrl, deviceId, legacyStart, endTime, taskId};
             int updated = jdbcTemplate.update(
                     "UPDATE alert SET record_path = ? WHERE device_id = ? "
                             + "AND time >= ? AND time <= ? "
+                            + taskClause
                             + "AND (record_path IS NULL OR TRIM(record_path) = '')",
-                    filePathUrl, deviceId, legacyStart, endTime);
+                    args);
             if (updated > 0) {
                 log.info("已回写 {} 条告警 record_path device={}", updated, deviceId);
             }
@@ -347,6 +358,19 @@ public class DvrUploadServiceImpl implements DvrUploadService {
 
     private static String stringVal(Object o) {
         return o == null ? "" : String.valueOf(o).trim();
+    }
+
+    private static Integer integerVal(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return value instanceof Number
+                    ? ((Number) value).intValue()
+                    : Integer.valueOf(String.valueOf(value).trim());
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static void tryDelete(Path path) {

@@ -6,10 +6,25 @@
 """
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 
-from models import db, AlgorithmTask, FrameExtractor, Sorter, Pusher, Device, utc_isoformat_z
+from models import (
+    db,
+    AlgorithmTask,
+    AlgorithmTaskStreamRuntime,
+    FrameExtractor,
+    Sorter,
+    Pusher,
+    Device,
+    utc_isoformat_z,
+)
+from app.utils.algorithm_task_identity import build_task_stream_key, rewrite_task_stream_url
+from app.utils.algorithm_task_runtime import (
+    resolve_heartbeat_stream_state,
+    resolve_task_run_status_from_heartbeat,
+)
+from app.utils.camera_source_client import camera_source_mode, get_camera_source_status
 from app.services.algorithm_task_service import (
     create_algorithm_task, update_algorithm_task, delete_algorithm_task,
     get_algorithm_task, list_algorithm_tasks, start_algorithm_task,
@@ -306,6 +321,8 @@ def receive_realtime_heartbeat():
         port = data.get('port')
         process_id = data.get('process_id')
         log_path = data.get('log_path')
+        has_stream_runtime = isinstance(data.get('stream_runtime'), list)
+        stream_runtime = data.get('stream_runtime') or []
         
         if not task_id:
             return jsonify({
@@ -349,9 +366,69 @@ def receive_realtime_heartbeat():
             log_base_dir = os.path.join(video_root, 'logs')
             task.service_log_path = os.path.join(log_base_dir, f'task_{task_id}')
         
-        # 更新运行状态为running
-        if task.run_status != 'stopped':
-            task.run_status = 'running'
+        # 启用任务收到 Worker 心跳后必须进入运行态；停用任务的迟到心跳不得重新激活任务。
+        task.run_status = resolve_task_run_status_from_heartbeat(task.is_enabled)
+
+        # Worker 上报的是任务与设备维度的实际状态，避免播放接口根据
+        # CameraSourceManager 的订阅关系猜测是否已经进入推理、推流。
+        reported_device_ids = set()
+        now = datetime.utcnow()
+
+        def _epoch_to_datetime(value):
+            if value in (None, ''):
+                return None
+            try:
+                return datetime.fromtimestamp(float(value), tz=timezone.utc)
+            except (TypeError, ValueError, OverflowError):
+                return None
+
+        if isinstance(stream_runtime, list):
+            for item in stream_runtime:
+                if not isinstance(item, dict):
+                    continue
+                device_id = str(item.get('device_id') or '').strip()
+                if not device_id:
+                    continue
+                reported_device_ids.add(device_id)
+                runtime = AlgorithmTaskStreamRuntime.query.filter_by(
+                    task_id=task.id,
+                    device_id=device_id,
+                ).first()
+                if runtime is None:
+                    runtime = AlgorithmTaskStreamRuntime(
+                        task_id=task.id,
+                        device_id=device_id,
+                        stream_key=str(
+                            item.get('stream_key')
+                            or build_task_stream_key(task.id, device_id)
+                        ),
+                    )
+                    db.session.add(runtime)
+                runtime.node_id = task.node_id
+                runtime.stream_key = str(
+                    item.get('stream_key')
+                    or build_task_stream_key(task.id, device_id)
+                )
+                runtime.source_mode, runtime.status = resolve_heartbeat_stream_state(
+                    task.is_enabled,
+                    item.get('source_mode'),
+                    item.get('status'),
+                )
+                if task.is_enabled:
+                    runtime.last_frame_time = _epoch_to_datetime(item.get('last_frame_time'))
+                    runtime.last_detection_time = _epoch_to_datetime(item.get('last_detection_time'))
+                    runtime.last_alert_time = _epoch_to_datetime(item.get('last_alert_time'))
+                    runtime.error_message = str(item.get('error_message') or '')[:500] or None
+                else:
+                    runtime.error_message = None
+                runtime.updated_at = now
+
+        if has_stream_runtime:
+            stale_rows = AlgorithmTaskStreamRuntime.query.filter_by(task_id=task.id).all()
+            for runtime in stale_rows:
+                if runtime.device_id not in reported_device_ids:
+                    runtime.status = 'stopped'
+                    runtime.updated_at = now
         
         db.session.commit()
         
@@ -747,11 +824,87 @@ def get_task_realtime_logs(task_id):
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 # ====================== 推流地址查询接口 ======================
+def _camera_source_status_map():
+    """源流状态查询失败时返回空映射，不影响播放地址生成。"""
+    if camera_source_mode() != 'shared':
+        return {}
+    try:
+        return {
+            str(item.get('device_id')): item
+            for item in (get_camera_source_status() or [])
+            if item.get('device_id')
+        }
+    except Exception as exc:
+        logger.debug('查询 CameraSourceManager 状态失败: %s', exc)
+        return {}
+
+
+def _build_task_stream_info(task, device, source_status_by_device):
+    """构建任务与设备唯一的播放流信息。"""
+    task_id = int(task.id)
+    stream_key = build_task_stream_key(task_id, device.id)
+    ai_http_stream = device.ai_http_stream or device.http_stream
+    ai_rtmp_stream = device.ai_rtmp_stream or device.rtmp_stream
+    source_status = source_status_by_device.get(str(device.id), {})
+    configured_source_mode = camera_source_mode()
+    runtime = AlgorithmTaskStreamRuntime.query.filter_by(
+        task_id=task_id,
+        device_id=str(device.id),
+    ).first()
+    runtime_fresh = bool(
+        runtime
+        and runtime.updated_at
+        and (datetime.utcnow() - runtime.updated_at).total_seconds() <= 30
+    )
+    if not task.is_enabled:
+        effective_source_mode = runtime.source_mode if runtime_fresh else (
+            'direct' if configured_source_mode == 'direct' else 'pending'
+        )
+        effective_status = 'stopped'
+    elif runtime_fresh:
+        effective_source_mode = runtime.source_mode
+        effective_status = runtime.status
+    else:
+        effective_source_mode = 'direct' if configured_source_mode == 'direct' else 'pending'
+        effective_status = 'stopped' if not task.is_enabled else 'starting'
+    return {
+        'task_id': task_id,
+        'task_name': task.task_name,
+        'model_names': task.model_names,
+        'stream_key': stream_key,
+        'device_id': device.id,
+        'device_name': device.name or device.id,
+        'http_stream': device.http_stream,
+        'rtmp_stream': device.rtmp_stream,
+        'ai_http_stream': rewrite_task_stream_url(ai_http_stream, task_id, device.id),
+        'ai_rtmp_stream': rewrite_task_stream_url(ai_rtmp_stream, task_id, device.id),
+        'source': device.source,
+        'cover_image_path': device.cover_image_path,
+        'source_mode': effective_source_mode,
+        'configured_source_mode': configured_source_mode,
+        'source_status': effective_status,
+        'source_subscriber_count': source_status.get('subscriber_count', 0),
+        'source_decode_fps': source_status.get('decode_fps', 0),
+        'last_frame_time': (
+            utc_isoformat_z(runtime.last_frame_time)
+            if runtime_fresh else None
+        ),
+        'last_detection_time': (
+            utc_isoformat_z(runtime.last_detection_time)
+            if runtime_fresh else None
+        ),
+        'last_alert_time': (
+            utc_isoformat_z(runtime.last_alert_time)
+            if runtime_fresh else None
+        ),
+        'runtime_error': runtime.error_message if runtime_fresh else None,
+    }
+
+
 @algorithm_task_bp.route('/task/<int:task_id>/streams', methods=['GET'])
 def get_task_streams(task_id):
     """获取算法任务关联的摄像头推流地址列表"""
     try:
-        import json
         task = AlgorithmTask.query.get(task_id)
         if not task:
             return jsonify({'code': 400, 'msg': '算法任务不存在'}), 400
@@ -765,23 +918,13 @@ def get_task_streams(task_id):
                 'data': []
             })
         
+        # 源流状态查询失败不影响任务独立播放地址返回。
+        source_status_by_device = _camera_source_status_map()
+
         # 构建摄像头推流地址列表
         streams = []
         for device in device_list:
-            stream_info = {
-                'device_id': device.id,
-                'device_name': device.name or device.id,
-                'http_stream': device.http_stream,
-                'rtmp_stream': device.rtmp_stream,
-                'ai_http_stream': device.ai_http_stream,  # AI HTTP流地址（用于算法任务）
-                'ai_rtmp_stream': device.ai_rtmp_stream,  # AI RTMP流地址（用于算法任务）
-                'source': device.source,
-                'cover_image_path': device.cover_image_path,  # 添加设备封面图字段
-            }
-            
-            # 对于实时算法任务和抓拍算法任务，都直接使用摄像头的推流地址
-            
-            streams.append(stream_info)
+            streams.append(_build_task_stream_info(task, device, source_status_by_device))
         
         return jsonify({
             'code': 0,
@@ -791,6 +934,52 @@ def get_task_streams(task_id):
     except Exception as e:
         logger.error(f"获取算法任务推流地址失败: {str(e)}", exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@algorithm_task_bp.route('/device/<string:device_id>/task-streams', methods=['GET'])
+def get_device_task_streams(device_id):
+    """获取摄像头所有运行中实时算法任务的独立画框流。"""
+    try:
+        device = Device.query.get(device_id)
+        if not device:
+            return jsonify({'code': 404, 'msg': '摄像头不存在', 'data': []}), 404
+        tasks = AlgorithmTask.query.filter(
+            AlgorithmTask.devices.any(Device.id == device_id),
+            AlgorithmTask.task_type == 'realtime',
+            AlgorithmTask.is_enabled == True,
+        ).order_by(AlgorithmTask.id.asc()).all()
+        source_status_by_device = _camera_source_status_map()
+        streams = [
+            _build_task_stream_info(task, device, source_status_by_device)
+            for task in tasks
+        ]
+        return jsonify({'code': 0, 'msg': 'success', 'data': streams})
+    except Exception as exc:
+        logger.error('获取摄像头任务流失败: device_id=%s error=%s', device_id, exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(exc)}', 'data': []}), 500
+
+
+@algorithm_task_bp.route('/source/status', methods=['GET'])
+def get_camera_source_runtime_status():
+    """查询本节点共享摄像头源流状态。"""
+    try:
+        device_id = request.args.get('device_id', '').strip() or None
+        if camera_source_mode() != 'shared':
+            data = []
+        else:
+            source_status = get_camera_source_status(device_id)
+            if device_id:
+                data = [source_status] if source_status else []
+            else:
+                data = source_status or []
+        return jsonify({'code': 0, 'msg': 'success', 'data': data})
+    except Exception as exc:
+        logger.warning('查询共享摄像头源流状态失败: %s', exc)
+        return jsonify({
+            'code': 503,
+            'msg': f'共享源流服务不可用: {str(exc)}',
+            'data': [],
+        }), 503
 
 
 def get_service_logs(service_obj, lines: int = 100, date: str = None):
@@ -916,7 +1105,6 @@ def list_post_process_results(task_id):
         logger.error('查询后处理结果失败: %s', e, exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
-
 # ====================== POST 后处理规则链 ======================
 @algorithm_task_bp.route('/task/post-pipeline/catalog', methods=['GET'])
 def get_post_pipeline_catalog():
@@ -1015,4 +1203,3 @@ def debug_post_pipeline(task_id):
     except Exception as e:
         logger.error('规则链调试失败 task=%s: %s', task_id, e, exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-

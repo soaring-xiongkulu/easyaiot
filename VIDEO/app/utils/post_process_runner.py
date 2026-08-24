@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ def task_needs_sink_processing(task_config: Any) -> bool:
 
 def _serialize_detection(det: Dict[str, Any]) -> Dict[str, Any]:
     return {
+        'model_id': det.get('model_id'),
         'class_id': det.get('class_id'),
         'class_name': det.get('class_name'),
         'confidence': float(det.get('confidence', 0)),
@@ -337,6 +338,7 @@ def enqueue_post_process_request(
     detections: List[Dict[str, Any]],
     tracked_detections: Optional[List[Dict[str, Any]]] = None,
     alert_image_path: Optional[str] = None,
+    on_failure: Optional[Callable[[], None]] = None,
 ) -> None:
     """将检测结果 HTTP 投递至 iot-sink 入队，姿态分析在 Worker 内异步执行。"""
     if not task_needs_sink_processing(task_config):
@@ -357,9 +359,15 @@ def enqueue_post_process_request(
         ctx['alert_image_path'] = alert_image_path
     try:
         from app.services.post_process_sink_client import publish_post_process_request_async
-        publish_post_process_request_async(ctx, alert_image_path=alert_image_path)
+        publish_post_process_request_async(
+            ctx,
+            alert_image_path=alert_image_path,
+            on_failure=on_failure,
+        )
     except Exception as exc:
         logger.warning('后处理请求投递 iot-sink 失败: %s', exc)
+        if on_failure is not None:
+            on_failure()
 
 
 def apply_post_process(

@@ -46,14 +46,39 @@ from app.utils.video_env import load_video_env
 
 load_video_env(override=True)
 
+# 共享 mmap 只在 CameraSourceManager 本机有效。远程部署标记由控制面写入，
+# 即使节点本地 .env 默认 shared，也必须在加载配置后重新强制为 direct。
+if (os.getenv('CAMERA_SOURCE_REMOTE_WORKER') or '').strip().lower() in ('1', 'true', 'yes', 'on'):
+    os.environ['CAMERA_SOURCE_MODE'] = 'direct'
+    os.environ.pop('CAMERA_SOURCE_MANAGER_URL', None)
+    os.environ.pop('CAMERA_SOURCE_MANAGER_TOKEN', None)
+
 import app.utils.nvidia_lib_path  # noqa: F401  须在 import onnxruntime 之前
 
 # 导入VIDEO模块的模型
 from models import db, AlgorithmTask, Device
 from app.utils.gb28181_source import resolve_gb28181_alternate_pull_url, resolve_gb28181_source
 from app.services.camera_service import resolve_device_ai_rtmp_stream
-from app.utils.alert_images_paths import resolve_alert_images_root
-from app.utils.decode.stream_adapter import is_async_stream, open_device_stream, stream_mode_label
+from app.utils.alert_images_paths import build_alert_image_filename, resolve_alert_images_root
+from app.utils.algorithm_task_identity import (
+    build_alert_event_groups,
+    build_task_stream_key,
+    claim_due_alert_event_identities,
+    rewrite_task_stream_url,
+    should_reload_algorithm_models,
+)
+from app.utils.parallel_inference_observability import (
+    build_parallel_inference_evidence,
+    format_observability_event,
+)
+from app.utils.algorithm_task_runtime import resolve_frame_runtime_status
+from app.utils.camera_source_client import (
+    camera_source_mode,
+    is_shared_camera_stream,
+    open_shared_camera_stream,
+    open_task_camera_stream,
+)
+from app.utils.decode.stream_adapter import is_async_stream, stream_mode_label
 from app.utils.onnx_inference import ONNXInference
 try:
     from app.utils.utf8_detection_label import draw_detection_label
@@ -390,6 +415,9 @@ BEIJING_TZ = pytz.timezone('Asia/Shanghai')
 
 # 全局变量
 TASK_ID = int(os.getenv('TASK_ID', '0'))
+# 同一任务的每次进程启动都使用独立实例标识；并行推理证据依赖该值区分
+# 旧进程、健康恢复后的新进程，以及同摄像头上的其他任务进程。
+WORKER_INSTANCE = f'{TASK_ID}-{os.getpid()}-{uuid.uuid4().hex[:8]}'
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/iot_video')
 VIDEO_SERVICE_PORT = os.getenv('VIDEO_SERVICE_PORT', '6000')
 # 匹配回调：mini 形态直连 VIDEO；完整形态经 iot-gateway /admin-api/video
@@ -408,6 +436,11 @@ task_config = None
 yolo_models = {}
 yolo_model_devices = {}  # {model_id: 'cpu' | 'cuda:N'}
 yolo_model_meta = {}  # {model_id: {'yolo26': bool, 'end2end': bool, 'path': str}}
+model_state_lock = threading.RLock()
+# 每个 Worker 独立累计模型推理进度，供双任务并行执行核验。
+model_inference_stats = {}  # {(device_id, model_id): counters}
+model_inference_stats_lock = threading.RLock()
+parallel_inference_last_log = {}  # {device_id: monotonic timestamp}
 # 为每个摄像头创建独立的追踪器
 trackers = {}  # {device_id: SimpleTracker}
 # 为每个摄像头创建独立的帧索引计数器
@@ -433,15 +466,113 @@ device_pusher_stderr_locks = {}  # {device_id: threading.Lock}
 # 设备编码器状态：记录每个设备实际使用的编码器（用于硬件编码失败时自动回退）
 device_codec_status = {}  # {device_id: 'h264_nvenc' | 'libx264'}
 device_codec_locks = {}  # {device_id: threading.Lock} 保护编码器状态
+# Worker 实际运行状态，通过心跳上报给 VIDEO，禁止控制面根据订阅缺失猜测降级模式。
+device_runtime_status = {}  # {device_id: runtime dict}
+device_runtime_status_lock = threading.Lock()
 # 告警抑制：记录每个设备上次告警推送时间
-last_alert_time = {}  # {device_id: timestamp}
+# 每个模型类别事件独立抑制，防止同一任务内的不同业务事件互相压制。
+last_alert_time = {}  # {(device_id, event_identity): timestamp}
 alert_time_lock = threading.Lock()  # 告警时间戳锁，确保线程安全
+# 后处理路径独立记录首次命中，确保高频叠框能投递且不会压垮 iot-sink。
+post_process_dispatch_time = {}  # {(device_id, event_identity): timestamp}
+post_process_dispatch_lock = threading.Lock()
 # 最新检测 overlay 缓存：检测迟达时主画面仍可叠框（与告警图一致）
 device_latest_overlays = {}  # {device_id: {'detections': [...], 'timestamp': float, 'frame_number': int}}
 # SAM 补充识别（YOLO + SAM Pipeline）
 _sam_config = None
 _sam_client = None
 device_latest_overlay_locks = {}  # {device_id: threading.Lock()}
+
+
+def _update_device_runtime(device_id: str, **changes) -> None:
+    """线程安全更新任务设备运行状态。"""
+    with device_runtime_status_lock:
+        runtime = device_runtime_status.setdefault(str(device_id), {
+            'device_id': str(device_id),
+            'stream_key': build_task_stream_key(TASK_ID, device_id),
+            'source_mode': 'pending',
+            'status': 'starting',
+        })
+        runtime.update({key: value for key, value in changes.items() if value is not None})
+        runtime['updated_at'] = time.time()
+
+
+def _device_runtime_snapshot() -> List[Dict[str, Any]]:
+    """生成可安全序列化的运行状态快照。"""
+    with device_runtime_status_lock:
+        return [dict(value) for value in device_runtime_status.values()]
+
+
+def _source_mode_for_device(device_id: str) -> str:
+    """读取设备当前实际取流模式。"""
+    with device_runtime_status_lock:
+        runtime = device_runtime_status.get(str(device_id), {})
+        return str(runtime.get('source_mode') or 'pending')
+
+
+def _record_model_inference_progress(
+        device_id: str,
+        model_id: int,
+        frame_number: int,
+        *,
+        detection_count: int,
+        duration_ms: float,
+        succeeded: bool,
+) -> None:
+    """累计单个模型的推理次数、命中和异常信息。"""
+    key = (str(device_id), int(model_id))
+    with model_inference_stats_lock:
+        stats = model_inference_stats.setdefault(key, {
+            'model_id': int(model_id),
+            'inference_count': 0,
+            'success_count': 0,
+            'hit_frame_count': 0,
+            'detection_count': 0,
+            'error_count': 0,
+            'last_frame_number': 0,
+            'last_duration_ms': 0.0,
+        })
+        stats['inference_count'] += 1
+        stats['last_frame_number'] = int(frame_number)
+        stats['last_duration_ms'] = round(float(duration_ms), 2)
+        if succeeded:
+            stats['success_count'] += 1
+            stats['detection_count'] += int(detection_count)
+            if detection_count > 0:
+                stats['hit_frame_count'] += 1
+        else:
+            stats['error_count'] += 1
+
+
+def _log_parallel_inference_progress(device_id: str, frame_number: int) -> None:
+    """按固定周期输出当前 Worker 的模型推理进度证据。"""
+    now = time.monotonic()
+    interval = max(
+        5.0,
+        float(os.getenv('PARALLEL_INFERENCE_LOG_INTERVAL_SEC', '30') or '30'),
+    )
+    with model_inference_stats_lock:
+        last_logged_at = parallel_inference_last_log.get(str(device_id), 0.0)
+        if last_logged_at and now - last_logged_at < interval:
+            return
+        model_stats = [
+            dict(stats)
+            for (stats_device_id, _model_id), stats in model_inference_stats.items()
+            if stats_device_id == str(device_id)
+        ]
+        if not model_stats:
+            return
+        parallel_inference_last_log[str(device_id)] = now
+    evidence = build_parallel_inference_evidence(
+        task_id=TASK_ID,
+        process_id=os.getpid(),
+        worker_instance=WORKER_INSTANCE,
+        device_id=device_id,
+        source_mode=_source_mode_for_device(device_id),
+        frame_number=frame_number,
+        model_stats=model_stats,
+    )
+    logger.info(format_observability_event('PARALLEL_INFERENCE', evidence))
 
 
 def _alert_event_suppress_seconds() -> float:
@@ -1015,17 +1146,20 @@ def _run_yolo_on_frame(
 ):
     """对单帧执行全部模型检测，返回 (tracked_detections, detections)。"""
     all_detections = []
-    use_yolo26 = _any_loaded_model_is_yolo26()
-    detect_conf = _get_detect_conf(
-        end2end=_any_loaded_model_is_end2end(),
-        yolo26=use_yolo26,
-    )
+    # 模型热切换只在此处获取一致快照，推理过程不长期占用状态锁。
+    with model_state_lock:
+        model_items = tuple(yolo_models.items())
+        model_devices = dict(yolo_model_devices)
+        use_yolo26 = _any_loaded_model_is_yolo26()
+        use_end2end = _any_loaded_model_is_end2end()
+    detect_conf = _get_detect_conf(end2end=use_end2end, yolo26=use_yolo26)
     effective_imgsz = _resolve_detection_imgsz(frame, imgsz)
-    for model_id, yolo_model in yolo_models.items():
+    for model_id, yolo_model in model_items:
         if stop_event.is_set():
             break
+        inference_started = time.perf_counter()
         try:
-            infer_device = yolo_model_devices.get(model_id, get_infer_device(device_id))
+            infer_device = model_devices.get(model_id, get_infer_device(model_id))
             model_dets = run_model_detection(
                 yolo_model,
                 frame,
@@ -1035,11 +1169,32 @@ def _run_yolo_on_frame(
                 infer_device=infer_device,
                 should_keep=_make_detection_filter(yolo_model),
             )
+            # 检测结果必须携带来源模型，供多模型任务告警追踪与审计。
+            for detection in model_dets:
+                detection['model_id'] = model_id
             all_detections.extend(model_dets)
+            _record_model_inference_progress(
+                device_id,
+                model_id,
+                frame_number,
+                detection_count=len(model_dets),
+                duration_ms=(time.perf_counter() - inference_started) * 1000.0,
+                succeeded=True,
+            )
         except Exception as e:
+            _record_model_inference_progress(
+                device_id,
+                model_id,
+                frame_number,
+                detection_count=0,
+                duration_ms=(time.perf_counter() - inference_started) * 1000.0,
+                succeeded=False,
+            )
             if stop_event.is_set():
                 break
             logger.error(f"❌ 模型 {model_id} 检测异常: {str(e)}", exc_info=True)
+
+    _log_parallel_inference_progress(device_id, frame_number)
 
     tracked_detections = []
     if use_tracking:
@@ -1087,6 +1242,7 @@ def _run_yolo_on_frame(
     detections = []
     for tracked_det in tracked_detections:
         detections.append({
+            'model_id': tracked_det.get('model_id'),
             'track_id': tracked_det.get('track_id', 0),
             'class_id': tracked_det.get('class_id', 0),
             'class_name': tracked_det.get('class_name', 'unknown'),
@@ -1574,22 +1730,21 @@ def download_model_file(model_id: int, model_path: str) -> Optional[str]:
         return None
 
 
-def load_yolo_models(model_ids: List[int]) -> Dict[int, Any]:
+def load_yolo_models(model_ids: List[int]):
     """加载YOLO模型列表
 
     Args:
         model_ids: 模型ID列表（正数表示数据库模型，负数表示默认模型）
 
     Returns:
-        Dict[int, YOLO]: 模型字典 {model_id: YOLO模型实例}
+        Tuple[Dict, Dict, Dict]: 模型、推理设备和模型元数据
     """
-    global yolo_model_devices, yolo_model_meta
-    yolo_model_devices.clear()
-    yolo_model_meta.clear()
     try:
         from ultralytics import YOLO
 
         models = {}
+        model_devices = {}
+        model_meta = {}
 
         for model_id in model_ids:
             try:
@@ -1697,7 +1852,7 @@ def load_yolo_models(model_ids: List[int]) -> Dict[int, Any]:
                         api_class_names=model_api_class_names,
                     )
                     models[model_id] = onnx_model
-                    yolo_model_devices[model_id] = (
+                    model_devices[model_id] = (
                         f'onnx:cuda:{gpu_id}' if gpu_id is not None else 'onnx:cpu'
                     )
                     logger.info(
@@ -1710,7 +1865,7 @@ def load_yolo_models(model_ids: List[int]) -> Dict[int, Any]:
                     yolo_model = YOLO(model_path_str)
                     infer_device = get_infer_device(model_id)
                     models[model_id] = yolo_model
-                    yolo_model_devices[model_id] = infer_device
+                    model_devices[model_id] = infer_device
                     yolo26 = is_yolo26_model(
                         yolo_model, model_path=model_path_str, model_id=model_id,
                     )
@@ -1721,7 +1876,7 @@ def load_yolo_models(model_ids: List[int]) -> Dict[int, Any]:
                         isinstance(getattr(inner, 'yaml', None), dict)
                         and inner.yaml.get('end2end')
                     )
-                    yolo_model_meta[model_id] = {
+                    model_meta[model_id] = {
                         'yolo26': yolo26,
                         'end2end': end2end,
                         'path': model_path_str,
@@ -1754,16 +1909,17 @@ def load_yolo_models(model_ids: List[int]) -> Dict[int, Any]:
                 logger.error(f"❌ 加载YOLO模型失败: model_id={model_id}, error={str(e)}", exc_info=True)
                 continue
 
-        return models
+        return models, model_devices, model_meta
 
     except Exception as e:
         logger.error(f"加载YOLO模型列表失败: {str(e)}", exc_info=True)
-        return {}
+        return {}, {}, {}
 
 
 def load_task_config():
     """从数据库加载任务配置（重启时会重新加载，确保获取最新的摄像头信息）"""
-    global task_config, yolo_models, yolo_model_devices, tracker, _sam_config, _sam_client
+    global task_config, yolo_models, yolo_model_devices, yolo_model_meta
+    global tracker, _sam_config, _sam_client
     global motion_gate
 
     try:
@@ -1822,13 +1978,26 @@ def load_task_config():
             logger.error(f"任务 {TASK_ID} 没有配置模型ID列表")
             return False
 
-        # 加载YOLO模型列表
-        yolo_models = load_yolo_models(model_ids)
-        if not yolo_models:
-            logger.error(f"任务 {TASK_ID} 没有成功加载任何模型")
-            return False
-
-        logger.info(f"✅ 成功加载 {len(yolo_models)} 个YOLO模型")
+        # 只有模型集合变化时才重新加载，避免每次配置轮询都阻塞 GPU 推理。
+        if should_reload_algorithm_models(yolo_models.keys(), model_ids):
+            loaded_models, loaded_devices, loaded_meta = load_yolo_models(model_ids)
+            expected_model_ids = {int(model_id) for model_id in model_ids}
+            if set(loaded_models) != expected_model_ids:
+                logger.error(
+                    "任务 %s 模型加载不完整，保留原模型: expected=%s, loaded=%s",
+                    TASK_ID,
+                    sorted(expected_model_ids),
+                    sorted(loaded_models),
+                )
+                return False
+            # 三份模型运行状态必须一次切换，检测线程才能获取一致快照。
+            with model_state_lock:
+                yolo_models = loaded_models
+                yolo_model_devices = loaded_devices
+                yolo_model_meta = loaded_meta
+            logger.info(f"✅ 成功加载 {len(yolo_models)} 个YOLO模型")
+        else:
+            logger.info("模型配置未变化，跳过模型重新加载: model_ids=%s", model_ids)
 
         # 从摄像头列表获取输入流地址（支持RTSP和RTMP）和RTMP输出流地址（重新加载，确保获取最新地址）
         # 注意：rtmp_input_url和rtmp_output_url字段已废弃，改为从摄像头列表获取
@@ -1845,8 +2014,18 @@ def load_task_config():
                     continue
                 # 刷新设备对象，确保获取最新的source和ai_rtmp_stream
                 db_session.refresh(device)
-                # 输入流地址（支持RTSP/RTMP，以及通过gb28181://虚拟源动态解析）
-                rtsp_url = resolve_gb28181_source(device.source, logger=logger) if device.source else None
+                # 共享模式下保留 GB28181 虚拟源，由 CameraSourceManager 唯一发起点播。
+                is_gb28181 = bool(
+                    device.source
+                    and device.source.strip().lower().startswith('gb28181://')
+                )
+                if is_gb28181 and camera_source_mode() == 'shared':
+                    rtsp_url = device.source
+                else:
+                    rtsp_url = (
+                        resolve_gb28181_source(device.source, logger=logger)
+                        if device.source else None
+                    )
                 if not rtsp_url:
                     logger.warning(f"设备 {device.id} 未获取到可用输入流地址，跳过该设备")
                     continue
@@ -1858,7 +2037,7 @@ def load_task_config():
                     'rtmp_url': rtmp_url,  # AI FFmpeg 推流地址（本机推 127.0.0.1/ai）
                     'playback_rtmp_url': playback_rtmp_url,  # 播放地址（外网 IP，供日志对照）
                     'device_name': device.name or device.id,
-                    'is_gb28181': bool(device.source and device.source.strip().lower().startswith('gb28181://')),
+                    'is_gb28181': is_gb28181,
                     'original_source': device.source,  # 原始源地址（用于GB28181重连时重新解析）
                 }
                 input_type = "RTSP" if rtsp_url and rtsp_url.startswith(
@@ -1963,13 +2142,26 @@ def _task_config_reload_worker(interval_sec: int = 30):
             logger.warning(f"任务配置热更新失败: {exc}")
 
 
-def send_alert_event_async(alert_data: Dict):
+def send_alert_event_async(
+        alert_data: Dict,
+        *,
+        on_failure: Optional[Callable[[], None]] = None,
+):
     """异步发送告警事件到 MQTT 算法总线（iot-sink）。"""
+
+    def _notify_failure() -> None:
+        if on_failure is None:
+            return
+        try:
+            on_failure()
+        except Exception as callback_error:
+            logger.warning('告警失败回调执行异常: %s', callback_error)
 
     def _send():
         try:
             if not task_config or not task_config.alert_event_enabled:
                 logger.warning(f"⚠️ 告警事件发送被跳过：task_config={task_config is not None}, alert_event_enabled={task_config.alert_event_enabled if task_config else None}, device_id={alert_data.get('device_id')}")
+                _notify_failure()
                 return
             
             logger.info(f"📤 开始发送告警事件(MQTT): device_id={alert_data.get('device_id')}, object={alert_data.get('object')}")
@@ -1992,6 +2184,7 @@ def send_alert_event_async(alert_data: Dict):
                     from algo_mqtt_bus import publish_alert  # type: ignore
                 except ImportError:
                     logger.error('algo_mqtt_bus 不可用，无法发送告警')
+                    _notify_failure()
                     return
 
             try:
@@ -2005,16 +2198,30 @@ def send_alert_event_async(alert_data: Dict):
                     logger.warning(
                         f"❌ 发送告警事件到 MQTT 失败: device_id={alert_data.get('device_id')}"
                     )
+                    _notify_failure()
             except Exception as e:
                 logger.warning(
                     f"❌ 发送告警事件到 MQTT 异常: {str(e)}, device_id={alert_data.get('device_id')}"
                 )
+                _notify_failure()
         except Exception as e:
             logger.error(f"发送告警事件失败: {str(e)}", exc_info=True)
+            _notify_failure()
 
     # 在后台线程中异步执行
-    thread = threading.Thread(target=_send, daemon=True)
-    thread.start()
+    try:
+        thread = threading.Thread(target=_send, daemon=True)
+        thread.start()
+    except Exception:
+        _notify_failure()
+        raise
+
+
+def _release_alert_suppression_slot(suppression_key, reserved_at: float) -> None:
+    """发送失败时仅释放本次占用，避免误删更新后的抑制时间。"""
+    with alert_time_lock:
+        if last_alert_time.get(suppression_key) == reserved_at:
+            last_alert_time.pop(suppression_key, None)
 
 
 def try_send_alert_for_detections(
@@ -2027,7 +2234,7 @@ def try_send_alert_for_detections(
     *,
     log_suffix: str = "",
 ) -> None:
-    """在具备真实检测结果时按抑制策略发送告警（用于输出帧或检测迟达补发）。"""
+    """按模型类别拆分真实检测结果，并使用独立抑制窗口发送告警。"""
     from app.utils.alert_class_filter import filter_detections_for_alert, get_task_alert_class_names
 
     detections = filter_detections_for_alert(
@@ -2036,59 +2243,102 @@ def try_send_alert_for_detections(
     )
     if not detections or not task_config or not task_config.alert_event_enabled:
         return
-    current_time = time.time()
-    with alert_time_lock:
-        last_time = last_alert_time.get(device_id, 0)
-        time_since_last_alert = current_time - last_time
-        suppress_interval = _alert_event_suppress_seconds()
-        if suppress_interval > 0 and time_since_last_alert < suppress_interval:
-            logger.info(
-                f"⏸️  设备 {device_id} 告警抑制{log_suffix}：距离上次推送仅 {time_since_last_alert:.2f} 秒，跳过（需间隔 {suppress_interval} 秒），帧 {frame_number}，{len(detections)} 个目标"
-            )
-            return
-        last_alert_time[device_id] = current_time
-        logger.info(
-            f"🔔 设备 {device_id} 准备发送告警{log_suffix}：帧 {frame_number}，{len(detections)} 个目标，距上次告警 {time_since_last_alert:.2f} 秒"
-        )
-    try:
-        object_counts = {}
-        all_detections_info = []
-        for det in detections:
-            class_name = det.get('class_name', 'unknown')
-            object_counts[class_name] = object_counts.get(class_name, 0) + 1
-            all_detections_info.append({
-                'track_id': det.get('track_id', 0),
-                'class_name': class_name,
-                'confidence': det.get('confidence', 0),
-                'bbox': det.get('bbox', []),
-                'first_seen_time': datetime.fromtimestamp(
-                    det.get('first_seen_time', current_timestamp), tz=BEIJING_TZ).isoformat() if det.get(
-                    'first_seen_time') else None,
-                'duration': det.get('duration', 0)
-            })
-        primary_object = max(object_counts.items(), key=lambda x: x[1])[0] if object_counts else 'unknown'
-        image_path = save_alert_image(
-            frame_for_image,
-            device_id,
-            frame_number,
-            detections[0] if detections else {}
-        )
-        algorithm_name = task_config.task_name if task_config and hasattr(task_config, 'task_name') else 'detection'
-        correlation_id = str(uuid.uuid4())
+    event_groups = build_alert_event_groups(detections)
+    sent_correlation_ids = []
+    algorithm_name = task_config.task_name if hasattr(task_config, 'task_name') else 'detection'
 
-        # POST 定制后处理：ready → InferEvent；unready+FAILOVER → 直发 sink（post_bypass）
-        try:
-            from app.utils.algo_mqtt_bus import (
-                should_publish_infer_event,
-                post_in_bypass,
-                build_infer_event,
-                publish_infer_event,
-                inject_post_bypass_info,
-                ensure_post_health_probe,
+    for event_identity, event_detections in event_groups.items():
+        current_time = time.time()
+        suppression_key = (str(device_id), event_identity)
+        with alert_time_lock:
+            last_time = last_alert_time.get(suppression_key, 0)
+            time_since_last_alert = current_time - last_time
+            suppress_interval = _alert_event_suppress_seconds()
+            if suppress_interval > 0 and time_since_last_alert < suppress_interval:
+                logger.info(
+                    f"⏸️  任务 {TASK_ID} 设备 {device_id} 事件 {event_identity} 告警抑制{log_suffix}："
+                    f"距离上次推送仅 {time_since_last_alert:.2f} 秒，跳过（需间隔 {suppress_interval} 秒），"
+                    f"帧 {frame_number}，{len(event_detections)} 个目标"
+                )
+                continue
+            last_alert_time[suppression_key] = current_time
+            logger.info(
+                f"🔔 任务 {TASK_ID} 设备 {device_id} 事件 {event_identity} 准备发送告警{log_suffix}："
+                f"帧 {frame_number}，{len(event_detections)} 个目标，距上次告警 {time_since_last_alert:.2f} 秒"
             )
-        except ImportError:
+
+        try:
+            object_counts = {}
+            all_detections_info = []
+            for det in event_detections:
+                class_name = det.get('class_name', 'unknown')
+                object_counts[class_name] = object_counts.get(class_name, 0) + 1
+                all_detections_info.append({
+                    'track_id': det.get('track_id', 0),
+                    'model_id': det.get('model_id'),
+                    'class_id': det.get('class_id', 0),
+                    'class_name': class_name,
+                    'confidence': det.get('confidence', 0),
+                    'bbox': det.get('bbox', []),
+                    'first_seen_time': datetime.fromtimestamp(
+                        det.get('first_seen_time', current_timestamp), tz=BEIJING_TZ).isoformat() if det.get(
+                        'first_seen_time') else None,
+                    'duration': det.get('duration', 0)
+                })
+            primary_object = max(object_counts.items(), key=lambda x: x[1])[0] if object_counts else 'unknown'
+            correlation_id = str(uuid.uuid4())
+            image_path = save_alert_image(
+                frame_for_image,
+                device_id,
+                frame_number,
+                event_detections[0] if event_detections else {},
+                event_id=correlation_id,
+            )
+            model_ids = sorted({
+                int(det.get('model_id'))
+                for det in event_detections
+                if det.get('model_id') is not None
+            })
+            occurred_at = datetime.fromtimestamp(current_timestamp, tz=BEIJING_TZ).isoformat()
+            alert_data = {
+                'schema_version': 2,
+                'event_id': correlation_id,
+                'event_identity': event_identity,
+                'object': primary_object,
+                'event': algorithm_name,
+                'task_id': TASK_ID,
+                'task_name': algorithm_name,
+                'device_id': device_id,
+                'device_name': device_name,
+                # GB28181/实时算法统一走 realtime，便于 hook 侧选择 Kafka 主题与任务查询（snap/snapshot 另有分支）
+                'task_type': 'realtime',
+                'model_ids': model_ids,
+                'frame_number': frame_number,
+                'occurred_at': occurred_at,
+                'detections': all_detections_info,
+                'correlation_id': correlation_id,
+                'face_detection_enabled': bool(getattr(task_config, 'face_detection_enabled', False)),
+                'plate_detection_enabled': bool(getattr(task_config, 'plate_detection_enabled', False)),
+                'time': datetime.fromtimestamp(current_timestamp, tz=BEIJING_TZ).strftime('%Y-%m-%d %H:%M:%S'),
+                'information': json.dumps({
+                    'schema_version': 2,
+                    'event_id': correlation_id,
+                    'event_identity': event_identity,
+                    'task_id': TASK_ID,
+                    'model_ids': model_ids,
+                    'total_count': len(event_detections),
+                    'object_counts': object_counts,
+                    'detections': all_detections_info,
+                    'frame_number': frame_number,
+                    'occurred_at': occurred_at,
+                    'correlation_id': correlation_id,
+                }),
+                'image_path': image_path if image_path else None,
+            }
+            # 当前项目启用 POST 定制后处理时，按模型事件分组发布 InferEvent；
+            # POST 未就绪且进入 fail-open 时，再携带 v2 身份直发告警总线。
             try:
-                from algo_mqtt_bus import (  # type: ignore
+                from app.utils.algo_mqtt_bus import (
                     should_publish_infer_event,
                     post_in_bypass,
                     build_infer_event,
@@ -2097,65 +2347,70 @@ def try_send_alert_for_detections(
                     ensure_post_health_probe,
                 )
             except ImportError:
-                should_publish_infer_event = lambda: False  # type: ignore
-                post_in_bypass = lambda: False  # type: ignore
+                should_publish_infer_event = lambda: False
+                post_in_bypass = lambda: False
 
-        ensure_post_health_probe()
-        if should_publish_infer_event():
-            fh, fw = 0, 0
-            if frame_for_image is not None and hasattr(frame_for_image, 'shape'):
-                fh, fw = int(frame_for_image.shape[0]), int(frame_for_image.shape[1])
-            model_ids = []
-            if getattr(task_config, 'model_ids', None):
-                try:
-                    raw = task_config.model_ids
-                    model_ids = json.loads(raw) if isinstance(raw, str) else list(raw or [])
-                except Exception:
-                    model_ids = []
-            ev = build_infer_event(
-                task_id=int(TASK_ID),
-                task_type='realtime',
-                device_id=device_id,
-                detections=detections,
-                event_kind='infer',
-                task_name=getattr(task_config, 'task_name', '') or '',
-                device_name=device_name,
-                frame_number=frame_number,
-                frame_width=fw,
-                frame_height=fh,
-                image_path=image_path or '',
-                model_ids=model_ids,
-                correlation_id=correlation_id,
-                hints={'alert_class_names': get_task_alert_class_names(task_config)},
+            if 'ensure_post_health_probe' in locals():
+                ensure_post_health_probe()
+            if should_publish_infer_event():
+                frame_height = frame_width = 0
+                if frame_for_image is not None and hasattr(frame_for_image, 'shape'):
+                    frame_height = int(frame_for_image.shape[0])
+                    frame_width = int(frame_for_image.shape[1])
+                infer_event = build_infer_event(
+                    task_id=int(TASK_ID),
+                    task_type='realtime',
+                    device_id=device_id,
+                    detections=event_detections,
+                    event_kind='infer',
+                    task_name=algorithm_name,
+                    device_name=device_name,
+                    frame_number=frame_number,
+                    frame_width=frame_width,
+                    frame_height=frame_height,
+                    image_path=image_path or '',
+                    model_ids=model_ids,
+                    correlation_id=correlation_id,
+                    hints={
+                        'alert_class_names': get_task_alert_class_names(task_config),
+                        'event_identity': event_identity,
+                    },
+                )
+                if publish_infer_event(infer_event):
+                    sent_correlation_ids.append(correlation_id)
+                    _update_device_runtime(device_id, last_alert_time=current_timestamp)
+                else:
+                    _release_alert_suppression_slot(suppression_key, current_time)
+                continue
+            if post_in_bypass():
+                alert_data = inject_post_bypass_info(alert_data)
+
+            send_alert_event_async(
+                alert_data,
+                on_failure=lambda key=suppression_key, reserved=current_time: (
+                    _release_alert_suppression_slot(key, reserved)
+                ),
             )
-            publish_infer_event(ev)
-            logger.info(f"📨 已发送 InferEvent（POST）{log_suffix}：帧 {frame_number}，{len(detections)} 个目标")
-            return
+            sent_correlation_ids.append(correlation_id)
+            _update_device_runtime(device_id, last_alert_time=current_timestamp)
+            extra = f" {log_suffix}" if log_suffix else ""
+            logger.info(
+                f"📨 已发送告警事件{extra}：事件 {event_identity}，帧 {frame_number}，"
+                f"{len(event_detections)} 个目标（{object_counts}）"
+            )
+        except Exception as e:
+            _release_alert_suppression_slot(suppression_key, current_time)
+            logger.error(
+                f"发送告警失败{log_suffix}: event_identity={event_identity}, error={str(e)}",
+                exc_info=True,
+            )
 
-        alert_data = {
-            'object': primary_object,
-            'event': algorithm_name,
-            'device_id': device_id,
-            'device_name': device_name,
-            # GB28181/实时算法统一走 realtime，便于 hook 侧选择 Kafka 主题与任务查询（snap/snapshot 另有分支）
-            'task_type': 'realtime',
-            'correlation_id': correlation_id,
-            'face_detection_enabled': bool(getattr(task_config, 'face_detection_enabled', False)),
-            'plate_detection_enabled': bool(getattr(task_config, 'plate_detection_enabled', False)),
-            'time': datetime.fromtimestamp(current_timestamp, tz=BEIJING_TZ).strftime('%Y-%m-%d %H:%M:%S'),
-            'information': json.dumps({
-                'total_count': len(detections),
-                'object_counts': object_counts,
-                'detections': all_detections_info,
-                'frame_number': frame_number,
-                'correlation_id': correlation_id,
-            }),
-            'image_path': image_path if image_path else None,
-        }
-        if post_in_bypass():
-            alert_data = inject_post_bypass_info(alert_data)
-            logger.warning(f"⚠️ POST bypass 直发 sink{log_suffix}：帧 {frame_number}")
-        send_alert_event_async(alert_data)
+    if not sent_correlation_ids:
+        return
+
+    # 人脸和车牌匹配是帧级操作，同一帧拆出多个业务事件时只执行一次。
+    try:
+        correlation_id = sent_correlation_ids[0]
         try_send_face_matching_for_frame(
             device_id=device_id,
             device_name=device_name,
@@ -2171,10 +2426,47 @@ def try_send_alert_for_detections(
             frame_number=frame_number,
             correlation_id=correlation_id,
         )
-        extra = f" {log_suffix}" if log_suffix else ""
-        logger.info(f"📨 已发送告警事件{extra}：帧 {frame_number}，{len(detections)} 个目标（{object_counts}）")
     except Exception as e:
-        logger.error(f"发送告警失败{log_suffix}: {str(e)}", exc_info=True)
+        logger.error(f"发送帧级匹配任务失败{log_suffix}: {str(e)}", exc_info=True)
+
+
+def claim_post_process_alert_events(device_id: str, detections: list) -> tuple[list, float]:
+    """占用到期的后处理事件槽，返回事件身份和本次占用时间。"""
+    from app.utils.alert_class_filter import filter_detections_for_alert, get_task_alert_class_names
+
+    filtered = filter_detections_for_alert(
+        detections,
+        get_task_alert_class_names(task_config),
+    )
+    groups = build_alert_event_groups(filtered)
+    if not groups:
+        return [], 0.0
+
+    current_time = time.time()
+    suppress_interval = _alert_event_suppress_seconds()
+    claimed_event_identities = []
+    with post_process_dispatch_lock:
+        claimed_event_identities = claim_due_alert_event_identities(
+            post_process_dispatch_time,
+            device_id,
+            groups.keys(),
+            current_time=current_time,
+            suppress_interval=suppress_interval,
+        )
+    return claimed_event_identities, current_time
+
+
+def release_post_process_alert_events(
+        device_id: str,
+        event_identities: list,
+        reserved_at: float,
+) -> None:
+    """后处理入队失败时释放本次占用，允许下一帧立即重试。"""
+    with post_process_dispatch_lock:
+        for event_identity in event_identities:
+            suppression_key = (str(device_id), event_identity)
+            if post_process_dispatch_time.get(suppression_key) == reserved_at:
+                post_process_dispatch_time.pop(suppression_key, None)
 
 
 def cleanup_alert_images(alert_image_dir: str, max_images: int = 300, keep_ratio: float = 0.1):
@@ -2250,7 +2542,14 @@ def cleanup_srs_recordings(srs_record_dir: str | None = None, max_recordings: in
         logger.error(f"清理SRS录像失败: {str(e)}", exc_info=True)
 
 
-def save_alert_image(frame: np.ndarray, device_id: str, frame_number: int, detection: Dict) -> Optional[str]:
+def save_alert_image(
+        frame: np.ndarray,
+        device_id: str,
+        frame_number: int,
+        detection: Dict,
+        *,
+        event_id: Optional[str] = None,
+) -> Optional[str]:
     """保存告警图片到本地目录
 
     Args:
@@ -2269,15 +2568,19 @@ def save_alert_image(frame: np.ndarray, device_id: str, frame_number: int, detec
         alert_image_dir = os.path.join(images_root, f'task_{TASK_ID}', device_id)
         os.makedirs(alert_image_dir, exist_ok=True)
 
-        # 生成图片文件名（包含时间戳和帧号）
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        track_id = detection.get('track_id', 0)
-        class_name = detection.get('class_name', 'unknown')
-        image_filename = f"{timestamp}_frame{frame_number}_track{track_id}_{class_name}.jpg"
+        # 文件名包含模型和事件身份，同帧同类别的多模型告警不会互相覆盖。
+        image_filename = build_alert_image_filename(
+            datetime.now(),
+            frame_number,
+            detection,
+            event_id=event_id,
+        )
         image_path = os.path.join(alert_image_dir, image_filename)
 
-        # 保存图片
-        cv2.imwrite(image_path, frame)
+        # OpenCV 写图失败时返回 False，不会主动抛异常，必须显式校验。
+        if not cv2.imwrite(image_path, frame):
+            logger.error('保存告警图片失败: OpenCV 未写入文件 path=%s', image_path)
+            return None
 
         logger.debug(f"告警图片已保存: {image_path}")
 
@@ -2415,7 +2718,8 @@ def send_heartbeat():
                 'server_ip': server_ip,
                 'port': None,  # 实时算法服务不监听端口
                 'process_id': process_id,
-                'log_path': log_path
+                'log_path': log_path,
+                'stream_runtime': _device_runtime_snapshot(),
             },
             timeout=5
         )
@@ -2880,13 +3184,14 @@ def _resolve_ai_rtmp_push_url(device_id: str, device_ai_rtmp_stream: Optional[st
     远程分片在节点本机推 SRS，固定走 127.0.0.1（避免外网 IP 回环/on_publish 误判）；
     播放地址仍由 stream_url_sync_service 写入 device.ai_rtmp_stream（外网 IP）。
     """
+    stream_key = build_task_stream_key(TASK_ID, device_id)
     pod_ip = os.getenv('POD_IP', '').strip()
     if pod_ip:
         rtmp_port = _srs_rtmp_port()
-        return f'rtmp://127.0.0.1:{rtmp_port}/ai/{device_id}'
+        return f'rtmp://127.0.0.1:{rtmp_port}/ai/{stream_key}'
 
     rtmp_url = (device_ai_rtmp_stream or '').strip()
-    return rtmp_url or None
+    return rewrite_task_stream_url(rtmp_url, TASK_ID, device_id) if rtmp_url else None
 
 
 def check_rtmp_server_connection(rtmp_url: str) -> bool:
@@ -3327,14 +3632,17 @@ def buffer_streamer_worker(device_id: str):
     - 队列3 / 告警检测：缓流器直投 alert_detection_queues，Worker 独立发告警
     """
     logger.info(f"💾 缓流器线程启动 [设备: {device_id}]")
+    _update_device_runtime(device_id, status='starting', source_mode='pending', error_message='')
 
     if not task_config or not hasattr(task_config, 'device_streams'):
         logger.error(f"任务配置未加载，设备 {device_id} 缓流器退出")
+        _update_device_runtime(device_id, status='failed', error_message='任务配置未加载')
         return
 
     device_stream_info = task_config.device_streams.get(device_id)
     if not device_stream_info:
         logger.error(f"设备 {device_id} 流信息不存在，缓流器退出")
+        _update_device_runtime(device_id, status='failed', error_message='设备流信息不存在')
         return
 
     rtsp_url = device_stream_info.get('rtsp_url')
@@ -3352,6 +3660,7 @@ def buffer_streamer_worker(device_id: str):
 
     if not rtsp_url:
         logger.error(f"设备 {device_id} 输入流地址不存在，缓流器退出")
+        _update_device_runtime(device_id, status='failed', error_message='输入流地址不存在')
         return
 
     # 兼容 RTSP 和 RTMP 两种格式的输入流
@@ -3373,6 +3682,13 @@ def buffer_streamer_worker(device_id: str):
     pusher_max_retries = 3  # FFmpeg 推送进程最大重试次数
     last_pusher_failure_time = 0  # 上次推送进程失败的时间
     _last_gb28181_resolve_time = 0.0  # GB28181 上次重新解析时间（用于频率限制）
+    source_access_mode = 'pending'
+    shared_recovery_candidate = None
+    shared_retry_interval_sec = max(
+        5.0,
+        float(os.getenv('CAMERA_SOURCE_SHARED_RETRY_SEC', '60')),
+    )
+    next_shared_retry_time = 0.0
 
     # 初始化stderr缓冲区
     if device_id not in device_pusher_stderr_buffers:
@@ -3415,9 +3731,23 @@ def buffer_streamer_worker(device_id: str):
         try:
             # 打开源流（支持 RTSP 和 RTMP）
             if cap is None or not cap.isOpened():
+                _update_device_runtime(device_id, status='source_waiting', error_message='')
+                # 失效句柄在创建新连接前必须释放，避免遗留 mmap、订阅令牌或解码线程。
+                if cap is not None:
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
+                    cap = None
+                    device_caps.pop(device_id, None)
                 # GB28181 源重连时重新解析 URL（录像回放会话结束后旧 URL 会失效）
                 # 频率限制：至少间隔30秒，避免重连时反复请求 GB28181 播放 API
-                if _is_gb28181 and _original_source:
+                # 共享模式由 CameraSourceManager 统一申请和刷新 GB28181 播放会话。
+                if (
+                        _is_gb28181
+                        and _original_source
+                        and camera_source_mode() != 'shared'
+                ):
                     _resolve_elapsed = time.time() - _last_gb28181_resolve_time
                     if _resolve_elapsed >= 30.0:
                         _last_gb28181_resolve_time = time.time()
@@ -3459,22 +3789,52 @@ def buffer_streamer_worker(device_id: str):
                 if _is_gb28181 or device_stream_info.get('source_type') == 'gb28181':
                     _gb_fifo = int(os.getenv("AI_GB28181_ASYNC_QUEUE_MAX", "10"))
                     if _gb_fifo > 1:
+                        # 共享订阅忽略该值；若控制面不可达降级独立拉流时继续使用 FIFO。
                         _queue_max_override = _gb_fifo
+                    if camera_source_mode() == 'shared':
+                        logger.info(
+                            f"📌 设备 {device_id} GB28181实时源使用共享最新帧模式，"
+                            f"慢任务仅跳过自身中间帧；独立降级时 FIFO={_gb_fifo}"
+                        )
+                    elif _gb_fifo > 1:
                         logger.info(
                             f"📌 设备 {device_id} GB28181源，FIFO 缓冲 {_gb_fifo} 帧按序消费（AI_GB28181_ASYNC_QUEUE_MAX）"
                         )
 
                 try:
-                    cap = open_device_stream(
+                    cap, source_access_mode = open_task_camera_stream(
                         rtsp_url,
                         device_id,
-                        task_id=str(TASK_ID),
+                        task_id=TASK_ID,
+                        original_source=_original_source,
+                        is_gb28181=_is_gb28181,
                         open_timeout_msec=rtsp_open_timeout_msec,
                         read_timeout_msec=rtsp_read_timeout_msec,
                         queue_max_override=_queue_max_override,
                     )
+                    _update_device_runtime(
+                        device_id,
+                        source_mode=source_access_mode,
+                        status='source_waiting',
+                        error_message='',
+                    )
+                    if source_access_mode == 'shared':
+                        logger.info(
+                            f"✅ 任务 {TASK_ID} 设备 {device_id} 已订阅 CameraSourceManager 共享帧"
+                        )
+                    elif source_access_mode == 'direct_fallback':
+                        next_shared_retry_time = time.monotonic() + shared_retry_interval_sec
+                        logger.warning(
+                            f"⚠️ 任务 {TASK_ID} 设备 {device_id} 共享源流不可用，"
+                            f"已降级独立拉流，{shared_retry_interval_sec:.0f}秒后重试共享模式"
+                        )
                 except Exception as e:
                     logger.error(f"设备 {device_id} 打开视频流时出错: {str(e)}")
+                    _update_device_runtime(
+                        device_id,
+                        status='source_waiting',
+                        error_message=str(e)[:500],
+                    )
                     # 确保释放资源
                     if cap is not None:
                         try:
@@ -3567,6 +3927,11 @@ def buffer_streamer_worker(device_id: str):
                 if is_async_stream(cap):
                     if cap.read_failed:
                         logger.warning(f"设备 {device_id} 异步拉流结束或解码失败，重新连接...")
+                        _update_device_runtime(
+                            device_id,
+                            status='source_waiting',
+                            error_message='共享或异步源流读取失败',
+                        )
                         if cap is not None:
                             cap.release()
                             cap = None
@@ -3579,6 +3944,11 @@ def buffer_streamer_worker(device_id: str):
                     time.sleep(min(_frame_interval * 0.5, 0.02))
                     continue
                 logger.warning(f"设备 {device_id} 读取源流帧失败，重新连接...")
+                _update_device_runtime(
+                    device_id,
+                    status='source_waiting',
+                    error_message='源流读取失败',
+                )
                 if cap is not None:
                     cap.release()
                     cap = None
@@ -3588,8 +3958,25 @@ def buffer_streamer_worker(device_id: str):
                 continue
 
             # RTSP：可选灰屏重连（预热期内不判定，重连间隔加长以减少 UDP bind 冲突）
+            pusher_process = device_pushers.get(device_id)
+            publisher_running = (
+                pusher_process is not None and pusher_process.poll() is None
+            )
+            _update_device_runtime(
+                device_id,
+                status=resolve_frame_runtime_status(
+                    source_access_mode,
+                    publisher_running,
+                ),
+                source_mode=source_access_mode,
+                last_frame_time=(
+                    float(getattr(cap, 'last_frame_timestamp', 0.0)) or time.time()
+                ),
+                error_message='',
+            )
             if (
                 rtsp_url.startswith("rtsp://")
+                and not is_shared_camera_stream(cap)
                 and _gray_reconnect
                 and (time.time() - last_rtsp_connect_time) >= _gray_warmup_sec
                 and _is_likely_rtsp_flat_corrupt_frame(
@@ -3964,7 +4351,13 @@ def buffer_streamer_worker(device_id: str):
                             # 推送进程启动成功，重置重试计数
                             pusher_retry_count = 0
                             _mark_quality_success()
+                        if pusher_process is not None and pusher_process.poll() is None:
                             device_pushers[device_id] = pusher_process
+                            _update_device_runtime(
+                                device_id,
+                                status='degraded' if source_access_mode == 'direct_fallback' else 'publishing',
+                                source_mode=source_access_mode,
+                            )
                             logger.info(f"✅ 设备 {device_id} 推送进程已启动 (PID: {pusher_process.pid})")
                             logger.info(f"   📺 推流地址: {rtmp_url}")
                             logger.info(
@@ -3990,6 +4383,13 @@ def buffer_streamer_worker(device_id: str):
                             device_push_threads[device_id] = push_thread
                             push_thread.start()
                             logger.info(f"📤 设备 {device_id} 固定速率推帧线程已启动")
+                        else:
+                            device_pushers.pop(device_id, None)
+                            _update_device_runtime(
+                                device_id,
+                                status='inferencing',
+                                error_message='任务推流进程不可用，推理与告警继续运行',
+                            )
                     except Exception as e:
                         logger.error(f"❌ 设备 {device_id} 启动推送进程异常: {str(e)}", exc_info=True)
                         pusher_process = None
@@ -4037,7 +4437,11 @@ def buffer_streamer_worker(device_id: str):
                     with output_lock:
                         device_output_frames[device_id] = None
 
-            current_timestamp = time.time()
+            current_timestamp = (
+                float(getattr(cap, 'last_frame_timestamp', 0.0))
+                if is_shared_camera_stream(cap)
+                else time.time()
+            ) or time.time()
 
             # ========== 队列1：主画面推流（不等待检测，仅叠 overlay 缓存） ==========
             if frame_width is not None and frame_height is not None:
@@ -4064,8 +4468,60 @@ def buffer_streamer_worker(device_id: str):
             # ========== 队列2/3：overlay 叠框 + 告警（缓流器直投，完全独立于推流） ==========
             _feed_stream_detection_queues(device_id, frame, frame_count, current_timestamp)
 
+            # 降级独立拉流期间并行探测共享源；只有共享首帧就绪后才原子切换，
+            # 避免每次恢复尝试先释放正常直连而制造检测和告警空窗。
+            if (
+                    source_access_mode == 'direct_fallback'
+                    and camera_source_mode() == 'shared'
+            ):
+                if (
+                        shared_recovery_candidate is None
+                        and time.monotonic() >= next_shared_retry_time
+                ):
+                    logger.info(f"🔄 任务 {TASK_ID} 设备 {device_id} 并行探测共享源流")
+                    next_shared_retry_time = time.monotonic() + shared_retry_interval_sec
+                    try:
+                        shared_recovery_candidate = open_shared_camera_stream(
+                            rtsp_url,
+                            device_id,
+                            task_id=TASK_ID,
+                            original_source=_original_source,
+                            is_gb28181=_is_gb28181,
+                            open_timeout_msec=200,
+                            read_timeout_msec=rtsp_read_timeout_msec,
+                        )
+                    except Exception as recovery_error:
+                        logger.debug(
+                            f"任务 {TASK_ID} 设备 {device_id} 共享源恢复探测失败: "
+                            f"{recovery_error}"
+                        )
+                        shared_recovery_candidate = None
+
+                if shared_recovery_candidate is not None:
+                    if shared_recovery_candidate.read_failed:
+                        shared_recovery_candidate.release()
+                        shared_recovery_candidate = None
+                    elif shared_recovery_candidate.is_ready():
+                        direct_cap = cap
+                        cap = shared_recovery_candidate
+                        shared_recovery_candidate = None
+                        device_caps[device_id] = cap
+                        source_access_mode = 'shared'
+                        _update_device_runtime(
+                            device_id,
+                            source_mode='shared',
+                            status='inferencing',
+                            error_message='',
+                        )
+                        if direct_cap is not None:
+                            direct_cap.release()
+                        logger.info(
+                            f"✅ 任务 {TASK_ID} 设备 {device_id} 已无中断恢复共享源流"
+                        )
+
         except Exception as e:
             logger.error(f"❌ 设备 {device_id} 缓流器异常: {str(e)}", exc_info=True)
+            _update_device_runtime(device_id, status='failed', error_message=str(e)[:500])
             time.sleep(2)
 
     # 停止固定速率推帧线程
@@ -4080,6 +4536,8 @@ def buffer_streamer_worker(device_id: str):
             pass
 
     # 清理资源
+    if shared_recovery_candidate is not None:
+        shared_recovery_candidate.release()
     if cap is not None:
         cap.release()
         device_caps.pop(device_id, None)
@@ -4105,6 +4563,7 @@ def buffer_streamer_worker(device_id: str):
     device_pusher_stderr_buffers.pop(device_id, None)
     device_pusher_stderr_locks.pop(device_id, None)
 
+    _update_device_runtime(device_id, status='stopped')
     logger.info(f"💾 设备 {device_id} 缓流器线程停止")
 
 
@@ -4217,13 +4676,17 @@ def overlay_detection_worker(worker_id: int):
                     logger.info(f"🔍 [Overlay {worker_id}] 开始检测: {frame_id}")
 
                 try:
-                    _, detections = _run_yolo_on_frame(
+                    tracked_detections, detections = _run_yolo_on_frame(
                         frame,
                         device_id_from_data,
                         frame_number=frame_number,
                         timestamp=timestamp,
                         imgsz=OVERLAY_YOLO_IMG_SIZE,
                         use_tracking=OVERLAY_USE_TRACKING,
+                    )
+                    _update_device_runtime(
+                        device_id_from_data,
+                        last_detection_time=time.time(),
                     )
                 except Exception as e:
                     consecutive_errors += 1
@@ -4241,6 +4704,62 @@ def overlay_detection_worker(worker_id: int):
                     frame_number,
                     applied_at=time.time(),
                 )
+
+                # 叠框采用更高频率采样；叠框命中时直接进入同一告警链，避免低频告警采样错过短暂事件。
+                fresh_detections = [d for d in detections if not d.get('is_cached')]
+                if cache_updated and fresh_detections:
+                    from app.utils.post_process_runner import task_needs_sink_processing
+                    device_name = device_id_from_data
+                    if task_config and hasattr(task_config, 'device_streams'):
+                        stream_info = task_config.device_streams.get(device_id_from_data, {})
+                        device_name = stream_info.get('device_name', device_id_from_data)
+                    alert_frame = draw_detections(
+                        frame,
+                        tracked_detections,
+                        frame_number,
+                        tracking_enabled=bool(task_config and task_config.tracking_enabled),
+                    ) if tracked_detections else frame.copy()
+                    if task_needs_sink_processing(task_config):
+                        claimed_events, reserved_at = claim_post_process_alert_events(
+                            device_id_from_data,
+                            fresh_detections,
+                        )
+                        if claimed_events:
+                            alert_image_path = save_alert_image(
+                                alert_frame,
+                                device_id_from_data,
+                                frame_number,
+                                fresh_detections[0],
+                                event_id=str(uuid.uuid4()),
+                            )
+                            try:
+                                from app.utils.post_process_runner import enqueue_post_process_request
+                                enqueue_post_process_request(
+                                    task_config,
+                                    device_id=device_id_from_data,
+                                    device_name=device_name,
+                                    frame_number=frame_number,
+                                    timestamp=timestamp,
+                                    detections=fresh_detections,
+                                    tracked_detections=tracked_detections,
+                                    alert_image_path=alert_image_path,
+                                    on_failure=lambda device=device_id_from_data,
+                                    events=claimed_events, reserved=reserved_at: (
+                                        release_post_process_alert_events(device, events, reserved)
+                                    ),
+                                )
+                            except Exception as pp_exc:
+                                logger.warning('Overlay 后处理请求投递异常: %s', pp_exc)
+                    else:
+                        try_send_alert_for_detections(
+                            device_id_from_data,
+                            device_name,
+                            frame_number,
+                            fresh_detections,
+                            alert_frame,
+                            timestamp,
+                            log_suffix='overlay命中',
+                        )
 
                 if frame_number % 10 == 0:
                     lag = frame_counts.get(device_id_from_data, frame_number) - frame_number
@@ -4304,6 +4823,10 @@ def alert_detection_worker(worker_id: int):
                         imgsz=YOLO_IMG_SIZE,
                         use_tracking=True,
                     )
+                    _update_device_runtime(
+                        device_id_from_data,
+                        last_detection_time=time.time(),
+                    )
                 except Exception as e:
                     consecutive_errors += 1
                     logger.error(f"❌ 告警检测异常: {str(e)} (连续错误: {consecutive_errors})", exc_info=True)
@@ -4345,34 +4868,44 @@ def alert_detection_worker(worker_id: int):
                 sink_enabled = task_needs_sink_processing(task_config)
                 if sink_enabled:
                     alert_image_path = None
-                    if detections:
+                    claimed_events, reserved_at = claim_post_process_alert_events(
+                        device_id_from_data,
+                        fresh_detections,
+                    ) if fresh_detections else ([], 0.0)
+                    if claimed_events:
                         alert_image_path = save_alert_image(
                             alert_frame,
                             device_id_from_data,
                             frame_number,
-                            detections[0],
+                            fresh_detections[0],
+                            event_id=str(uuid.uuid4()),
                         )
-                    try:
-                        from app.utils.post_process_runner import enqueue_post_process_request
-                        enqueue_post_process_request(
-                            task_config,
-                            device_id=device_id_from_data,
-                            device_name=device_name,
-                            frame_number=frame_number,
-                            timestamp=timestamp,
-                            detections=detections,
-                            tracked_detections=tracked_detections,
-                            alert_image_path=alert_image_path,
-                        )
-                    except Exception as pp_exc:
-                        logger.warning('后处理请求投递异常: %s', pp_exc)
+                        try:
+                            from app.utils.post_process_runner import enqueue_post_process_request
+                            enqueue_post_process_request(
+                                task_config,
+                                device_id=device_id_from_data,
+                                device_name=device_name,
+                                frame_number=frame_number,
+                                timestamp=timestamp,
+                                detections=fresh_detections,
+                                tracked_detections=tracked_detections,
+                                alert_image_path=alert_image_path,
+                                on_failure=lambda device=device_id_from_data,
+                                events=claimed_events, reserved=reserved_at: (
+                                    release_post_process_alert_events(device, events, reserved)
+                                ),
+                            )
+                        except Exception as pp_exc:
+                            logger.warning('后处理请求投递异常: %s', pp_exc)
                 else:
-                    if detections:
+                    # 缓存轨迹只用于画面连续展示，不能单独触发新的业务事件。
+                    if fresh_detections:
                         try_send_alert_for_detections(
                             device_id_from_data,
                             device_name,
                             frame_number,
-                            detections,
+                            fresh_detections,
                             alert_frame,
                             timestamp,
                         )

@@ -247,7 +247,10 @@ import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
 import SNAP_TASK_IMAGE from '@/assets/images/video/snap-task.png';
 import { Button } from '@/components/Button'
 import { useGo } from '@/hooks/web/usePage';
-import { rewriteStreamHostToPageHost } from '@/views/camera/utils/devicePlay';
+import {
+  rewriteStreamHostToPageHost,
+  setPreferredAiTaskForDevice,
+} from '@/views/camera/utils/devicePlay';
 const ListItem = List.Item;
 
 defineOptions({ name: 'AlgorithmTask' });
@@ -851,6 +854,7 @@ const convertRtmpToHttp = (rtmpUrl: string): string | null => {
 
 // 播放摄像头推流
 const playCameraStream = (stream: CameraStreamInfo) => {
+  setPreferredAiTaskForDevice(stream.device_id, stream.task_id);
   // 优先使用AI HTTP流地址
   // 其次使用推送器的HTTP地址
   // 再次使用推送器的RTMP地址，转换为HTTP地址

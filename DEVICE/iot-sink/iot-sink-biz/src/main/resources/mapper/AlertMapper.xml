@@ -39,6 +39,28 @@
         from alert
         where id = #{id,jdbcType=INTEGER}
     </select>
+
+    <select id="selectByCorrelationId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from alert
+        where correlation_id = #{correlationId,jdbcType=VARCHAR}
+        limit 1
+    </select>
+
+    <select id="selectDefenseConfig" resultType="java.util.HashMap">
+        select at.defense_mode, at.defense_schedule
+        from algorithm_task at
+        inner join algorithm_task_device atd on at.id = atd.task_id
+        where atd.device_id = #{deviceId,jdbcType=VARCHAR}
+          and at.alert_event_enabled = true
+          and at.is_enabled = true
+        <if test="taskId != null">
+          and at.id = #{taskId,jdbcType=INTEGER}
+        </if>
+        order by at.id asc
+        limit 1
+    </select>
     
     <insert id="insert" parameterType="com.basiclab.iot.sink.dal.dataobject.AlertDO" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         insert into alert (object, event, region, information, time, device_id, device_name, image_path, image_url, record_path, task_type, 
@@ -68,6 +90,7 @@
             #{edgeNodeHost,jdbcType=VARCHAR},
             #{nodeId,jdbcType=BIGINT}
         )
+        on conflict (correlation_id) where correlation_id is not null do nothing
     </insert>
     
     <update id="updateImagePath">
@@ -76,4 +99,3 @@
         where id = #{id,jdbcType=INTEGER}
     </update>
 </mapper>
-

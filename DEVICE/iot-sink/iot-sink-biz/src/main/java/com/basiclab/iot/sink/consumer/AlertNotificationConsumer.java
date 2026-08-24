@@ -121,7 +121,8 @@ public class AlertNotificationConsumer {
             } catch (Exception e) {
                 log.error("❌ 处理告警失败（存储数据库/上传图片）: deviceId={}, error={}", 
                         message.getDeviceId(), e.getMessage(), e);
-                // 即使告警处理失败，也继续处理通知（如果配置了通知）
+                // 落库失败不得确认 Kafka，由外层异常处理触发重新投递。
+                throw new IllegalStateException("告警落库失败", e);
             }
             
             // 2. 如果开启了通知，发送到通知主题供iot-message消费
@@ -255,4 +256,3 @@ public class AlertNotificationConsumer {
                 || "feishu".equals(m) || "lark".equals(m);
     }
 }
-
