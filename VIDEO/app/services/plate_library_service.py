@@ -556,6 +556,105 @@ def list_match_records(
     return {'list': [r.to_dict() for r in rows], 'total': total}
 
 
+def list_plate_trajectory(
+    *,
+    plate_no: str,
+    date: str,
+    device_id: Optional[str] = None,
+    limit: int = 500,
+    merge_minutes: int = 15,
+) -> Dict[str, Any]:
+    """车牌出现轨迹：某车牌在某一天被各摄像头（地图坐标）识别命中的时间线。
+
+    轨迹点 = 车牌匹配命中时刻所在摄像头的地图坐标；按命中时间升序串联，
+    即"同一辆车某一天出现在哪些位置、先后顺序如何"。
+    同一摄像头在 merge_minutes 分钟内连续命中会合并为一个点（取首条），
+    避免持续命中把地图挤爆。
+    """
+    from models import Device
+
+    plate = (plate_no or '').strip()
+    if not plate:
+        raise ValueError('plate_no 不能为空')
+    day = (date or '').strip()
+    if not day:
+        raise ValueError('date 不能为空')
+
+    query = (
+        PlateMatchRecord.query
+        .filter(PlateMatchRecord.matched.is_(True))
+        .filter(PlateMatchRecord.plate_no == plate)
+    )
+    if device_id:
+        query = query.filter(PlateMatchRecord.device_id == device_id)
+    # 东八区日期区间（记录 created_at 为 UTC naive）
+    from datetime import datetime as _datetime, timedelta, timezone
+    try:
+        day_start_utc = _datetime.strptime(day, '%Y-%m-%d').replace(tzinfo=timezone(timedelta(hours=8)))
+    except ValueError:
+        raise ValueError(f'日期格式错误: {day}，应为 YYYY-MM-DD')
+    day_start = (day_start_utc - timedelta(hours=8)).replace(tzinfo=None)
+    day_end = day_start + timedelta(days=1)
+    query = query.filter(PlateMatchRecord.created_at >= day_start, PlateMatchRecord.created_at < day_end)
+
+    rows = (
+        query.order_by(PlateMatchRecord.created_at.asc())
+        .limit(max(1, min(int(limit or 500) * 20, 20000)))
+        .all()
+    )
+
+    device_cache: Dict[str, Device] = {}
+    # 同设备时间窗口聚合：保留每个 merge_minutes 窗口的首条
+    merge_window = timedelta(minutes=max(1, int(merge_minutes or 15)))
+    last_kept_at: Dict[str, datetime] = {}
+    points = []
+    for r in rows:
+        dev = device_cache.get(r.device_id)
+        if dev is None:
+            dev = Device.query.get(r.device_id)
+            device_cache[r.device_id] = dev
+        lng = getattr(dev, 'longitude', None) if dev else None
+        lat = getattr(dev, 'latitude', None) if dev else None
+        if lng is None or lat is None:
+            continue  # 无地图坐标的摄像头不构成轨迹点
+        created = r.created_at or datetime.utcnow()
+        last = last_kept_at.get(r.device_id)
+        if last is not None and (created - last) < merge_window:
+            continue  # 同位置短时间内重复命中，合并
+        last_kept_at[r.device_id] = created
+
+        plate_path = (r.plate_image_path or '').strip()
+        plate_image_url = None
+        if plate_path:
+            if plate_path.startswith(('/api/', '/video/', 'http')):
+                plate_image_url = plate_path
+            else:
+                plate_image_url = f'/video/alert/image?path={quote(plate_path, safe="")}'
+        # created_at 为 UTC，转东八区墙钟展示
+        local_time = (created + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S')
+        points.append({
+            'match_record_id': r.id,
+            'time': local_time,
+            'device_id': r.device_id,
+            'device_name': r.device_name or (dev.name if dev else r.device_id),
+            'address': getattr(dev, 'address', None) if dev else None,
+            'longitude': float(lng),
+            'latitude': float(lat),
+            'plate_no': r.plate_no,
+            'plate_color': r.plate_color,
+            'matched_owner_name': r.matched_owner_name,
+            'detect_conf': r.detect_conf,
+            'library_name': r.library_name,
+            'task_name': r.task_name,
+            'alert_id': r.alert_id,
+            'plate_image_path': plate_path or None,
+            'plate_image_url': plate_image_url,
+        })
+        if len(points) >= max(1, min(int(limit or 500), 2000)):
+            break
+    return {'plate_no': plate, 'date': day, 'points': points, 'total': len(points)}
+
+
 def process_plate_matching_message(payload: Dict[str, Any]) -> PlateMatchRecord:
     from app.services.library_matching_service import process_plate_matching_message as _process
     return _process(payload)
