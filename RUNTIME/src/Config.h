@@ -27,6 +27,8 @@ typedef struct Config {
     bool enableAlarm{true};
     std::map<std::string, std::string> modelPaths;
     std::map<std::string, std::string> modelClasses;
+    /** 模型加载顺序（ini 出现顺序）；model_path/classes_path 对应键 "default" */
+    std::vector<std::string> modelKeys;
     std::map<std::string, std::vector<std::vector<cv::Point>>> regions;
     int threadNums{2};
 

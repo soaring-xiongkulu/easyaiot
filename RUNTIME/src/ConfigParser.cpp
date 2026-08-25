@@ -8,6 +8,7 @@
 #include <json/json.h>
 #include <sstream>
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include <cctype>
 
@@ -184,9 +185,26 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "model_path") {
                 currentModel = "default";
                 config.modelPaths[currentModel] = value;
+                if (std::find(config.modelKeys.begin(), config.modelKeys.end(), currentModel)
+                    == config.modelKeys.end()) {
+                    config.modelKeys.push_back(currentModel);
+                }
+            } else if (key.rfind("model_path_", 0) == 0) {
+                // 多模型：model_path_<key> / classes_path_<key>（key 如模型 ID）
+                currentModel = key.substr(std::strlen("model_path_"));
+                if (currentModel.empty()) currentModel = "default";
+                config.modelPaths[currentModel] = value;
+                if (std::find(config.modelKeys.begin(), config.modelKeys.end(), currentModel)
+                    == config.modelKeys.end()) {
+                    config.modelKeys.push_back(currentModel);
+                }
             } else if (key == "classes_path") {
                 if (currentModel.empty()) currentModel = "default";
                 config.modelClasses[currentModel] = value;
+            } else if (key.rfind("classes_path_", 0) == 0) {
+                std::string clsModel = key.substr(std::strlen("classes_path_"));
+                if (clsModel.empty()) clsModel = "default";
+                config.modelClasses[clsModel] = value;
             } else if (key == "threads") {
                 config.threadNums = parseInt(value);
                 if (config.threadNums <= 0) config.threadNums = 3;
