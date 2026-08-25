@@ -7,6 +7,7 @@
 import json
 import hashlib
 import logging
+import os
 import threading
 import time
 from datetime import datetime
@@ -206,6 +207,15 @@ def _task_event_config(task) -> Dict:
         'task_type': task.task_type,
         'face_detection_enabled': bool(task.face_detection_enabled),
         'plate_detection_enabled': bool(task.plate_detection_enabled),
+        'face_matching_enabled': bool(getattr(task, 'face_matching_enabled', False)),
+        'face_library_ids': AlgorithmTask._parse_library_ids(
+            getattr(task, 'face_library_ids', None)
+        ),
+        'face_matching_threshold': getattr(task, 'face_matching_threshold', None),
+        'plate_matching_enabled': bool(getattr(task, 'plate_matching_enabled', False)),
+        'plate_library_ids': AlgorithmTask._parse_library_ids(
+            getattr(task, 'plate_library_ids', None)
+        ),
         'alert_event_suppress_time': task.alert_event_suppress_time,
         'alert_class_names': getattr(task, 'alert_class_names', None),
         'model_ids': model_ids,
@@ -230,6 +240,162 @@ def _normalize_event_model_ids(alert_data: Dict) -> set[int]:
         except (TypeError, ValueError):
             continue
     return normalized
+
+
+def _maybe_dispatch_face_matching_from_alert(alert_data: Dict, task_info: Optional[Dict]) -> None:
+    """RUNTIME（C++ 执行器）告警接入人脸链路。
+
+    RUNTIME 告警携带整帧截图（image_path）与检测框（information.detections[].bbox），
+    任务启用 face_matching 时：把告警帧送入人脸抓取队列（face_det.onnx 检测→裁剪），
+    由队列 Worker 投递匹配（publish_url → Kafka → iot-sink → /matching/process），
+    匹配记录经 correlation_id 与告警自动关联，前端人脸弹框/轨迹直接可用。
+    """
+    if not task_info:
+        return
+    if not task_info.get('face_matching_enabled'):
+        return
+    library_ids = task_info.get('face_library_ids') or []
+    if not library_ids:
+        return
+
+    image_path = (alert_data.get('image_path') or '').strip()
+    if not image_path or not os.path.isfile(image_path):
+        logger.debug('RUNTIME 人脸匹配跳过：告警图片不存在 image_path=%s', image_path)
+        return
+
+    try:
+        import cv2
+        frame = cv2.imread(image_path)
+        if frame is None or frame.size == 0:
+            logger.warning('RUNTIME 人脸匹配跳过：告警图片读取失败 %s', image_path)
+            return
+    except Exception as exc:
+        logger.warning('RUNTIME 人脸匹配跳过：图片读取异常 %s: %s', image_path, exc)
+        return
+
+    try:
+        from app.utils.face_capture_queue_service import enqueue_face_capture
+        from app.utils.service_urls import resolve_face_matching_publish_url
+
+        task_id = task_info.get('task_id')
+        correlation_id = (
+            (alert_data.get('correlation_id') or alert_data.get('correlationId') or '')
+            .strip() or None
+        )
+        ok = enqueue_face_capture(
+            frame=frame,
+            device_id=(alert_data.get('device_id') or '').strip(),
+            device_name=(alert_data.get('device_name') or '').strip() or None,
+            frame_number=0,
+            task_id=int(task_id) if task_id else 0,
+            task_name=task_info.get('task_name') or '',
+            task_type='realtime',
+            library_ids=library_ids,
+            threshold=task_info.get('face_matching_threshold'),
+            publish_url=resolve_face_matching_publish_url(),
+            correlation_id=correlation_id,
+            source_event=task_info.get('task_name') or '',
+        )
+        if ok:
+            logger.info(
+                'RUNTIME 告警已投递人脸匹配: device=%s task=%s corr=%s',
+                alert_data.get('device_id'),
+                task_id,
+                correlation_id,
+            )
+    except Exception as exc:
+        logger.warning('RUNTIME 人脸匹配投递异常: %s', exc, exc_info=True)
+
+
+def _maybe_dispatch_plate_matching_from_alert(alert_data: Dict, task_info: Optional[Dict]) -> None:
+    """RUNTIME（C++ 执行器）告警接入车牌链路。
+
+    与 _maybe_dispatch_face_matching_from_alert 对称：任务启用 plate_matching 时，
+    把告警整帧截图送入车牌抓取队列（plate_detect+plate_rec 检测→识别→裁剪），
+    由队列 Worker 投递匹配（publish_url → Kafka → iot-sink → /matching/process），
+    匹配记录经 correlation_id 与告警自动关联，前端车牌弹框/轨迹直接可用。
+    """
+    if not task_info:
+        return
+    if not task_info.get('plate_matching_enabled'):
+        return
+    library_ids = task_info.get('plate_library_ids') or []
+    if not library_ids:
+        return
+
+    image_path = (alert_data.get('image_path') or '').strip()
+    if not image_path or not os.path.isfile(image_path):
+        logger.debug('RUNTIME 车牌匹配跳过：告警图片不存在 image_path=%s', image_path)
+        return
+
+    try:
+        import cv2
+        frame = cv2.imread(image_path)
+        if frame is None or frame.size == 0:
+            logger.warning('RUNTIME 车牌匹配跳过：告警图片读取失败 %s', image_path)
+            return
+    except Exception as exc:
+        logger.warning('RUNTIME 车牌匹配跳过：图片读取异常 %s: %s', image_path, exc)
+        return
+
+    try:
+        from app.utils.plate_capture_queue_service import enqueue_plate_capture
+        from app.utils.service_urls import resolve_plate_matching_publish_url
+
+        task_id = task_info.get('task_id')
+        correlation_id = (
+            (alert_data.get('correlation_id') or alert_data.get('correlationId') or '')
+            .strip() or None
+        )
+        ok = enqueue_plate_capture(
+            frame=frame,
+            device_id=(alert_data.get('device_id') or '').strip(),
+            device_name=(alert_data.get('device_name') or '').strip() or None,
+            frame_number=0,
+            task_id=int(task_id) if task_id else 0,
+            task_name=task_info.get('task_name') or '',
+            task_type='realtime',
+            library_ids=library_ids,
+            publish_url=resolve_plate_matching_publish_url(),
+            correlation_id=correlation_id,
+        )
+        if ok:
+            logger.info(
+                'RUNTIME 告警已投递车牌匹配: device=%s task=%s corr=%s',
+                alert_data.get('device_id'),
+                task_id,
+                correlation_id,
+            )
+    except Exception as exc:
+        logger.warning('RUNTIME 车牌匹配投递异常: %s', exc, exc_info=True)
+
+
+def _process_runtime_feed_only_alert(alert_data: Dict) -> Dict:
+    """RUNTIME（C++）MQTT/InferEvent 主告警路径补投的告警：仅做库匹配投递。
+
+    主告警仍按原链路（MQTT → iot-sink）落库；此处只把整帧截图送入人脸/车牌抓取队列，
+    匹配记录经 correlation_id 与主告警自动关联，不重复落库/通知/抑制。
+    """
+    device_id = alert_data.get('device_id')
+    task_type = normalize_algorithm_task_type(alert_data.get('task_type'))
+    request_task_id = alert_data.get('task_id') or alert_data.get('taskId')
+    task_info = None
+    if device_id:
+        try:
+            task_info = _query_alert_event_task(device_id, task_type, request_task_id)
+        except (AmbiguousAlgorithmTaskError, ValueError):
+            task_info = None
+        except Exception:
+            task_info = None
+    try:
+        # 按 RUNTIME 补投标志分别投递：face_feed_only → 仅人脸，plate_feed_only → 仅车牌
+        if alert_data.get('face_feed_only'):
+            _maybe_dispatch_face_matching_from_alert(alert_data, task_info)
+        if alert_data.get('plate_feed_only'):
+            _maybe_dispatch_plate_matching_from_alert(alert_data, task_info)
+    except Exception as exc:
+        logger.warning('RUNTIME 库匹配 feed_only 处理失败: %s', exc, exc_info=True)
+    return {'status': 'accepted', 'mode': 'runtime_feed_only'}
 
 
 def _validate_alert_model_ownership(alert_data: Dict, task_config: Dict) -> Optional[Dict]:
@@ -1000,6 +1166,11 @@ def process_alert_hook(alert_data: Dict) -> Dict:
         task_type = normalize_algorithm_task_type(alert_data.get('task_type'))
         request_task_id = alert_data.get('task_id') or alert_data.get('taskId')
 
+        # RUNTIME 人脸/车牌链路桥：MQTT/InferEvent 主告警路径下 C++ 补投的 feed_only 告警，
+        # 仅做库匹配投递（主告警已由 iot-sink 落库），避免重复落库/通知/抑制。
+        if alert_data.get('face_feed_only') or alert_data.get('plate_feed_only'):
+            return _process_runtime_feed_only_alert(alert_data)
+
         use_direct_persist = _should_use_direct_alert_persist()
 
         alert_event_task = None
@@ -1045,6 +1216,18 @@ def process_alert_hook(alert_data: Dict) -> Dict:
                 (alert_event_task or {}).get('alert_class_names'),
             )
             return filtered
+
+        # RUNTIME 告警接入人脸链路：任务启用人脸匹配时投递人脸抓取匹配
+        try:
+            _maybe_dispatch_face_matching_from_alert(alert_data, alert_event_task)
+        except Exception as face_exc:
+            logger.warning('RUNTIME 人脸匹配投递失败: %s', face_exc, exc_info=True)
+
+        # RUNTIME 告警接入车牌链路：任务启用车牌匹配时投递车牌抓取匹配
+        try:
+            _maybe_dispatch_plate_matching_from_alert(alert_data, alert_event_task)
+        except Exception as plate_exc:
+            logger.warning('RUNTIME 车牌匹配投递失败: %s', plate_exc, exc_info=True)
 
         # Kafka 抑制仅作用于投递 Kafka；mini 直连落库由算法侧抑制，hook 不再二次拦截。
         if device_id and resolved_task_id and not use_direct_persist:

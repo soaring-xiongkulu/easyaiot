@@ -1159,6 +1159,25 @@ def create_app(start_background_tasks=None):
     if not start_background_tasks:
         return app
 
+    # 人脸抓取队列 Worker（video 服务进程内常驻）：
+    # Python 实时管线自行启动独立 worker；此处为 RUNTIME（C++）告警接入人脸链路提供队列消费，
+    # 两进程队列相互独立互不干扰。
+    try:
+        from app.utils.face_capture_queue_service import start_face_capture_workers
+        app.face_capture_stop_event = threading.Event()
+        start_face_capture_workers(app.face_capture_stop_event)
+    except Exception as e:
+        logger.warning('人脸抓取 Worker 启动失败（RUNTIME 人脸匹配将不可用）: %s', e)
+
+    # 车牌抓取队列 Worker（video 服务进程内常驻）：为 RUNTIME（C++）告警接入车牌链路提供队列消费，
+    # 与 Python 实时管线自身启动的 worker 相互独立互不干扰。
+    try:
+        from app.utils.plate_capture_queue_service import start_plate_capture_workers
+        app.plate_capture_stop_event = threading.Event()
+        start_plate_capture_workers(app.plate_capture_stop_event)
+    except Exception as e:
+        logger.warning('车牌抓取 Worker 启动失败（RUNTIME 车牌匹配将不可用）: %s', e)
+
     # Nacos注册与心跳线程管理
     try:
         # 获取环境变量
