@@ -83,12 +83,14 @@
     </div>
 
     <ImageModal @register="registerImageModal" />
+    <FaceAlertModal @register="registerFaceAlertModal" />
+    <PlateAlertModal @register="registerPlateAlertModal" />
     <DialogPlayer @register="registerVideoModal" />
     <DeviceLocationDrawer @register="registerLocationDrawer" @success="handleLocationDrawerSuccess" />
   </div>
 </template>
 <script lang="ts" setup name="noticeSetting">
-import { nextTick, reactive, ref, onMounted, onActivated } from 'vue';
+import { nextTick, reactive, ref, onMounted, onActivated, watch } from 'vue';
 import { TabPane, Tabs } from 'ant-design-vue';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
@@ -100,6 +102,8 @@ import AlertCards from '@/views/alert/components/AlertCards/index.vue';
 import AlertMapView from '@/views/alert/components/AlertMapView/index.vue';
 import AlertListToolbar from '@/views/alert/components/AlertListToolbar.vue';
 import ImageModal from '@/views/alert/components/ImageModal/index.vue';
+import FaceAlertModal from '@/views/alert/components/FaceAlertModal/index.vue';
+import PlateAlertModal from '@/views/alert/components/PlateAlertModal/index.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import { useModal } from '@/components/Modal';
 import {
@@ -112,12 +116,14 @@ import { canSetDeviceLocation } from '@/views/camera/utils/deviceLocation';
 import { getDeviceInfo } from '@/api/device/camera';
 import { openDeviceInDialogPlayer } from '@/views/camera/utils/devicePlay';
 import { playAlertRecordInModal } from '@/utils/alertRecordPlayback';
-import { isSnapAlertTask } from '@/views/alert/alertDisplay';
+import { hasAlertFaceMatch, hasAlertPlateMatch, isSnapAlertTask } from '@/views/alert/alertDisplay';
 import { isEdgeStandaloneDeployProfile } from '@/utils/deployProfile';
 
 const router = useRouter();
 const edgeStandalone = isEdgeStandaloneDeployProfile();
 const [registerImageModal, { openModal: openImageModal }] = useModal();
+const [registerFaceAlertModal, { openModal: openFaceAlertModal }] = useModal();
+const [registerPlateAlertModal, { openModal: openPlateAlertModal }] = useModal();
 const [registerVideoModal, { openModal: openVideoModal, closeModal: closeVideoModal, setModalProps: setVideoModalProps }] = useModal();
 const [registerLocationDrawer, { openModal: openLocationModal }] = useModal();
 
@@ -169,6 +175,22 @@ function handleTabClick(activeKey: string) {
     void activateMapTab();
   }
 }
+
+// 人脸/车牌轨迹入口跳转：URL 携带 trajectory_person / trajectory_plate 时，
+// 无论当前在哪个 tab 都强制切到地图分布（轨迹加载由 AlertMapPanel 自身的 route.query watch 完成）
+watch(
+  () => [
+    router.currentRoute.value.query.trajectory_person,
+    router.currentRoute.value.query.trajectory_plate,
+  ],
+  ([person, plate]) => {
+    if (!person && !plate) return;
+    if (state.activeKey !== ALERT_TAB_KEYS.MAP) {
+      state.activeKey = ALERT_TAB_KEYS.MAP;
+      void activateMapTab();
+    }
+  },
+);
 
 const refreshData = () => {
   const route = router.currentRoute.value;
@@ -297,6 +319,17 @@ const handleViewImage = (record: Record<string, any>) => {
   const minioUrl = record['image_url'];
   if (minioUrl == null || String(minioUrl).trim() === '') {
     createMessage.warn('告警图片不存在');
+    return;
+  }
+  // 关联人脸的告警走人脸专属弹框（全景图 + 人脸头像 + 姓名/行为/地点/事件），
+  // 关联车牌的告警走车牌专属弹框（全景图 + 车牌号/车主/置信度 + 轨迹入口），
+  // 其余告警保持原有图片弹框
+  if (hasAlertFaceMatch(record)) {
+    openFaceAlertModal(true, { record });
+    return;
+  }
+  if (hasAlertPlateMatch(record)) {
+    openPlateAlertModal(true, { record });
     return;
   }
   openImageModal(true, {

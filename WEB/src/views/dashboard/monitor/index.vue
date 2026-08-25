@@ -31,6 +31,8 @@
     </div>
 
     <ImageModal @register="registerImageModal" />
+    <FaceAlertModal @register="registerFaceAlertModal" />
+    <PlateAlertModal @register="registerPlateAlertModal" />
   </div>
 </template>
 
@@ -41,14 +43,22 @@ import MonitorSidebar from './components/Sidebar.vue'
 import VideoMonitor from './components/VideoMonitor.vue'
 import AlarmPanel from './components/AlarmPanel.vue'
 import ImageModal from '@/views/alert/components/ImageModal/index.vue'
+import FaceAlertModal from '@/views/alert/components/FaceAlertModal/index.vue'
+import PlateAlertModal from '@/views/alert/components/PlateAlertModal/index.vue'
 import { useModal } from '@/components/Modal'
 import { useMessage } from '@/hooks/web/useMessage'
 import { queryAlarmList, getDashboardStatistics } from '@/api/device/calculate'
 import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage'
-import { formatAlertListTitle } from '@/views/alert/alertDisplay'
+import {
+  formatAlertListTitle,
+  hasAlertFaceMatch,
+  hasAlertPlateMatch,
+} from '@/views/alert/alertDisplay'
 
 const { createMessage } = useMessage()
 const [registerImageModal, { openModal: openImageModal }] = useModal()
+const [registerFaceAlertModal, { openModal: openFaceAlertModal }] = useModal()
+const [registerPlateAlertModal, { openModal: openPlateAlertModal }] = useModal()
 
 defineOptions({
   name: 'MonitorDashboard'
@@ -287,11 +297,19 @@ const handleDevicePlay = (device: any) => {
   }
 }
 
-// 告警事件点击查看告警图片
+// 告警事件点击查看告警图片（关联人脸的告警走人脸识别弹框，关联车牌的告警走车牌弹框，否则普通图片弹框）
 const handlePlayAlarm = (alarm: any) => {
   const minioUrl = alarm.image_url
   if (minioUrl == null || String(minioUrl).trim() === '') {
     createMessage.warn('告警图片不存在')
+    return
+  }
+  if (hasAlertFaceMatch(alarm)) {
+    openFaceAlertModal(true, { record: alarm })
+    return
+  }
+  if (hasAlertPlateMatch(alarm)) {
+    openPlateAlertModal(true, { record: alarm })
     return
   }
   openImageModal(true, {
