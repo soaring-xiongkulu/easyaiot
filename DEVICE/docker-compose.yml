@@ -403,6 +403,9 @@ services:
       # NFS 共享媒体（容器内固定挂载点 /mnt/easyaiot-media，与 volume 目标路径一致）
       - BASICLAB_MEDIA_MOUNT_ROOT=/mnt/easyaiot-media
       - ALERT_IMAGES_BASE_DIR=/mnt/easyaiot-media/alert_images
+      # VIDEO/Gateway 服务地址：iot-gateway 为 host 网络，容器内 localhost 指向自身，
+      # 必须用 easyaiot-network 网关（宿主机）地址，否则人脸匹配/告警回调 Connection refused
+      - BASICLAB_VIDEO_SERVICE_URL=${BASICLAB_VIDEO_SERVICE_URL:-http://172.18.0.1:48080}
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-sink
