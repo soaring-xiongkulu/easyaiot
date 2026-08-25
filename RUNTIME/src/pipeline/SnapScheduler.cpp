@@ -191,10 +191,18 @@ void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame) {
     int fid = frameId_.fetch_add(1, std::memory_order_relaxed);
     int inputId = static_cast<int>(idx);
 
-    pool_->submitTask(frame, inputId, fid);
+    // 多模型：每帧提交全部模型，合并各模型检测结果
+    const size_t modelCount = pool_->modelCount();
+    for (size_t m = 0; m < modelCount; ++m) {
+        pool_->submitTask(frame, static_cast<int>(m), inputId, fid);
+    }
     std::vector<DetectObject> detections;
-    if (pool_->getTargetResult(detections, inputId, fid) != 0) {
-        return;
+    for (size_t m = 0; m < modelCount; ++m) {
+        std::vector<DetectObject> modelDets;
+        if (pool_->getTargetResult(modelDets, static_cast<int>(m), inputId, fid) != 0) {
+            return;
+        }
+        detections.insert(detections.end(), modelDets.begin(), modelDets.end());
     }
 
     std::vector<DetectObject> alarmDetections;

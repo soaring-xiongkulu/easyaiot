@@ -568,19 +568,33 @@ void Pipeline::inferLoop() {
         int detectCount = 0;
 
         if (config_.enableAI && yoloPool_) {
+            const size_t modelCount = yoloPool_->modelCount();
             if (aiFrameInterval % submitInterval == 0) {
-                yoloPool_->submitTask(img, 0, localFrameId);
+                for (size_t m = 0; m < modelCount; ++m) {
+                    yoloPool_->submitTask(img, static_cast<int>(m), 0, localFrameId);
+                }
                 lastSubmittedFrameId = localFrameId;
             }
             aiFrameInterval++;
             localFrameId++;
 
+            // 多模型聚合：全部模型返回同一帧结果后才刷新，避免单模型结果覆盖整体
             for (int checkFrame = lastSubmittedFrameId;
                  checkFrame >= 0 && checkFrame >= lastSubmittedFrameId - 30;
                  checkFrame--) {
-                int r = yoloPool_->getTargetResultNonBlock(detections, 0, checkFrame);
-                if (r == 0) {
-                    lastDetections = detections;
+                std::vector<DetectObject> merged;
+                bool allReady = true;
+                for (size_t m = 0; m < modelCount; ++m) {
+                    std::vector<DetectObject> modelDets;
+                    if (yoloPool_->getTargetResultNonBlock(modelDets, static_cast<int>(m), 0, checkFrame) == 0) {
+                        merged.insert(merged.end(), modelDets.begin(), modelDets.end());
+                    } else {
+                        allReady = false;
+                        break;
+                    }
+                }
+                if (allReady) {
+                    lastDetections = std::move(merged);
                     break;
                 }
             }
