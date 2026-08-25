@@ -139,13 +139,9 @@ def _create_match_alert(
             'correlation_id': correlation_id,
         })
         alert_id = alert_dict.get('id')
-        if alert_id and image_path:
-            minio_path = upload_image_to_minio(image_path, alert_id, device_id)
-            if minio_path:
-                alert = Alert.query.get(alert_id)
-                if alert:
-                    alert.image_url = minio_path
-                    db.session.commit()
+        # 注意：人脸图（人脸裁剪图）不走 alert-images 桶——告警链路（主模型整帧）
+        # 与人脸链路（人脸裁剪）各自独立产图，复用 alert_id 上传会覆盖告警主图。
+        # 人脸图由 face_image_url（/video/alert/image?path=…）独立提供，前端人脸弹框消费。
         return alert_id
     except Exception as exc:
         logger.error('创建库匹配告警失败: %s', exc, exc_info=True)

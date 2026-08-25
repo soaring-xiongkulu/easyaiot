@@ -173,6 +173,9 @@ def _alert_to_dict(alert: Alert) -> dict:
     if alert.event == 'face_library_match' and alert.object:
         result['matched_person_name'] = alert.object
 
+    if alert.event == 'plate_library_match' and alert.object:
+        result['matched_plate_no'] = alert.object
+
     if information_dict and isinstance(information_dict, dict):
         source_event = information_dict.get('source_event')
         if source_event:
@@ -183,6 +186,124 @@ def _alert_to_dict(alert: Alert) -> dict:
         library_name = information_dict.get('library_name')
         if library_name:
             result['library_name'] = library_name
+
+    # —— 人脸匹配信息增强：按 correlation_id 关联 face_match_record，合并到 information ——
+    # 匹配结果经 Kafka→iot-sink→/matching/process 独立落 face_match_record 表，
+    # 告警（含 POST 链路的检测告警）通过 correlation_id 幂等关联；同一帧画面可能
+    # 匹配到多个人（每张脸一条记录），全部返回供前端多人布局。
+    if getattr(alert, 'correlation_id', None):
+        try:
+            from models import FaceMatchRecord
+            from urllib.parse import quote
+            records = (
+                FaceMatchRecord.query
+                .filter(FaceMatchRecord.correlation_id == alert.correlation_id)
+                .filter(FaceMatchRecord.matched.is_(True))
+                .order_by(FaceMatchRecord.similarity.desc())
+                .limit(10)
+                .all()
+            )
+            if records:
+
+                def _build_face_match_item(record: FaceMatchRecord) -> dict:
+                    face_path = (record.face_image_path or '').strip()
+                    if face_path and not face_path.startswith(('/api/', '/video/', 'http')):
+                        face_image_url = f'/video/alert/image?path={quote(face_path, safe="")}'
+                    else:
+                        face_image_url = face_path or None
+                    candidates = []
+                    try:
+                        raw_candidates = record.candidates
+                        if isinstance(raw_candidates, str):
+                            raw_candidates = json.loads(raw_candidates)
+                        if isinstance(raw_candidates, list):
+                            candidates = [
+                                {
+                                    'face_entry_id': c.get('face_entry_id'),
+                                    'person_name': c.get('person_name') or c.get('label'),
+                                    'person_code': c.get('person_code'),
+                                    'similarity': c.get('similarity'),
+                                    'matched': bool(c.get('matched')),
+                                }
+                                for c in raw_candidates[:5]
+                                if isinstance(c, dict)
+                            ]
+                    except (ValueError, TypeError, json.JSONDecodeError):
+                        candidates = []
+                    return {
+                        'match_type': 'face',
+                        'matched': True,
+                        'match_record_id': record.id,
+                        'matched_person_name': record.matched_person_name,
+                        'matched_person_code': record.matched_person_code,
+                        'matched_face_entry_id': record.matched_face_entry_id,
+                        'similarity': record.similarity,
+                        'threshold': record.threshold,
+                        'library_id': record.library_id,
+                        'library_name': record.library_name,
+                        'face_image_path': face_path or None,
+                        'face_image_url': face_image_url,
+                        'candidates': candidates,
+                    }
+
+                info = dict(information_dict) if isinstance(information_dict, dict) else {}
+                info['face_matches'] = [_build_face_match_item(r) for r in records]
+                # 兼容单人人脸弹框：face_match 保留相似度最高的一条
+                info['face_match'] = info['face_matches'][0]
+                result['information'] = info
+                if records[0].matched_person_name:
+                    result['matched_person_name'] = records[0].matched_person_name
+        except Exception as exc:
+            logger.debug('告警关联人脸匹配信息增强失败: %s', exc)
+
+    # —— 车牌匹配信息增强：按 correlation_id 关联 plate_match_record，合并到 information ——
+    # 与人脸对称：RUNTIME/实时链路告警经 correlation_id 关联车牌匹配记录，
+    # 同一帧画面可能识别到多个车牌（每张车牌一条记录），全部返回供前端展示。
+    if getattr(alert, 'correlation_id', None):
+        try:
+            from models import PlateMatchRecord
+            from urllib.parse import quote
+            records = (
+                PlateMatchRecord.query
+                .filter(PlateMatchRecord.correlation_id == alert.correlation_id)
+                .filter(PlateMatchRecord.matched.is_(True))
+                .order_by(PlateMatchRecord.id.desc())
+                .limit(10)
+                .all()
+            )
+            if records:
+
+                def _build_plate_match_item(record: PlateMatchRecord) -> dict:
+                    plate_path = (record.plate_image_path or '').strip()
+                    if plate_path and not plate_path.startswith(('/api/', '/video/', 'http')):
+                        plate_image_url = f'/video/alert/image?path={quote(plate_path, safe="")}'
+                    else:
+                        plate_image_url = plate_path or None
+                    return {
+                        'match_type': 'plate',
+                        'matched': True,
+                        'match_record_id': record.id,
+                        'plate_no': record.plate_no,
+                        'plate_color': record.plate_color,
+                        'matched_owner_name': record.matched_owner_name,
+                        'matched_plate_entry_id': record.matched_plate_entry_id,
+                        'detect_conf': record.detect_conf,
+                        'library_id': record.library_id,
+                        'library_name': record.library_name,
+                        'plate_image_path': plate_path or None,
+                        'plate_image_url': plate_image_url,
+                        'alert_id': record.alert_id,
+                    }
+
+                info = dict(information_dict) if isinstance(information_dict, dict) else {}
+                info['plate_matches'] = [_build_plate_match_item(r) for r in records]
+                # 兼容单条车牌弹框：plate_match 保留最新一条
+                info['plate_match'] = info['plate_matches'][0]
+                result['information'] = info
+                if records[0].plate_no:
+                    result['matched_plate_no'] = records[0].plate_no
+        except Exception as exc:
+            logger.debug('告警关联车牌匹配信息增强失败: %s', exc)
 
     return result
 
