@@ -231,6 +231,7 @@ def create_app(start_background_tasks=None):
                 ensure_algorithm_task_detect_conf_column,
                 ensure_algorithm_task_executor_columns,
                 ensure_stream_forward_task_executor_columns,
+                ensure_camera_ingress_columns,
                 ensure_post_plugin_tables,
             )
             ensure_algorithm_task_sam_columns(db.engine)
@@ -241,6 +242,7 @@ def create_app(start_background_tasks=None):
             ensure_algorithm_task_detect_conf_column(db.engine)
             ensure_algorithm_task_executor_columns(db.engine)
             ensure_stream_forward_task_executor_columns(db.engine)
+            ensure_camera_ingress_columns(db.engine)
             ensure_post_plugin_tables(db.engine)
             
             # 迁移：检查并添加缺失的列和表

@@ -224,6 +224,20 @@ def _use_remote_deploy(task: StreamForwardTask) -> bool:
     return policy in ('auto', 'node')
 
 
+def _requires_local_runtime(
+    task: StreamForwardTask,
+    *,
+    remote_deploy: Optional[bool] = None,
+) -> bool:
+    """Only locally executed C++ tasks depend on the control-plane RUNTIME."""
+    from app.services.runtime_config_service import normalize_executor
+
+    if remote_deploy is None:
+        remote_deploy = _use_remote_deploy(task)
+    executor = normalize_executor(getattr(task, 'executor', None) or 'cpp')
+    return executor == 'cpp' and not remote_deploy
+
+
 def _devices_per_shard() -> int:
     try:
         return max(1, int(os.getenv('STREAM_FORWARD_DEVICES_PER_SHARD', '4')))
@@ -622,6 +636,13 @@ def _build_stream_forward_deploy_env(
 
     executor = normalize_executor(getattr(task, 'executor', None) if task else os.getenv('STREAM_FORWARD_EXECUTOR', 'cpp'))
     env['STREAM_FORWARD_EXECUTOR'] = executor
+    publish_scope = getattr(task, 'publish_scope', None) if task else None
+    if remote and publish_scope == 'control_plane':
+        if not control_plane_host or control_plane_host in ('127.0.0.1', 'localhost'):
+            raise RuntimeError('无法解析主节点地址，边缘流不能推送到控制面媒体服务')
+        env['STREAM_FORWARD_PUSH_HOST'] = control_plane_host
+        env['STREAM_FORWARD_PUSH_PORT'] = os.getenv('CONTROL_PLANE_SRS_RTMP_PORT', '1935')
+        env['STREAM_FORWARD_PUSH_SCOPE'] = 'control_plane'
     if executor == 'cpp':
         is_remote_node = node_tags is not None or os.getenv('NODE_REMOTE_VIDEO_ROOT')
         if is_remote_node:
@@ -805,7 +826,8 @@ def _deploy_shard_with_workload_id(
         node_tags = node_info.get('tags')
     except Exception as e:
         logger.debug('查询分配节点详情失败 node_id=%s: %s', node_id, e)
-    _ensure_node_srs_ready(node_id, host, node_tags)
+    if (getattr(task, 'publish_scope', None) or 'node') != 'control_plane':
+        _ensure_node_srs_ready(node_id, host, node_tags)
 
     video_root_remote = os.getenv('NODE_REMOTE_VIDEO_ROOT', '/opt/easyaiot/VIDEO')
     work_dir = os.path.join(video_root_remote, 'services', 'stream_forward_service')
@@ -843,6 +865,11 @@ def _deploy_shard_with_workload_id(
         'device_ids': device_ids,
         'node_id': node_id,
         'host': host,
+        'publish_host': (
+            _resolve_control_plane_host()
+            if (getattr(task, 'publish_scope', None) or 'node') == 'control_plane'
+            else None
+        ),
         'workload_id': workload_id,
         'pid': result.get('pid'),
         'log_dir': log_dir,
@@ -1090,7 +1117,8 @@ def _deploy_task_on_remote_node(
         node_tags = node_info.get('tags')
     except Exception as e:
         logger.debug('查询分配节点详情失败 node_id=%s: %s', node_id, e)
-    _ensure_node_srs_ready(node_id, host, node_tags)
+    if (getattr(task, 'publish_scope', None) or 'node') != 'control_plane':
+        _ensure_node_srs_ready(node_id, host, node_tags)
 
     video_root_remote = os.getenv('NODE_REMOTE_VIDEO_ROOT', '/opt/easyaiot/VIDEO')
     work_dir = os.path.join(video_root_remote, 'services', 'stream_forward_service')
@@ -1119,6 +1147,11 @@ def _deploy_task_on_remote_node(
         'device_ids': device_ids,
         'node_id': node_id,
         'host': host,
+        'publish_host': (
+            _resolve_control_plane_host()
+            if (getattr(task, 'publish_scope', None) or 'node') == 'control_plane'
+            else None
+        ),
         'workload_id': str(task_id),
         'pid': result.get('pid'),
         'log_dir': log_dir,
@@ -1595,13 +1628,14 @@ def restart_stream_forward_task_services(task_id: int) -> bool:
 
 def start_stream_forward_task(task_id: int):
     """启动推流转发任务（本机守护进程或远程节点/设备级分片）"""
-    from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
+    from app.services.runtime_config_service import ensure_runtime_bin_ready
 
     task = StreamForwardTask.query.get(task_id)
     if not task:
         raise ValueError(f"推流转发任务不存在: task_id={task_id}")
 
-    if normalize_executor(getattr(task, 'executor', None) or 'cpp') == 'cpp':
+    remote_deploy = _use_remote_deploy(task)
+    if _requires_local_runtime(task, remote_deploy=remote_deploy):
         try:
             ensure_runtime_bin_ready(task)
         except Exception as e:
@@ -1613,7 +1647,7 @@ def start_stream_forward_task(task_id: int):
         task_start_lock = _starting_tasks[task_id]
 
     with task_start_lock:
-        if _use_remote_deploy(task):
+        if remote_deploy:
             if _task_has_active_remote_deployments(task):
                 if _stream_forward_deployments_healthy(task):
                     logger.info('推流转发任务 %s 分片仍在运行，跳过重复部署', task_id)

@@ -134,6 +134,7 @@ sync_agent_sources() {
   echo "==> 同步 Sentinel 源码: ${resolved_script_dir} -> ${resolved_install_dir}"
   sudo cp "$resolved_script_dir/run_sentinel.py" "$resolved_script_dir/run_agent.py" \
     "$resolved_script_dir/agent_server.py" \
+    "$resolved_script_dir/camera_access.py" \
     "$resolved_script_dir/media_manager.py" "$resolved_script_dir/mqtt_manager.py" \
     "$resolved_script_dir/workload_manager.py" \
     "$resolved_script_dir/requirements.txt" "$resolved_script_dir/agent.env.example" \
@@ -268,11 +269,11 @@ WRAP
   verify_agent_imports() {
     if [ -d "$SITE_PKG" ]; then
       sudo env PYTHONPATH="$SITE_PKG" $PYTHON -c \
-        "import flask, psutil, requests, minio, yaml, mqtt_manager" 2>/dev/null \
+        "import flask, psutil, requests, minio, yaml, httpx, wsdiscovery, onvif, mqtt_manager" 2>/dev/null \
         && return 0
     fi
     if [ -n "$RUN_PYTHON" ] && [ -x "$RUN_PYTHON" ]; then
-      sudo "$RUN_PYTHON" -c "import flask, psutil, requests, minio, yaml, mqtt_manager" 2>/dev/null \
+      sudo "$RUN_PYTHON" -c "import flask, psutil, requests, minio, yaml, httpx, wsdiscovery, onvif, mqtt_manager" 2>/dev/null \
         && return 0
     fi
     return 1

@@ -3,3 +3,6 @@ psutil>=5.9.0
 flask>=2.3.0
 minio>=7.1.0
 PyYAML>=6.0
+httpx>=0.24.0
+WSDiscovery==2.1.2
+onvif-zeep==0.2.12

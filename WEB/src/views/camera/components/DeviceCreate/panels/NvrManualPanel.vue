@@ -39,6 +39,7 @@ import {
 import { CAMERA_BRAND_OPTIONS, isCustomBrand } from '@/views/camera/utils/deviceCreateOptions';
 
 const emit = defineEmits<{ success: [] }>();
+const props = defineProps<{ ingressNodeId?: number }>();
 
 const { createMessage } = useMessage();
 const submitting = ref(false);
@@ -155,7 +156,7 @@ async function handleSubmit() {
     const username = String(values.username || '').trim();
     const password = values.password || '';
 
-    const requestData: Record<string, any> = {
+    const requestData = {
       ip,
       port,
       username,
@@ -164,7 +165,8 @@ async function handleSubmit() {
       name: values.name || undefined,
       scheme: port === 443 || port === 8443 ? 'https' : 'http',
       timeout: 15,
-    };
+      ingress_node_id: props.ingressNodeId,
+    } as Parameters<typeof registerNvrWithChannels>[0];
 
     if (isCustom) {
       if (!rtspTemplate) {

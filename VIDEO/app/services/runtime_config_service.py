@@ -642,6 +642,9 @@ def _resolve_single_model_path(
     root = _repo_root()
     builtin = _default_builtin_model_name(mid_int)
     if builtin:
+        if prefer_cluster:
+            remote_models = Path('/opt/easyaiot/RUNTIME/models')
+            return str(remote_models / f'{builtin}.onnx'), str(remote_models / 'coco.names')
         try:
             return _resolve_builtin_onnx(builtin)
         except Exception as e:
@@ -927,6 +930,7 @@ def _build_runtime_ini_text(
     alert_hook_url: str,
     compute_node_id: str,
     resolved_urls: Dict[str, str],
+    heartbeat_url: str,
 ) -> str:
     devices_json_one_line = _devices_json(devices_for_json, resolved_urls).replace('\n', '')
     regions_block = _regions_ini_block(devices_for_json, task.id)
@@ -994,7 +998,7 @@ device_id={device.id}
 device_name={device_name}
 task_type={hook_tt}
 algorithm_name={algo_name}
-heartbeat_url={_heartbeat_url(task_type, resolve_video_service_base_url().rstrip('/'))}
+heartbeat_url={heartbeat_url}
 heartbeat_interval_sec={'15' if task_type == 'patrol' else '10'}
 log_path={log_path}
 alert_image_dir={alert_image_dir}
@@ -1043,6 +1047,7 @@ def generate_runtime_inis(
     only_device_ids: Optional[List[str]] = None,
     force_per_device: bool = False,
     remote_ini_dir: Optional[str] = None,
+    heartbeat_url: Optional[str] = None,
 ) -> List[str]:
     """生成 RUNTIME ini 路径列表。
 
@@ -1147,6 +1152,10 @@ def generate_runtime_inis(
     compute_node_id = (os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or '').strip()
 
     hook_tt = _hook_task_type(task_type)
+    resolved_heartbeat_url = (heartbeat_url or '').strip() or _heartbeat_url(
+        task_type,
+        resolve_video_service_base_url().rstrip('/'),
+    )
 
     use_gpu_env = (os.getenv('USE_GPU') or '').strip().lower()
     force_cpu_env = (os.getenv('RUNTIME_FORCE_CPU') or '').strip().lower()
@@ -1278,6 +1287,7 @@ def generate_runtime_inis(
             alert_hook_url=alert_hook_url,
             compute_node_id=compute_node_id,
             resolved_urls=resolved_urls,
+            heartbeat_url=resolved_heartbeat_url,
         )
         contents.append(content)
         if write_local:
@@ -1303,6 +1313,7 @@ def generate_runtime_ini(
     prefer_cluster_model: bool = False,
     write_local: bool = True,
     remote_ini_path: Optional[str] = None,
+    heartbeat_url: Optional[str] = None,
 ) -> str:
     """Generate RUNTIME ini；realtime 多路时写多份并返回第一路路径（完整列表见 generate_runtime_inis）。"""
     if remote_ini_path and write_local is False:
@@ -1312,6 +1323,7 @@ def generate_runtime_ini(
             log_path,
             prefer_cluster_model=prefer_cluster_model,
             write_local=False,
+            heartbeat_url=heartbeat_url,
         )
         # 覆盖远程路径名（调用方指定）
         generate_runtime_ini.last_content = (  # type: ignore[attr-defined]
@@ -1323,6 +1335,7 @@ def generate_runtime_ini(
         log_path,
         prefer_cluster_model=prefer_cluster_model,
         write_local=write_local,
+        heartbeat_url=heartbeat_url,
     )
     return paths[0]
 
@@ -1335,6 +1348,7 @@ def generate_runtime_ini_content(
     remote_ini_path: Optional[str] = None,
     only_device_ids: Optional[List[str]] = None,
     force_per_device: bool = False,
+    heartbeat_url: Optional[str] = None,
 ) -> Tuple[str, str]:
     """Return (remote_ini_path, ini_content) without requiring local model file.
 
@@ -1351,6 +1365,7 @@ def generate_runtime_ini_content(
         only_device_ids=only_device_ids,
         force_per_device=force_per_device,
         remote_ini_dir=remote_dir,
+        heartbeat_url=heartbeat_url,
     )
     contents = getattr(generate_runtime_inis, 'last_contents', None) or []
     if not contents:
@@ -1368,6 +1383,7 @@ def generate_runtime_inis_content(
     only_device_ids: Optional[List[str]] = None,
     force_per_device: bool = False,
     remote_ini_dir: Optional[str] = None,
+    heartbeat_url: Optional[str] = None,
 ) -> List[Tuple[str, str]]:
     """返回 [(ini_path, content), ...]，供远程分片多路部署。"""
     paths = generate_runtime_inis(
@@ -1378,6 +1394,7 @@ def generate_runtime_inis_content(
         only_device_ids=only_device_ids,
         force_per_device=force_per_device,
         remote_ini_dir=remote_ini_dir,
+        heartbeat_url=heartbeat_url,
     )
     contents = getattr(generate_runtime_inis, 'last_contents', None) or []
     if len(contents) != len(paths):

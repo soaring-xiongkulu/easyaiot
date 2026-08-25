@@ -13,6 +13,7 @@ public final class AgentDeployUtil {
             "run_sentinel.py",
             "run_agent.py",
             "agent_server.py",
+            "camera_access.py",
             "media_manager.py",
             "mqtt_manager.py",
             "workload_manager.py",

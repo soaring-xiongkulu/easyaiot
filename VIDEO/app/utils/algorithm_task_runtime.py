@@ -22,6 +22,19 @@ def resolve_task_run_status_from_heartbeat(is_enabled: bool) -> str:
     return 'running' if is_enabled else 'stopped'
 
 
+def resolve_heartbeat_server_ip(
+        reported_ip: str,
+        current_ip: str,
+        node_id=None,
+) -> str:
+    """Do not let a remote worker's loopback self-address hide its edge node host."""
+    reported = str(reported_ip or '').strip()
+    current = str(current_ip or '').strip()
+    if node_id and reported in {'127.0.0.1', 'localhost', '::1'}:
+        return current
+    return reported or current
+
+
 def resolve_heartbeat_stream_state(
         is_enabled: bool,
         source_mode: str,

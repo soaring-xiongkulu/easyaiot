@@ -37,6 +37,13 @@
               @change="handleCameraTypeChange"
             />
           </FormItem>
+          <FormItem label="接入节点">
+            <Select
+              v-model:value="modelRef.ingress_node_id"
+              :options="ingressNodeOptions"
+              :loading="ingressNodesLoading"
+            />
+          </FormItem>
           <!-- 自定义类型：显示完整RTSP地址输入框 -->
           <template v-if="modelRef.cameraType === 'custom'">
             <FormItem label="RTSP地址" name="source" v-bind=validateInfos.source>
@@ -147,6 +154,15 @@
               </FormItem>
             </Col>
             <Col :span="12">
+              <FormItem label="接入节点">
+                <Select
+                  v-model:value="modelRef.ingress_node_id"
+                  :options="ingressNodeOptions"
+                  :loading="ingressNodesLoading"
+                />
+              </FormItem>
+            </Col>
+            <Col :span="12">
               <FormItem label="rtmp推流地址" name="rtmp_stream" v-bind=validateInfos.rtmp_stream>
                 <Input v-model:value="modelRef.rtmp_stream"/>
               </FormItem>
@@ -254,6 +270,7 @@ import {discoverDevices, registerDevice, registerDeviceByOnvif, updateDevice} fr
 import {getOnvifBasicColumns, getOnvifFormConfig} from './Data';
 import {ensureDeviceStreamForwardTask} from "@/api/device/stream_forward";
 import { buildBrandRtspUrl, resolveRegisteredDeviceId } from '@/views/camera/utils/rtspUrl';
+import { getEdgeNodePage } from '@/api/device/edge';
 defineOptions({name: 'VideoModal'})
 
 const {createMessage} = useMessage();
@@ -317,7 +334,32 @@ const modelRef = reactive({
   nvr_label: '',
   longitude: null as number | null,
   latitude: null as number | null,
+  ingress_node_id: 0,
 });
+
+const ingressNodesLoading = ref(false);
+const ingressNodeOptions = ref<Array<{ label: string; value: number }>>([
+  { label: '本机（主节点）', value: 0 },
+]);
+
+async function loadIngressNodes() {
+  ingressNodesLoading.value = true;
+  try {
+    const page = await getEdgeNodePage({ pageNo: 1, pageSize: 200, status: 'online', enabled: true });
+    const list = Array.isArray(page?.list) ? page.list : [];
+    ingressNodeOptions.value = [
+      { label: '本机（主节点）', value: 0 },
+      ...list
+        .filter((node) => !!node.computeNodeId && node.status === 'online' && node.enabled !== false)
+        .map((node) => ({
+          label: `${node.name || `边缘节点 #${node.id}`}（${node.host || '未知地址'}）`,
+          value: Number(node.computeNodeId),
+        })),
+    ];
+  } finally {
+    ingressNodesLoading.value = false;
+  }
+}
 
 const locationSummaryText = computed(() =>
   formatLocationSummary({
@@ -411,6 +453,7 @@ const [register, {closeModal}] = useModalInner(async (data) => {
   state.isView = isView;
   state.type = type;
   state.record = record ?? null;
+  await loadIngressNodes();
 
   if (type === 'onvif') {
     await nextTick();
@@ -430,6 +473,7 @@ const [register, {closeModal}] = useModalInner(async (data) => {
     modelRef.nvr_id = null;
     modelRef.nvr_channel = 0;
     modelRef.nvr = null;
+    modelRef.ingress_node_id = 0;
   }
 
   // 更新验证规则
@@ -806,6 +850,7 @@ function handleOk() {
           source: modelRef.source,
           stream: modelRef.stream || 0,
           cameraType: modelRef.cameraType, // 传递摄像头类型，用于判断是否需要ONVIF获取
+          ingress_node_id: modelRef.ingress_node_id || undefined,
         };
 
         // 如果是海康、大华或宇视类型，需要传入IP、端口、用户名、密码

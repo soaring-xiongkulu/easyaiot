@@ -334,6 +334,25 @@ def stop_all_shards(task: AlgorithmTask) -> None:
     release_all_task_workload_bindings(task)
 
 
+def _task_is_enabled(task_id: int) -> bool:
+    """Read the committed flag so a stale ORM object cannot restart a stopped task."""
+    return AlgorithmTask.query.filter_by(id=task_id, is_enabled=True).first() is not None
+
+
+def _stop_pending_deployments(deployments: List[Dict[str, Any]]) -> None:
+    """Stop shards created before their deployment record was committed."""
+    for deployment in deployments:
+        workload_id = str(deployment.get('workload_id') or '')
+        if not workload_id:
+            continue
+        if deployment.get('local'):
+            _stop_local_shard(workload_id)
+            continue
+        node_id = deployment.get('node_id')
+        if node_id is not None:
+            stop_remote_workload(int(node_id), workload_id)
+
+
 def _allocate_algorithm_node(
     task: AlgorithmTask,
     workload_id: str,
@@ -408,6 +427,8 @@ def _deploy_cpp_shard_command_and_files(
     task_id: int,
     device_ids: List[str],
     log_dir: str,
+    *,
+    heartbeat_url: Optional[str] = None,
 ) -> Tuple[List[str], List[Dict[str, str]], str]:
     """返回 (command, files, work_dir)。"""
     from app.services.runtime_config_service import (
@@ -425,6 +446,7 @@ def _deploy_cpp_shard_command_and_files(
         only_device_ids=device_ids,
         force_per_device=force_per_device,
         remote_ini_dir=log_dir,
+        heartbeat_url=heartbeat_url,
     )
     files = [{'path': p, 'content': c, 'mode': '0644'} for p, c in pairs]
     work_dir = '/opt/easyaiot/RUNTIME'
@@ -614,15 +636,19 @@ def deploy_shard_with_workload_id(
 
     executor = _normalize_executor(task)
     files = None
+    env = _build_shard_env(task, task_id, log_dir, host, device_ids, workload_id)
     if executor == 'cpp':
         _ensure_runtime_ready_on_node(int(node_id), host)
         command, files, work_dir = _deploy_cpp_shard_command_and_files(
-            task, task_id, device_ids, log_dir,
+            task,
+            task_id,
+            device_ids,
+            log_dir,
+            heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
         )
     else:
         command, work_dir = _deploy_python_shard_command(task, task_id)
 
-    env = _build_shard_env(task, task_id, log_dir, host, device_ids, workload_id)
     result = node_client.deploy_workload(
         node_id=node_id,
         workload_type=WORKLOAD_TYPE_ALGORITHM,
@@ -700,9 +726,14 @@ def deploy_sharded_algorithm_task(
 ) -> Tuple[bool, str, bool]:
     from app.services.algorithm_task_launcher_service import _ensure_task_models_on_cluster
 
+    if not _task_is_enabled(task_id):
+        return False, '任务已停用，取消分片部署', False
+
     ok, sync_msg = _ensure_task_models_on_cluster(task)
     if not ok:
         return False, f'集群模型预同步失败: {sync_msg}', False
+    if not _task_is_enabled(task_id):
+        return False, '任务已停用，取消分片部署', False
 
     device_ids = [d.id for d in (task.devices or []) if d.id]
     if not device_ids:
@@ -714,14 +745,19 @@ def deploy_sharded_algorithm_task(
     spread_assigned: Optional[List[int]] = [] if _should_spread_shards(task) else None
 
     for shard_index, shard_device_ids in enumerate(shards):
+        if not _task_is_enabled(task_id):
+            _stop_pending_deployments(deployments)
+            return False, '任务部署期间被停用，已清理已下发分片', False
         try:
-            deployments.append(
-                _deploy_shard_for_schedule(
-                    task_id, task, shard_index, shard_device_ids, len(shards),
-                    spread_assigned_node_ids=spread_assigned,
-                    fresh_allocate=fresh_allocate,
-                )
+            deployment = _deploy_shard_for_schedule(
+                task_id, task, shard_index, shard_device_ids, len(shards),
+                spread_assigned_node_ids=spread_assigned,
+                fresh_allocate=fresh_allocate,
             )
+            if not _task_is_enabled(task_id):
+                _stop_pending_deployments([*deployments, deployment])
+                return False, '任务部署期间被停用，已清理已下发分片', False
+            deployments.append(deployment)
         except Exception as e:
             logger.error(
                 '算法分片部署失败 task_id=%s devices=%s: %s',
@@ -797,7 +833,7 @@ def redeploy_existing_shard(
 
 def migrate_unhealthy_algorithm_task(task_id: int) -> int:
     task = AlgorithmTask.query.get(task_id)
-    if not task or not use_device_level_schedule(task):
+    if not task or not task.is_enabled or not use_device_level_schedule(task):
         return 0
 
     deployments = parse_device_deployments(task)
@@ -833,6 +869,8 @@ def migrate_unhealthy_algorithm_task(task_id: int) -> int:
 
     if offline_indices:
         for index in offline_indices:
+            if not _task_is_enabled(task_id):
+                return 0
             dep = deployments[index]
             node_id = dep.get('node_id')
             if policy == 'node' and not dep.get('local'):
@@ -842,10 +880,14 @@ def migrate_unhealthy_algorithm_task(task_id: int) -> int:
                 )
                 continue
             try:
-                updated[index] = redeploy_existing_shard(
+                replacement = redeploy_existing_shard(
                     task_id, task, dep,
                     exclude_node_ids=[int(node_id)] if node_id else None,
                 )
+                if not _task_is_enabled(task_id):
+                    _stop_pending_deployments([replacement])
+                    return 0
+                updated[index] = replacement
                 migrated += 1
             except Exception as e:
                 logger.error(
@@ -854,8 +896,14 @@ def migrate_unhealthy_algorithm_task(task_id: int) -> int:
                 )
     elif heartbeat_stale and policy != 'node':
         for index, dep in enumerate(deployments):
+            if not _task_is_enabled(task_id):
+                return 0
             try:
-                updated[index] = redeploy_existing_shard(task_id, task, dep)
+                replacement = redeploy_existing_shard(task_id, task, dep)
+                if not _task_is_enabled(task_id):
+                    _stop_pending_deployments([replacement])
+                    return 0
+                updated[index] = replacement
                 migrated += 1
             except Exception as e:
                 logger.error(
@@ -863,6 +911,9 @@ def migrate_unhealthy_algorithm_task(task_id: int) -> int:
                     task_id, dep.get('workload_id'), e, exc_info=True,
                 )
 
+    if migrated and not _task_is_enabled(task_id):
+        _stop_pending_deployments(updated)
+        return 0
     if migrated:
         apply_task_service_fields_from_deployments(task, updated)
         db.session.commit()

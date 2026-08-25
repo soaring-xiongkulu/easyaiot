@@ -95,6 +95,10 @@ export interface NvrInfo {
   serial_number?: string;
   serial?: string;
   firmware_version?: string;
+  ingress_node_id?: number | null;
+  ingress_node_name?: string;
+  ingress_node_host?: string;
+  ingress_node_status?: string;
   firmware?: string;
   device_type?: string;
   mac?: string;
@@ -156,6 +160,8 @@ export const registerDevice = (data: {
   latitude?: number | null;
   altitude?: number | null;
   address?: string | null;
+  ingress_node_id?: number;
+  skip_onvif?: boolean;
 }) => {
   return commonApi('post', `${CAMERA_PREFIX}/register/device`, data);
 };
@@ -322,6 +328,7 @@ export const registerNvrWithChannels = (data: {
   rtsp_port?: number;
   channel_count?: number;
   directory_id?: number;
+  ingress_node_id?: number;
 }): Promise<NvrRegisterChannelsResult> => {
   defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
   return defHttp
@@ -367,6 +374,7 @@ export const registerDeviceByOnvif = (data: {
   port: number;
   username?: string;
   password: string;
+  ingress_node_id?: number;
 }) => {
   return commonApi('post', `${CAMERA_PREFIX}/register/device/onvif`, data);
 };
@@ -419,6 +427,7 @@ export const updateDevice = (device_id: string, data: {
   altitude?: number | null;
   address?: string | null;
   heading?: number | null;
+  ingress_node_id?: number | null;
 }) => {
   return commonApi('put', `${CAMERA_PREFIX}/device/${device_id}`, data);
 };
@@ -645,11 +654,15 @@ export const getOnvifProfiles = (device_ip: string, device_port: number, auth: {
 };
 
 // ====================== 设备发现接口 ======================
-export const discoverDevices = () => {
+export const discoverDevices = (params?: number | Record<string, unknown>) => {
   defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  const requestParams = typeof params === 'number'
+    ? { ingress_node_id: params }
+    : params;
   return defHttp.get(
     {
       url: `${CAMERA_PREFIX}/discovery`,
+      params: requestParams,
       timeout: 120 * 1000,
     },
     { isTransformResponse: true },
@@ -681,6 +694,7 @@ export interface SegmentScanParams {
   /** true 时仅返回识别为 NVR 的设备 */
   nvr_only?: boolean;
   exclude_nvr?: boolean;
+  ingress_node_id?: number;
 }
 
 export interface SegmentScanDeviceRow {
@@ -841,6 +855,10 @@ export interface DeviceInfo {
   location_source?: string | null;
   location_updated_at?: string | null;
   has_location?: boolean;
+  ingress_node_id?: number | null;
+  ingress_node_name?: string;
+  ingress_node_host?: string | null;
+  ingress_node_status?: string;
   created_at: string;
   updated_at: string;
 }

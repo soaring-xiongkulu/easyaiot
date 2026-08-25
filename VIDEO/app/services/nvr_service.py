@@ -12,6 +12,38 @@ from models import Device, Nvr, db
 logger = logging.getLogger(__name__)
 
 _GENERIC_CAMERA_NAME = re.compile(r'^camera\s*0*\d+\s*$', re.IGNORECASE)
+_ingress_node_summary_cache: dict[int, tuple[float, dict[str, Any]]] = {}
+
+
+def _ingress_node_fields(node_id: int | None) -> dict[str, Any]:
+    if not node_id:
+        return {
+            'ingress_node_id': None,
+            'ingress_node_name': '本机（主节点）',
+            'ingress_node_host': None,
+            'ingress_node_status': 'online',
+        }
+    try:
+        cached = _ingress_node_summary_cache.get(int(node_id))
+        if cached and time.monotonic() - cached[0] < 10:
+            node = cached[1]
+        else:
+            from app.utils import node_client
+            node = node_client.get_node(int(node_id))
+            _ingress_node_summary_cache[int(node_id)] = (time.monotonic(), node)
+        return {
+            'ingress_node_id': int(node_id),
+            'ingress_node_name': node.get('name') or f'边缘节点 #{node_id}',
+            'ingress_node_host': node.get('host'),
+            'ingress_node_status': node.get('status'),
+        }
+    except Exception:
+        return {
+            'ingress_node_id': int(node_id),
+            'ingress_node_name': f'边缘节点 #{node_id}',
+            'ingress_node_host': None,
+            'ingress_node_status': 'unknown',
+        }
 
 
 def _resolve_channel_display_name(
@@ -78,7 +110,7 @@ def vendor_label(vendor: str | None) -> str:
 def _camera_under_nvr_dict(cam: Device) -> dict[str, Any]:
     online = cam.channel_online
     online_text = '在线' if online is True else ('离线' if online is False else '—')
-    return {
+    row = {
         'id': cam.id,
         'name': cam.name,
         'ip': cam.ip,
@@ -100,7 +132,10 @@ def _camera_under_nvr_dict(cam: Device) -> dict[str, Any]:
         'online_text': online_text,
         'connection_status': cam.connection_status,
         'username': cam.username,
+        'ingress_node_id': getattr(cam, 'ingress_node_id', None),
     }
+    row.update(_ingress_node_fields(getattr(cam, 'ingress_node_id', None)))
+    return row
 
 
 def _nvr_to_dict(nvr: Nvr, *, include_cameras: bool = False) -> dict[str, Any]:
@@ -128,7 +163,9 @@ def _nvr_to_dict(nvr: Nvr, *, include_cameras: bool = False) -> dict[str, Any]:
         'source': nvr.source,
         'rtsp_template': getattr(nvr, 'rtsp_template', None),
         'rtsp_port': getattr(nvr, 'rtsp_port', None),
+        'ingress_node_id': getattr(nvr, 'ingress_node_id', None),
     }
+    row.update(_ingress_node_fields(getattr(nvr, 'ingress_node_id', None)))
     cameras = list(nvr.cameras or [])
     if include_cameras:
         row['cameras'] = [_camera_under_nvr_dict(c) for c in cameras]
@@ -163,10 +200,20 @@ def _apply_nvr_fields(nvr: Nvr, info: dict[str, Any]) -> None:
         'username', 'password', 'name', 'model', 'vendor',
         'serial_number', 'firmware_version', 'device_type', 'mac',
         'scheme', 'rtsp_url', 'source', 'rtsp_template',
+        'ingress_node_id',
     ):
         if field not in info:
             continue
         val = info.get(field)
+        if field == 'ingress_node_id':
+            if val in (None, '', 0, '0'):
+                nvr.ingress_node_id = None
+                continue
+            try:
+                nvr.ingress_node_id = int(val)
+            except (TypeError, ValueError):
+                raise ValueError('接入节点 ID 无效')
+            continue
         if val is None:
             continue
         if isinstance(val, str) and val.strip() == '':
@@ -314,6 +361,10 @@ def batch_delete_nvrs(nvr_ids: list) -> dict:
 
 def upsert_nvr(info: dict[str, Any]) -> dict[str, Any]:
     nvr_id = get_or_create_nvr(info)
+    if 'ingress_node_id' in info:
+        ingress_node_id = Nvr.query.get(nvr_id).ingress_node_id
+        for camera in Device.query.filter_by(nvr_id=nvr_id).all():
+            camera.ingress_node_id = ingress_node_id
     db.session.commit()
     _refresh_generic_channel_names(nvr_id)
     _ensure_nvr_stream_forward_task(nvr_id)
@@ -509,6 +560,7 @@ def _upsert_nvr_channel_device(
         existing.rtsp_direct = rtsp_direct
         existing.channel_online = online
         existing.connection_status = conn
+        existing.ingress_node_id = getattr(nvr, 'ingress_node_id', None)
         return True
 
     device_id = str(time.time_ns())
@@ -536,6 +588,7 @@ def _upsert_nvr_channel_device(
         rtsp_direct=rtsp_direct,
         channel_online=online,
         connection_status=conn,
+        ingress_node_id=getattr(nvr, 'ingress_node_id', None),
         directory_id=directory_id_for_new_device(),
     )
     if not camera.nvr_id:

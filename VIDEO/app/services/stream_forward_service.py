@@ -111,7 +111,8 @@ def create_stream_forward_task(task_name: str,
                                schedule_policy: str = 'local',
                                prefer_gpu: bool = True,
                                target_node_id: Optional[int] = None,
-                               executor: str = 'cpp') -> StreamForwardTask:
+                               executor: str = 'cpp',
+                               publish_scope: str = 'node') -> StreamForwardTask:
     """创建推流转发任务"""
     try:
         from app.services.runtime_config_service import normalize_executor
@@ -141,6 +142,7 @@ def create_stream_forward_task(task_name: str,
             prefer_gpu=prefer_gpu if prefer_gpu is not None else True,
             target_node_id=target_node_id,
             executor=normalize_executor(executor),
+            publish_scope=publish_scope if publish_scope in ('node', 'control_plane') else 'node',
         )
         
         db.session.add(task)
@@ -242,6 +244,12 @@ def update_stream_forward_task(task_id: int, auto_rebalance: bool = True, **kwar
             task.executor = new_executor
         if 'runtime_bin_path' in kwargs:
             task.runtime_bin_path = kwargs['runtime_bin_path']
+        if 'publish_scope' in kwargs:
+            publish_scope = kwargs['publish_scope'] or 'node'
+            if publish_scope not in ('node', 'control_plane'):
+                raise ValueError('publish_scope 仅支持 node/control_plane')
+            schedule_changed = schedule_changed or publish_scope != (task.publish_scope or 'node')
+            task.publish_scope = publish_scope
         
         task.updated_at = datetime.utcnow()
         db.session.commit()
@@ -472,16 +480,29 @@ def ensure_nvr_stream_forward_task(nvr_id: int) -> Optional[StreamForwardTask]:
         if task:
             current_ids = {d.id for d in task.devices}
             new_ids = set(device_ids)
-            schedule_upgraded = _maybe_upgrade_nvr_schedule_policy(task, len(device_ids))
+            ingress_node_id = getattr(nvr, 'ingress_node_id', None)
+            desired_policy = 'node' if ingress_node_id else _default_schedule_policy(len(device_ids), is_nvr=True)
+            desired_scope = 'control_plane' if ingress_node_id else 'node'
+            schedule_upgraded = (
+                False
+                if ingress_node_id
+                else _maybe_upgrade_nvr_schedule_policy(task, len(device_ids))
+            )
             devices_changed = current_ids != new_ids or task.total_streams != len(device_ids)
-            if devices_changed or schedule_upgraded:
+            binding_changed = (
+                (task.schedule_policy or 'local') != desired_policy
+                or task.target_node_id != ingress_node_id
+                or (getattr(task, 'publish_scope', None) or 'node') != desired_scope
+            )
+            if devices_changed or schedule_upgraded or binding_changed:
                 update_kwargs = {
                     'description': description,
+                    'schedule_policy': desired_policy,
+                    'target_node_id': ingress_node_id,
+                    'publish_scope': desired_scope,
                 }
                 if devices_changed:
                     update_kwargs['device_ids'] = device_ids
-                if schedule_upgraded:
-                    update_kwargs['schedule_policy'] = task.schedule_policy
                 task, _ = update_stream_forward_task(
                     task.id,
                     auto_rebalance=was_running,
@@ -506,7 +527,8 @@ def ensure_nvr_stream_forward_task(nvr_id: int) -> Optional[StreamForwardTask]:
             return task
 
         task_name = f'{nvr_label}-推流转发'
-        schedule_policy = _default_schedule_policy(len(device_ids), is_nvr=True)
+        ingress_node_id = getattr(nvr, 'ingress_node_id', None)
+        schedule_policy = 'node' if ingress_node_id else _default_schedule_policy(len(device_ids), is_nvr=True)
         task = create_stream_forward_task(
             task_name=task_name,
             device_ids=device_ids,
@@ -515,6 +537,8 @@ def ensure_nvr_stream_forward_task(nvr_id: int) -> Optional[StreamForwardTask]:
             description=description,
             is_enabled=False,
             schedule_policy=schedule_policy,
+            target_node_id=ingress_node_id,
+            publish_scope='control_plane' if ingress_node_id else 'node',
             executor='cpp',
         )
         try:
@@ -555,6 +579,22 @@ def ensure_device_stream_forward_task(device_id: str) -> Optional[StreamForwardT
             running = [t for t in existing_tasks if t.is_enabled]
             nvr_tasks = [t for t in existing_tasks if _is_nvr_stream_forward_task(t)]
             task = (running[0] if running else None) or (nvr_tasks[0] if nvr_tasks else existing_tasks[0])
+            ingress_node_id = getattr(device, 'ingress_node_id', None)
+            desired_policy = 'node' if ingress_node_id else 'local'
+            desired_scope = 'control_plane' if ingress_node_id else 'node'
+            binding_changed = (
+                (task.schedule_policy or 'local') != desired_policy
+                or task.target_node_id != ingress_node_id
+                or (getattr(task, 'publish_scope', None) or 'node') != desired_scope
+            )
+            if binding_changed:
+                task, _ = update_stream_forward_task(
+                    task.id,
+                    schedule_policy=desired_policy,
+                    target_node_id=ingress_node_id,
+                    publish_scope=desired_scope,
+                    auto_rebalance=bool(task.is_enabled),
+                )
             if not task.is_enabled:
                 try:
                     start_stream_forward_task(task.id)
@@ -583,6 +623,9 @@ def ensure_device_stream_forward_task(device_id: str) -> Optional[StreamForwardT
             description=f"为设备 {device.name or device_id} 自动创建的推流转发任务",
             is_enabled=False,  # 先创建，稍后启动
             executor='cpp',
+            schedule_policy='node' if getattr(device, 'ingress_node_id', None) else 'local',
+            target_node_id=getattr(device, 'ingress_node_id', None),
+            publish_scope='control_plane' if getattr(device, 'ingress_node_id', None) else 'node',
         )
         
         # 启动任务
@@ -598,4 +641,3 @@ def ensure_device_stream_forward_task(device_id: str) -> Optional[StreamForwardT
     except Exception as e:
         logger.error(f"为设备 {device_id} 确保推流转发任务失败: {str(e)}", exc_info=True)
         return None
-

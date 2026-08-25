@@ -52,6 +52,10 @@ export function nvrToTableRow(nvr: NvrInfo): DeviceInfo & { _isNvr: boolean; nvr
     source: nvr.rtsp_url || '',
     online: true,
     channel_count: nvr.camera_count ?? 0,
+    ingress_node_id: nvr.ingress_node_id,
+    ingress_node_name: nvr.ingress_node_name,
+    ingress_node_host: nvr.ingress_node_host,
+    ingress_node_status: nvr.ingress_node_status,
     _isNvr: true,
   } as DeviceInfo & { _isNvr: boolean; nvr_id_num: number };
 }

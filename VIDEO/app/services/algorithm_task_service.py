@@ -234,6 +234,42 @@ def _has_library_matching_scope(library_ids) -> bool:
     return bool(_normalize_library_ids(library_ids))
 
 
+def validate_algorithm_device_ingress_schedule(
+        devices,
+        schedule_policy: str,
+        target_node_id: Optional[int],
+) -> None:
+    """确保算法任务与摄像头的实际接入节点一致。"""
+    if not devices:
+        return
+
+    ingress_node_ids = {
+        int(device.ingress_node_id) if getattr(device, 'ingress_node_id', None) else None
+        for device in devices
+    }
+    if len(ingress_node_ids) > 1:
+        raise ValueError(
+            '所选摄像头属于不同接入节点，请按接入节点分别创建算法任务'
+        )
+
+    ingress_node_id = next(iter(ingress_node_ids))
+    if ingress_node_id is None:
+        return
+
+    if (schedule_policy or 'local') != 'node':
+        raise ValueError(
+            f'摄像头通过边缘节点 #{ingress_node_id} 接入，调度策略必须为指定节点'
+        )
+    try:
+        normalized_target_node_id = int(target_node_id) if target_node_id is not None else None
+    except (TypeError, ValueError):
+        normalized_target_node_id = None
+    if normalized_target_node_id != ingress_node_id:
+        raise ValueError(
+            f'摄像头通过边缘节点 #{ingress_node_id} 接入，目标节点必须选择该接入节点'
+        )
+
+
 def _has_userless_channel(channels: List[Dict]) -> bool:
     return any(_is_userless_channel(ch) for ch in (channels or []))
 
@@ -840,6 +876,14 @@ def create_algorithm_task(task_name: str,
         if task_type not in ['realtime', 'snap', 'patrol']:
             raise ValueError(f"无效的任务类型: {task_type}，必须是 'realtime'、'snap' 或 'patrol'")
 
+        device_id_list = device_ids or []
+        devices = [Device.query.get_or_404(dev_id) for dev_id in device_id_list]
+        validate_algorithm_device_ingress_schedule(
+            devices,
+            schedule_policy,
+            target_node_id,
+        )
+
         from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
         executor = normalize_executor(executor)
         if executor == 'cpp':
@@ -856,12 +900,6 @@ def create_algorithm_task(task_name: str,
         from app.utils.alert_class_filter import parse_alert_class_names
         if alert_event_enabled and not parse_alert_class_names(alert_class_names):
             raise ValueError('启用告警事件时必须指定至少一个告警触发标签')
-        
-        device_id_list = device_ids or []
-        
-        # 验证所有设备是否存在
-        for dev_id in device_id_list:
-            Device.query.get_or_404(dev_id)
         
         # 注意：推流转发任务和算法任务可以共存，因为它们使用不同的流地址
         # 推流转发任务使用 rtmp_stream/http_stream，算法任务使用 ai_rtmp_stream/ai_http_stream
@@ -1125,7 +1163,6 @@ def create_algorithm_task(task_name: str,
         
         # 关联多个摄像头
         if device_id_list:
-            devices = Device.query.filter(Device.id.in_(device_id_list)).all()
             task.devices = devices
         
         # 提交所有更改（包括任务和算法服务）
@@ -1149,6 +1186,17 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             raise ValueError('任务运行中，无法编辑，请先停止任务')
         
         task_type = kwargs.get('task_type', task.task_type)
+
+        # 先校验最终的设备与调度组合，避免错误配置触发不必要的本机运行时准备。
+        device_id_list = kwargs.pop('device_ids', None)
+        selected_devices = list(task.devices or [])
+        if device_id_list is not None:
+            selected_devices = [Device.query.get_or_404(dev_id) for dev_id in device_id_list]
+        validate_algorithm_device_ingress_schedule(
+            selected_devices,
+            kwargs.get('schedule_policy', getattr(task, 'schedule_policy', None) or 'local'),
+            kwargs.get('target_node_id', getattr(task, 'target_node_id', None)),
+        )
 
         if (
                 'executor' in kwargs
@@ -1177,20 +1225,8 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                 raise ValueError('runtime_control_port 必须在 8000-9000 之间')
             kwargs['runtime_control_port'] = port
         
-        # 处理设备ID列表
-        device_id_list = kwargs.pop('device_ids', None)
-        
         # 处理模型ID列表
         model_ids = kwargs.pop('model_ids', None)
-        
-        # 验证所有设备是否存在（如果提供）
-        if device_id_list is not None:
-            for dev_id in device_id_list:
-                Device.query.get_or_404(dev_id)
-            
-            # 注意：推流转发任务和算法任务可以共存，因为它们使用不同的流地址
-            # 推流转发任务使用 rtmp_stream/http_stream，算法任务使用 ai_rtmp_stream/ai_http_stream
-            # 已移除冲突检查，允许同一个摄像头同时用于推流转发和算法任务
         
         # 处理模型ID列表（实时和抓拍算法任务都支持）
         if model_ids is not None:
@@ -1509,8 +1545,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
         
         # 更新多对多关系
         if device_id_list is not None:
-            devices = Device.query.filter(Device.id.in_(device_id_list)).all() if device_id_list else []
-            task.devices = devices
+            task.devices = selected_devices
         
         task.updated_at = datetime.utcnow()
         db.session.flush()  # 先flush以获取最新的task状态
@@ -1714,6 +1749,24 @@ def start_algorithm_task(task_id: int):
         raise RuntimeError(f"启动算法任务失败: {str(e)}")
 
 
+def _stop_remote_workload_before_background_teardown(task: AlgorithmTask) -> bool:
+    """Stop remote work synchronously so the HTTP response cannot precede edge cleanup."""
+    if not (getattr(task, 'node_id', None) or getattr(task, 'device_deployments', None)):
+        return False
+
+    from app.services.algorithm_task_launcher_service import _stop_remote_task
+
+    _stop_remote_task(task.id, task.node_id)
+    task.node_id = None
+    task.service_process_id = None
+    task.run_status = 'stopped'
+    if hasattr(task, 'device_deployments'):
+        task.device_deployments = None
+    db.session.commit()
+    logger.info('算法任务远程 workload 已同步停止: task_id=%s', task.id)
+    return True
+
+
 def stop_algorithm_task(task_id: int):
     """停止算法任务"""
     try:
@@ -1726,6 +1779,13 @@ def stop_algorithm_task(task_id: int):
         for runtime in AlgorithmTaskStreamRuntime.query.filter_by(task_id=task_id).all():
             mark_stream_runtime_stopped(runtime, stopped_at)
         db.session.commit()
+
+        # 远程 Agent 停止通常小于 1 秒，必须在返回前完成；否则页面虽显示已停止，
+        # 边缘进程仍可能继续推理/推流。较慢的本地守护进程与后处理清理仍在后台执行。
+        try:
+            _stop_remote_workload_before_background_teardown(task)
+        except Exception as e:
+            logger.warning('同步停止远程算法 workload 失败，转后台重试 task_id=%s: %s', task_id, e)
 
         # 停止任务相关的服务（抽帧器、推送器、排序器）放到后台线程执行。
         # 进程清理（daemon.stop 的 SIGTERM 等待最长 10s + 孤儿进程 cleanup）耗时较长，

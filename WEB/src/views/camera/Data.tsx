@@ -70,6 +70,17 @@ export function getBasicColumns(): BasicColumn[] {
       customRender: ({ text }) => text || '—',
     },
     {
+      title: '接入节点',
+      dataIndex: 'ingress_node_name',
+      width: 170,
+      ellipsis: true,
+      customRender: ({ text, record }) => {
+        const online = !record.ingress_node_id || record.ingress_node_status === 'online';
+        const label = text || (record.ingress_node_id ? `边缘节点 #${record.ingress_node_id}` : '本机（主节点）');
+        return <Tag color={online ? 'green' : 'red'}>{label}</Tag>;
+      },
+    },
+    {
       title: '通道数',
       dataIndex: 'channel_count',
       width: 72,
