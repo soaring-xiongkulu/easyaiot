@@ -1078,30 +1078,31 @@ def create_app(start_background_tasks=None):
         traceback.print_exc()
 
     try:
-        from app.utils.service_urls import is_edge_deploy_profile
-        if is_edge_deploy_profile():
-            from app.blueprints import model as model_admin
-            from app.blueprints import minio_proxy
-            app.register_blueprint(minio_proxy.minio_proxy_bp)
-            app.register_blueprint(model_admin.model_bp, url_prefix='/video/model')
-            print("✅ VIDEO 模型管理 Blueprint 注册成功（edge 形态）")
-            try:
-                from app.services.edge_model_seed_service import ensure_edge_model_seed
-                with app.app_context():
-                    seed_result = ensure_edge_model_seed()
-                if seed_result.get('skipped'):
-                    print(f"ℹ️  edge 模型种子跳过: {seed_result.get('reason')}")
-                else:
-                    print(
-                        "✅ edge 模型种子完成: "
-                        f"files_copied={seed_result.get('files_copied', 0)} "
-                        f"files_skipped={seed_result.get('files_skipped', 0)} "
-                        f"models_inserted={seed_result.get('models_inserted', 0)} "
-                        f"models_updated={seed_result.get('models_updated', 0)}"
-                    )
-                    if not seed_result.get('seed_root'):
-                        print("⚠️  未挂载模型种子目录 /model-seed-data，封面/权重可能需手动上传")
-            except Exception as seed_exc:
+        # 模型管理蓝图全形态注册：edge 形态替代 AI 服务；standard/full 形态供算法管线
+        # （AI_SERVICE_URL=…/video 时）读取模型信息与 MinIO 代理，缺注册会导致
+        # python 执行器「获取模型 XX 信息失败: HTTP 404」无法加载模型。
+        from app.blueprints import model as model_admin
+        from app.blueprints import minio_proxy
+        app.register_blueprint(minio_proxy.minio_proxy_bp)
+        app.register_blueprint(model_admin.model_bp, url_prefix='/video/model')
+        print("✅ VIDEO 模型管理 Blueprint 注册成功（edge/full 形态）")
+        try:
+            from app.services.edge_model_seed_service import ensure_edge_model_seed
+            with app.app_context():
+                seed_result = ensure_edge_model_seed()
+            if seed_result.get('skipped'):
+                print(f"ℹ️  edge 模型种子跳过: {seed_result.get('reason')}")
+            else:
+                print(
+                    "✅ edge 模型种子完成: "
+                    f"files_copied={seed_result.get('files_copied', 0)} "
+                    f"files_skipped={seed_result.get('files_skipped', 0)} "
+                    f"models_inserted={seed_result.get('models_inserted', 0)} "
+                    f"models_updated={seed_result.get('models_updated', 0)}"
+                )
+                if not seed_result.get('seed_root'):
+                    print("⚠️  未挂载模型种子目录 /model-seed-data，封面/权重可能需手动上传")
+        except Exception as seed_exc:
                 print(f"⚠️  edge 模型种子初始化失败: {seed_exc}")
                 import traceback
                 traceback.print_exc()
