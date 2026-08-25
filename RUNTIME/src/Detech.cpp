@@ -127,6 +127,14 @@ Detech::~Detech() {
         delete _httpClient;
         _httpClient = nullptr;
     }
+    // 线程池为 static 指针，若不显式销毁，worker 线程永远不会被 join：
+    // 进程退出时 ORT 的 MLDataType 静态单例先于进程结束被析构，仍在 Run 的 worker
+    // 会访问悬垂类型对象（表现为 "GetElementType is not implemented"），
+    // 该帧检测被吞掉返回空检测。必须在所有推理使用者 join 后、静态析构开始前释放。
+    if (yolo_thread_pool) {
+        delete yolo_thread_pool;
+        yolo_thread_pool = nullptr;
+    }
     runtime::releaseHwDecodeState(&_hwDecodeState);
     LOG(INFO) << "[CLEANUP] Detech cleanup completed successfully";
 }
@@ -482,9 +490,11 @@ void Detech::_controlServerThreadFunc() {
             if (yolo_thread_pool) {
                 response["infer_ep"] = yolo_thread_pool->inferEp();
                 response["model_layout"] = yolo_thread_pool->modelLayout();
+                response["model_count"] = (Json::UInt64)yolo_thread_pool->modelCount();
             } else {
                 response["infer_ep"] = "none";
                 response["model_layout"] = "none";
+                response["model_count"] = 0;
             }
             if (this->_pipeline) {
                 response["decode_ep"] = this->_pipeline->decodeEp();
@@ -622,51 +632,59 @@ bool Detech::_init_yolo_detector() {
     
     if (!yolo_thread_pool) {
         yolo_thread_pool = new YoloThreadPool();
-        
-        // Extract first model path and classes from map
-        // TODO: Support multiple models in future version
+
         if (_config.modelPaths.empty()) {
             LOG(ERROR) << "[ERROR] No model path configured in config file!";
             return false;
         }
-        
-        std::string modelPath = _config.modelPaths.begin()->second;
-        
-        // Check if model path is empty string
-        if (modelPath.empty()) {
-            LOG(WARNING) << "[INIT] Model path is empty, skipping YOLO initialization";
-            return true;
-        }
-        
-        LOG(INFO) << "[INIT] Model path: " << modelPath;
-        
-        std::vector<std::string> classes;
 
-        if (!_config.modelClasses.empty()) {
-            std::string classFile = _config.modelClasses.begin()->second;
-            LOG(INFO) << "[INIT] Classes file: " << classFile;
-            std::ifstream ifs(classFile);
-            if (ifs.is_open()) {
-                std::string line;
-                while (std::getline(ifs, line)) {
-                    // trim
-                    size_t a = line.find_first_not_of(" \t\r\n");
-                    if (a == std::string::npos) continue;
-                    size_t b = line.find_last_not_of(" \t\r\n");
-                    classes.push_back(line.substr(a, b - a + 1));
-                }
-                LOG(INFO) << "[INIT] Loaded " << classes.size() << " classes from file";
-            } else {
-                LOG(WARNING) << "[INIT] Cannot open classes file, using default COCO names";
+        // 多模型：按 ini 出现顺序加载全部模型（model_path / model_path_<key>）
+        std::vector<YoloThreadPool::ModelSpec> modelSpecs;
+        for (const auto& modelKey : _config.modelKeys) {
+            auto pathIt = _config.modelPaths.find(modelKey);
+            if (pathIt == _config.modelPaths.end() || pathIt->second.empty()) {
+                continue;
             }
+
+            YoloThreadPool::ModelSpec spec;
+            spec.key = modelKey;
+            spec.modelPath = pathIt->second;
+            LOG(INFO) << "[INIT] Model path [" << modelKey << "]: " << spec.modelPath;
+
+            auto classIt = _config.modelClasses.find(modelKey);
+            if (classIt != _config.modelClasses.end()) {
+                LOG(INFO) << "[INIT] Classes file [" << modelKey << "]: " << classIt->second;
+                std::ifstream ifs(classIt->second);
+                if (ifs.is_open()) {
+                    std::string line;
+                    while (std::getline(ifs, line)) {
+                        // trim
+                        size_t a = line.find_first_not_of(" \t\r\n");
+                        if (a == std::string::npos) continue;
+                        size_t b = line.find_last_not_of(" \t\r\n");
+                        spec.classes.push_back(line.substr(a, b - a + 1));
+                    }
+                    LOG(INFO) << "[INIT] Loaded " << spec.classes.size()
+                              << " classes from file [" << modelKey << "]";
+                } else {
+                    LOG(WARNING) << "[INIT] Cannot open classes file, using default COCO names";
+                }
+            }
+            modelSpecs.push_back(std::move(spec));
         }
-        
-        LOG(INFO) << "[INIT] Loading YOLO model with " << _config.threadNums << " threads"
+
+        if (modelSpecs.empty()) {
+            LOG(ERROR) << "[ERROR] No usable model path configured in config file!";
+            return false;
+        }
+
+        LOG(INFO) << "[INIT] Loading " << modelSpecs.size() << " model(s), "
+                  << _config.threadNums << " threads each"
                   << " prefer_gpu=" << (_config.preferGpu ? "true" : "false")
                   << " force_cpu=" << (_config.forceCpu ? "true" : "false")
                   << " gpu_device_id=" << _config.gpuDeviceId;
         int ret = yolo_thread_pool->setUp(
-            modelPath, classes, _config.threadNums,
+            modelSpecs, _config.threadNums,
             _config.preferGpu, _config.forceCpu, _config.gpuDeviceId,
             _config.alarmConfidenceThreshold);
         if (ret) {
@@ -674,7 +692,8 @@ bool Detech::_init_yolo_detector() {
             return false;
         }
         LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolo_thread_pool->inferEp()
-                  << " layout=" << yolo_thread_pool->modelLayout();
+                  << " layout=" << yolo_thread_pool->modelLayout()
+                  << " models=" << yolo_thread_pool->modelCount();
     }
     return true;
 }
@@ -1463,7 +1482,7 @@ void Detech::_display_video_loop() {
         if (_config.enableAI && yolo_thread_pool) {
             // Submit task every N frames to avoid queue buildup
             if (aiFrameInterval % SUBMIT_INTERVAL == 0) {
-                yolo_thread_pool->submitTask(img, 0, frameCount);
+                yolo_thread_pool->submitTask(img, 0, 0, frameCount);
                 lastSubmittedFrameId = frameCount;
             }
             aiFrameInterval++;
@@ -1471,7 +1490,7 @@ void Detech::_display_video_loop() {
             // Try to get any available result (non-blocking)
             bool foundNewResult = false;
             for (int checkFrame = lastSubmittedFrameId; checkFrame >= 0 && checkFrame >= lastSubmittedFrameId - 30; checkFrame--) {
-                int ret = yolo_thread_pool->getTargetResultNonBlock(detections, 0, checkFrame);
+                int ret = yolo_thread_pool->getTargetResultNonBlock(detections, 0, 0, checkFrame);
                 if (ret == 0) {
                     // Successfully got results, cache them
                     lastDetections = detections;

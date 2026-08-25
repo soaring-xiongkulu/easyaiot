@@ -34,6 +34,8 @@ struct DetectObject
     float class_score;
     int class_id;
     std::string class_name;
+    /** 产生该检测的模型索引（多模型聚合时 ≥0；单模型未标记为 -1） */
+    int model_id = -1;
     bool happen = false;
 };
 
