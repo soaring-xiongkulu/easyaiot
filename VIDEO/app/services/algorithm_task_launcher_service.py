@@ -390,25 +390,6 @@ def _parse_task_model_ids(task: AlgorithmTask) -> list:
         return []
 
 
-def _ensure_multi_model_executor_compatible(task: AlgorithmTask) -> bool:
-    """兼容历史多模型任务；返回是否发生了执行器迁移。"""
-    from app.services.algorithm_task_service import _fallback_multi_model_executor
-
-    model_ids = _parse_task_model_ids(task)
-    current = getattr(task, 'executor', None) or 'cpp'
-    resolved = _fallback_multi_model_executor(current, model_ids)
-    if resolved == 'python' and str(current).strip().lower() != 'python':
-        logger.warning(
-            '任务 %s 含多个模型，自动从 C++ RUNTIME 切换为 Python Worker: model_ids=%s',
-            getattr(task, 'id', None),
-            model_ids,
-        )
-        task.executor = 'python'
-        db.session.commit()
-        return True
-    return False
-
-
 def _is_cluster_mode_enabled() -> bool:
     try:
         from cluster_storage import is_cluster_mode
@@ -1326,10 +1307,6 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
     _cancel_pending_stop_requests(task_id)
     
     try:
-        # 兼容历史数据：C++ RUNTIME 当前每个进程只加载一个模型。历史多模型任务若仍标记
-        # executor=cpp，会表现为“只有第一个模型生效”，启动前持久化切换到 Python 聚合 Worker。
-        _ensure_multi_model_executor_compatible(task)
-
         # 实时/抓拍/巡检算法任务都需要启动服务进程
         if task.task_type in ['realtime', 'snap', 'patrol']:
             if _use_remote_deploy(task):

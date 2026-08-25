@@ -45,18 +45,6 @@ def _normalize_task_model_ids(raw_model_ids) -> List[int]:
         return []
 
 
-def _fallback_multi_model_executor(executor: str, raw_model_ids) -> str:
-    """C++ RUNTIME 当前为单模型引擎；多模型任务自动使用支持聚合推理的 Python Worker。"""
-    normalized = str(executor or 'cpp').strip().lower()
-    is_cpp = normalized in ('cpp', 'c++', 'runtime', 'cxx')
-    is_python = normalized in ('python', 'py')
-    if not is_cpp and not is_python:
-        is_cpp = True
-    if is_cpp and len(_normalize_task_model_ids(raw_model_ids)) > 1:
-        return 'python'
-    return 'cpp' if is_cpp else 'python'
-
-
 def _full_defense_schedule_json() -> str:
     return json.dumps([[1] * 24 for _ in range(7)])
 
@@ -854,14 +842,6 @@ def create_algorithm_task(task_name: str,
 
         from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
         executor = normalize_executor(executor)
-        resolved_executor = _fallback_multi_model_executor(executor, model_ids)
-        if resolved_executor != executor:
-            logger.warning(
-                '任务 %s 配置多个模型，C++ RUNTIME 仅支持单模型，自动切换为 Python Worker: model_ids=%s',
-                task_name,
-                _normalize_task_model_ids(model_ids),
-            )
-            executor = resolved_executor
         if executor == 'cpp':
             if task_type not in ('realtime', 'snap', 'patrol'):
                 raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
@@ -1182,19 +1162,6 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             effective_executor = normalize_executor(
                 kwargs.get('executor', getattr(task, 'executor', None) or 'cpp')
             )
-            effective_model_ids = kwargs.get('model_ids', getattr(task, 'model_ids', None))
-            resolved_executor = _fallback_multi_model_executor(
-                effective_executor,
-                effective_model_ids,
-            )
-            if resolved_executor != effective_executor:
-                logger.warning(
-                    '任务 %s 配置多个模型，自动从 C++ RUNTIME 切换为 Python Worker: model_ids=%s',
-                    task_id,
-                    _normalize_task_model_ids(effective_model_ids),
-                )
-                kwargs['executor'] = resolved_executor
-                effective_executor = resolved_executor
             effective_type = kwargs.get('task_type', task.task_type)
             effective_policy = kwargs.get(
                 'schedule_policy', getattr(task, 'schedule_policy', None) or 'local'
