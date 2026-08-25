@@ -3,6 +3,9 @@
 临时Mock回调服务器
 用于测试RTMP推流，当VIDEO服务或网关服务未运行时
 此服务器会快速响应SRS的回调请求，允许推流
+
+注意：默认端口为 48081，不要使用 48080！
+48080 是 iot-gateway 的端口，占用会导致网关启动失败、管理后台全部接口不可用。
 """
 import http.server
 import socketserver
@@ -77,7 +80,7 @@ def main():
         epilog="""
 使用说明:
   1. 启动mock服务器:
-     python mock_callback_server.py --port 48080 --path /admin-api/video/camera/callback/on_publish
+     python mock_callback_server.py --port 48081 --path /admin-api/video/camera/callback/on_publish
   
   2. 如果SRS配置的回调地址是 http://172.18.0.1:48080/admin-api/video/camera/callback/on_publish
      需要确保172.18.0.1可以访问到运行mock服务器的机器
@@ -85,6 +88,7 @@ def main():
   3. 或者修改SRS配置指向mock服务器地址
   
   4. 注意: 这只是临时测试方案，生产环境应使用真实的VIDEO服务
+  5. 重要: 默认端口是 48081，勿用 48080（iot-gateway 专用，占用会导致网关无法启动）
         """
     )
     
@@ -98,8 +102,8 @@ def main():
     parser.add_argument(
         '--port',
         type=int,
-        default=48080,
-        help='监听端口 (默认: 48080)'
+        default=48081,
+        help='监听端口 (默认: 48081；勿用48080，那是iot-gateway的端口)'
     )
     
     args = parser.parse_args()

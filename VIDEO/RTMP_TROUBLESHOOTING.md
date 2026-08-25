@@ -50,13 +50,14 @@ VIDEO服务会在端口6000上启动，但SRS配置的是通过网关(48080)访�
 
 ```bash
 cd /opt/projects/easyaiot/VIDEO
-python mock_callback_server.py --port 48080
+python mock_callback_server.py --port 48081
 ```
 
 **重要**: 
 - Mock服务器会快速响应所有回调请求，允许推流
 - 仅用于测试，生产环境必须使用真实的VIDEO服务
-- 确保SRS可以访问到mock服务器的地址（172.18.0.1:48080）
+- **不要使用48080端口！** 48080是iot-gateway的端口，占用会导致网关启动失败、管理后台全部接口不可用
+- Mock服务器默认监听48081；若要让SRS回调打到mock，需临时把SRS配置里的回调地址改为 `http://172.18.0.1:48081/...`（见方案3，测试完记得改回48080）
 
 ### 方案3: 修改SRS配置（临时禁用回调）
 
