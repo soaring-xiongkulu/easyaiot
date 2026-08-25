@@ -313,6 +313,10 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 if (config.frameSkip <= 0) config.frameSkip = 8;
             } else if (key == "alert_image_dir") {
                 config.alertImageDir = value;
+            } else if (key == "face_matching_enabled") {
+                config.faceMatchingEnabled = parseBool(value);
+            } else if (key == "plate_matching_enabled") {
+                config.plateMatchingEnabled = parseBool(value);
             } else if (key == "algo_bus_transport") {
                 config.algoBusTransport = value;
             } else if (key == "mqtt_broker_urls") {

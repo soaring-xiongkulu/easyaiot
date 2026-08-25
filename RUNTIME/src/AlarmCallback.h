@@ -33,6 +33,9 @@ public:
         const std::string& imagePath = ""
     );
 
+    /** POST 预构建的 VIDEO hook JSON（人脸链路 face_feed_only 投递等）。 */
+    bool sendVideoAlertJson(const std::string& jsonBody);
+
     /** Legacy DEVICE-style callback (kept for compatibility). */
     bool sendAlarm(
         int taskId,

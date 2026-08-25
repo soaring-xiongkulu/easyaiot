@@ -1089,6 +1089,7 @@ void Detech::_alarmSenderThreadFunc() {
             std::string jsonStr = Json::writeString(writer, root);
 
             const bool snapshot = (_config.taskType == "snap" || _config.taskType == "snapshot");
+            bool usedHttpAlert = false;
             AlgoMqttBus::ensureHealthProbe();
             if (AlgoMqttBus::shouldPublishInferEvent()) {
                 Json::Value ev;
@@ -1160,6 +1161,7 @@ void Detech::_alarmSenderThreadFunc() {
                     LOG(ERROR) << "[ALARM-THREAD] MQTT alert publish failed device=" << did;
                 }
             } else if (httpAlertFallbackEnabled(_config)) {
+                usedHttpAlert = true;
                 const std::string hookUrl = resolveAlertHookUrl(_config);
                 AlarmCallback callback(hookUrl);
                 VideoAlertContext ctx;
@@ -1181,6 +1183,29 @@ void Detech::_alarmSenderThreadFunc() {
                 }
             } else {
                 LOG(ERROR) << "[ALARM-THREAD] No MQTT/HTTP alert delivery path; alert dropped";
+            }
+
+            // RUNTIME 人脸/车牌链路桥：任务启用人脸或车牌匹配且告警未走 HTTP hook 时
+            // （MQTT/InferEvent 路径），将同一告警（含整帧截图 image_path 与 correlation_id）
+            // 以 feed_only 投递 VIDEO hook；VIDEO process_alert_hook 仅据此把帧送入
+            // 人脸/车牌抓取队列（检测→裁剪→匹配），匹配记录经 correlation_id 与告警自动关联，
+            // 不重复落库/通知。
+            const bool anyMatching = _config.faceMatchingEnabled || _config.plateMatchingEnabled;
+            if (anyMatching && !usedHttpAlert
+                    && !resolveAlertHookUrl(_config).empty()) {
+                Json::Value feedRoot = root;
+                feedRoot["face_feed_only"] = _config.faceMatchingEnabled;
+                feedRoot["plate_feed_only"] = _config.plateMatchingEnabled;
+                std::string feedJson = Json::writeString(writer, feedRoot);
+                AlarmCallback feedCallback(resolveAlertHookUrl(_config));
+                if (feedCallback.sendVideoAlertJson(feedJson)) {
+                    LOG(INFO) << "[ALARM-THREAD] feed_only delivered device=" << did
+                              << " face=" << (_config.faceMatchingEnabled ? "on" : "off")
+                              << " plate=" << (_config.plateMatchingEnabled ? "on" : "off")
+                              << " corr=" << root.get("correlation_id", "").asString();
+                } else {
+                    LOG(WARNING) << "[ALARM-THREAD] feed_only delivery failed device=" << did;
+                }
             }
         } catch (const std::exception& e) {
             LOG(ERROR) << "[ALARM-THREAD] Exception while sending alarm: " << e.what();

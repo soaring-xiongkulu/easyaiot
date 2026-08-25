@@ -57,6 +57,12 @@ typedef struct Config {
     std::string alertHookUrl;  // deprecated: events use MQTT; kept for HTTP fallback
     std::string logPath;
     std::string alertImageDir;
+    /** 任务启用人脸匹配：MQTT/Infer 路径下额外向 alertHookUrl 投递 face_feed_only 告警，
+     * 由 VIDEO /video/alert/hook 将整帧截图送入人脸抓取队列（RUNTIME 人脸链路桥）。 */
+    bool faceMatchingEnabled{false};
+    /** 任务启用车牌匹配：MQTT/Infer 路径下额外向 alertHookUrl 投递 plate_feed_only 告警，
+     * 由 VIDEO /video/alert/hook 将整帧截图送入车牌抓取队列（RUNTIME 车牌链路桥）。 */
+    bool plateMatchingEnabled{false};
     int heartbeatIntervalSec{10};
     bool headless{true};
     int frameSkip{8};  // realtime: infer every N frames; snap fallback interval sec
