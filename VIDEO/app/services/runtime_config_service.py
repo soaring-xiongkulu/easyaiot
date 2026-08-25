@@ -934,6 +934,20 @@ def _build_runtime_ini_text(
     from app.utils.alert_class_filter import parse_alert_class_names
     alert_class_names = parse_alert_class_names(getattr(task, 'alert_class_names', None))
     alert_class_names_ini = json.dumps(alert_class_names, ensure_ascii=False, separators=(',', ':'))
+    # RUNTIME 人脸链路桥：仅 realtime 且启用人脸匹配且配置了人脸库时开启，
+    # C++ 在 MQTT/InferEvent 告警路径下会额外向 alert_hook_url 投递 face_feed_only 告警
+    face_matching_ini = 'true' if (
+        task_type == 'realtime'
+        and bool(getattr(task, 'face_matching_enabled', False))
+        and AlgorithmTask._parse_library_ids(getattr(task, 'face_library_ids', None))
+    ) else 'false'
+    # RUNTIME 车牌链路桥：仅 realtime 且启用车牌匹配且配置了车牌库时开启，
+    # C++ 在 MQTT/InferEvent 告警路径下会额外向 alert_hook_url 投递 plate_feed_only 告警
+    plate_matching_ini = 'true' if (
+        task_type == 'realtime'
+        and bool(getattr(task, 'plate_matching_enabled', False))
+        and AlgorithmTask._parse_library_ids(getattr(task, 'plate_library_ids', None))
+    ) else 'false'
     # 多模型：首模型写 model_path/classes_path，其余写 model_path_<i>/classes_path_<i>
     ai_model_lines: List[str] = []
     for i, (onnx_path, names_path) in enumerate(models):
@@ -984,6 +998,8 @@ heartbeat_url={_heartbeat_url(task_type, resolve_video_service_base_url().rstrip
 heartbeat_interval_sec={'15' if task_type == 'patrol' else '10'}
 log_path={log_path}
 alert_image_dir={alert_image_dir}
+face_matching_enabled={face_matching_ini}
+plate_matching_enabled={plate_matching_ini}
 algo_bus_transport={algo_bus_transport}
 alert_hook_url={alert_hook_url}
 mqtt_broker_urls={mqtt_broker_urls}
@@ -1098,6 +1114,20 @@ def generate_runtime_inis(
     mqtt_tenant = (os.getenv('MQTT_ALGO_TENANT') or 'default').strip()
     algo_bus_transport = (os.getenv('ALGO_BUS_TRANSPORT') or 'mqtt').strip() or 'mqtt'
     alert_hook_url = ''
+    # RUNTIME 人脸/车牌链路桥：realtime + 启用人脸/车牌匹配 + 配置对应库 → C++ 需向 VIDEO hook
+    # 补投 face_feed_only / plate_feed_only 告警（MQTT/InferEvent 路径下 hook 不参与主告警流），
+    # 始终填 hook 地址
+    face_matching_enabled = bool(
+        task_type == 'realtime'
+        and getattr(task, 'face_matching_enabled', False)
+        and AlgorithmTask._parse_library_ids(getattr(task, 'face_library_ids', None))
+    )
+    plate_matching_enabled = bool(
+        task_type == 'realtime'
+        and getattr(task, 'plate_matching_enabled', False)
+        and AlgorithmTask._parse_library_ids(getattr(task, 'plate_library_ids', None))
+    )
+    matching_enabled = face_matching_enabled or plate_matching_enabled
     # edge：无 EMQX/iot-sink，强制 HTTP → VIDEO /video/alert/hook 直连落库
     try:
         from app.utils.service_urls import is_edge_deploy_profile, resolve_alert_hook_url
@@ -1107,8 +1137,12 @@ def generate_runtime_inis(
             algo_bus_transport = 'http'
         if algo_bus_transport.lower() in ('http', 'off'):
             alert_hook_url = resolve_alert_hook_url()
+        elif matching_enabled:
+            alert_hook_url = resolve_alert_hook_url()
     except Exception:
         if algo_bus_transport.lower() in ('http', 'off'):
+            alert_hook_url = f'{resolve_video_service_base_url().rstrip("/")}/video/alert/hook'
+        elif matching_enabled:
             alert_hook_url = f'{resolve_video_service_base_url().rstrip("/")}/video/alert/hook'
     compute_node_id = (os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or '').strip()
 
