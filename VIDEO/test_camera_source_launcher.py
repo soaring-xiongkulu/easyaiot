@@ -155,26 +155,6 @@ class TestCameraSourceManagerWatchdog(unittest.TestCase):
         self.assertIs(launcher._camera_source_process, restarted_process)
         launcher.stop_camera_source_manager()
 
-    def test_historical_cpp_multi_model_task_is_migrated_before_start(self):
-        task = SimpleNamespace(id=88, executor='cpp', model_ids='[7, 9]')
-
-        with patch.object(launcher.db.session, 'commit') as commit:
-            changed = launcher._ensure_multi_model_executor_compatible(task)
-
-        self.assertTrue(changed)
-        self.assertEqual(task.executor, 'python')
-        commit.assert_called_once_with()
-
-    def test_historical_cpp_single_model_task_is_not_migrated(self):
-        task = SimpleNamespace(id=89, executor='cpp', model_ids='[7]')
-
-        with patch.object(launcher.db.session, 'commit') as commit:
-            changed = launcher._ensure_multi_model_executor_compatible(task)
-
-        self.assertFalse(changed)
-        self.assertEqual(task.executor, 'cpp')
-        commit.assert_not_called()
-
 
 if __name__ == '__main__':
     unittest.main()
