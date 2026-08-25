@@ -21,6 +21,7 @@ from models import (
 )
 from app.utils.algorithm_task_identity import build_task_stream_key, rewrite_task_stream_url
 from app.utils.algorithm_task_runtime import (
+    resolve_heartbeat_server_ip,
     resolve_heartbeat_stream_state,
     resolve_task_run_status_from_heartbeat,
 )
@@ -339,8 +340,11 @@ def receive_realtime_heartbeat():
         
         # 更新心跳信息
         task.service_last_heartbeat = datetime.utcnow()
-        if server_ip:
-            task.service_server_ip = server_ip
+        task.service_server_ip = resolve_heartbeat_server_ip(
+            server_ip,
+            task.service_server_ip,
+            task.node_id,
+        )
         if port:
             task.service_port = port
         if process_id:
@@ -463,8 +467,11 @@ def receive_patrol_task_heartbeat():
             return jsonify({'code': 400, 'msg': f'巡检任务不存在：task_id={task_id}'}), 400
 
         task.service_last_heartbeat = datetime.utcnow()
-        if data.get('server_ip'):
-            task.service_server_ip = data['server_ip']
+        task.service_server_ip = resolve_heartbeat_server_ip(
+            data.get('server_ip'),
+            task.service_server_ip,
+            task.node_id,
+        )
         if data.get('process_id'):
             task.service_process_id = data['process_id']
         if data.get('log_path'):

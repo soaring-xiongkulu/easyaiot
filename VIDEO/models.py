@@ -73,6 +73,12 @@ class Device(db.Model):
     support_zoom = db.Column(db.Boolean, nullable=True)
     nvr_id = db.Column(db.Integer, db.ForeignKey('nvr.id', ondelete='SET NULL'), nullable=True)
     nvr_channel = db.Column(db.SmallInteger, nullable=False, default=0, comment='NVR 通道号，0 表示非 NVR 挂载')
+    ingress_node_id = db.Column(
+        db.BigInteger,
+        nullable=True,
+        index=True,
+        comment='摄像头接入 compute_node.id；NULL 表示主节点本机接入',
+    )
     rtsp_direct = db.Column(db.Text, nullable=True, comment='摄像头直连 RTSP（经 NVR 枚举时 rtsp_direct）')
     channel_online = db.Column(db.Boolean, nullable=True, comment='NVR 通道在线状态')
     connection_status = db.Column(db.String(100), nullable=True, comment='NVR 通道连接状态/探测备注')
@@ -257,6 +263,12 @@ class Nvr(db.Model):
     source = db.Column(db.String(32), nullable=True, comment='探测来源 isapi/dahua_cgi 等')
     rtsp_template = db.Column(db.Text, nullable=True, comment='自定义 RTSP 路径模板')
     rtsp_port = db.Column(db.SmallInteger, nullable=True, comment='RTSP 端口，默认 554')
+    ingress_node_id = db.Column(
+        db.BigInteger,
+        nullable=True,
+        index=True,
+        comment='NVR 接入 compute_node.id；NULL 表示主节点本机接入',
+    )
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
 
@@ -2335,6 +2347,12 @@ class StreamForwardTask(db.Model):
     executor = db.Column(db.String(20), default='cpp', nullable=False,
                          comment='执行后端[cpp:RUNTIME forward,python:FFmpeg]')
     runtime_bin_path = db.Column(db.String(500), nullable=True, comment='自定义 RUNTIME 二进制路径')
+    publish_scope = db.Column(
+        db.String(20),
+        default='node',
+        nullable=False,
+        comment='推流落点[node:运行节点本机,control_plane:控制面媒体服务]',
+    )
     
     # 统计信息
     total_streams = db.Column(db.Integer, default=0, nullable=False, comment='总推流数')
@@ -2390,6 +2408,7 @@ class StreamForwardTask(db.Model):
             'node_id': self.node_id,
             'executor': getattr(self, 'executor', None) or 'cpp',
             'runtime_bin_path': getattr(self, 'runtime_bin_path', None),
+            'publish_scope': getattr(self, 'publish_scope', None) or 'node',
             'device_deployments': self._parse_device_deployments(),
             'total_streams': self.total_streams,
             'last_process_time': utc_isoformat_z(self.last_process_time),
@@ -2601,6 +2620,7 @@ def ensure_stream_forward_task_executor_columns(engine):
     columns = {
         'executor': "VARCHAR(20) DEFAULT 'cpp'",
         'runtime_bin_path': 'VARCHAR(500)',
+        'publish_scope': "VARCHAR(20) NOT NULL DEFAULT 'node'",
     }
     try:
         inspector = inspect(engine)
@@ -2615,6 +2635,32 @@ def ensure_stream_forward_task_executor_columns(engine):
             log.info('已为 stream_forward_task 表添加 %s 列', col)
     except Exception as e:
         log.warning('ensure_stream_forward_task_executor_columns: %s', e)
+
+
+def ensure_camera_ingress_columns(engine):
+    """老库补摄像头/NVR 接入节点字段；节点表位于 iot-node，不建立跨库外键。"""
+    import logging
+    from sqlalchemy import inspect, text
+
+    log = logging.getLogger(__name__)
+    for table_name in ('device', 'nvr'):
+        try:
+            inspector = inspect(engine)
+            if table_name not in inspector.get_table_names():
+                continue
+            col_names = {c['name'] for c in inspector.get_columns(table_name)}
+            if 'ingress_node_id' not in col_names:
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        f'ALTER TABLE {table_name} ADD COLUMN ingress_node_id BIGINT'
+                    ))
+                    conn.execute(text(
+                        f'CREATE INDEX IF NOT EXISTS ix_{table_name}_ingress_node_id '
+                        f'ON {table_name} (ingress_node_id)'
+                    ))
+                log.info('已为 %s 表添加 ingress_node_id 列', table_name)
+        except Exception as e:
+            log.warning('ensure_camera_ingress_columns(%s): %s', table_name, e)
 
 
 def ensure_algorithm_task_executor_columns(engine):

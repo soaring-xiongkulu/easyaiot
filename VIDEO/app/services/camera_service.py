@@ -153,6 +153,7 @@ def _apply_location_updates(camera: Device, update_info: dict) -> None:
 
 # 全局变量定义
 _onvif_cameras = {}
+_ingress_node_summary_cache: dict[int, tuple[float, dict]] = {}
 # 确保环境变量转换为整数
 _monitor = IpReachabilityMonitor(int(os.getenv('CAMERA_ONLINE_INTERVAL', 20)))
 logger = logging.getLogger(__name__)
@@ -573,6 +574,33 @@ def _to_dict(camera: Device) -> dict:
         online_status = is_device_available_for_stream(camera)
     
     source = (camera.source or '').strip()
+    ingress_node_id = getattr(camera, 'ingress_node_id', None)
+    ingress_summary = {
+        'ingress_node_name': '本机（主节点）',
+        'ingress_node_host': None,
+        'ingress_node_status': 'online',
+    }
+    if ingress_node_id:
+        try:
+            node_id = int(ingress_node_id)
+            cached = _ingress_node_summary_cache.get(node_id)
+            if cached and time.monotonic() - cached[0] < 10:
+                node = cached[1]
+            else:
+                from app.utils.node_client import get_node
+                node = get_node(node_id)
+                _ingress_node_summary_cache[node_id] = (time.monotonic(), node)
+            ingress_summary = {
+                'ingress_node_name': node.get('name') or f'边缘节点 #{ingress_node_id}',
+                'ingress_node_host': node.get('host'),
+                'ingress_node_status': node.get('status') or 'unknown',
+            }
+        except Exception:
+            ingress_summary = {
+                'ingress_node_name': f'边缘节点 #{ingress_node_id}',
+                'ingress_node_host': None,
+                'ingress_node_status': 'offline',
+            }
     payload = {
         'id': camera.id,
         'name': camera.name,
@@ -594,6 +622,8 @@ def _to_dict(camera: Device) -> dict:
         'hardware_id': camera.hardware_id,
         'support_move': camera.support_move,
         'support_zoom': camera.support_zoom,
+        'ingress_node_id': ingress_node_id,
+        **ingress_summary,
         'directory_id': camera.directory_id if camera.directory_id else None,
         'rtsp_direct': camera.rtsp_direct,
         'channel_online': camera.channel_online,
@@ -1026,7 +1056,13 @@ def _format_onvif_register_error(ip: str, port: int, last_error: str | None) -> 
     return f'无法连接到设备 {ip}:{port}，请检查 IP、端口、用户名和密码是否正确'
 
 
-def register_camera_by_onvif(ip: str, port: int, password: str, username: str | None = None) -> str:
+def register_camera_by_onvif(
+    ip: str,
+    port: int,
+    password: str,
+    username: str | None = None,
+    ingress_node_id: int | None = None,
+) -> str:
     """通过ONVIF搜索并自动注册摄像头
     
     Args:
@@ -1049,33 +1085,41 @@ def register_camera_by_onvif(ip: str, port: int, password: str, username: str | 
     if not password or not password.strip():
         raise ValueError('摄像头密码不能为空')
     
-    onvif_cam = None
-    used_username = None
-    last_error: str | None = None
-    temp_id = 'temp_' + str(time.time_ns())  # 临时ID用于连接测试
-    
-    for candidate in _onvif_username_candidates(username):
-        try:
-            onvif_cam = _create_onvif_camera(
-                temp_id,
-                ip,
-                port,
-                candidate,
-                password
-            )
-            used_username = candidate
-            logger.info(f'使用用户名 "{candidate}" 成功连接到设备 {ip}:{port}')
-            break
-        except Exception as e:
-            last_error = str(e)
-            logger.debug(f'使用用户名 "{candidate}" 连接设备 {ip}:{port} 失败: {last_error}')
-            continue
-    
-    if onvif_cam is None:
-        raise RuntimeError(_format_onvif_register_error(ip, port, last_error))
-    
+    used_username = (username or '').strip()
+    if ingress_node_id:
+        from app.utils.node_client import camera_access
+        camera_info = camera_access(int(ingress_node_id), 'probe-onvif', {
+            'ip': ip,
+            'port': port,
+            'username': used_username,
+            'password': password,
+        })
+        if not isinstance(camera_info, dict):
+            raise RuntimeError('边缘节点未返回有效的 ONVIF 设备信息')
+    else:
+        onvif_cam = None
+        used_username = None
+        last_error: str | None = None
+        temp_id = 'temp_' + str(time.time_ns())  # 临时ID用于连接测试
+
+        for candidate in _onvif_username_candidates(username):
+            try:
+                onvif_cam = _create_onvif_camera(
+                    temp_id, ip, port, candidate, password
+                )
+                used_username = candidate
+                logger.info(f'使用用户名 "{candidate}" 成功连接到设备 {ip}:{port}')
+                break
+            except Exception as e:
+                last_error = str(e)
+                logger.debug(f'使用用户名 "{candidate}" 连接设备 {ip}:{port} 失败: {last_error}')
+
+        if onvif_cam is None:
+            raise RuntimeError(_format_onvif_register_error(ip, port, last_error))
+        camera_info = onvif_cam.get_info()
+
+    used_username = str(camera_info.get('username') or used_username or '').strip()
     # 检查设备是否已存在（通过MAC地址）
-    camera_info = onvif_cam.get_info()
     mac = camera_info.get('mac')
     
     existing_camera = find_existing_device_for_register(
@@ -1097,8 +1141,14 @@ def register_camera_by_onvif(ip: str, port: int, password: str, username: str | 
                 'model': camera_info.get('model'),
                 'firmware_version': camera_info.get('firmware_version'),
                 'serial_number': camera_info.get('serial_number'),
+                'ingress_node_id': ingress_node_id,
             },
         )
+        try:
+            from app.services.stream_forward_service import ensure_device_stream_forward_task
+            ensure_device_stream_forward_task(existing_camera.id)
+        except Exception as e:
+            logger.warning(f'同步设备 {existing_camera.id} 接入节点失败: {e}')
         logger.info(f'设备 {existing_camera.id} 已存在，已更新（ONVIF 登记）')
         return existing_camera.id
     
@@ -1148,6 +1198,7 @@ def register_camera_by_onvif(ip: str, port: int, password: str, username: str | 
         support_zoom=camera_info.get('support_zoom', False),
         nvr_id=None,
         nvr_channel=0,
+        ingress_node_id=ingress_node_id,
         directory_id=directory_id_for_new_device(),
     )
     
@@ -1172,6 +1223,12 @@ def register_camera_by_onvif(ip: str, port: int, password: str, username: str | 
             logger.info(f'设备 {device_id} 的监控录像空间已自动创建')
         except Exception as e:
             logger.warning(f'为设备 {device_id} 创建监控录像空间失败: {str(e)}，但不影响设备注册')
+
+        try:
+            from app.services.stream_forward_service import ensure_device_stream_forward_task
+            ensure_device_stream_forward_task(device_id)
+        except Exception as e:
+            logger.warning(f'为设备 {device_id} 自动创建推流任务失败: {e}')
         
         return device_id
     except Exception as e:
@@ -1195,6 +1252,16 @@ def register_camera(register_info: dict) -> str:
         source = register_info.get('source')
         name = register_info.get('name', f'Camera-{id[:6]}')
         camera_type = register_info.get('cameraType', '')
+        ingress_node_id = register_info.get('ingress_node_id')
+        if ingress_node_id not in (None, '', 0, '0'):
+            try:
+                ingress_node_id = int(ingress_node_id)
+            except (TypeError, ValueError) as exc:
+                raise ValueError('接入节点 ID 无效') from exc
+            from app.utils.node_client import camera_access
+            camera_access(ingress_node_id, 'probe-stream', {'source': source, 'timeout': 10})
+        else:
+            ingress_node_id = None
         
         # 判断是否是RTMP流
         is_rtmp = source.strip().lower().startswith('rtmp://')
@@ -1314,6 +1381,7 @@ def register_camera(register_info: dict) -> str:
             existing.support_zoom = register_info.get('support_zoom') if register_info.get('support_zoom') is not None else camera_info.get('support_zoom', existing.support_zoom)
             existing.nvr_id = int(nvr_id) if nvr_id else None
             existing.nvr_channel = nvr_channel or 0
+            existing.ingress_node_id = ingress_node_id
             existing.rtsp_direct = register_info.get('rtsp_direct')
             existing.channel_online = register_info.get('channel_online')
             if register_info.get('connection_status') is not None:
@@ -1348,6 +1416,7 @@ def register_camera(register_info: dict) -> str:
                 support_zoom=register_info.get('support_zoom') if register_info.get('support_zoom') is not None else camera_info.get('support_zoom', False),
                 nvr_id=int(nvr_id) if nvr_id else None,
                 nvr_channel=nvr_channel,
+                ingress_node_id=ingress_node_id,
                 rtsp_direct=register_info.get('rtsp_direct'),
                 channel_online=register_info.get('channel_online'),
                 connection_status=register_info.get('connection_status'),

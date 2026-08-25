@@ -145,6 +145,7 @@ def create_task():
             prefer_gpu=data.get('prefer_gpu', True),
             target_node_id=data.get('target_node_id'),
             executor=data.get('executor', 'cpp'),
+            publish_scope=data.get('publish_scope', 'node'),
         )
         
         return jsonify({
@@ -639,4 +640,3 @@ def ensure_device_task(device_id):
     except Exception as e:
         logger.error(f"确保设备推流转发任务失败: {str(e)}", exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
-

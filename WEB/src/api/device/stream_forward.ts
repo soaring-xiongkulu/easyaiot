@@ -51,6 +51,7 @@ export interface StreamForwardTask {
   /** cpp=RUNTIME forward 高性能（默认）；python=FFmpeg */
   executor?: 'cpp' | 'python';
   runtime_bin_path?: string | null;
+  publish_scope?: 'node' | 'control_plane';
   device_deployments?: Array<{
     device_ids: string[];
     node_id: number;
@@ -113,6 +114,7 @@ export const createStreamForwardTask = (data: {
   prefer_gpu?: boolean;
   target_node_id?: number | null;
   executor?: 'cpp' | 'python';
+  publish_scope?: 'node' | 'control_plane';
 }) => {
   return commonApi<{ code: number; msg: string; data: StreamForwardTask }>(
     'post',
@@ -273,4 +275,3 @@ export const ensureDeviceStreamForwardTask = (device_id: string) => {
     LONG_RUNNING_TIMEOUT,
   );
 };
-

@@ -318,6 +318,9 @@ public final class WorkloadBundleDeployUtil {
     }
 
     public static boolean requiresVideoSync(String workloadType) {
+        if (workloadType != null && "camera_access".equals(workloadType.trim().toLowerCase(Locale.ROOT))) {
+            return true;
+        }
         WorkloadBundleTypeEnum b = fromLegacyWorkloadType(workloadType);
         return b != null && "VIDEO".equals(b.getModule());
     }

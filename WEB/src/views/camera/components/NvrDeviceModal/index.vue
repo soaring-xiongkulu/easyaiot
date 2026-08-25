@@ -52,6 +52,14 @@
         <FormItem label="密码">
           <Input.Password v-model:value="modelRef.password" :disabled="isView" allow-clear />
         </FormItem>
+        <FormItem label="接入节点">
+          <Select
+            v-model:value="modelRef.ingress_node_id"
+            :disabled="isView"
+            :loading="ingressNodesLoading"
+            :options="ingressNodeOptions"
+          />
+        </FormItem>
         <FormItem label="Web 地址">
           <Input :value="webUrlDisplay" disabled />
         </FormItem>
@@ -69,6 +77,7 @@ import { BasicModal, useModalInner } from '@/components/Modal';
 import { Form, FormItem, Input, InputNumber, Select, Spin } from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getNvrDetail, upsertNvr, type NvrInfo } from '@/api/device/camera';
+import { getEdgeNodePage } from '@/api/device/edge';
 
 defineOptions({ name: 'NvrDeviceModal' });
 
@@ -101,7 +110,32 @@ const modelRef = reactive({
   password: '',
   camera_count: 0,
   web_url: '',
+  ingress_node_id: 0,
 });
+
+const ingressNodesLoading = ref(false);
+const ingressNodeOptions = ref<Array<{ label: string; value: number }>>([
+  { label: '本机（主节点）', value: 0 },
+]);
+
+async function loadIngressNodes() {
+  ingressNodesLoading.value = true;
+  try {
+    const page = await getEdgeNodePage({ pageNo: 1, pageSize: 200, status: 'online', enabled: true });
+    const list = Array.isArray(page?.list) ? page.list : [];
+    ingressNodeOptions.value = [
+      { label: '本机（主节点）', value: 0 },
+      ...list
+        .filter((node) => !!node.computeNodeId && node.status === 'online' && node.enabled !== false)
+        .map((node) => ({
+          label: `${node.name || `边缘节点 #${node.id}`}（${node.host || '未知地址'}）`,
+          value: Number(node.computeNodeId),
+        })),
+    ];
+  } finally {
+    ingressNodesLoading.value = false;
+  }
+}
 
 const modalTitle = computed(() => (isView.value ? 'NVR 详情' : '编辑 NVR'));
 
@@ -129,6 +163,7 @@ function resetModel() {
   modelRef.password = '';
   modelRef.camera_count = 0;
   modelRef.web_url = '';
+  modelRef.ingress_node_id = 0;
 }
 
 function fillFromNvr(nvr: NvrInfo) {
@@ -145,6 +180,7 @@ function fillFromNvr(nvr: NvrInfo) {
   modelRef.password = nvr.password ?? '';
   modelRef.camera_count = nvr.camera_count ?? nvr.cameras?.length ?? 0;
   modelRef.web_url = nvr.web_url ?? '';
+  modelRef.ingress_node_id = nvr.ingress_node_id ?? 0;
 }
 
 const [register, { closeModal }] = useModalInner(async (data) => {
@@ -157,6 +193,7 @@ const [register, { closeModal }] = useModalInner(async (data) => {
   }
   state.loading = true;
   try {
+    await loadIngressNodes();
     const res = await getNvrDetail(nvrId, true);
     const nvr = (res as NvrInfo) || (res as { data?: NvrInfo })?.data;
     if (!nvr) {
@@ -204,6 +241,7 @@ async function handleOk() {
       mac: modelRef.mac || undefined,
       username: modelRef.username || undefined,
       password: modelRef.password || undefined,
+      ingress_node_id: modelRef.ingress_node_id || null,
     });
     createMessage.success('保存成功');
     closeModal();

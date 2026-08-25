@@ -8,6 +8,11 @@ from flask import Flask, jsonify, request
 from workload_manager import WorkloadManager, find_available_port
 from media_manager import MediaStackManager
 from mqtt_manager import MqttStackManager
+from camera_access import discover as camera_discover
+from camera_access import nvr_channels as camera_nvr_channels
+from camera_access import probe_onvif as camera_probe_onvif
+from camera_access import probe_stream as camera_probe_stream
+from camera_access import scan_segment as camera_scan_segment
 
 logger = logging.getLogger('easyaiot-sentinel.server')
 
@@ -22,7 +27,7 @@ mqtt_manager = MqttStackManager()
 
 
 def _ok(data=None):
-    return jsonify({'code': 0, 'msg': 'success', 'data': data or {}})
+    return jsonify({'code': 0, 'msg': 'success', 'data': data if data is not None else {}})
 
 
 def _err(msg: str, code: int = 1):
@@ -46,7 +51,42 @@ def auth_middleware():
 
 @app.get('/health')
 def health():
-    return _ok({'status': 'ok'})
+    return _ok({'status': 'ok', 'cameraAccess': True})
+
+
+def _camera_call(handler):
+    try:
+        return _ok(handler(request.get_json(force=True) or {}))
+    except ValueError as e:
+        return _err(str(e))
+    except Exception as e:
+        logger.exception('摄像头接入操作失败')
+        return _err(str(e))
+
+
+@app.post('/camera/discover')
+def camera_discover_route():
+    return _camera_call(lambda _payload: camera_discover())
+
+
+@app.post('/camera/scan-segment')
+def camera_scan_segment_route():
+    return _camera_call(camera_scan_segment)
+
+
+@app.post('/camera/probe-onvif')
+def camera_probe_onvif_route():
+    return _camera_call(camera_probe_onvif)
+
+
+@app.post('/camera/probe-stream')
+def camera_probe_stream_route():
+    return _camera_call(camera_probe_stream)
+
+
+@app.post('/camera/nvr-channels')
+def camera_nvr_channels_route():
+    return _camera_call(camera_nvr_channels)
 
 
 @app.post('/workload/deploy')

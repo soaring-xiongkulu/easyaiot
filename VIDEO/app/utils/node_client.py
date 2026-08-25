@@ -48,9 +48,9 @@ def _headers() -> Dict[str, str]:
     return headers
 
 
-def _post(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+def _post(path: str, payload: Dict[str, Any], *, timeout: int = REQUEST_TIMEOUT) -> Any:
     url = f'{NODE_API_BASE}{path}'
-    resp = requests.post(url, json=payload, headers=_headers(), timeout=REQUEST_TIMEOUT)
+    resp = requests.post(url, json=payload, headers=_headers(), timeout=timeout)
     resp.raise_for_status()
     data = resp.json()
     if data.get('code') != 0:
@@ -61,17 +61,19 @@ def _post(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
                 url, list(payload.keys()), data,
             )
         raise RuntimeError(msg)
-    return data.get('data') or {}
+    result = data.get('data')
+    return result if result is not None else {}
 
 
-def _get(path: str, params: Dict[str, Any]) -> Dict[str, Any]:
+def _get(path: str, params: Dict[str, Any]) -> Any:
     url = f'{NODE_API_BASE}{path}'
     resp = requests.get(url, params=params, headers=_headers(), timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     data = resp.json()
     if data.get('code') != 0:
         raise RuntimeError(data.get('msg') or f'节点 API 失败: {url}')
-    return data.get('data') or {}
+    result = data.get('data')
+    return result if result is not None else {}
 
 
 def is_remote_deploy_enabled() -> bool:
@@ -179,6 +181,18 @@ def release_workload(workload_type: str, workload_id: str) -> None:
 
 def get_node(node_id: int) -> Dict[str, Any]:
     return _get('/get', {'id': node_id})
+
+
+def camera_access(node_id: int, operation: str, payload: Optional[Dict[str, Any]] = None) -> Any:
+    """通过 iot-node 调用目标节点的摄像头接入代理。"""
+    allowed = {'discover', 'scan-segment', 'probe-onvif', 'probe-stream', 'nvr-channels'}
+    op = (operation or '').strip().lower()
+    if op not in allowed:
+        raise ValueError(f'不支持的摄像头接入操作: {operation}')
+    return _post(f'/camera-access/{op}', {
+        'nodeId': int(node_id),
+        'payload': payload or {},
+    }, timeout=360 if op == 'scan-segment' else 120)
 
 
 def get_platform_node_id() -> Optional[int]:

@@ -1055,7 +1055,18 @@ def register_device_by_onvif():
         except (ValueError, TypeError):
             return jsonify({'code': 400, 'msg': '摄像头端口必须是数字'}), 400
         
-        device_id = register_camera_by_onvif(ip, port, password, username=username or None)
+        ingress_node_id = data.get('ingress_node_id')
+        if ingress_node_id not in (None, '', 0, '0'):
+            try:
+                ingress_node_id = int(ingress_node_id)
+            except (TypeError, ValueError):
+                return jsonify({'code': 400, 'msg': '接入节点 ID 无效'}), 400
+        else:
+            ingress_node_id = None
+        device_id = register_camera_by_onvif(
+            ip, port, password, username=username or None,
+            ingress_node_id=ingress_node_id,
+        )
         return jsonify({
             'code': 0,
             'msg': '设备注册成功',
@@ -1100,7 +1111,40 @@ def update_device(device_id):
             if not model:
                 data['model'] = 'Camera-EasyAIoT'
         
+        if 'ingress_node_id' in data:
+            raw_node_id = data.get('ingress_node_id')
+            if raw_node_id in (None, '', 0, '0'):
+                data['ingress_node_id'] = None
+            else:
+                try:
+                    data['ingress_node_id'] = int(raw_node_id)
+                except (TypeError, ValueError):
+                    return jsonify({'code': 400, 'msg': '接入节点 ID 无效'}), 400
+                device = Device.query.get(device_id)
+                if device and device.source:
+                    from app.utils.node_client import camera_access
+                    camera_access(data['ingress_node_id'], 'probe-stream', {
+                        'source': data.get('source') or device.source,
+                        'timeout': 10,
+                    })
+
         update_camera(device_id, data)
+
+        if 'ingress_node_id' in data:
+            device = Device.query.get(device_id)
+            if device and device.nvr_id:
+                from models import Nvr
+                nvr = Nvr.query.get(device.nvr_id)
+                if nvr:
+                    nvr.ingress_node_id = data['ingress_node_id']
+                    for channel in Device.query.filter_by(nvr_id=nvr.id).all():
+                        channel.ingress_node_id = data['ingress_node_id']
+                    db.session.commit()
+                    from app.services.stream_forward_service import ensure_nvr_stream_forward_task
+                    ensure_nvr_stream_forward_task(nvr.id)
+            else:
+                from app.services.stream_forward_service import ensure_device_stream_forward_task
+                ensure_device_stream_forward_task(device_id)
 
         # 关闭观看转发时同步停止守护进程（与算法任务无关）
         ef = data.get('enable_forward')
@@ -1861,6 +1905,14 @@ def register_nvr_channels_device():
         ip = (data.get('ip') or '').strip()
         if not ip:
             return jsonify({'code': 400, 'msg': 'NVR IP 不能为空'}), 400
+        raw_ingress_node_id = data.get('ingress_node_id')
+        if raw_ingress_node_id in (None, '', 0, '0'):
+            data['ingress_node_id'] = None
+        else:
+            try:
+                data['ingress_node_id'] = int(raw_ingress_node_id)
+            except (TypeError, ValueError):
+                return jsonify({'code': 400, 'msg': '接入节点 ID 无效'}), 400
         try:
             port = int(data.get('port') or 80)
         except (TypeError, ValueError):
@@ -1926,17 +1978,33 @@ def register_nvr_channels_device():
                 if username and not data.get('username'):
                     data['username'] = username
                 timeout = max(float(data.get('timeout') or 5.0), 10.0)
-                inv = enumerate_nvr_channels(
-                    ip,
-                    port,
-                    username=username,
-                    password=password,
-                    credentials=credentials,
-                    timeout=timeout,
-                    vendor=vendor,
-                    probe_cameras=False,
-                    channel_filter='registerable',
-                )
+                ingress_node_id = data.get('ingress_node_id')
+                if ingress_node_id not in (None, '', 0, '0'):
+                    from app.utils.node_client import camera_access
+                    inv = camera_access(int(ingress_node_id), 'nvr-channels', {
+                        **data,
+                        'ip': ip,
+                        'port': port,
+                        'username': username,
+                        'password': password,
+                        'credentials': credentials,
+                        'timeout': timeout,
+                        'vendor': vendor,
+                        'probe_cameras': False,
+                        'channel_filter': 'registerable',
+                    })
+                else:
+                    inv = enumerate_nvr_channels(
+                        ip,
+                        port,
+                        username=username,
+                        password=password,
+                        credentials=credentials,
+                        timeout=timeout,
+                        vendor=vendor,
+                        probe_cameras=False,
+                        channel_filter='registerable',
+                    )
                 channels = inv.get('channels') or []
                 enum_error = inv.get('error')
                 if inv.get('auth_username') and not username:
@@ -2030,6 +2098,7 @@ def scan_segment_devices():
         from app.services.hik_scan_service import scan_segment
 
         data = request.get_json() or {}
+        ingress_node_id = data.get('ingress_node_id')
         targets = (data.get('targets') or '').strip()
         if not targets:
             return jsonify({'code': 400, 'msg': '请填写扫描目标（网段 / IP / 范围）'}), 400
@@ -2066,18 +2135,22 @@ def scan_segment_devices():
                 ),
             }), 400
 
-        devices = scan_segment(
-            targets,
-            ports_spec=ports,
-            username=username,
-            password=password,
-            credentials=credentials,
-            concurrency=concurrency,
-            timeout=timeout,
-            only_hits=only_hits,
-            nvr_only=nvr_only,
-            exclude_nvr=exclude_nvr,
-        )
+        if ingress_node_id not in (None, '', 0, '0'):
+            from app.utils.node_client import camera_access
+            devices = camera_access(int(ingress_node_id), 'scan-segment', data)
+        else:
+            devices = scan_segment(
+                targets,
+                ports_spec=ports,
+                username=username,
+                password=password,
+                credentials=credentials,
+                concurrency=concurrency,
+                timeout=timeout,
+                only_hits=only_hits,
+                nvr_only=nvr_only,
+                exclude_nvr=exclude_nvr,
+            )
         return jsonify({'code': 0, 'msg': 'success', 'data': devices})
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
@@ -2093,6 +2166,7 @@ def scan_nvr_channels():
         from app.services.hik_scan_service import enumerate_nvr_channels
 
         data = request.get_json() or {}
+        ingress_node_id = data.get('ingress_node_id')
         ip = (data.get('ip') or '').strip()
         if not ip:
             return jsonify({'code': 400, 'msg': 'NVR IP 不能为空'}), 400
@@ -2114,17 +2188,21 @@ def scan_nvr_channels():
         probe_cameras = bool(data.get('probe_cameras', False))
         only_mounted = bool(data.get('only_mounted', True))
 
-        inv = enumerate_nvr_channels(
-            ip,
-            port,
-            username=username,
-            password=password,
-            credentials=credentials,
-            timeout=timeout,
-            vendor=vendor,
-            probe_cameras=probe_cameras,
-            only_mounted=only_mounted,
-        )
+        if ingress_node_id not in (None, '', 0, '0'):
+            from app.utils.node_client import camera_access
+            inv = camera_access(int(ingress_node_id), 'nvr-channels', data)
+        else:
+            inv = enumerate_nvr_channels(
+                ip,
+                port,
+                username=username,
+                password=password,
+                credentials=credentials,
+                timeout=timeout,
+                vendor=vendor,
+                probe_cameras=probe_cameras,
+                only_mounted=only_mounted,
+            )
         return jsonify({'code': 0, 'msg': 'success', 'data': inv})
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
@@ -2138,7 +2216,12 @@ def scan_nvr_channels():
 def discover_devices():
     """发现网络中的 ONVIF 设备（WS-Discovery + camera_service._discovery_cameras）。供摄像头管理页局域网扫描使用。"""
     try:
-        devices = search_camera()
+        ingress_node_id = request.args.get('ingress_node_id', '').strip()
+        if ingress_node_id:
+            from app.utils.node_client import camera_access
+            devices = camera_access(int(ingress_node_id), 'discover', {})
+        else:
+            devices = search_camera()
         return jsonify({
             'code': 0,
             'msg': 'success',

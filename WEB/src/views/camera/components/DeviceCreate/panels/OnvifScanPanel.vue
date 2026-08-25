@@ -45,7 +45,7 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
 import { Empty, Spin, Table } from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import { useModal } from '@/components/Modal';
@@ -60,6 +60,7 @@ import {
 import DeviceCreatePanelLayout from '../DeviceCreatePanelLayout.vue';
 
 const emit = defineEmits<{ success: [] }>();
+const props = defineProps<{ ingressNodeId?: number }>();
 
 const { createMessage } = useMessage();
 const [registerVideoRegisterModal, { openModal: openVideoRegisterModal }] = useModal();
@@ -80,6 +81,11 @@ const tablePagination = {
   showTotal: (total: number) => `共 ${total} 台`,
 };
 
+watch(() => props.ingressNodeId, () => {
+  state.devices = [];
+  state.scanProgress = '';
+});
+
 function normalizeDiscoveryList(res: unknown): OnvifDiscoveryRow[] {
   if (Array.isArray(res)) {
     return res as OnvifDiscoveryRow[];
@@ -96,10 +102,10 @@ async function handleScan() {
   state.scanProgress = '正在扫描局域网 ONVIF 设备…';
   state.devices = [];
   try {
-    const res = await discoverDevices();
+    const res = await discoverDevices(props.ingressNodeId);
     state.devices = normalizeDiscoveryList(res);
     if (!state.devices.length) {
-      createMessage.info('未发现 ONVIF 设备，请确认设备与平台在同一网段');
+      createMessage.info('未发现 ONVIF 设备，请确认设备与所选接入节点网络互通');
     } else {
       createMessage.success(`扫描完成，共 ${state.devices.length} 台`);
     }
@@ -138,6 +144,7 @@ async function handleRegisterSuccess(payload: Record<string, unknown>) {
       port: Number.isFinite(port) ? port : 80,
       username,
       password,
+      ingress_node_id: props.ingressNodeId,
     });
     createMessage.success('设备注册成功');
     state.devices = state.devices.filter((d) => d.ip !== ip);

@@ -101,6 +101,11 @@ public class NodeVideoWorkloadSyncServiceImpl implements NodeVideoWorkloadSyncSe
         String t = workloadType == null ? "" : workloadType.trim().toLowerCase(Locale.ROOT);
         if ("stream_forward".equals(t)) {
             paths.addAll(WorkloadBundleDeployUtil.syncScriptRelativePaths(WorkloadBundleTypeEnum.STREAM_FORWARD));
+        } else if ("camera_access".equals(t)) {
+            paths.add("app/vendor/hiktools");
+            paths.add("app/services/hik_scan_service.py");
+            paths.add("app/services/onvif_service.py");
+            paths.add("app/utils/rtsp_url.py");
         } else if ("algorithm_task".equals(t)) {
             paths.addAll(WorkloadBundleDeployUtil.syncScriptRelativePaths(WorkloadBundleTypeEnum.ALGORITHM_REALTIME));
             paths.addAll(WorkloadBundleDeployUtil.syncScriptRelativePaths(WorkloadBundleTypeEnum.ALGORITHM_SNAP));

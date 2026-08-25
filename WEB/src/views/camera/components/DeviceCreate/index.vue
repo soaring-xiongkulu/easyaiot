@@ -6,6 +6,21 @@
       </template>
     </PageHeader>
 
+    <div v-if="activeTab === 'camera' || activeTab === 'nvr'" class="dc-ingress-bar">
+      <span class="dc-ingress-label">接入节点</span>
+      <Select
+        v-model:value="ingressNodeValue"
+        :options="ingressNodeOptions"
+        :loading="loadingIngressNodes"
+        style="width: 360px"
+        show-search
+        option-filter-prop="label"
+      />
+      <span class="dc-ingress-tip">
+        扫描、源流验证和拉流将在所选节点执行；边缘流会主动推送到主节点。
+      </span>
+    </div>
+
     <Tabs
       v-model:activeKey="activeTab"
       :animated="{ inkBar: true, tabPane: true }"
@@ -23,21 +38,21 @@
           <TabPane key="onvif" tab="ONVIF">
             <div class="dc-pane">
               <div class="dc-body">
-                <OnvifScanPanel class="panel-host" @success="handlePanelSuccess" />
+                <OnvifScanPanel :ingress-node-id="selectedIngressNodeId" class="panel-host" @success="handlePanelSuccess" />
               </div>
             </div>
           </TabPane>
           <TabPane key="segment_scan" tab="跨网段扫描">
             <div class="dc-pane">
               <div class="dc-body">
-                <SegmentScanPanel class="panel-host" mode="camera" @success="handlePanelSuccess" />
+                <SegmentScanPanel :ingress-node-id="selectedIngressNodeId" class="panel-host" mode="camera" @success="handlePanelSuccess" />
               </div>
             </div>
           </TabPane>
           <TabPane key="manual" tab="手动填写">
             <div class="dc-pane">
               <div class="dc-body">
-                <DirectRtspPanel class="panel-host" @success="handlePanelSuccess" />
+                <DirectRtspPanel :ingress-node-id="selectedIngressNodeId" class="panel-host" @success="handlePanelSuccess" />
               </div>
             </div>
           </TabPane>
@@ -54,14 +69,14 @@
           <TabPane key="segment_scan" tab="跨网段扫描">
             <div class="dc-pane">
               <div class="dc-body">
-                <SegmentScanPanel class="panel-host" mode="nvr" @success="handlePanelSuccess" />
+                <SegmentScanPanel :ingress-node-id="selectedIngressNodeId" class="panel-host" mode="nvr" @success="handlePanelSuccess" />
               </div>
             </div>
           </TabPane>
           <TabPane key="manual" tab="手动填写">
             <div class="dc-pane">
               <div class="dc-body">
-                <NvrManualPanel class="panel-host" @success="handlePanelSuccess" />
+                <NvrManualPanel :ingress-node-id="selectedIngressNodeId" class="panel-host" @success="handlePanelSuccess" />
               </div>
             </div>
           </TabPane>
@@ -88,8 +103,8 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, watch } from 'vue';
-import { PageHeader, Tabs } from 'ant-design-vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { PageHeader, Select, Tabs } from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import {
   getDefaultMethodForKind,
@@ -104,6 +119,7 @@ import NvrManualPanel from './panels/NvrManualPanel.vue';
 import Gb28181AccessPanel from './panels/Gb28181AccessPanel.vue';
 import RtcPlatformPanel from './panels/RtcPlatformPanel.vue';
 import { isGb28181Enabled, isRtcEnabled } from '@/utils/deployProfile';
+import { getEdgeNodePage } from '@/api/device/edge';
 
 const TabPane = Tabs.TabPane;
 
@@ -139,6 +155,36 @@ const selection = reactive({
   kind: (props.initialKind || 'camera') as DeviceKind,
   method: kindMethodPrefs[props.initialKind || 'camera'],
 });
+
+const ingressNodeValue = ref(0);
+const loadingIngressNodes = ref(false);
+const ingressNodeOptions = ref<Array<{ label: string; value: number }>>([
+  { label: '本机（主节点）', value: 0 },
+]);
+const selectedIngressNodeId = computed(() => ingressNodeValue.value || undefined);
+
+async function loadIngressNodes() {
+  loadingIngressNodes.value = true;
+  try {
+    const page = await getEdgeNodePage({ pageNo: 1, pageSize: 200, status: 'online', enabled: true });
+    const list = Array.isArray(page?.list) ? page.list : [];
+    ingressNodeOptions.value = [
+      { label: '本机（主节点）', value: 0 },
+      ...list
+        .filter((node) => !!node.computeNodeId && node.status === 'online' && node.enabled !== false)
+        .map((node) => ({
+          label: `${node.name || `边缘节点 #${node.id}`}（${node.host || '未知地址'}）`,
+          value: Number(node.computeNodeId),
+        })),
+    ];
+  } catch {
+    ingressNodeOptions.value = [{ label: '本机（主节点）', value: 0 }];
+  } finally {
+    loadingIngressNodes.value = false;
+  }
+}
+
+onMounted(loadIngressNodes);
 
 function syncSelectionFromPrefs(kind: DeviceKind) {
   selection.kind = kind;
@@ -240,6 +286,27 @@ watch(
     :deep(> .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane) {
       height: 100%;
     }
+  }
+
+  .dc-ingress-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin: 0 16px 8px;
+    border: 1px solid #d9e8ff;
+    border-radius: 6px;
+    background: #f6faff;
+  }
+
+  .dc-ingress-label {
+    flex: 0 0 auto;
+    font-weight: 500;
+  }
+
+  .dc-ingress-tip {
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 12px;
   }
 
   .dc-method-tabs {

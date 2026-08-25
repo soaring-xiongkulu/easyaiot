@@ -139,7 +139,7 @@ import {
   validateSegmentScanTargets,
 } from '@/views/camera/utils/segmentScanTargetsValidate';
 
-const props = defineProps<{ mode?: 'camera' | 'nvr' }>();
+const props = defineProps<{ mode?: 'camera' | 'nvr'; ingressNodeId?: number }>();
 const emit = defineEmits<{ success: [] }>();
 
 const { createMessage } = useMessage();
@@ -261,6 +261,14 @@ watch(
     }
   },
   { immediate: true },
+);
+
+watch(
+  () => props.ingressNodeId,
+  () => {
+    state.devices = [];
+    resetRegisterStatus();
+  },
 );
 
 watch(
@@ -484,6 +492,7 @@ async function handleScan() {
     only_hits: !!values.only_hits,
     nvr_only: state.mode === 'nvr',
     exclude_nvr: state.mode === 'camera',
+    ingress_node_id: props.ingressNodeId,
   };
   const estSec = computeSegmentScanWallSeconds(scanPayload);
   state.scanProgress = `正在跨网段扫描，预计最多 ${estSec} 秒…`;
@@ -535,6 +544,7 @@ async function registerOneNvr(record: SegmentScanDeviceRow, credentials: Credent
       serial_number: record.serial,
       rtsp_url: record.rtsp_url,
       scheme: record.port && [443, 8443].includes(record.port) ? 'https' : 'http',
+      ingress_node_id: props.ingressNodeId,
     });
     const n = nvrRegisterRegisteredCount(res);
     if (n > 0) {
@@ -595,6 +605,7 @@ async function registerOneCamera(record: SegmentScanDeviceRow, credentials: Cred
       manufacturer: record.vendor_label,
       model: record.model,
       serial_number: record.serial,
+      ingress_node_id: props.ingressNodeId,
     });
     state.registerStatusMap[record.ip] = 'success';
     if (!silent) createMessage.success(`摄像头 ${record.ip} 注册成功`);

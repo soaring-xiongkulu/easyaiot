@@ -667,6 +667,7 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
     executor = normalize_executor(getattr(task, 'executor', None) or 'cpp')
     files = None
     work_dir = video_root_remote
+    env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
 
     if executor == 'cpp':
         if task.task_type not in ('realtime', 'snap', 'patrol'):
@@ -727,6 +728,7 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                     prefer_cluster_model=True,
                     force_per_device=True,
                     remote_ini_dir=log_dir,
+                    heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
                 )
                 files = [{'path': p, 'content': c, 'mode': '0644'} for p, c in pairs]
                 if len(pairs) == 1:
@@ -746,6 +748,7 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                     log_dir,
                     prefer_cluster_model=True,
                     remote_ini_path=remote_ini,
+                    heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
                 )
                 command = [REMOTE_RUNTIME_BIN, ini_path]
                 files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
@@ -753,7 +756,6 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
             logger.error('生成远程 RUNTIME 配置失败: %s', e, exc_info=True)
             return (False, f'生成远程 RUNTIME 配置失败: {e}', False)
         work_dir = '/opt/easyaiot/RUNTIME'
-        env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
         env['VIDEO_ROOT'] = video_root_remote
         env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
         env['LD_LIBRARY_PATH'] = REMOTE_RUNTIME_LD_LIBRARY_PATH
@@ -777,7 +779,6 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
         python_exec = resolve_video_bundle_python(bundle, video_root_remote)
         deploy_script = os.path.join(work_dir, 'run_deploy.py')
         command = [python_exec, deploy_script]
-        env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
         env['VIDEO_ROOT'] = video_root_remote
         files = None
 
@@ -792,6 +793,14 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
         gpu_ids=gpu_ids,
         files=files,
     )
+
+    # 用户停止可能与健康恢复部署并发：远程部署完成后必须重新读取已提交的启用状态。
+    # 若停止请求先提交，立即清理刚下发的 workload，避免数据库已停止但边缘进程残留。
+    from app.services.algorithm_task_cluster_service import _task_is_enabled, stop_remote_workload
+    if not _task_is_enabled(task_id):
+        stop_remote_workload(int(node_id), str(task_id))
+        logger.info('任务 %s 已停用，清理刚下发的远程 workload', task_id)
+        return (False, '任务已停用，已清理刚下发的远程进程', False)
 
     task.node_id = node_id
     task.service_server_ip = host
@@ -1648,9 +1657,13 @@ def _auto_start_all_tasks_internal():
 
 def recover_unhealthy_algorithm_tasks() -> int:
     """恢复已启用但进程已退出的算法任务，返回成功恢复数。"""
+    from app.services.algorithm_task_cluster_service import _task_is_enabled
+
     tasks = AlgorithmTask.query.filter_by(is_enabled=True).all()
     recovered = 0
     for task in tasks:
+        if not _task_is_enabled(task.id):
+            continue
         if _algorithm_task_service_healthy(task):
             continue
         try:
@@ -1660,7 +1673,7 @@ def recover_unhealthy_algorithm_tasks() -> int:
             )
             if use_device_level_schedule(task):
                 migrated = migrate_unhealthy_algorithm_task(task.id)
-                if migrated:
+                if migrated and _task_is_enabled(task.id):
                     recovered += 1
                     logger.info('算法任务 %s 分片迁移恢复成功 migrated=%s', task.id, migrated)
                     continue
@@ -1669,6 +1682,9 @@ def recover_unhealthy_algorithm_tasks() -> int:
                 '算法任务 %s (%s) 服务未运行或心跳超时，尝试恢复',
                 task.id, task.task_name,
             )
+            if not _task_is_enabled(task.id):
+                logger.info('算法任务 %s 已停用，取消健康恢复', task.id)
+                continue
             success, msg, _ = start_task_services(task.id, task)
             if success:
                 recovered += 1
