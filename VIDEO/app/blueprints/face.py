@@ -568,6 +568,27 @@ def list_face_match_records():
         return jsonify({"code": 500, "msg": f"查询失败: {str(e)}"}), 500
 
 
+@face_bp.route("/matching/trajectory", methods=["GET"])
+def list_person_trajectory():
+    """人物出现轨迹：某人在某一天被各摄像头识别命中的地图坐标时间线。
+
+    参数：person_name（必填）、date（YYYY-MM-DD，必填）、device_id（可选）、limit（可选）。
+    """
+    try:
+        data = face_library_service.list_person_trajectory(
+            person_name=request.args.get("person_name") or "",
+            date=request.args.get("date") or "",
+            device_id=request.args.get("device_id"),
+            limit=int(request.args.get("limit", 500) or 500),
+        )
+        return jsonify({"code": 0, "msg": "success", "data": data})
+    except ValueError as e:
+        return jsonify({"code": 400, "msg": str(e)}), 400
+    except Exception as e:
+        logger.error(f"查询人物出现轨迹失败: {str(e)}", exc_info=True)
+        return jsonify({"code": 500, "msg": f"查询失败: {str(e)}"}), 500
+
+
 # ====================== 兼容旧版单库 API ======================
 
 @face_bp.route("/library", methods=["GET"])
