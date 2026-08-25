@@ -22,13 +22,17 @@ def get_plate_pipeline() -> PlatePipeline:
     global _pipeline
     with _lock:
         if _pipeline is None:
+            # 与 face_capture_service 一致：显式使用 CPU provider。
+            # 容器内 ORT 报告的 CUDA provider 初始化会段错误（驱动/库不匹配），
+            # 且段错误无法被 Python try/except 捕获，必须在源头规避。
             _pipeline = PlatePipeline(
                 PLATE_DETECT_MODEL_PATH,
                 PLATE_REC_MODEL_PATH,
+                providers=['CPUExecutionProvider'],
                 tilt_threshold=PLATE_CAPTURE_TILT_THRESHOLD,
             )
             logger.info(
-                "车牌识别流水线已加载: detect=%s, rec=%s",
+                "车牌识别流水线已加载(CPU): detect=%s, rec=%s",
                 PLATE_DETECT_MODEL_PATH,
                 PLATE_REC_MODEL_PATH,
             )
