@@ -135,7 +135,7 @@ let clockTimer: number | undefined
 
 function defaultWebUrl() {
   const host = window.location.hostname || '127.0.0.1'
-  return `http://${host}:8888`
+  return `https://${host}:8888`
 }
 
 const resolvedWebUrl = computed(() => (webUrl.value || defaultWebUrl()).replace(/\/$/, ''))
