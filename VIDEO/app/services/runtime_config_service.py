@@ -635,24 +635,61 @@ def _resolve_dir_to_onnx(model_dir: Path, default_names: Path) -> Optional[Tuple
     return None
 
 
-def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> Tuple[str, str]:
-    """Resolve task.model_ids → (onnx_path, names_path) for RUNTIME.
+def _resolve_single_model_path(
+    mid_int: int, *, prefer_cluster: bool, default_names: Path
+) -> Optional[Tuple[str, str]]:
+    """Resolve one model id → (onnx_path, names_path); None if unresolvable."""
+    root = _repo_root()
+    builtin = _default_builtin_model_name(mid_int)
+    if builtin:
+        try:
+            return _resolve_builtin_onnx(builtin)
+        except Exception as e:
+            logger.warning('builtin model %s resolve failed: %s', builtin, e)
+            return None
+
+    if mid_int <= 0:
+        return None
+
+    # cluster resolver may return a file path directly
+    if prefer_cluster:
+        try:
+            lib = str((root / '.scripts' / 'lib').resolve())
+            if lib not in sys.path:
+                sys.path.insert(0, lib)
+            from model_resolver import try_resolve_cluster_model_path  # type: ignore
+            found = try_resolve_cluster_model_path(mid_int)
+            if found:
+                found_p = Path(found)
+                if found_p.suffix.lower() == '.onnx' and found_p.is_file():
+                    return str(found_p), _pick_names(found_p, default_names)
+                if found_p.suffix.lower() == '.pt' and found_p.is_file():
+                    onnx_out = found_p.with_suffix('.onnx')
+                    exported = _export_pt_to_onnx(found_p, onnx_out)
+                    if exported and exported.is_file():
+                        return str(exported), _pick_names(exported, default_names)
+        except Exception as e:
+            logger.debug('cluster file resolve skip: %s', e)
+
+    model_dir = _resolve_custom_model_dir(mid_int, prefer_cluster=prefer_cluster)
+    if model_dir is not None:
+        resolved = _resolve_dir_to_onnx(model_dir, default_names)
+        if resolved:
+            return resolved
+    return None
+
+
+def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> List[Tuple[str, str]]:
+    """Resolve task.model_ids → [(onnx_path, names_path), ...] in model order for RUNTIME.
 
     Supports:
       - builtin ids: -1 yolo11n, -2 yolov8n, -3 yolo26n (.pt auto-exported to onnx)
       - custom positive ids: cluster/local dir, prefer .onnx else export .pt
+    Returns at least one model; unresolvable ids are skipped (首个模型即 [ai] 主模型，
+    其余按 model_path_<i> / classes_path_<i> 写入，RUNTIME 内多模型聚合推理）。
     """
     root = _repo_root()
-    default_onnx = root / 'RUNTIME' / 'models' / 'yolo11n.onnx'
-    if not default_onnx.is_file():
-        # backward-compatible filename
-        legacy = root / 'RUNTIME' / 'models' / 'yolov11n.onnx'
-        if legacy.is_file():
-            default_onnx = legacy
     default_names = root / 'RUNTIME' / 'models' / 'coco.names'
-    remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolo11n.onnx')
-    if not remote_default_onnx.is_file():
-        remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolov11n.onnx')
     remote_default_names = Path('/opt/easyaiot/RUNTIME/models/coco.names')
     env_model = (os.getenv('RUNTIME_MODEL_PATH') or '').strip()
     env_names = (os.getenv('RUNTIME_CLASSES_PATH') or '').strip()
@@ -665,69 +702,46 @@ def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> T
         except Exception:
             model_ids = []
 
+    resolved: List[Tuple[str, str]] = []
     for mid in model_ids:
         try:
             mid_int = int(mid)
         except Exception:
             continue
+        pair = _resolve_single_model_path(mid_int, prefer_cluster=prefer_cluster, default_names=default_names)
+        if pair:
+            resolved.append(pair)
 
-        builtin = _default_builtin_model_name(mid_int)
-        if builtin:
-            try:
-                return _resolve_builtin_onnx(builtin)
-            except Exception as e:
-                logger.warning('builtin model %s resolve failed: %s', builtin, e)
-                continue
+    if resolved:
+        return resolved
 
-        if mid_int <= 0:
-            continue
-
-        # cluster resolver may return a file path directly
-        if prefer_cluster:
-            try:
-                lib = str((root / '.scripts' / 'lib').resolve())
-                if lib not in sys.path:
-                    sys.path.insert(0, lib)
-                from model_resolver import try_resolve_cluster_model_path  # type: ignore
-                found = try_resolve_cluster_model_path(mid_int)
-                if found:
-                    found_p = Path(found)
-                    if found_p.suffix.lower() == '.onnx' and found_p.is_file():
-                        return str(found_p), _pick_names(found_p, default_names)
-                    if found_p.suffix.lower() == '.pt' and found_p.is_file():
-                        onnx_out = found_p.with_suffix('.onnx')
-                        exported = _export_pt_to_onnx(found_p, onnx_out)
-                        if exported and exported.is_file():
-                            return str(exported), _pick_names(exported, default_names)
-            except Exception as e:
-                logger.debug('cluster file resolve skip: %s', e)
-
-        model_dir = _resolve_custom_model_dir(mid_int, prefer_cluster=prefer_cluster)
-        if model_dir is not None:
-            resolved = _resolve_dir_to_onnx(model_dir, default_names)
-            if resolved:
-                return resolved
-
-    if prefer_cluster and remote_default_onnx.is_file():
-        names = str(remote_default_names if remote_default_names.is_file() else (env_names or remote_default_names))
-        return str(remote_default_onnx), names
+    if prefer_cluster:
+        remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolo11n.onnx')
+        if not remote_default_onnx.is_file():
+            remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolov11n.onnx')
+        if remote_default_onnx.is_file():
+            names = str(remote_default_names if remote_default_names.is_file() else (env_names or remote_default_names))
+            return [(str(remote_default_onnx), names)]
 
     if env_model:
         p = Path(env_model)
         if p.suffix.lower() == '.pt':
             exported = _export_pt_to_onnx(p, p.with_suffix('.onnx'))
             if exported and exported.is_file():
-                return str(exported), (env_names or _pick_names(exported, default_names))
-        return env_model, (env_names or str(default_names))
+                return [(str(exported), (env_names or _pick_names(exported, default_names)))]
+        return [(env_model, (env_names or str(default_names)))]
 
     # Final fallback: ensure yolo11n onnx exists
     try:
-        return _resolve_builtin_onnx('yolo11n')
+        return [_resolve_builtin_onnx('yolo11n')]
     except Exception:
         pass
-    onnx = str(default_onnx)
-    names = env_names or str(default_names)
-    return onnx, names
+    default_onnx = root / 'RUNTIME' / 'models' / 'yolo11n.onnx'
+    if not default_onnx.is_file():
+        legacy = root / 'RUNTIME' / 'models' / 'yolov11n.onnx'
+        if legacy.is_file():
+            default_onnx = legacy
+    return [(str(default_onnx), env_names or str(default_names))]
 
 
 def _control_port(task: AlgorithmTask) -> int:
@@ -888,8 +902,7 @@ def _build_runtime_ini_text(
     rtsp_url: str,
     rtmp_out: str,
     enable_rtmp: bool,
-    model_path: str,
-    classes_path: str,
+    models: List[Tuple[str, str]],
     log_path: str,
     alert_image_dir: str,
     control_port: int,
@@ -921,6 +934,14 @@ def _build_runtime_ini_text(
     from app.utils.alert_class_filter import parse_alert_class_names
     alert_class_names = parse_alert_class_names(getattr(task, 'alert_class_names', None))
     alert_class_names_ini = json.dumps(alert_class_names, ensure_ascii=False, separators=(',', ':'))
+    # 多模型：首模型写 model_path/classes_path，其余写 model_path_<i>/classes_path_<i>
+    ai_model_lines: List[str] = []
+    for i, (onnx_path, names_path) in enumerate(models):
+        prefix = 'model_path' if i == 0 else f'model_path_{i}'
+        class_prefix = 'classes_path' if i == 0 else f'classes_path_{i}'
+        ai_model_lines.append(f'{prefix}={onnx_path}')
+        ai_model_lines.append(f'{class_prefix}={names_path}')
+    ai_model_block = '\n'.join(ai_model_lines)
     return f"""# Auto-generated by VIDEO for executor=cpp — do not edit by hand while task is running
 [video]
 rtsp_url={rtsp_url}
@@ -931,8 +952,7 @@ fps=25
 
 [ai]
 enable=true
-model_path={model_path}
-classes_path={classes_path}
+{ai_model_block}
 threads=2
 frame_skip={frame_skip}
 prefer_gpu={'true' if prefer_gpu else 'false'}
@@ -1042,16 +1062,17 @@ def generate_runtime_inis(
     if not devices:
         raise ValueError(f'任务 {task.id} 的设备均无可用 RTSP/source 地址')
 
-    model_path, classes_path = _resolve_model_paths(task, prefer_cluster=prefer_cluster_model)
-    if write_local and not os.path.isfile(model_path):
-        raise ValueError(f'模型文件不存在: {model_path}（cpp 需要 .onnx；.pt 应已自动导出）')
-    if write_local and not str(model_path).lower().endswith('.onnx'):
-        raise ValueError(f'RUNTIME 最终需要 .onnx，当前为: {model_path}')
-    if prefer_cluster_model and not str(model_path).lower().endswith('.onnx'):
-        raise ValueError(
-            f'远程 cpp 需要 ONNX 模型，当前解析到: {model_path}。'
-            f'请确保模型已同步至集群，或允许控制面执行 .pt→onnx 导出'
-        )
+    models = _resolve_model_paths(task, prefer_cluster=prefer_cluster_model)
+    for onnx_path, _names_path in models:
+        if write_local and not os.path.isfile(onnx_path):
+            raise ValueError(f'模型文件不存在: {onnx_path}（cpp 需要 .onnx；.pt 应已自动导出）')
+        if write_local and not str(onnx_path).lower().endswith('.onnx'):
+            raise ValueError(f'RUNTIME 最终需要 .onnx，当前为: {onnx_path}')
+        if prefer_cluster_model and not str(onnx_path).lower().endswith('.onnx'):
+            raise ValueError(
+                f'远程 cpp 需要 ONNX 模型，当前解析到: {onnx_path}。'
+                f'请确保模型已同步至集群，或允许控制面执行 .pt→onnx 导出'
+            )
 
     conf = float(task.detect_conf if task.detect_conf is not None else 0.5)
     cooldown = int(task.alert_event_suppress_time or 30)
@@ -1198,8 +1219,7 @@ def generate_runtime_inis(
             rtsp_url=rtsp_url,
             rtmp_out=rtmp_out or '',
             enable_rtmp=enable_rtmp,
-            model_path=model_path,
-            classes_path=classes_path,
+            models=models,
             log_path=device_log,
             alert_image_dir=alert_image_dir,
             control_port=control_port,
