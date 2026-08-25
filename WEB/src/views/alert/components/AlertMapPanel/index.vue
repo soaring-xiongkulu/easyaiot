@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { BasicForm, useForm } from '@/components/Form';
 import { Button } from '@/components/Button';
+import { DatePicker } from 'ant-design-vue';
 import { Icon } from '@/components/Icon';
 import { AlertDeviceMap } from '@/components/TiandituMap';
 import CameraInlinePreview from '@/components/TiandituMap/src/components/CameraInlinePreview.vue';
@@ -12,6 +13,8 @@ import type { MapMarkerData } from '@/components/TiandituMap';
 import { MapLayerSwitcher } from '@/components/MapLayerSwitcher';
 import { getAlertMapFilterFormConfig } from '@/views/alert/Data';
 import { formatAlertEvent, formatAlertListTitle } from '@/views/alert/alertDisplay';
+import { getFaceTrajectory, type FaceTrajectoryPoint } from '@/api/device/face_library';
+import { getPlateTrajectory, type PlateTrajectoryPoint } from '@/api/device/plate_library';
 import { canSetDeviceLocation, formatLocationSummary } from '@/views/camera/utils/deviceLocation';
 import {
   normalizeAlertQueryParams,
@@ -48,6 +51,117 @@ const ptzOpen = ref(false);
 const showCameras = ref(true);
 const showAlerts = ref(true);
 const appliedFilters = ref<Record<string, unknown>>({});
+
+// —— 地图多模式：device=设备/告警核心视图；face=人脸时空轨迹视图；plate=车牌轨迹视图（相互独立） ——
+const mapMode = ref<'device' | 'face' | 'plate'>('device');
+
+function switchMapMode(mode: 'device' | 'face' | 'plate') {
+  if (mapMode.value === mode) return;
+  mapMode.value = mode;
+  if (mode === 'device') {
+    // 回到设备视图：清除轨迹 URL 参数，恢复侧栏筛选
+    const q = { ...router.currentRoute.value.query };
+    delete q.trajectory_person;
+    delete q.trajectory_plate;
+    delete q.trajectory_date;
+    router.replace({ query: q });
+  }
+}
+
+// —— 出现轨迹：从 URL 参数进入（trajectory_person=人脸 / trajectory_plate=车牌），加载并叠加到地图 ——
+const trajectoryPerson = ref('');
+const trajectoryPlate = ref('');
+const trajectoryDate = ref('');
+const trajectoryPoints = ref<Array<FaceTrajectoryPoint | PlateTrajectoryPoint>>([]);
+const trajectoryLoading = ref(false);
+
+/** 轨迹主体标题：人员姓名或车牌号 */
+const trajectoryTitle = computed(() => trajectoryPerson.value || trajectoryPlate.value);
+
+async function loadTrajectoryFromQuery() {
+  const q = router.currentRoute.value.query;
+  const person = String(q.trajectory_person || '').trim();
+  const plate = String(q.trajectory_plate || '').trim();
+  trajectoryPerson.value = person;
+  trajectoryPlate.value = plate;
+  trajectoryDate.value = String(q.trajectory_date || '').trim();
+  // 带轨迹参数进入 → 直接轨迹视图；无参数 → 默认设备视图
+  mapMode.value = person ? 'face' : plate ? 'plate' : 'device';
+  if (!person && !plate) {
+    trajectoryPoints.value = [];
+    return;
+  }
+  trajectoryLoading.value = true;
+  try {
+    const date = trajectoryDate.value || new Date().toISOString().slice(0, 10);
+    let points: Array<FaceTrajectoryPoint | PlateTrajectoryPoint> = [];
+    if (person) {
+      const res = (await getFaceTrajectory({
+        person_name: person,
+        date,
+      })) as any;
+      const data = res?.data ?? res;
+      points = Array.isArray(data?.points) ? data.points : [];
+    } else {
+      const res = (await getPlateTrajectory({
+        plate_no: plate,
+        date,
+      })) as any;
+      const data = res?.data ?? res;
+      points = Array.isArray(data?.points) ? data.points : [];
+    }
+    trajectoryPoints.value = points;
+    trajectoryDate.value = date;
+  } catch {
+    trajectoryPoints.value = [];
+  } finally {
+    trajectoryLoading.value = false;
+  }
+}
+
+function clearTrajectoryQuery() {
+  trajectoryPerson.value = '';
+  trajectoryPlate.value = '';
+  trajectoryDate.value = '';
+  trajectoryPoints.value = [];
+  mapMode.value = 'device';
+  mapRef.value?.clearTrajectory?.();
+  router.replace({
+    query: {
+      ...router.currentRoute.value.query,
+      trajectory_person: undefined,
+      trajectory_plate: undefined,
+      trajectory_date: undefined,
+    },
+  });
+}
+
+/** 轨迹模式：切换查看日期（更新 URL 参数并重新加载轨迹） */
+function changeTrajectoryDate(dateStr: string | string[]) {
+  const d = Array.isArray(dateStr) ? dateStr[0] : dateStr;
+  if (!d || (!trajectoryPerson.value && !trajectoryPlate.value)) return;
+  const query: Record<string, unknown> = {
+    ...router.currentRoute.value.query,
+    trajectory_date: d,
+  };
+  if (trajectoryPerson.value) {
+    query.trajectory_person = trajectoryPerson.value;
+    delete query.trajectory_plate;
+  } else {
+    query.trajectory_plate = trajectoryPlate.value;
+    delete query.trajectory_person;
+  }
+  router.replace({ query });
+}
+
+watch(
+  () => [
+    router.currentRoute.value.query.trajectory_person,
+    router.currentRoute.value.query.trajectory_plate,
+    router.currentRoute.value.query.trajectory_date,
+  ],
+  () => loadTrajectoryFromQuery(),
+);
 
 // 切换选中摄像头时关闭内联预览/云台，避免操作到上一台设备
 watch(selectedCameraId, () => {
@@ -152,11 +266,15 @@ async function handleSearch() {
   try {
     formData = await validate();
   } catch (error: any) {
-    // 摄像头 ApiSelect 选项异步加载会让校验“过期”，ant-design-vue 以
-    // { errorFields: [], outOfDate: true } reject，并非真正校验失败，吞掉即可。
-    if (error?.outOfDate && (!error?.errorFields || error.errorFields.length === 0))
-      return;
-    throw error;
+    // 面板刚挂载表单未注册（tab 切换瞬间）时 validate 会抛
+    // "The form instance has not been obtained"，此时跳过校验直接按现有条件查询
+    if (error?.outOfDate && (!error?.errorFields || error.errorFields.length === 0)) {
+      formData = getFieldsValue();
+    } else if (String(error?.message || '').includes('form instance has not been obtained')) {
+      formData = getFieldsValue();
+    } else {
+      throw error;
+    }
   }
   const processed = normalizeAlertQueryParams(
     formData as Record<string, unknown>,
@@ -284,6 +402,7 @@ async function init() {
   if (taskName) {
     await setFieldsValue({ task_name: taskName });
   }
+  await loadTrajectoryFromQuery();
   await handleSearch();
 }
 
@@ -300,13 +419,82 @@ defineExpose({ refresh: loadData, resizeMap, applyFilters, init });
           :query="mapQuery"
           :show-cameras="showCameras"
           :show-alerts="showAlerts"
+          :map-mode="mapMode"
+          :trajectory="trajectoryPoints"
+          :trajectory-title="trajectoryTitle"
           height="100%"
           @marker-click="onMarkerClick"
           @alert-click="onAlertClick"
         />
+        <!-- 地图模式切换：设备视图 / 人脸轨迹 / 车牌轨迹（设备视图在右侧，轨迹视图在左侧） -->
+        <div
+          class="map-mode-switch"
+          :class="{ 'map-mode-switch--left': mapMode !== 'device' }"
+        >
+          <button
+            type="button"
+            class="map-mode-switch__btn"
+            :class="{ 'map-mode-switch__btn--active': mapMode === 'device' }"
+            @click="switchMapMode('device')"
+          >
+            <Icon icon="ant-design:video-camera-outlined" />
+            设备视图
+          </button>
+          <button
+            type="button"
+            class="map-mode-switch__btn"
+            :class="{ 'map-mode-switch__btn--active': mapMode === 'face' }"
+            @click="switchMapMode('face')"
+          >
+            <Icon icon="icon-park-outline:map-draw" />
+            人脸轨迹
+          </button>
+          <button
+            type="button"
+            class="map-mode-switch__btn"
+            :class="{ 'map-mode-switch__btn--active': mapMode === 'plate' }"
+            @click="switchMapMode('plate')"
+          >
+            <Icon icon="ant-design:car-outlined" />
+            车牌轨迹
+          </button>
+        </div>
+        <!-- 轨迹工具栏（仅轨迹视图显示；设备视图与轨迹完全独立） -->
+        <div v-if="(mapMode === 'face' || mapMode === 'plate') && trajectoryTitle" class="traj-banner">
+          <Icon icon="icon-park-outline:map-draw" class="traj-banner__icon" />
+          <span class="traj-banner__text">
+            {{ mapMode === 'plate' ? '车牌轨迹' : '人物轨迹' }}：
+            <b>{{ trajectoryTitle }}</b>
+            <DatePicker
+              class="traj-banner__date"
+              :value="trajectoryDate"
+              size="small"
+              allow-clear
+              @change="changeTrajectoryDate"
+            />
+            <template v-if="trajectoryLoading">（加载中…）</template>
+            <template v-else>（{{ trajectoryPoints.length }} 个出现点，点击标点查看详情）</template>
+          </span>
+          <Button type="link" size="small" class="traj-banner__clear" @click="clearTrajectoryQuery">
+            清除
+          </Button>
+        </div>
+        <!-- 轨迹视图空态：无轨迹数据时提示进入方式 -->
+        <div v-if="(mapMode === 'face' || mapMode === 'plate') && !trajectoryPoints.length" class="traj-empty">
+          <Icon icon="icon-park-outline:map-draw" :size="40" />
+          <p class="traj-empty__title">暂无轨迹数据</p>
+          <p class="traj-empty__sub">
+            <template v-if="mapMode === 'plate'">
+              请通过车牌告警弹框的「查看轨迹」或车牌管理页的「出现轨迹」进入
+            </template>
+            <template v-else>
+              请通过人员详情的「出现轨迹」或人脸告警弹框的头像进入
+            </template>
+          </p>
+        </div>
       </section>
 
-      <aside class="geo-loc-panel" aria-label="告警筛选">
+      <aside v-if="mapMode === 'device'" class="geo-loc-panel" aria-label="告警筛选">
         <header class="geo-loc-panel__header">
           <div class="geo-loc-panel__header-main">
             <h3 class="geo-loc-panel__title">告警筛选</h3>
@@ -485,6 +673,129 @@ defineExpose({ refresh: loadData, resizeMap, applyFilters, init });
   min-height: 0;
   overflow: hidden;
   background: #e8ebf2;
+
+  // 地图模式切换（左上角）：设备视图 / 人脸时空视图
+  .map-mode-switch {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 20;
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 10px;
+    border: 1px solid #e4e9f2;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+
+    // 轨迹视图（人脸/车牌）时回到左上角，与轨迹横幅同一侧
+    &--left {
+      right: auto;
+      left: 12px;
+    }
+
+    &__btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.65);
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      &--active {
+        background: #266cfb;
+        color: #fff;
+
+        &:hover {
+          background: #266cfb;
+        }
+      }
+    }
+  }
+
+  // 人脸时空视图空态（地图中央提示）
+  .traj-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 36px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 14px;
+    border: 1px solid #e4e9f2;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+    color: #266cfb;
+
+    &__title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.85);
+    }
+
+    &__sub {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  // 人物出现轨迹提示条（人脸时空模式工具栏）
+  .traj-banner {
+    position: absolute;
+    top: 52px;
+    left: 12px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 10px;
+    border: 1px solid #e4e9f2;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+    font-size: 13px;
+
+    &__icon {
+      color: #266cfb;
+    }
+
+    &__text {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(0, 0, 0, 0.75);
+
+      b {
+        color: #266cfb;
+        font-weight: 600;
+      }
+    }
+
+    &__date {
+      width: 130px;
+    }
+
+    &__clear {
+      height: auto;
+      padding: 0 4px;
+      font-size: 12px;
+    }
+  }
 
   :deep(.alert-device-map),
   :deep(.alert-device-map--embedded) {

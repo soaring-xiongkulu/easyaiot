@@ -20,6 +20,10 @@
           </div>
         </div>
         <div class="header-actions">
+          <Button type="primary" ghost @click="handleShowTrajectory">
+            <template #icon><EnvironmentOutlined /></template>
+            出现轨迹
+          </Button>
           <Button type="primary" @click="handleAddPhoto">
             <template #icon><PlusOutlined /></template>
             添加照片
@@ -89,7 +93,8 @@
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import { PlusOutlined } from '@ant-design/icons-vue';
+import { useRouter } from 'vue-router';
+import { PlusOutlined, EnvironmentOutlined } from '@ant-design/icons-vue';
 import { BasicDrawer, useDrawer, useDrawerInner } from '@/components/Drawer';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
@@ -121,6 +126,7 @@ const fallbackImg =
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect fill="#f0f0f0" width="120" height="120"/></svg>');
 
 const [registerEntryModal, { openDrawer: openEntryModal }] = useDrawer();
+const router = useRouter();
 
 const coverUrl = computed(() => {
   const coverId = person.value?.cover_entry_id;
@@ -196,6 +202,19 @@ function handleAddPhoto() {
     library: library.value,
     person: person.value,
     addToPerson: true,
+  });
+}
+
+/** 打开该人员的"出现轨迹"：跳转告警页地图分布，在地图上绘制该人当天的出现点位 */
+function handleShowTrajectory() {
+  if (!person.value?.person_name) return;
+  router.push({
+    path: '/alert',
+    query: {
+      tab: '1',
+      trajectory_person: person.value.person_name,
+      trajectory_date: new Date().toISOString().slice(0, 10),
+    },
   });
 }
 

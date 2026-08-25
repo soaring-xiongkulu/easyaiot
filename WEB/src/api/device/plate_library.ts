@@ -337,6 +337,39 @@ export const listPlateMatchRecords = (params?: {
     { params },
   );
 
+/** 车牌出现轨迹点（某车牌在某天被各摄像头识别命中的地图坐标时间线） */
+export interface PlateTrajectoryPoint {
+  match_record_id: number;
+  time: string;
+  device_id: string;
+  device_name: string;
+  address?: string | null;
+  longitude: number;
+  latitude: number;
+  plate_no?: string | null;
+  plate_color?: string | null;
+  matched_owner_name?: string | null;
+  detect_conf?: number | null;
+  library_name?: string | null;
+  task_name?: string | null;
+  alert_id?: number | null;
+  plate_image_path?: string | null;
+  plate_image_url?: string | null;
+}
+
+export const getPlateTrajectory = (params: {
+  plate_no: string;
+  date: string;
+  device_id?: string;
+  limit?: number;
+}) => {
+  return commonApi<{
+    code: number;
+    msg: string;
+    data: { plate_no: string; date: string; points: PlateTrajectoryPoint[]; total: number };
+  }>('get', `${PLATE_PREFIX}/matching/trajectory`, { params });
+};
+
 export const recognizePlateImage = (formData: FormData) => {
   defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
   return defHttp.post(

@@ -399,6 +399,37 @@ export const listFaceMatchRecords = (params?: {
   );
 };
 
+/** 人物出现轨迹点（某人在某天被各摄像头识别命中的地图坐标时间线） */
+export interface FaceTrajectoryPoint {
+  match_record_id: number;
+  time: string;
+  device_id: string;
+  device_name: string;
+  address?: string | null;
+  longitude: number;
+  latitude: number;
+  similarity?: number | null;
+  threshold?: number | null;
+  library_name?: string | null;
+  task_name?: string | null;
+  alert_id?: number | null;
+  face_image_path?: string | null;
+  face_image_url?: string | null;
+}
+
+export const getFaceTrajectory = (params: {
+  person_name: string;
+  date: string;
+  device_id?: string;
+  limit?: number;
+}) => {
+  return commonApi<{
+    code: number;
+    msg: string;
+    data: { person_name: string; date: string; points: FaceTrajectoryPoint[]; total: number };
+  }>('get', `${FACE_PREFIX}/matching/trajectory`, { params });
+};
+
 export const getFaceAutoEnrollTask = (libraryId: number) => {
   return commonApi<{ code: number; msg: string; data: FaceAutoEnrollTask | null }>(
     'get',
