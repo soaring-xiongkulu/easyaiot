@@ -18,31 +18,22 @@
     <!-- 表格模式 -->
     <BasicTable v-if="viewMode === 'table'" @register="registerTable">
       <template #toolbar>
-        <div class="toolbar-buttons">
-          <Button type="primary" @click="openEntryModal()">
-            <template #icon><PlusOutlined /></template>
-            录入车牌
-          </Button>
-          <Button @click="handleNormalize">
-            <template #icon><MergeCellsOutlined /></template>
-            车牌归一化
-          </Button>
-          <PopConfirmButton
-            placement="topRight"
-            type="primary"
-            color="error"
-            :disabled="!checkedKeys.length"
-            title="确定批量删除所选车牌？"
-            preIcon="ant-design:delete-outlined"
-            @confirm="handleBatchDelete"
-          >
-            批量删除{{ checkedKeys.length ? ` (${checkedKeys.length})` : '' }}
-          </PopConfirmButton>
-          <Button @click="handleToggleViewMode">
-            <template #icon><SwapOutlined /></template>
-            切换视图
-          </Button>
-        </div>
+        <Button type="primary" @click="openEntryModal()">录入车牌</Button>
+        <Button @click="handleNormalize">车牌归一化</Button>
+        <PopConfirmButton
+          placement="topRight"
+          type="primary"
+          color="error"
+          :disabled="!checkedKeys.length"
+          title="确定批量删除所选车牌？"
+          preIcon="ant-design:delete-outlined"
+          @confirm="handleBatchDelete"
+        >
+          批量删除{{ checkedKeys.length ? ` (${checkedKeys.length})` : '' }}
+        </PopConfirmButton>
+        <Button type="default" @click="handleToggleViewMode" preIcon="ant-design:swap-outlined">
+          切换视图
+        </Button>
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'image_url'">
@@ -76,15 +67,9 @@
             <template #header>
               <div class="list-header">
                 <span class="list-title">车牌列表</span>
-                <div class="toolbar-buttons">
-                  <Button type="primary" @click="openEntryModal()">
-                    <template #icon><PlusOutlined /></template>
-                    录入车牌
-                  </Button>
-                  <Button @click="handleNormalize">
-                    <template #icon><MergeCellsOutlined /></template>
-                    车牌归一化
-                  </Button>
+                <div class="list-actions">
+                  <Button type="primary" @click="openEntryModal()">录入车牌</Button>
+                  <Button @click="handleNormalize">车牌归一化</Button>
                   <PopConfirmButton
                     placement="topRight"
                     type="primary"
@@ -96,8 +81,11 @@
                   >
                     批量删除{{ checkedKeys.length ? ` (${checkedKeys.length})` : '' }}
                   </PopConfirmButton>
-                  <Button @click="handleToggleViewMode">
-                    <template #icon><SwapOutlined /></template>
+                  <Button
+                    type="default"
+                    @click="handleToggleViewMode"
+                    preIcon="ant-design:swap-outlined"
+                  >
                     切换视图
                   </Button>
                 </div>
@@ -168,16 +156,9 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {
-  ArrowLeftOutlined,
-  CarOutlined,
-  EditOutlined,
-  MergeCellsOutlined,
-  PlusOutlined,
-  SwapOutlined,
-} from '@ant-design/icons-vue';
+import { ArrowLeftOutlined, CarOutlined, EditOutlined } from '@ant-design/icons-vue';
 import { Empty, List, Spin, Tooltip } from 'ant-design-vue';
-import { PopConfirmButton } from '@/components/Button';
+import { Button, PopConfirmButton } from '@/components/Button';
 import { BasicForm, useForm } from '@/components/Form';
 import { useDrawer } from '@/components/Drawer';
 import { useModal } from '@/components/Modal';
@@ -424,7 +405,7 @@ async function handleBatchDelete() {
 }
 
 function getTableActions(record: PlateEntry) {
-  return [
+  const actions = [
     {
       icon: 'ant-design:edit-filled',
       tooltip: '编辑',
@@ -439,6 +420,27 @@ function getTableActions(record: PlateEntry) {
       },
     },
   ];
+  // 有车牌号才提供轨迹入口（无号码的条目无法按车牌检索轨迹）
+  if (record.plate_no) {
+    actions.unshift({
+      icon: 'icon-park-outline:map-draw',
+      tooltip: '出现轨迹',
+      onClick: () => goPlateTrajectory(record.plate_no as string),
+    });
+  }
+  return actions;
+}
+
+/** 跳转告警页地图分布：查看该车牌某天的出现轨迹 */
+function goPlateTrajectory(plateNo: string) {
+  router.push({
+    path: '/alert',
+    query: {
+      tab: '1',
+      trajectory_plate: plateNo,
+      trajectory_date: new Date().toISOString().slice(0, 10),
+    },
+  });
 }
 
 onMounted(async () => {
@@ -462,10 +464,17 @@ onMounted(async () => {
   background: #fff;
 }
 
-.toolbar-buttons {
+.list-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+.list-actions {
+  display: flex;
   gap: 8px;
 }
 
@@ -528,15 +537,6 @@ onMounted(async () => {
       row-gap: 18px;
     }
   }
-}
-
-.list-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  width: 100%;
 }
 
 .list-title {

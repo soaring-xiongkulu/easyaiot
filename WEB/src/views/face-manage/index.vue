@@ -5,47 +5,28 @@
         <Button type="text" class="back-btn" @click="goBack">
           <ArrowLeftOutlined /> 返回人脸库
         </Button>
-        <div v-if="library" class="library-info">
-          <h1 class="page-title">{{ library.name }}</h1>
-          <div class="page-meta">
-            <a-tag>{{ library.code }}</a-tag>
-            <span>相似度阈值 {{ formatThreshold(library.similarity_threshold) }}</span>
-            <span>
-              {{ library.person_count ?? personTotal }} 人 · {{ library.face_count ?? 0 }} 张照片
-            </span>
-          </div>
-        </div>
       </div>
     </div>
 
     <!-- 表格模式 -->
     <BasicTable v-if="viewMode === 'table'" @register="registerTable">
       <template #toolbar>
-        <div class="toolbar-buttons">
-          <Button type="primary" @click="handleAddPerson">
-            <template #icon><PlusOutlined /></template>
-            录入人脸
-          </Button>
-          <Button @click="handleNormalize">
-            <template #icon><MergeCellsOutlined /></template>
-            人脸归一化
-          </Button>
-          <PopConfirmButton
-            placement="topRight"
-            type="primary"
-            color="error"
-            :disabled="!checkedKeys.length"
-            title="确定批量删除所选人员？其全部人脸照片将一并删除。"
-            preIcon="ant-design:delete-outlined"
-            @confirm="handleBatchDelete"
-          >
-            批量删除{{ checkedKeys.length ? ` (${checkedKeys.length})` : '' }}
-          </PopConfirmButton>
-          <Button @click="handleToggleViewMode">
-            <template #icon><SwapOutlined /></template>
-            切换视图
-          </Button>
-        </div>
+        <Button type="primary" @click="handleAddPerson">录入人脸</Button>
+        <Button @click="handleNormalize">人脸归一化</Button>
+        <PopConfirmButton
+          placement="topRight"
+          type="primary"
+          color="error"
+          :disabled="!checkedKeys.length"
+          title="确定批量删除所选人员？其全部人脸照片将一并删除。"
+          preIcon="ant-design:delete-outlined"
+          @confirm="handleBatchDelete"
+        >
+          批量删除{{ checkedKeys.length ? ` (${checkedKeys.length})` : '' }}
+        </PopConfirmButton>
+        <Button type="default" @click="handleToggleViewMode" preIcon="ant-design:swap-outlined">
+          切换视图
+        </Button>
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'cover_image_url'">
@@ -79,15 +60,9 @@
             <template #header>
               <div class="list-header">
                 <span class="list-title">人员列表</span>
-                <div class="toolbar-buttons">
-                  <Button type="primary" @click="handleAddPerson">
-                    <template #icon><PlusOutlined /></template>
-                    录入人脸
-                  </Button>
-                  <Button @click="handleNormalize">
-                    <template #icon><MergeCellsOutlined /></template>
-                    人脸归一化
-                  </Button>
+                <div class="list-actions">
+                  <Button type="primary" @click="handleAddPerson">录入人脸</Button>
+                  <Button @click="handleNormalize">人脸归一化</Button>
                   <PopConfirmButton
                     placement="topRight"
                     type="primary"
@@ -99,8 +74,11 @@
                   >
                     批量删除{{ checkedKeys.length ? ` (${checkedKeys.length})` : '' }}
                   </PopConfirmButton>
-                  <Button @click="handleToggleViewMode">
-                    <template #icon><SwapOutlined /></template>
+                  <Button
+                    type="default"
+                    @click="handleToggleViewMode"
+                    preIcon="ant-design:swap-outlined"
+                  >
                     切换视图
                   </Button>
                 </div>
@@ -184,13 +162,11 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeftOutlined,
   EyeOutlined,
-  MergeCellsOutlined,
   PlusOutlined,
-  SwapOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue';
 import { Empty, List, Spin, Tooltip } from 'ant-design-vue';
-import { PopConfirmButton } from '@/components/Button';
+import { Button, PopConfirmButton } from '@/components/Button';
 import { BasicForm, useForm } from '@/components/Form';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useDrawer } from '@/components/Drawer';
@@ -321,10 +297,6 @@ const [registerTable, { reload }] = useTable({
     },
   },
 });
-
-function formatThreshold(val?: number) {
-  return val != null ? Number(val).toFixed(2) : '-';
-}
 
 function getMetaText(item: FacePerson) {
   const parts: string[] = [];
@@ -496,10 +468,8 @@ onMounted(async () => {
   background: #fff;
 }
 
-.toolbar-buttons {
+.list-actions {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -520,22 +490,6 @@ onMounted(async () => {
 
   .back-btn {
     padding-left: 0;
-    color: rgba(0, 0, 0, 0.45);
-  }
-
-  .page-title {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 600;
-    color: #181818;
-  }
-
-  .page-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    font-size: 13px;
     color: rgba(0, 0, 0, 0.45);
   }
 }

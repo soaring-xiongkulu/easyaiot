@@ -11,16 +11,10 @@
       <!-- 表格模式 -->
       <BasicTable v-if="viewMode === 'table'" @register="registerTable">
         <template #toolbar>
-          <div class="toolbar-buttons">
-            <Button type="primary" @click="handleCreate">
-              <template #icon><PlusOutlined /></template>
-              新建车牌库
-            </Button>
-            <Button type="default" @click="handleToggleViewMode">
-              <template #icon><SwapOutlined /></template>
-              切换视图
-            </Button>
-          </div>
+          <Button type="primary" @click="handleCreate">新建车牌库</Button>
+          <Button type="default" @click="handleToggleViewMode" preIcon="ant-design:swap-outlined">
+            切换视图
+          </Button>
         </template>
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'business_tags'">
@@ -61,12 +55,12 @@
                 >
                   <span style="padding-left: 7px; font-size: 16px; font-weight: 500; line-height: 24px">车牌库列表</span>
                   <div style="display: flex; gap: 8px">
-                    <Button type="primary" @click="handleCreate">
-                      <template #icon><PlusOutlined /></template>
-                      新建车牌库
-                    </Button>
-                    <Button type="default" @click="handleToggleViewMode">
-                      <template #icon><SwapOutlined /></template>
+                    <Button type="primary" @click="handleCreate">新建车牌库</Button>
+                    <Button
+                      type="default"
+                      @click="handleToggleViewMode"
+                      preIcon="ant-design:swap-outlined"
+                    >
                       切换视图
                     </Button>
                   </div>
@@ -158,7 +152,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { PlusOutlined, SwapOutlined } from '@ant-design/icons-vue';
 import { List, Modal, Popconfirm, Spin } from 'ant-design-vue';
 import { BasicForm, useForm } from '@/components/Form';
 import { BasicTable, TableAction, useTable } from '@/components/Table';
@@ -482,12 +475,6 @@ onMounted(async () => {
 
 <style scoped lang="less">
 #plate-library {
-  .toolbar-buttons {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
   .text-muted {
     color: rgba(0, 0, 0, 0.25);
   }
