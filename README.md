@@ -947,6 +947,10 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 
 | | | |
 |:---:|:---:|:---:|
+| ![Video Surveillance](.image/banner/banner1225.png) | ![Video Surveillance](.image/banner/banner1226.png) | ![Video Surveillance](.image/banner/banner1227.png) |
+| ![Video Surveillance](.image/banner/banner1228.png) | ![Video Surveillance](.image/banner/banner1229.png) | ![Video Surveillance](.image/banner/banner1230.png) |
+| ![Video Surveillance](.image/banner/banner1219.png) | ![Video Surveillance](.image/banner/banner1220.png) | ![Video Surveillance](.image/banner/banner1221.png) |
+| ![Video Surveillance](.image/banner/banner1222.png) | ![Video Surveillance](.image/banner/banner1223.png) | ![Video Surveillance](.image/banner/banner1224.png) |
 | ![Region Detection](.image/banner/banner1213.png) | ![Region Detection](.image/banner/banner1214.png) | ![Region Detection](.image/banner/banner1218.png) |
 | ![Post-processing Rule Chain](.image/banner/banner1216.png) | ![Post-processing Rule Chain](.image/banner/banner1217.png) | ![Post-processing Rule Chain](.image/banner/banner1215.png) |
 | ![Live Stream](.image/banner/banner1145.jpg) | ![Preview](.image/banner/banner1146.jpg) | ![Camera](.image/banner/banner1051.jpg) |

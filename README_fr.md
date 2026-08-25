@@ -923,6 +923,10 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 
 | | | |
 |:---:|:---:|:---:|
+| ![Vidéosurveillance](.image/banner/banner1225.png) | ![Vidéosurveillance](.image/banner/banner1226.png) | ![Vidéosurveillance](.image/banner/banner1227.png) |
+| ![Vidéosurveillance](.image/banner/banner1228.png) | ![Vidéosurveillance](.image/banner/banner1229.png) | ![Vidéosurveillance](.image/banner/banner1230.png) |
+| ![Vidéosurveillance](.image/banner/banner1219.png) | ![Vidéosurveillance](.image/banner/banner1220.png) | ![Vidéosurveillance](.image/banner/banner1221.png) |
+| ![Vidéosurveillance](.image/banner/banner1222.png) | ![Vidéosurveillance](.image/banner/banner1223.png) | ![Vidéosurveillance](.image/banner/banner1224.png) |
 | ![Détection de zone](.image/banner/banner1213.png) | ![Détection de zone](.image/banner/banner1214.png) | ![Détection de zone](.image/banner/banner1218.png) |
 | ![Chaîne de règles post-traitement](.image/banner/banner1216.png) | ![Chaîne de règles post-traitement](.image/banner/banner1217.png) | ![Chaîne de règles post-traitement](.image/banner/banner1215.png) |
 | ![Direct](.image/banner/banner1145.jpg) | ![Aperçu](.image/banner/banner1146.jpg) | ![Caméra](.image/banner/banner1051.jpg) |

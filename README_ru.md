@@ -924,6 +924,10 @@ EasyAIoT — это проект с открытым исходным кодом
 
 | | | |
 |:---:|:---:|:---:|
+| ![Видеонаблюдение](.image/banner/banner1225.png) | ![Видеонаблюдение](.image/banner/banner1226.png) | ![Видеонаблюдение](.image/banner/banner1227.png) |
+| ![Видеонаблюдение](.image/banner/banner1228.png) | ![Видеонаблюдение](.image/banner/banner1229.png) | ![Видеонаблюдение](.image/banner/banner1230.png) |
+| ![Видеонаблюдение](.image/banner/banner1219.png) | ![Видеонаблюдение](.image/banner/banner1220.png) | ![Видеонаблюдение](.image/banner/banner1221.png) |
+| ![Видеонаблюдение](.image/banner/banner1222.png) | ![Видеонаблюдение](.image/banner/banner1223.png) | ![Видеонаблюдение](.image/banner/banner1224.png) |
 | ![Обнаружение зоны](.image/banner/banner1213.png) | ![Обнаружение зоны](.image/banner/banner1214.png) | ![Обнаружение зоны](.image/banner/banner1218.png) |
 | ![Цепочка правил постобработки](.image/banner/banner1216.png) | ![Цепочка правил постобработки](.image/banner/banner1217.png) | ![Цепочка правил постобработки](.image/banner/banner1215.png) |
 | ![Прямой эфир](.image/banner/banner1145.jpg) | ![Просмотр](.image/banner/banner1146.jpg) | ![Камера](.image/banner/banner1051.jpg) |

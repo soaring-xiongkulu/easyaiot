@@ -923,6 +923,10 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 
 | | | |
 |:---:|:---:|:---:|
+| ![영상 모니터링](.image/banner/banner1225.png) | ![영상 모니터링](.image/banner/banner1226.png) | ![영상 모니터링](.image/banner/banner1227.png) |
+| ![영상 모니터링](.image/banner/banner1228.png) | ![영상 모니터링](.image/banner/banner1229.png) | ![영상 모니터링](.image/banner/banner1230.png) |
+| ![영상 모니터링](.image/banner/banner1219.png) | ![영상 모니터링](.image/banner/banner1220.png) | ![영상 모니터링](.image/banner/banner1221.png) |
+| ![영상 모니터링](.image/banner/banner1222.png) | ![영상 모니터링](.image/banner/banner1223.png) | ![영상 모니터링](.image/banner/banner1224.png) |
 | ![영역 검출](.image/banner/banner1213.png) | ![영역 검출](.image/banner/banner1214.png) | ![영역 검출](.image/banner/banner1218.png) |
 | ![후처리 규칙 체인](.image/banner/banner1216.png) | ![후처리 규칙 체인](.image/banner/banner1217.png) | ![후처리 규칙 체인](.image/banner/banner1215.png) |
 | ![라이브](.image/banner/banner1145.jpg) | ![미리보기](.image/banner/banner1146.jpg) | ![카메라](.image/banner/banner1051.jpg) |

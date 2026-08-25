@@ -989,6 +989,10 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 | | | |
 |:---:|:---:|:---:|
+| ![视频监控](.image/banner/banner1225.png) | ![视频监控](.image/banner/banner1226.png) | ![视频监控](.image/banner/banner1227.png) |
+| ![视频监控](.image/banner/banner1228.png) | ![视频监控](.image/banner/banner1229.png) | ![视频监控](.image/banner/banner1230.png) |
+| ![视频监控](.image/banner/banner1219.png) | ![视频监控](.image/banner/banner1220.png) | ![视频监控](.image/banner/banner1221.png) |
+| ![视频监控](.image/banner/banner1222.png) | ![视频监控](.image/banner/banner1223.png) | ![视频监控](.image/banner/banner1224.png) |
 | ![区域检测](.image/banner/banner1213.png) | ![区域检测](.image/banner/banner1214.png) | ![区域检测](.image/banner/banner1218.png) |
 | ![后处理规则链](.image/banner/banner1216.png) | ![后处理规则链](.image/banner/banner1217.png) | ![后处理规则链](.image/banner/banner1215.png) |
 | ![直播](.image/banner/banner1145.jpg) | ![预览](.image/banner/banner1146.jpg) | ![摄像头](.image/banner/banner1051.jpg) |
