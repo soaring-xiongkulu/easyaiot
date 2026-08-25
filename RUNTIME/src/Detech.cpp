@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iomanip>
 #include <map>
+#include <set>
 #include <sstream>
 #include <sys/stat.h>
 #include <opencv2/imgproc.hpp>
@@ -1060,11 +1061,13 @@ void Detech::_alarmSenderThreadFunc() {
             info["detection_count"] = static_cast<int>(alarmData.detections.size());
             info["runtime_ts_ms"] = (Json::Value::UInt64)alarmData.timestamp;
             Json::Value detectionsArray(Json::arrayValue);
+            std::set<int> modelIds;
             for (const auto& det : alarmData.detections) {
                 Json::Value detObj;
                 detObj["class_name"] = det.class_name;
                 detObj["confidence"] = det.class_score;
                 detObj["class_id"] = det.class_id;
+                detObj["model_id"] = det.model_id;
                 Json::Value bbox(Json::arrayValue);
                 bbox.append(static_cast<int>(det.x1));
                 bbox.append(static_cast<int>(det.y1));
@@ -1072,6 +1075,9 @@ void Detech::_alarmSenderThreadFunc() {
                 bbox.append(static_cast<int>(det.y2));
                 detObj["bbox"] = bbox;
                 detectionsArray.append(detObj);
+                if (det.model_id >= 0) {
+                    modelIds.insert(det.model_id);
+                }
             }
             info["detections"] = detectionsArray;
             Json::StreamWriterBuilder compact;
@@ -1123,6 +1129,9 @@ void Detech::_alarmSenderThreadFunc() {
                 }
                 ev["detections"] = dets;
                 ev["model_ids"] = Json::arrayValue;
+                for (int mid : modelIds) {
+                    ev["model_ids"].append(mid);
+                }
                 std::string inferJson = Json::writeString(writer, ev);
                 if (AlgoMqttBus::publishInferEvent(_config, inferJson)) {
                     LOG(INFO) << "[ALARM-THREAD] InferEvent published device=" << did;

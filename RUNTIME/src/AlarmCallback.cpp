@@ -99,6 +99,7 @@ std::string AlarmCallback::buildVideoJsonBody(
         detection["class_name"] = det.class_name;
         detection["confidence"] = det.class_score;
         detection["class_id"] = det.class_id;
+        detection["model_id"] = det.model_id;
         Json::Value bbox(Json::arrayValue);
         bbox.append(static_cast<int>(det.x1));
         bbox.append(static_cast<int>(det.y1));
