@@ -162,6 +162,7 @@ EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=standalone \
 - **同机闭环**：编排、预览与边缘推理部署在同一主机
 - **本地存储**：告警图与录像落本地媒体目录，不经对象存储
 - **告警链路**：边缘推理经 HTTP 直连业务面落库；录像回调本地登记
+- **无 MQTT 总线**：纯边缘形态不部署 EMQX，VIDEO 生成 ini 时强制 `algo_bus_transport=http`，告警经 `alert_hook_url`（本机 VIDEO `/video/alert/hook`）投递，`mqtt_broker_urls` 等 `mqtt_*` 配置在该形态下不生效
 
 ### 部署后访问
 
@@ -294,6 +295,22 @@ curl -s http://127.0.0.1:8123/health
 6. 告警/心跳回中心；realtime 带框流进中心 `ai/{device}`，原画仍走 `live/`
 
 > 无已分发原子节点时：调度选 **本机** 即可——中心 VIDEO 安装时会经 `ensure_runtime_cpp.sh` 挂载本机 RUNTIME，任务仍可跑。选自动/指定节点但目标机未装 RUNTIME 时，启动会明确失败并提示先分发。
+
+### 边缘计算节点（摄像头接入边缘节点）
+
+摄像头/NVR 可通过**边缘节点接入**（WEB 添加设备时选择接入节点；Agent 代执行 ONVIF 发现、网段扫描、RTSP 验证）。这类任务的执行器运行在**边缘节点**上，RUNTIME 负责三件事：
+
+1. **拉流**：直接拉取边缘侧可达的摄像头 RTSP（VIDEO 下发 `rtsp_url` 原地址）。
+2. **回传**：心跳、告警、带框检测流全部回中心——心跳/告警回中心 VIDEO/MQTT，`ai/{device}` 推中心 SRS（VIDEO 下发 `rtmp_url`）。
+3. **身份归属**：心跳上报**节点真实 IP**（`HOST_IP`/`POD_IP` 环境变量优先，否则探测本机非回环网卡；不依赖 127.0.0.1）+ **节点标识**（ini `compute_node_id`，回退 `COMPUTE_NODE_ID`/`NODE_ID` 环境变量）。VIDEO 远程部署时自动把目标节点 id 写入 ini/env，因此：
+
+   - 控制面任务列表「服务地址」显示边缘节点真实地址（python 执行器行为一致）；
+   - MQTT 告警与 HTTP 心跳载荷中的 `node_id` 归属到实际执行节点，而不是控制面自身；
+   - 边缘节点转发的推流任务同样上报真实地址，避免播放地址回退到 127.0.0.1。
+
+   告警总线地址（`mqtt_broker_urls`）由 VIDEO 远程部署时**重写为控制面可达地址**：边缘节点不安装 EMQX，若 ini 中残留 `127.0.0.1:1883`，MQTT 告警将连自身回环而静默丢失；本地运行（主节点）仍默认 `127.0.0.1:1883`。
+
+调度约束由 VIDEO 完成（边缘接入摄像头 ⇒ `schedule_policy=node` + 目标节点=接入节点），RUNTIME 侧无需额外配置；`compute_node_id` 仅为身份上报字段，不影响拉流/推流目标。
 
 ---
 
