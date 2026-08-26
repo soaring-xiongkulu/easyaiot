@@ -18,7 +18,7 @@
 #   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
-#   clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件）
+#   clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件；指定模块时仅清理该模块镜像与其构建缓存）
 #   update     - 更新镜像并重启所有服务（交互可选拉取/本地重建）
 #   verify     - 验证所有服务是否启动成功
 #   verify-alert - 告警事件面验收（共享盘挂载 + MQTT→iot-sink→入库）
@@ -1570,14 +1570,23 @@ stop_all() {
 }
 
 # 仅停止业务运行时模块（不含 Nacos/PostgreSQL 等中间件），便于释放 build-runtime 镜像占用
+# 可选参数 only_module：仅停止该模块（clean-build-runtime <模块> 使用），为空则停止全部业务模块
 stop_runtime_modules() {
-    print_section "停止业务运行时服务（保留中间件）"
+    local only_module="${1:-}"
+    if [ -n "$only_module" ]; then
+        print_section "停止业务运行时服务（保留中间件，仅 ${MODULE_NAMES[$only_module]:-$only_module}）"
+    else
+        print_section "停止业务运行时服务（保留中间件）"
+    fi
 
     check_docker
     check_docker_compose
 
     collect_biz_modules
     local -a stop_modules=("${BIZ_MODULES[@]}")
+    if [ -n "$only_module" ]; then
+        stop_modules=("$only_module")
+    fi
     local idx module
     for ((idx=${#stop_modules[@]}-1 ; idx>=0 ; idx--)); do
         module="${stop_modules[$idx]}"
@@ -1587,7 +1596,8 @@ stop_runtime_modules() {
     done
 
     # 兜底：若形态未纳入 PANEL 但仍有独立 install.sh，尝试停止以释放 easyaiot/panel 镜像
-    if [[ " ${stop_modules[*]} " != *" PANEL "* ]] \
+    if { [ -z "$only_module" ] || [ "$only_module" = "PANEL" ]; } \
+        && [[ " ${stop_modules[*]} " != *" PANEL "* ]] \
         && [ -f "${PROJECT_ROOT}/PANEL/install.sh" ] \
         && [ "${EASYAIOT_ENABLE_PANEL:-1}" != "0" ]; then
         print_info "停止 PANEL 独立运维控制台..."
@@ -1595,7 +1605,11 @@ stop_runtime_modules() {
         echo ""
     fi
 
-    print_success "业务运行时服务已停止（中间件未停止）"
+    if [ -n "$only_module" ]; then
+        print_success "${MODULE_NAMES[$only_module]:-$only_module} 已停止（中间件未停止）"
+    else
+        print_success "业务运行时服务已停止（中间件未停止）"
+    fi
 }
 
 # 重启所有服务
@@ -1769,23 +1783,92 @@ clean_all() {
 }
 
 # 清理 build-runtime 构建产物：先停止服务，再调用 cleanup_build_runtime.sh
+# 用法: clean-build-runtime [模块] [选项...]
+#   模块为可选的 build-runtime 模块名（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL），
+#   指定后仅停止该模块服务、仅清理该模块镜像与该模块 .build-cache；其余选项原样透传给 cleanup_build_runtime.sh。
 clean_build_runtime() {
     shift
-    local -a cleanup_args=("$@")
+    local module=""
+    local -a cleanup_args=()
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --module|-m)
+                if [ $# -lt 2 ]; then
+                    print_error "参数 $1 缺少模块名"
+                    exit 2
+                fi
+                module="$2"
+                shift 2
+                ;;
+            --*|-*)
+                cleanup_args+=("$1")
+                shift
+                ;;
+            *)
+                if [ -z "$module" ]; then
+                    module="$1"
+                else
+                    cleanup_args+=("$1")
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    local -a module_args=()
+    if [ -n "$module" ]; then
+        local normalized
+        normalized=$(runtime_normalize_build_module "$module")
+        if [ "$normalized" = "INVALID" ]; then
+            print_error "无效的运行时模块: ${module}，可选: $(runtime_build_module_help)"
+            exit 2
+        fi
+        if [ -n "$normalized" ]; then
+            module="$normalized"
+            module_args=(--module "$module")
+            print_info "仅清理模块: ${module}（其余模块镜像与构建缓存不受影响）"
+        fi
+    fi
+
+    # 交互模式（无参数、TTY、非菜单调用）询问是否仅清理指定模块；非交互环境保持原默认全量清理
+    if [ -z "$module" ] && [ ${#cleanup_args[@]} -eq 0 ] \
+        && [ "${EASYAIOT_FROM_MENU:-0}" != "1" ] && [ -t 0 ]; then
+        echo ""
+        local scope_resp=""
+        printf '%s' "是否仅清理指定模块（其余模块镜像与构建缓存不受影响）？(y/N) "
+        read -r scope_resp || scope_resp=""
+        case "${scope_resp:-N}" in
+            y|Y|yes|YES)
+                runtime_interactive_pick_module
+                if [ -n "${RUNTIME_PICKED_MODULE:-}" ]; then
+                    module="${RUNTIME_PICKED_MODULE}"
+                    module_args=(--module "$module")
+                    print_info "仅清理模块: ${module}（其余模块镜像与构建缓存不受影响）"
+                else
+                    print_info "已选择全部模块，按默认方式清理"
+                fi
+                echo ""
+                ;;
+        esac
+    fi
 
     print_section "清理 build-runtime 构建产物"
     check_docker
 
     print_info "步骤 1/2: 停止业务运行时服务（保留中间件）..."
-    stop_runtime_modules
+    stop_runtime_modules "$module"
 
     print_info "步骤 2/2: 清理 build-runtime 镜像与构建缓存..."
-    if [ "${EASYAIOT_FROM_MENU:-0}" = "1" ] && [ ${#cleanup_args[@]} -eq 0 ]; then
+    if [ "${EASYAIOT_FROM_MENU:-0}" = "1" ] && [ ${#cleanup_args[@]} -eq 0 ] && [ -z "$module" ]; then
         bash "${SCRIPT_DIR}/cleanup_build_runtime.sh"
-    elif [ ${#cleanup_args[@]} -eq 0 ]; then
+    elif [ ${#cleanup_args[@]} -eq 0 ] && [ -z "$module" ]; then
         bash "${SCRIPT_DIR}/cleanup_build_runtime.sh" -y
-    else
+    elif [ -z "$module" ]; then
         bash "${SCRIPT_DIR}/cleanup_build_runtime.sh" "${cleanup_args[@]}"
+    elif [ ${#cleanup_args[@]} -eq 0 ]; then
+        bash "${SCRIPT_DIR}/cleanup_build_runtime.sh" "${module_args[@]}" -y
+    else
+        bash "${SCRIPT_DIR}/cleanup_build_runtime.sh" "${module_args[@]}" "${cleanup_args[@]}"
     fi
 }
 
@@ -2094,7 +2177,7 @@ show_help() {
     echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 $(runtime_build_module_pipe_list)）"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
-    echo "  clean-build-runtime - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像）"
+    echo "  clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像；指定模块时仅停该模块服务、仅清该模块镜像与构建缓存）"
     echo "  update          - 更新镜像并重启所有服务（交互可选拉取/本地重建）"
     echo "  verify          - 验证所有服务是否启动成功（含告警/DVR 事件面验收）"
     echo "  verify-alert    - 告警事件面验收（控制面共享盘 + MQTT→iot-sink→入库）"

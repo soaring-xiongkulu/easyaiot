@@ -579,6 +579,54 @@ runtime_interactive_select_build_arch() {
     echo ""
 }
 
+# build-runtime 模块中文描述（交互菜单展示用）
+runtime_build_module_desc() {
+    case "$1" in
+        IDEA)      echo "在线 IDE（portal + workspace，全形态）" ;;
+        HARNESS)   echo "DeepSeek Harness AI 助手（全形态）" ;;
+        DEVICE)    echo "Device 微服务（含 aiot-visualize 后台）" ;;
+        AI)        echo "AI 服务" ;;
+        RTC)       echo "RTC / go2rtc 摄像头桥接（全形态）" ;;
+        POST)      echo "定制后处理（仅 standard/full 部署）" ;;
+        VIDEO)     echo "Video 服务" ;;
+        WEB)       echo "Web 前端（按部署形态）" ;;
+        APP)       echo "App 移动端 H5（仅 full 形态）" ;;
+        VISUALIZE) echo "可视化编辑器（仅 full 形态）" ;;
+        TRANSFORM) echo "系统对接 Runtime（仅 full 形态）" ;;
+        PANEL)     echo "独立运维控制台（全形态）" ;;
+        *)         echo "" ;;
+    esac
+}
+
+# 交互选择运行时模块（clean-build-runtime / cleanup 等入口复用）
+# 选择结果写入 RUNTIME_PICKED_MODULE（空=全部模块/取消）；始终返回 0
+runtime_interactive_pick_module() {
+    RUNTIME_PICKED_MODULE=""
+    local idx=1 mod choice
+    echo ""
+    echo "请选择模块："
+    echo "  0) 全部模块（默认）"
+    declare -A _RUNTIME_PICK_MODULE_CHOICES=()
+    for mod in "${ALL_RUNTIME_BUILD_MODULES[@]}"; do
+        printf "  %2d) %-10s %s\n" "$idx" "$mod" "$(runtime_build_module_desc "$mod")"
+        _RUNTIME_PICK_MODULE_CHOICES[$idx]="$mod"
+        idx=$((idx + 1))
+    done
+    echo ""
+    read -r -p "请输入选项 [0-${#ALL_RUNTIME_BUILD_MODULES[@]}，默认 0]: " choice
+    case "${choice:-0}" in
+        0|q|Q) return 0 ;;
+        *)
+            if [ -n "${_RUNTIME_PICK_MODULE_CHOICES[$choice]:-}" ]; then
+                RUNTIME_PICKED_MODULE="${_RUNTIME_PICK_MODULE_CHOICES[$choice]}"
+            else
+                echo "[WARN] 无效选项，默认全部模块" >&2
+            fi
+            ;;
+    esac
+    return 0
+}
+
 # build-runtime 交互选择目标模块（默认全部）
 runtime_interactive_select_build_module() {
     local normalized choice idx mod

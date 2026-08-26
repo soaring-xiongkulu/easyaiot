@@ -17,6 +17,10 @@
 #   bash .scripts/docker/cleanup_build_runtime.sh --yes     # 一键清理（镜像+构建缓存，保留 .build-cache）
 #   bash .scripts/docker/cleanup_build_runtime.sh --all -y  # 全部清理（含 .build-cache）
 #   bash .scripts/docker/cleanup_build_runtime.sh --dry-run # 仅预览
+#   bash .scripts/docker/cleanup_build_runtime.sh --module AI -y
+#     # 仅清理指定模块（如 AI）：该模块镜像 + .build-cache/ai（含 arm 交叉缓存）
+#     # 可选模块同 build-runtime: HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL
+#     # 指定模块时默认清理 镜像+该模块构建缓存；全局 BuildKit 缓存无法按模块过滤，自动跳过
 #
 # 注意: 若当前环境正在使用这些镜像运行服务，请先 stop 再清理。
 # ============================================
@@ -55,6 +59,8 @@ DO_MARKER=false
 DRY_RUN=false
 ASSUME_YES=false
 SHOW_HELP=false
+# 指定模块时仅清理该模块（空=全部）；模块名同 build-runtime（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
+CLEAN_MODULE=""
 
 # 跨架构构建常拉取的大体积基础镜像（清理时故意保留，避免每次 ARM 重建都重新下载）
 PRESERVE_CROSS_BUILD_BASE_IMAGES=(
@@ -87,6 +93,10 @@ show_help() {
   --dist           清理 WEB/dist-prebuilt-* 跨架构中间产物
   --logs           清理 .scripts/docker/logs 下 runtime_image / build_ 日志
   --marker         删除 .runtime_images_pulled 拉取标记
+  --module <模块>  仅清理指定模块（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
+                   与 --images/--cache 联用时只清理该模块镜像与 .build-cache/<模块> 子目录；
+                   与 --all 联用同理（BuildKit 缓存为全局共享，指定模块时自动跳过）；
+                   --dist 仅在模块为 WEB 时生效
   --all            执行以上全部清理
   --yes, -y        跳过确认
   --dry-run, -n    仅预览，不实际删除
@@ -96,6 +106,8 @@ show_help() {
   bash .scripts/docker/cleanup_build_runtime.sh --yes
   bash .scripts/docker/cleanup_build_runtime.sh --images --builder -y
   bash .scripts/docker/cleanup_build_runtime.sh --all --dry-run
+  bash .scripts/docker/cleanup_build_runtime.sh --module AI -y
+  bash .scripts/docker/cleanup_build_runtime.sh --module VIDEO --images --cache -n
 EOF
 }
 
@@ -130,6 +142,19 @@ parse_args() {
             --yes|-y)  ASSUME_YES=true ;;
             --dry-run|-n) DRY_RUN=true ;;
             -h|--help) SHOW_HELP=true ;;
+            --module|-m)
+                if [ $# -lt 2 ]; then
+                    print_err "参数 $1 缺少模块名"
+                    exit 2
+                fi
+                CLEAN_MODULE=$(runtime_normalize_build_module "$2")
+                if [ "$CLEAN_MODULE" = "INVALID" ]; then
+                    print_err "无效的运行时模块: $2，可选: $(runtime_build_module_help)"
+                    exit 2
+                fi
+                shift 2
+                continue
+                ;;
             *)
                 print_err "未知参数: $1"
                 show_help
@@ -173,9 +198,49 @@ check_docker() {
     return 0
 }
 
+# build-runtime 模块 → .build-cache 子目录名（无独立构建缓存的模块返回空）
+build_cache_subdir_for() {
+    case "${1:-}" in
+        AI)        echo "ai" ;;
+        VIDEO)     echo "video" ;;
+        DEVICE)    echo "device" ;;
+        WEB)       echo "web" ;;
+        APP)       echo "app" ;;
+        VISUALIZE) echo "visualize" ;;
+        *)         echo "" ;;
+    esac
+}
+
+# build-runtime 模块 → docker ps 容器名匹配模式（用于"模块运行中"告警；无映射返回空）
+runtime_container_pattern_for() {
+    case "${1:-}" in
+        DEVICE)   echo "^(iot-)" ;;
+        HARNESS)  echo "^(easyaiot-harness|harness)" ;;
+        IDEA)     echo "^(easyaiot-idea-portal|easyaiot-idea-workspace|idea-portal|idea-workspace)" ;;
+        PANEL)    echo "^(easyaiot-panel|panel)" ;;
+        AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM)
+            echo "^(${1,,}-service)" ;;
+        *)        echo "" ;;
+    esac
+}
+
+# 收集指定模块（CLEAN_MODULE）的 .build-cache 目标目录；ai/video 另含 arm 交叉缓存
+collect_module_cache_targets() {
+    local -n _out="$1"
+    local sub
+    sub=$(build_cache_subdir_for "$CLEAN_MODULE")
+    [ -n "$sub" ] || return 0
+    _out+=("${BUILD_CACHE_DIR}/${sub}")
+    case "$sub" in
+        ai|video) _out+=("${BUILD_CACHE_DIR}/arm/${sub}") ;;
+    esac
+}
+
 # 收集 build-runtime 相关的本地/远程镜像引用
+# 用法: collect_runtime_image_refs <数组名> [模块]（不传或空=全部模块）
 collect_runtime_image_refs() {
     local -n _out="$1"
+    local module_filter="${2:-}"
     local profile arch rname tmp lname pname
 
     runtime_load_registry
@@ -185,6 +250,8 @@ collect_runtime_image_refs() {
         rname="${mapping%%|*}"
         tmp="${mapping#*|}"
         lname="${tmp%%|*}"
+        pname="${tmp#*|}"
+        [ -n "$module_filter" ] && [ "$pname" != "$module_filter" ] && continue
         if runtime_is_profile_dependent "$rname"; then
             for profile in "${ALL_DEPLOY_PROFILES[@]}"; do
                 _out+=("$(runtime_local_ref "$lname" "$profile")")
@@ -202,20 +269,24 @@ collect_runtime_image_refs() {
         fi
     done
 
-    for lname in "${DEVICE_LOCAL_NAMES[@]}"; do
-        _out+=("$(runtime_local_ref "$lname")")
-    done
-    for rname in "${DEVICE_REMOTE_NAMES[@]}"; do
-        for arch in "${ALL_RUNTIME_ARCHS[@]}"; do
-            _out+=("$(runtime_remote_ref "$rname" "" "$arch")")
+    if [ -z "$module_filter" ] || [ "$module_filter" = "DEVICE" ]; then
+        for lname in "${DEVICE_LOCAL_NAMES[@]}"; do
+            _out+=("$(runtime_local_ref "$lname")")
         done
-        _out+=("$(runtime_manifest_ref "$rname")")
-    done
+        for rname in "${DEVICE_REMOTE_NAMES[@]}"; do
+            for arch in "${ALL_RUNTIME_ARCHS[@]}"; do
+                _out+=("$(runtime_remote_ref "$rname" "" "$arch")")
+            done
+            _out+=("$(runtime_manifest_ref "$rname")")
+        done
+    fi
 
     for mapping in "${FULL_ONLY_MODULES[@]}"; do
         tmp="${mapping#*|}"
         lname="${tmp%%|*}"
         rname="${mapping%%|*}"
+        pname="${tmp#*|}"
+        [ -n "$module_filter" ] && [ "$pname" != "$module_filter" ] && continue
         _out+=("$(runtime_local_ref "$lname")")
         for arch in "${ALL_RUNTIME_ARCHS[@]}"; do
             _out+=("$(runtime_remote_ref "$rname" "" "$arch")")
@@ -270,11 +341,17 @@ show_cleanup_preview() {
 
     if $DO_IMAGES && check_docker; then
         local -a refs=()
-        collect_runtime_image_refs refs
-        collect_extra_registry_images refs
+        collect_runtime_image_refs refs "$CLEAN_MODULE"
+        if [ -z "$CLEAN_MODULE" ]; then
+            collect_extra_registry_images refs
+        fi
 
         local ref size_bytes total_bytes=0 found=0
-        print_info "build-runtime 相关镜像:"
+        if [ -n "$CLEAN_MODULE" ]; then
+            print_info "build-runtime 相关镜像（仅模块 ${CLEAN_MODULE}）:"
+        else
+            print_info "build-runtime 相关镜像:"
+        fi
         for ref in "${refs[@]}"; do
             if docker image inspect "$ref" >/dev/null 2>&1; then
                 size_bytes=$(image_size_of "$ref")
@@ -311,12 +388,29 @@ show_cleanup_preview() {
     fi
 
     if $DO_BUILDER && check_docker; then
-        print_info "Docker 构建缓存:"
-        docker builder du 2>/dev/null || docker system df 2>/dev/null | grep -i build || print_info "  （无法统计）"
+        if [ -n "$CLEAN_MODULE" ]; then
+            print_info "BuildKit 构建缓存为全局共享，无法按模块过滤（本次跳过；如需清理请不带 --module 执行）"
+        else
+            print_info "Docker 构建缓存:"
+            docker builder du 2>/dev/null || docker system df 2>/dev/null | grep -i build || print_info "  （无法统计）"
+        fi
     fi
 
     if $DO_CACHE; then
-        print_info ".build-cache: $(human_du "$BUILD_CACHE_DIR")  →  $BUILD_CACHE_DIR"
+        if [ -n "$CLEAN_MODULE" ]; then
+            local -a cache_targets=()
+            collect_module_cache_targets cache_targets
+            if [ ${#cache_targets[@]} -eq 0 ]; then
+                print_info "${CLEAN_MODULE} 无独立构建缓存目录（仅 AI/VIDEO/DEVICE/WEB/APP/VISUALIZE 有），跳过"
+            else
+                local ct
+                for ct in "${cache_targets[@]}"; do
+                    print_info ".build-cache 模块目录: $(human_du "$ct")  →  $ct"
+                done
+            fi
+        else
+            print_info ".build-cache: $(human_du "$BUILD_CACHE_DIR")  →  $BUILD_CACHE_DIR"
+        fi
     fi
 
     if $DO_DIST; then
@@ -366,11 +460,17 @@ cleanup_images() {
         return 0
     fi
 
-    print_section "清理 build-runtime 相关镜像"
+    if [ -n "$CLEAN_MODULE" ]; then
+        print_section "清理 build-runtime 相关镜像（仅模块 ${CLEAN_MODULE}）"
+    else
+        print_section "清理 build-runtime 相关镜像"
+    fi
 
     local -a refs=()
-    collect_runtime_image_refs refs
-    collect_extra_registry_images refs
+    collect_runtime_image_refs refs "$CLEAN_MODULE"
+    if [ -z "$CLEAN_MODULE" ]; then
+        collect_extra_registry_images refs
+    fi
 
     local ref removed=0 skipped=0
     for ref in "${refs[@]}"; do
@@ -402,6 +502,11 @@ cleanup_builder_cache() {
     if ! check_docker; then
         return 0
     fi
+    if [ -n "$CLEAN_MODULE" ]; then
+        print_warn "BuildKit 构建缓存为全局共享，无法按模块过滤，已跳过"
+        print_warn "如需清理全局构建缓存，请不带 --module 重新执行: bash ${0##*/} --builder"
+        return 0
+    fi
     print_section "清理 Docker 构建缓存"
     if $DRY_RUN; then
         print_info "[dry-run] docker builder prune -af"
@@ -416,6 +521,29 @@ cleanup_builder_cache() {
 
 cleanup_build_cache_dir() {
     print_section "清理 .build-cache"
+    if [ -n "$CLEAN_MODULE" ]; then
+        local -a targets=()
+        collect_module_cache_targets targets
+        if [ ${#targets[@]} -eq 0 ]; then
+            print_info "${CLEAN_MODULE} 无独立构建缓存目录（仅 AI/VIDEO/DEVICE/WEB/APP/VISUALIZE 有），跳过"
+            return 0
+        fi
+        local t size
+        for t in "${targets[@]}"; do
+            if [ ! -d "$t" ]; then
+                print_info "目录不存在，跳过: $t"
+                continue
+            fi
+            size=$(human_du "$t")
+            if $DRY_RUN; then
+                print_info "[dry-run] rm -rf ${t}/*"
+            else
+                rm -rf "${t:?}"/*
+                print_ok "已清理 ${t}（释放约 ${size}）"
+            fi
+        done
+        return 0
+    fi
     if [ ! -d "$BUILD_CACHE_DIR" ]; then
         print_info "目录不存在，跳过: $BUILD_CACHE_DIR"
         return 0
@@ -430,6 +558,10 @@ cleanup_build_cache_dir() {
 }
 
 cleanup_dist_prebuilt() {
+    if [ -n "$CLEAN_MODULE" ] && [ "$CLEAN_MODULE" != "WEB" ]; then
+        print_info "跳过 WEB/dist-prebuilt-*（当前仅清理 ${CLEAN_MODULE} 模块）"
+        return 0
+    fi
     print_section "清理 WEB/dist-prebuilt-*"
     local found=false d size
     for d in "${PROJECT_ROOT}"/WEB/dist-prebuilt-*; do
@@ -484,17 +616,33 @@ warn_running_services() {
     if ! check_docker; then
         return 0
     fi
-    local running
-    running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -E '^(ai-service|rtc-service|post-service|video-service|web-service|app-service|visualize-service|iot-)' || true)
-    if [ -n "$running" ]; then
+    local pat running
+    if [ -n "$CLEAN_MODULE" ]; then
+        pat=$(runtime_container_pattern_for "$CLEAN_MODULE")
+        [ -n "$pat" ] || return 0
+        running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -E "$pat" || true)
+        if [ -z "$running" ]; then
+            return 0
+        fi
+        print_warn "检测到以下容器可能正在使用 ${CLEAN_MODULE} 模块镜像:"
+    else
+        pat='^(ai-service|rtc-service|post-service|video-service|web-service|app-service|visualize-service|iot-)'
+        running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -E "$pat" || true)
+        if [ -z "$running" ]; then
+            return 0
+        fi
         print_warn "检测到以下容器可能正在使用运行时镜像:"
-        echo "$running" | sed 's/^/  /'
-        print_warn "建议先执行: bash .scripts/docker/install_linux.sh clean-build-runtime"
-        print_warn "（仅停业务服务并清理镜像；或手动 stop 对应业务模块，勿停中间件）"
     fi
+    echo "$running" | sed 's/^/  /'
+    print_warn "建议先执行: bash .scripts/docker/install_linux.sh clean-build-runtime${CLEAN_MODULE:+ ${CLEAN_MODULE}}"
+    print_warn "（仅停业务服务并清理镜像；或手动 stop 对应业务模块，勿停中间件）"
 }
 
 run_selected_cleanup() {
+    if [ -n "$CLEAN_MODULE" ]; then
+        print_info "清理范围: 仅模块 ${CLEAN_MODULE}（镜像 + 该模块 .build-cache；全局 BuildKit 缓存与其余模块镜像不受影响）"
+        echo ""
+    fi
     warn_running_services
     show_cleanup_preview
 
@@ -534,7 +682,8 @@ interactive_menu() {
     echo "  5) runtime_image / build_ 构建日志"
     echo "  6) .runtime_images_pulled 拉取标记"
     echo "  7) 全部清理（1-6）"
-    echo "  8) 退出"
+    echo "  8) 仅清理指定模块（该模块镜像 + .build-cache，全局 BuildKit 缓存不清理）"
+    echo "  9) 退出"
     echo ""
 
     local choice
@@ -557,7 +706,19 @@ interactive_menu() {
             DO_LOGS=true
             DO_MARKER=true
             ;;
-        8|q|Q)
+        8)
+            runtime_interactive_pick_module
+            CLEAN_MODULE="${RUNTIME_PICKED_MODULE}"
+            if [ -n "$CLEAN_MODULE" ]; then
+                DO_IMAGES=true
+                DO_CACHE=true
+                print_info "将仅清理模块: ${CLEAN_MODULE}"
+            else
+                interactive_menu
+                return 0
+            fi
+            ;;
+        9|q|Q)
             print_info "已退出"
             exit 0
             ;;
@@ -582,6 +743,15 @@ interactive_menu() {
                         DO_LOGS=true
                         DO_MARKER=true
                         ;;
+                    8)
+                        runtime_interactive_pick_module
+                        CLEAN_MODULE="${RUNTIME_PICKED_MODULE}"
+                        if [ -n "$CLEAN_MODULE" ]; then
+                            DO_IMAGES=true
+                            DO_CACHE=true
+                            print_info "将仅清理模块: ${CLEAN_MODULE}"
+                        fi
+                        ;;
                     *)
                         print_err "无效选项: $item"
                         exit 2
@@ -602,13 +772,20 @@ main() {
         exit 0
     fi
 
-    if [ "${INTERACTIVE:-false}" = true ]; then
+    # 指定模块后不再进交互菜单（意图已由命令行明确），直接按模块范围清理
+    if [ "${INTERACTIVE:-false}" = true ] && [ -z "$CLEAN_MODULE" ]; then
         interactive_menu
     else
         # 仅传 -y / --dry-run 时默认清理镜像 + 构建缓存
         if ! $DO_IMAGES && ! $DO_BUILDER && ! $DO_CACHE && ! $DO_DIST && ! $DO_LOGS && ! $DO_MARKER; then
-            DO_IMAGES=true
-            DO_BUILDER=true
+            if [ -n "$CLEAN_MODULE" ]; then
+                # 模块级默认: 该模块镜像 + 该模块 .build-cache（全局 BuildKit 缓存不碰）
+                DO_IMAGES=true
+                DO_CACHE=true
+            else
+                DO_IMAGES=true
+                DO_BUILDER=true
+            fi
         fi
         run_selected_cleanup
     fi
