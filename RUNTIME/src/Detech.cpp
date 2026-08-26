@@ -10,6 +10,7 @@
 #include "ffmpeg_hw.h"
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -17,6 +18,10 @@
 #include <set>
 #include <sstream>
 #include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <ifaddrs.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/geometry.hpp>
 #include <unistd.h>
@@ -77,6 +82,55 @@ bool parseHttpUrl(const std::string& url, std::string& host, int& port, std::str
         port = 80;
     }
     return !host.empty();
+}
+
+std::string envValue(const char* name) {
+    const char* v = std::getenv(name);
+    return (v && *v) ? std::string(v) : std::string();
+}
+
+// 边缘计算节点上的 RUNTIME 必须向控制面上报节点真实地址。
+// 优先采用 launcher 注入的 HOST_IP/POD_IP（VIDEO 部署时写入目标节点 host），
+// 无环境变量时探测本机第一个非回环 IPv4；否则回退 127.0.0.1。
+std::string resolveWorkerIp() {
+    for (const char* key : {"HOST_IP", "POD_IP"}) {
+        std::string ip = envValue(key);
+        if (!ip.empty() && ip != "127.0.0.1" && ip != "::1" && ip != "localhost") {
+            return ip;
+        }
+    }
+    struct ifaddrs* ifa = nullptr;
+    if (getifaddrs(&ifa) == 0) {
+        for (struct ifaddrs* it = ifa; it; it = it->ifa_next) {
+            if (!it->ifa_addr || it->ifa_addr->sa_family != AF_INET) {
+                continue;
+            }
+            if (it->ifa_flags & IFF_LOOPBACK) {
+                continue;
+            }
+            char buf[INET_ADDRSTRLEN] = {0};
+            const sockaddr_in* sin = reinterpret_cast<const sockaddr_in*>(it->ifa_addr);
+            if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf))) {
+                freeifaddrs(ifa);
+                return buf;
+            }
+        }
+        freeifaddrs(ifa);
+    }
+    return "127.0.0.1";
+}
+
+// 与 AlgoMqttBus 的 node_id 解析保持一致：ini compute_node_id → 环境变量回退。
+// 远程部署时 VIDEO 会将目标边缘节点 id 写入 ini / env，心跳据此归属节点。
+std::string resolveNodeId(const Config& config) {
+    if (!config.computeNodeId.empty()) {
+        return config.computeNodeId;
+    }
+    std::string nodeId = envValue("COMPUTE_NODE_ID");
+    if (nodeId.empty()) {
+        nodeId = envValue("NODE_ID");
+    }
+    return nodeId;
 }
 }  // namespace
 
@@ -1273,7 +1327,13 @@ void Detech::_heartbeatThreadFunc() {
                     taskIdNum = 0;
                 }
                 root["task_id"] = taskIdNum;
-                root["server_ip"] = "127.0.0.1";
+                root["server_ip"] = resolveWorkerIp();
+                {
+                    std::string nodeId = resolveNodeId(_config);
+                    if (!nodeId.empty()) {
+                        root["node_id"] = nodeId;
+                    }
+                }
                 root["port"] = _config.controlPort;
                 root["process_id"] = static_cast<int>(::getpid());
                 root["log_path"] = _config.logPath;
