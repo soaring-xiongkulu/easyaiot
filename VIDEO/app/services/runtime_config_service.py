@@ -1048,6 +1048,8 @@ def generate_runtime_inis(
     force_per_device: bool = False,
     remote_ini_dir: Optional[str] = None,
     heartbeat_url: Optional[str] = None,
+    compute_node_id: Optional[str] = None,
+    mqtt_broker_urls: Optional[str] = None,
 ) -> List[str]:
     """生成 RUNTIME ini 路径列表。
 
@@ -1056,6 +1058,8 @@ def generate_runtime_inis(
     - only_device_ids：仅生成指定设备（集群分片）
     - force_per_device：分片场景下即使单路也使用 task_{id}_{deviceId}.ini
     - remote_ini_dir：远程节点上的 ini 目录（write_local=False 时用于路径）
+    - compute_node_id：远程部署时传入目标节点 id（默认取本机环境变量）
+    - mqtt_broker_urls：远程部署时传入控制面可达的告警总线地址（默认取本机环境变量）
     """
     task_type = (getattr(task, 'task_type', None) or 'realtime').strip().lower()
     if task_type == 'snapshot':
@@ -1113,7 +1117,13 @@ def generate_runtime_inis(
     if write_local:
         os.makedirs(alert_image_dir, exist_ok=True)
 
-    mqtt_broker_urls = (os.getenv('MQTT_BROKER_URLS') or '').strip() or '127.0.0.1:1883'
+    # 远程部署时控制面显式传入可达地址（如 192.168.1.10:1883）；
+    # 未传时回退控制面环境变量，最后兜底回环（仅适用于本机 RUNTIME）
+    mqtt_broker_urls = (
+        (mqtt_broker_urls or '').strip()
+        or (os.getenv('MQTT_BROKER_URLS') or '').strip()
+        or '127.0.0.1:1883'
+    )
     mqtt_username = (os.getenv('MQTT_ALGO_USERNAME') or '').strip()
     mqtt_password = (os.getenv('MQTT_ALGO_PASSWORD') or '').strip()
     mqtt_tenant = (os.getenv('MQTT_ALGO_TENANT') or 'default').strip()
@@ -1149,7 +1159,10 @@ def generate_runtime_inis(
             alert_hook_url = f'{resolve_video_service_base_url().rstrip("/")}/video/alert/hook'
         elif matching_enabled:
             alert_hook_url = f'{resolve_video_service_base_url().rstrip("/")}/video/alert/hook'
-    compute_node_id = (os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or '').strip()
+    compute_node_id = (
+        (compute_node_id or '').strip()
+        or (os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or '').strip()
+    )
 
     hook_tt = _hook_task_type(task_type)
     resolved_heartbeat_url = (heartbeat_url or '').strip() or _heartbeat_url(
@@ -1314,6 +1327,8 @@ def generate_runtime_ini(
     write_local: bool = True,
     remote_ini_path: Optional[str] = None,
     heartbeat_url: Optional[str] = None,
+    compute_node_id: Optional[str] = None,
+    mqtt_broker_urls: Optional[str] = None,
 ) -> str:
     """Generate RUNTIME ini；realtime 多路时写多份并返回第一路路径（完整列表见 generate_runtime_inis）。"""
     if remote_ini_path and write_local is False:
@@ -1324,6 +1339,8 @@ def generate_runtime_ini(
             prefer_cluster_model=prefer_cluster_model,
             write_local=False,
             heartbeat_url=heartbeat_url,
+            compute_node_id=compute_node_id,
+            mqtt_broker_urls=mqtt_broker_urls,
         )
         # 覆盖远程路径名（调用方指定）
         generate_runtime_ini.last_content = (  # type: ignore[attr-defined]
@@ -1336,6 +1353,8 @@ def generate_runtime_ini(
         prefer_cluster_model=prefer_cluster_model,
         write_local=write_local,
         heartbeat_url=heartbeat_url,
+        compute_node_id=compute_node_id,
+        mqtt_broker_urls=mqtt_broker_urls,
     )
     return paths[0]
 
@@ -1349,6 +1368,8 @@ def generate_runtime_ini_content(
     only_device_ids: Optional[List[str]] = None,
     force_per_device: bool = False,
     heartbeat_url: Optional[str] = None,
+    compute_node_id: Optional[str] = None,
+    mqtt_broker_urls: Optional[str] = None,
 ) -> Tuple[str, str]:
     """Return (remote_ini_path, ini_content) without requiring local model file.
 
@@ -1366,6 +1387,8 @@ def generate_runtime_ini_content(
         force_per_device=force_per_device,
         remote_ini_dir=remote_dir,
         heartbeat_url=heartbeat_url,
+        compute_node_id=compute_node_id,
+        mqtt_broker_urls=mqtt_broker_urls,
     )
     contents = getattr(generate_runtime_inis, 'last_contents', None) or []
     if not contents:
@@ -1384,6 +1407,8 @@ def generate_runtime_inis_content(
     force_per_device: bool = False,
     remote_ini_dir: Optional[str] = None,
     heartbeat_url: Optional[str] = None,
+    compute_node_id: Optional[str] = None,
+    mqtt_broker_urls: Optional[str] = None,
 ) -> List[Tuple[str, str]]:
     """返回 [(ini_path, content), ...]，供远程分片多路部署。"""
     paths = generate_runtime_inis(
@@ -1395,6 +1420,8 @@ def generate_runtime_inis_content(
         force_per_device=force_per_device,
         remote_ini_dir=remote_ini_dir,
         heartbeat_url=heartbeat_url,
+        compute_node_id=compute_node_id,
+        mqtt_broker_urls=mqtt_broker_urls,
     )
     contents = getattr(generate_runtime_inis, 'last_contents', None) or []
     if len(contents) != len(paths):

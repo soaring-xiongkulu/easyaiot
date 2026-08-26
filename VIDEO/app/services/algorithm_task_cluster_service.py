@@ -429,6 +429,8 @@ def _deploy_cpp_shard_command_and_files(
     log_dir: str,
     *,
     heartbeat_url: Optional[str] = None,
+    compute_node_id: Optional[str] = None,
+    mqtt_broker_urls: Optional[str] = None,
 ) -> Tuple[List[str], List[Dict[str, str]], str]:
     """返回 (command, files, work_dir)。"""
     from app.services.runtime_config_service import (
@@ -447,6 +449,8 @@ def _deploy_cpp_shard_command_and_files(
         force_per_device=force_per_device,
         remote_ini_dir=log_dir,
         heartbeat_url=heartbeat_url,
+        compute_node_id=compute_node_id,
+        mqtt_broker_urls=mqtt_broker_urls,
     )
     files = [{'path': p, 'content': c, 'mode': '0644'} for p, c in pairs]
     work_dir = '/opt/easyaiot/RUNTIME'
@@ -637,6 +641,9 @@ def deploy_shard_with_workload_id(
     executor = _normalize_executor(task)
     files = None
     env = _build_shard_env(task, task_id, log_dir, host, device_ids, workload_id)
+    # 分片运行在目标节点：节点 id 必须随 env 下发，RUNTIME 心跳/MQTT 告警据此归属边缘节点
+    env['NODE_ID'] = str(node_id)
+    env['COMPUTE_NODE_ID'] = str(node_id)
     if executor == 'cpp':
         _ensure_runtime_ready_on_node(int(node_id), host)
         command, files, work_dir = _deploy_cpp_shard_command_and_files(
@@ -645,6 +652,8 @@ def deploy_shard_with_workload_id(
             device_ids,
             log_dir,
             heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
+            compute_node_id=str(node_id),
+            mqtt_broker_urls=env.get('MQTT_BROKER_URLS'),
         )
     else:
         command, work_dir = _deploy_python_shard_command(task, task_id)

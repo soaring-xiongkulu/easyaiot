@@ -517,6 +517,9 @@ def _replace_loopback_host(raw: str, control_plane_host: str) -> str:
     value = str(raw or '').strip()
     if not value or not control_plane_host:
         return value
+    # MQTT broker 支持逗号分隔多地址：逐段重写
+    if ',' in value:
+        return ','.join(_replace_loopback_host(part, control_plane_host) for part in value.split(','))
     for loopback in ('localhost:', '127.0.0.1:'):
         if value.startswith(loopback):
             return f'{control_plane_host}:{value[len(loopback):]}'
@@ -537,7 +540,7 @@ def _build_task_deploy_env(task_id: int, task_type: str, log_path: str, server_h
         'USE_GPU', 'GPU_IDS', 'GPU_POLICY', 'INFER_GPU_POLICY', 'FFMPEG_GPU_POLICY',
         'CUDA_VISIBLE_DEVICES', 'NVIDIA_VISIBLE_DEVICES', 'ORT_EXECUTION_PROVIDERS',
         'KAFKA_BOOTSTRAP_SERVERS', 'MINIO_ENDPOINT', 'MINIO_ACCESS_KEY', 'MINIO_SECRET_KEY',
-        'MINIO_SECURE', 'NACOS_SERVER', 'VIDEO_ENV',
+        'MINIO_SECURE', 'NACOS_SERVER', 'VIDEO_ENV', 'MQTT_BROKER_URLS',
         'CLUSTER_MODE', 'MEDIA_HOST_DATA_ROOT', 'MEDIA_RECORD_DIR', 'MEDIA_SNAP_DIR',
         'MEDIA_UPLOAD_MODE', 'MEDIA_SNAP_UPLOAD_MODE', 'ALERT_IMAGES_DIR',
         'IOT_SINK_API_URL', 'IOT_SINK_USE_GATEWAY', 'IOT_SINK_HOST', 'IOT_SINK_PORT',
@@ -589,6 +592,10 @@ def _build_task_deploy_env(task_id: int, task_type: str, log_path: str, server_h
         video_base = f'http://{control_plane_host}:{video_service_port}'
         env['VIDEO_SERVICE_URL'] = video_base
         env['VIDEO_SERVICE_HOST'] = control_plane_host
+        # 边缘节点的告警总线必须指向控制面 EMQX：无显式配置时也把默认回环重写为中心地址，
+        # 否则边缘 RUNTIME 的 MQTT 告警会连自身回环而静默丢失
+        mqtt_broker = env.get('MQTT_BROKER_URLS') or os.getenv('MQTT_BROKER_URLS') or '127.0.0.1:1883'
+        env['MQTT_BROKER_URLS'] = _replace_loopback_host(mqtt_broker, control_plane_host)
         heartbeat_path = (
             '/video/algorithm/heartbeat/patrol'
             if task_type == 'patrol'
@@ -668,6 +675,11 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
     files = None
     work_dir = video_root_remote
     env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
+    # 远程部署必须把目标节点 id 写入 env（ini 生成时还会覆盖 compute_node_id）：
+    # RUNTIME 心跳与 MQTT 告警据此归属边缘节点，而不是控制面自身的节点标识
+    if node_id is not None:
+        env['NODE_ID'] = str(node_id)
+        env['COMPUTE_NODE_ID'] = str(node_id)
 
     if executor == 'cpp':
         if task.task_type not in ('realtime', 'snap', 'patrol'):
@@ -718,6 +730,7 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                 False,
             )
         remote_ini = os.path.join(log_dir, 'runtime.ini')
+        remote_node_id = str(node_id) if node_id is not None else ''
         try:
             from app.services.runtime_config_service import generate_runtime_inis_content
             device_count = len(task.devices or [])
@@ -729,6 +742,8 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                     force_per_device=True,
                     remote_ini_dir=log_dir,
                     heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
+                    compute_node_id=remote_node_id,
+                    mqtt_broker_urls=env.get('MQTT_BROKER_URLS'),
                 )
                 files = [{'path': p, 'content': c, 'mode': '0644'} for p, c in pairs]
                 if len(pairs) == 1:
@@ -749,6 +764,8 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                     prefer_cluster_model=True,
                     remote_ini_path=remote_ini,
                     heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
+                    compute_node_id=remote_node_id,
+                    mqtt_broker_urls=env.get('MQTT_BROKER_URLS'),
                 )
                 command = [REMOTE_RUNTIME_BIN, ini_path]
                 files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
