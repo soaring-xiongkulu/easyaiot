@@ -34,7 +34,14 @@ const menuGroupsData: MenuGroup[] = [
         name: '设备管理',
         icon: 'video',
         url: '/pages/device/index',
-        iconColor: '#1890ff',
+        iconColor: '#2f6bff',
+      },
+      {
+        key: 'deviceConsole',
+        name: '设备控制台',
+        icon: 'apps',
+        url: '/pages/device/console/index',
+        iconColor: '#6fa8ff',
       },
       {
         key: 'streamForward',

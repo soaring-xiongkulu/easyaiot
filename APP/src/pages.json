@@ -98,6 +98,20 @@
       }
     },
     {
+      "path": "pages/device/console/index",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/device/control/index",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/device/gb28181/index",
       "type": "page",
       "style": {

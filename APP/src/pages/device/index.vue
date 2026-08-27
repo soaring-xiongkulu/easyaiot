@@ -3,7 +3,10 @@
     <wd-navbar title="设备列表" placeholder safe-area-inset-top fixed>
       <template #right>
         <view class="flex items-center gap-16rpx pr-16rpx">
-          <view class="text-28rpx text-[#1890ff]" @click="handleCreate">
+          <view class="text-28rpx text-[#2f6bff]" @click="handleOpenConsole">
+            控制台
+          </view>
+          <view class="text-28rpx text-[#2f6bff]" @click="handleCreate">
             添加
           </view>
           <AppNavUserButton />
@@ -26,7 +29,7 @@
         <view
           v-for="item in list"
           :key="item.id"
-          class="mb-24rpx overflow-hidden rounded-12rpx bg-white shadow-sm"
+          class="mb-24rpx overflow-hidden rounded-20rpx bg-white device-card"
           @click="handleItemClick(item)"
         >
           <view class="p-24rpx">
@@ -138,6 +141,10 @@ function handleCreate() {
   createPopupRef.value?.openCreate()
 }
 
+function handleOpenConsole() {
+  uni.navigateTo({ url: '/pages/device/console/index' })
+}
+
 function handleEdit(device: DeviceInfo) {
   editPopupRef.value?.openEdit(device)
 }
@@ -159,3 +166,9 @@ function handleItemClick(item: DeviceRootRow) {
     detailPopupRef.value?.open(item.device)
 }
 </script>
+
+<style lang="scss" scoped>
+.device-card {
+  box-shadow: var(--app-card-shadow, 0 4rpx 20rpx rgba(23, 43, 77, 0.05));
+}
+</style>
