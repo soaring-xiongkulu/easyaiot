@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.ota.DmUpgradeRecordMapper">
+
+    <resultMap id="DmUpgradeRecordVo" type="com.basiclab.iot.device.domain.ota.vo.DmUpgradeRecordVo">
+        <id column="id" property="id"></id>
+        <result column="pkg_id" property="pkgId"></result>
+        <result column="type" property="type"></result>
+        <result column="type_name" property="typeName"></result>
+        <result column="device_identification" property="deviceIdentification"></result>
+        <result column="device_name" property="deviceName"></result>
+        <result column="product_identification" property="productIdentification"></result>
+        <result column="from_version" property="fromVersion"></result>
+        <result column="to_version" property="toVersion"></result>
+        <result column="channel" property="channel"></result>
+        <result column="phase" property="phase"></result>
+        <result column="phase_name" property="phaseName"></result>
+        <result column="progress" property="progress"></result>
+        <result column="success" property="success"></result>
+        <result column="error_code" property="errorCode"></result>
+        <result column="error_msg" property="errorMsg"></result>
+        <result column="cost_ms" property="costMs"></result>
+        <result column="upgrade_time" property="upgradeTime"></result>
+        <result column="created_time" property="createdTime"></result>
+    </resultMap>
+
+    <resultMap id="DmFunnelItemVo" type="com.basiclab.iot.device.domain.ota.vo.DmUpgradeStatsVo$DmFunnelItemVo">
+        <result column="phase" property="phase"></result>
+        <result column="phase_name" property="phaseName"></result>
+        <result column="device_count" property="deviceCount"></result>
+    </resultMap>
+
+    <resultMap id="DmErrorTopVo" type="com.basiclab.iot.device.domain.ota.vo.DmUpgradeStatsVo$DmErrorTopVo">
+        <result column="error_code" property="errorCode"></result>
+        <result column="error_msg" property="errorMsg"></result>
+        <result column="count" property="count"></result>
+    </resultMap>
+
+    <select id="getUpgradeRecordPageList" resultMap="DmUpgradeRecordVo"
+            parameterType="com.basiclab.iot.device.domain.ota.qo.DmUpgradeRecordPageQo">
+        SELECT r.id, r.pkg_id, r.type,
+        CASE r.type WHEN 0 THEN '软件包' WHEN 1 THEN '固件包' WHEN 2 THEN 'APP包' WHEN 3 THEN 'PC包' ELSE '未知' END AS type_name,
+        r.device_identification, r.device_name, r.product_identification,
+        r.from_version, r.to_version, r.channel, r.phase,
+        CASE r.phase WHEN 0 THEN '检测' WHEN 1 THEN '命中' WHEN 2 THEN '下载完成' WHEN 3 THEN '下载失败'
+        WHEN 4 THEN 'MD5校验失败' WHEN 5 THEN '安装结果' WHEN 6 THEN '启动成功' ELSE '未知' END AS phase_name,
+        r.progress, r.success, r.error_code, r.error_msg, r.cost_ms, r.upgrade_time, r.created_time
+        FROM device_ota_upgrade_record r
+        <where>
+            <if test="pkgId != null">
+                AND r.pkg_id = #{pkgId}
+            </if>
+            <if test="type != null">
+                AND r.type = #{type}
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                AND r.device_identification LIKE CONCAT('%', #{deviceIdentification}, '%')
+            </if>
+            <if test="phase != null">
+                AND r.phase = #{phase}
+            </if>
+            <if test="success != null">
+                AND r.success = #{success}
+            </if>
+        </where>
+        ORDER BY r.created_time DESC
+    </select>
+
+    <select id="countFunnelByPhase" resultMap="DmFunnelItemVo">
+        SELECT r.phase,
+        CASE r.phase WHEN 0 THEN '检测' WHEN 1 THEN '命中' WHEN 2 THEN '下载完成' WHEN 3 THEN '下载失败'
+        WHEN 4 THEN 'MD5校验失败' WHEN 5 THEN '安装结果' WHEN 6 THEN '启动成功' ELSE '未知' END AS phase_name,
+        COUNT(DISTINCT r.device_identification) AS device_count
+        FROM device_ota_upgrade_record r
+        WHERE r.pkg_id = #{pkgId}
+        <if test="startTime != null">
+            AND r.upgrade_time &gt;= #{startTime}
+        </if>
+        GROUP BY r.phase
+        ORDER BY r.phase
+    </select>
+
+    <select id="countDistinctDeviceByPhase" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT r.device_identification)
+        FROM device_ota_upgrade_record r
+        WHERE r.pkg_id = #{pkgId} AND r.phase = #{phase}
+        <if test="startTime != null">
+            AND r.upgrade_time &gt;= #{startTime}
+        </if>
+    </select>
+
+    <select id="countInstallSuccess" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM device_ota_upgrade_record r
+        WHERE r.pkg_id = #{pkgId} AND r.phase = 5 AND r.success = 1
+        <if test="startTime != null">
+            AND r.upgrade_time &gt;= #{startTime}
+        </if>
+    </select>
+
+    <select id="countInstallTotal" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM device_ota_upgrade_record r
+        WHERE r.pkg_id = #{pkgId} AND r.phase = 5
+        <if test="startTime != null">
+            AND r.upgrade_time &gt;= #{startTime}
+        </if>
+    </select>
+
+    <select id="countErrorTops" resultMap="DmErrorTopVo">
+        SELECT r.error_code, r.error_msg, COUNT(1) AS count
+        FROM device_ota_upgrade_record r
+        WHERE r.pkg_id = #{pkgId}
+        AND r.error_code IS NOT NULL AND r.error_code != ''
+        <if test="startTime != null">
+            AND r.upgrade_time &gt;= #{startTime}
+        </if>
+        GROUP BY r.error_code, r.error_msg
+        ORDER BY count DESC
+        LIMIT 10
+    </select>
+</mapper>

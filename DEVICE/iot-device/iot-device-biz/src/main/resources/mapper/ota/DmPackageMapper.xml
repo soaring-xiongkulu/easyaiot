@@ -15,6 +15,16 @@
         <result column="status" property="status"></result>
         <result column="url" property="url"></result>
         <result column="remark" property="remark"></result>
+        <result column="file_md5" property="fileMd5"></result>
+        <result column="file_size" property="fileSize"></result>
+        <result column="file_name" property="fileName"></result>
+        <result column="changelog" property="changelog"></result>
+        <result column="product_identification" property="productIdentification"></result>
+        <result column="publish_strategy" property="publishStrategy"></result>
+        <result column="gray_ladder" property="grayLadder"></result>
+        <result column="test_passed" property="testPassed"></result>
+        <result column="withdraw_reason" property="withdrawReason"></result>
+        <result column="withdraw_time" property="withdrawTime"></result>
     </resultMap>
 
     <resultMap id="DmPackagePo" type="com.basiclab.iot.device.dal.dataobject.DmPackagePo">
@@ -29,6 +39,18 @@
         <result column="publish_time" property="publishTime"></result>
         <result column="created_time" property="createTime"></result>
         <result column="file_md5" property="fileMd5"></result>
+        <result column="file_size" property="fileSize"></result>
+        <result column="file_name" property="fileName"></result>
+        <result column="changelog" property="changelog"></result>
+        <result column="product_identification" property="productIdentification"></result>
+        <result column="publish_strategy" property="publishStrategy"></result>
+        <result column="gray_ladder" property="grayLadder"></result>
+        <result column="test_passed" property="testPassed"></result>
+        <result column="test_remark" property="testRemark"></result>
+        <result column="test_by" property="testBy"></result>
+        <result column="test_time" property="testTime"></result>
+        <result column="withdraw_reason" property="withdrawReason"></result>
+        <result column="withdraw_time" property="withdrawTime"></result>
         <result column="remark" property="remark"></result>
     </resultMap>
 
@@ -40,14 +62,26 @@
             parameterType="com.basiclab.iot.device.domain.ota.qo.DmPackagePageQo">
         SELECT
         pk.id, pk.version, pk.name, pk.type, pk.upgrade_mode, pk.upload_time, pk.publish_time, pk.status,
-        pk.key_version_flag, pk.url, pk.remark, pk.updated_time
+        pk.key_version_flag, pk.url, pk.remark, pk.updated_time,
+        pk.file_md5, pk.file_size, pk.file_name, pk.changelog, pk.product_identification,
+        pk.publish_strategy, pk.gray_ladder, pk.test_passed, pk.withdraw_reason, pk.withdraw_time
         FROM device_ota_pkg pk
         <where>
             <if test="type != null">
                 AND pk.type = #{type}
             </if>
+            <if test="name != null and name != ''">
+                AND pk.name LIKE CONCAT('%', #{name}, '%')
+            </if>
             <if test="version != null and version != ''">
                 AND pk.version = #{version}
+            </if>
+            <if test="status != null">
+                AND pk.status = #{status}
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                AND (pk.product_identification = #{productIdentification}
+                     OR pk.product_identification IS NULL OR pk.product_identification = '')
             </if>
         </where>
         ORDER BY pk.updated_time DESC
@@ -56,12 +90,15 @@
     <select id="getPackageByVerifyList" resultMap="DmPackagePo"
             parameterType="com.basiclab.iot.device.domain.ota.oo.DmDeviceDetectOo">
         SELECT pk.id, pk.name, pk.type, pk.version, pk.upgrade_mode, pk.url, pk.key_version_flag,
-        pk.status, pk.remark, pk.publish_time, pk.created_time, pk.file_md5
+        pk.status, pk.remark, pk.publish_time, pk.created_time, pk.file_md5,
+        pk.file_size, pk.file_name, pk.changelog, pk.product_identification,
+        pk.publish_strategy, pk.gray_ladder, pk.test_passed, pk.test_remark, pk.test_by, pk.test_time,
+        pk.withdraw_reason, pk.withdraw_time
         FROM device_ota_pkg pk
         <where>
             <if test="deviceIdentification != null and deviceIdentification != ''">
                 AND pk.id IN(
-                SELECT v.pkg_id FROM device_ota_version_verify v WHERE v.deviceIdentification = #{deviceIdentification} AND v.status = 1
+                SELECT v.pkg_id FROM device_ota_version_verify v WHERE v.device_identification = #{deviceIdentification} AND v.status = 1
                 )
             </if>
             <if test="type != null">
@@ -72,7 +109,11 @@
 
     <select id="getPublishedPackageList" resultMap="DmPackagePo"
             parameterType="com.basiclab.iot.device.domain.ota.oo.DmDeviceDetectOo">
-        SELECT pk.*
+        SELECT pk.id, pk.name, pk.type, pk.version, pk.upgrade_mode, pk.url, pk.key_version_flag,
+        pk.status, pk.remark, pk.publish_time, pk.created_time, pk.file_md5,
+        pk.file_size, pk.file_name, pk.changelog, pk.product_identification,
+        pk.publish_strategy, pk.gray_ladder, pk.test_passed, pk.test_remark, pk.test_by, pk.test_time,
+        pk.withdraw_reason, pk.withdraw_time
         FROM device_ota_pkg pk
         <where>
             <if test="1 == 1">

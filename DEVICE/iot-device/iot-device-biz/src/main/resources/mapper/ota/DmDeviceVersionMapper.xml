@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.ota.DmDeviceVersionMapper">
+
+    <resultMap id="DmDeviceVersionVo" type="com.basiclab.iot.device.domain.ota.vo.DmDeviceVersionVo">
+        <id column="id" property="id"></id>
+        <result column="device_version" property="deviceVersion"></result>
+        <result column="product_identification" property="productIdentification"></result>
+        <result column="app_pkg_id" property="appPkgId"></result>
+        <result column="app_pkg_name" property="appPkgName"></result>
+        <result column="os_pkg_id" property="osPkgId"></result>
+        <result column="os_pkg_name" property="osPkgName"></result>
+        <result column="upgrade_mode" property="upgradeMode"></result>
+        <result column="remark" property="remark"></result>
+        <result column="created_time" property="createdTime"></result>
+        <result column="updated_time" property="updatedTime"></result>
+    </resultMap>
+
+    <select id="getVersionPageList" resultMap="DmDeviceVersionVo"
+            parameterType="com.basiclab.iot.device.domain.ota.qo.DmDeviceVersionPageQo">
+        SELECT v.id, v.device_version, v.product_identification,
+        v.app_pkg_id, app_pkg.name AS app_pkg_name,
+        v.os_pkg_id, os_pkg.name AS os_pkg_name,
+        v.upgrade_mode, v.remark, v.created_time, v.updated_time
+        FROM device_ota_version v
+        LEFT JOIN device_ota_pkg app_pkg ON app_pkg.id = v.app_pkg_id
+        LEFT JOIN device_ota_pkg os_pkg ON os_pkg.id = v.os_pkg_id
+        <where>
+            <if test="deviceVersion != null and deviceVersion != ''">
+                AND v.device_version LIKE CONCAT('%', #{deviceVersion}, '%')
+            </if>
+            <if test="productIdentification != null and productIdentification != ''">
+                AND v.product_identification = #{productIdentification}
+            </if>
+        </where>
+        ORDER BY v.updated_time DESC
+    </select>
+</mapper>

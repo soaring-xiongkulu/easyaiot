@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.ota.DmPackageVerifyMapper">
+
+    <resultMap id="DmVerifyVo" type="com.basiclab.iot.device.domain.ota.vo.DmVerifyVo">
+        <id column="id" property="id"></id>
+        <result column="pkg_id" property="pkgId"></result>
+        <result column="pkg_name" property="pkgName"></result>
+        <result column="device_identification" property="deviceIdentification"></result>
+        <result column="device_name" property="deviceName"></result>
+        <result column="status" property="status"></result>
+        <result column="remark" property="remark"></result>
+        <result column="created_time" property="createdTime"></result>
+    </resultMap>
+
+    <resultMap id="DmWhiteGroupVo" type="com.basiclab.iot.device.domain.ota.vo.DmWhiteGroupVo">
+        <result column="product_identification" property="productIdentification"></result>
+        <result column="product_name" property="productName"></result>
+        <result column="device_count" property="deviceCount"></result>
+    </resultMap>
+
+    <select id="getVerifyPageList" resultMap="DmVerifyVo"
+            parameterType="com.basiclab.iot.device.domain.ota.qo.DmVerifyPageQo">
+        SELECT v.id, v.pkg_id, p.name AS pkg_name, v.device_identification, v.device_name,
+        v.status, v.remark, v.created_time
+        FROM device_ota_version_verify v
+        LEFT JOIN device_ota_pkg p ON p.id = v.pkg_id
+        <where>
+            <if test="pkgId != null">
+                AND v.pkg_id = #{pkgId}
+            </if>
+            <if test="deviceIdentification != null and deviceIdentification != ''">
+                AND v.device_identification LIKE CONCAT('%', #{deviceIdentification}, '%')
+            </if>
+            <if test="deviceName != null and deviceName != ''">
+                AND v.device_name LIKE CONCAT('%', #{deviceName}, '%')
+            </if>
+        </where>
+        ORDER BY v.created_time DESC
+    </select>
+
+    <select id="countDeviceGroupByProduct" resultMap="DmWhiteGroupVo">
+        SELECT d.product_identification, p.product_name, COUNT(1) AS device_count
+        FROM device d
+        LEFT JOIN product p ON p.product_identification = d.product_identification
+        WHERE d.product_identification IS NOT NULL AND d.product_identification != ''
+        GROUP BY d.product_identification, p.product_name
+        ORDER BY device_count DESC
+    </select>
+</mapper>
