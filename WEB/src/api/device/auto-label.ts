@@ -96,6 +96,7 @@ export interface StartSamPipelineParams {
   annotation_type?: 'rectangle' | 'polygon';
   return_masks?: boolean;
   auto_export?: boolean;
+  keep_annotated_images_only?: boolean;
   train_ratio?: number;
   val_ratio?: number;
   test_ratio?: number;

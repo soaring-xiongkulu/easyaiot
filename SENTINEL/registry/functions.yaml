@@ -69,4 +69,4 @@ functions:
 nfs_client_functions: [algorithm, train, label, infer]
 
 # 控制面本机默认功能（单机=集群特例）
-platform_default: [algorithm, forward, live, nfs]
+platform_default: [algorithm, forward, live, label, infer, nfs]

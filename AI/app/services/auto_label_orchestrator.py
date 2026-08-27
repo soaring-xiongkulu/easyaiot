@@ -135,12 +135,16 @@ def _yolo_to_annotations(detections: list, image_width: int, image_height: int) 
         if not bbox or len(bbox) < 4:
             continue
         x1, y1, x2, y2 = bbox[:4]
+        norm_x1, norm_y1 = float(x1) / image_width, float(y1) / image_height
+        norm_x2, norm_y2 = float(x2) / image_width, float(y2) / image_height
         annotations.append({
             'type': 'rectangle',
             'label': det.get('class_name') or det.get('label') or 'object',
             'points': [
-                {'x': x1 / image_width, 'y': y1 / image_height},
-                {'x': x2 / image_width, 'y': y2 / image_height},
+                {'x': norm_x1, 'y': norm_y1},
+                {'x': norm_x2, 'y': norm_y1},
+                {'x': norm_x2, 'y': norm_y2},
+                {'x': norm_x1, 'y': norm_y2},
             ],
             'confidence': det.get('confidence') or det.get('conf'),
         })

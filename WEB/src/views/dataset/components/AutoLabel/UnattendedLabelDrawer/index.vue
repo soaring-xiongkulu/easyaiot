@@ -150,6 +150,10 @@
                 <FormItem :label="COPY.deploy.interval">
                   <InputNumber v-model:value="form.capture_interval_sec" :min="5" :max="600" style="width: 100%" />
                 </FormItem>
+                <FormItem :label="COPY.deploy.annotatedOnly">
+                  <Switch v-model:checked="form.keep_annotated_images_only" />
+                  <p class="form-hint">{{ COPY.deploy.annotatedOnlyHint }}</p>
+                </FormItem>
                 <FormItem :label="COPY.deploy.autoExport">
                   <Checkbox v-model:checked="form.auto_export">启用</Checkbox>
                 </FormItem>
@@ -218,6 +222,7 @@ import {
   Progress,
   Select,
   Steps,
+  Switch,
   Table,
   Tabs,
   Tag,
@@ -300,9 +305,10 @@ const form = reactive({
   model_id: undefined as number | undefined,
   text_prompts: [] as string[],
   frame_task_ids: [] as number[],
-  execution_mode: 'cluster' as 'local' | 'cluster',
+  execution_mode: 'local' as 'local' | 'cluster',
   duration_hours: 8,
   capture_interval_sec: 30,
+  keep_annotated_images_only: true,
   auto_export: true,
 });
 
@@ -410,6 +416,7 @@ const monitorDescData = computed(() => ({
   captured_count: pipelineConfig.value.captured_count ?? 0,
   labeled_count: pipelineConfig.value.labeled_count ?? activeTask.value?.success_count ?? 0,
   duration_hours: pipelineConfig.value.duration_hours ?? '-',
+  keep_annotated_images_only: pipelineConfig.value.keep_annotated_images_only === false ? '否' : '是',
   status: statusLabel.value,
 }));
 
@@ -419,6 +426,7 @@ const monitorDescSchema = computed<DescItem[]>(() => [
   { field: 'captured_count', label: '已抽帧' },
   { field: 'labeled_count', label: '已标注' },
   { field: 'duration_hours', label: '计划时长(h)' },
+  { field: 'keep_annotated_images_only', label: COPY.deploy.annotatedOnly },
   { field: 'status', label: '状态' },
 ]);
 
@@ -560,9 +568,10 @@ const [register, { closeDrawer, getOpen }] = useDrawerInner(async () => {
   form.model_id = undefined;
   form.text_prompts = [];
   form.frame_task_ids = [];
-  form.execution_mode = 'cluster';
+  form.execution_mode = 'local';
   form.duration_hours = 8;
   form.capture_interval_sec = 30;
+  form.keep_annotated_images_only = true;
   form.auto_export = true;
   originFilter.value = 'all';
   taskId.value = null;
@@ -593,6 +602,7 @@ async function handleSubmit(): Promise<void> {
       model_id: form.model_id,
       duration_hours: form.duration_hours,
       capture_interval_sec: form.capture_interval_sec,
+      keep_annotated_images_only: form.keep_annotated_images_only,
       auto_export: form.auto_export,
       execution_mode: form.execution_mode,
       frame_task_ids: form.frame_task_ids,
