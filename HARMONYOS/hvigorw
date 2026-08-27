@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# ================================================================
+# 鸿蒙构建启动器：定位并调用 hvigor（HarmonyOS 官方构建工具）。
+#
+# 查找顺序:
+#   1. HVIGOR_HOME/bin/hvigorw.js 环境变量指定
+#   2. DevEco Studio for macOS 自带 hvigor
+#   3. DevEco Studio for Windows/Linux 常见安装路径下的 tools/hvigor
+#   4. PATH 中的 hvigorw
+#
+# 注意: hvigor 与 HarmonyOS SDK 由 DevEco Studio 分发，不在公开 npm 源，
+#       不存在"装个 npm 包就能构建"的路径。
+#
+# 用法与官方一致，例如:
+#   ./hvigorw assembleHap --mode module -p product=default
+# ================================================================
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+CANDIDATES=(
+  "${HVIGOR_HOME:-}/bin/hvigorw.js"
+  "/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw.js"
+  "/c/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw.js"
+)
+
+for candidate in "${CANDIDATES[@]}"; do
+  if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+    exec node "$candidate" "$@"
+  fi
+done
+
+if command -v hvigorw >/dev/null 2>&1; then
+  exec hvigorw "$@"
+fi
+
+echo "[ERROR] 未找到 hvigor 构建工具（hvigor 随 DevEco Studio 分发，无公开 npm 包）。"
+echo "       请任选其一："
+echo "  a) 在装有 DevEco Studio 的机器（macOS/Windows）上执行 ./make-hap.sh；"
+echo "  b) 设置环境变量 HVIGOR_HOME 指向 DevEco 的 <安装目录>/tools/hvigor；"
+echo "  c) 把 HVIGOR_HOME 指向团队内共享的 hvigor 安装目录。"
+exit 1

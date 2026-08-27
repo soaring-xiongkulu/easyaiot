@@ -1,0 +1,9 @@
+{
+  "name": "easyaiot",
+  "version": "1.0.0",
+  "description": "EasyAIoT 移动端 HarmonyOS 壳工程：用系统 ArkWeb 承载 APP 模块的 H5 构建产物",
+  "main": "",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

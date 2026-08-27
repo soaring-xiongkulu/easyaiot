@@ -1,0 +1,12 @@
+{
+  "app": {
+    "bundleName": "com.basiclab.iot.app",
+    "vendor": "basiclab",
+    // 版本号与 APP/manifest.config.ts、IOS/EasyAIoT.xcodeproj 保持一致，make-hap.sh 会校验；
+    // 发新版本只改这里
+    "versionCode": 100,
+    "versionName": "1.0.0",
+    "icon": "$media:layered_image",
+    "label": "$string:app_name"
+  }
+}

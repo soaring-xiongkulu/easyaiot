@@ -1,0 +1,37 @@
+{
+  "app": {
+    // 真机安装需要签名：在 DevEco Studio 中 File → Project Structure → Signing Configs
+    // 勾选 Automatically generate signature 后，此处会自动补全调试签名；
+    // 发行签名需在 AppGallery Connect 申请证书与 Profile 后在此登记。
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "compatibleSdkVersion": "5.0.5(17)",
+        "runtimeOS": "HarmonyOS"
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
