@@ -53,6 +53,12 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 📄 如需更完整的圖文介紹，請參閱 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT項目介紹 V2.0（PPT）</a>，以及 <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI視頻監控分析平臺（PDF）</a>。部署完成後的業務操作見 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">平臺操作手冊</a>。
 </p>
 
+### 🏆 資質證書
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee 2025 年度開源專案 · 工業軟體賽道 Top1"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · 最有價值開源專案"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN 部落格專家"> |
+
 ## 🚀 快速開始
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

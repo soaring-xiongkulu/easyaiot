@@ -53,6 +53,12 @@ La plateforme comprend notamment les modules <strong>WEB, APP, DEVICE, EDGE, SEN
 📄 Pour une présentation illustrée plus complète, consultez <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">Présentation du projet EasyAIoT V2.0 (PPT)</a>, ainsi que <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">Plateforme d'analyse de vidéosurveillance IA (PDF)</a>. Pour les opérations métier après déploiement, voir le <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">manuel d'exploitation de la plateforme</a>.
 </p>
 
+### 🏆 Certificats
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee Annual OSS Award 2025 · Top 1 du secteur des logiciels industriels"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · Projet open source le plus précieux"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ étoiles"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="Expert blogueur CSDN"> |
+
 ## 🚀 Démarrage rapide
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

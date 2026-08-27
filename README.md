@@ -53,6 +53,12 @@ The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, SE
 📄 For a more complete illustrated introduction, see <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT Project Introduction V2.0 (PPT)</a>, and <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI Video Surveillance Analytics Platform (PDF)</a>. For day-to-day platform operations after deployment, see the <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Platform Operations Manual</a>.
 </p>
 
+### 🏆 Certificates
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee Annual OSS Award 2025 · Industrial Software Track Top 1"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · Most Valuable Open Source Project"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN Blog Expert"> |
+
 ## 🚀 Quick Start
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

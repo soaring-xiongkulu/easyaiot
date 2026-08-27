@@ -53,6 +53,12 @@
 📄 Для более полного иллюстрированного описания см. <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">Презентация проекта EasyAIoT V2.0 (PPT)</a>, а также <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">Платформа AI-анализа видеонаблюдения (PDF)</a>. Повседневные операции после развёртывания см. в <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">руководстве по эксплуатации платформы</a>.
 </p>
 
+### 🏆 Сертификаты
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee Annual OSS Award 2025 · Победитель трека «Промышленное ПО» (Top 1)"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · Самый ценный открытый проект"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ звёзд"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="Эксперт блога CSDN"> |
+
 ## 🚀 Быстрый старт
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

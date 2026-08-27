@@ -53,6 +53,12 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 📄 보다 완전한 그림·문자 소개는 <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT 프로젝트 소개 V2.0 (PPT)</a>, 그리고 <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI 영상 감시 분석 플랫폼 (PDF)</a>를 참조하세요. 배포 완료 후 업무 운영은 <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">플랫폼 운영 매뉴얼</a>을 참고하세요.
 </p>
 
+### 🏆 자격증
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee 2025 연례 오픈소스 프로젝트 · 산업 소프트웨어 부문 Top1"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · 가장 가치 있는 오픈소스 프로젝트"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN 블로그 전문가"> |
+
 ## 🚀 빠른 시작
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
