@@ -54,10 +54,10 @@ export interface NvrInfo {
 
 /** 获取摄像头设备分页列表（保留 total 供分页使用） */
 export async function getDeviceList(params: DeviceListParams): Promise<DeviceListResult> {
-  const res = await http.get<DeviceInfo[]>('/video/camera/list', {
+  const res = await http.get<IResponse<DeviceInfo[]>>('/video/camera/list', {
     ...params,
     search: params.search ?? params.deviceName,
-  }, undefined, { original: true }) as IResponse<DeviceInfo[]>
+  }, undefined, { original: true })
   const data = Array.isArray(res.data) ? res.data : []
   return {
     data,
