@@ -1,39 +1,37 @@
 <template>
-  <Drawer
-    v-model:visible="visible"
-    :title="editingId ? '设计面板模板' : '新建面板模板'"
-    width="1080"
-    destroyOnClose
-    :maskClosable="false"
+  <BasicDrawer
+    v-bind="$attrs"
+    @register="register"
+    :title="getTitle"
+    width="95%"
+    placement="right"
+    :showFooter="true"
+    :showCancelBtn="false"
+    :showOkBtn="false"
+    destroy-on-close
     class="panel-editor-drawer"
-    @close="handleClose"
   >
+    <template #footer>
+      <div class="footer-buttons">
+        <Button v-if="!isView" @click="handleClose">取消</Button>
+        <Button v-if="!isView" type="primary" :loading="saving" @click="handleSave">
+          {{ editingId ? '保存修改' : '保存为草稿' }}
+        </Button>
+        <Button v-else type="primary" @click="handleClose">关闭</Button>
+      </div>
+    </template>
+
     <div class="panel-editor">
-      <!-- 基本信息 -->
+      <!-- 基本信息（绑定产品与产品管理打通） -->
       <div class="panel-meta">
-        <div class="meta-item">
-          <span class="meta-label">模板名称</span>
-          <Input v-model:value="form.templateName" placeholder="如：智能插座控制面板" style="width: 200px" />
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">模板编码</span>
-          <Input v-model:value="form.templateCode" :disabled="!!editingId" placeholder="如：plug-panel-v1" style="width: 180px" />
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">绑定产品</span>
-          <Select
-            v-model:value="form.productIdentification"
-            show-search
-            option-filter-prop="label"
-            placeholder="选择要下发面板的产品"
-            style="width: 220px"
-            :options="productOptions"
-          />
-        </div>
-        <div class="meta-item meta-item-grow">
-          <span class="meta-label">备注</span>
-          <Input v-model:value="form.remark" placeholder="选填" style="flex: 1" />
-        </div>
+        <BasicForm @register="registerForm" :compact="true" />
+        <Alert
+          v-if="!isView && productBindInfo"
+          :type="productBindType"
+          show-icon
+          class="meta-alert"
+          :message="productBindInfo"
+        />
       </div>
 
       <div class="panel-workspace">
@@ -43,7 +41,7 @@
             <h4>组件库</h4>
             <div class="palette-grid">
               <Tooltip v-for="t in WIDGET_TYPES" :key="t.type" :title="t.desc">
-                <div class="palette-item" @click="addWidget(t.type)">
+                <div class="palette-item" :class="{disabled: isView}" @click="!isView && addWidget(t.type)">
                   <span class="palette-icon">{{ t.icon }}</span>
                   <span>{{ t.label }}</span>
                 </div>
@@ -74,7 +72,7 @@
               >
                 <span class="widget-item-icon">{{ typeMeta(w.type).icon }}</span>
                 <span class="widget-item-title">{{ w.title || typeMeta(w.type).label }}</span>
-                <span class="widget-item-actions stop">
+                <span v-if="!isView" class="widget-item-actions stop">
                   <UpOutlined class="op" @click.stop="move(idx, -1)" />
                   <DownOutlined class="op" @click.stop="move(idx, 1)" />
                   <DeleteOutlined class="op danger" @click.stop="removeWidget(idx)" />
@@ -84,7 +82,7 @@
           </div>
 
           <div class="left-section">
-            <Checkbox :checked="sourceMode" @change="(e) => (sourceMode = e.target.checked)">JSON 源码模式</Checkbox>
+            <Checkbox v-if="!isView" :checked="sourceMode" @change="(e) => (sourceMode = e.target.checked)">JSON 源码模式</Checkbox>
           </div>
         </div>
 
@@ -226,7 +224,27 @@
 
         <!-- 右：属性配置 -->
         <div class="workspace-right">
-          <template v-if="activeWidget">
+          <template v-if="isView">
+            <h4>模板信息</h4>
+            <div class="form-item">
+              <span class="form-label">模板编码</span>
+              <span class="view-text">{{ formView.templateCode || '-' }}</span>
+            </div>
+            <div class="form-item">
+              <span class="form-label">模板版本</span>
+              <span class="view-text">v{{ formView.version ?? '-' }}</span>
+            </div>
+            <div class="form-item">
+              <span class="form-label">模板状态</span>
+              <span class="view-text">{{ formView.statusText }}</span>
+            </div>
+            <div class="form-item">
+              <span class="form-label">备注</span>
+              <span class="view-text">{{ formView.remark || '无' }}</span>
+            </div>
+            <p class="form-help">只读预览 · 点击「设计面板」可进入编辑</p>
+          </template>
+          <template v-else-if="activeWidget">
             <h4>组件配置 · {{ typeMeta(activeWidget.type).label }}</h4>
             <div class="form-item">
               <span class="form-label">标题</span>
@@ -332,28 +350,20 @@
         </div>
       </div>
     </div>
-
-    <template #footer>
-      <Space>
-        <Button @click="handleClose">取消</Button>
-        <Button type="primary" :loading="saving" @click="handleSave">
-          {{ editingId ? '保存修改' : '保存为草稿' }}
-        </Button>
-      </Space>
-    </template>
-  </Drawer>
+  </BasicDrawer>
 </template>
 
 <script lang="ts" setup name="appPanelTemplateEditor">
 import {computed, reactive, ref, watch} from 'vue';
+import {BasicDrawer, useDrawerInner} from '@/components/Drawer';
+import {BasicForm, useForm} from '@/components/Form';
+import {Button} from '@/components/Button';
 import {
-  Button,
+  Alert,
   Checkbox,
-  Drawer,
   Empty,
   Input,
   InputNumber,
-  Popconfirm,
   Select,
   Space,
   Switch,
@@ -361,17 +371,25 @@ import {
   Tooltip,
 } from 'ant-design-vue';
 import {DownOutlined, UpOutlined, DeleteOutlined} from '@ant-design/icons-vue';
-import {createAppPanelTemplate, updateAppPanelTemplate} from '@/api/device/appPanelTemplate';
+import {createAppPanelTemplate, getAppPanelTemplatePage, updateAppPanelTemplate} from '@/api/device/appPanelTemplate';
 import {getDeviceProfiles} from '@/api/device/product';
 import {useMessage} from '@/hooks/web/useMessage';
 
 const emit = defineEmits(['success']);
 const {createMessage} = useMessage();
 
-const visible = ref(false);
 const saving = ref(false);
 const sourceMode = ref(false);
 const editingId = ref<number | null>(null);
+const isView = ref(false);
+
+// 只读模式下的模板摘要信息
+const formView = reactive({
+  templateCode: '',
+  version: null as number | null,
+  statusText: '',
+  remark: '',
+});
 
 const WIDGET_TYPES = [
   {type: 'switch', label: '开关', icon: '⏻', desc: '布尔开关，绑定可写属性'},
@@ -395,33 +413,118 @@ const typeMeta = (type) => WIDGET_TYPES.find((t) => t.type === type) || {icon: '
 let uidSeed = 1;
 const genUid = () => `w${Date.now().toString(36)}${uidSeed++}`;
 
-const form = reactive({
-  templateName: '',
-  templateCode: '',
-  productIdentification: undefined as string | undefined,
-  remark: '',
-});
 const widgets = ref<any[]>([]);
 const activeUid = ref<string | null>(null);
 const activeWidget = computed(() => widgets.value.find((w) => w.uid === activeUid.value));
 const schemaText = ref('');
-const productOptions = ref<{ label: string; value: string }[]>([]);
+const productOptions = ref<{label: string; value: string}[]>([]);
+// 产品 -> 已有模板映射（同一产品仅保留一个模板，联动提示）
+const templateMap = ref<Record<string, {id: number; templateName: string; status: string; version: number}>>({});
+
+const [register, {closeDrawer}] = useDrawerInner((data) => {
+  isView.value = !!data?.isView;
+  openLogic(data?.record ?? null);
+});
+
+// 表单值响应式镜像（BasicForm 无 formModel，经组件 onChange 同步）
+const selectedName = ref('');
+const selectedProduct = ref<string | undefined>(undefined);
+
+const [registerForm, {setFieldsValue, validate, updateSchema, setProps}] = useForm({
+  labelWidth: 100,
+  baseColProps: {span: 6},
+  showActionButtonGroup: false,
+  compact: true,
+  schemas: [
+    {
+      field: 'templateName',
+      label: '模板名称',
+      component: 'Input',
+      required: true,
+      componentProps: {
+        placeholder: '如：智能插座控制面板',
+        onChange: (v: any) => {
+          selectedName.value = v?.target?.value ?? v ?? '';
+        },
+      },
+    },
+    {
+      field: 'templateCode',
+      label: '模板编码',
+      component: 'Input',
+      required: true,
+      componentProps: {placeholder: '如：plug-panel-v1'},
+    },
+    {
+      field: 'productIdentification',
+      label: '绑定产品',
+      component: 'Select',
+      required: true,
+      componentProps: {
+        showSearch: true,
+        optionFilterProp: 'label',
+        placeholder: '选择要下发面板的产品',
+        options: [] as any[],
+        onChange: (v: string) => {
+          selectedProduct.value = v;
+        },
+      },
+    },
+    {
+      field: 'remark',
+      label: '备注',
+      component: 'Input',
+      componentProps: {placeholder: '选填'},
+    },
+  ],
+});
+
+const getTitle = computed(() =>
+  isView.value ? '查看面板模板' : editingId.value ? '编辑面板模板' : '新建面板模板',
+);
+
+const STATUS_TEXT: Record<string, string> = {DRAFT: '草稿', PUBLISHED: '已发布', DISABLED: '已停用'};
 
 const previewDeviceName = computed(() => {
-  const p = productOptions.value.find((o) => o.value === form.productIdentification);
-  return `${form.templateName || '我的设备'} · ${p ? p.label : '已绑定产品'}`;
+  const p = productOptions.value.find((o) => o.value === selectedProduct.value);
+  return `${selectedName.value || '我的设备'} · ${p ? p.label.split('（')[0] : '已绑定产品'}`;
+});
+
+// 当前绑定产品的已有模板提示（与产品管理逻辑打通）
+const productBindInfo = computed(() => {
+  const pid = selectedProduct.value;
+  if (!pid) return '';
+  const t = templateMap.value[pid];
+  if (!t) return '';
+  const isSelf = editingId.value && t.id === editingId.value;
+  const statusText = STATUS_TEXT[t.status] || t.status;
+  return isSelf
+    ? `该产品当前绑定模板：${t.templateName}（v${t.version} · ${statusText}）`
+    : `该产品已存在模板「${t.templateName}」（v${t.version} · ${statusText}）。同一产品仅保留一个模板，保存后需发布才会对 App 生效`;
+});
+const productBindType = computed(() => {
+  const t = selectedProduct.value ? templateMap.value[selectedProduct.value] : null;
+  return t && (!editingId.value || t.id !== editingId.value) ? 'warning' : 'info';
 });
 
 async function loadProducts() {
-  if (productOptions.value.length) return;
   try {
-    const res = await getDeviceProfiles({pageNum: 1, pageSize: 500});
-    const rows = res?.data ?? res ?? [];
+    const [profilesRes, templatesRes] = await Promise.all([
+      getDeviceProfiles({pageNum: 1, pageSize: 500}),
+      getAppPanelTemplatePage({pageNum: 1, pageSize: 100}),
+    ]);
+    const rows = profilesRes?.data ?? profilesRes ?? [];
     productOptions.value = (rows || [])
       .filter((r) => r.productIdentification)
-      .map((r) => ({label: r.productName, value: r.productIdentification}));
+      .map((r) => ({label: `${r.productName}（${r.productIdentification}）`, value: r.productIdentification}));
+    updateSchema([{field: 'productIdentification', componentProps: {options: productOptions.value}}]);
+    const list = templatesRes?.data ?? templatesRes?.rows ?? templatesRes ?? [];
+    templateMap.value = {};
+    (list || []).forEach((t) => {
+      if (t?.productIdentification) templateMap.value[t.productIdentification] = t;
+    });
   } catch (e) {
-    console.warn('加载产品列表失败', e);
+    console.warn('加载产品/模板信息失败', e);
   }
 }
 
@@ -616,13 +719,23 @@ function applySchemaText() {
 const optionLabel = (w) => parseEnumText(w.enumText)[0]?.label || w.options?.[0]?.label || '--';
 const optionColor = (w) => parseEnumText(w.enumText)[0]?.color || '#0957de';
 
-async function open(record) {
+async function openLogic(record) {
   await loadProducts();
   editingId.value = record?.id ?? null;
-  form.templateName = record?.templateName ?? '';
-  form.templateCode = record?.templateCode ?? '';
-  form.productIdentification = record?.productIdentification || undefined;
-  form.remark = record?.remark ?? '';
+  updateSchema([{field: 'templateCode', componentProps: {disabled: !!record?.id}}]);
+  setProps({disabled: isView.value});
+  selectedName.value = record?.templateName ?? '';
+  selectedProduct.value = record?.productIdentification || undefined;
+  await setFieldsValue({
+    templateName: record?.templateName ?? '',
+    templateCode: record?.templateCode ?? '',
+    productIdentification: record?.productIdentification || undefined,
+    remark: record?.remark ?? '',
+  });
+  formView.templateCode = record?.templateCode ?? '';
+  formView.version = record?.version ?? null;
+  formView.statusText = STATUS_TEXT[record?.status] || record?.status || '草稿';
+  formView.remark = record?.remark ?? '';
   if (record?.panelSchema) {
     let parsed;
     try {
@@ -636,30 +749,27 @@ async function open(record) {
   }
   activeUid.value = widgets.value[0]?.uid ?? null;
   sourceMode.value = false;
-  visible.value = true;
 }
 
 function handleClose() {
-  visible.value = false;
+  closeDrawer();
 }
 
 async function handleSave() {
-  if (!form.templateName.trim()) {
-    createMessage.warning('请填写模板名称');
-    return;
-  }
-  if (!editingId.value && !form.templateCode.trim()) {
-    createMessage.warning('请填写模板编码（英文/数字/中划线）');
-    return;
+  let values;
+  try {
+    values = await validate();
+  } catch (e) {
+    return; // 表单校验失败，antd 已给出提示
   }
   saving.value = true;
   try {
     const payload = {
       id: editingId.value ?? undefined,
-      templateCode: form.templateCode.trim(),
-      templateName: form.templateName.trim(),
-      productIdentification: form.productIdentification || '',
-      remark: form.remark,
+      templateCode: (values.templateCode || '').trim(),
+      templateName: (values.templateName || '').trim(),
+      productIdentification: values.productIdentification || '',
+      remark: values.remark,
       panelSchema: buildSchemaPayload(),
     };
     if (editingId.value) {
@@ -669,7 +779,7 @@ async function handleSave() {
       await createAppPanelTemplate(payload);
       createMessage.success('模板已创建为草稿，发布后对 App 生效');
     }
-    visible.value = false;
+    closeDrawer();
     emit('success');
   } catch (e: any) {
     createMessage.error(e?.message || '保存失败');
@@ -677,8 +787,6 @@ async function handleSave() {
     saving.value = false;
   }
 }
-
-defineExpose({open});
 </script>
 
 <style lang="less" scoped>
@@ -686,32 +794,25 @@ defineExpose({open});
   display: flex;
   flex-direction: column;
   gap: 12px;
-  height: calc(100vh - 240px);
+  height: calc(100vh - 190px);
+  min-height: 0;
 }
 
 .panel-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
 
-  .meta-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .meta-alert {
+    margin-bottom: 0;
   }
+}
 
-  .meta-item-grow {
-    flex: 1;
-  }
-
-  .meta-label {
-    white-space: nowrap;
-    color: rgba(0, 0, 0, 0.65);
-
-    &::after {
-      content: '：';
-    }
-  }
+.footer-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
 .panel-workspace {
@@ -782,6 +883,17 @@ defineExpose({open});
 
     .palette-icon {
       font-size: 18px;
+    }
+
+    &.disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+
+      &:hover {
+        border-color: #d9d9d9;
+        color: inherit;
+        background: transparent;
+      }
     }
   }
 }
@@ -1158,6 +1270,12 @@ defineExpose({open});
     flex-direction: column;
     gap: 6px;
     margin-bottom: 12px;
+  }
+
+  .view-text {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.85);
+    word-break: break-all;
   }
 
   .form-grid {
