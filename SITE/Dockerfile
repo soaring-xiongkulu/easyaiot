@@ -50,7 +50,7 @@ RUN --mount=type=cache,target=/pnpm/store,id=site-pnpm-store \
 
 RUN test -d dist || (echo "=== dist missing after build ===" && exit 1)
 
-FROM nginx:1.29.2-alpine
+FROM nginx:1.31.4-alpine
 
 ARG APK_MIRROR=mirrors.tuna.tsinghua.edu.cn
 
