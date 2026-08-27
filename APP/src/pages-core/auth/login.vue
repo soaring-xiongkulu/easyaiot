@@ -13,7 +13,7 @@
 
         <TenantPicker ref="tenantPickerRef" />
         <view class="input-item">
-          <wd-icon name="user" size="20px" color="#266cfb" />
+          <wd-icon name="user" size="20px" color="#2f6bff" />
           <wd-input
             v-model="formData.username"
             placeholder="请输入用户名"
@@ -22,7 +22,7 @@
           />
         </view>
         <view class="input-item">
-          <wd-icon name="lock" size="20px" color="#266cfb" />
+          <wd-icon name="lock" size="20px" color="#2f6bff" />
           <wd-input
             v-model="formData.password"
             placeholder="请输入密码"

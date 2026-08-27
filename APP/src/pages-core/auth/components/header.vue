@@ -31,13 +31,12 @@ const title = import.meta.env.VITE_APP_TITLE
 </script>
 
 <style lang="scss" scoped>
-$auth-text: #1a2332;
-$auth-text-secondary: #64748b;
+$brand: #2f6bff;
 
 .auth-header {
   position: relative;
   z-index: 1;
-  padding: calc(env(safe-area-inset-top) + 72rpx) 48rpx 32rpx;
+  padding: calc(env(safe-area-inset-top) + 80rpx) 48rpx 36rpx;
 
   &__brand {
     display: flex;
@@ -49,9 +48,14 @@ $auth-text-secondary: #64748b;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 140rpx;
-    height: 140rpx;
-    margin-bottom: 28rpx;
+    width: 168rpx;
+    height: 168rpx;
+    margin-bottom: 32rpx;
+    background: #fff;
+    border-radius: 44rpx;
+    box-shadow:
+      0 0 0 2rpx rgba(47, 107, 255, 0.08),
+      0 20rpx 48rpx rgba(47, 107, 255, 0.18);
   }
 
   &__logo {
@@ -60,17 +64,20 @@ $auth-text-secondary: #64748b;
   }
 
   &__title {
-    font-size: 44rpx;
+    font-size: 46rpx;
     font-weight: 700;
-    color: $auth-text;
+    color: #10131a;
     letter-spacing: 1rpx;
   }
 
   &__subtitle {
-    margin-top: 14rpx;
-    font-size: 26rpx;
-    font-weight: 400;
-    color: $auth-text-secondary;
+    margin-top: 18rpx;
+    padding: 8rpx 30rpx;
+    font-size: 24rpx;
+    font-weight: 500;
+    color: $brand;
+    background: rgba(47, 107, 255, 0.08);
+    border-radius: 999rpx;
     letter-spacing: 3rpx;
   }
 }

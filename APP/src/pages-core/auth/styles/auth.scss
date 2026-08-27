@@ -1,7 +1,7 @@
 /** 认证页面公共样式 */
 
-$auth-primary: #266cfb;
-$auth-primary-light: #4d85fc;
+$auth-primary: #2f6bff;
+$auth-primary-light: #3f7bff;
 $auth-text: #1a2332;
 $auth-text-secondary: #64748b;
 $auth-border: #e2e8f0;
@@ -107,10 +107,10 @@ $auth-page-bg: #f5f7fb;
 .input-item {
   display: flex;
   align-items: center;
-  padding: 24rpx 28rpx;
-  background: $auth-input-bg;
-  border: 2rpx solid $auth-border;
-  border-radius: 12rpx;
+  padding: 26rpx 30rpx;
+  background: #f6f8fc;
+  border: 2rpx solid #eaeef5;
+  border-radius: 22rpx;
   margin-bottom: 24rpx;
   transition: border-color 0.2s, background 0.2s;
 
@@ -173,13 +173,13 @@ $auth-page-bg: #f5f7fb;
 .login-btn {
   :deep(.wd-button) {
     height: 96rpx;
-    border-radius: 12rpx;
+    border-radius: 28rpx;
     font-size: 30rpx;
     font-weight: 600;
     letter-spacing: 4rpx;
-    background: linear-gradient(135deg, $auth-primary 0%, $auth-primary-light 100%);
+    background: linear-gradient(160deg, #3f7bff 0%, #2f6bff 45%, #2456d8 100%);
     border: none;
-    box-shadow: 0 8rpx 20rpx rgba(38, 108, 251, 0.28);
+    box-shadow: 0 12rpx 28rpx rgba(47, 107, 255, 0.32);
   }
 }
 
