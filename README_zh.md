@@ -1099,6 +1099,8 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 | | | |
 |:---:|:---:|:---:|
+| ![APP截图](.image/banner/app/app_1008.jpg) | ![APP截图](.image/banner/app/app_1009.jpg) | ![APP截图](.image/banner/app/app_1010.jpg) |
+| ![APP截图](.image/banner/app/app_1011.jpg) | ![APP截图](.image/banner/app/app_1012.jpg) | ![APP截图](.image/banner/app/app_1013.jpg) |
 | ![首页](.image/banner/app/app_1000.jpg) | ![监控](.image/banner/app/app_1001.jpg) | ![预览](.image/banner/app/app_1002.jpg) |
 | ![告警](.image/banner/app/app_1003.jpg) | ![回放](.image/banner/app/app_1004.jpg) | ![设备](.image/banner/app/app_1005.jpg) |
 | ![消息](.image/banner/app/app_1006.jpg) | ![我的](.image/banner/app/app_1007.jpg) |  |

@@ -1034,6 +1034,8 @@ EasyAIoT — это проект с открытым исходным кодом
 
 | | | |
 |:---:|:---:|:---:|
+| ![Скриншот APP](.image/banner/app/app_1008.jpg) | ![Скриншот APP](.image/banner/app/app_1009.jpg) | ![Скриншот APP](.image/banner/app/app_1010.jpg) |
+| ![Скриншот APP](.image/banner/app/app_1011.jpg) | ![Скриншот APP](.image/banner/app/app_1012.jpg) | ![Скриншот APP](.image/banner/app/app_1013.jpg) |
 | ![Главная](.image/banner/app/app_1000.jpg) | ![Мониторинг](.image/banner/app/app_1001.jpg) | ![Просмотр](.image/banner/app/app_1002.jpg) |
 | ![Тревоги](.image/banner/app/app_1003.jpg) | ![Воспроизведение](.image/banner/app/app_1004.jpg) | ![Устройство](.image/banner/app/app_1005.jpg) |
 | ![Сообщения](.image/banner/app/app_1006.jpg) | ![Профиль](.image/banner/app/app_1007.jpg) |  |

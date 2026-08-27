@@ -1057,6 +1057,8 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 
 | | | |
 |:---:|:---:|:---:|
+| ![APP Screenshot](.image/banner/app/app_1008.jpg) | ![APP Screenshot](.image/banner/app/app_1009.jpg) | ![APP Screenshot](.image/banner/app/app_1010.jpg) |
+| ![APP Screenshot](.image/banner/app/app_1011.jpg) | ![APP Screenshot](.image/banner/app/app_1012.jpg) | ![APP Screenshot](.image/banner/app/app_1013.jpg) |
 | ![Home](.image/banner/app/app_1000.jpg) | ![Monitoring](.image/banner/app/app_1001.jpg) | ![Preview](.image/banner/app/app_1002.jpg) |
 | ![Alerts](.image/banner/app/app_1003.jpg) | ![Playback](.image/banner/app/app_1004.jpg) | ![Device](.image/banner/app/app_1005.jpg) |
 | ![Messages](.image/banner/app/app_1006.jpg) | ![Profile](.image/banner/app/app_1007.jpg) |  |

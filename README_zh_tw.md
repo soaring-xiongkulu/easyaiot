@@ -1043,6 +1043,8 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 
 | | | |
 |:---:|:---:|:---:|
+| ![APP截圖](.image/banner/app/app_1008.jpg) | ![APP截圖](.image/banner/app/app_1009.jpg) | ![APP截圖](.image/banner/app/app_1010.jpg) |
+| ![APP截圖](.image/banner/app/app_1011.jpg) | ![APP截圖](.image/banner/app/app_1012.jpg) | ![APP截圖](.image/banner/app/app_1013.jpg) |
 | ![首頁](.image/banner/app/app_1000.jpg) | ![監控](.image/banner/app/app_1001.jpg) | ![預覽](.image/banner/app/app_1002.jpg) |
 | ![告警](.image/banner/app/app_1003.jpg) | ![回放](.image/banner/app/app_1004.jpg) | ![設備](.image/banner/app/app_1005.jpg) |
 | ![消息](.image/banner/app/app_1006.jpg) | ![我的](.image/banner/app/app_1007.jpg) |  |

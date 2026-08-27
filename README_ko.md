@@ -1033,6 +1033,8 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 
 | | | |
 |:---:|:---:|:---:|
+| ![APP 스크린샷](.image/banner/app/app_1008.jpg) | ![APP 스크린샷](.image/banner/app/app_1009.jpg) | ![APP 스크린샷](.image/banner/app/app_1010.jpg) |
+| ![APP 스크린샷](.image/banner/app/app_1011.jpg) | ![APP 스크린샷](.image/banner/app/app_1012.jpg) | ![APP 스크린샷](.image/banner/app/app_1013.jpg) |
 | ![홈](.image/banner/app/app_1000.jpg) | ![모니터링](.image/banner/app/app_1001.jpg) | ![미리보기](.image/banner/app/app_1002.jpg) |
 | ![경보](.image/banner/app/app_1003.jpg) | ![재생](.image/banner/app/app_1004.jpg) | ![디바이스](.image/banner/app/app_1005.jpg) |
 | ![메시지](.image/banner/app/app_1006.jpg) | ![마이](.image/banner/app/app_1007.jpg) |  |
