@@ -280,8 +280,8 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>하나의 코드, 제로 분기</strong>: 세 셸이 동일한 APP 페이지와 admin-api를 공유합니다 — 디바이스 관리, 실시간 미리보기, 스트림 전달, 알고리즘 작업, 경보 센터, 모델 추론/훈련 — Android·iOS·HarmonyOS에서 PC 관리 콘솔과 동일한 기능을 제공하며, 프런트엔드의 네이티브 능력 차이는 조건부 컴파일로 완전히 격리되어 한 번의 수정이 세 플랫폼에 적용됩니다</li>
   <li><strong>플랫폼마다 시스템 네이티브 렌더링</strong>: Android는 uni-app 오프라인 런타임으로 네이티브 App 경험을 제공합니다. iOS는 커스텀 스킴 <code>easyiot://</code>로 H5 빌드를 서비스하여 페이지가 '정상적인 웹사이트'처럼 동작합니다(ES Module, localStorage, admin-api에 대한 cross-origin 요청 모두 실제 배포와 동일). HarmonyOS는 rawfile 리소스를 ArkWeb의 가상 호스트 <code>http://appassets.local/</code>로 매핑합니다 — 서드파티 엔진 없음, file:// 제약 없음, 동작 분기 없음</li>
   <li><strong>플랫폼마다 원클릭 패키징</strong>: <code>make-apk.sh</code> / <code>make-ipa.sh</code>(시뮬레이터 .app 또는 실기기 .ipa) / <code>make-hap.sh</code>가 버전 일치 검증 → 프런트엔드 빌드 → 리소스 동기화 → 네이티브 빌드 → 명명된 산출물 순으로 수행합니다. prod / test / dev 환경이 각각 독립 패키지를 만들어 서로 덮어쓰지 않습니다</li>
-  <li><strong>통합 관리 진입점</strong>: 저장소 루트의 <code>mobile.sh</code>가 세 플랫폼을 한 번에 관리합니다 — <code>status</code>(세 플랫폼 버전 일치 / 도구 체인 준비도 / 기존 산출물), <code>build android|ios|harmonyos|all</code>, <code>bump</code>, <code>artifacts</code>, <code>clean</code> — 일상 작업에서 각 모듈에 따로 들어갈 필요가 없습니다</li>
-  <li><strong>한 번의 명령으로 다섯 곳의 버전 번호 정렬</strong>: APP manifest + Android build.gradle + <code>dcloud_control.xml</code> + iOS pbxproj(Debug/Release) + HarmonyOS <code>app.json5</code> — <code>./mobile.sh bump 1.0.1 101</code>이 모든 복사본을 수정한 뒤 다시 읽어 검증합니다. 다섯 곳이 어긋나면 각 패키징 스크립트가 빌드를 거부하므로, 잘못된 버전이 나갈 일이 없습니다</li>
+  <li><strong>통합 관리 진입점</strong>: <code>.scripts/docker/mobile.sh</code>가 세 플랫폼을 한 번에 관리합니다 — <code>status</code>(세 플랫폼 버전 일치 / 도구 체인 준비도 / 기존 산출물), <code>build android|ios|harmonyos|all</code>, <code>bump</code>, <code>artifacts</code>, <code>clean</code> — 일상 작업에서 각 모듈에 따로 들어갈 필요가 없습니다</li>
+  <li><strong>한 번의 명령으로 다섯 곳의 버전 번호 정렬</strong>: APP manifest + Android build.gradle + <code>dcloud_control.xml</code> + iOS pbxproj(Debug/Release) + HarmonyOS <code>app.json5</code> — <code>.scripts/docker/mobile.sh bump 1.0.1 101</code>이 모든 복사본을 수정한 뒤 다시 읽어 검증합니다. 다섯 곳이 어긋나면 각 패키징 스크립트가 빌드를 거부하므로, 잘못된 버전이 나갈 일이 없습니다</li>
   <li><strong>표준화된 산출물 명명</strong>: 소문자 kebab-case <code>easyaiot-&lt;버전&gt;-&lt;환경&gt;-&lt;플랫폼&gt;.&lt;형식&gt;</code> — 보관에 적합한 안정적인 정렬, 객체 스토리지 / CDN 및 CI 산출물 수집에 가장 친숙합니다. <code>mobile.sh artifacts/clean/status</code>는 신·구 명명 규칙을 모두 인식합니다</li>
   <li><strong>CI 친화적 파이프라인 분리</strong>: 어떤 Linux runner든 <code>--skip-native</code>로 프런트엔드 빌드와 리소스 동기화를 먼저 수행한 뒤, 준비된 프로젝트를 macOS runner(iOS) 또는 자체 호스팅 DevEco runner(HarmonyOS)에 넘겨 최종 네이티브 컴파일을 진행할 수 있습니다 — 하나의 파이프라인으로 세 플랫폼을 빌드하며, 모든 머신에 플랫폼 도구 체인을 설치할 필요가 없습니다</li>
   <li><strong>서명과 배포 준비 완료</strong>: Android는 내장 <code>iot.jks</code>로 서명합니다(DCloud AppKey 등록 완료). iOS 시뮬레이터 빌드는 계정이 필요 없고, 실기기 / App Store 빌드는 Team ID 기반 자동 서명을 사용합니다. HarmonyOS는 DevEco에서 디버그 서명을 자동 생성하며, 배포 서명은 AppGallery Connect를 통해 진행합니다</li>
@@ -652,7 +652,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VIS
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>하나의 프런트엔드, 세 개의 네이티브 셸</strong>: APP의 uni-app 페이지를 Android(DCloud 오프라인 런타임 + Gradle → APK), iOS(WKWebView 셸 + xcodebuild → .app / .ipa), HarmonyOS(ArkWeb 셸 + hvigor → HAP) 설치형 앱으로 패키징 — 주류 휴대폰 OS에서 동일한 업무 로직</li>
     <li><strong>원클릭 패키징</strong>: <code>make-apk.sh</code> / <code>make-ipa.sh</code> / <code>make-hap.sh</code>가 버전 일치 검증 포함; prod / test / dev 환경이 각각 독립 산출물 생성</li>
-    <li><strong>통합 관리</strong>: 루트의 <code>mobile.sh</code>가 status / build / bump / artifacts / clean 담당; <code>bump</code>가 다섯 곳의 버전 번호를 한 번에 정렬하며, 버전이 일치하지 않으면 패키징을 거부합니다</li>
+    <li><strong>통합 관리</strong>: <code>.scripts/docker/mobile.sh</code>가 status / build / bump / artifacts / clean 담당; <code>bump</code>가 다섯 곳의 버전 번호를 한 번에 정렬하며, 버전이 일치하지 않으면 패키징을 거부합니다</li>
   </ul>
 </td>
 </tr>

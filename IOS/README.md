@@ -189,14 +189,14 @@ codesign -dv EasyAIoT.app
 
 ## 统一管理（推荐）
 
-仓库根目录提供三端统一管理入口 `mobile.sh`，日常操作不必分别进入各模块：
+统一脚本目录提供三端统一管理入口 `.scripts/docker/mobile.sh`（等价入口：`./install_linux.sh mobile <子命令>`），日常操作不必分别进入各模块：
 
 ```bash
-./mobile.sh status                # 三端版本一致性 / 工具链就绪度 / 已有成品 概览
-./mobile.sh build android prod    # 单端打包（android|ios|harmonyos|all）
-./mobile.sh bump 1.0.1 101        # 发版：APP manifest 与三端壳共 5 处版本号一次改齐
-./mobile.sh artifacts             # 列出所有已产出安装包
-./mobile.sh clean android         # 清理指定端的打包成品
+.scripts/docker/mobile.sh status                # 三端版本一致性 / 工具链就绪度 / 已有成品 概览
+.scripts/docker/mobile.sh build android prod    # 单端打包（android|ios|harmonyos|all）
+.scripts/docker/mobile.sh bump 1.0.1 101        # 发版：APP manifest 与三端壳共 5 处版本号一次改齐
+.scripts/docker/mobile.sh artifacts             # 列出所有已产出安装包
+.scripts/docker/mobile.sh clean android         # 清理指定端的打包成品
 ```
 
 完整说明见 [MOBILE.md](../MOBILE.md)；三端安装包统一命名为全小写 `easyaiot-<版本>-<环境>-<平台>.<格式>`。

@@ -333,8 +333,8 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>一套代码，零分叉</strong>：三端壳共用同一套 APP 页面与 admin-api——设备管理、实时预览、推流转发、算法任务、告警中心、模型推理/训练，在 Android、iOS、鸿蒙三端与 PC 管控台能力对齐；前端原生能力差异全部由条件编译隔离，一处改动三端生效</li>
   <li><strong>每端都用系统原生渲染</strong>：Android 跑 uni-app 离线运行时，获得原生 App 体验；iOS 通过自定义协议 <code>easyiot://</code> 加载 H5 产物，页面以「正常网页」身份运行（ES Module、localStorage、对 admin-api 的跨域请求都与真实站点部署一致）；鸿蒙把 rawfile 资源映射为 <code>http://appassets.local/</code> 虚拟主机交给 ArkWeb——无第三方引擎、无 file:// 各种限制、无行为分叉</li>
   <li><strong>每端一条命令出包</strong>：<code>make-apk.sh</code> / <code>make-ipa.sh</code>（模拟器 .app 或真机 .ipa）/ <code>make-hap.sh</code> 依次完成版本一致性校验 → 前端构建 → 资源同步 → 原生打包 → 命名成品；prod / test / dev 多环境各自出包互不覆盖</li>
-  <li><strong>统一管理入口</strong>：仓库根目录 <code>mobile.sh</code> 一入口管三端——<code>status</code>（三端版本一致性 / 工具链就绪度 / 已有成品）、<code>build android|ios|harmonyos|all</code>、<code>bump</code>、<code>artifacts</code>、<code>clean</code>，日常操作不必分别进入各模块</li>
-  <li><strong>一条命令改齐五处版本号</strong>：APP manifest + Android build.gradle + <code>dcloud_control.xml</code> + iOS pbxproj（Debug/Release）+ 鸿蒙 <code>app.json5</code>——<code>./mobile.sh bump 1.0.1 101</code> 一次改齐并回读校验；各端打包脚本在五处不一致时直接拒绝出包，宁可不出包也不出错包</li>
+  <li><strong>统一管理入口</strong>：<code>.scripts/docker/mobile.sh</code> 一入口管三端——<code>status</code>（三端版本一致性 / 工具链就绪度 / 已有成品）、<code>build android|ios|harmonyos|all</code>、<code>bump</code>、<code>artifacts</code>、<code>clean</code>，日常操作不必分别进入各模块</li>
+  <li><strong>一条命令改齐五处版本号</strong>：APP manifest + Android build.gradle + <code>dcloud_control.xml</code> + iOS pbxproj（Debug/Release）+ 鸿蒙 <code>app.json5</code>——<code>.scripts/docker/mobile.sh bump 1.0.1 101</code> 一次改齐并回读校验；各端打包脚本在五处不一致时直接拒绝出包，宁可不出包也不出错包</li>
   <li><strong>成品命名即规范</strong>：全小写 kebab-case <code>easyaiot-&lt;版本&gt;-&lt;环境&gt;-&lt;平台&gt;.&lt;格式&gt;</code>，排序稳定便于归档，对对象存储 / CDN 与 CI 制品归集最友好；<code>mobile.sh artifacts/clean/status</code> 同时兼容新旧两种命名</li>
   <li><strong>CI 友好的流水线拆分</strong>：任何 Linux runner 都能先跑 <code>--skip-native</code> 完成前端构建与资源同步，再把同步好的工程交给 macOS runner（iOS）或自托管 DevEco runner（鸿蒙）做最后原生编译——一条流水线三端出包，不必每台机器都装平台工具链</li>
   <li><strong>签名与分发齐备</strong>：Android 用内置 <code>iot.jks</code> 签名（DCloud AppKey 已登记）；iOS 模拟器包免账号，真机 / App Store 包自动签名 + Team ID；鸿蒙 DevEco 内可自动生成调试签名，发行签名走 AppGallery Connect</li>
@@ -706,7 +706,7 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME�
   <ul style="margin: 5px 0; padding-left: 20px;">
     <li><strong>一套前端三端壳</strong>：APP uni-app 页面分别打成 Android（DCloud 离线运行时 + Gradle → APK）、iOS（WKWebView 壳 + xcodebuild → .app / .ipa）、鸿蒙（ArkWeb 壳 + hvigor → HAP）可安装应用，主流手机系统同一套业务逻辑</li>
     <li><strong>一键出包</strong>：<code>make-apk.sh</code> / <code>make-ipa.sh</code> / <code>make-hap.sh</code> 带版本一致性校验；prod / test / dev 多环境各自出包</li>
-    <li><strong>统一管理</strong>：根目录 <code>mobile.sh</code> 承担 status / build / bump / artifacts / clean；<code>bump</code> 一次改齐五处版本号，版本不一致拒绝打包</li>
+    <li><strong>统一管理</strong>：<code>.scripts/docker/mobile.sh</code> 承担 status / build / bump / artifacts / clean；<code>bump</code> 一次改齐五处版本号，版本不一致拒绝打包</li>
   </ul>
 </td>
 </tr>
