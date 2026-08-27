@@ -27,6 +27,7 @@
 #   check      - 检查 Docker 和 Docker Compose 安装状态
 #   profile    - 显示当前部署形态与服务范围
 #   site [子命令] - 官方网站 SITE 独立部署
+#   mobile [子命令] - 移动端 APP 三端打包（Android/iOS/HarmonyOS）：status|build|bump|artifacts|clean（委托 .scripts/docker/mobile.sh）
 #   runtime|runtime-integrated - 兼容别名：等价于 install 中选择「云边一体形态」
 #   build-runtime-cpp [target] - RUNTIME C++ 离线包矩阵构建（容器内按 OS 编译，与 COMPILE 对齐）
 #   preflight-runtime-cpp [--node N] - RUNTIME 分发前预检（缺包时提示 export 命令）
@@ -2164,6 +2165,7 @@ show_help() {
     echo "  1) 部署 — 安装/启停/更新/状态/日志等"
     echo "  2) 分析 — 日志合并/磁盘占用/健康检查等"
     echo "  3) 官网 — SITE 官方网站独立部署"
+    echo "  4) 移动端 — APP 三端打包（Android/iOS/HarmonyOS）"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动所有服务（首次运行）"
@@ -2187,6 +2189,7 @@ show_help() {
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
+    echo "  mobile [子命令] - 移动端 APP 三端打包管理（委托 .scripts/docker/mobile.sh）"
     echo "  build-runtime-cpp [target|--all|--compile-target NAME] - RUNTIME C++ 离线包矩阵构建"
     echo "  preflight-runtime-cpp [--node N | os_family [arch]] - 分发前预检本地 tarball"
     echo "  export-runtime-cpp <os_family> - 单 OS 容器内导出（openeuler22 / kylin10 等）"
@@ -2200,6 +2203,11 @@ show_help() {
     echo "  install | start | stop | restart | status | logs | build | clean | update"
     echo "  也可直接: cd SITE && ./install_linux.sh <子命令>"
     echo "  默认端口: http://localhost:8090"
+    echo ""
+    echo "移动端子命令（./install_linux.sh mobile <子命令>，详见 MOBILE.md）:"
+    echo "  status | build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]"
+    echo "  bump <x.y.z> <versionCode> | artifacts | clean <android|ios|harmonyos|all>"
+    echo "  也可直接: bash .scripts/docker/mobile.sh <子命令>"
     echo ""
     echo "模块列表:"
     for module in "${MODULES[@]}"; do
@@ -2319,6 +2327,41 @@ run_site_module() {
     esac
 }
 
+# 移动端 APP 三端打包（Android/iOS/HarmonyOS）：委托同目录 mobile.sh 统一管理
+run_mobile_module() {
+    local mobile_script="${SCRIPT_DIR}/mobile.sh"
+
+    if [ ! -f "$mobile_script" ]; then
+        print_error "未找到移动端脚本: ${mobile_script}"
+        return 1
+    fi
+    if [ ! -x "$mobile_script" ]; then
+        chmod +x "$mobile_script" || true
+    fi
+
+    local sub="${1:-}"
+    if [ -z "$sub" ]; then
+        # 缺省给只读的状态总览，安全且直观
+        print_section "移动端三端打包管理"
+        print_info "执行: .scripts/docker/mobile.sh status（完整子命令见 help）"
+        bash "$mobile_script" status
+        return 0
+    fi
+
+    case "$sub" in
+        status|build|bump|artifacts|clean|help|-h|--help)
+            print_section "移动端三端打包管理（${sub}）"
+            print_info "执行: .scripts/docker/mobile.sh $*"
+            bash "$mobile_script" "$@"
+            ;;
+        *)
+            print_error "未知移动端子命令: ${sub}"
+            echo "可用: status | build | bump | artifacts | clean | help"
+            return 1
+            ;;
+    esac
+}
+
 # 主函数
 main() {
     local cmd="${1:-}"
@@ -2393,6 +2436,9 @@ main() {
             ;;
         site|website|官网)
             run_site_module "${2:-install}"
+            ;;
+        mobile|移动端)
+            run_mobile_module "${@:2}"
             ;;
         runtime|runtime-atomic|install-runtime|atomic-runtime|runtime-integrated|edge-integrated|cloud-edge)
             # 自动化兼容：直接走云边一体形态；日常请用 install 规格菜单

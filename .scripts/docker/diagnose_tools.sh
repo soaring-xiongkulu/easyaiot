@@ -21,6 +21,7 @@ _print_root_header() {
     echo "  1) 部署 — 安装、启动、停止、更新等服务操作"
     echo "  2) 分析 — 日志、磁盘、状态等问题定位"
     echo "  3) 官网 — SITE 官方网站独立部署"
+    echo "  4) 移动端 — APP 三端打包管理（Android/iOS/HarmonyOS）"
     echo ""
     echo "  0) 退出"
     echo ""
@@ -223,7 +224,7 @@ run_install_root_menu() {
     local choice=""
     while true; do
         _print_root_header
-        read -r -p "请输入选项 [0-3，默认 0 退出]: " choice || choice=""
+        read -r -p "请输入选项 [0-4，默认 0 退出]: " choice || choice=""
         choice="${choice:-0}"
         case "$choice" in
             1)
@@ -234,6 +235,9 @@ run_install_root_menu() {
                 ;;
             3)
                 run_site_interactive_menu
+                ;;
+            4)
+                run_mobile_interactive_menu
                 ;;
             0|q|Q|exit)
                 print_info "已退出交互式引导"
@@ -306,6 +310,84 @@ run_site_interactive_menu() {
 # 兼容旧命令 diagnose
 run_diagnose_interactive_menu() {
     run_analyze_interactive_menu "$@"
+}
+
+# ---- 移动端 APP 三端打包管理（Android/iOS/HarmonyOS）----
+# 直接调用同目录 mobile.sh，不依赖各安装脚本实现 mobile 命令
+
+_print_mobile_header() {
+    echo ""
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}  【移动端】APP 三端打包管理${NC}"
+    echo -e "${YELLOW}  Android / iOS / HarmonyOS${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+    echo ""
+    echo "  1) 三端状态巡检（版本一致性 / 工具链 / 成品数）"
+    echo "     说明：打包前先巡检五处版本号是否一致"
+    echo "  2) 打包（单端或三端）"
+    echo "     说明：无原生工具链的平台可用「仅前端构建」产出可交接中间态"
+    echo "  3) 发版：版本号一次改齐 5 处（bump）"
+    echo "     说明：APP manifest + Android/iOS/鸿蒙壳工程全部对齐并回读校验"
+    echo "  4) 列出已产出安装包"
+    echo "  5) 清理打包成品"
+    echo ""
+    echo "总览与命名规范见 MOBILE.md"
+    echo ""
+    echo "  0) 返回上级菜单"
+    echo ""
+}
+
+run_mobile_interactive_menu() {
+    local choice="" target mode ver code mobile_sh=""
+    while true; do
+        _print_mobile_header
+        read -r -p "请输入移动端选项 [0-5]: " choice || choice=""
+        if [ -z "$choice" ]; then
+            continue
+        fi
+        case "$choice" in
+            1)
+                print_info "即将执行：三端状态巡检 (mobile status)"
+                bash "${SCRIPT_DIR}/mobile.sh" status || true
+                ;;
+            2)
+                read -r -p "打包目标 android|ios|harmonyos|all [all]: " target || target=""
+                target="${target:-all}"
+                read -r -p "环境 prod|test|dev [prod]: " mode || mode=""
+                mode="${mode:-prod}"
+                print_info "即将执行：打包 ${target}（${mode}）(mobile build)"
+                bash "${SCRIPT_DIR}/mobile.sh" build "$target" "$mode" || true
+                ;;
+            3)
+                read -r -p "新版本号 x.y.z（如 1.0.1）: " ver || ver=""
+                read -r -p "versionCode 整数（如 101）: " code || code=""
+                if [ -z "$ver" ] || [ -z "$code" ]; then
+                    print_error "版本号与 versionCode 均不能为空"
+                    sleep 1
+                    continue
+                fi
+                print_info "即将执行：发版 $ver/$code (mobile bump)"
+                bash "${SCRIPT_DIR}/mobile.sh" bump "$ver" "$code" || true
+                ;;
+            4)
+                print_info "即将执行：列出已产出安装包 (mobile artifacts)"
+                bash "${SCRIPT_DIR}/mobile.sh" artifacts || true
+                ;;
+            5)
+                read -r -p "清理目标 android|ios|harmonyos|all [all]: " target || target=""
+                target="${target:-all}"
+                print_info "即将执行：清理 ${target} 打包成品 (mobile clean)"
+                bash "${SCRIPT_DIR}/mobile.sh" clean "$target" || true
+                ;;
+            0|q|Q|exit|b|B)
+                return 0
+                ;;
+            *)
+                print_error "无效选项: $choice"
+                sleep 1
+                ;;
+        esac
+    done
 }
 
 invoke_analyze_merge_logs() {

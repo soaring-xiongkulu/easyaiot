@@ -3,26 +3,28 @@
 # EasyAIoT 移动端（Android / iOS / HarmonyOS）三端打包统一管理入口
 #
 # 用法:
-#   ./mobile.sh status
+#   .scripts/docker/mobile.sh status
 #       三端版本一致性 / 工具链就绪度 / 已有成品 概览
 #
-#   ./mobile.sh build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]
+#   .scripts/docker/mobile.sh build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]
 #       单端或三端打包；--skip-native 只做前端构建与资源同步（无原生工具链时用）
 #
-#   ./mobile.sh bump <x.y.z> <versionCode>
+#   .scripts/docker/mobile.sh bump <x.y.z> <versionCode>
 #       发版：APP manifest 与三端壳共 5 处版本号一次改齐并回读校验
 #
-#   ./mobile.sh artifacts
+#   .scripts/docker/mobile.sh artifacts
 #       列出所有已产出安装包
 #
-#   ./mobile.sh clean <android|ios|harmonyos|all>
+#   .scripts/docker/mobile.sh clean <android|ios|harmonyos|all>
 #       清理指定端的打包成品
 #
+# 也可通过统一安装脚本调用: bash .scripts/docker/install_linux.sh mobile <同上子命令>
 # 环境要求见各模块 README；总览与命名规范见 MOBILE.md
 # ================================================================
 set -eo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 本脚本位于 .scripts/docker/ 下，项目根目录需向上回退两级
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FRONT="$ROOT/APP"
 
 # ---- 版本号读取（返回 "<ver>|<code>"，解析失败位为空串） ----------------------
@@ -95,6 +97,12 @@ count_artifacts() {
   find "$1" -maxdepth 1 \( -name 'easyaiot-*' -o -name 'EasyAIoT-*' \) -type f 2>/dev/null | wc -l | tr -d ' '
 }
 
+# 打印文件头两行 "# ====" 分隔线之间的用法说明
+_print_usage() {
+  sed -n '/^# ====.*$/,/^# ====.*$/p' "${BASH_SOURCE[0]}" | sed '1d;$d' \
+    | sed 's/^#\{1,\} \{0,1\}//; /^$/d'
+}
+
 # 调用某端的打包脚本（参数已校验过取值范围，可安全分词）
 run_module() {
   local target="$1"; shift
@@ -139,7 +147,7 @@ cmd_status() {
     echo "成品[$d]: $(count_artifacts "$ROOT/$d") 个"
     total=$((total + $(count_artifacts "$ROOT/$d")))
   done
-  echo "成品合计: $total 个（./mobile.sh artifacts 查看 / ./mobile.sh clean <端> 清理）"
+  echo "成品合计: $total 个（.scripts/docker/mobile.sh artifacts 查看 / ... clean <端> 清理）"
 }
 
 cmd_build() {
@@ -156,7 +164,7 @@ cmd_build() {
     shift
   done
   if ! printf '%s' "$target" | grep -qE '^(android|ios|harmonyos|all)$'; then
-    echo "[ERROR] 用法: ./mobile.sh build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]"
+    echo "[ERROR] 用法: .scripts/docker/mobile.sh build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]"
     exit 1
   fi
 
@@ -191,7 +199,7 @@ cmd_bump() {
   local ver="${1:-}" code="${2:-}"
   if ! printf '%s' "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
      || ! printf '%s' "$code" | grep -qE '^[0-9]+$'; then
-    echo "[ERROR] 用法: ./mobile.sh bump <x.y.z> <整数versionCode>，例: ./mobile.sh bump 1.0.1 101"
+    echo "[ERROR] 用法: .scripts/docker/mobile.sh bump <x.y.z> <整数versionCode>，例: .scripts/docker/mobile.sh bump 1.0.1 101"
     exit 1
   fi
 
@@ -242,13 +250,13 @@ cmd_artifacts() {
     ls -lh "$f" | awk '{print $NF "  " $5}'
     found=1
   done
-  [ "$found" = 1 ] || echo "（暂无安装包成品，先执行 ./mobile.sh build ...）"
+  [ "$found" = 1 ] || echo "（暂无安装包成品，先执行 .scripts/docker/mobile.sh build ...）"
 }
 
 cmd_clean() {
   local target="${1:-}"
   if ! printf '%s' "$target" | grep -qE '^(android|ios|harmonyos|all)$'; then
-    echo "[ERROR] 用法: ./mobile.sh clean <android|ios|harmonyos|all>"; exit 1
+    echo "[ERROR] 用法: .scripts/docker/mobile.sh clean <android|ios|harmonyos|all>"; exit 1
   fi
   clean_dir() {
     rm -f "$1"/easyaiot-* "$1"/EasyAIoT-* 2>/dev/null || true
@@ -268,6 +276,6 @@ case "${1:-help}" in
   bump)      shift; cmd_bump "$@" ;;
   artifacts) cmd_artifacts ;;
   clean)     shift; cmd_clean "$@" ;;
-  help|-h|--help|"") sed -n '/^# ====/,$p' "${BASH_SOURCE[0]}" | tail -n +2 | sed 's/^#\{1,\} \{0,1\}//; /^$/d' | head -40 ;;
-  *) echo "未知命令: $1"; echo ""; sed -n '/^# ====/,$p' "${BASH_SOURCE[0]}" | tail -n +2 | sed 's/^#\{1,\} \{0,1\}//; /^$/d' | head -40; exit 1 ;;
+  help|-h|--help|"") _print_usage ;;
+  *) echo "未知命令: $1"; echo ""; _print_usage; exit 1 ;;
 esac
