@@ -243,16 +243,23 @@ export default defineConfig(({ command, mode }) => {
       hmr: true,
       port: Number.parseInt(VITE_APP_PORT, 10),
       // 仅 H5 端生效，其他端不生效（其他端走build，不走devServer)
-      proxy: JSON.parse(VITE_APP_PROXY_ENABLE)
-        ? {
-            [VITE_APP_PROXY_PREFIX]: {
-              target: VITE_SERVER_BASEURL,
-              changeOrigin: true,
-              // 后端有/api前缀则不做处理，没有则需要去掉
-              rewrite: path => path.replace(new RegExp(`^${VITE_APP_PROXY_PREFIX}`), ''),
-            },
-          }
-        : undefined,
+      proxy: {
+        ...(JSON.parse(VITE_APP_PROXY_ENABLE)
+          ? {
+              [VITE_APP_PROXY_PREFIX]: {
+                target: VITE_SERVER_BASEURL,
+                changeOrigin: true,
+                // 后端有/api前缀则不做处理，没有则需要去掉
+                rewrite: path => path.replace(new RegExp(`^${VITE_APP_PROXY_PREFIX}`), ''),
+              },
+            }
+          : {}),
+        // 流媒体实时流反代：APP 端会把 http/ws 流地址改写到页面同源（见 utils/video/deviceStream.ts），
+        // 必须由 devServer 把 /live /ai /rtp 转给本机流媒体节点，否则播放器拉不到流
+        '/live': { target: 'http://127.0.0.1:8080', changeOrigin: true, ws: true },
+        '/rtp': { target: 'http://127.0.0.1:8080', changeOrigin: true, ws: true },
+        '/ai': { target: 'http://127.0.0.1:8080', changeOrigin: true, ws: true },
+      },
     },
     esbuild: {
       drop: VITE_DELETE_CONSOLE === 'true' ? ['console', 'debugger'] : [],
