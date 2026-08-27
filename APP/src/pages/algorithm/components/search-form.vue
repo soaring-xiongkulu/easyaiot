@@ -1,7 +1,11 @@
 <template>
-  <view class="flex items-center bg-white pr-24rpx">
-    <view class="flex-1" @click="visible = true">
-      <wd-search :placeholder="placeholder" hide-cancel disabled />
+  <view class="ios-search-bar">
+    <view class="ios-search-pill" @click="visible = true">
+      <wd-icon name="search-line" size="17px" color="#98a2b3" />
+      <text class="ios-search-text" :class="{ 'ios-search-placeholder': placeholder === '搜索算法任务' }">
+        {{ placeholder }}
+      </text>
+      <wd-icon name="filter" size="16px" :color="hasFilter ? '#2f6bff' : '#c0c7d3'" />
     </view>
   </view>
 
@@ -98,6 +102,10 @@ const placeholder = computed(() => {
     parts.push('已停止')
   return parts.length ? parts.join(' | ') : '搜索算法任务'
 })
+
+/** 是否设置了筛选项（用于筛选图标高亮） */
+const hasFilter = computed(() =>
+  !!formData.search || formData.task_type !== '' || formData.is_enabled !== '')
 
 function handleSearch() {
   visible.value = false
