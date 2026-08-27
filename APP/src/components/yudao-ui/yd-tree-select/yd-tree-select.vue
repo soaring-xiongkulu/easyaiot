@@ -109,7 +109,7 @@
 
         <!-- 空状态 -->
         <view v-if="visibleNodes.length === 0" class="yd-tree-select__empty">
-          <wd-empty icon="content" tip="暂无数据" />
+          <wd-empty icon="no-content" tip="暂无数据" />
         </view>
       </scroll-view>
     </view>

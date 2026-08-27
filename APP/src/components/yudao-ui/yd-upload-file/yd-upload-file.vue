@@ -17,7 +17,7 @@
     >
       <!-- 自定义占位：文件上传用加号 + 数量，替代默认的相机图标 -->
       <view class="yd-upload-file__trigger">
-        <wd-icon name="add" custom-class="yd-upload-file__icon" />
+        <wd-icon name="plus" custom-class="yd-upload-file__icon" />
         <text class="yd-upload-file__num">{{ list.length }}/{{ limit }}</text>
       </view>
     </yd-upload>
