@@ -13,8 +13,8 @@ services:
     environment:
       TZ: Asia/Shanghai
     volumes:
-      - /mnt/easyaiot-media/playbacks:/mnt/easyaiot-media/playbacks:rw
-      - /mnt/easyaiot-media/logs:/mnt/easyaiot-media/logs:rw
+      - ${MEDIA_RECORDING_ROOT:-/mnt/easyaiot-media}/playbacks:/mnt/easyaiot-media/playbacks:rw
+      - ${MEDIA_RECORDING_ROOT:-/mnt/easyaiot-media}/logs:/mnt/easyaiot-media/logs:rw
       - ./srs/docker.conf:/usr/local/srs/conf/docker.conf:ro
       - ../docker/srs-healthcheck.sh:/usr/local/bin/srs-healthcheck.sh:ro
     command: ["./objs/srs", "-c", "conf/docker.conf"]
@@ -34,7 +34,7 @@ services:
     environment:
       TZ: Asia/Shanghai
     volumes:
-      - /mnt/easyaiot-media/playbacks:/mnt/easyaiot-media/playbacks:rw
+      - ${MEDIA_RECORDING_ROOT:-/mnt/easyaiot-media}/playbacks:/mnt/easyaiot-media/playbacks:rw
       - ./zlm/config.ini:/conf/config.ini:ro
     command: ["MediaServer", "-c", "/conf/config.ini", "-l", "0"]
     healthcheck:

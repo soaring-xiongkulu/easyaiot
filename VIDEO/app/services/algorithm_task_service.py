@@ -1730,9 +1730,15 @@ def start_algorithm_task(task_id: int):
             else:
                 service_message = msg
                 logger.warning(f"启动任务 {task_id} 的服务失败: {msg}")
+                _rollback_failed_algorithm_start(task, service_message)
+                raise RuntimeError(service_message)
         except Exception as e:
+            if not task.is_enabled:
+                raise
             logger.warning(f"启动任务 {task_id} 的服务时出错: {str(e)}", exc_info=True)
             service_message = f"服务启动异常: {str(e)}"
+            _rollback_failed_algorithm_start(task, service_message)
+            raise RuntimeError(service_message) from e
         
         logger.info(f"启动算法任务成功: task_id={task_id}, message={service_message}, already_running={already_running}")
         try:
@@ -1749,14 +1755,31 @@ def start_algorithm_task(task_id: int):
         raise RuntimeError(f"启动算法任务失败: {str(e)}")
 
 
+def _rollback_failed_algorithm_start(task: AlgorithmTask, message: str) -> None:
+    """Keep control-plane state truthful when worker deployment fails."""
+    task.is_enabled = False
+    task.run_status = 'stopped'
+    task.exception_reason = message
+    task.updated_at = datetime.utcnow()
+    try:
+        _stop_remote_workload_before_background_teardown(task)
+    except Exception as e:
+        logger.warning('启动失败后清理远程 workload 失败 task_id=%s: %s', task.id, e)
+    db.session.commit()
+
+
 def _stop_remote_workload_before_background_teardown(task: AlgorithmTask) -> bool:
     """Stop remote work synchronously so the HTTP response cannot precede edge cleanup."""
-    if not (getattr(task, 'node_id', None) or getattr(task, 'device_deployments', None)):
+    from app.services.algorithm_task_launcher_service import (
+        _resolve_remote_task_node_id,
+        _stop_remote_task,
+    )
+
+    remote_node_id = _resolve_remote_task_node_id(task)
+    if not (remote_node_id or getattr(task, 'device_deployments', None)):
         return False
 
-    from app.services.algorithm_task_launcher_service import _stop_remote_task
-
-    _stop_remote_task(task.id, task.node_id)
+    _stop_remote_task(task.id, remote_node_id)
     task.node_id = None
     task.service_process_id = None
     task.run_status = 'stopped'

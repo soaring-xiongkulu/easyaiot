@@ -37,6 +37,12 @@ vhost __defaultVhost__ {
     tcp_nodelay     on;
     min_latency     on;
 
+    # edge_local 节点先在本机落 DVR，再由 SRS 原生转发同一 app/stream 到控制面。
+    forward {
+        enabled         ${SRS_FORWARD_ENABLED};
+        destination     ${SRS_FORWARD_DESTINATION};
+    }
+
     play {
         gop_cache       off;
         queue_length    10;
@@ -64,8 +70,8 @@ vhost __defaultVhost__ {
 
     http_hooks {
         enabled             on;
-        on_publish          http://${MEDIA_HOOK_HOST}:${MEDIA_HOOK_PORT}${MEDIA_HOOK_PATH_PREFIX}/video/media/hook/srs/on_publish;
-        on_unpublish        http://${MEDIA_HOOK_HOST}:${MEDIA_HOOK_PORT}${MEDIA_HOOK_PATH_PREFIX}/video/media/hook/srs/on_unpublish;
-        on_dvr              http://${MEDIA_HOOK_HOST}:${MEDIA_HOOK_PORT}${MEDIA_HOOK_PATH_PREFIX}/sink/media/hook/srs/on_dvr;
+        on_publish          http://${MEDIA_CONTROL_HOOK_HOST}:${MEDIA_CONTROL_HOOK_PORT}${MEDIA_CONTROL_HOOK_PATH_PREFIX}/video/media/hook/srs/on_publish;
+        on_unpublish        http://${MEDIA_CONTROL_HOOK_HOST}:${MEDIA_CONTROL_HOOK_PORT}${MEDIA_CONTROL_HOOK_PATH_PREFIX}/video/media/hook/srs/on_unpublish;
+        on_dvr              http://${MEDIA_DVR_HOOK_HOST}:${MEDIA_DVR_HOOK_PORT}${MEDIA_DVR_HOOK_PATH_PREFIX}${MEDIA_DVR_HOOK_PATH};
     }
 }

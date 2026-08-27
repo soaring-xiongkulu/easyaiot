@@ -144,6 +144,8 @@ def _alert_to_dict(alert: Alert) -> dict:
     except Exception:
         pass
     result['image_url'] = image_url or ''
+    # 事件本身与媒体上传解耦：图片未就绪时仍返回事件，由页面展示同步状态。
+    result['image_status'] = 'ready' if result['image_url'] else 'pending'
 
     record_path = result.get('record_path') or ''
     try:
@@ -156,6 +158,10 @@ def _alert_to_dict(alert: Alert) -> dict:
             result['record_path'] = f'/video/alert/record?path={quote(record_path, safe="")}'
     except Exception:
         pass
+    if result.get('task_type') == 'snap':
+        result['record_status'] = 'not_applicable'
+    else:
+        result['record_status'] = 'ready' if result.get('record_path') else 'pending'
 
     business_tags = []
     if hasattr(alert, 'business_tags') and alert.business_tags:
@@ -310,11 +316,8 @@ def _alert_to_dict(alert: Alert) -> dict:
 
 def _get_alert_filter_query(args: dict) -> Query:
     """构建报警查询过滤器"""
-    # 仅返回告警图已上传 MinIO 的记录；抓拍任务无 DVR，不要求 record_path
-    query: Query = Alert.query.filter(
-        Alert.image_url.isnot(None),
-        db.func.trim(Alert.image_url) != '',
-    )
+    # 事件产生与媒体上传是两个独立状态。不能因 MinIO/NFS/网络暂时失败隐藏事件。
+    query: Query = Alert.query
 
     if 'object' in args and args['object']:
         object_value = args['object'].strip() if isinstance(args['object'], str) else args['object']
@@ -420,7 +423,7 @@ def _should_skip_backfill(args: dict) -> bool:
 
 
 def get_alert_list(args: dict) -> dict:
-    """获取报警列表（仅返回 image_url 已写入 MinIO 的记录；record_path 可选）
+    """获取报警列表（媒体未上传完成的事件仍返回，并携带媒体状态）
 
     Args:
         args: 查询参数字典，支持以下参数：
@@ -492,7 +495,7 @@ def get_correlation_events(correlation_id: str) -> dict:
 
 
 def get_alert_count(args: dict) -> dict:
-    """获取报警统计（与列表一致：仅统计 image_url 已写入 MinIO 的记录，筛选条件同 get_alert_list）"""
+    """获取报警统计（与列表一致，统计媒体仍在同步中的事件）"""
     query = _get_alert_filter_query(args)
 
     if 'group' in args and args['group']:
@@ -535,6 +538,23 @@ def get_alert_count(args: dict) -> dict:
             return {'count_list': None, 'total_count': 0}
 
 
+def _parse_alert_time(value):
+    """Accept both legacy Shanghai wall time and RUNTIME UTC ISO timestamps."""
+    if not isinstance(value, str):
+        if getattr(value, 'tzinfo', None) is None:
+            return value.replace(tzinfo=SHANGHAI_TZ)
+        return value.astimezone(SHANGHAI_TZ)
+
+    raw = value.strip()
+    try:
+        return datetime.strptime(raw, '%Y-%m-%d %H:%M:%S').replace(tzinfo=SHANGHAI_TZ)
+    except ValueError:
+        parsed = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=SHANGHAI_TZ)
+        return parsed.astimezone(SHANGHAI_TZ)
+
+
 def create_alert(alert_data: dict) -> dict:
     """创建报警记录
     
@@ -564,12 +584,7 @@ def create_alert(alert_data: dict) -> dict:
         
         # 处理时间字段（东八区墙钟，与 patch_alerts_record / on_dvr 一致）
         if 'time' in alert_data and alert_data['time']:
-            if isinstance(alert_data['time'], str):
-                alert_time = datetime.strptime(alert_data['time'], '%Y-%m-%d %H:%M:%S').replace(tzinfo=SHANGHAI_TZ)
-            elif getattr(alert_data['time'], 'tzinfo', None) is None:
-                alert_time = alert_data['time'].replace(tzinfo=SHANGHAI_TZ)
-            else:
-                alert_time = alert_data['time'].astimezone(SHANGHAI_TZ)
+            alert_time = _parse_alert_time(alert_data['time'])
         else:
             alert_time = datetime.now(SHANGHAI_TZ)
         

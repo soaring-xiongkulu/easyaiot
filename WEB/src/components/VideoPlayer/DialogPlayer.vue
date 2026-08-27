@@ -10,8 +10,19 @@
       <template v-if="state.vodMode">
         <div class="monitor-dialog__vod-viewer">
           <div class="monitor-dialog__video-body">
+            <video
+              v-if="state.currentUrl && !state.nativeVodFailed"
+              :key="`native-vod-${state.currentUrl}`"
+              class="monitor-dialog__native-vod"
+              :src="state.currentUrl"
+              controls
+              autoplay
+              playsinline
+              preload="metadata"
+              @error="handleNativeVodError"
+            />
             <Jessibuca
-              v-if="state.currentUrl"
+              v-else-if="state.currentUrl"
               :key="`${playerKey}-${state.currentUrl}`"
               ref="jessibucaRef"
               :playUrl="state.currentUrl"
@@ -169,6 +180,7 @@ const state = reactive({
   preferAi: false,
   playLoading: false,
   vodMode: false,
+  nativeVodFailed: false,
   isGb28181: false,
   isOnvif: false,
   presets: [] as PresetItem[],
@@ -428,6 +440,7 @@ async function startGb28181WvpPlay(pendingAiUrl?: string | null) {
 
 async function loadStream(record: Record<string, any>) {
   clearAiFallbackTimer();
+  state.nativeVodFailed = false;
   state.fallbackUrl = null;
   state.preferAi = false;
 
@@ -460,7 +473,7 @@ async function loadStream(record: Record<string, any>) {
 
   if (preResolvedUrl && !isGb28181LivePlaceholderStreamUrl(preResolvedUrl)) {
     state.playLoading = false;
-    state.vodMode = isVodPlaybackUrl(preResolvedUrl);
+    state.vodMode = record._forceVod === true || isVodPlaybackUrl(preResolvedUrl);
     state.fallbackUrl =
       recordFallback && !isGb28181LivePlaceholderStreamUrl(recordFallback) ? recordFallback : null;
     state.preferAi = recordPreferAi;
@@ -491,9 +504,16 @@ async function loadStream(record: Record<string, any>) {
   }
 
   state.playLoading = false;
-  state.vodMode = isVodPlaybackUrl(streamUrl);
+  state.vodMode = record._forceVod === true || isVodPlaybackUrl(streamUrl);
   await nextTick();
   state.currentUrl = streamUrl;
+  playerKey.value += 1;
+}
+
+function handleNativeVodError() {
+  // Chrome/Safari cannot decode FLV natively.  Keep the existing Jessibuca
+  // decoder as a transparent fallback while MP4/WebM use native Range/VOD.
+  state.nativeVodFailed = true;
   playerKey.value += 1;
 }
 
@@ -556,12 +576,13 @@ const [register, { closeModal, setModalProps }] = useModalInner((record) => {
 });
 
 async function handleModalOpen(record: Record<string, any>) {
-  const vod = isVodPlaybackUrl(String(record.http_stream ?? ''));
+  const vod = record._forceVod === true || isVodPlaybackUrl(String(record.http_stream ?? ''));
   skipEnableAiWatch = true;
   enableAi.value = record._enableAi !== false;
   state.record = record;
   state.deviceName = formatCameraDeviceLabel(record);
   state.vodMode = vod;
+  state.nativeVodFailed = false;
   state.presets = [];
   applyModalLayout(vod);
 
@@ -1080,12 +1101,19 @@ function handleCancel() {
   overflow: hidden;
   background: #000;
 
+  > .monitor-dialog__native-vod,
   > .jessibuca-root,
   > .monitor-dialog__loading {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+  }
+
+  > .monitor-dialog__native-vod {
+    display: block;
+    object-fit: contain;
+    background: #000;
   }
 
   :deep(.jessibuca-container) {

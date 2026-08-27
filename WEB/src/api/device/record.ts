@@ -126,6 +126,35 @@ export const updateRecordSpaceGroupPolicy = (data: {
   return commonApi('put', `${RECORD_PREFIX}/space/group-policy`, data);
 };
 
+export interface DeviceRecordingPolicy {
+  device_id: string;
+  recording_mode: 'continuous' | 'event_only' | 'off';
+  retention_hours: number;
+  event_pre_seconds: number;
+  event_post_seconds: number;
+  event_image_sync: boolean;
+  event_clip_sync: boolean;
+  live_transport_mode: 'always_push';
+  playback_route_mode: 'auto' | 'direct' | 'proxy';
+  effective_storage?: {
+    mode: 'central_shared' | 'edge_local' | 'unknown';
+    state: string;
+    generation?: number;
+    node_id?: number;
+  };
+}
+
+export const getDeviceRecordingPolicy = (deviceId: string) => {
+  return commonApi('get', `/video/recording/policies/${encodeURIComponent(deviceId)}`);
+};
+
+export const updateDeviceRecordingPolicy = (
+  deviceId: string,
+  data: Partial<DeviceRecordingPolicy>,
+) => {
+  return commonApi('put', `/video/recording/policies/${encodeURIComponent(deviceId)}`, data);
+};
+
 /**
  * 删除监控录像空间
  */
@@ -255,4 +284,3 @@ export const getRecordVideosByDay = (space_id: number, params: {
   assertValidSpaceId(space_id);
   return commonApi('get', `${RECORD_PREFIX}/space/${space_id}/videos/day`, params);
 };
-

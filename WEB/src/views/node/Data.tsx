@@ -269,6 +269,44 @@ export const formSchema: FormSchema[] = [
     ifShow: ({ values }) => formHasLive(values),
   },
   {
+    label: '录像存储',
+    field: 'recordingStorageMode',
+    component: 'Select',
+    defaultValue: 'central_shared',
+    colProps: { span: 12 },
+    ifShow: ({ values }) => formHasLive(values),
+    componentProps: {
+      options: [
+        { label: '中心共享存储（简化部署）', value: 'central_shared' },
+        { label: '边缘本地存储（降低中心带宽）', value: 'edge_local' },
+      ],
+    },
+    helpMessage: '中心共享：边缘节点必须实际挂载与中心相同的 NFS/CephFS，普通本地目录即使可写也不符合要求；边缘本地：持续录像保留在本节点，只同步事件图片、事件片段和索引，主节点按需代理播放。',
+  },
+  {
+    label: '',
+    field: 'centralStorageHint',
+    component: 'Input',
+    slot: 'centralStorageHint',
+    colProps: { span: 24 },
+    ifShow: ({ values }) => formHasLive(values) && values.recordingStorageMode === 'central_shared',
+  },
+  {
+    label: '录像访问地址',
+    field: 'mediaPublicUrl',
+    component: 'Input',
+    colProps: { span: 12 },
+    ifShow: ({ values }) => formHasLive(values) && values.recordingStorageMode === 'edge_local',
+    componentProps: { placeholder: '如：http://edge-node.example:6000' },
+    dynamicRules: ({ values }) => values.recordingStorageMode === 'edge_local'
+      ? [
+          { required: true, message: '边缘本地存储必须填写录像访问地址', trigger: ['change', 'blur'] },
+          { pattern: /^https?:\/\//i, message: '请输入以 http:// 或 https:// 开头的地址', trigger: ['change', 'blur'] },
+        ]
+      : [],
+    helpMessage: '填写主节点可以访问的边缘媒体 API 根地址，不要使用 localhost/127.0.0.1。',
+  },
+  {
     label: 'SRS RTMP 端口',
     field: 'srsRtmpPort',
     component: 'InputNumber',
@@ -568,7 +606,7 @@ export const basicDetailSchema: DescItem[] = [
   {
     field: 'maxGpuCount',
     label: 'GPU 数量',
-    render: (val, data) => {
+    render: (val) => {
       if (val != null && val > 0) return val;
       return '无';
     },
@@ -643,6 +681,34 @@ export const nodeSetupSummarySchema: DescItem[] = [
 ];
 
 export const mediaDetailSchema: DescItem[] = [
+  {
+    field: 'recordingStorageMode',
+    label: '录像存储模式',
+    render: (val) => val === 'edge_local' ? '边缘本地存储' : '中心共享存储',
+  },
+  {
+    field: 'recordingStorageState',
+    label: '配置状态',
+    render: (val, data) => {
+      if (val === 'active') return useRender.renderTag(`已生效 · v${data?.recordingStorageGeneration ?? 1}`, 'success');
+      if (val === 'failed') return useRender.renderTag('应用失败', 'error');
+      return useRender.renderTag('等待应用', 'warning');
+    },
+  },
+  {
+    field: 'mediaPublicUrl',
+    label: '边缘录像地址',
+    span: 2,
+    show: (data) => data?.recordingStorageMode === 'edge_local',
+    render: (val) => val || '-',
+  },
+  {
+    field: 'recordingStorageError',
+    label: '应用错误',
+    span: 2,
+    show: (data) => !!data?.recordingStorageError,
+    render: (val) => val || '-',
+  },
   {
     field: 'tags.srs_rtmp_port',
     label: 'SRS RTMP',

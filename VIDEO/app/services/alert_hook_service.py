@@ -1030,13 +1030,19 @@ def _persist_alert_directly(
         except Exception:
             is_mini = False
 
-        if is_mini:
+        is_edge_local = (os.getenv('RECORDING_STORAGE_MODE') or '').strip().lower() == 'edge_local'
+        if is_mini or is_edge_local:
             try:
                 from app.utils.service_urls import build_alert_image_api_url
 
                 alert = Alert.query.get(alert_id)
                 if alert:
-                    alert.image_url = build_alert_image_api_url(image_path)
+                    edge_asset_id = alert_data.get('_edge_image_asset_id')
+                    alert.image_asset_id = edge_asset_id
+                    alert.image_url = (
+                        f'/video/media/assets/{edge_asset_id}/content'
+                        if edge_asset_id else build_alert_image_api_url(image_path)
+                    )
                     db.session.commit()
                     logger.info(
                         'mini 形态告警图片使用本地路径: alertId=%s, deviceId=%s, image_url=%s',
@@ -1282,6 +1288,16 @@ def process_alert_hook(alert_data: Dict) -> Dict:
         detection_switches = _resolve_detection_switches_from_alert_data(
             alert_data, notification_config, alert_event_task
         )
+
+        if (os.getenv('RECORDING_STORAGE_MODE') or '').strip().lower() == 'edge_local':
+            try:
+                from app.services.edge_event_media_service import prepare_edge_event_media
+                prepare_edge_event_media(alert_data)
+                # 边缘绝对路径不能交给中心 iot-sink 读取；图片由上面的短期凭证队列独立补传。
+                if not use_direct_persist:
+                    alert_data['image_path'] = ''
+            except Exception as media_exc:
+                logger.warning('边缘事件媒体调度失败，事件仍继续落库: %s', media_exc, exc_info=True)
 
         # mini 形态：直连落库，避免 Kafka/iot-sink 未就绪导致告警丢失
         if use_direct_persist:

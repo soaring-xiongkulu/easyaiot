@@ -55,6 +55,12 @@ public class ComputeNodeSaveReqVO {
     @Schema(description = "备注")
     private String remark;
 
+    @Schema(description = "录像物理存储模式：central_shared 使用主节点存储，edge_local 使用边缘本地存储")
+    private String recordingStorageMode;
+
+    @Schema(description = "客户端可安全直连的边缘媒体地址（edge_local 可选）")
+    private String mediaPublicUrl;
+
     @Schema(description = "SSH 用户名（创建时可选，用于纳管测试）")
     private String sshUsername;
 

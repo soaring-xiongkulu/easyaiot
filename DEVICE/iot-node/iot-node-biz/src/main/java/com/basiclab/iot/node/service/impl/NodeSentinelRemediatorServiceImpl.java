@@ -16,6 +16,7 @@ import com.basiclab.iot.node.service.NodeRuntimeCppDeployService;
 import com.basiclab.iot.node.service.NodeSentinelRemediatorService;
 import com.basiclab.iot.node.service.NodeWorkloadBundleService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +47,7 @@ public class NodeSentinelRemediatorServiceImpl implements NodeSentinelRemediator
     @Resource
     private NodeWorkloadBundleService nodeWorkloadBundleService;
     @Resource
+    @Lazy
     private NodeMediaService nodeMediaService;
     @Resource
     private NodeFfmpegDeployService nodeFfmpegDeployService;

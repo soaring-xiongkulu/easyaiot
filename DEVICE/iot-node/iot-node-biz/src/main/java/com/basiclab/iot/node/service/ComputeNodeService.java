@@ -17,6 +17,8 @@ public interface ComputeNodeService {
 
     NodeOnboardPreflightRespVO preflightNode(ComputeNodeSaveReqVO reqVO);
 
+    NodeOnboardPreflightRespVO preflightRecordingStorage(Long nodeId, String mode, String mediaPublicUrl);
+
     ComputeNodeRespVO createNode(ComputeNodeSaveReqVO createReqVO);
 
     void updateNode(ComputeNodeSaveReqVO updateReqVO);

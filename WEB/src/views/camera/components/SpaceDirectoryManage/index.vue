@@ -193,16 +193,18 @@ function handleBreadcrumbClick(key: string) {
 }
 
 function openSpacePolicyModal(space: SpaceInfo) {
+  const optionalGroupFields = space as unknown as Partial<SpaceFolderNode>;
   openDeviceModal(true, {
     spaceId: space.id,
+    deviceId: space.device_id,
     spaceKind: props.spaceKind,
     deviceName: space.space_name,
     saveTimeCustom: space.save_time_custom,
     saveTime: space.save_time,
     saveMode: space.save_mode,
     directorySaveTime: space.directory_save_time ?? DEFAULT_SAVE_TIME,
-    groupSaveTime: (space as SpaceFolderNode).group_save_time,
-    groupType: (space as SpaceFolderNode).group_type,
+    groupSaveTime: optionalGroupFields.group_save_time,
+    groupType: optionalGroupFields.group_type,
   });
 }
 

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from app.utils.algorithm_task_runtime import (
     mark_stream_runtime_stopped,
     resolve_frame_runtime_status,
+    resolve_heartbeat_server_ip,
     resolve_heartbeat_stream_state,
     resolve_task_run_status_from_heartbeat,
 )
@@ -24,6 +25,22 @@ class TestAlgorithmTaskRuntimeStatus(unittest.TestCase):
         self.assertEqual(
             resolve_task_run_status_from_heartbeat(is_enabled=False),
             'stopped',
+        )
+
+    def test_remote_worker_loopback_does_not_replace_edge_host(self):
+        self.assertEqual(
+            resolve_heartbeat_server_ip(
+                '127.0.0.1',
+                '192.0.2.20',
+                node_id=5,
+            ),
+            '192.0.2.20',
+        )
+
+    def test_local_worker_can_report_loopback(self):
+        self.assertEqual(
+            resolve_heartbeat_server_ip('127.0.0.1', '', node_id=None),
+            '127.0.0.1',
         )
 
     def test_live_publisher_keeps_publishing_status_on_each_frame(self):

@@ -86,7 +86,13 @@ CREATE TABLE public.compute_node (
     updater character varying(64),
     update_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     deleted smallint DEFAULT 0,
-    control_plane_id bigint
+    control_plane_id bigint,
+    recording_storage_mode character varying(20) DEFAULT 'central_shared'::character varying NOT NULL,
+    recording_storage_state character varying(20) DEFAULT 'active'::character varying NOT NULL,
+    recording_storage_generation bigint DEFAULT 1 NOT NULL,
+    media_public_url character varying(500),
+    recording_storage_updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    recording_storage_error character varying(500)
 );
 
 
@@ -102,6 +108,11 @@ COMMENT ON COLUMN public.compute_node.node_role IS '节点功能 CSV：algorithm
 --
 
 COMMENT ON COLUMN public.compute_node.control_plane_id IS '所属中心节点（平台节点）ID';
+
+COMMENT ON COLUMN public.compute_node.recording_storage_mode IS '录像物理存储模式：central_shared / edge_local';
+COMMENT ON COLUMN public.compute_node.recording_storage_state IS '存储模式状态：active / applying / error';
+COMMENT ON COLUMN public.compute_node.recording_storage_generation IS '存储模式代次，切换时递增';
+COMMENT ON COLUMN public.compute_node.media_public_url IS '客户端可安全直连的边缘媒体地址';
 
 
 --
@@ -1042,4 +1053,3 @@ CREATE UNIQUE INDEX uk_node_workload ON public.node_workload_binding USING btree
 --
 
 \unrestrict MJjnjJPWB9I1OcTsavLQXvpf7mnpHqZDDenApGWlEvqsOycF8KdfCy2KCNcEsSJ
-
