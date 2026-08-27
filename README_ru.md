@@ -57,7 +57,7 @@
 
 | | | | |
 |:---:|:---:|:---:|:---:|
-| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee Annual OSS Award 2025 · Победитель трека «Промышленное ПО» (Top 1)"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · Самый ценный открытый проект"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ звёзд"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="Эксперт блога CSDN"> |
+| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee Annual OSS Award 2025 · Победитель трека «Промышленное ПО» (Top 1)"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ звёзд"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · Самый ценный открытый проект"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="Эксперт блога CSDN"> |
 
 ## 🚀 Быстрый старт
 

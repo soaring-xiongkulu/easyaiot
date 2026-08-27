@@ -57,7 +57,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 
 | | | | |
 |:---:|:---:|:---:|:---:|
-| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee 2025 연례 오픈소스 프로젝트 · 산업 소프트웨어 부문 Top1"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · 가장 가치 있는 오픈소스 프로젝트"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN 블로그 전문가"> |
+| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee 2025 연례 오픈소스 프로젝트 · 산업 소프트웨어 부문 Top1"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · 가장 가치 있는 오픈소스 프로젝트"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN 블로그 전문가"> |
 
 ## 🚀 빠른 시작
 
