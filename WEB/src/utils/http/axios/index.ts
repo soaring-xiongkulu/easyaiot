@@ -260,8 +260,8 @@ const transform: AxiosTransform = {
     // 设置租户
     if (tenantEnable && tenantEnable === 'true') {
       const tenantId = getTenantId()
-      if (tenantId)
-        (config as Recordable).headers['tenant-id'] = tenantId
+      // 兼容租户功能启用前登录的旧会话（缓存无租户 ID）：与登录页默认行为一致取租户 1，避免整站接口 500
+      ;(config as Recordable).headers['tenant-id'] = tenantId || 1
     }
     return config
   },
