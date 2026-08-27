@@ -25,9 +25,9 @@ public class DmPackagePageVo implements Serializable {
     @ApiModelProperty(value = "主键ID")
     private Long id;
     /**
-     * 包类型[0:app,1:系统,2:电控]
+     * 包类型[0:软件包,1:固件包,2:APP包,3:PC包]
      */
-    @ApiModelProperty(value = "包类型[0:app,1:系统,2:电控]")
+    @ApiModelProperty(value = "包类型[0:软件包,1:固件包,2:APP包,3:PC包]")
     private String type;
     /**
      * 包版本号
@@ -65,15 +65,65 @@ public class DmPackagePageVo implements Serializable {
     @ApiModelProperty(value = "关键版本标识[0:否,1:是]")
     private Integer keyVersionFlag;
     /**
-     * 状态[0:未验证,1:已验证,2:已发布]
+     * 状态[0:未验证,1:测试中,2:已发布,3:待发布,4:已撤回]
      */
-    @ApiModelProperty(value = "状态[0:未验证,1:已验证,2:已发布]")
+    @ApiModelProperty(value = "状态[0:未验证,1:测试中,2:已发布,3:待发布,4:已撤回]")
     private Integer status;
     /**
-     * 图片地址
+     * 包地址
      */
-    @ApiModelProperty(value = "图片地址")
+    @ApiModelProperty(value = "包地址")
     private String url;
+    /**
+     * 文件MD5值
+     */
+    @ApiModelProperty(value = "文件MD5值")
+    private String fileMd5;
+    /**
+     * 文件大小（字节）
+     */
+    @ApiModelProperty(value = "文件大小（字节）")
+    private Long fileSize;
+    /**
+     * 原始文件名
+     */
+    @ApiModelProperty(value = "原始文件名")
+    private String fileName;
+    /**
+     * 更新说明
+     */
+    @ApiModelProperty(value = "更新说明")
+    private String changelog;
+    /**
+     * 适用产品标识（空=所有产品适用）
+     */
+    @ApiModelProperty(value = "适用产品标识（空=所有产品适用）")
+    private String productIdentification;
+    /**
+     * 发布策略[0:全量,1:灰度]
+     */
+    @ApiModelProperty(value = "发布策略[0:全量,1:灰度]")
+    private Integer publishStrategy;
+    /**
+     * 灰度阶梯[1:设备级,2:产品级,3:全量]
+     */
+    @ApiModelProperty(value = "灰度阶梯[1:设备级,2:产品级,3:全量]")
+    private Integer grayLadder;
+    /**
+     * 测试是否通过[0:否,1:是]
+     */
+    @ApiModelProperty(value = "测试是否通过[0:否,1:是]")
+    private Integer testPassed;
+    /**
+     * 撤回原因
+     */
+    @ApiModelProperty(value = "撤回原因")
+    private String withdrawReason;
+    /**
+     * 撤回时间
+     */
+    @ApiModelProperty(value = "撤回时间")
+    private LocalDateTime withdrawTime;
     /**
      * 系统类型
      */

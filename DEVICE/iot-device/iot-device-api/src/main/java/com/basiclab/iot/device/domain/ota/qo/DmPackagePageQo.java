@@ -25,19 +25,29 @@ public class DmPackagePageQo extends PageQo implements Serializable {
     @ApiModelProperty(value = "主键ID")
     private Long id;
     /**
-     * 包类型[0:app,1:系统,2:电控]
+     * 包类型[0:软件包,1:固件包,2:APP包,3:PC包]
      */
-    @ApiModelProperty(value = "版本包类型[0:app,1:系统,2:电控]  目前只有 0、1")
+    @ApiModelProperty(value = "包类型[0:软件包,1:固件包,2:APP包,3:PC包]")
     private Integer type;
+    /**
+     * 包名称
+     */
+    @ApiModelProperty(value = "包名称")
+    private String name;
     /**
      * 包版本号
      */
     @ApiModelProperty(value = "包版本号")
     private String version;
     /**
-     * 产品ID
+     * 状态[0:未验证,1:测试中,2:已发布,3:待发布,4:已撤回]
      */
-    @ApiModelProperty(value = "产品ID")
-    private String productId;
+    @ApiModelProperty(value = "状态[0:未验证,1:测试中,2:已发布,3:待发布,4:已撤回]")
+    private Integer status;
+    /**
+     * 适用产品标识
+     */
+    @ApiModelProperty(value = "适用产品标识")
+    private String productIdentification;
 
 }

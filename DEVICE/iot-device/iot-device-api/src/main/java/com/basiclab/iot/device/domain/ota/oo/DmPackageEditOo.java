@@ -4,6 +4,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 /**
@@ -20,12 +21,13 @@ public class DmPackageEditOo implements Serializable {
     /**
      * 主键ID
      */
+    @NotNull(message = "版本包ID不能为空")
     @ApiModelProperty(value = "主键ID")
     private Long id;
     /**
-     * 包类型[0:app,1:系统,2:电控]
+     * 包类型[0:软件包,1:固件包,2:APP包,3:PC包]
      */
-    @ApiModelProperty(value = "包类型[0:app,1:系统,2:电控]")
+    @ApiModelProperty(value = "包类型[0:软件包,1:固件包,2:APP包,3:PC包]")
     private Integer type;
     /**
      * 包名称
@@ -42,6 +44,11 @@ public class DmPackageEditOo implements Serializable {
      */
     @ApiModelProperty(value = "产品ID(dm_product.id)")
     private Integer productId;
+    /**
+     * 适用产品标识（空=所有产品适用）
+     */
+    @ApiModelProperty(value = "适用产品标识（空=所有产品适用）")
+    private String productIdentification;
     /**
      * 包版本号
      */
@@ -63,10 +70,25 @@ public class DmPackageEditOo implements Serializable {
     @ApiModelProperty(value = "文件Md5值")
     private String md5;
     /**
+     * 文件大小（字节）
+     */
+    @ApiModelProperty(value = "文件大小（字节）")
+    private Long fileSize;
+    /**
+     * 原始文件名
+     */
+    @ApiModelProperty(value = "原始文件名")
+    private String fileName;
+    /**
      * 关键版本标识[0:否,1:是]
      */
-    @ApiModelProperty(value = "关键版本标识[0:否,1:是]")
+    @ApiModelProperty(value = "关键版本标识[0:否,1:是]（关键版本不可跳过，需逐级升级）")
     private Integer keyVersionFlag;
+    /**
+     * 更新说明
+     */
+    @ApiModelProperty(value = "更新说明")
+    private String changelog;
     /**
      * 备注
      */
