@@ -1,21 +1,15 @@
 <template>
-  <div class="ota-versions-pane">
-    <div class="pane-toolbar">
-      <Select
-        v-model:value="filterProduct"
-        class="product-filter"
-        placeholder="按产品过滤"
-        allowClear
-        show-search
-        option-filter-prop="label"
-        :options="productOptions"
-        @change="handleFilterChange"
-      />
-      <Button type="primary" preIcon="ant-design:plus-outlined" @click="openEditDrawer(null)">
-        新增版本档案
-      </Button>
-    </div>
-    <BasicTable @register="registerTable">
+  <div class="ota-pane">
+    <BasicTable v-if="isTableMode" @register="registerTable">
+      <template #toolbar>
+        <Button type="primary" preIcon="ant-design:plus-outlined" @click="openEditDrawer(null)">
+          新增版本档案
+        </Button>
+        <Button type="default" @click="toggleView">
+          <Icon :icon="isTableMode ? 'ant-design:appstore-outlined' : 'ant-design:bars-outlined'" :size="14"/>
+          {{ isTableMode ? '卡片视图' : '切换视图' }}
+        </Button>
+      </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'pkgs'">
           <div class="pkg-cell">
@@ -34,80 +28,102 @@
         </template>
       </template>
     </BasicTable>
+    <div v-else class="card-wrap">
+      <OtaVersionCards :api="fetchVersionList" @edit="openEditDrawer" @delete="handleDelete" @getMethod="onCardMethod">
+        <template #header>
+          <Button type="primary" preIcon="ant-design:plus-outlined" @click="openEditDrawer(null)">
+            新增版本档案
+          </Button>
+          <Button type="default" @click="toggleView">
+            <Icon :icon="isTableMode ? 'ant-design:appstore-outlined' : 'ant-design:bars-outlined'" :size="14"/>
+            {{ isTableMode ? '卡片视图' : '切换视图' }}
+          </Button>
+        </template>
+      </OtaVersionCards>
+    </div>
 
-    <!-- 新增/编辑抽屉 -->
+    <!-- 新增/编辑抽屉（对齐模型管理的大气样式） -->
     <BasicDrawer
-      v-bind="$attrs"
       @register="registerDrawer"
       :title="editRecord ? '编辑版本档案' : '新增版本档案'"
-      width="640"
+      width="1400"
+      placement="right"
       :showFooter="true"
+      :showCancelBtn="false"
+      :showOkBtn="false"
       destroy-on-close
     >
-      <Form :label-col="{style: {width: '130px'}}" :wrapper-col="{span: 18}">
-        <FormItem label="所属产品" required>
-          <Select
-            v-model:value="form.productIdentification"
-            placeholder="选择产品"
-            show-search
-            option-filter-prop="label"
-            :options="productOptions"
-          />
-        </FormItem>
-        <FormItem label="设备版本号" required>
-          <Input v-model:value="form.deviceVersion" placeholder="例如 V1.2.0"/>
-        </FormItem>
-        <FormItem label="软件包">
-          <Select
-            v-model:value="form.appPkgId"
-            placeholder="绑定软件包（type=0）"
-            allowClear
-            show-search
-            option-filter-prop="label"
-            :options="appPkgOptions"
-          />
-        </FormItem>
-        <FormItem label="固件包">
-          <Select
-            v-model:value="form.osPkgId"
-            placeholder="绑定固件包（type=1）"
-            allowClear
-            show-search
-            option-filter-prop="label"
-            :options="osPkgOptions"
-          />
-        </FormItem>
-        <FormItem label="升级方式">
-          <RadioGroup v-model:value="form.upgradeMode">
-            <Radio :value="0">非强制升级</Radio>
-            <Radio :value="1">强制升级</Radio>
-          </RadioGroup>
-        </FormItem>
-        <FormItem label="升级描述">
-          <Textarea v-model:value="form.remark" :maxlength="500" :rows="3" showCount/>
-        </FormItem>
-      </Form>
-      <Alert
-        message="版本档案定义「某产品 + 某设备整机版本号」对应的升级包组合，设备检测时按产品与版本匹配。"
-        type="info"
-        show-icon
-      />
       <template #footer>
         <div class="footer-buttons">
           <Button @click="closeDrawerFn">取消</Button>
           <Button type="primary" :loading="saving" @click="handleSave">保存</Button>
         </div>
       </template>
+      <div class="version-drawer-content">
+        <Divider orientation="left">基础信息</Divider>
+        <Form :label-col="{style: {width: '150px'}}" :wrapper-col="{span: 21}">
+          <FormItem label="所属产品" required>
+            <Select
+              v-model:value="form.productIdentification"
+              placeholder="选择产品"
+              show-search
+              option-filter-prop="label"
+              :options="productOptions"
+            />
+          </FormItem>
+          <FormItem label="设备版本号" required>
+            <Input v-model:value="form.deviceVersion" placeholder="例如 V1.2.0"/>
+          </FormItem>
+          <FormItem label="升级方式">
+            <RadioGroup v-model:value="form.upgradeMode">
+              <Radio :value="0">非强制升级</Radio>
+              <Radio :value="1">强制升级</Radio>
+            </RadioGroup>
+          </FormItem>
+        </Form>
+        <Divider orientation="left">绑定升级包</Divider>
+        <Form :label-col="{style: {width: '150px'}}" :wrapper-col="{span: 21}">
+          <FormItem label="软件包">
+            <Select
+              v-model:value="form.appPkgId"
+              placeholder="绑定软件包（type=0）"
+              allowClear
+              show-search
+              option-filter-prop="label"
+              :options="appPkgOptions"
+            />
+          </FormItem>
+          <FormItem label="固件包">
+            <Select
+              v-model:value="form.osPkgId"
+              placeholder="绑定固件包（type=1）"
+              allowClear
+              show-search
+              option-filter-prop="label"
+              :options="osPkgOptions"
+            />
+          </FormItem>
+          <FormItem label="升级描述">
+            <Textarea v-model:value="form.remark" :maxlength="500" :rows="4" showCount/>
+          </FormItem>
+        </Form>
+        <Alert
+          message="版本档案定义「某产品 + 某设备整机版本号」对应的升级包组合，设备检测时按产品与版本匹配。"
+          type="info"
+          show-icon
+        />
+      </div>
     </BasicDrawer>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue';
-import {Alert, Form, FormItem, Input, Popconfirm, Radio, RadioGroup, Select, Textarea} from 'ant-design-vue';
+import {nextTick, onMounted, reactive, ref} from 'vue';
+import {Alert, Divider, Form, FormItem, Input, Popconfirm, Radio, RadioGroup, Select, Textarea} from 'ant-design-vue';
 import {BasicDrawer, useDrawer} from '@/components/Drawer';
 import {BasicTable, useTable} from '@/components/Table';
 import {Button} from '@/components/Button';
+import {Icon} from '@/components/Icon';
 import {useMessage} from '@/hooks/web/useMessage';
 import moment from 'moment';
 import {
@@ -118,10 +134,21 @@ import {
   updateVersion,
 } from '/@/api/device/ota';
 import {getDeviceProfiles} from '@/api/device/product';
+import OtaVersionCards from '../OtaVersionCards/index.vue';
 
 defineOptions({name: 'OtaDeviceVersions'});
 
 const {createMessage} = useMessage();
+
+const isTableMode = ref(false);
+
+function toggleView() {
+  isTableMode.value = !isTableMode.value;
+  //表格首次挂载后重新同步搜索表单的产品选项
+  if (isTableMode.value) {
+    nextTick(() => loadProducts());
+  }
+}
 
 const columns = [
   {
@@ -163,8 +190,7 @@ const columns = [
   },
 ];
 
-//产品过滤与选项
-const filterProduct = ref();
+//产品下拉选项（表格搜索、卡片搜索与抽屉共用）
 const productOptions = ref<any[]>([]);
 
 async function loadProducts() {
@@ -174,35 +200,61 @@ async function loadProducts() {
       label: p.productName,
       value: p.productIdentification,
     }));
+    //卡片模式下表格未挂载，同步搜索表单选项会失败，跳过即可
+    try {
+      getForm().updateSchema({
+        field: 'productIdentification',
+        componentProps: {options: productOptions.value},
+      });
+    } catch (e) {
+      // ignore
+    }
   } catch (e) {
     console.error(e);
   }
 }
 
-function handleFilterChange() {
-  reload({page: 1});
-}
-
-const [registerTable, {reload}] = useTable({
+const [registerTable, {reload, getForm}] = useTable({
   canResize: true,
   showIndexColumn: false,
+  title: '设备版本档案',
   api: fetchVersionList,
   columns,
-  useSearchForm: false,
+  useSearchForm: true,
   showTableSetting: false,
   pagination: true,
+  formConfig: {
+    labelWidth: 80,
+    baseColProps: {span: 6},
+    actionColOptions: {span: 6},
+    schemas: [
+      {
+        field: 'productIdentification',
+        label: '产品',
+        component: 'Select',
+        componentProps: {
+          placeholder: '全部产品',
+          allowClear: true,
+          showSearch: true,
+          optionFilterProp: 'label',
+          options: [],
+        },
+      },
+    ],
+  },
   fetchSetting: {
     listField: 'data',
     totalField: 'total',
   },
-  beforeFetch(data) {
-    if (filterProduct.value) {
-      data.productIdentification = filterProduct.value;
-    }
-    return data;
-  },
   rowKey: 'id',
 });
+
+let cardListReload = () => {
+};
+
+function onCardMethod(m: any) {
+  cardListReload = m;
+}
 
 const [registerDrawer, {openDrawer, closeDrawer}] = useDrawer();
 
@@ -294,6 +346,7 @@ async function handleSave() {
     }
     closeDrawer();
     await reload({page: 1});
+    cardListReload();
   } catch (e) {
     console.error(e);
   } finally {
@@ -306,6 +359,7 @@ async function handleDelete(record) {
     await deleteVersion(record.id);
     createMessage.success('删除成功');
     await reload();
+    cardListReload();
   } catch (e) {
     console.error(e);
     createMessage.error('删除失败');
@@ -318,18 +372,17 @@ onMounted(() => {
 </script>
 
 <style lang="less" scoped>
-.ota-versions-pane {
-  padding: 8px 16px 16px;
+.ota-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 200px);
+  background: #fff;
 
-  .pane-toolbar {
+  .card-wrap {
+    flex: 1;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-
-    .product-filter {
-      width: 280px;
-    }
+    flex-direction: column;
+    min-height: 0;
   }
 
   .pkg-cell {
@@ -339,14 +392,35 @@ onMounted(() => {
   }
 }
 
+.version-drawer-content {
+  padding: 8px 16px 0;
+}
+
 .footer-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
+:deep(.ant-form-item) {
+  margin-bottom: 10px;
+}
+
+:deep(.iot-basic-table-form-container) {
+  padding: 0;
+  background: #fff;
+
+  .ant-form {
+    margin-bottom: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 16px 16px 0;
+  }
+}
+
 :deep(.ant-table-wrapper) {
   border-radius: 0;
   background: #fff;
+  padding: 8px 16px 16px;
 }
 </style>

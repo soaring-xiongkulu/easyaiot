@@ -15,8 +15,9 @@
                           preIcon="ant-design:plus-outlined">
                   新增OTA升级包
                 </Button>
-                <Button type="default" @click="handleClickSwap"
-                          preIcon="ant-design:swap-outlined">切换视图
+                <Button type="default" @click="handleClickSwap">
+                  <Icon :icon="state.isTableMode ? 'ant-design:appstore-outlined' : 'ant-design:bars-outlined'" :size="14"/>
+                  {{ state.isTableMode ? '卡片视图' : '切换视图' }}
                 </Button>
               </template>
               <template #bodyCell="{ column, record }">
@@ -47,6 +48,14 @@
                         },
                         icon: 'ant-design:edit-filled',
                         onClick: openAddModal.bind(null, true, { isEdit: true, isView: false, record }),
+                      },
+                      {
+                        icon: 'ant-design:profile-outlined',
+                        tooltip: {
+                          title: '升级记录',
+                          placement: 'top',
+                        },
+                        onClick: openRecordsDrawer.bind(null, true, record),
                       },
                       {
                         label: '提交测试',
@@ -84,6 +93,7 @@
                 @edit="handleCardEdit"
                 @delete="handleCardDelete"
                 @download="handleCardDownload"
+                @records="handleCardRecords"
                 @action="handleCardAction"
               >
                 <template #header>
@@ -91,17 +101,15 @@
                             preIcon="ant-design:plus-outlined">
                     新增OTA升级包
                   </Button>
-                  <Button type="default" @click="handleClickSwap"
-                            preIcon="ant-design:swap-outlined">切换视图
+                  <Button type="default" @click="handleClickSwap">
+                    <Icon :icon="state.isTableMode ? 'ant-design:appstore-outlined' : 'ant-design:bars-outlined'" :size="14"/>
+                    {{ state.isTableMode ? '卡片视图' : '切换视图' }}
                   </Button>
                 </template>
               </OtaPackageCards>
             </div>
             <OtaPackageModal title="新增OTA升级包" @register="registerAddModel" @success="handleSuccess"/>
           </div>
-        </TabPane>
-        <TabPane key="records" tab="升级记录">
-          <OtaUpgradeRecords/>
         </TabPane>
         <TabPane key="whitelist" tab="测试白名单">
           <OtaWhiteList/>
@@ -114,6 +122,8 @@
 
     <!-- 包生命周期操作抽屉集 -->
     <OtaPackageActions ref="actionsRef" @success="handleSuccess"/>
+    <!-- 包维度升级记录抽屉 -->
+    <OtaPackageRecords @register="registerRecordsDrawer"/>
   </div>
 </template>
 
@@ -126,13 +136,14 @@ import {deleteOtaApp, fetchPkgList, submitTestPackage} from '/@/api/device/ota';
 import {getBasicColumns, getFormConfig} from './Data';
 import OtaPackageModal from '@/views/ota/components/OtaPackageModal/index.vue';
 import OtaPackageCards from '@/views/ota/components/OtaPackageCards/index.vue';
-import OtaUpgradeRecords from '@/views/ota/components/OtaUpgradeRecords/index.vue';
 import OtaWhiteList from '@/views/ota/components/OtaWhiteList/index.vue';
 import OtaDeviceVersions from '@/views/ota/components/OtaDeviceVersions/index.vue';
 import OtaPackageActions from '@/views/ota/components/OtaPackageActions/index.vue';
+import OtaPackageRecords from '@/views/ota/components/OtaPackageRecords/index.vue';
 import {useDrawer} from '@/components/Drawer';
 import {downloadByUrl} from '@/utils/file/download';
 import {Button} from '@/components/Button';
+import {Icon} from '@/components/Icon';
 
 defineOptions({name: 'OtaVersion'});
 
@@ -158,6 +169,9 @@ function handleClickSwap() {
 }
 
 const actionsRef = ref<any>(null);
+
+//包维度升级记录抽屉
+const [registerRecordsDrawer, {openDrawer: openRecordsDrawer}] = useDrawer();
 
 //根据包状态构造生命周期操作菜单
 function pkgDropActions(record) {
@@ -209,6 +223,10 @@ function handleCardAction(action: string, record) {
     handleSubmitTest(record);
     return;
   }
+  if (action === 'records') {
+    openRecordsDrawer(true, record);
+    return;
+  }
   handleRecordAction(action, record);
 }
 
@@ -243,6 +261,10 @@ function handleCardDelete(record) {
 
 function handleCardDownload(record) {
   handleDownload(record);
+}
+
+function handleCardRecords(record) {
+  openRecordsDrawer(true, record);
 }
 
 const {createMessage} = useMessage();

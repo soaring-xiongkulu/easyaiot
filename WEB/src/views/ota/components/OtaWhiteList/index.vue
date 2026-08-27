@@ -1,21 +1,15 @@
 <template>
-  <div class="ota-white-pane">
-    <div class="pane-toolbar">
-      <Select
-        v-model:value="filterPkgId"
-        class="pkg-filter"
-        placeholder="按版本包过滤"
-        allowClear
-        show-search
-        option-filter-prop="label"
-        :options="pkgOptions"
-        @change="handleFilterChange"
-      />
-      <Button type="primary" preIcon="ant-design:plus-outlined" @click="openAddModal">
-        批量添加测试设备
-      </Button>
-    </div>
-    <BasicTable @register="registerTable">
+  <div class="ota-pane">
+    <BasicTable v-if="isTableMode" @register="registerTable">
+      <template #toolbar>
+        <Button type="primary" preIcon="ant-design:plus-outlined" @click="openAddDrawer">
+          批量添加测试设备
+        </Button>
+        <Button type="default" @click="toggleView">
+          <Icon :icon="isTableMode ? 'ant-design:appstore-outlined' : 'ant-design:bars-outlined'" :size="14"/>
+          {{ isTableMode ? '卡片视图' : '切换视图' }}
+        </Button>
+      </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'deviceIdentification'">
           {{ record.deviceIdentification }}
@@ -32,48 +26,74 @@
         </template>
       </template>
     </BasicTable>
+    <div v-else class="card-wrap">
+      <OtaWhiteListCards :api="fetchWhiteList" @remove="handleDelete" @getMethod="onCardMethod">
+        <template #header>
+          <Button type="primary" preIcon="ant-design:plus-outlined" @click="openAddDrawer">
+            批量添加测试设备
+          </Button>
+          <Button type="default" @click="toggleView">
+            <Icon :icon="isTableMode ? 'ant-design:appstore-outlined' : 'ant-design:bars-outlined'" :size="14"/>
+            {{ isTableMode ? '卡片视图' : '切换视图' }}
+          </Button>
+        </template>
+      </OtaWhiteListCards>
+    </div>
 
-    <!-- 批量添加弹窗 -->
-    <Modal
-      v-model:visible="addModalVisible"
+    <!-- 批量添加抽屉 -->
+    <BasicDrawer
+      @register="registerAddDrawer"
       title="批量添加测试白名单设备"
-      width="640px"
-      :confirm-loading="adding"
-      @ok="handleAddOk"
+      width="1400"
+      placement="right"
+      :showFooter="true"
+      :showCancelBtn="false"
+      :showOkBtn="false"
       destroy-on-close
     >
-      <Form :label-col="{style: {width: '110px'}}" :wrapper-col="{span: 18}">
-        <FormItem label="版本包" required>
-          <Select
-            v-model:value="addForm.pkgId"
-            placeholder="选择要测试的版本包"
-            show-search
-            option-filter-prop="label"
-            :options="pkgOptions"
-          />
-        </FormItem>
-        <FormItem label="测试设备" required>
-          <Select
-            v-model:value="addForm.devices"
-            mode="tags"
-            placeholder="输入设备标识搜索选择，或直接粘贴多个标识（回车确认）"
-            :options="deviceOptions"
-            @search="handleDeviceSearch"
-            :filter-option="false"
-            :token-separators="[',']"
-          />
-        </FormItem>
-      </Form>
-      <Alert message="加入白名单后，这些设备会通过测试通道优先检测到该包（即使还未正式发布）。" type="info" show-icon/>
-    </Modal>
+      <template #footer>
+        <div class="footer-buttons">
+          <Button @click="closeAddDrawer">取消</Button>
+          <Button type="primary" :loading="adding" @click="handleAddOk">添加</Button>
+        </div>
+      </template>
+      <div class="add-drawer-content">
+        <Divider orientation="left">选择版本包与设备</Divider>
+        <Form :label-col="{style: {width: '150px'}}" :wrapper-col="{span: 21}">
+          <FormItem label="版本包" required>
+            <Select
+              v-model:value="addForm.pkgId"
+              placeholder="选择要测试的版本包"
+              show-search
+              option-filter-prop="label"
+              :options="pkgOptions"
+            />
+          </FormItem>
+          <FormItem label="测试设备" required>
+            <Select
+              v-model:value="addForm.devices"
+              mode="tags"
+              placeholder="输入设备标识搜索选择，或直接粘贴多个标识（回车确认）"
+              :options="deviceOptions"
+              @search="handleDeviceSearch"
+              :filter-option="false"
+              :token-separators="[',']"
+            />
+          </FormItem>
+        </Form>
+        <Alert message="加入白名单后，这些设备会通过测试通道优先检测到该包（即使还未正式发布）。" type="info" show-icon/>
+      </div>
+    </BasicDrawer>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue';
-import {Alert, Form, FormItem, Modal, Popconfirm, Select, Tag} from 'ant-design-vue';
+import {nextTick, onMounted, reactive, ref} from 'vue';
+import {Alert, Divider, Form, FormItem, Popconfirm, Select, Tag} from 'ant-design-vue';
+import {BasicDrawer, useDrawer} from '@/components/Drawer';
 import {BasicTable, useTable} from '@/components/Table';
 import {Button} from '@/components/Button';
+import {Icon} from '@/components/Icon';
 import {useMessage} from '@/hooks/web/useMessage';
 import moment from 'moment';
 import {
@@ -84,10 +104,21 @@ import {
 } from '/@/api/device/ota';
 import {getDevicesList} from '@/api/device/devices';
 import {TYPE_MAP} from '../../Data';
+import OtaWhiteListCards from '../OtaWhiteListCards/index.vue';
 
 defineOptions({name: 'OtaWhiteList'});
 
 const {createMessage} = useMessage();
+
+const isTableMode = ref(false);
+
+function toggleView() {
+  isTableMode.value = !isTableMode.value;
+  //表格首次挂载后重新同步搜索表单的版本包选项
+  if (isTableMode.value) {
+    nextTick(() => loadPkgOptions());
+  }
+}
 
 const columns = [
   {
@@ -130,54 +161,74 @@ const columns = [
   },
 ];
 
-//包过滤与选项
-const filterPkgId = ref();
+//版本包下拉选项（表格搜索与批量添加共用）
 const pkgOptions = ref<any[]>([]);
 
 async function loadPkgOptions() {
   try {
     const res = await fetchPkgList({pageNo: 1, pageSize: 500});
-    pkgOptions.value = (res.data || []).map((p) => ({
-      label: `${p.name}（v${p.version} · ${typeLabel(p.type)}）`,
-      value: p.id,
-    }));
+    pkgOptions.value = (res.data || []).map((p) => {
+      const meta = TYPE_MAP[p.type] || TYPE_MAP[Number(p.type)];
+      return {label: `${p.name}（v${p.version} · ${meta ? meta.label : '-'}）`, value: p.id};
+    });
+    //卡片模式下表格未挂载，同步搜索表单选项会失败，跳过即可
+    try {
+      getForm().updateSchema({
+        field: 'pkgId',
+        componentProps: {options: pkgOptions.value},
+      });
+    } catch (e) {
+      // ignore
+    }
   } catch (e) {
     console.error(e);
   }
 }
 
-function typeLabel(type) {
-  const meta = TYPE_MAP[type] || TYPE_MAP[Number(type)];
-  return meta ? meta.label : '-';
-}
-
-function handleFilterChange() {
-  reload({page: 1});
-}
-
-const [registerTable, {reload}] = useTable({
+const [registerTable, {reload, getForm}] = useTable({
   canResize: true,
   showIndexColumn: false,
+  title: '测试白名单',
   api: fetchWhiteList,
   columns,
-  useSearchForm: false,
+  useSearchForm: true,
   showTableSetting: false,
   pagination: true,
+  formConfig: {
+    labelWidth: 80,
+    baseColProps: {span: 6},
+    actionColOptions: {span: 6},
+    schemas: [
+      {
+        field: 'pkgId',
+        label: '版本包',
+        component: 'Select',
+        componentProps: {
+          placeholder: '全部版本包',
+          allowClear: true,
+          showSearch: true,
+          optionFilterProp: 'label',
+          options: [],
+        },
+      },
+    ],
+  },
   fetchSetting: {
     listField: 'data',
     totalField: 'total',
   },
-  beforeFetch(data) {
-    if (filterPkgId.value) {
-      data.pkgId = filterPkgId.value;
-    }
-    return data;
-  },
   rowKey: 'id',
 });
 
-//批量添加
-const addModalVisible = ref(false);
+let cardListReload = () => {
+};
+
+function onCardMethod(m: any) {
+  cardListReload = m;
+}
+
+//批量添加抽屉
+const [registerAddDrawer, {openDrawer: openAddModal, closeDrawer: closeAddDrawer}] = useDrawer();
 const adding = ref(false);
 const addForm = reactive({
   pkgId: undefined as number | undefined,
@@ -185,11 +236,11 @@ const addForm = reactive({
 });
 const deviceOptions = ref<any[]>([]);
 
-function openAddModal() {
+function openAddDrawer() {
   addForm.pkgId = undefined;
   addForm.devices = [];
   deviceOptions.value = [];
-  addModalVisible.value = true;
+  openAddModal(true);
 }
 
 async function handleDeviceSearch(keyword: string) {
@@ -224,12 +275,9 @@ async function handleAddOk() {
       deviceIdentificationList: addForm.devices.map((d) => String(d).trim()).filter(Boolean),
     });
     createMessage.success('添加成功');
-    addModalVisible.value = false;
-    //若当前过滤器不是该包，切换过去方便查看结果
-    if (!filterPkgId.value || filterPkgId.value !== addForm.pkgId) {
-      filterPkgId.value = addForm.pkgId;
-    }
+    closeAddDrawer();
     await reload({page: 1});
+    cardListReload();
   } catch (e) {
     console.error(e);
   } finally {
@@ -242,6 +290,7 @@ async function handleDelete(record) {
     await deleteOtaVerification([record.id]);
     createMessage.success('移出成功');
     await reload();
+    cardListReload();
   } catch (e) {
     console.error(e);
     createMessage.error('移出失败');
@@ -254,18 +303,17 @@ onMounted(() => {
 </script>
 
 <style lang="less" scoped>
-.ota-white-pane {
-  padding: 8px 16px 16px;
+.ota-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 200px);
+  background: #fff;
 
-  .pane-toolbar {
+  .card-wrap {
+    flex: 1;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-
-    .pkg-filter {
-      width: 280px;
-    }
+    flex-direction: column;
+    min-height: 0;
   }
 
   .sub-text {
@@ -274,8 +322,35 @@ onMounted(() => {
   }
 }
 
+.add-drawer-content {
+  padding: 8px 16px 0;
+}
+
+.footer-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+:deep(.ant-form-item) {
+  margin-bottom: 10px;
+}
+
+:deep(.iot-basic-table-form-container) {
+  padding: 0;
+  background: #fff;
+
+  .ant-form {
+    margin-bottom: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 16px 16px 0;
+  }
+}
+
 :deep(.ant-table-wrapper) {
   border-radius: 0;
   background: #fff;
+  padding: 8px 16px 16px;
 }
 </style>

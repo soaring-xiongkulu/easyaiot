@@ -5,7 +5,7 @@
       v-bind="$attrs"
       @register="registerTestResult"
       title="测试结果录入"
-      width="520"
+      width="1400"
       :showFooter="true"
       destroy-on-close
     >
@@ -13,7 +13,7 @@
         <span>包名称：</span><b>{{ record.name }}</b>
         <span style="margin-left: 16px">版本：</span><b>{{ record.version }}</b>
       </div>
-      <Form :label-col="{style: {width: '100px'}}" :wrapper-col="{span: 18}">
+      <Form :label-col="{style: {width: '150px'}}" :wrapper-col="{span: 21}">
         <FormItem label="测试结论">
           <RadioGroup v-model:value="form.passed">
             <Radio :value="true">通过</Radio>
@@ -38,7 +38,7 @@
       v-bind="$attrs"
       @register="registerPublish"
       title="发布OTA升级包"
-      width="640"
+      width="1400"
       :showFooter="true"
       destroy-on-close
     >
@@ -47,7 +47,7 @@
           <span>包名称：</span><b>{{ record.name }}</b>
           <span style="margin-left: 16px">版本：</span><b>{{ record.version }}</b>
         </div>
-        <Form :label-col="{style: {width: '110px'}}" :wrapper-col="{span: 18}">
+        <Form :label-col="{style: {width: '150px'}}" :wrapper-col="{span: 21}">
           <FormItem v-if="needSkipVerify" label="免测发布">
             <Checkbox v-model:checked="form.skipVerify">
               跳过测试验证直接发布（测试未通过的包需要勾选）
@@ -105,7 +105,7 @@
       v-bind="$attrs"
       @register="registerGray"
       :title="grayMode === 'promote' ? '灰度升阶' : '扩大灰度范围'"
-      width="640"
+      width="1400"
       :showFooter="true"
       destroy-on-close
     >
@@ -114,7 +114,7 @@
           <span>包名称：</span><b>{{ record.name }}</b>
           <span style="margin-left: 16px">当前阶梯：</span><b>{{ currentLadderLabel }}</b>
         </div>
-        <Form :label-col="{style: {width: '110px'}}" :wrapper-col="{span: 18}">
+        <Form :label-col="{style: {width: '150px'}}" :wrapper-col="{span: 21}">
           <FormItem v-if="grayMode === 'promote'" label="目标阶梯">
             <Select v-model:value="grayTargetLadder" disabled
                     :options="[{value: grayTargetLadder, label: GRAY_LADDER_MAP[grayTargetLadder]}]"/>
@@ -180,7 +180,7 @@
       v-bind="$attrs"
       @register="registerWithdraw"
       title="撤回发布"
-      width="520"
+      width="1400"
       :showFooter="true"
       destroy-on-close
     >
@@ -188,7 +188,7 @@
         <span>包名称：</span><b>{{ record.name }}</b>
         <span style="margin-left: 16px">版本：</span><b>{{ record.version }}</b>
       </div>
-      <Form :label-col="{style: {width: '100px'}}" :wrapper-col="{span: 18}">
+      <Form :label-col="{style: {width: '150px'}}" :wrapper-col="{span: 21}">
         <FormItem label="撤回原因" required>
           <Textarea v-model:value="form.reason" :maxlength="500" :rows="4" showCount
                     placeholder="请输入撤回原因（例如：发现严重缺陷、被新版本替换等）"/>
@@ -207,7 +207,7 @@
       v-bind="$attrs"
       @register="registerStats"
       title="升级统计（近7天漏斗）"
-      width="720"
+      width="1400"
       :showFooter="false"
       destroy-on-close
     >

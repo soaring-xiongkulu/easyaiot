@@ -79,6 +79,12 @@ export const RECORD_PHASE_OPTIONS = [
   {value: '6', label: '启动成功'},
 ];
 
+export const RECORD_SUCCESS_OPTIONS = [
+  {value: '', label: '全部'},
+  {value: '1', label: '成功'},
+  {value: '0', label: '失败'},
+];
+
 export function renderTypeTag(type) {
   const meta = TYPE_MAP[type] || TYPE_MAP[Number(type)];
   if (!meta) {

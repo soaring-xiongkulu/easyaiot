@@ -1,0 +1,293 @@
+// OTA 页面四个卡片列表共用样式（配合 ant-design-vue List 四列网格）
+// 结构：.ota-card-list-wrapper > .search-bar / .list-panel > List > .ota-card-item
+.ota-card-list-wrapper {
+  background: #fff !important;
+  flex: 1;
+  height: 100%;
+  min-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-bar {
+  padding: 16px 16px 0;
+  margin-bottom: 10px;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.list-panel {
+  background: #fff;
+  padding: 0 8px 16px;
+  flex: 1;
+  min-height: 0;
+
+  :deep(.ant-list-header) {
+    border: 0;
+    border-block-end: 0;
+    padding: 8px 12px 16px;
+    padding-top: 0;
+    padding-bottom: 8px;
+    background: transparent;
+  }
+
+  :deep(.ant-list) {
+    padding: 6px;
+  }
+
+  :deep(.ant-list-item) {
+    margin: 6px;
+  }
+
+  :deep(.ant-list),
+  :deep(.ant-list-items),
+  :deep(.ant-row) {
+    background: #fff !important;
+  }
+
+  :deep(.ant-spin-nested-loading),
+  :deep(.ant-spin-container) {
+    background: #fff !important;
+  }
+
+  :deep(.ant-list-pagination) {
+    margin-top: 20px;
+    text-align: center;
+  }
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.list-title {
+  padding-left: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: #181818;
+}
+
+.list-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ota-card-list-wrapper {
+  :deep(.ota-card-item) {
+    overflow: hidden;
+    box-shadow: 0 0 4px #00000026;
+    border-radius: 8px;
+    padding: 16px 0;
+    position: relative;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 104% 104%;
+    transition: all 0.5s;
+    min-height: 208px;
+    height: 100%;
+
+    &.normal {
+      background-image: url('@/assets/images/product/blue-bg.719b437a.png');
+    }
+
+    &.error {
+      background-image: url('@/assets/images/product/red-bg.101af5ac.png');
+    }
+
+    &:hover {
+      box-shadow: 0 4px 12px #0000001f;
+      transform: translateY(-2px);
+    }
+
+    .card-info {
+      flex-direction: column;
+      max-width: calc(100% - 128px);
+      padding-left: 16px;
+      // 底部预留操作按钮区，避免内容与按钮重叠
+      padding-bottom: 48px;
+
+      .status {
+        position: absolute;
+        right: 0;
+        top: 16px;
+        height: 25px;
+        padding: 0 12px;
+        border-radius: 6px 0 0 6px;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 25px;
+        text-align: center;
+        white-space: nowrap;
+
+        &.s-gray {
+          background: #f0f0f0;
+          color: #666;
+        }
+
+        &.s-blue {
+          background: #d9dffd;
+          color: #266cfb;
+        }
+
+        &.s-green {
+          background: #d9f7e8;
+          color: #12a35a;
+        }
+
+        &.s-orange {
+          background: #ffedd6;
+          color: #d46b08;
+        }
+
+        &.s-red {
+          background: #fad7d9;
+          color: #d43030;
+        }
+      }
+
+      .title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #050708;
+        line-height: 20px;
+        min-height: 20px;
+        max-height: 40px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-all;
+
+        .sub {
+          display: block;
+          font-size: 12px;
+          font-weight: 400;
+          color: #999;
+          line-height: 16px;
+          margin-top: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .props {
+        margin-top: 10px;
+
+        .prop {
+          flex: 1;
+          margin-bottom: 10px;
+          min-width: 0;
+
+          .label {
+            font-size: 12px;
+            font-weight: 400;
+            color: #666;
+            line-height: 14px;
+          }
+
+          .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #050708;
+            line-height: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 6px;
+
+            &.muted {
+              color: #999;
+              font-weight: 400;
+            }
+          }
+
+          .tag-wrap {
+            margin-top: 4px;
+            height: 22px;
+          }
+        }
+      }
+
+      .foot {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        right: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+
+        .foot-meta {
+          font-size: 12px;
+          color: #999;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
+        }
+      }
+
+      .btns {
+        display: flex;
+        height: 28px;
+        border-radius: 45px;
+        justify-content: space-around;
+        padding: 0 10px;
+        align-items: center;
+        border: 2px solid #266cfbff;
+        flex-shrink: 0;
+
+        .btn {
+          width: 28px;
+          text-align: center;
+          position: relative;
+          cursor: pointer;
+
+          &:before {
+            content: '';
+            display: block;
+            position: absolute;
+            width: 1px;
+            height: 7px;
+            background-color: #e2e2e2;
+            left: 0;
+            top: 9px;
+          }
+
+          &:first-child:before {
+            display: none;
+          }
+
+          :deep(.anticon) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s;
+          }
+
+          &:hover :deep(.anticon) {
+            color: #5ba3f5 !important;
+          }
+        }
+      }
+    }
+
+    .card-img {
+      position: absolute;
+      right: 20px;
+      top: 50px;
+
+      img {
+        cursor: pointer;
+        width: 120px;
+      }
+    }
+  }
+}

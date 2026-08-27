@@ -1,10 +1,15 @@
 <template>
-  <div class="ota-records-pane">
+  <BasicDrawer
+    v-bind="$attrs"
+    @register="registerDrawer"
+    :title="`升级记录 - ${pkg.name || ''}${pkg.version ? ' v' + pkg.version : ''}`"
+    width="1400"
+    placement="right"
+    :showFooter="false"
+    destroy-on-close
+  >
     <BasicTable @register="registerTable">
       <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'pkgName'">
-          {{ record.pkgName || '-' }}
-        </template>
         <template v-if="column.dataIndex === 'deviceIdentification'">
           {{ record.deviceIdentification }}
           <span v-if="record.deviceName && record.deviceName !== record.deviceIdentification"
@@ -15,16 +20,22 @@
         </template>
       </template>
     </BasicTable>
-  </div>
+  </BasicDrawer>
 </template>
 
 <script lang="ts" setup>
+import {reactive, ref} from 'vue';
+import {BasicDrawer, useDrawerInner} from '@/components/Drawer';
 import {BasicTable, useTable} from '@/components/Table';
 import moment from 'moment';
 import {fetchUpgradeRecords} from '/@/api/device/ota';
-import {RECORD_PHASE_OPTIONS, RECORD_TYPE_OPTIONS, renderPhaseTag, renderTypeTag} from '../../Data';
+import {RECORD_PHASE_OPTIONS, RECORD_SUCCESS_OPTIONS, renderPhaseTag, renderTypeTag} from '../../Data';
 
-defineOptions({name: 'OtaUpgradeRecords'});
+defineOptions({name: 'OtaPackageRecords'});
+
+//当前查看的版本包
+const pkg = ref<any>({});
+const pkgId = ref<number | null>(null);
 
 const columns = [
   {
@@ -34,14 +45,9 @@ const columns = [
     customRender: ({text}) => renderTypeTag(text),
   },
   {
-    title: '版本包',
-    dataIndex: 'pkgName',
-    width: 110,
-  },
-  {
     title: '设备',
     dataIndex: 'deviceIdentification',
-    width: 140,
+    width: 150,
   },
   {
     title: '产品标识',
@@ -81,7 +87,7 @@ const columns = [
   {
     title: '错误码/耗时',
     dataIndex: 'errorCode',
-    width: 130,
+    width: 150,
     customRender: ({record}) => {
       const parts: string[] = [];
       if (record.errorCode) {
@@ -96,10 +102,15 @@ const columns = [
   {
     title: '升级时间',
     dataIndex: 'upgradeTime',
-    width: 100,
-    customRender: ({text}) => (text ? moment(text).format('MM-DD HH:mm:ss') : '-'),
+    width: 110,
+    customRender: ({text}) => (text ? moment(text).format('YYYY-MM-DD HH:mm:ss') : '-'),
   },
 ];
+
+const [registerDrawer] = useDrawerInner((record) => {
+  pkg.value = record || {};
+  pkgId.value = record?.id ?? null;
+});
 
 const [registerTable] = useTable({
   canResize: true,
@@ -112,22 +123,23 @@ const [registerTable] = useTable({
   formConfig: {
     labelWidth: 80,
     baseColProps: {span: 6},
+    actionColOptions: {span: 6},
     schemas: [
-      {
-        field: 'type',
-        label: '包类型',
-        component: 'Select',
-        componentProps: {
-          options: RECORD_TYPE_OPTIONS,
-        },
-        defaultValue: '',
-      },
       {
         field: 'phase',
         label: '阶段',
         component: 'Select',
         componentProps: {
           options: RECORD_PHASE_OPTIONS,
+        },
+        defaultValue: '',
+      },
+      {
+        field: 'success',
+        label: '结果',
+        component: 'Select',
+        componentProps: {
+          options: RECORD_SUCCESS_OPTIONS,
         },
         defaultValue: '',
       },
@@ -142,18 +154,18 @@ const [registerTable] = useTable({
     listField: 'data',
     totalField: 'total',
   },
+  beforeFetch(data) {
+    data.pkgId = pkgId.value;
+    return data;
+  },
   rowKey: 'id',
 });
 </script>
 
 <style lang="less" scoped>
-.ota-records-pane {
-  padding: 8px 16px 16px;
-
-  .sub-text {
-    color: #999;
-    font-size: 12px;
-  }
+.sub-text {
+  color: #999;
+  font-size: 12px;
 }
 
 :deep(.ant-form-item) {
@@ -166,7 +178,7 @@ const [registerTable] = useTable({
   .ant-form {
     margin-bottom: 0;
     background: transparent;
-    padding: 12px 12px 0;
+    padding: 8px 8px 0;
   }
 }
 </style>
