@@ -54,13 +54,14 @@
           <div class="left-section left-section-grow">
             <h4>
               面板组件（{{ widgets.length }}）
-              <Popconfirm
+              <Select
                 v-if="widgets.length === 0"
-                title="使用智能插座示例模板快速开始？"
-                @confirm="applyPreset('plug')"
-              >
-                <a class="preset-link">插入示例</a>
-              </Popconfirm>
+                size="small"
+                placeholder="插入示例"
+                style="width: 120px"
+                :options="PRESET_OPTIONS"
+                @change="applyPreset"
+              />
             </h4>
             <Empty v-if="!widgets.length" description="从上方组件库添加组件" :image-style="{height: '48px'}" />
             <TransitionGroup v-else name="widget-list" tag="div" class="widget-list">
@@ -460,14 +461,23 @@ function move(idx, dir) {
   syncSchemaText();
 }
 
-function applyPreset(kind: 'plug') {
-  if (kind !== 'plug') return;
-  presets.plug().forEach((w) => widgets.value.push(w));
+function applyPreset(kind: string) {
+  const maker = presets[kind];
+  if (!maker) return;
+  maker().forEach((w) => widgets.value.push(w));
   syncSchemaText();
 }
 
-// 快速起步的行业常见面板
-const presets = {
+// 快速起步的行业常见面板示例
+const PRESET_OPTIONS = [
+  {label: '智能插座', value: 'plug'},
+  {label: '环境监测', value: 'env'},
+  {label: '智能安防', value: 'security'},
+  {label: '智能家居', value: 'home'},
+  {label: '储能电站', value: 'energy'},
+];
+
+const presets: Record<string, () => any[]> = {
   plug: () => [
     {uid: genUid(), type: 'switch', title: '电源开关', span: 'half', propertyCode: 'power', enumText: '开启:1\n关闭:0'},
     {uid: genUid(), type: 'status', title: '工作状态', span: 'half', propertyCode: 'work_status', enumText: '运行:RUNNING:#16c2a2\n待机:STANDBY:#8c8c8c\n故障:FAULT:#f5222d'},
@@ -475,22 +485,60 @@ const presets = {
     {uid: genUid(), type: 'slider', title: '定时电量阈值', span: 'half', propertyCode: 'threshold', min: 0, max: 100, step: 5, unit: '%'},
     {uid: genUid(), type: 'button', title: '重启设备', span: 'full', serviceId: 'reboot', confirm: true},
   ],
+  env: () => [
+    {uid: genUid(), type: 'chart', title: '温度趋势', span: 'full', propertyCode: 'temperature', min: 0, max: 60, unit: '℃', color: '#2f6bff', maxPoints: 20},
+    {uid: genUid(), type: 'gauge', title: '空气湿度', span: 'half', propertyCode: 'humidity', min: 0, max: 100, unit: '%', color: '#16c2a2'},
+    {uid: genUid(), type: 'text', title: 'PM2.5', span: 'half', propertyCode: 'pm25', unit: 'μg/m³'},
+    {uid: genUid(), type: 'status', title: '空气质量', span: 'full', propertyCode: 'air_quality', enumText: '优:EXCELLENT:#16c2a2\n良:GOOD:#52c41a\n轻度污染:LIGHT:#faad14\n重度污染:HEAVY:#f5222d'},
+    {uid: genUid(), type: 'button', title: '一键巡检', span: 'full', serviceId: 'inspect', confirm: true},
+  ],
+  security: () => [
+    {uid: genUid(), type: 'video', title: '门口摄像头', span: 'full'},
+    {uid: genUid(), type: 'status', title: '布防状态', span: 'half', propertyCode: 'arm_status', enumText: '已布防:ARMED:#16c2a2\n已撤防:DISARMED:#8c8c8c'},
+    {uid: genUid(), type: 'switch', title: '声光报警', span: 'half', propertyCode: 'siren', enumText: '开启:1\n关闭:0'},
+    {uid: genUid(), type: 'button', title: '一键布防', span: 'half', serviceId: 'arm', confirm: true},
+    {uid: genUid(), type: 'button', title: '紧急抓拍', span: 'half', serviceId: 'snapshot', confirm: false},
+  ],
+  home: () => [
+    {uid: genUid(), type: 'switch', title: '客厅灯光', span: 'half', propertyCode: 'light', enumText: '开启:1\n关闭:0'},
+    {uid: genUid(), type: 'slider', title: '灯光亮度', span: 'half', propertyCode: 'brightness', min: 0, max: 100, step: 5, unit: '%'},
+    {uid: genUid(), type: 'gauge', title: '室内温度', span: 'half', propertyCode: 'temperature', min: 10, max: 40, unit: '℃', color: '#fa8c16'},
+    {uid: genUid(), type: 'progress', title: '窗帘开度', span: 'half', propertyCode: 'curtain', min: 0, max: 100, unit: '%', color: '#2f6bff'},
+    {uid: genUid(), type: 'chart', title: '用电功率', span: 'full', propertyCode: 'power', min: 0, max: 3000, unit: 'W', color: '#2f6bff', maxPoints: 20},
+  ],
+  energy: () => [
+    {uid: genUid(), type: 'chart', title: '充放电功率', span: 'full', propertyCode: 'power', min: -100, max: 100, unit: 'kW', color: '#16c2a2', maxPoints: 20},
+    {uid: genUid(), type: 'gauge', title: '电池电量', span: 'half', propertyCode: 'soc', min: 0, max: 100, unit: '%', color: '#16c2a2'},
+    {uid: genUid(), type: 'status', title: '运行状态', span: 'half', propertyCode: 'run_status', enumText: '充电:CHARGING:#16c2a2\n放电:DISCHARGING:#fa8c16\n待机:STANDBY:#8c8c8c'},
+    {uid: genUid(), type: 'progress', title: '负载率', span: 'half', propertyCode: 'load', min: 0, max: 100, unit: '%', color: '#2f6bff'},
+    {uid: genUid(), type: 'text', title: '今日发电', span: 'half', propertyCode: 'today_kwh', unit: 'kWh'},
+    {uid: genUid(), type: 'button', title: '紧急停机', span: 'full', serviceId: 'emergency_stop', confirm: true},
+  ],
 };
 
 function buildWidgetsFromParsed(parsed): any[] {
   const rawList = parsed?.pages?.[0]?.widgets ?? [];
-  return rawList.map((raw, i) => ({
-    uid: genUid(),
-    id: raw.id || `${raw.type}_${i}`,
-    type: raw.type,
-    title: raw.title ?? '',
-    span: raw.span === 'half' ? 'half' : 'full',
-    propertyCode: raw.propertyCode,
-    serviceId: raw.serviceId,
-    config: raw.config || {},
-    enumText: enumToText(raw),
-    confirm: raw.config?.confirm === true,
-  }));
+  return rawList.map((raw, i) => {
+    const cfg = raw.config || {};
+    return {
+      uid: genUid(),
+      id: raw.id || `${raw.type}_${i}`,
+      type: raw.type,
+      title: raw.title ?? '',
+      span: raw.span === 'half' ? 'half' : 'full',
+      propertyCode: raw.propertyCode,
+      serviceId: raw.serviceId,
+      config: cfg,
+      enumText: enumToText(raw),
+      confirm: cfg.confirm === true,
+      min: cfg.min,
+      max: cfg.max,
+      step: cfg.step,
+      unit: cfg.unit,
+      color: cfg.color,
+      maxPoints: cfg.maxPoints,
+    };
+  });
 }
 
 function enumToText(raw) {
