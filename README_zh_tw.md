@@ -1085,6 +1085,8 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 |:---:|:---:|:---:|
 | ![APP截圖](.image/banner/app/app_1008.jpg) | ![APP截圖](.image/banner/app/app_1009.jpg) | ![APP截圖](.image/banner/app/app_1010.jpg) |
 | ![APP截圖](.image/banner/app/app_1011.jpg) | ![APP截圖](.image/banner/app/app_1012.jpg) | ![APP截圖](.image/banner/app/app_1013.jpg) |
+| ![APP截圖](.image/banner/app/app_2023.png) | ![APP截圖](.image/banner/app/app_2024.png) | ![APP截圖](.image/banner/app/app_2025.png) |
+| ![APP截圖](.image/banner/app/app_2026.png) | ![APP截圖](.image/banner/app/app_2027.png) | ![APP截圖](.image/banner/app/app_2028.png) |
 | ![APP截圖](.image/banner/app/app_1014.jpg) | ![APP截圖](.image/banner/app/app_1015.jpg) | ![APP截圖](.image/banner/app/app_1016.jpg) |
 | ![APP截圖](.image/banner/app/app_1017.jpg) | ![APP截圖](.image/banner/app/app_1018.jpg) | ![APP截圖](.image/banner/app/app_1019.jpg) |
 | ![APP截圖](.image/banner/app/app_1020.jpg) | ![APP截圖](.image/banner/app/app_1021.jpg) | ![APP截圖](.image/banner/app/app_1022.jpg) |

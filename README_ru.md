@@ -1076,6 +1076,8 @@ EasyAIoT — это проект с открытым исходным кодом
 |:---:|:---:|:---:|
 | ![Скриншот APP](.image/banner/app/app_1008.jpg) | ![Скриншот APP](.image/banner/app/app_1009.jpg) | ![Скриншот APP](.image/banner/app/app_1010.jpg) |
 | ![Скриншот APP](.image/banner/app/app_1011.jpg) | ![Скриншот APP](.image/banner/app/app_1012.jpg) | ![Скриншот APP](.image/banner/app/app_1013.jpg) |
+| ![Скриншот APP](.image/banner/app/app_2023.png) | ![Скриншот APP](.image/banner/app/app_2024.png) | ![Скриншот APP](.image/banner/app/app_2025.png) |
+| ![Скриншот APP](.image/banner/app/app_2026.png) | ![Скриншот APP](.image/banner/app/app_2027.png) | ![Скриншот APP](.image/banner/app/app_2028.png) |
 | ![Скриншот APP](.image/banner/app/app_1014.jpg) | ![Скриншот APP](.image/banner/app/app_1015.jpg) | ![Скриншот APP](.image/banner/app/app_1016.jpg) |
 | ![Скриншот APP](.image/banner/app/app_1017.jpg) | ![Скриншот APP](.image/banner/app/app_1018.jpg) | ![Скриншот APP](.image/banner/app/app_1019.jpg) |
 | ![Скриншот APP](.image/banner/app/app_1020.jpg) | ![Скриншот APP](.image/banner/app/app_1021.jpg) | ![Скриншот APP](.image/banner/app/app_1022.jpg) |

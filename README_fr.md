@@ -1075,6 +1075,8 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 |:---:|:---:|:---:|
 | ![Capture APP](.image/banner/app/app_1008.jpg) | ![Capture APP](.image/banner/app/app_1009.jpg) | ![Capture APP](.image/banner/app/app_1010.jpg) |
 | ![Capture APP](.image/banner/app/app_1011.jpg) | ![Capture APP](.image/banner/app/app_1012.jpg) | ![Capture APP](.image/banner/app/app_1013.jpg) |
+| ![Capture APP](.image/banner/app/app_2023.png) | ![Capture APP](.image/banner/app/app_2024.png) | ![Capture APP](.image/banner/app/app_2025.png) |
+| ![Capture APP](.image/banner/app/app_2026.png) | ![Capture APP](.image/banner/app/app_2027.png) | ![Capture APP](.image/banner/app/app_2028.png) |
 | ![Capture APP](.image/banner/app/app_1014.jpg) | ![Capture APP](.image/banner/app/app_1015.jpg) | ![Capture APP](.image/banner/app/app_1016.jpg) |
 | ![Capture APP](.image/banner/app/app_1017.jpg) | ![Capture APP](.image/banner/app/app_1018.jpg) | ![Capture APP](.image/banner/app/app_1019.jpg) |
 | ![Capture APP](.image/banner/app/app_1020.jpg) | ![Capture APP](.image/banner/app/app_1021.jpg) | ![Capture APP](.image/banner/app/app_1022.jpg) |

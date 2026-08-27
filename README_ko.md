@@ -1075,6 +1075,8 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 |:---:|:---:|:---:|
 | ![APP 스크린샷](.image/banner/app/app_1008.jpg) | ![APP 스크린샷](.image/banner/app/app_1009.jpg) | ![APP 스크린샷](.image/banner/app/app_1010.jpg) |
 | ![APP 스크린샷](.image/banner/app/app_1011.jpg) | ![APP 스크린샷](.image/banner/app/app_1012.jpg) | ![APP 스크린샷](.image/banner/app/app_1013.jpg) |
+| ![APP 스크린샷](.image/banner/app/app_2023.png) | ![APP 스크린샷](.image/banner/app/app_2024.png) | ![APP 스크린샷](.image/banner/app/app_2025.png) |
+| ![APP 스크린샷](.image/banner/app/app_2026.png) | ![APP 스크린샷](.image/banner/app/app_2027.png) | ![APP 스크린샷](.image/banner/app/app_2028.png) |
 | ![APP 스크린샷](.image/banner/app/app_1014.jpg) | ![APP 스크린샷](.image/banner/app/app_1015.jpg) | ![APP 스크린샷](.image/banner/app/app_1016.jpg) |
 | ![APP 스크린샷](.image/banner/app/app_1017.jpg) | ![APP 스크린샷](.image/banner/app/app_1018.jpg) | ![APP 스크린샷](.image/banner/app/app_1019.jpg) |
 | ![APP 스크린샷](.image/banner/app/app_1020.jpg) | ![APP 스크린샷](.image/banner/app/app_1021.jpg) | ![APP 스크린샷](.image/banner/app/app_1022.jpg) |
