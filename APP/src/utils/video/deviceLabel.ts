@@ -16,6 +16,25 @@ export function isNvrRtspSource(source?: string | null): boolean {
   return s.includes('/streaming/channels/') || s.includes('cam/realmonitor')
 }
 
+/** 展示用：隐藏拉流地址里的密码（rtsp://user:pass@host → rtsp://user:******@host），固定掩码避免泄露密码长度 */
+export function maskSourceUrl(source?: string | null): string {
+  const url = (source || '').trim()
+  const scheme = url.match(/^[a-z][\w+.-]*:\/\//i)?.[0]
+  if (!url || !scheme)
+    return url
+  const rest = url.slice(scheme.length)
+  const slashIndex = rest.indexOf('/')
+  const authority = rest.slice(0, slashIndex >= 0 ? slashIndex : rest.length)
+  const atIndex = authority.lastIndexOf('@')
+  if (atIndex <= 0)
+    return url
+  const userEnd = authority.indexOf(':')
+  if (userEnd < 0 || userEnd >= atIndex)
+    return url // 只有用户名没有密码，无需脱敏
+  const maskedAuthority = `${authority.slice(0, userEnd)}:******${authority.slice(atIndex)}`
+  return scheme + maskedAuthority + rest.slice(authority.length)
+}
+
 export function isNvrChannelDevice(
   device: {
     nvr_id?: number | null

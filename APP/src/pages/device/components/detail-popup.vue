@@ -102,7 +102,7 @@ import {
   stopStreamForwarding,
 } from '@/api/video/camera'
 import { playByDeviceAndChannel } from '@/api/video/gb28181'
-import { getGb28181PlayIds, shouldPlayViaGb28181 } from '@/utils/video/deviceLabel'
+import { getGb28181PlayIds, maskSourceUrl, shouldPlayViaGb28181 } from '@/utils/video/deviceLabel'
 import { hasDirectPlayStream, pickWvpPlayUrl, resolveDevicePlayUrl } from '@/utils/video/deviceStream'
 
 const emit = defineEmits<{ refresh: [], edit: [device: DeviceInfo] }>()
@@ -140,7 +140,7 @@ const detailRows = computed(() => {
     { label: '设备 ID', value: d.id },
     { label: '设备类型', value: getDeviceKindText(d.device_kind) },
     { label: 'IP 地址', value: d.ip ? `${d.ip}${d.port ? `:${d.port}` : ''}` : '-' },
-    { label: '来源', value: d.source || '-' },
+    { label: '来源', value: maskSourceUrl(d.source) || '-' },
     { label: '厂商', value: d.manufacturer || '-' },
     { label: '型号', value: d.model || '-' },
     { label: '位置', value: d.address || (d.has_location ? '已设置坐标' : '未设置') },
