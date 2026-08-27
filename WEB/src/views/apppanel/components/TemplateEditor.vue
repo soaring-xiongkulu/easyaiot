@@ -144,6 +144,58 @@
                       <span class="mock-btn">{{ w.title }}</span>
                     </div>
                   </template>
+                  <!-- 折线图 -->
+                  <template v-else-if="w.type === 'chart'">
+                    <div class="mock-col">
+                      <div class="mock-row">
+                        <span class="mock-label">{{ w.title }}</span>
+                        <span class="mock-value">42<span class="mock-unit">{{ w.unit }}</span></span>
+                      </div>
+                      <svg class="mock-chart" viewBox="0 0 200 60" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="mockChartFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#2f6bff" stop-opacity="0.25" />
+                            <stop offset="100%" stop-color="#2f6bff" stop-opacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <polygon
+                          fill="url(#mockChartFill)"
+                          points="0,48 25,40 50,44 75,30 100,36 125,22 150,28 175,14 200,20 200,60 0,60"
+                        />
+                        <polyline
+                          fill="none" stroke="#2f6bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          points="0,48 25,40 50,44 75,30 100,36 125,22 150,28 175,14 200,20"
+                        />
+                        <circle cx="200" cy="20" r="3" fill="#2f6bff" />
+                      </svg>
+                    </div>
+                  </template>
+                  <!-- 仪表盘 -->
+                  <template v-else-if="w.type === 'gauge'">
+                    <div class="mock-col">
+                      <div class="mock-row">
+                        <span class="mock-label">{{ w.title }}</span>
+                        <span class="mock-value">68<span class="mock-unit">{{ w.unit }}</span></span>
+                      </div>
+                      <div class="mock-gauge">
+                        <div class="mock-gauge-fill" :style="{background: w.color || '#16c2a2'}">
+                          <span class="mock-gauge-knob"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <!-- 进度条 -->
+                  <template v-else-if="w.type === 'progress'">
+                    <div class="mock-col">
+                      <div class="mock-row">
+                        <span class="mock-label">{{ w.title }}</span>
+                        <span class="mock-value">68<span class="mock-unit">{{ w.unit }}</span></span>
+                      </div>
+                      <div class="mock-progress">
+                        <i :style="{width: '68%', background: w.color || '#2f6bff'}"></i>
+                      </div>
+                    </div>
+                  </template>
                   <!-- 视频 -->
                   <template v-else-if="w.type === 'video'">
                     <div class="mock-col">
@@ -241,6 +293,32 @@
               </div>
             </template>
 
+            <template v-if="['chart', 'gauge', 'progress'].includes(activeWidget.type)">
+              <div class="form-grid">
+                <div class="form-item">
+                  <span class="form-label">最小值</span>
+                  <InputNumber v-model:value="activeWidget.min" style="width: 100%" />
+                </div>
+                <div class="form-item">
+                  <span class="form-label">最大值</span>
+                  <InputNumber v-model:value="activeWidget.max" style="width: 100%" />
+                </div>
+                <div class="form-item">
+                  <span class="form-label">单位</span>
+                  <Input v-model:value="activeWidget.unit" placeholder="如 %、℃" />
+                </div>
+                <div class="form-item">
+                  <span class="form-label">主题色</span>
+                  <Input v-model:value="activeWidget.color" placeholder="如 #2f6bff" />
+                </div>
+              </div>
+              <div v-if="activeWidget.type === 'chart'" class="form-item">
+                <span class="form-label">采样点数</span>
+                <InputNumber v-model:value="activeWidget.maxPoints" :min="5" :max="60" style="width: 100%" />
+                <p class="form-help">App 端每 10s 采样一次属性值并绘制实时曲线</p>
+              </div>
+            </template>
+
             <template v-if="['switch'].includes(activeWidget.type)">
               <div class="form-item">
                 <span class="form-label">开/关取值</span>
@@ -301,10 +379,13 @@ const WIDGET_TYPES = [
   {type: 'status', label: '状态标签', icon: '🏷️', desc: '只读属性值并映射为彩色标签'},
   {type: 'text', label: '数值文本', icon: '🔢', desc: '只读数值/文本展示'},
   {type: 'button', label: '命令按钮', icon: '🔘', desc: '点击下发设备服务命令'},
-  {type: 'video', label: '视频画面', icon: '📹', desc: '当前设备的实时画面'},
+  {type: 'chart', label: '折线图', icon: '📈', desc: '属性值实时采样曲线（每 10s 采样）'},
+  {type: 'gauge', label: '仪表盘', icon: '🌀', desc: '弧形仪表盘展示数值占比'},
+  {type: 'progress', label: '进度条', icon: '📊', desc: '数值进度条展示'},
+  {type: 'video', label: '视频画面', icon: '📹', desc: '当前设备的实时画面（摄像头）'},
 ] as const;
 
-const usesProperty = ['switch', 'slider', 'number', 'status', 'text'];
+const usesProperty = ['switch', 'slider', 'number', 'status', 'text', 'chart', 'gauge', 'progress'];
 // 可写属性组件（开关/滑条/步进器）支持自定义写入服务
 const writableTypes = ['switch', 'slider', 'number'];
 
@@ -351,6 +432,9 @@ function addWidget(type) {
     status: {title: '工作模式', enumText: '制冷:COOL:#1890ff\n制热:HEAT:#fa541c'},
     text: {title: '实时功率', unit: 'W'},
     button: {title: '一键执行', serviceId: '', confirm: false},
+    chart: {title: '温度趋势', min: 0, max: 60, unit: '℃', color: '#2f6bff', maxPoints: 20},
+    gauge: {title: '电量', min: 0, max: 100, unit: '%', color: '#16c2a2'},
+    progress: {title: '任务进度', min: 0, max: 100, unit: '%', color: '#2f6bff'},
     video: {title: '实时画面'},
   };
   widgets.value.push({
@@ -440,6 +524,8 @@ function buildSchemaPayload() {
       ...(w.max !== undefined ? {max: w.max} : {}),
       ...(w.step !== undefined ? {step: w.step} : {}),
       ...(w.unit ? {unit: w.unit} : {}),
+      ...(w.color ? {color: w.color} : {}),
+      ...(w.maxPoints ? {maxPoints: w.maxPoints} : {}),
       ...(['switch', 'status'].includes(w.type) ? {options: parseEnumText(w.enumText)} : {}),
       ...(w.type === 'button' ? {confirm: !!w.confirm} : {}),
     },
@@ -956,6 +1042,56 @@ defineExpose({open});
   justify-content: center;
   font-size: 12px;
   letter-spacing: 1px;
+}
+
+.mock-chart {
+  width: 100%;
+  height: 64px;
+  display: block;
+}
+
+.mock-gauge {
+  position: relative;
+  width: 100%;
+  height: 52px;
+  border-radius: 52px 52px 0 0;
+  background: #edeff5;
+  overflow: hidden;
+  margin-top: 4px;
+
+  .mock-gauge-fill {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 68%;
+    height: 100%;
+    border-radius: 52px 52px 0 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+
+    .mock-gauge-knob {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      margin: -6px -4px 6px 0;
+    }
+  }
+}
+
+.mock-progress {
+  height: 10px;
+  border-radius: 5px;
+  background: #edeff5;
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+  }
 }
 
 .schema-textarea {
