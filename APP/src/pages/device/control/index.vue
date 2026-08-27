@@ -21,24 +21,31 @@
       <view class="banner-info">
         <text class="banner-name">{{ deviceName || deviceIdentification || '--' }}</text>
         <view class="banner-meta">
-          <text class="banner-product">{{ productIdentification }}</text>
+          <view class="banner-status" :class="{ 'banner-status--online': online }">
+            <view class="banner-status-dot" />
+            <text>{{ online ? '在线' : '离线' }}</text>
+          </view>
+          <text class="banner-version">{{ deviceVersion ? `v${deviceVersion}` : (productIdentification || '') }}</text>
         </view>
       </view>
+      <view class="banner-ota" @click="handleOpenOta">
+        <wd-icon name="refresh" size="26rpx" color="#f59e0b" />
+        <text>OTA</text>
+      </view>
       <view v-if="template" class="banner-badge">
-        <wd-icon name="view-list" size="24rpx" color="#2f6bff" />
         <text>面板 v{{ template.version ?? 1 }}</text>
       </view>
     </view>
 
     <!-- 加载中 -->
     <view v-if="loadingTemplate" class="state-box">
-      <wd-loading color="#0957de" />
+      <wd-loading color="#2f6bff" />
       <text>正在获取产品控制面板…</text>
     </view>
 
     <!-- 未配置模板 -->
     <view v-else-if="!pages.length" class="state-box empty-template">
-      <wd-icon name="apply" size="64px" color="#cbd2dd" />
+      <wd-icon name="no-content" size="64px" color="#cbd2dd" />
       <text class="empty-title">该产品暂未配置控制面板</text>
       <text class="empty-desc">请在 WEB 管理端「App 面板模板」中为产品\n创建并发布控制页模板</text>
     </view>
@@ -62,7 +69,7 @@ import type { AppPanelTemplate, PanelTemplatePage } from '@/api/device/panel'
 import { onLoad } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import PanelRenderer from '@/components/panel/PanelRenderer.vue'
-import { getPublishedPanelByProduct, parsePanelTemplate } from '@/api/device/panel'
+import { getDeviceByIdentification, getPublishedPanelByProduct, parsePanelTemplate } from '@/api/device/panel'
 
 definePage({
   style: {
@@ -74,6 +81,8 @@ const deviceId = ref<number | string>('')
 const deviceIdentification = ref('')
 const productIdentification = ref('')
 const deviceName = ref('')
+const deviceVersion = ref('')
+const online = ref(true)
 
 const loadingTemplate = ref(true)
 const template = ref<AppPanelTemplate | null>(null)
@@ -86,7 +95,34 @@ onLoad((query) => {
   productIdentification.value = decodeURIComponent(query?.productIdentification ?? '')
   deviceName.value = decodeURIComponent(query?.name ?? '')
   loadTemplate()
+  loadDeviceMeta()
 })
+
+/** 拉取设备在线状态与当前版本（OTA 闭环后版本会变化） */
+async function loadDeviceMeta() {
+  if (!productIdentification.value || !deviceIdentification.value) {
+    return
+  }
+  try {
+    const detail = await getDeviceByIdentification(productIdentification.value, deviceIdentification.value)
+    if (detail) {
+      deviceVersion.value = detail.deviceVersion || ''
+      online.value = (detail.connectStatus || '').toUpperCase() !== 'OFFLINE'
+    }
+  } catch {
+    // 状态拉取失败不阻塞面板
+  }
+}
+
+function handleOpenOta() {
+  const query = [
+    `deviceIdentification=${encodeURIComponent(deviceIdentification.value)}`,
+    `productIdentification=${encodeURIComponent(productIdentification.value)}`,
+    `name=${encodeURIComponent(deviceName.value || '')}`,
+    `version=${encodeURIComponent(deviceVersion.value || '')}`,
+  ].join('&')
+  uni.navigateTo({ url: `/pages/device/ota/index?${query}` })
+}
 
 async function loadTemplate() {
   loadingTemplate.value = true
@@ -161,13 +197,55 @@ function handleBack() {
 .banner-meta {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 16rpx;
   margin-top: 10rpx;
 
-  .banner-product {
+  .banner-version {
     font-size: 23rpx;
     color: var(--app-text-3, #98a2b3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+}
+
+// 在线状态胶囊
+.banner-status {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  background: #f4f6fb;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #8a94a6;
+
+  &--online {
+    background: #e6f7f1;
+    color: #0fa36e;
+  }
+
+  .banner-status-dot {
+    width: 10rpx;
+    height: 10rpx;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+// OTA 快捷入口
+.banner-ota {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: #fdf3e2;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #d97706;
+  flex-shrink: 0;
 }
 
 // 面板版本胶囊

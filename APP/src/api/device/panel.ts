@@ -78,6 +78,32 @@ export interface IotDeviceItem {
   productIdentification?: string
   connectStatus?: string
   deviceStatus?: string
+  /** 设备当前固件/软件版本（OTA 检测入参） */
+  deviceVersion?: string
+  deviceSn?: string
+  ipAddress?: string
+  /** 子设备挂载的网关标识，非空即为子设备 */
+  parentIdentification?: string
+  deviceType?: string
+  lastOnlineTime?: string
+  activeStatus?: number
+  deviceDescription?: string
+}
+
+export interface IotDeviceStatusCount {
+  onlineCount: number
+  offlineCount: number
+  initCount: number
+}
+
+/** 设备在线状态归一化：ONLINE 在线 / OFFLINE 离线 / 其余未激活 */
+export function normalizeConnectStatus(status?: string): 'online' | 'offline' | 'inactive' {
+  const s = (status || '').toUpperCase()
+  if (s === 'ONLINE')
+    return 'online'
+  if (s === 'OFFLINE')
+    return 'offline'
+  return 'inactive'
 }
 
 /** 解析模板 JSON；非法或缺省时返回 null */
@@ -114,6 +140,92 @@ export async function getIotDevicePage(params: { pageNum?: number, pageSize?: nu
   const res = await http.get<IResponse<IotDeviceItem[]>>('/device/list', params, undefined, { original: true })
   const rows = res?.data ?? (res as any)?.rows ?? []
   return { list: rows, total: Number(res?.total ?? 0) }
+}
+
+/** 各连接状态设备数量（/device/listStatusCount） */
+export async function getIotDeviceStatusCount(): Promise<IotDeviceStatusCount> {
+  try {
+    const data = await http.get<Partial<IotDeviceStatusCount>>('/device/listStatusCount')
+    return {
+      onlineCount: Number(data?.onlineCount ?? 0),
+      offlineCount: Number(data?.offlineCount ?? 0),
+      initCount: Number(data?.initCount ?? 0),
+    }
+  } catch {
+    return { onlineCount: 0, offlineCount: 0, initCount: 0 }
+  }
+}
+
+export interface IotProductItem {
+  id?: number
+  productId?: number
+  productName?: string
+  productIdentification?: string
+  productImg?: string
+}
+
+/** 产品标识 → 产品信息映射（设备卡片展示产品名/图标用） */
+export async function getProductNameMap(): Promise<Map<string, IotProductItem>> {
+  const map = new Map<string, IotProductItem>()
+  try {
+    const res = await http.get<IResponse<IotProductItem[]>>('/product/list', { pageNum: 1, pageSize: 200 }, undefined, { original: true })
+    const rows = res?.data ?? (res as any)?.rows ?? []
+    for (const row of rows) {
+      if (row?.productIdentification) {
+        map.set(row.productIdentification, row)
+      }
+    }
+  } catch {
+    // 拉取失败时退化：卡片直接展示产品标识
+  }
+  return map
+}
+
+/** 物模型属性元数据（属性展示名/单位） */
+export interface ThingPropertyMeta {
+  propertyCode: string
+  propertyName?: string
+  datatype?: string
+  unit?: string
+}
+
+/** 按产品拉取物模型属性元数据，code → meta 映射 */
+export async function getPropertyMetaMap(productIdentification: string): Promise<Map<string, ThingPropertyMeta>> {
+  const map = new Map<string, ThingPropertyMeta>()
+  if (!productIdentification) {
+    return map
+  }
+  try {
+    const res = await http.get<IResponse<ThingPropertyMeta[]>>(
+      '/productProperties/list',
+      { productIdentification, pageNum: 1, pageSize: 200 },
+      undefined,
+      { original: true },
+    )
+    const rows = res?.data ?? (res as any)?.rows ?? []
+    for (const row of rows) {
+      if (row?.propertyCode) {
+        map.set(row.propertyCode, row)
+      }
+    }
+  } catch {
+    // 拉取失败时退化：属性名直接展示 code
+  }
+  return map
+}
+
+/** 按产品标识 + 设备标识查询设备详情（含版本/SN/最后上线时间等全量字段） */
+export async function getDeviceByIdentification(productIdentification: string, deviceIdentification: string): Promise<IotDeviceItem | null> {
+  if (!productIdentification || !deviceIdentification) {
+    return null
+  }
+  try {
+    return await http.get<IotDeviceItem>(
+      `/device/selectByProductIdentificationAndDeviceIdentification/${encodeURIComponent(productIdentification)}/${encodeURIComponent(deviceIdentification)}`,
+    )
+  } catch {
+    return null
+  }
 }
 
 export interface DeviceShadowResult {
