@@ -1,11 +1,18 @@
 <template>
-  <!-- 搜索框入口 -->
-  <view class="flex items-center bg-white pr-30rpx">
-    <view class="flex-1" @click="visible = true">
-      <wd-search :placeholder="placeholder" hide-cancel disabled />
-    </view>
-    <view class="text-28rpx text-[#1890ff]" @click="handleReadAll">
-      全部已读
+  <!-- 筛选入口 + 全部已读 -->
+  <view class="ios-search-bar">
+    <view class="flex flex-1 items-center gap-16rpx pr-16rpx">
+      <view class="ios-search-pill" @click="visible = true">
+        <wd-icon name="search-line" size="17px" color="#98a2b3" />
+        <text class="ios-search-text" :class="{ 'ios-search-placeholder': placeholder === '搜索消息' }">
+          {{ placeholder }}
+        </text>
+        <wd-icon name="filter" size="16px" :color="hasFilter ? '#2f6bff' : '#c0c7d3'" />
+      </view>
+      <view class="read-all-btn" @click="handleReadAll">
+        <wd-icon name="doublecheck" size="26rpx" color="#2f6bff" />
+        <text>全部已读</text>
+      </view>
     </view>
   </view>
 
@@ -78,6 +85,10 @@ const placeholder = computed(() => {
   return conditions.length > 0 ? conditions.join(' | ') : '搜索消息'
 })
 
+/** 是否设置了筛选项（用于筛选图标高亮） */
+const hasFilter = computed(() =>
+  formData.readStatus !== -1 || !!(formData.createTime?.[0] && formData.createTime?.[1]))
+
 /** 全部已读 */
 function handleReadAll() {
   emit('readAll')
@@ -100,3 +111,23 @@ function handleReset() {
   emit('reset')
 }
 </script>
+
+<style lang="scss" scoped>
+.read-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  height: 68rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  font-size: 23rpx;
+  font-weight: 600;
+  color: #2f6bff;
+  background: #eaf1ff;
+  flex-shrink: 0;
+
+  &:active {
+    opacity: 0.85;
+  }
+}
+</style>

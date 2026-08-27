@@ -26,46 +26,46 @@
         <view
           v-for="item in list"
           :key="item.id"
-          class="mb-24rpx overflow-hidden rounded-12rpx bg-white shadow-sm"
+          class="msg-card"
+          hover-class="msg-card--pressed"
+          :hover-stay-time="60"
           @click="handleDetail(item)"
         >
-          <view class="p-24rpx">
-            <!-- 消息头部 -->
-            <view class="mb-16rpx flex items-center justify-between">
-              <view class="flex items-center">
-                <view
-                  v-if="!item.readStatus"
-                  class="mr-8rpx h-12rpx w-12rpx flex-shrink-0 rounded-full bg-red-500"
-                />
-                <view class="text-32rpx text-[#333] font-semibold">
-                  {{ item.templateNickname }}
-                </view>
+          <view class="msg-head">
+            <view class="msg-avatar">
+              <wd-icon name="notification" size="36rpx" color="#ffffff" />
+              <view v-if="!item.readStatus" class="unread-dot" />
+            </view>
+            <view class="min-w-0 flex-1">
+              <view class="truncate text-29rpx font-semibold" style="color: var(--app-text-1, #10131a)">
+                {{ item.templateNickname }}
               </view>
-              <view class="text-26rpx text-[#999]">
+              <view class="mt-4rpx text-22rpx" style="color: var(--app-text-3, #98a2b3)">
                 {{ formatDateTime(item.createTime) }}
               </view>
             </view>
-            <!-- 消息内容 -->
-            <view class="mb-12rpx rounded-8rpx bg-[#f7f8f9] p-20rpx">
-              <view class="line-clamp-1 mb-8rpx text-30rpx text-[#323333] font-bold">
-                {{ getDictLabel(DICT_TYPE.SYSTEM_NOTIFY_TEMPLATE_TYPE, item.templateType) }}
-              </view>
-              <view class="line-clamp-2 text-28rpx text-[#777]">
-                {{ item.templateContent }}
-              </view>
+            <text
+              v-if="!item.readStatus"
+              class="read-pill"
+              @click.stop="handleReadOne(item)"
+            >
+              标记已读
+            </text>
+            <view v-else class="done-pill">
+              <wd-icon name="doublecheck" size="22rpx" color="#98a2b3" />
             </view>
-            <!-- 底部操作区 -->
-            <view class="flex items-center justify-between text-26rpx text-[#999]">
-              <view
-                v-if="!item.readStatus"
-                class="text-[#1890ff]"
-                @click.stop="handleReadOne(item)"
-              >
-                标记已读
-              </view>
+          </view>
+
+          <view class="msg-body">
+            <view class="msg-title line-clamp-1">
+              {{ getDictLabel(DICT_TYPE.SYSTEM_NOTIFY_TEMPLATE_TYPE, item.templateType) }}
+            </view>
+            <view class="msg-content line-clamp-2">
+              {{ item.templateContent }}
             </view>
           </view>
         </view>
+        <view class="h-20rpx" />
       </view>
     </z-paging>
 
@@ -147,7 +147,14 @@ function handleDetail(item: NotifyMessage) {
 
 /** 标记单条已读 */
 async function handleReadOne(item: NotifyMessage, showToast = true) {
-  await updateNotifyMessageRead(item.id)
+  try {
+    await updateNotifyMessageRead(item.id)
+  } catch {
+    if (showToast) {
+      toast.error('操作失败')
+    }
+    return
+  }
   // 更新本地状态
   item.readStatus = true
   item.readTime = new Date()
@@ -166,7 +173,12 @@ async function handleReadAll() {
   } catch {
     return
   }
-  await updateAllNotifyMessageRead()
+  try {
+    await updateAllNotifyMessageRead()
+  } catch {
+    toast.error('全部已读失败')
+    return
+  }
   toast.success('全部已读成功')
   // 刷新列表
   reload()
@@ -174,4 +186,95 @@ async function handleReadAll() {
 </script>
 
 <style lang="scss" scoped>
+.msg-card {
+  margin-bottom: 22rpx;
+  padding: 26rpx 28rpx;
+  background: var(--app-card-bg, #ffffff);
+  border-radius: 28rpx;
+  box-shadow: var(--app-card-shadow);
+  transition: transform 0.12s ease;
+
+  &--pressed {
+    transform: scale(0.98);
+    opacity: 0.92;
+  }
+}
+
+.msg-head {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.msg-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7fa9ff 0%, #2f6bff 60%, #2456d8 100%);
+  box-shadow: 0 8rpx 20rpx rgba(47, 107, 255, 0.26);
+  flex-shrink: 0;
+
+  .unread-dot {
+    position: absolute;
+    top: -2rpx;
+    right: -2rpx;
+    width: 20rpx;
+    height: 20rpx;
+    border-radius: 50%;
+    background: #e5484d;
+    border: 4rpx solid #ffffff;
+  }
+}
+
+.read-pill {
+  display: flex;
+  align-items: center;
+  height: 52rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #2f6bff;
+  background: #eaf1ff;
+  flex-shrink: 0;
+
+  &:active {
+    opacity: 0.85;
+  }
+}
+
+.done-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #f4f6fb;
+  flex-shrink: 0;
+}
+
+.msg-body {
+  margin-top: 20rpx;
+  padding: 20rpx 22rpx;
+  border-radius: 16rpx;
+  background: #f7f9fd;
+}
+
+.msg-title {
+  font-size: 27rpx;
+  font-weight: 700;
+  color: var(--app-text-1, #10131a);
+}
+
+.msg-content {
+  margin-top: 8rpx;
+  font-size: 25rpx;
+  line-height: 1.6;
+  color: var(--app-text-3, #98a2b3);
+}
 </style>
