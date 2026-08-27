@@ -89,8 +89,8 @@ onMounted(() => {
   })
 })
 // #endif
-const activeColor = 'var(--wot-color-theme, #1890ff)'
-const inactiveColor = '#666'
+const activeColor = 'var(--app-brand, #2f6bff)'
+const inactiveColor = '#8a94a6'
 function getColorByIndex(index: number) {
   return tabbarStore.curIdx === index ? activeColor : inactiveColor
 }
@@ -127,17 +127,23 @@ function getImageByIndex(index: number, item: CustomTabBarItem) {
               <template v-if="item.iconType === 'uiLib'">
                 <!-- TODO: 以下内容请根据选择的UI库自行替换 -->
                 <!-- 如：<wd-icon name="home" /> (https://wot-ui.cn/component/icon.html) -->
-                <!-- 如：<uv-icon name="home" /> (https://www.uvui.cn/components/icon.html) -->
+                <!-- 如：<uv-icon name="home" /> (https://www.uvui.cn/components/icon) -->
                 <!-- 如：<sar-icon name="image" /> (https://sard.wzt.zone/sard-uniapp-docs/components/icon)(sar没有home图标^_^) -->
                 <wd-icon :name="item.icon" size="20" />
               </template>
               <template v-if="item.iconType === 'unocss' || item.iconType === 'iconfont'">
-                <view :class="item.icon" class="text-20px" />
+                <view
+                  class="icon-pill"
+                  :class="{ 'icon-pill-active': tabbarStore.curIdx === index }"
+                  :style="{ color: getColorByIndex(index) }"
+                >
+                  <view :class="item.icon" class="text-20px" />
+                </view>
               </template>
               <template v-if="item.iconType === 'image'">
                 <image :src="getImageByIndex(index, item)" mode="scaleToFill" class="h-20px w-20px" />
               </template>
-              <view class="mt-2px text-12px">
+              <view class="mt-2px text-11px leading-none" :style="{ color: getColorByIndex(index) }">
                 {{ item.text }}
               </view>
               <!-- 角标显示 -->
@@ -169,9 +175,30 @@ function getImageByIndex(index: number, item: CustomTabBarItem) {
   right: 0;
   z-index: 1000;
 
-  border-top: 1px solid #eee;
+  // 毛玻璃质感：半透明白 + 模糊 + 极淡顶部描边与投影
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  border-top: 1rpx solid rgba(23, 43, 77, 0.06);
+  box-shadow: 0 -4rpx 24rpx rgba(23, 43, 77, 0.06);
   box-sizing: border-box;
 }
+
+// 图标胶囊底座：选中时浮现主色浅底，强化焦点
+.icon-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 27px;
+  margin-top: 6px;
+  border-radius: 999px;
+  transition: background-color 0.2s ease;
+}
+
+.icon-pill-active {
+  background: var(--app-brand-tint, #eaefff);
+}
+
 // 中间鼓包的样式
 .bulge {
   position: absolute;

@@ -11,11 +11,24 @@
 
 :root,
 page {
-  // 修改按主题色
-  // --wot-color-theme: #37c2bc;
+  // ==================== EasyAIoT 设计令牌（2026 视觉改版） ====================
+  // 品牌主色：深邃科技蓝（与 store/theme.ts 的 wot primary 色阶保持一致）
+  --app-brand: #2f6bff;
+  // 页面底色：冷灰蓝，让白色卡片更有层次
+  --app-page-bg: #f4f6fb;
+  // 文本色阶
+  --app-text-1: #10131a; // 主文本
+  --app-text-2: #3d4558; // 次级文本
+  --app-text-3: #98a2b3; // 辅助/占位
+  // 卡片
+  --app-card-bg: #ffffff;
+  --app-card-radius: 24rpx;
+  --app-card-shadow: 0 4rpx 20rpx rgba(23, 43, 77, 0.05);
 
-  // 修改按钮背景色
-  // --wot-button-primary-bg-color: green;
+  // 兼容旧代码中的 wot 主色引用（wot 2.x 已不定义该变量）
+  --wot-color-theme: #2f6bff;
+
+  background-color: var(--app-page-bg);
 }
 
 /*
@@ -37,10 +50,10 @@ border-t-1
 
 // ==================== 全局公共样式 ====================
 
-// 页面容器：灰色背景 + 最小全屏高度
+// 页面容器：冷灰蓝背景 + 最小全屏高度
 .yd-page-container {
   @apply min-h-screen;
-  background-color: #f5f5f5;
+  background-color: var(--app-page-bg, #f4f6fb);
 }
 
 // 分页容器：配合 yd-page-container 与 z-paging 的 fixed=false 布局
@@ -54,8 +67,11 @@ border-t-1
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #fff;
-  padding: 24rpx;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  border-top: 1rpx solid rgba(23, 43, 77, 0.06);
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 
   // 按钮容器
   &-actions {

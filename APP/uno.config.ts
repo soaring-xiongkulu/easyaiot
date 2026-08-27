@@ -95,7 +95,13 @@ export default defineConfig({
   theme: {
     colors: {
       /** 主题色，用法如: text-primary */
-      primary: 'var(--wot-color-theme,#0957DE)',
+      primary: 'var(--wot-color-theme,#2F6BFF)',
+      /** 语义化文本色阶，用法如: text-ink-1 */
+      'ink-1': '#10131A',
+      'ink-2': '#3D4558',
+      'ink-3': '#98A2B3',
+      /** 页面底色，用法如: bg-surface */
+      surface: '#F4F6FB',
     },
     fontSize: {
       /** 提供更小号的字体，用法如：text-2xs */

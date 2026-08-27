@@ -1,14 +1,14 @@
 <template>
-  <view class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
-    <view class="flex items-center p-24rpx">
+  <view class="hero-card" :style="heroBg">
+    <view class="hero-inner">
       <view class="avatar-wrapper mr-20rpx">
         <wd-img :src="userInfo.avatar" width="100rpx" height="100rpx" mode="aspectFill" round />
       </view>
-      <view class="flex-1">
-        <view class="text-32rpx text-#333 font-500">
+      <view class="flex-1 min-w-0">
+        <view class="hero-greeting">
           {{ greeting }}，{{ userInfo.nickname || userInfo.username }}
         </view>
-        <view class="mt-8rpx text-26rpx text-#999">
+        <view class="hero-desc">
           {{ description }}
         </view>
       </view>
@@ -26,6 +26,11 @@ defineOptions({
 
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
+
+/** 品牌渐变背景 */
+const heroBg = {
+  background: 'linear-gradient(135deg, #2f6bff 0%, #4a8bff 55%, #6fa8ff 100%)',
+}
 
 /** 根据时间获取问候语 */
 const greeting = computed(() => {
@@ -65,8 +70,47 @@ const description = computed(() => {
 </script>
 
 <style lang="scss" scoped>
+.hero-card {
+  position: relative;
+  margin: 20rpx 20rpx 0;
+  border-radius: 28rpx;
+  overflow: hidden;
+  // 右上角柔光装饰
+  &::after {
+    content: '';
+    position: absolute;
+    right: -60rpx;
+    top: -80rpx;
+    width: 280rpx;
+    height: 280rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+  }
+}
+
+.hero-inner {
+  display: flex;
+  align-items: center;
+  padding: 32rpx 30rpx;
+}
+
 .avatar-wrapper {
-  border: 3rpx solid #f0f0f0;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8rpx 20rpx rgba(13, 34, 101, 0.25);
+}
+
+.hero-greeting {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-desc {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.78);
 }
 </style>

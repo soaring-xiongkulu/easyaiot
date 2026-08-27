@@ -1,28 +1,28 @@
 <template>
   <scroll-view class="min-h-0 flex-1" scroll-y scroll-with-animation>
     <!-- 常用分组 -->
-    <view class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
+    <view class="mx-20rpx mt-20rpx overflow-hidden rounded-28rpx bg-white menu-card">
       <view class="flex items-center justify-between px-24rpx py-20rpx">
-        <text class="text-28rpx text-#333 font-500">常用</text>
+        <text class="text-28rpx text-[#1a2233] font-semibold">常用</text>
         <view class="p-10rpx" @click="handleGotoFavoriteSettings">
-          <wd-icon name="settings" size="32rpx" color="#999" />
+          <wd-icon name="settings" size="32rpx" color="#98a2b3" />
         </view>
       </view>
       <MenuGrid v-if="favoriteMenuItems.length > 0" :menus="favoriteMenuItems" />
       <view
         v-else
-        class="mx-24rpx mb-24rpx flex items-center border-1rpx border-#ddd rounded-12rpx border-dashed px-24rpx py-12rpx"
+        class="mx-24rpx mb-24rpx flex items-center border-2rpx border-[#dde3ee] rounded-16rpx border-dashed px-24rpx py-12rpx"
         @click="handleGotoFavoriteSettings"
       >
-        <wd-icon name="plus" size="32rpx" color="#999" />
-        <text class="pl-10rpx text-28rpx text-#999">添加我常用的</text>
+        <wd-icon name="plus" size="32rpx" color="#98a2b3" />
+        <text class="pl-10rpx text-28rpx text-[#98a2b3]">添加我常用的</text>
       </view>
     </view>
 
     <!-- 菜单分组 -->
-    <view v-for="group in menuGroups" :key="group.key" class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
+    <view v-for="group in menuGroups" :key="group.key" class="mx-20rpx mt-20rpx overflow-hidden rounded-28rpx bg-white menu-card">
       <view class="px-24rpx pb-0 pt-20rpx">
-        <text class="text-28rpx text-#333 font-500">{{ group.name }}</text>
+        <text class="text-28rpx text-[#1a2233] font-semibold">{{ group.name }}</text>
       </view>
       <MenuGrid :menus="group.menus" />
     </view>
@@ -77,3 +77,9 @@ onShow(() => {
   initData()
 })
 </script>
+
+<style lang="scss" scoped>
+.menu-card {
+  box-shadow: var(--app-card-shadow, 0 4rpx 20rpx rgba(23, 43, 77, 0.05));
+}
+</style>
