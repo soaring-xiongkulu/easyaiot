@@ -38,7 +38,6 @@ const toast = useToast()
 
 /** 处理菜单点击 */
 function handleClick(menu: MenuItem) {
-  console.log('点击菜单：', menu)
   if (!menu.url) {
     toast.show('功能开发中')
     return
