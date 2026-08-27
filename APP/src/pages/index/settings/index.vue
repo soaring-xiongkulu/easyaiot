@@ -8,61 +8,89 @@
     />
 
     <!-- 搜索框 -->
-    <view>
-      <wd-search v-model="searchKeyword" placeholder="搜索" hide-cancel />
+    <view class="ios-search-bar">
+      <view class="ios-search-pill">
+        <wd-icon name="search-line" size="17px" color="#98a2b3" />
+        <input
+          v-model="searchKeyword"
+          class="search-input flex-1"
+          type="text"
+          placeholder="搜索服务"
+          placeholder-class="search-placeholder"
+        >
+        <wd-icon
+          v-if="searchKeyword"
+          name="close-circle-fill"
+          size="15px"
+          color="#c0c7d3"
+          @click="searchKeyword = ''"
+        />
+      </view>
     </view>
 
     <!-- 常用区域 -->
-    <view class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
-      <view class="section-header">
-        <text class="text-28rpx text-#333 font-500">常用</text>
+    <view class="fav-card mx-24rpx mt-8rpx">
+      <view class="card-head">
+        <view class="section-bar" />
+        <text class="card-title">常用</text>
+        <text class="count-chip">{{ favoriteMenus.length }}</text>
       </view>
-      <!-- 常用分组 -->
       <view v-if="favoriteMenus.length > 0" class="menu-list">
-        <view v-for="menu in favoriteMenus" :key="menu.key" class="menu-item">
+        <view
+          v-for="(menu, idx) in favoriteMenus"
+          :key="menu.key"
+          class="menu-item"
+          :class="{ 'menu-item--border': idx < favoriteMenus.length - 1 }"
+        >
           <view class="menu-item__left">
-            <view class="menu-item__icon" :style="{ backgroundColor: menu.iconColor ? `${menu.iconColor}20` : '#f5f5f5' }">
-              <wd-icon :name="menu.icon" size="40rpx" :color="menu.iconColor" />
+            <view class="menu-item__icon">
+              <wd-icon :name="menu.icon" size="42rpx" :color="menu.iconColor" />
             </view>
             <text class="menu-item__name">{{ menu.name }}</text>
           </view>
-          <view class="menu-item__right">
-            <wd-button size="small" type="warning" variant="plain" custom-class="mr-16rpx" @click="handleRemoveFavorite(menu)">
-              从常用移除
-            </wd-button>
-            <wd-icon name="menu" size="40rpx" color="#ccc" />
+          <view class="opt-pill opt-pill--remove" @click="handleRemoveFavorite(menu)">
+            <wd-icon name="minus" size="24rpx" color="#c2410c" />
+            <text>移除</text>
           </view>
         </view>
       </view>
-      <view v-else class="flex flex-col items-center justify-center py-60rpx">
-        <wd-button type="primary" variant="plain" @click="scrollToGroups">
-          <wd-icon name="plus" size="28rpx" />
-          添加我常用的
-        </wd-button>
+      <view v-else class="fav-empty" @click="scrollToGroups">
+        <wd-icon name="plus" size="30rpx" color="#98a2b3" />
+        <text>添加我常用的</text>
       </view>
     </view>
 
     <!-- 菜单分组 -->
     <view id="menuGroups">
-      <view v-for="group in filteredMenuGroups" :key="group.key" class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
-        <view class="section-header">
-          <text class="text-28rpx text-#333 font-500">{{ group.name }}</text>
+      <view v-for="group in filteredMenuGroups" :key="group.key" class="fav-card mx-24rpx mt-24rpx">
+        <view class="card-head">
+          <view class="section-bar" :style="{ background: `linear-gradient(180deg, #7fa9ff, #2f6bff)` }" />
+          <text class="card-title">{{ group.name }}</text>
         </view>
         <view class="menu-list">
-          <view v-for="menu in group.menus" :key="menu.key" class="menu-item">
+          <view
+            v-for="(menu, idx) in group.menus"
+            :key="menu.key"
+            class="menu-item"
+            :class="{ 'menu-item--border': idx < group.menus.length - 1 }"
+          >
             <view class="menu-item__left">
-              <view class="menu-item__icon" :style="{ backgroundColor: menu.iconColor ? `${menu.iconColor}20` : '#f5f5f5' }">
-                <wd-icon :name="menu.icon" size="40rpx" :color="menu.iconColor" />
+              <view class="menu-item__icon">
+                <wd-icon :name="menu.icon" size="42rpx" :color="menu.iconColor" />
               </view>
               <text class="menu-item__name">{{ menu.name }}</text>
             </view>
-            <view class="menu-item__right">
-              <wd-button v-if="isInFavorites(menu)" size="small" type="warning" variant="plain" @click="handleRemoveFavorite(menu)">
-                从常用移除
-              </wd-button>
-              <wd-button v-else size="small" type="primary" variant="plain" @click="handleAddFavorite(menu)">
-                添加至常用
-              </wd-button>
+            <view
+              v-if="isInFavorites(menu)"
+              class="opt-pill opt-pill--remove"
+              @click="handleRemoveFavorite(menu)"
+            >
+              <wd-icon name="minus" size="24rpx" color="#c2410c" />
+              <text>移除</text>
+            </view>
+            <view v-else class="opt-pill opt-pill--add" @click="handleAddFavorite(menu)">
+              <wd-icon name="plus" size="24rpx" color="#2f6bff" />
+              <text>添加</text>
             </view>
           </view>
         </view>
@@ -79,7 +107,7 @@ import type { MenuGroup, MenuItem } from '../index'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { useUserStore } from '@/store/user'
 import { navigateBackPlus } from '@/utils'
-import { getMenuGroups, getMenuItemByKey } from '../index'
+import { getAllMenuItems, getMenuGroups, getMenuItemByKey } from '../index'
 
 defineOptions({
   name: 'FavoriteSettings',
@@ -125,6 +153,8 @@ function handleBack() {
 
 /** 初始化 */
 function initData() {
+  // 直接进入编辑页时也兜底：常用菜单默认全选（首次使用或旧版数据一次性初始化）
+  userStore.initFavoriteMenus(getAllMenuItems().map(item => item.key))
   menuGroups.value = getMenuGroups()
 }
 
@@ -168,48 +198,134 @@ onLoad(() => {
 </script>
 
 <style lang="scss" scoped>
-.section-header {
-  padding: 24rpx 30rpx 16rpx;
+.search-input {
+  height: 100%;
+  font-size: 27rpx;
+  color: var(--app-text-1, #10131a);
+}
+
+.search-placeholder {
+  color: var(--app-text-3, #98a2b3);
+}
+
+.fav-card {
+  overflow: hidden;
+  padding: 26rpx 22rpx 10rpx;
+  background: var(--app-card-bg, #ffffff);
+  border-radius: 28rpx;
+  box-shadow: var(--app-card-shadow);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 0 8rpx 20rpx;
+}
+
+.section-bar {
+  width: 8rpx;
+  height: 30rpx;
+  border-radius: 4rpx;
+  background: linear-gradient(180deg, #f5a623, #fa8c16);
+}
+
+.card-title {
+  font-size: 29rpx;
+  font-weight: 700;
+  color: var(--app-text-1, #10131a);
+}
+
+.count-chip {
+  min-width: 44rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+  background: #eaf1ff;
+  color: #2f6bff;
+  font-size: 21rpx;
+  font-weight: 700;
+  text-align: center;
 }
 
 .menu-list {
-  padding: 0 30rpx 20rpx;
+  padding-bottom: 12rpx;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  gap: 16rpx;
+  padding: 22rpx 8rpx;
 
-  &:last-child {
-    border-bottom: none;
+  &--border {
+    border-bottom: 1rpx solid var(--app-separator);
   }
 
   &__left {
     display: flex;
     align-items: center;
+    gap: 24rpx;
+    min-width: 0;
   }
 
   &__icon {
-    width: 80rpx;
-    height: 80rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 16rpx;
-    margin-right: 24rpx;
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 24rpx;
+    background: rgba(47, 107, 255, 0.08);
+    flex-shrink: 0;
   }
 
   &__name {
-    font-size: 30rpx;
-    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 29rpx;
+    font-weight: 600;
+    color: var(--app-text-1, #10131a);
+  }
+}
+
+.opt-pill {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  height: 60rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  font-size: 23rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+
+  &:active {
+    opacity: 0.85;
   }
 
-  &__right {
-    display: flex;
-    align-items: center;
+  &--remove {
+    color: #c2410c;
+    background: #fff3e8;
   }
+
+  &--add {
+    color: #2f6bff;
+    background: #eaf1ff;
+  }
+}
+
+.fav-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  margin: 0 8rpx 16rpx;
+  padding: 24rpx;
+  border: 2rpx dashed #dde3ee;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  color: #98a2b3;
 }
 </style>

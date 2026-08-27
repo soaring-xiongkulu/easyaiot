@@ -23,6 +23,22 @@ export const useUserStore = defineStore(
     const roles = ref<string[]>([]) // 角色标识列表
     const permissions = ref<string[]>([]) // 权限标识列表
     const favoriteMenus = ref<string[]>([]) // 常用菜单 key 列表
+    const favoriteMenusVersion = ref(0) // 常用菜单数据版本（0=默认策略生效前）
+
+    /** 默认策略版本：该版本起常用菜单默认全选 */
+    const FAVORITE_MENUS_DEFAULT_ALL_VERSION = 2
+
+    /**
+     * 初始化常用菜单：首次使用或旧版数据时，一次性写入全部菜单 key（即默认全选）；
+     * 版本就位后以用户自选为准——包括被用户清空的场景也不会再强制回填
+     */
+    const initFavoriteMenus = (allKeys: string[]) => {
+      if (favoriteMenusVersion.value >= FAVORITE_MENUS_DEFAULT_ALL_VERSION) {
+        return
+      }
+      favoriteMenus.value = [...allKeys]
+      favoriteMenusVersion.value = FAVORITE_MENUS_DEFAULT_ALL_VERSION
+    }
 
     /** 设置用户信息 */
     const setUserInfo = (val: AuthPermissionInfo) => {
@@ -75,11 +91,13 @@ export const useUserStore = defineStore(
       roles,
       permissions,
       favoriteMenus,
+      favoriteMenusVersion,
       clearUserInfo,
       fetchUserInfo,
       setUserInfo,
       setUserAvatar,
       setTenantId,
+      initFavoriteMenus,
       setFavoriteMenus,
     }
   },
