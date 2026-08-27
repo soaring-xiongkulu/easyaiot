@@ -128,7 +128,7 @@ RUN --mount=type=cache,target=/pnpm/store,id=web-pnpm-store \
 
 RUN test -d dist || (echo "=== dist missing after build ===" && cat /tmp/web-build-logs/pnpm-build.log && exit 1)
 
-FROM nginx:1.29.2-alpine
+FROM nginx:1.31.4-alpine
 
 # 镜像源配置（通过 --build-arg 传入，默认腾讯云）
 ARG APK_MIRROR=mirrors.tuna.tsinghua.edu.cn

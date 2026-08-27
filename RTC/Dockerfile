@@ -7,17 +7,21 @@ ARG GO_VERSION=1.25
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go2rtc-build
 ARG TARGETOS
 ARG TARGETARCH
+ARG GOPROXY=https://goproxy.cn,direct
 
-ENV GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0
+ENV GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 GOPROXY=${GOPROXY}
 
 WORKDIR /build
 RUN apk add --no-cache git
 
 COPY vendor/go2rtc/go.mod vendor/go2rtc/go.sum ./
-RUN --mount=type=cache,target=/root/.cache/go-build go mod download
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    go mod download
 
 COPY vendor/go2rtc/ ./
-RUN --mount=type=cache,target=/root/.cache/go-build \
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
     go build -ldflags "-s -w" -trimpath -o /go2rtc .
 
 # ---------------------------------------------------------------------------
