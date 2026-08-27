@@ -65,6 +65,41 @@ border-t-1
   @apply h-screen flex flex-col overflow-hidden;
 }
 
+// ==================== iOS 风格筛选搜索条 ====================
+// 列表页顶部胶囊式筛选触发条，配合 wd-popup 高级筛选使用
+.ios-search-bar {
+  @apply flex items-center px-24rpx pt-16rpx pb-8rpx;
+}
+
+.ios-search-pill {
+  @apply relative flex flex-1 items-center gap-14rpx h-76rpx rounded-full px-28rpx box-border;
+  background: var(--app-card-bg, #ffffff);
+  box-shadow: var(--app-card-shadow);
+
+  &:active {
+    opacity: 0.88;
+  }
+}
+
+.ios-search-text {
+  @apply flex-1 truncate text-27rpx;
+  color: var(--app-text-1, #10131a);
+}
+
+.ios-search-placeholder {
+  color: var(--app-text-3, #98a2b3);
+}
+
+.ios-filter-dot {
+  position: absolute;
+  top: 18rpx;
+  right: 22rpx;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: var(--app-brand, #2f6bff);
+}
+
 // ==================== 详情页底部操作按钮 ====================
 .yd-detail-footer {
   position: fixed;
