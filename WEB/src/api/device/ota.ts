@@ -44,7 +44,7 @@ export const deleteOtaApp = (packageId) => {
 
 //提交测试（未验证 → 测试中）
 export const submitTestPackage = (packageId) => {
-  return commonApi('post', Api.Packages + '/submit-test', {params: packageId});
+  return commonApi('post', Api.Packages + `/submit-test?packageId=${packageId}`);
 };
 
 //录入测试结果 {id, passed, remark}

@@ -5,6 +5,7 @@
     <resultMap id="DmUpgradeRecordVo" type="com.basiclab.iot.device.domain.ota.vo.DmUpgradeRecordVo">
         <id column="id" property="id"></id>
         <result column="pkg_id" property="pkgId"></result>
+        <result column="pkg_name" property="pkgName"></result>
         <result column="type" property="type"></result>
         <result column="type_name" property="typeName"></result>
         <result column="device_identification" property="deviceIdentification"></result>
@@ -38,7 +39,7 @@
 
     <select id="getUpgradeRecordPageList" resultMap="DmUpgradeRecordVo"
             parameterType="com.basiclab.iot.device.domain.ota.qo.DmUpgradeRecordPageQo">
-        SELECT r.id, r.pkg_id, r.type,
+        SELECT r.id, r.pkg_id, p.name AS pkg_name, r.type,
         CASE r.type WHEN 0 THEN '软件包' WHEN 1 THEN '固件包' WHEN 2 THEN 'APP包' WHEN 3 THEN 'PC包' ELSE '未知' END AS type_name,
         r.device_identification, r.device_name, r.product_identification,
         r.from_version, r.to_version, r.channel, r.phase,
@@ -46,6 +47,7 @@
         WHEN 4 THEN 'MD5校验失败' WHEN 5 THEN '安装结果' WHEN 6 THEN '启动成功' ELSE '未知' END AS phase_name,
         r.progress, r.success, r.error_code, r.error_msg, r.cost_ms, r.upgrade_time, r.created_time
         FROM device_ota_upgrade_record r
+        LEFT JOIN device_ota_pkg p ON p.id = r.pkg_id
         <where>
             <if test="pkgId != null">
                 AND r.pkg_id = #{pkgId}

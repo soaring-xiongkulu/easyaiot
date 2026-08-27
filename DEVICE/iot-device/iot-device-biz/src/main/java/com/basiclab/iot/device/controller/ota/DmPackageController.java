@@ -123,8 +123,9 @@ public class DmPackageController extends BaseController {
     }
 
     @PostMapping("/submit-test")
+    @ApiImplicitParam(name = "packageId", value = "版本包ID", required = true, dataType = "Long", dataTypeClass = Long.class)
     @ApiOperation("提交测试（未验证 → 测试中）")
-    public R submitTest(@RequestBody Long packageId) {
+    public R submitTest(@RequestParam("packageId") Long packageId) {
         try {
             dmPackageService.submitTest(packageId);
             return R.ok("提交测试成功");

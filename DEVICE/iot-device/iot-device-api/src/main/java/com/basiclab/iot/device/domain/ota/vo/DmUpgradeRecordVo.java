@@ -33,6 +33,12 @@ public class DmUpgradeRecordVo implements Serializable {
     private Long pkgId;
 
     /**
+     * 版本包名称
+     */
+    @ApiModelProperty(value = "版本包名称")
+    private String pkgName;
+
+    /**
      * 包类型[0:软件包,1:固件包,2:APP包,3:PC包]
      */
     @ApiModelProperty(value = "包类型[0:软件包,1:固件包,2:APP包,3:PC包]")
