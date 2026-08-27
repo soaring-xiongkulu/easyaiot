@@ -231,3 +231,37 @@ IDEA/logs/** -diff
 
 # HARNESS 运行时数据（dsh-home / Sidecar 状态；与 .gitignore 对齐，防误加入仓库）
 HARNESS/.data/** -diff
+
+# ── ANDROID / IOS / HARMONYOS 移动端工程 ──
+# 打包成品与构建产物（体积大；与 .gitignore 对齐，防误加入仓库）
+*.apk binary -diff
+*.ipa binary -diff
+*.hap binary -diff
+# 内置 SDK 依赖（.aar 为 zip 归档，随仓库分发）与签名文件（demo 库，make-apk.sh 依赖）
+*.aar binary
+*.jks binary
+ANDROID/.gradle/** -diff
+ANDROID/**/build/** -diff
+IOS/build/** -diff
+IOS/DerivedData/** -diff
+IOS/**/xcuserdata/** -diff
+IOS/EasyAIoT/www/** -diff
+HARMONYOS/.hvigor/** -diff
+HARMONYOS/**/build/** -diff
+HARMONYOS/**/oh_modules/** -diff
+HARMONYOS/entry/src/main/resources/rawfile/www/** -diff
+
+# 移动端源码与工程配置（构建/解析敏感，强制 LF；.bat 供 Windows 使用，强制 CRLF）
+gradlew                 text eol=lf
+hvigorw                 text eol=lf
+*.gradle                text eol=lf
+*.pbxproj               text eol=lf
+*.plist                 text eol=lf
+*.json5                 text eol=lf
+*.ets                   text eol=lf
+HARMONYOS/**/*.json     text eol=lf
+ANDROID/*.properties    text eol=lf
+ANDROID/**/*.xml        text eol=lf
+ANDROID/**/*.pro        text eol=lf
+ANDROID/*.bat           text eol=crlf
+HARMONYOS/*.bat         text eol=crlf

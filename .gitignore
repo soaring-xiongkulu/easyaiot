@@ -255,3 +255,35 @@ HARNESS/harness.env
 /HARNESS-README.md
 
 # ZLMediaKit 挂载目录（与 docker-compose 中 ../zlmediakit 对应）；运行时数据
+
+# ── ANDROID 移动端工程（与 ANDROID/.gitignore 对齐）──
+*.apk
+ANDROID/.gradle/
+ANDROID/**/build/
+ANDROID/local.properties
+ANDROID/captures/
+ANDROID/.cxx/
+# 前端构建产物：由 make-apk 脚本从 APP/dist/build/app 同步而来，不入库
+ANDROID/app/src/main/assets/apps/
+
+# ── IOS 移动端工程（与 IOS/.gitignore 对齐）──
+*.ipa
+IOS/build/
+IOS/DerivedData/
+IOS/**/xcuserdata/
+IOS/**/*.xcuserstate
+# 前端构建产物：由 make-ipa 脚本从 APP/dist/build/h5 同步而来，不入库
+IOS/EasyAIoT/www/
+
+# ── HARMONYOS 移动端工程（与 HARMONYOS/.gitignore 对齐）──
+*.hap
+HARMONYOS/.hvigor/
+HARMONYOS/**/build/
+HARMONYOS/**/oh_modules/
+HARMONYOS/local.properties
+HARMONYOS/.cxx/
+# 前端构建产物：由 make-hap 脚本从 APP/dist/build/h5 同步而来，不入库
+HARMONYOS/entry/src/main/resources/rawfile/www/
+
+# macOS 系统文件
+**/.DS_Store
