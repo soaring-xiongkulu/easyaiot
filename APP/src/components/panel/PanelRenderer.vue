@@ -30,7 +30,7 @@
                 :model-value="isOn(w)"
                 size="28px"
                 :disabled="disabled || loading"
-                active-color="var(--wot-color-theme, #0957de)"
+                active-color="var(--app-brand, #2f6bff)"
                 @update:model-value="onSwitchChange(w, $event)"
               />
             </view>
@@ -48,7 +48,7 @@
                 :step="numStep(w)"
                 hide-label
                 :disabled="disabled || loading"
-                active-color="var(--wot-color-theme, #0957de)"
+                active-color="var(--app-brand, #2f6bff)"
                 @update:model-value="(v: any) => sliderPreview[widgetKey(w)] = +v"
                 @change="(v: any) => commitNumber(w, +(v?.value ?? v))"
               />
@@ -69,7 +69,7 @@
 
             <!-- 状态标签 -->
             <view v-else-if="w.type === 'status'" class="panel-card-body">
-              <view class="status-pill" :style="{ background: statusOption(w)?.color || '#e8f0fe', color: statusOption(w)?.color ? '#fff' : 'var(--wot-color-theme,#0957de)' }">
+              <view class="status-pill" :style="{ background: statusOption(w)?.color || '#e8f0fe', color: statusOption(w)?.color ? '#fff' : 'var(--app-brand,#2f6bff)' }">
                 {{ statusOption(w)?.label ?? displayValue(w) }}
               </view>
             </view>
@@ -396,11 +396,14 @@ function onButtonClick(w: PanelWidget) {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+// iOS 分组标题
 .panel-section-title {
-  padding: 32rpx 8rpx 16rpx;
-  font-size: 30rpx;
+  padding: 34rpx 8rpx 14rpx;
+  font-size: 26rpx;
   font-weight: 600;
-  color: #1a2233;
+  letter-spacing: 1rpx;
+  color: var(--app-text-3, #98a2b3);
+  text-transform: uppercase;
 }
 
 .panel-grid {
@@ -413,10 +416,10 @@ function onButtonClick(w: PanelWidget) {
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  background: #ffffff;
-  border-radius: 28rpx;
-  padding: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(23, 43, 77, 0.05);
+  background: var(--app-card-bg, #ffffff);
+  border-radius: var(--app-card-radius, 28rpx);
+  padding: 30rpx;
+  box-shadow: var(--app-card-shadow, 0 2rpx 8rpx rgba(23, 43, 77, 0.04), 0 12rpx 32rpx rgba(23, 43, 77, 0.06));
 
   &.is-half {
     width: calc((100% - 20rpx) / 2);
@@ -435,9 +438,10 @@ function onButtonClick(w: PanelWidget) {
 }
 
 .panel-card-title {
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
-  color: #6b7688;
+  letter-spacing: 1rpx;
+  color: var(--app-text-3, #98a2b3);
 }
 
 .panel-card-body {
@@ -457,10 +461,10 @@ function onButtonClick(w: PanelWidget) {
 .panel-state-text {
   font-size: 34rpx;
   font-weight: 700;
-  color: #98a2b3;
+  color: var(--app-text-3, #98a2b3);
 
   &.on {
-    color: var(--wot-color-theme, #0957de);
+    color: var(--app-brand, #2f6bff);
   }
 }
 
@@ -472,26 +476,27 @@ function onButtonClick(w: PanelWidget) {
 }
 
 .panel-value {
-  font-size: 44rpx;
+  font-size: 46rpx;
   font-weight: 700;
-  color: #10131a;
+  color: var(--app-text-1, #10131a);
   font-variant-numeric: tabular-nums;
 
   &.big {
-    font-size: 52rpx;
+    font-size: 54rpx;
   }
 }
 
 .panel-unit {
   font-size: 24rpx;
-  color: #98a2b3;
+  color: var(--app-text-3, #98a2b3);
 }
 
 .status-pill {
   display: inline-block;
   border-radius: 999rpx;
-  padding: 10rpx 26rpx;
+  padding: 12rpx 28rpx;
   font-size: 26rpx;
   font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(23, 43, 77, 0.08);
 }
 </style>
