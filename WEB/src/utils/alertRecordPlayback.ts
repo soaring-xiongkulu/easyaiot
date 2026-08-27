@@ -33,6 +33,9 @@ function buildModalPayload(
   return {
     id: deviceId,
     http_stream: videoUrl,
+    // This payload is created only for an alert recording.  Keep an explicit
+    // mode marker so modal layout does not depend solely on URL heuristics.
+    _forceVod: true as const,
     ...(pending ? { _pendingRecord: true as const } : {}),
     _playbackSeq: seq,
   };

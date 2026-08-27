@@ -319,6 +319,24 @@ def _use_remote_deploy(task: AlgorithmTask) -> bool:
     return policy in ('auto', 'node')
 
 
+def _resolve_remote_task_node_id(task: AlgorithmTask) -> Optional[int]:
+    """Resolve the edge node that may own a task, including incomplete legacy state.
+
+    A selected-node deployment can have an active Agent workload even when an older
+    start/stop race failed to persist ``node_id``.  In that case ``target_node_id``
+    is the only safe cleanup target.  Local tasks must never use that fallback.
+    """
+    node_id = getattr(task, 'node_id', None)
+    if node_id:
+        return int(node_id)
+
+    policy = (getattr(task, 'schedule_policy', None) or 'local').strip().lower()
+    target_node_id = getattr(task, 'target_node_id', None)
+    if policy in ('auto', 'node') and target_node_id:
+        return int(target_node_id)
+    return None
+
+
 def _heartbeat_stale(last_heartbeat, timeout_sec: int) -> bool:
     if not last_heartbeat:
         return True
@@ -1192,9 +1210,10 @@ def stop_service_process(task_id: int, service_type: str, stop_request_id: int =
     was_remote = False
     try:
         task = AlgorithmTask.query.get(task_id)
+        remote_node_id = _resolve_remote_task_node_id(task) if task else None
         was_remote = bool(
             task and (
-                task.node_id
+                remote_node_id
                 or getattr(task, 'device_deployments', None)
             )
         )
@@ -1203,7 +1222,7 @@ def stop_service_process(task_id: int, service_type: str, stop_request_id: int =
         logger.debug('无 Flask 应用上下文，跳过远程任务数据库操作: task_id=%s', task_id)
 
     if was_remote and task:
-        _stop_remote_task(task_id, task.node_id)
+        _stop_remote_task(task_id, remote_node_id)
         task.node_id = None
         task.service_process_id = None
         task.run_status = 'stopped'

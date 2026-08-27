@@ -114,6 +114,24 @@ public class ComputeNodeRespVO {
     @Schema(description = "所属中心节点 ID")
     private Long controlPlaneId;
 
+    @Schema(description = "录像物理存储模式：central_shared / edge_local")
+    private String recordingStorageMode;
+
+    @Schema(description = "存储模式状态：active / applying / error")
+    private String recordingStorageState;
+
+    @Schema(description = "存储模式代次")
+    private Long recordingStorageGeneration;
+
+    @Schema(description = "客户端可安全直连的边缘媒体地址")
+    private String mediaPublicUrl;
+
+    @Schema(description = "存储模式最近更新时间")
+    private LocalDateTime recordingStorageUpdatedAt;
+
+    @Schema(description = "存储模式最近错误")
+    private String recordingStorageError;
+
     @Schema(description = "是否为远程对等中心节点下的节点（联邦展示）")
     private Boolean isRemote;
 

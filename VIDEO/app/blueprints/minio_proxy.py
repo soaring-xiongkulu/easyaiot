@@ -11,7 +11,7 @@ import mimetypes
 import os
 from urllib.parse import quote, unquote
 
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, request, send_file, stream_with_context
 from minio.error import S3Error
 from werkzeug.utils import secure_filename
 
@@ -19,6 +19,7 @@ from app.services.minio_service import ModelService, parse_minio_download_url
 
 minio_proxy_bp = Blueprint('minio_proxy', __name__)
 logger = logging.getLogger(__name__)
+_STREAM_CHUNK_SIZE = 1024 * 1024
 
 
 def _build_content_disposition(disposition: str, filename: str) -> str:
@@ -43,9 +44,51 @@ def _build_content_disposition(disposition: str, filename: str) -> str:
     )
 
 
-@minio_proxy_bp.route('/api/v1/buckets/<bucket_name>/objects/download', methods=['GET'])
+def _parse_single_range(range_header: str, object_size: int):
+    """解析单段 bytes Range；无 Range 返回 None，非法或越界抛出 ValueError。"""
+    if not range_header:
+        return None
+    if not range_header.startswith('bytes=') or ',' in range_header:
+        raise ValueError('仅支持单段 bytes Range')
+    spec = range_header[6:].strip()
+    if '-' not in spec or object_size < 0:
+        raise ValueError('Range 格式错误')
+    start_raw, end_raw = spec.split('-', 1)
+    try:
+        if start_raw:
+            start = int(start_raw)
+            end = int(end_raw) if end_raw else object_size - 1
+            if start < 0 or start >= object_size or end < start:
+                raise ValueError('Range 越界')
+            end = min(end, object_size - 1)
+        else:
+            suffix_length = int(end_raw)
+            if suffix_length <= 0 or object_size <= 0:
+                raise ValueError('Range 越界')
+            start = max(0, object_size - suffix_length)
+            end = object_size - 1
+    except (TypeError, ValueError) as exc:
+        raise ValueError('Range 格式错误或越界') from exc
+    return start, end
+
+
+def _iter_minio_response(data, length: int):
+    remaining = max(0, int(length))
+    try:
+        while remaining > 0:
+            chunk = data.read(min(_STREAM_CHUNK_SIZE, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+            yield chunk
+    finally:
+        data.close()
+        data.release_conn()
+
+
+@minio_proxy_bp.route('/api/v1/buckets/<bucket_name>/objects/download', methods=['GET', 'HEAD'])
 def download_object(bucket_name: str):
-    """代理 MinIO 对象下载，兼容 MinIO Console 的 download API 路径。"""
+    """流式代理对象下载，支持视频播放所需的 HEAD/Range。"""
     prefix = request.args.get('prefix')
     if not prefix:
         return Response('缺少 prefix 参数', status=400, mimetype='text/plain')
@@ -58,17 +101,25 @@ def download_object(bucket_name: str):
         object_key = object_key_from_url
 
     from app.utils.service_urls import minio_storage_enabled
-    from app.services.local_storage_service import read_local_object
+    from app.services.local_storage_service import ensure_local_object
 
     if not minio_storage_enabled():
-        content, content_type, err = read_local_object(bucket_name, object_key)
-        if err or content is None:
+        try:
+            local_path = ensure_local_object(bucket_name, object_key)
+        except ValueError:
+            return Response('对象路径非法', status=400, mimetype='text/plain')
+        if not local_path:
             logger.warning('本地对象不存在: %s/%s', bucket_name, object_key)
-            return Response(err or '对象不存在', status=404, mimetype='text/plain')
+            return Response('对象不存在', status=404, mimetype='text/plain')
         filename = os.path.basename(object_key) or 'download'
-        response = Response(content, mimetype=content_type or 'application/octet-stream')
+        response = send_file(
+            local_path,
+            conditional=True,
+            as_attachment=False,
+            download_name=filename,
+        )
         response.headers['Content-Disposition'] = _build_content_disposition('inline', filename)
-        response.headers['Content-Length'] = str(len(content))
+        response.headers['Accept-Ranges'] = 'bytes'
         return response
 
     try:
@@ -77,20 +128,45 @@ def download_object(bucket_name: str):
             return Response(f'MinIO 存储桶不存在: {bucket_name}', status=404, mimetype='text/plain')
 
         stat = client.stat_object(bucket_name, object_key)
-        data = client.get_object(bucket_name, object_key)
-        content = data.read()
-        data.close()
-        data.release_conn()
-
         filename = os.path.basename(object_key) or 'download'
         content_type = stat.content_type
         if not content_type or content_type == 'application/octet-stream':
             guessed, _ = mimetypes.guess_type(filename)
             content_type = guessed or 'application/octet-stream'
 
-        response = Response(content, mimetype=content_type)
-        response.headers['Content-Disposition'] = _build_content_disposition('attachment', filename)
-        response.headers['Content-Length'] = str(len(content))
+        object_size = int(getattr(stat, 'size', 0) or 0)
+        try:
+            byte_range = _parse_single_range(request.headers.get('Range', ''), object_size)
+        except ValueError:
+            response = Response(status=416)
+            response.headers['Content-Range'] = f'bytes */{object_size}'
+            response.headers['Accept-Ranges'] = 'bytes'
+            return response
+
+        start, end = byte_range if byte_range is not None else (0, object_size - 1)
+        length = object_size if byte_range is None else end - start + 1
+        status = 206 if byte_range is not None else 200
+        if request.method == 'HEAD':
+            response = Response(status=status, mimetype=content_type)
+        else:
+            data = client.get_object(
+                bucket_name,
+                object_key,
+                offset=start,
+                length=length,
+            )
+            response = Response(
+                stream_with_context(_iter_minio_response(data, length)),
+                status=status,
+                mimetype=content_type,
+                direct_passthrough=True,
+            )
+        disposition = 'inline' if content_type.startswith(('image/', 'video/')) else 'attachment'
+        response.headers['Content-Disposition'] = _build_content_disposition(disposition, filename)
+        response.headers['Content-Length'] = str(length)
+        response.headers['Accept-Ranges'] = 'bytes'
+        if byte_range is not None:
+            response.headers['Content-Range'] = f'bytes {start}-{end}/{object_size}'
         return response
     except S3Error as e:
         if getattr(e, 'code', '') == 'NoSuchKey':

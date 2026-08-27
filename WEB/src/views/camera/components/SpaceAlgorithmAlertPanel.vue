@@ -31,7 +31,7 @@
             type="link"
             size="small"
             class="link-action"
-            @click="emit('view-gallery-date', selectedDateStr)"
+            @click="() => emit('view-gallery-date', selectedDateStr)"
           >
             查看当日抓拍图库
           </Button>
@@ -50,6 +50,7 @@
             >
               <div class="alert-thumb">
                 <img v-if="alert.image_url" :src="thumbUrl(alert.image_url)" alt="" />
+                <span v-else-if="alert.image_status === 'pending'" class="media-pending">同步中</span>
                 <PictureOutlined v-else class="no-img" />
               </div>
               <div class="alert-info">
@@ -72,11 +73,13 @@
           <div class="preview-header-main">
             <span class="preview-title">{{ formatAlertEvent(selectedAlert.event) }}</span>
             <span class="preview-time">{{ formatTime(selectedAlert.time) }}</span>
+            <Tag v-if="selectedAlert.image_status === 'pending'" color="processing">图片同步中</Tag>
+            <Tag v-if="selectedAlert.record_status === 'pending'" color="processing">事件片段生成中</Tag>
           </div>
           <div class="preview-actions">
             <Button
               v-if="showSnapLink && selectedAlert.time"
-              @click="emit('view-snap', selectedAlert)"
+              @click="handleViewSnap"
             >
               <Icon icon="ant-design:picture-outlined" />
               查看算法抓拍
@@ -85,7 +88,7 @@
               v-if="selectedAlert.device_id && selectedAlert.time"
               type="primary"
               size="middle"
-              @click="emit('view-record', selectedAlert)"
+              @click="handleViewRecord"
             >
               <Icon icon="ant-design:video-camera-outlined" />
               查看告警录像
@@ -99,7 +102,10 @@
             alt="告警图片"
             class="preview-image"
           />
-          <Empty v-else description="暂无告警图片" />
+          <Empty
+            v-else
+            :description="selectedAlert.image_status === 'pending' ? '告警已产生，图片正在从边缘节点同步' : '暂无告警图片'"
+          />
         </div>
         <div class="preview-meta">
           <div class="meta-item">
@@ -140,6 +146,8 @@ export interface SpaceAlertItem {
   device_id?: string;
   device_name?: string;
   image_url?: string;
+  image_status?: 'pending' | 'uploading' | 'ready' | 'failed';
+  record_status?: 'not_applicable' | 'pending' | 'uploading' | 'ready' | 'failed';
   task_type?: string;
   information?: string;
 }
@@ -198,6 +206,16 @@ function isPatrolAlert(alert: SpaceAlertItem) {
   } catch {
     return false;
   }
+}
+
+function handleViewSnap() {
+  const alert = selectedAlert.value;
+  if (alert) emit('view-snap', alert);
+}
+
+function handleViewRecord() {
+  const alert = selectedAlert.value;
+  if (alert) emit('view-record', alert);
 }
 
 function selectDate(date: string) {
@@ -407,6 +425,16 @@ defineExpose({ refresh });
       align-items: center;
       justify-content: center;
       height: 100%;
+    }
+
+    .media-pending {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #1677ff;
+      font-size: 11px;
+      white-space: nowrap;
     }
   }
 

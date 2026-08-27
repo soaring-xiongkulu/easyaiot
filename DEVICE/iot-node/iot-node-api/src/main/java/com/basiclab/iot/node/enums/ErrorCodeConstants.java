@@ -17,6 +17,7 @@ public interface ErrorCodeConstants {
     ErrorCode COMPUTE_NODE_FUNCTIONS_REQUIRED = new ErrorCode(1_005_000_007, "请至少勾选一项节点功能");
     ErrorCode COMPUTE_NODE_SSH_REQUIRED = new ErrorCode(1_005_000_008, "添加节点必须填写 SSH 用户名和密码/私钥，以便预检目标机网络与资源");
     ErrorCode COMPUTE_NODE_PREFLIGHT_FAILED = new ErrorCode(1_005_000_009, "{}");
+    ErrorCode COMPUTE_NODE_RECORDING_STORAGE_INVALID = new ErrorCode(1_005_000_010, "录像存储模式配置无效：{}");
     ErrorCode SSH_CREDENTIAL_NOT_EXISTS = new ErrorCode(1_005_001_000, "SSH 凭据不存在");
     ErrorCode SSH_CONNECT_FAILED = new ErrorCode(1_005_001_001, "SSH 连接失败");
     ErrorCode AGENT_TOKEN_INVALID = new ErrorCode(1_005_002_000, "Agent 认证令牌无效");

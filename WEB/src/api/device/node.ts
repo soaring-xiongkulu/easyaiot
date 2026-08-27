@@ -68,6 +68,12 @@ export interface ComputeNodeVO {
   controlPlaneId?: number;
   isRemote?: boolean;
   peerId?: number;
+  recordingStorageMode?: 'central_shared' | 'edge_local';
+  recordingStorageState?: 'applying' | 'active' | 'failed' | string;
+  recordingStorageGeneration?: number;
+  recordingStorageUpdatedAt?: string;
+  recordingStorageError?: string;
+  mediaPublicUrl?: string;
   sentinelAutoDeployStarted?: boolean;
   createTime?: string;
   updateTime?: string;
@@ -79,6 +85,44 @@ export const createNode = (data: ComputeNodeVO, options?: Pick<NodeRequestOption
 
 export const preflightNode = (data: ComputeNodeVO) => {
   return commonApi('post', Api.Node + '/preflight', { data }, { timeout: 60000, errorMessageMode: 'none' });
+};
+
+export interface NodePreflightCheckVO {
+  name: string;
+  ok: boolean;
+  detail: string;
+  required: boolean;
+}
+
+export interface NodePreflightResultVO {
+  ok: boolean;
+  message?: string;
+  checks: NodePreflightCheckVO[];
+}
+
+function normalizePreflightResult(res: unknown): NodePreflightResultVO {
+  const empty = { ok: false, message: '预检响应格式异常', checks: [] };
+  if (!res || typeof res !== 'object') return empty;
+  const value = res as Record<string, unknown>;
+  const payload = value.ok != null ? value : value.data;
+  if (!payload || typeof payload !== 'object') return empty;
+  const result = payload as Record<string, unknown>;
+  return {
+    ok: result.ok === true,
+    message: typeof result.message === 'string' ? result.message : undefined,
+    checks: Array.isArray(result.checks) ? (result.checks as NodePreflightCheckVO[]) : [],
+  };
+}
+
+export const preflightRecordingStorage = async (
+  nodeId: number,
+  mode: 'central_shared' | 'edge_local',
+  mediaPublicUrl?: string,
+): Promise<NodePreflightResultVO> => {
+  const res = await commonApi('get', Api.Node + '/recording-storage/preflight', {
+    params: { nodeId, mode, mediaPublicUrl: mediaPublicUrl || undefined },
+  });
+  return normalizePreflightResult(res);
 };
 
 export const updateNode = (data: ComputeNodeVO) => {

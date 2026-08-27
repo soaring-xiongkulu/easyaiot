@@ -91,6 +91,8 @@ def upsert_record_file(
             source=source,
         )
         db.session.add(record)
+    from app.services.media_asset_service import upsert_central_recording_asset
+    upsert_central_recording_asset(record, commit=False)
     db.session.commit()
     return record
 

@@ -32,6 +32,7 @@ export function isVodPlaybackUrl(url: string | null | undefined): boolean {
   return (
     u.includes('/video/alert/record') ||
     u.includes('/video/record/space/') ||
+    /\/video\/media\/assets\/[^/?#]+\/content(?:[?#]|$)/.test(u) ||
     (u.includes('/api/v1/buckets/') && u.includes('/objects/download'))
   );
 }

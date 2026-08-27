@@ -179,6 +179,44 @@ web_skip_build_from_pull() {
     return 0
 }
 
+# docker-compose.yaml 将宿主机 dist 挂载到 nginx 静态目录。该挂载会覆盖镜像内
+# Docker 构建产生的 dist，因此每次使用新镜像启动前都要把镜像产物同步到宿主机。
+sync_web_dist_from_image() {
+    local image_ref="${1:-web-service:latest}"
+    local configured_dist="${WEB_DIST_DIR:-./dist}"
+    local target_dist
+
+    if ! docker image inspect "$image_ref" >/dev/null 2>&1; then
+        print_error "WEB 镜像不存在，无法同步前端产物: ${image_ref}"
+        return 1
+    fi
+    if [[ "$configured_dist" = /* ]]; then
+        target_dist="$configured_dist"
+    else
+        target_dist="${SCRIPT_DIR}/${configured_dist#./}"
+    fi
+    case "$target_dist" in
+        /|"$SCRIPT_DIR"|"$EASYAIOT_ROOT")
+            print_error "拒绝将 WEB 静态产物同步到不安全目录: ${target_dist}"
+            return 1
+            ;;
+    esac
+
+    mkdir -p "$target_dist"
+    # dist 通常由 root 身份的 nginx 容器写入；通过临时容器同步可避免宿主机
+    # 普通部署用户在覆盖旧文件时遇到 permission denied。
+    if ! docker run --rm --entrypoint sh -v "${target_dist}:/out" "$image_ref" \
+        -lc 'cp -a /usr/share/nginx/html/. /out/'; then
+        print_error "从 ${image_ref} 同步 WEB 静态产物失败"
+        return 1
+    fi
+    if [ ! -s "${target_dist}/index.html" ]; then
+        print_error "WEB 静态产物同步后缺少 index.html: ${target_dist}"
+        return 1
+    fi
+    print_info "已同步镜像静态产物: ${image_ref} → ${target_dist}"
+}
+
 # 组合 git 提交与 clean 写入的戳，用于 Dockerfile ARG CACHE_BUST（使 COPY 之后层在代码/clean 后重建）
 get_web_build_cache_bust() {
     local git_rev stamp
@@ -828,6 +866,7 @@ install_service() {
         record_web_deploy_profile_built "${EASYAIOT_ROOT}"
     fi
     
+    sync_web_dist_from_image
     print_info "启动服务..."
     $COMPOSE_CMD up -d
     
@@ -873,7 +912,7 @@ start_service() {
         exit 1
     fi
 
-    # 注意：前端构建现在在Docker容器内完成，不再需要检查宿主机的dist目录
+    sync_web_dist_from_image
     $COMPOSE_CMD up -d --remove-orphans
     print_success "服务已启动"
     check_status
@@ -897,6 +936,7 @@ restart_service() {
     ensure_nginx_conf_for_profile
     ensure_ssl_certs || exit 1
     
+    sync_web_dist_from_image
     $COMPOSE_CMD up -d --force-recreate --remove-orphans
     print_success "服务已重启"
     check_status
@@ -1043,6 +1083,7 @@ update_service() {
         && web_image_profile_matches; then
         print_success "预构建镜像已就绪（EASYAIOT_SKIP_BUILD=1），跳过 git pull 与前端重建，仅 recreate"
         cleanup_renamed_containers
+        sync_web_dist_from_image
         $COMPOSE_CMD up -d --remove-orphans
         check_status
         return 0
@@ -1052,6 +1093,7 @@ update_service() {
         print_warning "未检测到 git 命令，跳过代码拉取，使用本地镜像 recreate"
         print_info "如需最新版本：一键 update 选「拉取预构建镜像」，或安装 git 后本地重建"
         cleanup_renamed_containers
+        sync_web_dist_from_image
         $COMPOSE_CMD up -d --remove-orphans
         check_status
         return 0
@@ -1084,6 +1126,7 @@ update_service() {
         print_success "代码无变更且镜像已存在，跳过前端重建"
         print_info "（如需强制重建：FORCE_REBUILD=1 ./install_linux.sh update）"
         cleanup_renamed_containers
+        sync_web_dist_from_image
         $COMPOSE_CMD up -d --remove-orphans
         check_status
         return 0
@@ -1097,6 +1140,7 @@ update_service() {
     # 构建完成后才 up -d（旧容器在 build 全程持续运行），停机仅数秒
     print_info "应用新镜像..."
     cleanup_renamed_containers
+    sync_web_dist_from_image
     $COMPOSE_CMD up -d --remove-orphans
 
     print_success "服务更新完成"
@@ -1175,4 +1219,3 @@ main() {
 
 # 运行主函数
 main "$@"
-

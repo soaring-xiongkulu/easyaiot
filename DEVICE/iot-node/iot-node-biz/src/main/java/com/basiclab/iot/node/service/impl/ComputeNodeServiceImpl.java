@@ -27,12 +27,14 @@ import com.basiclab.iot.node.domain.vo.NodeMetricTrendSeriesRespVO;
 import com.basiclab.iot.node.enums.NodeStatusEnum;
 import com.basiclab.iot.node.service.ControlPlaneEndpointResolver;
 import com.basiclab.iot.node.service.ComputeNodeService;
+import com.basiclab.iot.node.service.NodeMediaService;
 import com.basiclab.iot.node.util.AgentDeployUtil;
 import com.basiclab.iot.node.util.NodeOnboardPreflight;
 import com.basiclab.iot.node.util.CredentialEncryptUtil;
 import com.basiclab.iot.node.util.HostIpUtil;
 import com.basiclab.iot.node.util.NodeFunctions;
 import com.basiclab.iot.node.util.RemotePortCheckUtil;
+import com.basiclab.iot.node.util.RecordingStorageMountUtil;
 import com.basiclab.iot.node.util.SshClientUtil;
 import com.basiclab.iot.node.util.SshSessionHelper;
 import com.basiclab.iot.node.util.WorkloadBundleDeployUtil;
@@ -82,6 +84,10 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     private static final int EXPORT_PIP_WHEELS_TIMEOUT_MS = 600000;
     private static final String PLATFORM_CAPABILITY_KEY = "platform";
     private static final String PLATFORM_NODE_NAME = "控制面节点";
+    private static final String RECORDING_STORAGE_CENTRAL_SHARED = "central_shared";
+    private static final String RECORDING_STORAGE_EDGE_LOCAL = "edge_local";
+    private static final String RECORDING_STORAGE_ACTIVE = "active";
+    private static final long EDGE_LOCAL_MIN_FREE_BYTES = 10L * 1024 * 1024 * 1024;
 
     private static final String SENTINEL_DEPLOY_LOCK_PREFIX = "node:sentinel:deploy:lock:";
 
@@ -102,6 +108,8 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
     private boolean autoDeployOnCreate;
     @Resource
     private ControlPlaneEndpointResolver controlPlaneEndpointResolver;
+    @Resource
+    private NodeMediaService nodeMediaService;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
     @Resource
@@ -133,6 +141,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         node.setStatus(NodeStatusEnum.PENDING.getStatus());
         node.setWeight(createReqVO.getWeight() != null ? createReqVO.getWeight() : 100);
         applyFunctionGpuDefaults(node, functions, createReqVO.getMaxGpuCount());
+        applyRecordingStorageForCreate(node, createReqVO, functions);
         node.setMaxTaskCount(createReqVO.getMaxTaskCount() != null ? createReqVO.getMaxTaskCount() : 50);
         Map<String, Boolean> caps = NodeFunctions.capabilities(functions);
         if (createReqVO.getCapabilities() != null) {
@@ -209,11 +218,135 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         updateObj.setStatus(existing.getStatus());
         updateObj.setLastHeartbeatAt(existing.getLastHeartbeatAt());
         applyFunctionGpuDefaults(updateObj, functions, updateReqVO.getMaxGpuCount());
+        String requestedStorageMode = StrUtil.blankToDefault(
+                updateReqVO.getRecordingStorageMode(), normalizeRecordingStorageMode(existing.getRecordingStorageMode()));
+        boolean storageConfigChanged = !normalizeRecordingStorageMode(requestedStorageMode)
+                .equals(normalizeRecordingStorageMode(existing.getRecordingStorageMode()))
+                || !Objects.equals(normalizeMediaPublicUrl(updateReqVO.getMediaPublicUrl()),
+                normalizeMediaPublicUrl(existing.getMediaPublicUrl()));
+        applyRecordingStorageForUpdate(updateObj, existing, updateReqVO, functions);
         computeNodeMapper.updateById(updateObj);
         saveSshCredential(updateReqVO.getId(), updateReqVO);
         if (autoDeployOnCreate && hasSshSecret(updateReqVO)
                 && NodeStatusEnum.PENDING.getStatus().equals(existing.getStatus())) {
             scheduleAutoDeploy(updateReqVO.getId());
+        } else if (storageConfigChanged && NodeStatusEnum.ONLINE.getStatus().equals(existing.getStatus())) {
+            scheduleRecordingStorageDeploy(updateReqVO.getId());
+        }
+    }
+
+    @Override
+    public NodeOnboardPreflightRespVO preflightRecordingStorage(Long nodeId, String mode, String mediaPublicUrl) {
+        ComputeNodeDO node = validateExists(nodeId);
+        String normalizedMode = normalizeRecordingStorageMode(mode);
+        NodeOnboardPreflightRespVO result = new NodeOnboardPreflightRespVO();
+        List<NodeOnboardPreflightRespVO.Check> checks = new ArrayList<>();
+        result.setChecks(checks);
+
+        boolean platformCompatible = !isPlatformNode(node)
+                || RECORDING_STORAGE_CENTRAL_SHARED.equals(normalizedMode);
+        checks.add(recordingStorageCheck("节点类型", platformCompatible,
+                platformCompatible ? "节点类型支持该录像存储模式" : "控制面节点只能使用中心共享存储", true));
+
+        List<String> functions = NodeFunctions.parse(node);
+        boolean mediaCapable = !RECORDING_STORAGE_EDGE_LOCAL.equals(normalizedMode)
+                || functions.contains("live") || functions.contains("forward");
+        checks.add(recordingStorageCheck("媒体能力", mediaCapable,
+                mediaCapable ? "节点已具备媒体接入或转发能力" : "边缘本地存储要求节点启用视频接入或视频转发功能", true));
+
+        boolean modeChanged = !normalizedMode.equals(normalizeRecordingStorageMode(node.getRecordingStorageMode()));
+        boolean online = NodeStatusEnum.ONLINE.getStatus().equals(node.getStatus());
+        boolean pending = NodeStatusEnum.PENDING.getStatus().equals(node.getStatus());
+        boolean onlineCheckOk = !modeChanged || online || pending;
+        checks.add(recordingStorageCheck("节点在线状态", onlineCheckOk,
+                online ? "节点在线，可在保存后下发新配置"
+                        : pending ? "节点尚未完成纳管，可先保存目标模式，部署媒体栈后生效"
+                        : modeChanged ? "节点离线时不能切换录像存储模式，请先恢复节点在线"
+                        : "节点当前不在线；未切换物理存储模式，本次仅更新辅助配置", modeChanged));
+
+        NodeMetricSnapshotDO metric = nodeMetricSnapshotMapper.selectLatestByNodeId(nodeId);
+        if (RECORDING_STORAGE_EDGE_LOCAL.equals(normalizedMode)) {
+            if (metric == null || metric.getDiskTotalBytes() == null || metric.getDiskUsedBytes() == null) {
+                checks.add(recordingStorageCheck("本地磁盘空间", true,
+                        "暂无节点磁盘指标；请确认录像目录已挂载并预留至少 10 GiB 可用空间", false));
+            } else {
+                long freeBytes = Math.max(0L, metric.getDiskTotalBytes() - metric.getDiskUsedBytes());
+                boolean diskOk = freeBytes >= EDGE_LOCAL_MIN_FREE_BYTES;
+                checks.add(recordingStorageCheck("本地磁盘空间", diskOk,
+                        diskOk ? "本地磁盘可用空间满足最低要求"
+                                : "本地磁盘可用空间不足 10 GiB，不能切换为边缘本地存储", true));
+            }
+            String effectivePublicUrl = StrUtil.blankToDefault(mediaPublicUrl, node.getMediaPublicUrl());
+            boolean publicUrlConfigured = isHttpUrl(effectivePublicUrl);
+            checks.add(recordingStorageCheck("录像访问地址", publicUrlConfigured,
+                    publicUrlConfigured ? "已配置主节点访问边缘录像的公开地址"
+                            : "尚未配置录像访问地址；保存时需填写主节点可访问的 HTTP(S) 地址", true));
+            boolean internalTokenConfigured = StrUtil.isNotBlank(System.getenv("MEDIA_INTERNAL_TOKEN"));
+            checks.add(recordingStorageCheck("节点间媒体鉴权", internalTokenConfigured,
+                    internalTokenConfigured ? "已配置边缘资产上报与录像访问令牌"
+                            : "iot-node 未配置 MEDIA_INTERNAL_TOKEN，无法安全上报或代理边缘录像", true));
+        } else {
+            if (isPlatformNode(node)) {
+                checks.add(recordingStorageCheck("中心共享存储", true,
+                        "控制面节点可使用中心本地存储目录", true));
+            } else if (online) {
+                checks.add(probeSharedRecordingStorage(node));
+            } else {
+                checks.add(recordingStorageCheck("中心共享存储", false,
+                        "节点离线，无法确认 /mnt/easyaiot-media 是否挂载 NFS/CephFS", true));
+            }
+        }
+
+        boolean ok = checks.stream().noneMatch(check -> Boolean.TRUE.equals(check.getRequired())
+                && !Boolean.TRUE.equals(check.getOk()));
+        result.setOk(ok);
+        result.setMessage(ok ? "录像存储模式预检通过" : "录像存储模式预检未通过，请处理阻断项");
+        return result;
+    }
+
+    private NodeOnboardPreflightRespVO.Check probeSharedRecordingStorage(ComputeNodeDO node) {
+        NodeSshCredentialDO credential = nodeSshCredentialMapper.selectByNodeId(node.getId());
+        if (credential == null) {
+            return recordingStorageCheck("中心共享存储", false,
+                    "未保存 SSH 凭据，无法验证边缘节点共享存储挂载", true);
+        }
+        String password = null;
+        String privateKey = null;
+        if ("password".equals(credential.getAuthType())) {
+            password = CredentialEncryptUtil.decrypt(credential.getCredentialEnc());
+        } else {
+            privateKey = CredentialEncryptUtil.decrypt(credential.getCredentialEnc());
+        }
+        String command = "fs=$(findmnt -T /mnt/easyaiot-media -n -o FSTYPE 2>/dev/null | head -1); "
+                + "src=$(findmnt -T /mnt/easyaiot-media -n -o SOURCE 2>/dev/null | head -1); "
+                + "if [[ -d /mnt/easyaiot-media && -w /mnt/easyaiot-media ]]; then writable=yes; else writable=no; fi; "
+                + "printf '%s|%s|%s\\n' \"$fs\" \"$src\" \"$writable\"";
+        try (SshSessionHelper ssh = SshSessionHelper.connect(
+                node.getHost(), resolveSshPort(node), credential.getUsername(), credential.getAuthType(),
+                password, privateKey)) {
+            SshSessionHelper.SshExecResult probe = ssh.exec(command, 15000);
+            String[] values = probe.getStdout().trim().split("\\|", -1);
+            String fsType = values.length > 0 ? values[0].trim() : "";
+            String source = values.length > 1 ? values[1].trim() : "";
+            boolean writable = values.length > 2 && "yes".equals(values[2].trim());
+            boolean shared = probe.isSuccess()
+                    && RecordingStorageMountUtil.isSharedFilesystemType(fsType) && writable;
+            String detail;
+            if (shared) {
+                detail = "/mnt/easyaiot-media 已挂载共享存储（" + fsType + "，" + source + "）且可写";
+            } else if (RecordingStorageMountUtil.isSharedFilesystemType(fsType)) {
+                detail = "/mnt/easyaiot-media 已识别为 " + fsType + "，但目录不可写";
+            } else if (StrUtil.isNotBlank(fsType)) {
+                detail = "/mnt/easyaiot-media 当前是本地文件系统 " + fsType + "（" + source
+                        + "）；目录可写不代表中心共享存储，请挂载 NFS/CephFS 或选择边缘本地存储";
+            } else {
+                detail = "未检测到 /mnt/easyaiot-media 的共享挂载，请先挂载 NFS/CephFS";
+            }
+            return recordingStorageCheck("中心共享存储", shared, detail, true);
+        } catch (Exception exc) {
+            log.warn("录像共享存储预检失败 nodeId={}: {}", node.getId(), exc.getMessage());
+            return recordingStorageCheck("中心共享存储", false,
+                    "无法通过 SSH 验证共享存储挂载：" + StrUtil.blankToDefault(exc.getMessage(), "连接失败"), true);
         }
     }
 
@@ -278,6 +411,12 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                 caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
                 changed = true;
             }
+            if (!RECORDING_STORAGE_CENTRAL_SHARED.equals(platformNode.getRecordingStorageMode())
+                    || !RECORDING_STORAGE_ACTIVE.equals(platformNode.getRecordingStorageState())
+                    || platformNode.getRecordingStorageGeneration() == null) {
+                applyPlatformRecordingStorage(platformNode);
+                changed = true;
+            }
             if (changed) {
                 platformNode.setCapabilities(caps);
                 computeNodeMapper.updateById(platformNode);
@@ -296,6 +435,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                 caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
             }
             byHost.setCapabilities(caps);
+            applyPlatformRecordingStorage(byHost);
             computeNodeMapper.updateById(byHost);
             return;
         }
@@ -315,6 +455,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         node.setCapabilities(caps);
         node.setAgentToken(IdUtil.fastSimpleUUID());
         node.setRemark("平台控制面宿主机，自动纳管");
+        applyPlatformRecordingStorage(node);
         computeNodeMapper.insert(node);
         node.setControlPlaneId(node.getId());
         computeNodeMapper.updateById(node);
@@ -989,6 +1130,31 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                 }
             } catch (Exception e) {
                 log.warn("Sentinel 自动部署失败 nodeId={}: {}", nodeId, e.getMessage());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sentinelBootstrapExecutor.execute(task);
+                }
+            });
+        } else {
+            sentinelBootstrapExecutor.execute(task);
+        }
+    }
+
+    private void scheduleRecordingStorageDeploy(Long nodeId) {
+        Runnable task = () -> {
+            try {
+                log.info("录像存储配置已更新，开始刷新节点媒体栈 nodeId={}", nodeId);
+                NodeMediaRemoteDeployRespVO result = nodeMediaService.deployMediaStackBySsh(nodeId);
+                if (result == null || !Boolean.TRUE.equals(result.getSuccess())) {
+                    log.warn("节点媒体栈刷新未完成 nodeId={}: {}", nodeId,
+                            result != null ? result.getMessage() : "null");
+                }
+            } catch (Exception e) {
+                log.warn("节点媒体栈刷新失败 nodeId={}: {}", nodeId, e.getMessage());
             }
         };
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -1886,6 +2052,104 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
             return trimmed;
         }
         return trimmed.substring(0, maxLen) + "\n... (输出已截断)";
+    }
+
+    private void applyRecordingStorageForCreate(ComputeNodeDO node, ComputeNodeSaveReqVO reqVO,
+                                                List<String> functions) {
+        String mode = normalizeRecordingStorageMode(reqVO.getRecordingStorageMode());
+        validateRecordingStorageCompatibility(mode, functions, reqVO.getMediaPublicUrl());
+        node.setRecordingStorageMode(mode);
+        node.setRecordingStorageState(RECORDING_STORAGE_EDGE_LOCAL.equals(mode) ? "applying" : RECORDING_STORAGE_ACTIVE);
+        node.setRecordingStorageGeneration(1L);
+        node.setMediaPublicUrl(normalizeMediaPublicUrl(reqVO.getMediaPublicUrl()));
+        node.setRecordingStorageUpdatedAt(LocalDateTime.now());
+        node.setRecordingStorageError(null);
+    }
+
+    private void applyRecordingStorageForUpdate(ComputeNodeDO updateObj, ComputeNodeDO existing,
+                                                ComputeNodeSaveReqVO reqVO, List<String> functions) {
+        String currentMode = normalizeRecordingStorageMode(existing.getRecordingStorageMode());
+        String requestedMode = StrUtil.isBlank(reqVO.getRecordingStorageMode())
+                ? currentMode : normalizeRecordingStorageMode(reqVO.getRecordingStorageMode());
+        String mediaPublicUrl = normalizeMediaPublicUrl(reqVO.getMediaPublicUrl());
+        validateRecordingStorageCompatibility(requestedMode, functions, mediaPublicUrl);
+        boolean changed = !requestedMode.equals(currentMode)
+                || !Objects.equals(mediaPublicUrl, normalizeMediaPublicUrl(existing.getMediaPublicUrl()));
+        if (!requestedMode.equals(currentMode)
+                && !NodeStatusEnum.ONLINE.getStatus().equals(existing.getStatus())
+                && !NodeStatusEnum.PENDING.getStatus().equals(existing.getStatus())) {
+            throw exception(COMPUTE_NODE_RECORDING_STORAGE_INVALID, "节点离线时不能切换录像存储模式");
+        }
+        updateObj.setRecordingStorageMode(requestedMode);
+        updateObj.setMediaPublicUrl(mediaPublicUrl);
+        updateObj.setRecordingStorageGeneration(changed
+                ? defaultGeneration(existing.getRecordingStorageGeneration()) + 1
+                : defaultGeneration(existing.getRecordingStorageGeneration()));
+        updateObj.setRecordingStorageState(changed ? "applying"
+                : StrUtil.blankToDefault(existing.getRecordingStorageState(), RECORDING_STORAGE_ACTIVE));
+        updateObj.setRecordingStorageUpdatedAt(changed ? LocalDateTime.now() : existing.getRecordingStorageUpdatedAt());
+        updateObj.setRecordingStorageError(changed ? null : existing.getRecordingStorageError());
+    }
+
+    private void validateRecordingStorageCompatibility(String mode, List<String> functions, String mediaPublicUrl) {
+        if (!RECORDING_STORAGE_EDGE_LOCAL.equals(mode)) {
+            return;
+        }
+        if (!functions.contains("live") && !functions.contains("forward")) {
+            throw exception(COMPUTE_NODE_RECORDING_STORAGE_INVALID,
+                    "边缘本地存储要求节点启用视频接入或视频转发功能");
+        }
+        if (!isHttpUrl(mediaPublicUrl)) {
+            throw exception(COMPUTE_NODE_RECORDING_STORAGE_INVALID,
+                    "边缘本地存储必须填写主节点可访问的 HTTP(S) 录像地址");
+        }
+    }
+
+    private String normalizeRecordingStorageMode(String value) {
+        String mode = StrUtil.blankToDefault(value, RECORDING_STORAGE_CENTRAL_SHARED)
+                .trim().toLowerCase(Locale.ROOT);
+        if (!RECORDING_STORAGE_CENTRAL_SHARED.equals(mode) && !RECORDING_STORAGE_EDGE_LOCAL.equals(mode)) {
+            throw exception(COMPUTE_NODE_RECORDING_STORAGE_INVALID, value);
+        }
+        return mode;
+    }
+
+    private String normalizeMediaPublicUrl(String value) {
+        if (StrUtil.isBlank(value)) {
+            return null;
+        }
+        return value.trim().replaceAll("/+$", "");
+    }
+
+    private boolean isHttpUrl(String value) {
+        if (StrUtil.isBlank(value)) {
+            return false;
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return normalized.startsWith("http://") || normalized.startsWith("https://");
+    }
+
+    private long defaultGeneration(Long generation) {
+        return generation != null && generation > 0 ? generation : 1L;
+    }
+
+    private NodeOnboardPreflightRespVO.Check recordingStorageCheck(
+            String name, boolean ok, String detail, boolean required) {
+        NodeOnboardPreflightRespVO.Check check = new NodeOnboardPreflightRespVO.Check();
+        check.setName(name);
+        check.setOk(ok);
+        check.setDetail(detail);
+        check.setRequired(required);
+        return check;
+    }
+
+    private void applyPlatformRecordingStorage(ComputeNodeDO node) {
+        node.setRecordingStorageMode(RECORDING_STORAGE_CENTRAL_SHARED);
+        node.setRecordingStorageState(RECORDING_STORAGE_ACTIVE);
+        node.setRecordingStorageGeneration(defaultGeneration(node.getRecordingStorageGeneration()));
+        node.setMediaPublicUrl(null);
+        node.setRecordingStorageUpdatedAt(LocalDateTime.now());
+        node.setRecordingStorageError(null);
     }
 
 }

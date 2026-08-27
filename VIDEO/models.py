@@ -291,6 +291,8 @@ class Alert(db.Model):
     image_path = db.Column(db.String(500), nullable=True, comment='本地图片路径（算法落盘）')
     image_url = db.Column(db.String(500), nullable=True, comment='MinIO 下载路径（/api/v1/buckets/.../objects/download?prefix=...）')
     record_path = db.Column(db.String(500), nullable=True, comment='告警录像 MinIO 下载路径（/api/v1/buckets/.../objects/download?prefix=...），非宿主机 /data/playbacks 路径')
+    image_asset_id = db.Column(db.String(36), nullable=True, index=True, comment='统一媒体资产ID（事件图片）')
+    record_asset_id = db.Column(db.String(36), nullable=True, index=True, comment='统一媒体资产ID（事件片段）')
     task_type = db.Column(db.String(20), nullable=True, comment='告警事件类型[realtime:实时算法任务,snap:抓拍算法任务]')
     task_id = db.Column(db.Integer, nullable=True, comment='关联的任务ID')
     task_name = db.Column(db.String(255), nullable=True, comment='关联的任务名称')
@@ -404,6 +406,116 @@ class SpaceGroupSavePolicy(db.Model):
     )
 
 
+class DeviceRecordingPolicy(db.Model):
+    """设备录像策略；物理存储位置继承接入节点的 recording_storage_mode。"""
+    __tablename__ = 'device_recording_policy'
+
+    id = db.Column(db.BigInteger().with_variant(db.Integer, 'sqlite'), primary_key=True, autoincrement=True)
+    device_id = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    recording_mode = db.Column(db.String(20), nullable=False, default='continuous')
+    retention_hours = db.Column(db.Integer, nullable=False, default=168)
+    event_pre_seconds = db.Column(db.Integer, nullable=False, default=10)
+    event_post_seconds = db.Column(db.Integer, nullable=False, default=20)
+    event_image_sync = db.Column(db.Boolean, nullable=False, default=True)
+    event_clip_sync = db.Column(db.Boolean, nullable=False, default=True)
+    live_transport_mode = db.Column(db.String(20), nullable=False, default='always_push')
+    playback_route_mode = db.Column(db.String(20), nullable=False, default='auto')
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'device_id': self.device_id,
+            'recording_mode': self.recording_mode,
+            'retention_hours': self.retention_hours,
+            'event_pre_seconds': self.event_pre_seconds,
+            'event_post_seconds': self.event_post_seconds,
+            'event_image_sync': self.event_image_sync,
+            'event_clip_sync': self.event_clip_sync,
+            'live_transport_mode': self.live_transport_mode,
+            'playback_route_mode': self.playback_route_mode,
+            'created_at': utc_isoformat_z(self.created_at),
+            'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
+class MediaAsset(db.Model):
+    """跨中心/边缘统一媒体资产索引；浏览器只能使用资产 ID，不能接触服务器绝对路径。"""
+    __tablename__ = 'media_asset'
+
+    id = db.Column(db.String(36), primary_key=True)
+    asset_type = db.Column(db.String(32), nullable=False, index=True)
+    device_id = db.Column(db.String(100), nullable=False, index=True)
+    alert_id = db.Column(db.BigInteger, nullable=True, index=True)
+    task_id = db.Column(db.BigInteger, nullable=True, index=True)
+    source_node_id = db.Column(db.BigInteger, nullable=True, index=True)
+    storage_node_id = db.Column(db.BigInteger, nullable=True, index=True)
+    storage_generation = db.Column(db.BigInteger, nullable=False, default=1)
+    storage_scope = db.Column(db.String(16), nullable=False)
+    storage_backend = db.Column(db.String(16), nullable=False)
+    bucket_name = db.Column(db.String(255), nullable=True)
+    object_key = db.Column(db.String(500), nullable=False)
+    status = db.Column(db.String(16), nullable=False, default='pending', index=True)
+    start_time = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    end_time = db.Column(db.DateTime(timezone=True), nullable=True)
+    duration_ms = db.Column(db.BigInteger, nullable=True)
+    file_size = db.Column(db.BigInteger, nullable=True)
+    content_type = db.Column(db.String(100), nullable=False, default='application/octet-stream')
+    etag = db.Column(db.String(128), nullable=True)
+    checksum = db.Column(db.String(128), nullable=True)
+    retry_count = db.Column(db.Integer, nullable=False, default=0)
+    last_error = db.Column(db.Text, nullable=True)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint('bucket_name', 'object_key', name='uq_media_asset_bucket_object'),
+        db.Index('ix_media_asset_device_time', 'device_id', 'start_time', 'end_time'),
+        db.Index('ix_media_asset_alert_type', 'alert_id', 'asset_type'),
+        db.Index('ix_media_asset_source_status', 'source_node_id', 'status'),
+        db.Index('ix_media_asset_storage_time', 'storage_node_id', 'start_time'),
+        db.Index('ix_media_asset_expiry_status', 'expires_at', 'status'),
+    )
+
+    def to_dict(self):
+        return {
+            'asset_id': self.id,
+            'asset_type': self.asset_type,
+            'device_id': self.device_id,
+            'alert_id': self.alert_id,
+            'task_id': self.task_id,
+            'source_node_id': self.source_node_id,
+            'storage_node_id': self.storage_node_id,
+            'storage_generation': self.storage_generation,
+            'storage_scope': self.storage_scope,
+            'storage_backend': self.storage_backend,
+            'status': self.status,
+            'start_time': utc_isoformat_z(self.start_time),
+            'end_time': utc_isoformat_z(self.end_time),
+            'duration_ms': self.duration_ms,
+            'file_size': self.file_size,
+            'content_type': self.content_type,
+            'etag': self.etag,
+            'checksum': self.checksum,
+            'retry_count': self.retry_count,
+            'last_error': self.last_error,
+            'expires_at': utc_isoformat_z(self.expires_at),
+            'play_url': f'/video/media/assets/{self.id}/content',
+            'created_at': utc_isoformat_z(self.created_at),
+            'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
 class RecordFile(db.Model):
     """录像空间文件元数据表（MinIO 实体 + DB 索引，列表查询走数据库分页）"""
     __tablename__ = 'record_file'
@@ -420,9 +532,10 @@ class RecordFile(db.Model):
     etag = db.Column(db.String(128), nullable=True, comment='MinIO ETag')
     url = db.Column(db.String(500), nullable=False, comment='MinIO 下载地址')
     thumbnail_url = db.Column(db.String(500), nullable=True, comment='封面下载地址')
-    duration = db.Column(db.SmallInteger, nullable=True, comment='时长（秒）')
+    duration = db.Column(db.Integer, nullable=True, comment='时长（秒）')
     event_time = db.Column(db.DateTime, nullable=False, index=True, comment='录像时间（排序字段）')
     source = db.Column(db.String(50), default='dvr', nullable=False, comment='来源[dvr|manual]')
+    asset_id = db.Column(db.String(36), nullable=True, unique=True, index=True, comment='统一媒体资产ID')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
 
@@ -2661,6 +2774,57 @@ def ensure_camera_ingress_columns(engine):
                 log.info('已为 %s 表添加 ingress_node_id 列', table_name)
         except Exception as e:
             log.warning('ensure_camera_ingress_columns(%s): %s', table_name, e)
+
+
+def ensure_media_asset_compat_columns(engine):
+    """老库补统一媒体资产关联列；新策略/资产表由 db.create_all 幂等创建。"""
+    import logging
+    from sqlalchemy import inspect, text
+
+    log = logging.getLogger(__name__)
+    table_columns = {
+        'alert': {
+            'image_asset_id': 'VARCHAR(36)',
+            'record_asset_id': 'VARCHAR(36)',
+        },
+        'record_file': {
+            'asset_id': 'VARCHAR(36)',
+        },
+    }
+    try:
+        inspector = inspect(engine)
+        existing_tables = set(inspector.get_table_names())
+        for table_name, columns in table_columns.items():
+            if table_name not in existing_tables:
+                continue
+            inspected_columns = {c['name']: c for c in inspector.get_columns(table_name)}
+            existing_columns = set(inspected_columns)
+            with engine.begin() as conn:
+                for column_name, ddl in columns.items():
+                    if column_name not in existing_columns:
+                        conn.execute(text(
+                            f'ALTER TABLE {table_name} ADD COLUMN {column_name} {ddl}'
+                        ))
+                        log.info('已为 %s 表添加 %s 列', table_name, column_name)
+                if table_name == 'alert':
+                    conn.execute(text(
+                        'CREATE INDEX IF NOT EXISTS ix_alert_image_asset_id ON alert (image_asset_id)'
+                    ))
+                    conn.execute(text(
+                        'CREATE INDEX IF NOT EXISTS ix_alert_record_asset_id ON alert (record_asset_id)'
+                    ))
+                elif table_name == 'record_file':
+                    duration_type = str(inspected_columns.get('duration', {}).get('type', '')).upper()
+                    if engine.dialect.name == 'postgresql' and duration_type in ('SMALLINT', 'SMALL INTEGER'):
+                        conn.execute(text(
+                            'ALTER TABLE record_file ALTER COLUMN duration TYPE INTEGER'
+                        ))
+                    conn.execute(text(
+                        'CREATE UNIQUE INDEX IF NOT EXISTS ux_record_file_asset_id '
+                        'ON record_file (asset_id) WHERE asset_id IS NOT NULL'
+                    ))
+    except Exception as e:
+        log.warning('ensure_media_asset_compat_columns: %s', e)
 
 
 def ensure_algorithm_task_executor_columns(engine):

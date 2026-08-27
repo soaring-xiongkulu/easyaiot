@@ -54,19 +54,44 @@ def get_minio_seed_data_root() -> Optional[str]:
     return None
 
 
+def _safe_object_parts(bucket_name: str, object_key: str) -> tuple[str, list[str]]:
+    safe_bucket = (bucket_name or 'default').strip().strip('/').replace('\\', '/')
+    safe_key = (object_key or '').strip().replace('\\', '/')
+    if (
+        not safe_bucket
+        or '/' in safe_bucket
+        or safe_bucket in ('.', '..')
+        or not safe_key
+        or safe_key.startswith('/')
+    ):
+        raise ValueError('非法本地对象路径')
+    normalized_key = os.path.normpath(safe_key).replace('\\', '/')
+    if normalized_key in ('.', '..') or normalized_key.startswith('../'):
+        raise ValueError('本地对象路径越界')
+    return safe_bucket, normalized_key.split('/')
+
+
 def local_object_path(bucket_name: str, object_key: str) -> str:
-    safe_bucket = (bucket_name or 'default').strip().strip('/')
-    safe_key = (object_key or '').lstrip('/').replace('\\', '/')
-    return os.path.join(get_local_storage_root(), safe_bucket, *safe_key.split('/'))
+    safe_bucket, safe_key_parts = _safe_object_parts(bucket_name, object_key)
+    root = os.path.realpath(get_local_storage_root())
+    path = os.path.realpath(os.path.join(root, safe_bucket, *safe_key_parts))
+    try:
+        if os.path.commonpath((root, path)) != root:
+            raise ValueError('本地对象路径越界')
+    except ValueError as exc:
+        raise ValueError('本地对象路径越界') from exc
+    return path
 
 
 def seed_object_path(bucket_name: str, object_key: str) -> Optional[str]:
     seed_root = get_minio_seed_data_root()
     if not seed_root:
         return None
-    safe_bucket = (bucket_name or '').strip().strip('/')
-    safe_key = (object_key or '').lstrip('/').replace('\\', '/')
-    path = os.path.join(seed_root, safe_bucket, *safe_key.split('/'))
+    safe_bucket, safe_key_parts = _safe_object_parts(bucket_name, object_key)
+    real_seed_root = os.path.realpath(seed_root)
+    path = os.path.realpath(os.path.join(real_seed_root, safe_bucket, *safe_key_parts))
+    if os.path.commonpath((real_seed_root, path)) != real_seed_root:
+        raise ValueError('种子对象路径越界')
     return path if os.path.isfile(path) else None
 
 

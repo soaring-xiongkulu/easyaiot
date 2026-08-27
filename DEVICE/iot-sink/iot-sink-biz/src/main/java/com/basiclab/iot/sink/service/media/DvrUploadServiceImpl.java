@@ -8,14 +8,17 @@ import io.minio.PutObjectArgs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.basiclab.iot.sink.config.NfsMediaProperties;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,6 +28,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -42,6 +46,12 @@ public class DvrUploadServiceImpl implements DvrUploadService {
 
     @Autowired(required = false)
     private JdbcTemplate jdbcTemplate;
+
+    @Value("${easyaiot.media.dvr-default-duration-seconds:${SINK_DVR_DEFAULT_DURATION_SECONDS:60}}")
+    private int defaultDvrDurationSeconds;
+
+    @Value("${easyaiot.media.ffprobe-path:${FFPROBE_PATH:ffprobe}}")
+    private String ffprobePath;
 
     @Override
     public boolean processDvrEvent(Map<String, Object> event) {
@@ -125,7 +135,7 @@ public class DvrUploadServiceImpl implements DvrUploadService {
             }
             String minioUrl = "/api/v1/buckets/" + bucketName + "/objects/download?prefix="
                     + URLEncoder.encode(objectName, StandardCharsets.UTF_8);
-            int duration = 30;
+            int duration = resolveDurationSeconds(event, absolute);
             upsertPlayback(resolvedDeviceId, taskId, minioUrl, objectName, recordTime, fileSize, duration);
             // 录像空间前端读 record_file，必须与 Playback 同步写入，否则「录像回放」一直为空
             upsertRecordFile(resolvedDeviceId, taskId, bucketName, objectName, minioUrl, recordTime, fileSize, duration);
@@ -354,6 +364,75 @@ public class DvrUploadServiceImpl implements DvrUploadService {
             case ".mkv" -> "video/x-matroska";
             default -> "application/octet-stream";
         };
+    }
+
+    private int resolveDurationSeconds(Map<String, Object> event, Path mediaFile) {
+        Double hookDuration = positiveDouble(event.get("duration"));
+        if (hookDuration == null) {
+            hookDuration = positiveDouble(event.get("dvr_duration"));
+        }
+        if (hookDuration != null) {
+            return Math.max(1, (int) Math.ceil(hookDuration));
+        }
+
+        Double durationMs = positiveDouble(event.get("duration_ms"));
+        if (durationMs == null) {
+            durationMs = positiveDouble(event.get("durationMs"));
+        }
+        if (durationMs != null) {
+            return Math.max(1, (int) Math.ceil(durationMs / 1000.0d));
+        }
+
+        Double probed = probeDurationSeconds(mediaFile);
+        if (probed != null) {
+            return Math.max(1, (int) Math.ceil(probed));
+        }
+        int fallback = Math.max(1, defaultDvrDurationSeconds);
+        log.warn("无法获取 DVR 真实时长，使用配置兜底 duration={}s file={}", fallback, mediaFile);
+        return fallback;
+    }
+
+    private Double probeDurationSeconds(Path mediaFile) {
+        Process process = null;
+        try {
+            process = new ProcessBuilder(
+                    StringUtils.hasText(ffprobePath) ? ffprobePath : "ffprobe",
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    mediaFile.toString())
+                    .redirectErrorStream(true)
+                    .start();
+            if (!process.waitFor(15, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                return null;
+            }
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                return positiveDouble(reader.readLine());
+            }
+        } catch (Exception e) {
+            log.debug("ffprobe DVR 时长失败 file={} error={}", mediaFile, e.getMessage());
+            return null;
+        } finally {
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
+    }
+
+    private static Double positiveDouble(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            double parsed = value instanceof Number
+                    ? ((Number) value).doubleValue()
+                    : Double.parseDouble(String.valueOf(value).trim());
+            return Double.isFinite(parsed) && parsed > 0 ? parsed : null;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static String stringVal(Object o) {

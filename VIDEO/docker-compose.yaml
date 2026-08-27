@@ -41,6 +41,8 @@ services:
       # 宿主机不存在时 Docker 会把 ./face_rec.onnx 建成目录，导致 WEB 下载后 os.replace 报 Errno 21
       # NFS 共享媒体根（唯一存储；生产 /mnt/easyaiot-media，开发可设 EASYAIOT_MEDIA_ROOT=/tmp/easyaiot-nfs-mount）
       - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}:/mnt/easyaiot-media:rw
+      # 边缘本地录像根（中心形态保留空目录；边缘形态不依赖 NFS）
+      - ${EASYAIOT_EDGE_RECORDING_ROOT:-/data/local-storage}:${EASYAIOT_EDGE_RECORDING_ROOT:-/data/local-storage}:rw
       # SRS Hook 契约路径 /data/playbacks → 映射 NFS playbacks
       - ${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/playbacks:/data/playbacks:rw
       # 环境变量配置文件（用于Docker部署，使用.env.docker）

@@ -232,6 +232,7 @@ def create_app(start_background_tasks=None):
                 ensure_algorithm_task_executor_columns,
                 ensure_stream_forward_task_executor_columns,
                 ensure_camera_ingress_columns,
+                ensure_media_asset_compat_columns,
                 ensure_post_plugin_tables,
             )
             ensure_algorithm_task_sam_columns(db.engine)
@@ -243,6 +244,7 @@ def create_app(start_background_tasks=None):
             ensure_algorithm_task_executor_columns(db.engine)
             ensure_stream_forward_task_executor_columns(db.engine)
             ensure_camera_ingress_columns(db.engine)
+            ensure_media_asset_compat_columns(db.engine)
             ensure_post_plugin_tables(db.engine)
             
             # 迁移：检查并添加缺失的列和表
@@ -986,6 +988,15 @@ def create_app(start_background_tasks=None):
         print(f"❌ Media Hook Blueprint 注册失败: {str(e)}")
         import traceback
         traceback.print_exc()
+
+    try:
+        from app.blueprints import media_asset
+        app.register_blueprint(media_asset.media_asset_bp, url_prefix='/video')
+        print('✅ Media Asset Blueprint 注册成功')
+    except Exception as e:
+        print(f'❌ Media Asset Blueprint 注册失败: {str(e)}')
+        import traceback
+        traceback.print_exc()
     
     try:
         app.register_blueprint(alert.alert_bp, url_prefix='/video/alert')
@@ -1180,6 +1191,13 @@ def create_app(start_background_tasks=None):
         start_plate_capture_workers(app.plate_capture_stop_event)
     except Exception as e:
         logger.warning('车牌抓取 Worker 启动失败（RUNTIME 车牌匹配将不可用）: %s', e)
+
+    try:
+        from app.services.edge_storage_maintenance_service import start_edge_storage_maintenance
+        app.edge_storage_stop_event = threading.Event()
+        app.edge_storage_thread = start_edge_storage_maintenance(app, app.edge_storage_stop_event)
+    except Exception as e:
+        logger.warning('边缘存储维护 Worker 启动失败: %s', e)
 
     # Nacos注册与心跳线程管理
     try:

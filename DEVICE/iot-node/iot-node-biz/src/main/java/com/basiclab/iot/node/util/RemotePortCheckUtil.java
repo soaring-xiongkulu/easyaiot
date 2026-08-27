@@ -126,6 +126,15 @@ public final class RemotePortCheckUtil {
         sb.append("  if command -v docker >/dev/null 2>&1; then\n");
         sb.append("    owner=$(docker ps --format '{{.Names}} {{.Ports}}' 2>/dev/null "
                 + "| grep -E \":${port}->\" | head -1 || true)\n");
+        sb.append("    if [ -z \"${owner}\" ]; then\n");
+        sb.append("      owner=$(docker ps --format '{{.Names}}' 2>/dev/null | while read -r cname; do\n");
+        sb.append("        [ -z \"${cname}\" ] && continue\n");
+        sb.append("        mode=$(docker inspect -f '{{.HostConfig.NetworkMode}}' \"${cname}\" 2>/dev/null || true)\n");
+        sb.append("        if [ \"${mode}\" = host ] && echo \"${cname}\" | grep -Eq '(^|[-_])(srs|zlm)([-_]|$)'; then\n");
+        sb.append("          echo \"${cname} host-network\"\n");
+        sb.append("        fi\n");
+        sb.append("      done | head -1)\n");
+        sb.append("    fi\n");
         sb.append("  fi\n");
         sb.append("  if [ -n \"${owner}\" ]; then\n");
         sb.append("    echo \"PORT:${port}:OCCUPIED:${owner}\"\n");

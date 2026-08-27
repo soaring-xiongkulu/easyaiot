@@ -6,6 +6,7 @@ DVR 段处理：
 """
 import logging
 import os
+import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
@@ -32,6 +33,11 @@ def _truthy(name: str) -> bool:
 
 def _should_persist_dvr_locally() -> bool:
     """edge / 显式本地落盘 / 关闭 MinIO 时走 VIDEO 本地 DVR。"""
+    configured_mode = (os.getenv('RECORDING_STORAGE_MODE') or '').strip().lower()
+    if configured_mode == 'edge_local':
+        return True
+    if configured_mode == 'central_shared':
+        return False
     if _truthy('DVR_LOCAL_PERSIST') or _truthy('ALERT_USE_DIRECT_PERSIST'):
         return True
     try:
@@ -113,6 +119,21 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         return True
 
     resolved_id = device.id
+    from app.services.media_asset_service import get_or_default_policy
+    recording_policy = get_or_default_policy(resolved_id)
+    recording_mode = recording_policy.recording_mode or 'continuous'
+    if recording_mode == 'off':
+        try:
+            from app.utils.media_path_security import resolve_allowed_media_file
+            recording_root = os.path.realpath(os.path.expanduser(
+                os.getenv('EDGE_RECORDING_ROOT') or os.getenv('MEDIA_HOST_DATA_ROOT') or '/data/local-storage'
+            ))
+            disposable = resolve_allowed_media_file(absolute, extra_roots=[recording_root])
+            if disposable:
+                os.unlink(disposable)
+        except OSError as exc:
+            logger.warning('已关闭录像的分片清理失败 device=%s path=%s: %s', resolved_id, absolute, exc)
+        return True
     device_name = device.name or resolved_id
     shanghai = timezone(timedelta(hours=8))
     segment_start = parse_srs_dvr_segment_start_from_filename(absolute)
@@ -124,9 +145,13 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         except OSError:
             event_time = datetime.now(shanghai)
 
-    duration = int(ffprobe_video_duration_seconds(absolute) or 0)
-    if duration <= 0:
-        duration = 30
+    probed_duration = float(ffprobe_video_duration_seconds(absolute) or 0)
+    hook_duration = event.get('duration') or event.get('dvr_duration')
+    try:
+        duration_seconds = probed_duration if probed_duration > 0 else max(0.0, float(hook_duration or 0))
+    except (TypeError, ValueError):
+        duration_seconds = probed_duration
+    duration = max(1, int(round(duration_seconds))) if duration_seconds > 0 else 0
 
     # 库中存宿主机绝对路径；前端经 resolve_playback_display_url 转 VIDEO API
     store_path = absolute
@@ -163,51 +188,110 @@ def _persist_dvr_locally(event: Dict[str, Any]) -> bool:
         db.session.rollback()
         return False
 
-    # 同步写入 record_file，否则录像空间「录像回放」读不到片段
-    try:
-        from models import RecordSpace
-        from app.services.space_file_metadata_service import upsert_record_file
-        record_space = RecordSpace.query.filter_by(device_id=resolved_id).first()
-        if record_space:
-            filename = os.path.basename(absolute)
-            task_prefix = f'task_{int(task_id)}/' if task_id is not None else ''
-            object_name = f'{task_prefix}{filename}'
-            upsert_record_file(
-                space_id=record_space.id,
-                device_id=resolved_id,
-                task_id=task_id,
-                object_name=object_name,
-                bucket_name=record_space.bucket_name or 'record-space',
-                filename=object_name,
-                file_size=file_size,
-                url=store_path,
-                duration=duration,
-                event_time=event_time.replace(tzinfo=None) if event_time.tzinfo else event_time,
-                source='dvr',
-            )
-    except Exception as e:
-        logger.warning('本地 DVR：写入 record_file 失败 device=%s error=%s', resolved_id, e)
+    asset_id = None
+    if (os.getenv('RECORDING_STORAGE_MODE') or '').strip().lower() == 'edge_local':
+        try:
+            from app.services.media_asset_service import upsert_media_asset
+            from app.services.edge_media_spool_service import enqueue_asset_report, flush_pending_reports_async
+            from app.utils.media_path_security import resolve_allowed_media_file
+
+            recording_root = os.path.realpath(os.path.expanduser(
+                os.getenv('EDGE_RECORDING_ROOT') or os.getenv('MEDIA_HOST_DATA_ROOT') or '/data/local-storage'
+            ))
+            allowed = resolve_allowed_media_file(absolute, extra_roots=[recording_root])
+            if allowed is None:
+                raise ValueError(f'DVR 文件不在边缘录像根目录内: {absolute}')
+            object_key = os.path.relpath(str(allowed), recording_root).replace(os.sep, '/')
+            asset_id = str(uuid.uuid4())
+            duration_ms = int(round(duration_seconds * 1000)) if duration_seconds > 0 else None
+            end_time = event_time + timedelta(milliseconds=duration_ms) if duration_ms else None
+            report_payload = {
+                'asset_id': asset_id,
+                'asset_type': 'recording_segment',
+                'device_id': resolved_id,
+                'task_id': task_id,
+                'source_node_id': int(os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or 0) or None,
+                'storage_node_id': int(os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or 0) or None,
+                'storage_generation': int(os.getenv('RECORDING_STORAGE_GENERATION') or 1),
+                'storage_scope': 'edge',
+                'storage_backend': 'local',
+                'object_key': object_key,
+                'status': 'ready',
+                'start_time': event_time.isoformat(),
+                'end_time': end_time.isoformat() if end_time else None,
+                'duration_ms': duration_ms,
+                'file_size': file_size,
+                'content_type': 'video/x-flv' if absolute.lower().endswith('.flv') else 'video/mp4',
+            }
+            if recording_mode == 'event_only':
+                ring_seconds = max(
+                    300,
+                    int(recording_policy.event_pre_seconds or 0)
+                    + int(recording_policy.event_post_seconds or 0)
+                    + int(os.getenv('EDGE_EVENT_CLIP_SETTLE_SECONDS') or 70) + 120,
+                )
+                report_payload['expires_at'] = (datetime.now(timezone.utc) + timedelta(seconds=ring_seconds)).isoformat()
+            if report_payload['source_node_id'] is None:
+                raise ValueError('edge_local 未配置 COMPUTE_NODE_ID/NODE_ID')
+            upsert_media_asset(report_payload, authenticated_node_id=report_payload['source_node_id'])
+            # event_only 分片只是边缘环形缓存，不进入中心连续录像时间轴。
+            if recording_mode == 'continuous':
+                enqueue_asset_report(report_payload)
+                flush_pending_reports_async()
+        except Exception as e:
+            logger.error('边缘 DVR：登记统一资产失败 device=%s error=%s', resolved_id, e, exc_info=True)
+            return False
+    else:
+        # 旧本地/mini 模式仍写入 record_file；该函数会登记中心兼容资产。
+        try:
+            from models import RecordSpace
+            from app.services.space_file_metadata_service import upsert_record_file
+            record_space = RecordSpace.query.filter_by(device_id=resolved_id).first()
+            if record_space:
+                filename = os.path.basename(absolute)
+                task_prefix = f'task_{int(task_id)}/' if task_id is not None else ''
+                object_name = f'{task_prefix}{filename}'
+                upsert_record_file(
+                    space_id=record_space.id,
+                    device_id=resolved_id,
+                    task_id=task_id,
+                    object_name=object_name,
+                    bucket_name=record_space.bucket_name or 'record-space',
+                    filename=object_name,
+                    file_size=file_size,
+                    url=store_path,
+                    duration=duration,
+                    event_time=event_time.replace(tzinfo=None) if event_time.tzinfo else event_time,
+                    source='dvr',
+                )
+        except Exception as e:
+            logger.warning('本地 DVR：写入 record_file 失败 device=%s error=%s', resolved_id, e)
 
     try:
+        if recording_mode == 'event_only':
+            raise LookupError('event_only 等待事件片段生成，不回写环形缓存分片')
         patch_alerts_record(
             {
                 'device_id': resolved_id,
                 'task_id': task_id,
                 'event_time': event_time.astimezone(shanghai).strftime('%Y-%m-%d %H:%M:%S'),
                 'duration': duration,
-                'file_path': store_path,
+                'file_path': f'/video/media/assets/{asset_id}/content' if asset_id else store_path,
             }
         )
+    except LookupError:
+        pass
     except Exception as e:
         logger.warning('本地 DVR：回写告警 record_path 失败 device=%s error=%s', resolved_id, e)
 
     logger.info(
-        '本地 DVR 已落盘 task=%s device=%s path=%s size=%s duration=%s',
+        '本地 DVR 已落盘 task=%s device=%s path=%s size=%s duration=%s asset=%s',
         task_id,
         resolved_id,
         store_path,
         file_size,
         duration,
+        asset_id,
     )
     return True
 

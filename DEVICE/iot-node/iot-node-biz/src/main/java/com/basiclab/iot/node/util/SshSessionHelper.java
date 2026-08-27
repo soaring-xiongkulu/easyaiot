@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -47,12 +48,22 @@ public class SshSessionHelper implements AutoCloseable {
     }
 
     public SshExecResult exec(String command, int timeoutMs) throws JSchException, InterruptedException {
+        return exec(command, timeoutMs, null);
+    }
+
+    /**
+     * 执行远程命令，并按需通过标准输入传入敏感内容（例如 sudo -S 密码）。
+     * 标准输入不会拼接到命令或输出，避免出现在进程参数与部署日志中。
+     */
+    public SshExecResult exec(String command, int timeoutMs, String stdin)
+            throws JSchException, InterruptedException {
         ChannelExec channel = null;
         try {
             channel = (ChannelExec) session.openChannel("exec");
             // RUNTIME 等组件若把专用 lib 写进 profile.d 的 LD_LIBRARY_PATH，sudo 会加载失败
             channel.setCommand("unset LD_LIBRARY_PATH LD_PRELOAD; " + command);
-            channel.setInputStream(null);
+            channel.setInputStream(stdin == null ? null
+                    : new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)));
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             ByteArrayOutputStream error = new ByteArrayOutputStream();
             channel.setOutputStream(output);

@@ -59,4 +59,20 @@ public class ComputeNodeDO extends BaseDO {
     /** 所属中心节点（平台节点）ID */
     private Long controlPlaneId;
 
+    /** 录像物理存储模式：central_shared / edge_local */
+    private String recordingStorageMode;
+
+    /** 存储模式应用状态：active / applying / error */
+    private String recordingStorageState;
+
+    /** 存储模式代次，切换时递增 */
+    private Long recordingStorageGeneration;
+
+    /** 客户端可安全直连的边缘媒体地址 */
+    private String mediaPublicUrl;
+
+    private LocalDateTime recordingStorageUpdatedAt;
+
+    private String recordingStorageError;
+
 }
