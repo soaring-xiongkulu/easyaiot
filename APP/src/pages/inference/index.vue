@@ -7,60 +7,65 @@
     </wd-navbar>
 
     <!-- 推理工作台 -->
-    <view class="mx-24rpx mt-16rpx rounded-12rpx bg-white p-24rpx shadow-sm">
-      <view class="mb-24rpx text-30rpx font-semibold text-[#333]">
-        图片推理
+    <view class="work-card mx-24rpx mt-16rpx p-28rpx">
+      <view class="card-head">
+        <view class="section-bar" />
+        <text class="card-title">图片推理</text>
       </view>
 
-      <view class="mb-24rpx">
-        <view class="mb-12rpx text-26rpx text-[#666]">
-          选择模型
-        </view>
-        <view
-          class="flex items-center justify-between rounded-8rpx bg-[#f7f8f9] px-24rpx py-20rpx"
-          @click="pickerVisible = true"
-        >
-          <text class="text-28rpx" :class="selectedModelLabel ? 'text-[#333]' : 'text-[#999]'">
-            {{ selectedModelLabel || '请选择模型' }}
-          </text>
-          <wd-icon name="arrow-right" size="16px" color="#999" />
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible"
-          :model-value="selectedModelValue"
-          :columns="modelOptions"
-          label-key="label"
-          value-key="value"
-          @confirm="handleModelConfirm"
+      <!-- 选择模型 -->
+      <view class="field-label">
+        选择模型
+      </view>
+      <view class="model-row" hover-class="model-row--pressed" :hover-stay-time="60" @click="pickerVisible = true">
+        <text class="model-row-text" :class="{ 'model-row-text--placeholder': !selectedModelLabel }">
+          {{ selectedModelLabel || '请选择模型' }}
+        </text>
+        <wd-icon name="arrow-right" size="15px" color="#c0c7d3" />
+      </view>
+      <wd-picker
+        v-model:visible="pickerVisible"
+        :model-value="selectedModelValue"
+        :columns="modelOptions"
+        label-key="label"
+        value-key="value"
+        @confirm="handleModelConfirm"
+      />
+
+      <!-- 输入图片 -->
+      <view class="field-label">
+        输入图片
+      </view>
+      <view
+        class="upload-zone"
+        hover-class="upload-zone--pressed"
+        :hover-stay-time="60"
+        @click="chooseImage"
+      >
+        <image
+          v-if="inputImagePath"
+          :src="inputImagePath"
+          mode="aspectFit"
+          class="h-full w-full rounded-24rpx"
         />
-      </view>
-
-      <view class="mb-24rpx">
-        <view class="mb-12rpx text-26rpx text-[#666]">
-          输入图片
-        </view>
-        <view
-          class="flex h-240rpx items-center justify-center rounded-12rpx border-2 border-[#eee] border-dashed bg-[#fafafa]"
-          @click="chooseImage"
-        >
-          <image
-            v-if="inputImagePath"
-            :src="inputImagePath"
-            mode="aspectFit"
-            class="h-full w-full rounded-12rpx"
-          />
-          <view v-else class="text-center text-[#999]">
-            <view class="i-carbon-image text-64rpx" />
-            <view class="mt-12rpx text-26rpx">
-              点击选择图片
-            </view>
+        <view v-else class="center flex-col">
+          <view class="i-carbon-image text-64rpx text-[#7fa9ff]" />
+          <view class="mt-12rpx text-26rpx text-[#98a2b3]">
+            点击选择图片
           </view>
         </view>
       </view>
 
-      <wd-button type="primary" block :loading="inferencing" :disabled="!canInfer" @click="handleInfer">
-        {{ inferencing ? '推理中...' : '开始推理' }}
-      </wd-button>
+      <!-- 开始推理 -->
+      <view
+        class="run-btn"
+        :class="{ 'run-btn--disabled': !canInfer }"
+        @click="handleInfer"
+      >
+        <wd-loading v-if="inferencing" size="16px" color="#ffffff" />
+        <wd-icon v-else name="thunderbolt" size="30rpx" color="#ffffff" />
+        <text>{{ inferencing ? '推理中…' : '开始推理' }}</text>
+      </view>
 
       <ResultPanel
         :input-image-url="displayInputUrl"
@@ -71,7 +76,7 @@
     </view>
 
     <!-- 历史记录 -->
-    <view class="mx-24rpx mt-16rpx mb-16rpx text-28rpx font-semibold text-[#666]">
+    <view class="history-title mx-24rpx mb-16rpx mt-28rpx">
       推理历史
     </view>
 
@@ -88,29 +93,30 @@
         <view
           v-for="item in historyList"
           :key="item.id"
-          class="mb-16rpx rounded-12rpx bg-white p-24rpx shadow-sm"
-          :class="{ 'ring-2 ring-[#1890ff]': activeHistoryId === item.id }"
+          class="hist-card"
+          :class="{ 'hist-card--active': activeHistoryId === item.id }"
+          hover-class="hist-card--pressed"
+          :hover-stay-time="60"
           @click="handleHistoryClick(item)"
         >
-          <view class="flex gap-16rpx">
-            <image
-              v-if="getHistoryThumb(item)"
-              :src="getHistoryThumb(item)"
-              mode="aspectFill"
-              class="h-100rpx w-100rpx flex-shrink-0 rounded-8rpx bg-[#f0f0f0]"
-            />
-            <view class="min-w-0 flex-1">
-              <view class="truncate text-28rpx font-semibold text-[#333]">
-                {{ item.model_name || `模型 #${item.model_id}` }}
-              </view>
-              <view class="mt-8rpx text-24rpx text-[#999]">
-                {{ item.inference_type || 'image' }} · {{ formatDateTime(item.create_time) }}
-              </view>
-              <view class="mt-8rpx">
-                <wd-tag plain>
-                  {{ item.status || '完成' }}
-                </wd-tag>
-              </view>
+          <image
+            v-if="getHistoryThumb(item)"
+            :src="getHistoryThumb(item)"
+            mode="aspectFill"
+            class="hist-thumb"
+          />
+          <view v-else class="hist-thumb hist-thumb--empty">
+            <view class="i-carbon-image text-44rpx text-[#b3bccb]" />
+          </view>
+          <view class="min-w-0 flex-1">
+            <view class="truncate text-28rpx font-semibold" style="color: var(--app-text-1, #10131a)">
+              {{ item.model_name || `模型 #${item.model_id}` }}
+            </view>
+            <view class="mt-6rpx truncate text-23rpx" style="color: var(--app-text-3, #98a2b3)">
+              {{ formatDateTime(item.create_time) }}
+            </view>
+            <view class="mt-10rpx">
+              <text class="status-chip">{{ item.status || '完成' }}</text>
             </view>
           </view>
         </view>
@@ -183,8 +189,7 @@ async function loadModels() {
     const res = await getModelPage({ pageNo: 1, pageSize: 200 })
     const { list } = parseListResponse<ModelInfo>(res, ['data'])
     models.value = list
-  }
-  catch {
+  } catch {
     models.value = []
   }
 }
@@ -221,17 +226,14 @@ async function handleInfer() {
     applyResultView(view, inputImagePath.value)
     if (view.resultImageUrl) {
       toast.success(`推理完成，检测到 ${view.detectionCount ?? 0} 个目标`)
-    }
-    else {
+    } else {
       toast.success('推理完成')
     }
     activeHistoryId.value = view.recordId ?? null
     pagingRef.value?.reload()
-  }
-  catch {
+  } catch {
     toast.error('推理失败')
-  }
-  finally {
+  } finally {
     inferencing.value = false
   }
 }
@@ -250,8 +252,7 @@ async function queryHistory(pageNo: number, pageSize: number) {
     const res = await getInferenceTasks(params)
     const { list, total } = parseListResponse<InferenceTask>(res, ['data', 'list'])
     pagingRef.value?.completeByTotal(list, total)
-  }
-  catch {
+  } catch {
     pagingRef.value?.complete(false)
   }
 }
@@ -263,8 +264,7 @@ async function handleHistoryClick(item: InferenceTask) {
     const view = parseInferenceResult({ ...item, ...detail })
     applyResultView(view)
     uni.pageScrollTo?.({ scrollTop: 0, duration: 200 })
-  }
-  catch {
+  } catch {
     const view = parseInferenceHistoryItem(item)
     applyResultView(view)
   }
@@ -274,3 +274,163 @@ onMounted(() => {
   loadModels()
 })
 </script>
+
+<style lang="scss" scoped>
+.work-card {
+  background: var(--app-card-bg, #ffffff);
+  border-radius: 28rpx;
+  box-shadow: var(--app-card-shadow);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 26rpx;
+}
+
+.section-bar {
+  width: 8rpx;
+  height: 30rpx;
+  border-radius: 4rpx;
+  background: linear-gradient(180deg, #4a8bff, #2f6bff);
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--app-text-1, #10131a);
+}
+
+.field-label {
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  color: var(--app-text-3, #98a2b3);
+}
+
+.model-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+  margin-bottom: 24rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 18rpx;
+  background: #f7f9fd;
+  transition: opacity 0.12s ease;
+
+  &--pressed {
+    opacity: 0.85;
+  }
+}
+
+.model-row-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 27rpx;
+  font-weight: 600;
+  color: var(--app-text-1, #10131a);
+
+  &--placeholder {
+    color: var(--app-text-3, #98a2b3);
+    font-weight: 400;
+  }
+}
+
+.upload-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 280rpx;
+  margin-bottom: 28rpx;
+  border: 2rpx dashed #c9d8ff;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #f7faff 0%, #eff4ff 100%);
+  transition: opacity 0.12s ease;
+
+  &--pressed {
+    opacity: 0.85;
+  }
+}
+
+.run-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  height: 84rpx;
+  border-radius: 999rpx;
+  color: #ffffff;
+  font-size: 29rpx;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4a8bff, #2f6bff);
+  box-shadow: 0 10rpx 24rpx rgba(47, 107, 255, 0.3);
+  transition: all 0.15s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &--disabled {
+    opacity: 0.45;
+    box-shadow: none;
+
+    &:active {
+      transform: none;
+    }
+  }
+}
+
+.history-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--app-text-1, #10131a);
+}
+
+.hist-card {
+  display: flex;
+  gap: 18rpx;
+  margin-bottom: 16rpx;
+  padding: 20rpx 22rpx;
+  border: 3rpx solid transparent;
+  background: var(--app-card-bg, #ffffff);
+  border-radius: 26rpx;
+  box-shadow: var(--app-card-shadow);
+  transition: all 0.12s ease;
+
+  &--pressed {
+    transform: scale(0.98);
+    opacity: 0.92;
+  }
+
+  &--active {
+    border-color: rgba(47, 107, 255, 0.55);
+    background: #f7faff;
+  }
+}
+
+.hist-thumb {
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 18rpx;
+  background: #f0f2f6;
+  flex-shrink: 0;
+
+  &--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5f8ff 0%, #eef2fa 100%);
+  }
+}
+
+.status-chip {
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #0fa36e;
+  background: #e6f7f1;
+}
+</style>
