@@ -1,0 +1,7 @@
+<hbuilder>
+<apps>
+    <!-- appid 必须与 APP/env/.env 的 VITE_UNI_APPID、assets/apps 目录名一致；
+         appver 必须与 app/build.gradle 的 versionName 一致（make-apk 会校验） -->
+    <app appid="__UNI__8A5A71D" appver="1.0.0"/>
+</apps>
+</hbuilder>

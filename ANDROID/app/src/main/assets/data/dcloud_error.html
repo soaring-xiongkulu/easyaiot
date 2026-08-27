@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+	<meta name="HandheldFriendly" content="true"/>
+	<meta name="MobileOptimized" content="320"/>
+	<title>Error</title>
+	<script type="text/javascript">
+// H5 plus事件处理
+var ws=null;
+function plusReady(){
+	// Android处理返回键
+	plus.key.addEventListener('backbutton',function(){
+		(history.length==1)&&ws.close();
+		var c=setTimeout(function(){
+			ws.close();
+		},1000);
+		window.onbeforeunload=function(){
+			clearTimeout(c);
+		}
+		history.go(-2);
+	},false);
+	ws=plus.webview.currentWebview();
+}
+if(window.plus){
+	plusReady();
+}else{
+	document.addEventListener('plusready',plusReady,false);
+}
+document.addEventListener('touchstart',function(){
+    return false;
+},true);
+// 禁止选择
+document.oncontextmenu=function(){
+	return false;
+};
+// 获取错误信息
+document.addEventListener("error",function(e){
+	info.innerText="请求的页面（"+e.url+"）无法打开";
+	console.log("请求的页面无法打开："+e.href);
+},false);
+	</script>
+	<style>
+*{
+	-webkit-user-select: none;
+}
+html,body{
+	margin: 0px;
+	padding: 0px;
+	width: 100%;
+	height: 100%;
+	text-align: center;
+	word-break: break-all;
+	-webkit-touch-callout:none;
+	-webkit-tap-highlight-color:rgba(0,0,0,0);
+}
+.button{
+	width: 50%;
+	font-size: 18px;
+	font-weight: normal;
+	text-decoration: none;
+	text-align: center;
+	padding: .5em 0em;
+	margin: .5em auto;
+	color: #333333;
+	background-color: #EEEEEE;
+	border: 1px solid #CCCCCC;
+	-webkit-border-radius: 5px;
+	border-radius: 5px;
+}
+.button:active{
+	background-color: #CCCCCC;
+}
+	</style>
+</head>
+<body>
+	<div style="width:100%;height:20%;"></div>
+	<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 512 512" style="height:20%;width:30%"> 
+	<g id="icomoon-ignore">
+		<line stroke-width="1" x1="" y1="" x2="" y2="" stroke="#449FDB" opacity=""></line>
+	</g>
+	<path d="M256 0c-141.385 0-256 114.615-256 256s114.615 256 256 256 256-114.615 256-256-114.615-256-256-256zM352 128c17.673 0 32 14.327 32 32s-14.327 32-32 32-32-14.327-32-32 14.327-32 32-32zM160 128c17.673 0 32 14.327 32 32s-14.327 32-32 32-32-14.327-32-32 14.327-32 32-32zM352.049 390.37c-19.587-32.574-55.272-54.37-96.049-54.37s-76.462 21.796-96.049 54.37l-41.164-24.698c27.98-46.535 78.958-77.672 137.213-77.672s109.232 31.137 137.213 77.672l-41.164 24.698z" fill="#666666"></path>
+    </svg>
+	<p style="font-size:18px;font-weight:bolder;">We're sorry ...</p>
+	<p id="info" style="font-size:12px;"></p>
+	<!--<div class="button" onclick="history.back()">Retry</div>-->
+	<div class="button" onclick="if(history.length == 1){ws.close();}else{ws.back();ws.back();}">Back</div>
+	<div class="button" onclick="ws.close()">Close</div>
+	<div class="button" onclick="plus.runtime.restart()">Restart</div>
+</body>
+</html>

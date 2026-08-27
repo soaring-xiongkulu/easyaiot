@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TranslucentTheme / DCloudTheme 由离线运行时 AAR 提供，这里只做补充 -->
+    <style name="DCloudActivityTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:colorEdgeEffect">#333333</item>
+        <item name="android:windowBackground">@color/ime_background</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

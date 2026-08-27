@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+*/build/
+
+# 根仓库全局忽略 *.jar，这里放开 Gradle wrapper 启动包（gradlew 必需）
+!gradle/wrapper/gradle-wrapper.jar
+
+# 打包成品与中间产物不随仓库分发
+*.apk
+
+# 本机 Android SDK 路径（机器相关，勿提交）
+local.properties
+
+# IDE
+.idea/
+*.iml
+captures/
+.cxx/
+
+# 前端构建产物：由 make-apk 脚本从 APP/dist/build/app 同步而来，不入库
+app/src/main/assets/apps/

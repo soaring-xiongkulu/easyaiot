@@ -1,0 +1,2 @@
+# 复制为 local.properties 并按本机路径修改；Windows 也必须用正斜杠
+sdk.dir=/home/yourname/Android/Sdk

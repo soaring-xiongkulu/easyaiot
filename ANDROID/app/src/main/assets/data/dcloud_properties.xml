@@ -1,0 +1,45 @@
+<properties>
+	<features>
+		<feature name="Barcode" value="io.dcloud.feature.barcode2.BarcodeFeatureImpl"/>
+		<feature name="Maps" value="io.dcloud.js.map.amap.JsMapPluginImpl"/>
+        <!--<feature name="Maps" value="io.dcloud.js.map.JsMapPluginImpl"/>-->
+		<feature name="Contacts" value="io.dcloud.feature.contacts.ContactsFeatureImpl"/>
+		<feature name="Messaging" value="io.dcloud.adapter.messaging.MessagingPluginImpl"/>
+		<feature name="Camera" value="io.dcloud.js.camera.CameraFeatureImpl"/>
+		<feature name="Console" value="io.dcloud.feature.pdr.LoggerFeatureImpl"/>
+		<feature name="Device" value="io.dcloud.feature.device.DeviceFeatureImpl"/>
+		<feature name="File" value="io.dcloud.js.file.FileFeatureImpl"/>
+		<feature name="Proximity" value="io.dcloud.feature.sensor.ProximityFeatureImpl"/>
+		<feature name="Storage" value="io.dcloud.feature.pdr.NStorageFeatureImpl"/>
+		<feature name="Cache" value="io.dcloud.feature.pdr.CoreCacheFeatureImpl"/>
+		<feature name="Invocation" value="io.dcloud.invocation.Invocation"/>
+		<feature name="Navigator" value="io.dcloud.feature.ui.navigator.NavigatorUIFeatureImpl"/>
+		<feature name="NativeUI" value="io.dcloud.feature.ui.nativeui.NativeUIFeatureImpl"/>
+		<feature name="UI" value="io.dcloud.feature.ui.UIFeatureImpl">
+			<module name="Navigator" value="io.dcloud.feature.ui.NavView"/>
+		</feature>
+		<feature name="Gallery" value="io.dcloud.js.gallery.GalleryFeatureImpl"/>
+		<feature name="Downloader" value="io.dcloud.net.DownloaderFeatureImpl"/>
+		<feature name="Uploader" value="io.dcloud.net.UploadFeature"/>
+		<feature name="Zip" value="io.dcloud.feature.pdr.ZipFeature"/>
+		<feature name="Audio" value="io.dcloud.feature.audio.AudioFeatureImpl"/>
+		<feature name="Runtime" value="io.dcloud.feature.pdr.RuntimeFeatureImpl"/>
+        <feature name="VideoPlayer" value="io.dcloud.media.MediaFeatureImpl"/>
+        <feature name="LivePusher" value="io.dcloud.media.live.LiveMediaFeatureImpl"/>
+		<feature name="XMLHttpRequest" value="io.dcloud.net.XMLHttpRequestFeature"/>
+		<feature name="Statistic" value="io.dcloud.feature.statistics.StatisticsFeatureImpl"/>
+		<feature name="Accelerometer" value="io.dcloud.feature.sensor.AccelerometerFeatureImpl"/>
+		<feature name="Orientation" value="io.dcloud.feature.sensor.OrientationFeatureImpl"/>
+		<feature name="NativeObj" value="io.dcloud.feature.nativeObj.FeatureImpl"/>		
+		<feature name="Geolocation" value="io.dcloud.js.geolocation.GeolocationFeatureImpl"/>
+		<feature name="Stream" value="io.dcloud.appstream.js.StreamAppFeatureImpl"/>
+        <feature name="plugintest" value="com.example.H5PlusPlugin.PGPlugintest"/>
+	</features>
+
+	<services>
+		<service name="push" value="io.dcloud.feature.aps.APSFeatureImpl"/>
+		<service name="Statistic" value="io.dcloud.feature.statistics.StatisticsBootImpl"/>
+		<service name="Downloader" value="io.dcloud.net.DownloaderBootImpl"/>
+		<!--<service name="Maps" value="io.dcloud.js.map.MapInitImpl"/>-->
+	</services>
+</properties>
