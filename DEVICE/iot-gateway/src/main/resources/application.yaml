@@ -108,7 +108,7 @@ spring:
         - id: device-admin-api # 路由的编号
           uri: lb://device-server
           predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
-            - Path=/admin-api/device/**, /admin-api/product/**, /admin-api/productTemplate/**, /admin-api/ota/**, /admin-api/protocol/**, /admin-api/rule/**, /admin-api/deviceThingModel/**, /admin-api/deviceEvent/**, /admin-api/deviceService/**, /admin-api/deviceCommand/**, /admin-api/shadow/**, /admin-api/topic/**, /admin-api/productProperties/**, /admin-api/productCommands/**, /admin-api/productServices/**, /admin-api/productEvent/**, /admin-api/version/**, /admin-api/packages/**, /admin-api/version/**, /admin-api/api/**, /admin-api/calculate/**
+            - Path=/admin-api/device/**, /admin-api/product/**, /admin-api/productTemplate/**, /admin-api/appPanelTemplate/**, /admin-api/ota/**, /admin-api/protocol/**, /admin-api/rule/**, /admin-api/deviceThingModel/**, /admin-api/deviceEvent/**, /admin-api/deviceService/**, /admin-api/deviceCommand/**, /admin-api/shadow/**, /admin-api/topic/**, /admin-api/productProperties/**, /admin-api/productCommands/**, /admin-api/productServices/**, /admin-api/productEvent/**, /admin-api/version/**, /admin-api/packages/**, /admin-api/version/**, /admin-api/api/**, /admin-api/calculate/**
           filters:
             - StripPrefix=1
             - RewritePath=/admin-api/device/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs

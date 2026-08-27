@@ -7219,3 +7219,38 @@ CREATE TRIGGER update_iot_app_updated_time BEFORE UPDATE ON public.app FOR EACH 
 
 \unrestrict eVkDLU4byUDs23k117BLqeKfezjF6qopUnOwMELF388guHgojes8k1TinZ9hQwB
 
+
+--
+-- EasyAIoT: App 控制面板模板表（云端定制产品级 App 控制页，下发到 APP 动态渲染）
+-- 同步自 DEVICE/iot-device/iot-device-biz/src/main/resources/sql/app_panel_template.sql
+--
+
+CREATE TABLE IF NOT EXISTS public.app_panel_template (
+    id BIGSERIAL NOT NULL,
+    template_code VARCHAR(64) NOT NULL,
+    template_name VARCHAR(128) NOT NULL,
+    product_identification VARCHAR(100),
+    status VARCHAR(16) DEFAULT 'DRAFT' NOT NULL,
+    version INT DEFAULT 1,
+    panel_schema TEXT,
+    remark VARCHAR(255) NULL,
+    created_by VARCHAR(64) NULL,
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL,
+    updated_by VARCHAR(64) NULL,
+    updated_time TIMESTAMP NULL,
+    tenant_id BIGINT DEFAULT 0 NOT NULL,
+    deleted INT DEFAULT 0 NOT NULL,
+    CONSTRAINT app_panel_template_pkey PRIMARY KEY (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_panel_template_code ON public.app_panel_template(template_code);
+CREATE INDEX IF NOT EXISTS idx_app_panel_template_product_identification ON public.app_panel_template(product_identification);
+CREATE INDEX IF NOT EXISTS idx_app_panel_template_tenant_id ON public.app_panel_template(tenant_id);
+
+COMMENT ON TABLE public.app_panel_template IS 'App控制面板模板表';
+COMMENT ON COLUMN public.app_panel_template.template_code IS '模板编码：全局唯一';
+COMMENT ON COLUMN public.app_panel_template.template_name IS '模板名称';
+COMMENT ON COLUMN public.app_panel_template.product_identification IS '绑定产品标识';
+COMMENT ON COLUMN public.app_panel_template.status IS '状态：DRAFT-草稿，PUBLISHED-已发布，DISABLED-停用';
+COMMENT ON COLUMN public.app_panel_template.version IS '版本号，每次发布自增';
+COMMENT ON COLUMN public.app_panel_template.panel_schema IS '面板模板JSON：pages[{name,widgets[...]}]';

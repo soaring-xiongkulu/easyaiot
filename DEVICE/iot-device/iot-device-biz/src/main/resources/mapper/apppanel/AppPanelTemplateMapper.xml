@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basiclab.iot.device.dal.pgsql.apppanel.AppPanelTemplateMapper">
+
+    <resultMap id="BaseResultMap" type="com.basiclab.iot.device.dal.dataobject.AppPanelTemplateDO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="template_code" jdbcType="VARCHAR" property="templateCode"/>
+        <result column="template_name" jdbcType="VARCHAR" property="templateName"/>
+        <result column="product_identification" jdbcType="VARCHAR" property="productIdentification"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="version" jdbcType="INTEGER" property="version"/>
+        <result column="panel_schema" jdbcType="LONGVARCHAR" property="panelSchema"/>
+        <result column="remark" jdbcType="VARCHAR" property="remark"/>
+        <result column="tenant_id" jdbcType="BIGINT" property="tenantId"/>
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
+        <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+        <result column="updated_by" jdbcType="VARCHAR" property="updatedBy"/>
+        <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
+        <result column="deleted" jdbcType="INTEGER" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, template_code, template_name, product_identification, status, version,
+        panel_schema, remark, tenant_id, created_by, created_time, updated_by, updated_time, deleted
+    </sql>
+
+    <select id="selectByTemplateCode" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from app_panel_template
+        where template_code = #{templateCode,jdbcType=VARCHAR}
+          and deleted = 0
+        order by updated_time desc nulls last, id desc
+        limit 1
+    </select>
+
+    <select id="selectPublishedByProductIdentification" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from app_panel_template
+        where product_identification = #{productIdentification,jdbcType=VARCHAR}
+          and status = 'PUBLISHED'
+          and deleted = 0
+        order by updated_time desc nulls last, id desc
+        limit 1
+    </select>
+
+</mapper>
