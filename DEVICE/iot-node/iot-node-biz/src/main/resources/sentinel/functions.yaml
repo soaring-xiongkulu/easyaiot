@@ -65,4 +65,4 @@ functions:
     workloads: [transform_runtime]
 
 nfs_client_functions: [algorithm, train, label, infer]
-platform_default: [algorithm, forward, live, nfs]
+platform_default: [algorithm, forward, live, label, infer, nfs]

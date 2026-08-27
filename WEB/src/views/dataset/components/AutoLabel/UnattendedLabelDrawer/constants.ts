@@ -28,6 +28,9 @@ export const COPY = {
     execution: '执行方式',
     duration: '运行时长（小时）',
     interval: '抽帧间隔（秒）',
+    annotatedOnly: '仅保留有标注图片',
+    annotatedOnlyHint:
+      '开启后，未检测到目标的抽帧图片会自动从数据集中删除；关闭后保留为待标注图片。',
     autoExport: '结束后自动划分用途并打包导出',
     scheduleHint: '集群模式需节点已挂载 Ceph、已分发 auto_label Worker。',
     nodeSync: '节点管理',
