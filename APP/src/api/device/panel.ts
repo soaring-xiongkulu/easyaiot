@@ -16,6 +16,9 @@ export type PanelWidgetType
     | 'text' // 数值文本
     | 'button' // 命令按钮
     | 'video' // 实时画面
+    | 'chart' // 折线图（实时采样曲线）
+    | 'gauge' // 仪表盘
+    | 'progress' // 进度条
 
 export interface PanelWidgetOption {
   label: string
@@ -31,6 +34,10 @@ export interface PanelWidgetConfig {
   options?: PanelWidgetOption[]
   /** button：是否需要二次确认 */
   confirm?: boolean
+  /** chart：曲线颜色 / gauge / progress 主色 */
+  color?: string
+  /** chart：采样点数量（默认 20） */
+  maxPoints?: number
 }
 
 export interface PanelWidget {

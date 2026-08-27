@@ -95,6 +95,46 @@
                 {{ w.title }}
               </wd-button>
             </view>
+
+            <!-- 折线图（实时采样曲线） -->
+            <view v-else-if="w.type === 'chart'" class="panel-card-body">
+              <PanelChart
+                :widget-id="widgetKey(w)"
+                :title="w.title"
+                :value="currentValue(w)"
+                :unit="w.config?.unit"
+                :color="w.config?.color"
+                :max-points="w.config?.maxPoints"
+                :min="numMin(w)"
+                :max="numMax(w)"
+              />
+            </view>
+
+            <!-- 仪表盘 -->
+            <view v-else-if="w.type === 'gauge'" class="panel-card-body">
+              <PanelGauge
+                :widget-id="widgetKey(w)"
+                :title="w.title"
+                :value="currentValue(w)"
+                :unit="w.config?.unit"
+                :color="w.config?.color"
+                :min="numMin(w)"
+                :max="numMax(w)"
+              />
+            </view>
+
+            <!-- 进度条 -->
+            <view v-else-if="w.type === 'progress'" class="panel-card-body">
+              <PanelProgress
+                :widget-id="widgetKey(w)"
+                :title="w.title"
+                :value="currentValue(w)"
+                :unit="w.config?.unit"
+                :color="w.config?.color"
+                :min="numMin(w)"
+                :max="numMax(w)"
+              />
+            </view>
           </view>
         </template>
       </view>
@@ -106,6 +146,9 @@
 import type { PanelTemplatePage, PanelWidget } from '@/api/device/panel'
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import PanelVideo from './widgets/panel-video.vue'
+import PanelChart from './widgets/panel-chart.vue'
+import PanelGauge from './widgets/panel-gauge.vue'
+import PanelProgress from './widgets/panel-progress.vue'
 import {
   getDeviceShadow,
   issueDeviceCommand,
@@ -134,6 +177,12 @@ const toast = (title: string) => uni.showToast({ icon: 'none', title })
 
 function widgetKey(w: PanelWidget) {
   return w.id || `${w.type}_${w.propertyCode || ''}`
+}
+
+/** 只读组件取当前 shadow 值 */
+function currentValue(w: PanelWidget) {
+  const raw = values.value[w.propertyCode!]
+  return raw === undefined || raw === null || raw === '' ? null : raw
 }
 
 let timer: ReturnType<typeof setInterval> | null = null
