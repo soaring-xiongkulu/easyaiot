@@ -105,7 +105,7 @@ RUN --mount=type=cache,target=/pnpm/store,id=app-pnpm-store \
 
 RUN test -d dist/build/h5 || (echo "=== dist/build/h5 missing after build ===" && cat /tmp/app-build-logs/pnpm-build.log && exit 1)
 
-FROM nginx:1.29.2-alpine
+FROM nginx:1.31.4-alpine
 
 ARG APK_MIRROR=mirrors.tuna.tsinghua.edu.cn
 
