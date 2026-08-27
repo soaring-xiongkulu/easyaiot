@@ -67,6 +67,14 @@
               allowClear
             />
           </FormItem>
+          <FormItem label="适用产品">
+            <Select
+              placeholder="全部产品（不限）"
+              :options="state.productList"
+              v-model:value="modelRef.productIdentification"
+              allowClear
+            />
+          </FormItem>
           <FormItem label="备注" name="remark" v-bind="validateInfos.remark">
             <Textarea
               placeholder="请输入备注"
@@ -109,6 +117,8 @@ const state = reactive({
   typeList: [
     {label: "软件包", value: '0'},
     {label: "固件包", value: '1'},
+    {label: "APP包", value: '2'},
+    {label: "PC包", value: '3'},
   ],
   keyVersionFlagList: [
     {label: "否", value: 0},
@@ -198,7 +208,9 @@ function handleFileChange(info: Record<string, any>) {
   const response = file?.response;
   if (status === 'done') {
     createMessage.success('上传成功');
-    modelRef.url = response.data;
+    //兼容直接返回 URL 字符串或 R{data} 包装两种格式
+    const data = response?.data;
+    modelRef.url = typeof data === 'string' ? data : (data?.data ?? '');
   }
 }
 

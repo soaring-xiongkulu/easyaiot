@@ -28,7 +28,7 @@
                     <div class="prop">
                       <div class="label">包类型</div>
                       <div class="value">
-                        {{ item.type === '0' ? '软件包' : item.type === '1' ? '固件包' : item.type === '2' ? '电控包' : '未知' }}
+                        {{ item.type === '0' ? '软件包' : item.type === '1' ? '固件包' : item.type === '2' ? 'APP包' : item.type === '3' ? 'PC包' : '未知' }}
                       </div>
                     </div>
                     <div class="prop">
@@ -41,6 +41,18 @@
                   <div class="prop">
                     <div class="label">包版本号</div>
                     <div class="value">{{ item.version || '-' }}</div>
+                  </div>
+                  <div class="flex" style="justify-content: space-between;">
+                    <div class="prop">
+                      <div class="label">状态</div>
+                      <div class="value">
+                        {{ {0:'未验证',1:'测试中',2:'已发布',3:'待发布',4:'已撤回'}[Number(item.status)] || '-' }}
+                      </div>
+                    </div>
+                    <div class="prop" v-if="Number(item.publishStrategy) === 1">
+                      <div class="label">灰度</div>
+                      <div class="value">{{ {1:'设备级',2:'产品级',3:'全量'}[Number(item.grayLadder)] || '-' }}</div>
+                    </div>
                   </div>
                 </div>
                 <div class="btns">
@@ -63,6 +75,22 @@
                       <Icon icon="material-symbols:delete-outline-rounded" :size="15" color="#DC2626" />
                     </div>
                   </Popconfirm>
+                  <Dropdown :trigger="['click']">
+                    <div class="btn">
+                      <Icon icon="ant-design:more-outlined" :size="15" color="#3B82F6" />
+                    </div>
+                    <template #overlay>
+                      <Menu @click="onMenuClick($event, item)">
+                        <MenuItem v-if="Number(item.status) === 0" key="submit-test">提交测试</MenuItem>
+                        <MenuItem v-if="Number(item.status) === 1" key="test-result">测试结果录入</MenuItem>
+                        <MenuItem v-if="Number(item.status) !== 2" key="publish">发布</MenuItem>
+                        <MenuItem v-if="canGrayOps(item)" key="expand">扩大灰度范围</MenuItem>
+                        <MenuItem v-if="canGrayOps(item)" key="promote">灰度升阶</MenuItem>
+                        <MenuItem v-if="Number(item.status) === 2" key="withdraw">撤回发布</MenuItem>
+                        <MenuItem key="stats">升级统计</MenuItem>
+                      </Menu>
+                    </template>
+                  </Dropdown>
                 </div>
               </div>
               <div class="package-img">
@@ -78,7 +106,7 @@
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue';
-import { List, Popconfirm, Spin } from 'ant-design-vue';
+import { Dropdown, List, Menu, Popconfirm, Spin } from 'ant-design-vue';
 import { BasicForm, useForm } from '@/components/Form';
 import { propTypes } from '@/utils/propTypes';
 import { isFunction } from '@/utils/is';
@@ -89,6 +117,7 @@ import moment from 'moment';
 import OTA from "@/assets/images/ota/ota.png";
 
 const ListItem = List.Item;
+const MenuItem = Menu.Item;
 
 // 组件接收参数
 const props = defineProps({
@@ -101,7 +130,21 @@ const props = defineProps({
 const { createMessage } = useMessage();
 
 // 暴露内部方法
-const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'download']);
+const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'download', 'action']);
+
+//灰度中（设备级/产品级）才允许扩大范围或升阶
+function canGrayOps(item) {
+  return (
+    Number(item.status) === 2 &&
+    Number(item.publishStrategy) === 1 &&
+    (Number(item.grayLadder) === 1 || Number(item.grayLadder) === 2)
+  );
+}
+
+//生命周期菜单点击
+function onMenuClick({ key }, item) {
+  emit('action', String(key), item);
+}
 
 // 数据
 const data = ref([]);
@@ -126,7 +169,8 @@ const [registerForm, { validate }] = useForm({
           { value: '', label: '全部' },
           { value: '0', label: '软件包' },
           { value: '1', label: '固件包' },
-          { value: '2', label: '电控包' },
+          { value: '2', label: 'APP包' },
+          { value: '3', label: 'PC包' },
         ],
       },
       defaultValue: '',
