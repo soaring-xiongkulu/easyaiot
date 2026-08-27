@@ -1,0 +1,15 @@
+# Xcode 构建/IDE 产物
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+**/xcuserdata/
+.DS_Store
+
+# 打包成品不随仓库分发
+*.ipa
+/easyaiot-*-ios-sim.app
+/EasyAIoT-*-sim.app
+
+# 前端构建产物：由 make-ipa 脚本从 APP/dist/build/h5 同步而来，不入库
+EasyAIoT/www/

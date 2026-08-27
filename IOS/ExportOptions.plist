@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 真机分发方式：ad-hoc / app-store / development / enterprise，按需修改 -->
+	<key>method</key>
+	<string>ad-hoc</string>
+	<!-- 把 YOUR_TEAM_ID 换成你的 Apple 开发者 Team ID（Xcode → Settings → Accounts），
+	     否则 make-ipa.sh 的真机出包流程会在导出前终止 -->
+	<key>teamID</key>
+	<string>YOUR_TEAM_ID</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>signingCertificate</key>
+	<string>Apple Distribution</string>
+	<key>stripSwiftSymbols</key>
+	<true/>
+	<key>compileBitcode</key>
+	<false/>
+</dict>
+</plist>
