@@ -42,7 +42,7 @@ EasyAIoT 공식 웹사이트: [http://36.111.47.113:8090/](http://36.111.47.113:
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-플랫폼은 <strong>WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME 네이티브 고속 실행 계층</strong>(컴파일 바이너리가 풀링·디코딩·YOLO 추론·박스 푸시·다중 원본 전달을 담당 — 인터프리터 경로 대비 CPU/메모리 더 낮고 지연 더 안정; 단일 바이너리가 실시간 / 스냅샷 / 순찰 / 전달을 커버), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, <strong>POST 맞춤 판정</strong>(검출 후 현장 규칙으로 필터·복합 판단 후 경보, 규칙 변경에 재학습 불필요), 연합 연산 클러스터 스케줄링, <strong>SENTINEL 클러스터 노드 센티널</strong>(업무별로 노드 준비도와 스케줄 가능 역량을 지속적으로 파악하고, 결손 시 환경 보완을 요청하며, 실제 역량에 따라 작업을 배정), 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리와 <strong>EDGE C# 엣지 수집 런타임</strong>이 현장에서 Modbus RTU/TCP, OPC UA 등 산업 프로토콜 수집, 로컬 스케줄링, MQTT 클라우드-엣지 연동을 플러그인형 수집기로 담당하며, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>POST 맞춤 판정 서비스</strong>로 검출 결과를 현장에 맞는 업무 이벤트로 단련하고—오경보 감소·규칙 구성·상선 전 시운전; 함께 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·4단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 하며; <strong>IDEA 커뮤니티 온라인 IDE</strong>로 기여자가 브라우저에서 전체 저장소를 열고 GitHub Copilot으로 공동 창작하며, 변경분을 로컬에 배포하고 PR을 제출할 수 있게 해 오픈소스 협업을 「먼저 환경 구성」에서 「열고 바로 수정」으로 바꿉니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다.
+플랫폼은 <strong>WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VISUALIZE, TRANSFORM, PANEL, IDEA, HARNESS, SITE</strong> 등 핵심 모듈로 구성되며, <strong>COMPILE</strong>이 다중 플랫폼 패키징·납품을 담당합니다(Ubuntu / CentOS·RHEL <strong>7–9</strong>(x86 + <strong>CentOS ARM</strong>, el7/el8/el9 패키지) / <strong>Kylin (麒麟) / openEuler (欧拉)</strong> / Windows / macOS / ARM 포함). 역량 측면에서 GB28181 / ONVIF 다중 프로토콜 카메라 접속, <strong>RTC 소비자급 카메라 P2P 브리지</strong>(go2rtc 기반, <strong>Tapo, Tuya, Ring, Nest, Xiaomi, Wyze, DoorBird, GoPro, Roborock</strong> 9대 브랜드 지원 — 매장 Tapo 보완, Tuya 화이트라벨, 해외 Ring/Nest 초인종, Xiaomi 재활용, Wyze 저비용 확장, DoorBird 대화, GoPro 기동 시점, Roborock 청소기 카메라 — Web 원클릭 접속으로 통합 영상·AI 판정), <strong>DJI 도크·드론 공중 시점 접속</strong>, 실시간 / 스냅샷 / 순찰 알고리즘 작업, <strong>RUNTIME 네이티브 고속 실행 계층</strong>(컴파일 바이너리가 풀링·디코딩·YOLO 추론·박스 푸시·다중 원본 전달을 담당 — 인터프리터 경로 대비 CPU/메모리 더 낮고 지연 더 안정; 단일 바이너리가 실시간 / 스냅샷 / 순찰 / 전달을 커버), YOLO 객체 검출과 SAM 제로샷 자동 라벨링, 얼굴/번호판 인식, <strong>POST 맞춤 판정</strong>(검출 후 현장 규칙으로 필터·복합 판단 후 경보, 규칙 변경에 재학습 불필요), 연합 연산 클러스터 스케줄링, <strong>SENTINEL 클러스터 노드 센티널</strong>(업무별로 노드 준비도와 스케줄 가능 역량을 지속적으로 파악하고, 결손 시 환경 보완을 요청하며, 실제 역량에 따라 작업을 배정), 그리고 <strong>무한 연합 엣지 클러스터 모드</strong>(일반 개발보드도 즉시 사용, 현장 지능의 로컬 의사결정, 경보·증거 자동 클라우드 집약, 업무에 따른 연산 확장)와 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA IoT 장치 수명주기 관리와 <strong>EDGE C# 엣지 수집 런타임</strong>이 현장에서 Modbus RTU/TCP, OPC UA 등 산업 프로토콜 수집, 로컬 스케줄링, MQTT 클라우드-엣지 연동을 플러그인형 수집기로 담당하며, <strong>시각화 대형 화면과 Web SCADA 구성</strong>으로 장치 데이터를 지휘 상황으로 펼치고 공정 화면에 되돌리며; 신규 <strong>POST 맞춤 판정 서비스</strong>로 검출 결과를 현장에 맞는 업무 이벤트로 단련하고—오경보 감소·규칙 구성·상선 전 시운전; 함께 <strong>TRANSFORM 다방향 데이터 흐름 엔진</strong>으로 플랫폼 측 업무 이벤트를 MES / ERP / CRM / WMS 등 외부 시스템에 계약대로 전달해 다자 연동을 구성·추적·재사용 가능하게 하고; 동반 <strong>PANEL 납품·당직 진입점</strong>으로 일체기가 도착한 당일 설치·인수가 가능하고, 당직·장애 대응이 매번 개발자 원격 명령을 기다리지 않게 하며; <strong>SITE 공식 웹사이트</strong>로 제품 가치·4단계 하드웨어 선택·설치 패키지 진입점을 제시해 방문자가 먼저 이해한 뒤 다운로드하고 배포하도록 하며; <strong>IDEA 커뮤니티 온라인 IDE</strong>로 기여자가 브라우저에서 전체 저장소를 열고 GitHub Copilot으로 공동 창작하며, 변경분을 로컬에 배포하고 PR을 제출할 수 있게 해 오픈소스 협업을 「먼저 환경 구성」에서 「열고 바로 수정」으로 바꿉니다. 경험 측면에서는 Web 콘솔과 모바일 App / 미니프로그램 능력이 정렬되어 지휘 센터와 현장 순찰이 동일한 업무 논리로 언제 어디서나 처리합니다. 여기에 더해 새로운 <strong>ANDROID / IOS / HARMONYOS 셸 패키징 엔지니어링</strong>이 이 모바일 경험을 APK / IPA / HAP 설치 패키지 형태로 주류 휴대폰 OS에 전달합니다. 하나의 프런트엔드, 원클릭 빌드, 통합 버전 관리.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -257,6 +257,36 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 |:---:|:---:|:---:|
 | ![IDEA 로그인](.image/banner/banner1203.png) | ![IDEA 워크스페이스](.image/banner/banner1204.png) | ![IDEA 개발](.image/banner/banner1205.png) |
 | ![AI 어시스턴트 대화](.image/banner/banner1210.png) | ![AI 어시스턴트 분석](.image/banner/banner1211.png) | ![AI 어시스턴트 협업](.image/banner/banner1212.png) |
+
+### 📱 ANDROID / IOS / HARMONYOS: 하나의 프런트엔드, 세 개의 네이티브 셸 — 어떤 폰이든 하나의 App
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+모바일 납품은 흔히 '플랫폼 커버리지'에서 막힙니다. 하나의 OS에서만 실행되는 App은 현장 인력을 회사가 지급한 단말에 묶어두고, 네이티브 코드를 하나 더 유지할 때마다 비용은 두 배로 늘면서 기능은 조금씩 어긋납니다. EasyAIoT의 모바일은 <strong>하나의 uni-app 프런트엔드 + 세 개의 네이티브 셸</strong>로 구성됩니다. 동일한 <strong>APP</strong> 페이지를 <strong>ANDROID</strong>(DCloud 오프라인 런타임 + Gradle → APK), <strong>IOS</strong>(WKWebView 셸 + xcodebuild → .app / .ipa), <strong>HARMONYOS</strong>(ArkWeb 셸 + hvigor → HAP) 세 플랫폼의 설치형 앱으로 각각 컴파일합니다. 하나의 업무 로직으로 주류 휴대폰 OS 전부에 네이티브 설치 패키지를 제공하며, 코드 세 벌을 유지할 필요가 없습니다.
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px;">
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 14%;">플랫폼</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 34%;">셸 기술</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 30%;">빌드 산출물</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600;">원클릭 스크립트</td>
+</tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>ANDROID</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">DCloud uni-app 오프라인 런타임 + Gradle</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>easyaiot-&lt;버전&gt;-&lt;환경&gt;-android.apk</code></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>ANDROID/make-apk.sh</code> / <code>make-apk.bat</code></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>IOS</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">WKWebView 셸 + xcodebuild (Xcode 16+)</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>.app</code> (시뮬레이터, 서명 없음) / <code>.ipa</code> (실기기)</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>IOS/make-ipa.sh</code></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>HARMONYOS</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">ArkWeb 셸 + hvigor (DevEco Studio)</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>easyaiot-&lt;버전&gt;-&lt;환경&gt;-harmonyos.hap</code></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>HARMONYOS/make-hap.sh</code></td></tr>
+</table>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>하나의 코드, 제로 분기</strong>: 세 셸이 동일한 APP 페이지와 admin-api를 공유합니다 — 디바이스 관리, 실시간 미리보기, 스트림 전달, 알고리즘 작업, 경보 센터, 모델 추론/훈련 — Android·iOS·HarmonyOS에서 PC 관리 콘솔과 동일한 기능을 제공하며, 프런트엔드의 네이티브 능력 차이는 조건부 컴파일로 완전히 격리되어 한 번의 수정이 세 플랫폼에 적용됩니다</li>
+  <li><strong>플랫폼마다 시스템 네이티브 렌더링</strong>: Android는 uni-app 오프라인 런타임으로 네이티브 App 경험을 제공합니다. iOS는 커스텀 스킴 <code>easyiot://</code>로 H5 빌드를 서비스하여 페이지가 '정상적인 웹사이트'처럼 동작합니다(ES Module, localStorage, admin-api에 대한 cross-origin 요청 모두 실제 배포와 동일). HarmonyOS는 rawfile 리소스를 ArkWeb의 가상 호스트 <code>http://appassets.local/</code>로 매핑합니다 — 서드파티 엔진 없음, file:// 제약 없음, 동작 분기 없음</li>
+  <li><strong>플랫폼마다 원클릭 패키징</strong>: <code>make-apk.sh</code> / <code>make-ipa.sh</code>(시뮬레이터 .app 또는 실기기 .ipa) / <code>make-hap.sh</code>가 버전 일치 검증 → 프런트엔드 빌드 → 리소스 동기화 → 네이티브 빌드 → 명명된 산출물 순으로 수행합니다. prod / test / dev 환경이 각각 독립 패키지를 만들어 서로 덮어쓰지 않습니다</li>
+  <li><strong>통합 관리 진입점</strong>: 저장소 루트의 <code>mobile.sh</code>가 세 플랫폼을 한 번에 관리합니다 — <code>status</code>(세 플랫폼 버전 일치 / 도구 체인 준비도 / 기존 산출물), <code>build android|ios|harmonyos|all</code>, <code>bump</code>, <code>artifacts</code>, <code>clean</code> — 일상 작업에서 각 모듈에 따로 들어갈 필요가 없습니다</li>
+  <li><strong>한 번의 명령으로 다섯 곳의 버전 번호 정렬</strong>: APP manifest + Android build.gradle + <code>dcloud_control.xml</code> + iOS pbxproj(Debug/Release) + HarmonyOS <code>app.json5</code> — <code>./mobile.sh bump 1.0.1 101</code>이 모든 복사본을 수정한 뒤 다시 읽어 검증합니다. 다섯 곳이 어긋나면 각 패키징 스크립트가 빌드를 거부하므로, 잘못된 버전이 나갈 일이 없습니다</li>
+  <li><strong>표준화된 산출물 명명</strong>: 소문자 kebab-case <code>easyaiot-&lt;버전&gt;-&lt;환경&gt;-&lt;플랫폼&gt;.&lt;형식&gt;</code> — 보관에 적합한 안정적인 정렬, 객체 스토리지 / CDN 및 CI 산출물 수집에 가장 친숙합니다. <code>mobile.sh artifacts/clean/status</code>는 신·구 명명 규칙을 모두 인식합니다</li>
+  <li><strong>CI 친화적 파이프라인 분리</strong>: 어떤 Linux runner든 <code>--skip-native</code>로 프런트엔드 빌드와 리소스 동기화를 먼저 수행한 뒤, 준비된 프로젝트를 macOS runner(iOS) 또는 자체 호스팅 DevEco runner(HarmonyOS)에 넘겨 최종 네이티브 컴파일을 진행할 수 있습니다 — 하나의 파이프라인으로 세 플랫폼을 빌드하며, 모든 머신에 플랫폼 도구 체인을 설치할 필요가 없습니다</li>
+  <li><strong>서명과 배포 준비 완료</strong>: Android는 내장 <code>iot.jks</code>로 서명합니다(DCloud AppKey 등록 완료). iOS 시뮬레이터 빌드는 계정이 필요 없고, 실기기 / App Store 빌드는 Team ID 기반 자동 서명을 사용합니다. HarmonyOS는 DevEco에서 디버그 서명을 자동 생성하며, 배포 서명은 AppGallery Connect를 통해 진행합니다</li>
+  <li><strong>모듈별 문서와 트러블슈팅</strong>: 각 모듈에 환경 준비(JDK / Xcode 16+ / DevEco), 버전 관리, 서명, FAQ 표를 다루는 자체 README가 포함됩니다. 세 플랫폼 통합 가이드는 <a href="MOBILE.md" style="color: #3498db; text-decoration: none; font-weight: 600;">MOBILE.md</a></li>
+</ul>
 
 ### 🎯 네 가지 하드웨어, 하나의 플랫폼
 
@@ -613,6 +643,16 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VIS
     <li><strong>경보 센터</strong>: 경보 이벤트 검색, 스냅샷 미리보기, 경보 녹화 VOD 재생</li>
     <li><strong>모델 & AI</strong>: 모델 목록 및 배포 상태, 모바일 이미지 추론 워크벤치, 훈련 작업 진행률 모니터링 및 중지</li>
     <li><strong>개인 센터</strong>: 개인 프로필, 계정 보안, FAQ, 피드백 및 앱 설정</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>ANDROID / IOS / HARMONYOS 모듈</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>하나의 프런트엔드, 세 개의 네이티브 셸</strong>: APP의 uni-app 페이지를 Android(DCloud 오프라인 런타임 + Gradle → APK), iOS(WKWebView 셸 + xcodebuild → .app / .ipa), HarmonyOS(ArkWeb 셸 + hvigor → HAP) 설치형 앱으로 패키징 — 주류 휴대폰 OS에서 동일한 업무 로직</li>
+    <li><strong>원클릭 패키징</strong>: <code>make-apk.sh</code> / <code>make-ipa.sh</code> / <code>make-hap.sh</code>가 버전 일치 검증 포함; prod / test / dev 환경이 각각 독립 산출물 생성</li>
+    <li><strong>통합 관리</strong>: 루트의 <code>mobile.sh</code>가 status / build / bump / artifacts / clean 담당; <code>bump</code>가 다섯 곳의 버전 번호를 한 번에 정렬하며, 버전이 일치하지 않으면 패키징을 거부합니다</li>
   </ul>
 </td>
 </tr>
@@ -1035,9 +1075,9 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 |:---:|:---:|:---:|
 | ![APP 스크린샷](.image/banner/app/app_1008.jpg) | ![APP 스크린샷](.image/banner/app/app_1009.jpg) | ![APP 스크린샷](.image/banner/app/app_1010.jpg) |
 | ![APP 스크린샷](.image/banner/app/app_1011.jpg) | ![APP 스크린샷](.image/banner/app/app_1012.jpg) | ![APP 스크린샷](.image/banner/app/app_1013.jpg) |
-| ![홈](.image/banner/app/app_1000.jpg) | ![모니터링](.image/banner/app/app_1001.jpg) | ![미리보기](.image/banner/app/app_1002.jpg) |
-| ![경보](.image/banner/app/app_1003.jpg) | ![재생](.image/banner/app/app_1004.jpg) | ![디바이스](.image/banner/app/app_1005.jpg) |
-| ![메시지](.image/banner/app/app_1006.jpg) | ![마이](.image/banner/app/app_1007.jpg) |  |
+| ![APP 스크린샷](.image/banner/app/app_1014.jpg) | ![APP 스크린샷](.image/banner/app/app_1015.jpg) | ![APP 스크린샷](.image/banner/app/app_1016.jpg) |
+| ![APP 스크린샷](.image/banner/app/app_1017.jpg) | ![APP 스크린샷](.image/banner/app/app_1018.jpg) | ![APP 스크린샷](.image/banner/app/app_1019.jpg) |
+| ![APP 스크린샷](.image/banner/app/app_1020.jpg) | ![APP 스크린샷](.image/banner/app/app_1021.jpg) | ![APP 스크린샷](.image/banner/app/app_1022.jpg) |
 
 ## 📞 연락처
 

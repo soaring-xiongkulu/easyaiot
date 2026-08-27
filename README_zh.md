@@ -42,7 +42,7 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、<strong>POST 定制研判</strong>（检出之后按现场规则过滤、复合判断再告警，改规则不必重训模型）、联邦算力集群调度、<strong>SENTINEL 集群节点哨兵</strong>（按业务摸清节点就绪与可调度能力，缺件可自助补齐，任务按真能力下发），以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>POST 定制研判服务</strong>，把检测结果锻造成可贴现场的业务事件，误报少、规则可配、上线可先试跑；配套 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、四档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置。
+平台由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、<strong>POST 定制研判</strong>（检出之后按现场规则过滤、复合判断再告警，改规则不必重训模型）、联邦算力集群调度、<strong>SENTINEL 集群节点哨兵</strong>（按业务摸清节点就绪与可调度能力，缺件可自助补齐，任务按真能力下发），以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>POST 定制研判服务</strong>，把检测结果锻造成可贴现场的业务事件，误报少、规则可配、上线可先试跑；配套 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、四档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置；并新增 <strong>ANDROID / IOS / HARMONYOS 三端壳打包工程</strong>，把这一移动体验以 APK / IPA / HAP 安装包形态覆盖到主流手机系统，一套前端、一键出包、版本统一管理。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -310,6 +310,36 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 |:---:|:---:|:---:|
 | ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
 | ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
+
+### 📱 ANDROID / IOS / HARMONYOS：一套前端三端壳，人手一部手机都能用
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+移动端交付常卡在「平台覆盖」上：只支持一个系统的 App，把现场人员锁死在单位配发的手机上；而每多维护一套原生代码，成本翻倍、功能还容易漂移。EasyAIoT 的移动端是 <strong>一套 uni-app 前端 + 三套原生壳工程</strong>：同一套 <strong>APP</strong> 页面分别编译成 <strong>ANDROID</strong>（DCloud 离线运行时 + Gradle → APK）、<strong>IOS</strong>（WKWebView 壳 + xcodebuild → .app / .ipa）、<strong>HARMONYOS</strong>（ArkWeb 壳 + hvigor → HAP）三端可安装应用——一套业务逻辑，主流手机系统全部有原生安装包，不必维护三套代码。
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px;">
+<tr>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 14%;">平台</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 34%;">壳技术</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600; width: 30%;">打包产物</td>
+<td style="padding: 10px 12px; border: 1px solid #e0e0e0; background-color: #f8f9fa; font-weight: 600;">一键脚本</td>
+</tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>ANDROID</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">DCloud uni-app 离线运行时 + Gradle</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>easyaiot-&lt;版本&gt;-&lt;环境&gt;-android.apk</code></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>ANDROID/make-apk.sh</code> / <code>make-apk.bat</code></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>IOS</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">WKWebView 壳 + xcodebuild（需 Xcode 16+）</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>.app</code>（模拟器免签名）/ <code>.ipa</code>（真机分发）</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>IOS/make-ipa.sh</code></td></tr>
+<tr><td style="padding: 10px 12px; border: 1px solid #e0e0e0;"><strong>HARMONYOS</strong></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;">ArkWeb 壳 + hvigor（DevEco Studio）</td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>easyaiot-&lt;版本&gt;-&lt;环境&gt;-harmonyos.hap</code></td><td style="padding: 10px 12px; border: 1px solid #e0e0e0; color: #444;"><code>HARMONYOS/make-hap.sh</code></td></tr>
+</table>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>一套代码，零分叉</strong>：三端壳共用同一套 APP 页面与 admin-api——设备管理、实时预览、推流转发、算法任务、告警中心、模型推理/训练，在 Android、iOS、鸿蒙三端与 PC 管控台能力对齐；前端原生能力差异全部由条件编译隔离，一处改动三端生效</li>
+  <li><strong>每端都用系统原生渲染</strong>：Android 跑 uni-app 离线运行时，获得原生 App 体验；iOS 通过自定义协议 <code>easyiot://</code> 加载 H5 产物，页面以「正常网页」身份运行（ES Module、localStorage、对 admin-api 的跨域请求都与真实站点部署一致）；鸿蒙把 rawfile 资源映射为 <code>http://appassets.local/</code> 虚拟主机交给 ArkWeb——无第三方引擎、无 file:// 各种限制、无行为分叉</li>
+  <li><strong>每端一条命令出包</strong>：<code>make-apk.sh</code> / <code>make-ipa.sh</code>（模拟器 .app 或真机 .ipa）/ <code>make-hap.sh</code> 依次完成版本一致性校验 → 前端构建 → 资源同步 → 原生打包 → 命名成品；prod / test / dev 多环境各自出包互不覆盖</li>
+  <li><strong>统一管理入口</strong>：仓库根目录 <code>mobile.sh</code> 一入口管三端——<code>status</code>（三端版本一致性 / 工具链就绪度 / 已有成品）、<code>build android|ios|harmonyos|all</code>、<code>bump</code>、<code>artifacts</code>、<code>clean</code>，日常操作不必分别进入各模块</li>
+  <li><strong>一条命令改齐五处版本号</strong>：APP manifest + Android build.gradle + <code>dcloud_control.xml</code> + iOS pbxproj（Debug/Release）+ 鸿蒙 <code>app.json5</code>——<code>./mobile.sh bump 1.0.1 101</code> 一次改齐并回读校验；各端打包脚本在五处不一致时直接拒绝出包，宁可不出包也不出错包</li>
+  <li><strong>成品命名即规范</strong>：全小写 kebab-case <code>easyaiot-&lt;版本&gt;-&lt;环境&gt;-&lt;平台&gt;.&lt;格式&gt;</code>，排序稳定便于归档，对对象存储 / CDN 与 CI 制品归集最友好；<code>mobile.sh artifacts/clean/status</code> 同时兼容新旧两种命名</li>
+  <li><strong>CI 友好的流水线拆分</strong>：任何 Linux runner 都能先跑 <code>--skip-native</code> 完成前端构建与资源同步，再把同步好的工程交给 macOS runner（iOS）或自托管 DevEco runner（鸿蒙）做最后原生编译——一条流水线三端出包，不必每台机器都装平台工具链</li>
+  <li><strong>签名与分发齐备</strong>：Android 用内置 <code>iot.jks</code> 签名（DCloud AppKey 已登记）；iOS 模拟器包免账号，真机 / App Store 包自动签名 + Team ID；鸿蒙 DevEco 内可自动生成调试签名，发行签名走 AppGallery Connect</li>
+  <li><strong>每端文档与排查齐全</strong>：各模块自带 README，覆盖环境准备（JDK / Xcode 16+ / DevEco）、版本管理、签名与 FAQ 排查表；三端统一指南见 <a href="MOBILE.md" style="color: #3498db; text-decoration: none; font-weight: 600;">MOBILE.md</a></li>
+</ul>
 
 ### 🎯 四档硬件，一套平台
 
@@ -667,6 +697,16 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME�
     <li><strong>告警中心</strong>：告警事件检索、抓拍图预览、告警录像点播回放</li>
     <li><strong>模型与 AI</strong>：模型列表与部署状态、移动端图片推理工作台、训练任务进度监控与停止</li>
     <li><strong>个人中心</strong>：个人资料、账号安全、常见问题、意见反馈与应用设置</li>
+  </ul>
+</td>
+</tr>
+<tr>
+<td style="padding: 15px; border: 1px solid #e0e0e0; vertical-align: top;"><strong>ANDROID / IOS / HARMONYOS模块</strong></td>
+<td style="padding: 15px; border: 1px solid #e0e0e0; line-height: 1.8; color: #444;">
+  <ul style="margin: 5px 0; padding-left: 20px;">
+    <li><strong>一套前端三端壳</strong>：APP uni-app 页面分别打成 Android（DCloud 离线运行时 + Gradle → APK）、iOS（WKWebView 壳 + xcodebuild → .app / .ipa）、鸿蒙（ArkWeb 壳 + hvigor → HAP）可安装应用，主流手机系统同一套业务逻辑</li>
+    <li><strong>一键出包</strong>：<code>make-apk.sh</code> / <code>make-ipa.sh</code> / <code>make-hap.sh</code> 带版本一致性校验；prod / test / dev 多环境各自出包</li>
+    <li><strong>统一管理</strong>：根目录 <code>mobile.sh</code> 承担 status / build / bump / artifacts / clean；<code>bump</code> 一次改齐五处版本号，版本不一致拒绝打包</li>
   </ul>
 </td>
 </tr>
@@ -1101,9 +1141,9 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 |:---:|:---:|:---:|
 | ![APP截图](.image/banner/app/app_1008.jpg) | ![APP截图](.image/banner/app/app_1009.jpg) | ![APP截图](.image/banner/app/app_1010.jpg) |
 | ![APP截图](.image/banner/app/app_1011.jpg) | ![APP截图](.image/banner/app/app_1012.jpg) | ![APP截图](.image/banner/app/app_1013.jpg) |
-| ![首页](.image/banner/app/app_1000.jpg) | ![监控](.image/banner/app/app_1001.jpg) | ![预览](.image/banner/app/app_1002.jpg) |
-| ![告警](.image/banner/app/app_1003.jpg) | ![回放](.image/banner/app/app_1004.jpg) | ![设备](.image/banner/app/app_1005.jpg) |
-| ![消息](.image/banner/app/app_1006.jpg) | ![我的](.image/banner/app/app_1007.jpg) |  |
+| ![APP截图](.image/banner/app/app_1014.jpg) | ![APP截图](.image/banner/app/app_1015.jpg) | ![APP截图](.image/banner/app/app_1016.jpg) |
+| ![APP截图](.image/banner/app/app_1017.jpg) | ![APP截图](.image/banner/app/app_1018.jpg) | ![APP截图](.image/banner/app/app_1019.jpg) |
+| ![APP截图](.image/banner/app/app_1020.jpg) | ![APP截图](.image/banner/app/app_1021.jpg) | ![APP截图](.image/banner/app/app_1022.jpg) |
 
 ## 📞 联系方式
 
