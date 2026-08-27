@@ -9,7 +9,7 @@
       >
         <template #icon>
           <view
-            class="h-80rpx w-80rpx flex items-center justify-center rounded-16rpx"
+            class="h-80rpx w-80rpx flex items-center justify-center rounded-20rpx"
             :style="getIconStyle(menu)"
           >
             <wd-icon :name="menu.icon" size="50rpx" :color="menu.iconColor" />
@@ -85,7 +85,7 @@ function getIconStyle(menu: MenuItem) {
   min-height: 64rpx;
   font-size: 24rpx;
   line-height: 32rpx;
-  color: #333;
+  color: var(--app-text-1, #10131a);
   overflow: hidden;
   display: -webkit-box;
   white-space: normal;

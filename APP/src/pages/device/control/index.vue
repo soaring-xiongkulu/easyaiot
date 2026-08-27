@@ -22,8 +22,11 @@
         <text class="banner-name">{{ deviceName || deviceIdentification || '--' }}</text>
         <view class="banner-meta">
           <text class="banner-product">{{ productIdentification }}</text>
-          <text v-if="template" class="banner-version">面板 v{{ template.version ?? 1 }} · {{ template.templateName }}</text>
         </view>
+      </view>
+      <view v-if="template" class="banner-badge">
+        <wd-icon name="view-list" size="24rpx" color="#2f6bff" />
+        <text>面板 v{{ template.version ?? 1 }}</text>
       </view>
     </view>
 
@@ -111,31 +114,34 @@ function handleBack() {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #e9f0fb 0%, #f5f7fb 30%);
+  background: var(--app-page-bg, #f2f2f7);
 }
 
+// iOS hero 设备卡片
 .device-banner {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  gap: 22rpx;
   margin: 16rpx 24rpx 24rpx;
   padding: 28rpx;
-  background: #ffffff;
-  border-radius: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(23, 43, 77, 0.05);
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  border-radius: var(--app-card-radius, 28rpx);
+  box-shadow: var(--app-card-shadow, 0 2rpx 8rpx rgba(23, 43, 77, 0.04), 0 12rpx 32rpx rgba(23, 43, 77, 0.06));
 }
 
 .banner-avatar {
   width: 96rpx;
   height: 96rpx;
-  border-radius: 28rpx;
-  background: linear-gradient(135deg, #66a6ff, #0957de);
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #5d9bff 0%, #2f6bff 60%, #1f56d6 100%);
   color: #fff;
   font-size: 40rpx;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8rpx 20rpx rgba(47, 107, 255, 0.32);
 }
 
 .banner-info {
@@ -146,7 +152,7 @@ function handleBack() {
 .banner-name {
   font-size: 32rpx;
   font-weight: 700;
-  color: #10131a;
+  color: var(--app-text-1, #10131a);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -156,13 +162,26 @@ function handleBack() {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-top: 8rpx;
+  margin-top: 10rpx;
 
-  .banner-product,
-  .banner-version {
-    font-size: 22rpx;
-    color: #98a2b3;
+  .banner-product {
+    font-size: 23rpx;
+    color: var(--app-text-3, #98a2b3);
   }
+}
+
+// 面板版本胶囊
+.banner-badge {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: #eaf1ff;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #2f6bff;
+  flex-shrink: 0;
 }
 
 .panel-scroll {

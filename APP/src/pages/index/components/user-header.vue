@@ -72,45 +72,61 @@ const description = computed(() => {
 <style lang="scss" scoped>
 .hero-card {
   position: relative;
-  margin: 20rpx 20rpx 0;
-  border-radius: 28rpx;
+  margin: 24rpx 24rpx 0;
+  border-radius: 32rpx;
   overflow: hidden;
+  box-shadow: 0 16rpx 40rpx rgba(47, 107, 255, 0.24);
   // 右上角柔光装饰
   &::after {
     content: '';
     position: absolute;
     right: -60rpx;
-    top: -80rpx;
-    width: 280rpx;
-    height: 280rpx;
+    top: -100rpx;
+    width: 300rpx;
+    height: 300rpx;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.14);
+  }
+
+  // 左下角次级光斑
+  &::before {
+    content: '';
+    position: absolute;
+    left: -80rpx;
+    bottom: -120rpx;
+    width: 260rpx;
+    height: 260rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
   }
 }
 
 .hero-inner {
   display: flex;
   align-items: center;
-  padding: 32rpx 30rpx;
+  padding: 36rpx 32rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .avatar-wrapper {
-  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  border: 4rpx solid rgba(255, 255, 255, 0.55);
   box-shadow: 0 8rpx 20rpx rgba(13, 34, 101, 0.25);
 }
 
 .hero-greeting {
-  font-size: 32rpx;
-  font-weight: 600;
+  font-size: 34rpx;
+  font-weight: 700;
   color: #ffffff;
+  letter-spacing: 1rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .hero-desc {
-  margin-top: 10rpx;
+  margin-top: 12rpx;
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.8);
 }
 </style>

@@ -29,16 +29,18 @@
         <view
           v-for="item in list"
           :key="item.id"
-          class="mb-24rpx overflow-hidden rounded-20rpx bg-white device-card"
+          class="mb-24rpx overflow-hidden rounded-24rpx bg-white device-card"
+          hover-class="device-card--pressed"
+          :hover-stay-time="60"
           @click="handleItemClick(item)"
         >
           <view class="p-24rpx">
             <view class="mb-16rpx flex items-start justify-between gap-16rpx">
               <view class="min-w-0 flex-1">
-                <view class="truncate text-32rpx text-[#333] font-semibold">
+                <view class="truncate text-32rpx text-[#10131a] font-semibold">
                   {{ item.name }}
                 </view>
-                <view class="mt-8rpx truncate text-26rpx text-[#999]">
+                <view class="mt-8rpx truncate text-26rpx text-[#98a2b3]">
                   {{ item.subtitle }}
                 </view>
               </view>
@@ -49,7 +51,7 @@
                 <wd-tag v-else-if="item.rowKind === 'gb28181'" :type="item.online ? 'success' : 'danger'" plain>
                   {{ item.online ? '在线' : '离线' }}
                 </wd-tag>
-                <wd-icon v-if="item.rowKind !== 'direct'" name="arrow-right" size="32rpx" color="#ccc" />
+                <wd-icon v-if="item.rowKind !== 'direct'" name="arrow-right" size="32rpx" color="#c8cfda" />
               </view>
             </view>
 
@@ -169,6 +171,12 @@ function handleItemClick(item: DeviceRootRow) {
 
 <style lang="scss" scoped>
 .device-card {
-  box-shadow: var(--app-card-shadow, 0 4rpx 20rpx rgba(23, 43, 77, 0.05));
+  box-shadow: var(--app-card-shadow, 0 2rpx 8rpx rgba(23, 43, 77, 0.04), 0 12rpx 32rpx rgba(23, 43, 77, 0.06));
+  transition: transform 0.12s ease;
+
+  &--pressed {
+    transform: scale(0.98);
+    opacity: 0.92;
+  }
 }
 </style>

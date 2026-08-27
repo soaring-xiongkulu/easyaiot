@@ -1,11 +1,11 @@
 <template>
   <scroll-view class="min-h-0 flex-1" scroll-y scroll-with-animation>
     <!-- 常用分组 -->
-    <view class="mx-20rpx mt-20rpx overflow-hidden rounded-28rpx bg-white menu-card">
-      <view class="flex items-center justify-between px-24rpx py-20rpx">
-        <text class="text-28rpx text-[#1a2233] font-semibold">常用</text>
-        <view class="p-10rpx" @click="handleGotoFavoriteSettings">
-          <wd-icon name="settings" size="32rpx" color="#98a2b3" />
+    <view class="mx-24rpx mt-24rpx overflow-hidden rounded-28rpx bg-white menu-card">
+      <view class="group-head">
+        <text class="group-title">常用</text>
+        <view class="group-settings" @click="handleGotoFavoriteSettings">
+          <wd-icon name="settings" size="30rpx" color="#98a2b3" />
         </view>
       </view>
       <MenuGrid v-if="favoriteMenuItems.length > 0" :menus="favoriteMenuItems" />
@@ -20,9 +20,9 @@
     </view>
 
     <!-- 菜单分组 -->
-    <view v-for="group in menuGroups" :key="group.key" class="mx-20rpx mt-20rpx overflow-hidden rounded-28rpx bg-white menu-card">
-      <view class="px-24rpx pb-0 pt-20rpx">
-        <text class="text-28rpx text-[#1a2233] font-semibold">{{ group.name }}</text>
+    <view v-for="group in menuGroups" :key="group.key" class="mx-24rpx mt-24rpx overflow-hidden rounded-28rpx bg-white menu-card">
+      <view class="group-head">
+        <text class="group-title">{{ group.name }}</text>
       </view>
       <MenuGrid :menus="group.menus" />
     </view>
@@ -80,6 +80,25 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .menu-card {
-  box-shadow: var(--app-card-shadow, 0 4rpx 20rpx rgba(23, 43, 77, 0.05));
+  box-shadow: var(--app-card-shadow, 0 2rpx 8rpx rgba(23, 43, 77, 0.04), 0 12rpx 32rpx rgba(23, 43, 77, 0.06));
+}
+
+// iOS 分组标题栏
+.group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 26rpx 8rpx;
+  border-bottom: 1rpx solid var(--app-separator, rgba(23, 43, 77, 0.06));
+}
+
+.group-title {
+  font-size: 27rpx;
+  font-weight: 600;
+  color: var(--app-text-1, #10131a);
+}
+
+.group-settings {
+  padding: 6rpx;
 }
 </style>

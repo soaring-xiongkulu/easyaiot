@@ -1,5 +1,5 @@
 <template>
-  <view class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
+  <view class="mx-20rpx mt-20rpx overflow-hidden rounded-24rpx bg-white">
     <wd-swiper
       :list="banners"
       autoplay
@@ -7,7 +7,7 @@
       indicator-position="bottom-right"
       image-mode="aspectFill"
       height="300rpx"
-      custom-class="rounded-16rpx overflow-hidden"
+      custom-class="rounded-24rpx overflow-hidden"
       @click="handleClick"
     />
   </view>

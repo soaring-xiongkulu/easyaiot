@@ -11,19 +11,23 @@
 
 :root,
 page {
-  // ==================== EasyAIoT 设计令牌（2026 视觉改版） ====================
-  // 品牌主色：深邃科技蓝（与 store/theme.ts 的 wot primary 色阶保持一致）
+  // ==================== EasyAIoT 设计令牌（iOS 风格改版） ====================
+  // 品牌主色：深邃科技蓝（与 store/theme.ts 的 wot primary 色阶保持一致，贴近 iOS 系统蓝）
   --app-brand: #2f6bff;
-  // 页面底色：冷灰蓝，让白色卡片更有层次
-  --app-page-bg: #f4f6fb;
+  // 页面底色：iOS 系统灰（#f2f2f7 同款冷灰），让白色卡片更有层次
+  --app-page-bg: #f2f2f7;
   // 文本色阶
   --app-text-1: #10131a; // 主文本
   --app-text-2: #3d4558; // 次级文本
   --app-text-3: #98a2b3; // 辅助/占位
-  // 卡片
+  // 卡片：iOS 大圆角 + 柔和分层阴影
   --app-card-bg: #ffffff;
-  --app-card-radius: 24rpx;
-  --app-card-shadow: 0 4rpx 20rpx rgba(23, 43, 77, 0.05);
+  --app-card-radius: 28rpx;
+  --app-card-shadow: 0 2rpx 8rpx rgba(23, 43, 77, 0.04), 0 12rpx 32rpx rgba(23, 43, 77, 0.06);
+  // 分组分隔线（iOS grouped list 风格）
+  --app-separator: rgba(23, 43, 77, 0.06);
+  // iOS 风格浅填充色（fill）
+  --app-fill: #eef0f4;
 
   // 兼容旧代码中的 wot 主色引用（wot 2.x 已不定义该变量）
   --wot-color-theme: #2f6bff;
