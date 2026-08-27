@@ -94,6 +94,9 @@
             <ProductModal @register="productDrawerRegister" @success="reloadList"/>
           </div>
         </TabPane>
+        <TabPane key="apppanel" tab="APP面板">
+          <AppPanelIndex />
+        </TabPane>
       </Tabs>
     </div>
   </div>
@@ -108,6 +111,7 @@ import {getBasicColumns, getFormConfig} from './Data';
 import {deleteDeviceProfile, getDeviceProfiles,} from '@/api/device/product';
 import {useMessage} from '@/hooks/web/useMessage';
 import moment from 'moment';
+import AppPanelIndex from '../apppanel/index.vue';
 import {useDrawer} from '@/components/Drawer';
 import ProductModal from './components/ProductModal.vue';
 import {useRouter} from 'vue-router';
