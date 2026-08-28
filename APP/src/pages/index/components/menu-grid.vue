@@ -79,6 +79,11 @@ function getIconStyle(menu: MenuItem) {
 </script>
 
 <style lang="scss" scoped>
+// 收窄宫格内容左右内边距：默认 padding-loose 下 4 列文字区放不下「设备控制台」这类 5 字菜单，末字会折行
+:deep(.wd-grid-item__content) {
+  padding: 24rpx 8rpx;
+}
+
 :deep(.wd-grid-item__text) {
   width: 100%;
   min-height: 64rpx;
