@@ -31,8 +31,10 @@ onMounted(async () => {
   loading.value = true
   try {
     modelInfo.value = (await getModel(modelId)) ?? {}
+    // 注意：/simple/get 直接返回 Simple 流程根节点（没有 simpleModel 包装字段），
+    // 只有数据库没有编辑器源（新模型）时才回退到「仅发起人」占位结构
     const simpleRes = await getModelSimple(modelId).catch(() => null)
-    flowTree.value = simpleRes?.simpleModel ?? createStartUserNode()
+    flowTree.value = simpleRes ?? createStartUserNode()
   }
   finally {
     loading.value = false
