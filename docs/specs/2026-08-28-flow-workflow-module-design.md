@@ -377,11 +377,19 @@ src/views/flow/
 └── group/index.vue
 ```
 
+> **入口收敛（2026-08-28 变更）**：模块改名为「告警工单」，不再作为独立侧边栏顶级菜单。
+> `flow_menu.sql` 中顶级目录（3300）`visible=false`，所有子菜单/按钮权限行保留（路由仍注册，`v-auth` 依赖不变）：
+> - WEB 入口收敛为【告警管理 → 告警工单】Tab（`views/alert/index.vue` 新增 `AlarmTicket` 组件，
+>   白底纯列表风格与模型管理一致；工单列表 / 我的待办 / 已办任务 / 流程实例 / 路由规则 / 流程模型 六个子 Tab）；
+> - 隐藏路由不受影响：流程设计 `/flow/model/design/:id`、审批详情 `/flow/process-instance/detail`
+>   （站内信/APP deepLink `flow://instance/{id}?taskId=` 仍可直达）；
+> - mini/edge 部署形态不部署 iot-flow，`isFlowTicketEnabled()` 隐藏该 Tab。
+
 页面清单对应菜单（`system_menu` 初始化 SQL）：
 
 | 菜单 | 组件路径 | 权限码示例 |
 |---|---|---|
-| 工作流（目录） | — | — |
+| 告警工单（原工作流，目录，visible=false） | — | — |
 | ├ 流程模型 | flow/model/index | flow:model:* |
 | ├ 流程定义 | flow/model/definition/index | flow:process-definition:query |
 | ├ 我的流程 | flow/processInstance/index | flow:process-instance:query |
@@ -442,6 +450,7 @@ src/pages-flow/                                            # 新分包（pages.c
 5. **设计器只做 Simple（仿钉钉）**：目标用户是安防/运维人员，BPMN 学习成本不可接受；bpmn-js 留 P2 且非必须。
 6. **FLOW 宕机不阻断告警主链路**：触发是尽力而为 + 手动补触发兜底，符合"告警通知是主路径、流程闭环是增强"的产品定位。
 7. **前端 API 目录收敛为 `api/flow`**，移除遗留 `api/bpm/` 空壳，避免双约定并存。
+8. **入口收敛为「告警管理 → 告警工单」Tab**：原「工作流」顶级菜单（visible=true）改为「告警工单」且 `visible=false`，菜单/按钮权限行全保留（路由注册与 `v-auth` 不受影响）；WEB 侧新 Tab 走白底纯列表（BasicTable，无卡片），与模型管理风格一致。deepLink（站内信/APP 跳审批详情）与流程设计器跳转均不受影响。
 
 ---
 
@@ -462,7 +471,6 @@ src/pages-flow/                                            # 新分包（pages.c
 bash .scripts/flow/flow_demo_replay.sh             # 菜单/模板/种子 + 8 条实例全状态（幂等，已有告警自动跳过）
 bash .scripts/flow/flow_demo_replay.sh --seed-only # 仅 SQL 初始化，不造实例
 ```
-
 一键部署：所有 OS 安装器均已在部署完成后自动执行上述脚本（`ensure_flow_demo_after_stack` 钩子，等待网关与 flow-server 就绪后重放）：
 
 | 安装器 | 平台 | 接入方式 |
