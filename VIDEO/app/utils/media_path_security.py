@@ -22,6 +22,8 @@ def configured_media_roots(extra_roots: Iterable[str] = ()) -> list[Path]:
     candidates: list[str] = list(extra_roots)
     for key in (
         'ALERT_IMAGES_DIR',
+        'FACE_IMAGES_DIR',
+        'PLATE_IMAGES_DIR',
         'EDGE_RECORDING_ROOT',
         'LOCAL_STORAGE_ROOT',
         'AI_LOCAL_STORAGE_ROOT',

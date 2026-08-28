@@ -495,6 +495,34 @@ def create_app(start_background_tasks=None):
                         db.session.commit()
                         print(f"✅ {table_name}.{col_name} 列添加成功")
 
+                # 人脸/车牌匹配记录：待入库工作台扩展字段（未匹配目标暂存库）
+                for match_table in ('face_match_record', 'plate_match_record'):
+                    for col_name, col_def in (
+                        ('enroll_status', "VARCHAR(20) NOT NULL DEFAULT 'pending'"),
+                        ('bbox', 'TEXT'),
+                        ('frame_image_path', 'VARCHAR(500)'),
+                        ('enroll_target_library_id', 'INTEGER'),
+                        ('enroll_person_id', 'INTEGER'),
+                        ('enroll_entry_id', 'INTEGER'),
+                        ('enroll_time', 'TIMESTAMP'),
+                    ):
+                        if match_table == 'plate_match_record' and col_name == 'enroll_person_id':
+                            continue  # 车牌无人员维度
+                        r = db.session.execute(text("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns
+                                WHERE table_schema = 'public'
+                                AND table_name = :tbl AND column_name = :col
+                            );
+                        """), {'tbl': match_table, 'col': col_name})
+                        if not r.scalar():
+                            print(f"⚠️  {match_table}.{col_name} 列不存在，正在添加...")
+                            db.session.execute(
+                                text(f'ALTER TABLE {match_table} ADD COLUMN {col_name} {col_def};')
+                            )
+                            db.session.commit()
+                            print(f"✅ {match_table}.{col_name} 列添加成功")
+
                 if directory_id_exists and auto_snap_enabled_exists and cover_image_path_exists and device_detection_region_exists:
                     print("✅ 数据库迁移检查完成，所有列和表已存在")
 
@@ -1060,6 +1088,16 @@ def create_app(start_background_tasks=None):
         print(f"✅ Plate Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Plate Blueprint 注册失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+    try:
+        from app.blueprints import pending_enroll
+        app.register_blueprint(pending_enroll.pending_enroll_face_bp, url_prefix='/video/face/pending-enroll')
+        app.register_blueprint(pending_enroll.pending_enroll_plate_bp, url_prefix='/video/plate/pending-enroll')
+        print(f"✅ Pending Enroll Blueprint 注册成功 (face/plate)")
+    except Exception as e:
+        print(f"❌ Pending Enroll Blueprint 注册失败: {str(e)}")
         import traceback
         traceback.print_exc()
 

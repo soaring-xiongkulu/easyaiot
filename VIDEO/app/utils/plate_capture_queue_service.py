@@ -25,6 +25,9 @@ PLATE_CAPTURE_KEEP_LATEST = os.getenv('PLATE_CAPTURE_KEEP_LATEST', 'true').lower
 PLATE_CAPTURE_KEEP_LATEST_THRESHOLD = int(
     os.getenv('PLATE_CAPTURE_KEEP_LATEST_THRESHOLD', str(max(2, PLATE_CAPTURE_QUEUE_SIZE // 2)))
 )
+# 待入库工作台：随裁剪图一起落盘的整帧最大边长与保留上限（供人工修正标注框用）
+PLATE_FRAME_MAX_EDGE = int(os.getenv('PLATE_FRAME_MAX_EDGE', '1280'))
+PLATE_FRAME_KEEP_MAX = int(os.getenv('PLATE_FRAME_KEEP_MAX', '400'))
 
 _queue: Optional[queue.Queue] = None
 _executor: Optional[futures.ThreadPoolExecutor] = None
@@ -39,6 +42,56 @@ def is_running() -> bool:
 
 def _video_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _downscale_frame(frame: np.ndarray) -> np.ndarray:
+    max_edge = max(64, PLATE_FRAME_MAX_EDGE)
+    h, w = frame.shape[:2]
+    longest = max(h, w)
+    if longest <= max_edge:
+        return frame
+    scale = max_edge / float(longest)
+    return cv2.resize(frame, (max(1, int(w * scale)), max(1, int(h * scale))))
+
+
+def _cleanup_context_frames(frames_dir: str) -> None:
+    """帧目录超过保留上限时删除最旧的 90%，避免整帧落盘无限增长。"""
+    try:
+        entries = [os.path.join(frames_dir, name) for name in os.listdir(frames_dir)]
+        files = [p for p in entries if os.path.isfile(p)]
+        if len(files) <= PLATE_FRAME_KEEP_MAX:
+            return
+        files.sort(key=lambda p: os.path.getmtime(p))
+        remove_count = int(len(files) * 0.9)
+        for path in files[:remove_count]:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+    except Exception as exc:
+        logger.warning('清理车牌整帧目录失败: %s', exc)
+
+
+def _save_context_frame(
+    frame: np.ndarray,
+    task_id: int,
+    device_id: str,
+    frame_number: int,
+) -> Optional[str]:
+    """保存缩放整帧（同帧多目标共享一份），供待入库工作台修正标注框。"""
+    try:
+        images_root = os.getenv('PLATE_IMAGES_DIR', os.path.join(_video_root(), 'data', 'plate_images'))
+        frames_dir = os.path.join(images_root, f'task_{task_id}', device_id, 'frames')
+        os.makedirs(frames_dir, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        image_path = os.path.join(frames_dir, f'{timestamp}_frame{frame_number}.jpg')
+        if not cv2.imwrite(image_path, _downscale_frame(frame)):
+            return None
+        _cleanup_context_frames(frames_dir)
+        return image_path
+    except Exception as exc:
+        logger.warning('保存车牌整帧失败: %s', exc)
+        return None
 
 
 def _save_plate_crop_image(
@@ -120,6 +173,8 @@ def _process_task(task: Dict[str, Any]) -> None:
     task_id = task['task_id']
     publish_url = task['publish_url']
 
+    frame_path = _save_context_frame(frame, task_id, device_id, frame_number)
+
     for det in plate_detections:
         plate_path = _save_plate_crop_image(frame, task_id, device_id, frame_number, det)
         payload = {
@@ -135,6 +190,8 @@ def _process_task(task: Dict[str, Any]) -> None:
             'rect': det.get('rect'),
             'landmarks': det.get('landmarks'),
         }
+        if frame_path:
+            payload['frameImagePath'] = frame_path
         correlation_id = task.get('correlation_id')
         if correlation_id:
             payload['correlationId'] = correlation_id

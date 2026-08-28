@@ -1696,6 +1696,14 @@ class FaceMatchRecord(db.Model):
     task_type = db.Column(db.String(20), nullable=True, comment='任务类型')
     status = db.Column(db.String(20), default='pending', nullable=False, comment='处理状态[pending,success,failed]')
     error_message = db.Column(db.String(500), nullable=True, comment='错误信息')
+    # 待入库工作台（未匹配目标暂存库）扩展字段
+    enroll_status = db.Column(db.String(20), default='pending', nullable=False, comment='入库状态[pending待处理,enrolled已入库,discarded已忽略]')
+    bbox = db.Column(db.Text, nullable=True, comment='AI检测框[JSON: x1,y1,x2,y2]（标注修正用）')
+    frame_image_path = db.Column(db.String(500), nullable=True, comment='原始帧图路径（标注修正底图）')
+    enroll_target_library_id = db.Column(db.Integer, nullable=True, comment='入库目标人脸库ID')
+    enroll_person_id = db.Column(db.Integer, nullable=True, comment='入库生成/归属的人员ID')
+    enroll_entry_id = db.Column(db.Integer, nullable=True, comment='入库生成的人脸条目ID')
+    enroll_time = db.Column(db.DateTime, nullable=True, comment='入库时间')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     def to_dict(self):
@@ -1706,6 +1714,12 @@ class FaceMatchRecord(db.Model):
                 candidates = json.loads(self.candidates) if isinstance(self.candidates, str) else self.candidates
             except Exception:
                 candidates = self.candidates
+        bbox = None
+        if self.bbox:
+            try:
+                bbox = json.loads(self.bbox) if isinstance(self.bbox, str) else self.bbox
+            except Exception:
+                bbox = None
         return {
             'id': self.id,
             'task_id': self.task_id,
@@ -1727,6 +1741,13 @@ class FaceMatchRecord(db.Model):
             'task_type': self.task_type,
             'status': self.status,
             'error_message': self.error_message,
+            'enroll_status': self.enroll_status,
+            'bbox': bbox,
+            'frame_image_path': self.frame_image_path,
+            'enroll_target_library_id': self.enroll_target_library_id,
+            'enroll_person_id': self.enroll_person_id,
+            'enroll_entry_id': self.enroll_entry_id,
+            'enroll_time': utc_isoformat_z(self.enroll_time),
             'created_at': utc_isoformat_z(self.created_at),
         }
 
@@ -1883,9 +1904,23 @@ class PlateMatchRecord(db.Model):
     task_type = db.Column(db.String(20), nullable=True, comment='任务类型')
     status = db.Column(db.String(20), default='pending', nullable=False, comment='处理状态[pending,success,failed]')
     error_message = db.Column(db.String(500), nullable=True, comment='错误信息')
+    # 待入库工作台（未匹配目标暂存库）扩展字段
+    enroll_status = db.Column(db.String(20), default='pending', nullable=False, comment='入库状态[pending待处理,enrolled已入库,discarded已忽略]')
+    bbox = db.Column(db.Text, nullable=True, comment='AI检测框[JSON: x1,y1,x2,y2]（标注修正用）')
+    frame_image_path = db.Column(db.String(500), nullable=True, comment='原始帧图路径（标注修正底图）')
+    enroll_target_library_id = db.Column(db.Integer, nullable=True, comment='入库目标车牌库ID')
+    enroll_entry_id = db.Column(db.Integer, nullable=True, comment='入库生成的车牌条目ID')
+    enroll_time = db.Column(db.DateTime, nullable=True, comment='入库时间')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     def to_dict(self):
+        import json
+        bbox = None
+        if self.bbox:
+            try:
+                bbox = json.loads(self.bbox) if isinstance(self.bbox, str) else self.bbox
+            except Exception:
+                bbox = None
         return {
             'id': self.id,
             'task_id': self.task_id,
@@ -1906,6 +1941,12 @@ class PlateMatchRecord(db.Model):
             'task_type': self.task_type,
             'status': self.status,
             'error_message': self.error_message,
+            'enroll_status': self.enroll_status,
+            'bbox': bbox,
+            'frame_image_path': self.frame_image_path,
+            'enroll_target_library_id': self.enroll_target_library_id,
+            'enroll_entry_id': self.enroll_entry_id,
+            'enroll_time': utc_isoformat_z(self.enroll_time),
             'created_at': utc_isoformat_z(self.created_at),
         }
 

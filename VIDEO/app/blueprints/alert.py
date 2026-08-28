@@ -6,6 +6,7 @@
 from flask import Blueprint, request, jsonify, send_file
 from pathlib import Path
 import logging
+import os
 import time
 from datetime import datetime, timedelta, timezone
 from threading import Lock
@@ -218,7 +219,13 @@ def get_alert_image():
 
             project_video_root = str(Path(__file__).resolve().parents[2])
             alert_root = resolve_alert_images_root(project_video_root)
-            file_path = resolve_allowed_media_file(path, extra_roots=(alert_root,))
+            # 人脸/车牌抓拍裁剪图与整帧（待入库工作台）也经此端点展示
+            extra_media_roots = (
+                alert_root,
+                os.getenv('FACE_IMAGES_DIR', '') or os.path.join(project_video_root, 'data', 'face_images'),
+                os.getenv('PLATE_IMAGES_DIR', '') or os.path.join(project_video_root, 'data', 'plate_images'),
+            )
+            file_path = resolve_allowed_media_file(path, extra_roots=extra_media_roots)
             if file_path is None:
                 logger.warning('拒绝访问媒体根目录外的告警图片 path=%s', path)
                 return api_response(403, '图片路径不在允许的媒体目录内')

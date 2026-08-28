@@ -1,6 +1,8 @@
 """人脸/车牌库匹配编排：按业务标签确定库范围、执行匹配、命中后落告警。"""
 import json
 import logging
+import os
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 import cv2
@@ -23,6 +25,54 @@ logger = logging.getLogger(__name__)
 
 EVENT_FACE_LIBRARY_MATCH = 'face_library_match'
 EVENT_PLATE_LIBRARY_MATCH = 'plate_library_match'
+
+# 未匹配目标进入待入库工作台的同设备去重窗口：同一摄像头连续检出同一
+# 个陌生人/车时只保留一条待处理记录，避免工作台被重复目标刷屏。
+FACE_PENDING_DEDUP_SECONDS = int(os.getenv('FACE_PENDING_DEDUP_SECONDS', '90'))
+
+
+def _bbox_to_json(bbox) -> Optional[str]:
+    if not bbox:
+        return None
+    try:
+        values = [int(round(float(v))) for v in list(bbox)[:4]]
+        if len(values) < 4:
+            return None
+        return json.dumps(values)
+    except (TypeError, ValueError):
+        return None
+
+
+def _payload_frame_path(payload: Dict[str, Any]) -> Optional[str]:
+    raw = str(payload.get('frameImagePath') or payload.get('frame_image_path') or '').strip()
+    return raw or None
+
+
+def _delete_frame_file(frame_path: Optional[str]) -> None:
+    """整帧仅服务于标注修正：命中入库或不再待处理时应删除，避免磁盘膨胀。"""
+    if not frame_path:
+        return
+    try:
+        if os.path.isfile(frame_path):
+            os.remove(frame_path)
+    except OSError as exc:
+        logger.warning('删除整帧文件失败: %s (%s)', frame_path, exc)
+
+
+def _find_recent_pending_face_record(task_id, device_id: str) -> Optional[FaceMatchRecord]:
+    window_start = datetime.utcnow() - timedelta(seconds=max(0, FACE_PENDING_DEDUP_SECONDS))
+    return (
+        FaceMatchRecord.query
+        .filter(
+            FaceMatchRecord.matched.is_(False),
+            FaceMatchRecord.enroll_status == 'pending',
+            FaceMatchRecord.device_id == str(device_id or ''),
+            FaceMatchRecord.created_at >= window_start,
+            (FaceMatchRecord.task_id == task_id) | (FaceMatchRecord.task_id.is_(None)),
+        )
+        .order_by(FaceMatchRecord.id.desc())
+        .first()
+    )
 
 
 def parse_business_tags(raw) -> List[str]:
@@ -290,7 +340,22 @@ def process_face_matching_message(payload: Dict[str, Any]) -> FaceMatchRecord:
         correlation_id=correlation_id,
         task_type=task_type,
         status='success',
+        enroll_status='enrolled' if matched else 'pending',
+        bbox=_bbox_to_json(payload.get('bbox')),
+        frame_image_path=_payload_frame_path(payload) if not matched else None,
     )
+    if matched:
+        # 整帧仅服务于未匹配目标的标注修正，命中后立即删除避免磁盘膨胀
+        _delete_frame_file(_payload_frame_path(payload))
+        db.session.add(record)
+        db.session.commit()
+        return record
+
+    # 未匹配：同一摄像头短时间内连续检出同一陌生人时合并为一条待处理记录
+    recent_pending = _find_recent_pending_face_record(task_id, device_id)
+    if recent_pending is not None:
+        db.session.expunge(record)
+        return recent_pending
     db.session.add(record)
     db.session.commit()
     return record
@@ -372,7 +437,32 @@ def process_plate_matching_message(payload: Dict[str, Any]) -> PlateMatchRecord:
         correlation_id=correlation_id,
         task_type=task_type,
         status='success',
+        enroll_status='enrolled' if matched else 'pending',
+        bbox=_bbox_to_json(payload.get('rect') or payload.get('bbox')),
+        frame_image_path=_payload_frame_path(payload) if not matched else None,
     )
+    if matched:
+        # 整帧仅服务于未匹配目标的标注修正，命中后立即删除避免磁盘膨胀
+        _delete_frame_file(_payload_frame_path(payload))
+        db.session.add(record)
+        db.session.commit()
+        return record
+
+    # 未匹配：同一车牌号已存在待处理记录时不重复入库工作台
+    if plate_no:
+        existing_pending = (
+            PlateMatchRecord.query
+            .filter(
+                PlateMatchRecord.matched.is_(False),
+                PlateMatchRecord.enroll_status == 'pending',
+                PlateMatchRecord.plate_no == plate_no,
+            )
+            .order_by(PlateMatchRecord.id.desc())
+            .first()
+        )
+        if existing_pending is not None:
+            db.session.expunge(record)
+            return existing_pending
     db.session.add(record)
     db.session.commit()
     return record
