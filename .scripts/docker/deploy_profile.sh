@@ -130,7 +130,8 @@ device_skipped_services() {
             skips+=(iot-gateway iot-system iot-infra iot-sink iot-device iot-dataset iot-node iot-visualize iot-file iot-message iot-gb28181 iot-tdengine)
             ;;
         mini)
-            skips+=(iot-device iot-dataset iot-node iot-visualize iot-file iot-message iot-gb28181 iot-tdengine)
+            # 不部署 iot-flow（告警工单）：mini 无工作流引擎，前端隐藏工单 Tab/菜单
+            skips+=(iot-device iot-dataset iot-node iot-visualize iot-flow iot-file iot-message iot-gb28181 iot-tdengine)
             ;;
         standard)
             skips+=(iot-device iot-tdengine iot-visualize)
@@ -146,7 +147,7 @@ device_enabled_services() {
     echo ""
 }
 
-# mini：精简 DEVICE/中间件，事件面仍为 Gateway→iot-sink
+# mini：精简 DEVICE/中间件，事件面仍为 Gateway→iot-sink；不部署 iot-flow（告警工单）
 # edge：与 mini 共享部分本地存储行为（见 is_local_storage_deploy_profile），但零 DEVICE
 is_mini_deploy_profile() {
     case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
