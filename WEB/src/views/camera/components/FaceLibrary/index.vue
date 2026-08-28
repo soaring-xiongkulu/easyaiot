@@ -16,6 +16,11 @@
     <BasicTable v-if="viewMode === 'table'" @register="registerTable">
       <template #toolbar>
         <Button type="primary" @click="handleCreate">新建人脸库</Button>
+        <a-badge :count="pendingCount" :offset="[4, -2]">
+          <Button type="default" preIcon="ant-design:appstore-outlined" @click="handleOpenWorkbench">
+            待入库工作台
+          </Button>
+        </a-badge>
         <Button type="default" @click="handleToggleViewMode" preIcon="ant-design:swap-outlined">
           切换视图
         </Button>
@@ -55,6 +60,15 @@
                 <span style="padding-left: 7px; font-size: 16px; font-weight: 500; line-height: 24px">人脸库列表</span>
                 <div style="display: flex; gap: 8px">
                   <Button type="primary" @click="handleCreate">新建人脸库</Button>
+                  <a-badge :count="pendingCount" :offset="[4, -2]">
+                    <Button
+                      type="default"
+                      preIcon="ant-design:appstore-outlined"
+                      @click="handleOpenWorkbench"
+                    >
+                      待入库工作台
+                    </Button>
+                  </a-badge>
                   <Button
                     type="default"
                     @click="handleToggleViewMode"
@@ -144,6 +158,7 @@
 
     <FaceLibraryModal @register="registerLibraryModal" @success="handleSuccess" />
     <FaceAutoEnrollDrawer @register="registerAutoEnrollDrawer" @success="handleSuccess" />
+    <FacePendingWorkbench @register="registerWorkbench" @stats-change="onWorkbenchStatsChange" />
     </template>
   </div>
 </template>
@@ -174,6 +189,8 @@ import { getBasicColumns, getFormConfig } from './Data';
 import FaceLibraryModal from './FaceLibraryModal.vue';
 import FaceAutoEnrollDrawer from './FaceAutoEnrollDrawer.vue';
 import FaceModelSetupPanel from './FaceModelSetupPanel.vue';
+import FacePendingWorkbench from '../PendingEnroll/FacePendingWorkbench.vue';
+import { getPendingStats, type PendingEnrollStats } from '@/api/device/pending_enroll';
 import FACE_LIBRARY_IMAGE from '@/assets/images/video/snap-task.png';
 import { Button } from '@/components/Button'
 const ListItem = List.Item;
@@ -184,6 +201,27 @@ const { createMessage } = useMessage();
 const router = useRouter();
 const [registerLibraryModal, { openDrawer: openLibraryDrawer }] = useDrawer();
 const [registerAutoEnrollDrawer, { openDrawer: openAutoEnrollDrawer }] = useDrawer();
+const [registerWorkbench, { openDrawer: openWorkbench }] = useDrawer();
+
+const pendingCount = ref(0);
+
+async function refreshPendingStats() {
+  try {
+    const res = await getPendingStats('face');
+    pendingCount.value = res?.data?.pending ?? 0;
+  } catch (e) {
+    console.warn('查询待入库统计失败', e);
+  }
+}
+
+function handleOpenWorkbench() {
+  // 本项目 useDrawerInner 回调由 data 触发（见 useDrawer.ts watchEffect），必须携带 payload 才会执行加载
+  openWorkbench(true, { openedAt: Date.now() });
+}
+
+function onWorkbenchStatsChange(stats: PendingEnrollStats) {
+  pendingCount.value = stats?.pending ?? 0;
+}
 
 const viewMode = ref<'table' | 'card'>('card');
 const libraryList = ref<FaceLibrary[]>([]);
@@ -580,6 +618,9 @@ onMounted(async () => {
   if (modelDownloading.value) {
     downloadStarted.value = true;
     startModelPolling();
+  }
+  if (modelReady.value) {
+    void refreshPendingStats();
   }
 });
 
