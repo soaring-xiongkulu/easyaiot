@@ -1018,6 +1018,13 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![화면](.image/banner/banner1064.jpg) | ![분석](.image/banner/banner1065.jpg) | ![결과](.image/banner/banner1066.jpg) |
 | ![다시보기](.image/banner/banner1067.jpg) | ![실황](.image/banner/banner1052.jpg) | ![스마트](.image/banner/banner1054.jpg) |
 
+#### 📋 알람 워크오더
+
+| | | |
+|:---:|:---:|:---:|
+| ![플로우 디자인](.image/banner/banner1231.png) | ![노드 구성](.image/banner/banner1232.png) | ![승인자 선택](.image/banner/banner1233.png) |
+| ![조건 분기](.image/banner/banner1234.png) | ![조건 규칙](.image/banner/banner1235.png) | ![병렬 분기](.image/banner/banner1236.png) |
+
 #### 📦 데이터셋
 
 | | | |
@@ -1081,6 +1088,7 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![APP 스크린샷](.image/banner/app/app_1014.jpg) | ![APP 스크린샷](.image/banner/app/app_1015.jpg) | ![APP 스크린샷](.image/banner/app/app_1016.jpg) |
 | ![APP 스크린샷](.image/banner/app/app_1017.jpg) | ![APP 스크린샷](.image/banner/app/app_1018.jpg) | ![APP 스크린샷](.image/banner/app/app_1019.jpg) |
 | ![APP 스크린샷](.image/banner/app/app_1020.jpg) | ![APP 스크린샷](.image/banner/app/app_1021.jpg) | ![APP 스크린샷](.image/banner/app/app_1022.jpg) |
+| ![APP 스크린샷](.image/banner/app/app_2029.jpg) | ![APP 스크린샷](.image/banner/app/app_2030.jpg) | ![APP 스크린샷](.image/banner/app/app_2031.jpg) |
 
 ## 📞 연락처
 

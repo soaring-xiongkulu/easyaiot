@@ -1018,6 +1018,13 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 | ![Image](.image/banner/banner1064.jpg) | ![Analyse](.image/banner/banner1065.jpg) | ![Résultats](.image/banner/banner1066.jpg) |
 | ![Relecture](.image/banner/banner1067.jpg) | ![Vue live](.image/banner/banner1052.jpg) | ![Intelligent](.image/banner/banner1054.jpg) |
 
+#### 📋 Bons de travail d'alerte
+
+| | | |
+|:---:|:---:|:---:|
+| ![Conception de flux](.image/banner/banner1231.png) | ![Configuration de nœud](.image/banner/banner1232.png) | ![Sélection des approbateurs](.image/banner/banner1233.png) |
+| ![Branches conditionnelles](.image/banner/banner1234.png) | ![Règles de condition](.image/banner/banner1235.png) | ![Branches parallèles](.image/banner/banner1236.png) |
+
 #### 📦 Jeux de données
 
 | | | |
@@ -1081,6 +1088,7 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 | ![Capture APP](.image/banner/app/app_1014.jpg) | ![Capture APP](.image/banner/app/app_1015.jpg) | ![Capture APP](.image/banner/app/app_1016.jpg) |
 | ![Capture APP](.image/banner/app/app_1017.jpg) | ![Capture APP](.image/banner/app/app_1018.jpg) | ![Capture APP](.image/banner/app/app_1019.jpg) |
 | ![Capture APP](.image/banner/app/app_1020.jpg) | ![Capture APP](.image/banner/app/app_1021.jpg) | ![Capture APP](.image/banner/app/app_1022.jpg) |
+| ![Capture APP](.image/banner/app/app_2029.jpg) | ![Capture APP](.image/banner/app/app_2030.jpg) | ![Capture APP](.image/banner/app/app_2031.jpg) |
 
 ## 📞 Contact
 

@@ -1019,6 +1019,13 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Кадр](.image/banner/banner1064.jpg) | ![Анализ](.image/banner/banner1065.jpg) | ![Результаты](.image/banner/banner1066.jpg) |
 | ![Повтор](.image/banner/banner1067.jpg) | ![Живой просмотр](.image/banner/banner1052.jpg) | ![Интеллект](.image/banner/banner1054.jpg) |
 
+#### 📋 Заявки по тревогам
+
+| | | |
+|:---:|:---:|:---:|
+| ![Конструктор процессов](.image/banner/banner1231.png) | ![Настройка узла](.image/banner/banner1232.png) | ![Выбор согласующих](.image/banner/banner1233.png) |
+| ![Условные ветвления](.image/banner/banner1234.png) | ![Правила условий](.image/banner/banner1235.png) | ![Параллельные ветвления](.image/banner/banner1236.png) |
+
 #### 📦 Наборы данных
 
 | | | |
@@ -1082,6 +1089,7 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Скриншот APP](.image/banner/app/app_1014.jpg) | ![Скриншот APP](.image/banner/app/app_1015.jpg) | ![Скриншот APP](.image/banner/app/app_1016.jpg) |
 | ![Скриншот APP](.image/banner/app/app_1017.jpg) | ![Скриншот APP](.image/banner/app/app_1018.jpg) | ![Скриншот APP](.image/banner/app/app_1019.jpg) |
 | ![Скриншот APP](.image/banner/app/app_1020.jpg) | ![Скриншот APP](.image/banner/app/app_1021.jpg) | ![Скриншот APP](.image/banner/app/app_1022.jpg) |
+| ![Скриншот APP](.image/banner/app/app_2029.jpg) | ![Скриншот APP](.image/banner/app/app_2030.jpg) | ![Скриншот APP](.image/banner/app/app_2031.jpg) |
 
 ## 📞 Контакты
 
