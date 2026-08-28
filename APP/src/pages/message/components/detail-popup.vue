@@ -52,6 +52,11 @@
             <text class="text-28rpx text-[#333]">{{ formData.templateContent }}</text>
           </view>
         </view>
+
+        <!-- 工作流 deepLink：flow://instance/{processInstanceId}?taskId={taskId} → 跳审批详情 -->
+        <wd-button v-if="flowLink" block type="primary" class="shrink-0" @click="handleGoFlow">
+          去处理
+        </wd-button>
       </view>
     </view>
   </wd-popup>
@@ -59,13 +64,26 @@
 
 <script lang="ts" setup>
 import type { NotifyMessage } from '@/api/system/notify/message'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { parseFlowDeepLink } from '@/api/flow'
 import { getDictLabel } from '@/hooks/useDict'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 
 const visible = ref(false) // 详情弹窗显示状态
 const formData = ref<NotifyMessage>() // 详情数据
+
+/** 解析工作流 deepLink（无则不展示“去处理”） */
+const flowLink = computed(() => parseFlowDeepLink(formData.value?.templateContent))
+
+function handleGoFlow() {
+  if (!flowLink.value) return
+  const { processInstanceId, taskId } = flowLink.value
+  visible.value = false
+  uni.navigateTo({
+    url: `/pages/flow/detail/index?id=${processInstanceId}${taskId ? `&taskId=${taskId}` : ''}`,
+  })
+}
 
 /** 打开弹窗 */
 function open(data: NotifyMessage) {
