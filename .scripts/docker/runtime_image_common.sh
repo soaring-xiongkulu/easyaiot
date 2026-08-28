@@ -23,19 +23,19 @@ RUNTIME_IMAGE_REGISTRY=""
 # ============================================================================
 DEVICE_REMOTE_NAMES=(
     aiot-gateway aiot-system aiot-infra aiot-device aiot-dataset
-    aiot-node aiot-visualize aiot-tdengine aiot-file aiot-message aiot-sink aiot-gb28181
+    aiot-node aiot-visualize aiot-flow aiot-tdengine aiot-file aiot-message aiot-sink aiot-gb28181
 )
 
 DEVICE_LOCAL_NAMES=(
     iot-gateway iot-module-system-biz iot-module-infra-biz iot-module-device-biz
-    iot-module-dataset-biz iot-module-node-biz iot-module-visualize-biz iot-module-tdengine-biz
+    iot-module-dataset-biz iot-module-node-biz iot-module-visualize-biz iot-flow-biz iot-module-tdengine-biz
     iot-module-file-biz iot-module-message-biz iot-sink-biz iot-gb28181-biz
 )
 
 # 与 DEVICE_REMOTE_NAMES / DEVICE_LOCAL_NAMES 下标一一对应（docker-compose 服务名）
 DEVICE_COMPOSE_SERVICES=(
     iot-gateway iot-system iot-infra iot-device iot-dataset
-    iot-node iot-visualize iot-tdengine iot-file iot-message iot-sink iot-gb28181
+    iot-node iot-visualize iot-flow iot-tdengine iot-file iot-message iot-sink iot-gb28181
 )
 
 INDEPENDENT_MODULES=(
@@ -1776,9 +1776,9 @@ runtime_images_usage() {
 运行时镜像管理（业务模块 $(runtime_build_module_pipe_list | tr '|' '/')，不含中间件；IDEA/HARNESS/PANEL 全形态；POST 仅 standard/full 部署；APP/VISUALIZE/TRANSFORM 仅 full）
 
 pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
-  mini     — 仅拉 aiot-system（1/12）
-  standard — 跳过 aiot-device、aiot-tdengine、aiot-visualize（9/12）
-  full     — 拉全部 DEVICE（12/12，含 aiot-visualize）
+  mini     — 精简 DEVICE（4/13：gateway/system/infra/sink）
+  standard — 跳过 aiot-device、aiot-tdengine、aiot-visualize（10/13）
+  full     — 拉全部 DEVICE（13/13，含 aiot-visualize）
   build-runtime 默认构建/推送全部模块；可指定单模块 $(runtime_build_module_pipe_list)
   全量 build-runtime 仍构建/推送全量 DEVICE，供各形态共用远程仓库
 
