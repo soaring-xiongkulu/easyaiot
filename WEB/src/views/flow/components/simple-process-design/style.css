@@ -1,0 +1,512 @@
+/* FLOW Simple 流程设计器样式（画布、节点卡、连接线、分支布局、状态染色） */
+
+.fpd-designer {
+  display: flex;
+  justify-content: center;
+  min-height: 100%;
+  padding: 16px 0 32px;
+  overflow-x: auto;
+  background-color: #f5f7fa;
+}
+
+.fpd-canvas {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  min-width: fit-content;
+}
+
+/* ---------- 纵向连接线 + 插入按钮 ---------- */
+.fpd-handler {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 240px;
+  height: 26px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.fpd-handler::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  transform: translateX(-50%);
+  background-color: #dee1e6;
+}
+
+.fpd-handler__btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0a7cff;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgb(10 124 255 / 35%);
+  transition: transform 0.15s ease;
+}
+
+.fpd-handler__btn:hover {
+  transform: scale(1.15);
+}
+
+.fpd-handler--readonly::before {
+  height: 40px;
+}
+
+/* ---------- 节点卡片 ---------- */
+.fpd-node {
+  position: relative;
+  width: 240px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.fpd-node__box {
+  position: relative;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(31 45 61 / 8%);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.fpd-node__box:hover {
+  box-shadow: 0 8px 22px rgb(31 45 61 / 14%);
+}
+
+.fpd-node__box--error {
+  border-color: #ff4d4f;
+}
+
+.fpd-node__toolbar {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: none;
+  z-index: 2;
+}
+
+.fpd-node__box:hover .fpd-node__toolbar {
+  display: block;
+}
+
+.fpd-node__del {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff4d4f;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgb(255 77 79 / 40%);
+}
+
+.fpd-node__head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.fpd-node__icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 8px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.fpd-node__title {
+  flex: 1;
+  overflow: hidden;
+  color: #1f2d3d;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: text;
+}
+
+.fpd-node__title-input {
+  flex: 1;
+  height: 22px;
+  font-size: 13px;
+}
+
+.fpd-node__text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.fpd-node__text-value {
+  overflow: hidden;
+  color: #6b7a90;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fpd-node__text-value--empty {
+  color: #ff943e;
+}
+
+.fpd-node__arrow {
+  color: #a6b0c0;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* ---------- 结束节点 ---------- */
+.fpd-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 12px;
+}
+
+.fpd-end__circle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #caccd3;
+}
+
+.fpd-end__label {
+  margin-top: 6px;
+  color: #8c94a5;
+  font-size: 12px;
+}
+
+/* ---------- 分支布局 ---------- */
+.fpd-branch {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+/* 悬停显示的整组删除按钮 */
+.fpd-branch__remove {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #f0f0f0;
+  border-radius: 50%;
+  background: #fff;
+  color: #909399;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-50%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 8%);
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.fpd-branch:hover .fpd-branch__remove {
+  opacity: 1;
+}
+
+.fpd-branch__remove:hover {
+  color: #f5222d;
+}
+
+.fpd-branch__wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 240px;
+  padding: 0 10px;
+}
+
+/* 上下汇聚横线 */
+.fpd-branch__wrap::before,
+.fpd-branch__wrap::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  background: #dee1e6;
+}
+
+.fpd-branch__wrap::before {
+  top: 12px;
+  right: 10px;
+  left: 10px;
+}
+
+.fpd-branch__wrap::after {
+  bottom: 12px;
+  right: 10px;
+  left: 10px;
+}
+
+.fpd-branch__col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 240px;
+  padding: 0 8px;
+}
+
+/* 每列与上下横线之间的竖线 */
+.fpd-branch__col::before,
+.fpd-branch__col::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: #dee1e6;
+}
+
+.fpd-branch__col::before {
+  top: 0;
+}
+
+.fpd-branch__col::after {
+  bottom: 0;
+}
+
+/* 内部节点链条两侧的包裹竖线 */
+.fpd-branch__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  min-height: 60px;
+  padding: 12px 10px;
+  border: 2px dashed transparent;
+  border-radius: 10px;
+  background: rgb(245 247 250 / 60%);
+}
+
+.fpd-branch__inner::before,
+.fpd-branch__inner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #dee1e6;
+}
+
+.fpd-branch__inner::before {
+  left: -2px;
+}
+
+.fpd-branch__inner::after {
+  right: -2px;
+}
+
+.fpd-branch__del {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff4d4f;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* 条件分支列头 */
+.fpd-condition {
+  position: relative;
+  width: 220px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(31 45 61 / 8%);
+  cursor: pointer;
+}
+
+.fpd-condition__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.fpd-condition__title {
+  overflow: hidden;
+  color: #1f2d3d;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fpd-condition__text {
+  overflow: hidden;
+  color: #6b7a90;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fpd-condition__text--empty {
+  color: #ff943e;
+}
+
+.fpd-condition__tag {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #f0f5ff;
+  color: #0a7cff;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.fpd-condition__tag--default {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.fpd-condition__add {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 32px;
+  margin-top: 2px;
+  border: 1px dashed #c6cbd4;
+  border-radius: 8px;
+  color: #8c94a5;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fpd-condition__add:hover {
+  border-color: #0a7cff;
+  color: #0a7cff;
+}
+
+/* ---------- 查看器状态染色 ---------- */
+.fpd-node__box--status-running {
+  border-color: #0a7cff;
+  box-shadow: 0 0 0 2px rgb(10 124 255 / 15%);
+}
+
+.fpd-node__box--status-success {
+  border-color: #52c41a;
+}
+
+.fpd-node__box--status-reject {
+  border-color: #ff4d4f;
+}
+
+.fpd-node__box--status-cancel {
+  border-color: #bfbfbf;
+  opacity: 0.65;
+}
+
+.fpd-node__status-badge {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+}
+
+.fpd-node__status-badge--running {
+  background: #0a7cff;
+}
+
+.fpd-node__status-badge--success {
+  background: #52c41a;
+}
+
+.fpd-node__status-badge--reject {
+  background: #ff4d4f;
+}
+
+.fpd-node__status-badge--cancel {
+  background: #bfbfbf;
+}
+
+/* ---------- 插入节点 popover 面板 ---------- */
+.fpd-insert {
+  display: grid;
+  grid-template-columns: repeat(3, 86px);
+  gap: 6px;
+}
+
+.fpd-insert__item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.fpd-insert__item:hover {
+  background: #f0f5ff;
+}
+
+.fpd-insert__icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+}
+
+.fpd-insert__label {
+  color: #4b5568;
+  font-size: 12px;
+}

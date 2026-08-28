@@ -88,8 +88,9 @@ export function isEdgeNodeEnabled(): boolean {
 const VISUALIZE_HIDDEN_MENU_NAMES = ['可视化管理', '大屏管理', '可视化大屏'] as const;
 const TRANSFORM_HIDDEN_MENU_NAMES = ['系统对接', '数据转发'] as const;
 
-/** mini 形态隐藏的顶级菜单（与后端 system_menu.name 一致） */
+/** mini 形态不部署 iot-flow 工作流服务，隐藏工作流顶级菜单 */
 const MINI_HIDDEN_MENU_NAMES = new Set([
+  '工作流',
   '集群管理',
   '设备管理',
   '产品管理',
