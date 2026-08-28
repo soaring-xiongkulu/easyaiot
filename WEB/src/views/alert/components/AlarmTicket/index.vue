@@ -4,7 +4,7 @@
  * 工单列表 / 我的待办 / 已办任务 / 流程实例 / 路由规则 / 流程模型
  * 界面与模型管理（train）一致：白色背景 + BasicTable 纯列表，无卡片模式。
  */
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { TabPane, Tabs } from 'ant-design-vue'
 import TicketList from './TicketList.vue'
 import RouteRuleList from './RouteRuleList.vue'
@@ -18,8 +18,14 @@ defineOptions({ name: 'AlarmTicket' })
 const { hasPermission } = usePermission()
 const showModelTab = computed(() => hasPermission('flow:model:query', false))
 
-const activeKey = ref('ticket')
-const instanceTab = ref('my')
+// 记住当前子 Tab：从流程设计页返回时恢复到离开时的位置（如流程模型）
+const TICKET_TAB_KEY = 'easyaiot:alarm-ticket-tab'
+const INSTANCE_TAB_KEY = 'easyaiot:alarm-ticket-instance-tab'
+const activeKey = ref<string>(sessionStorage.getItem(TICKET_TAB_KEY) || 'ticket')
+const instanceTab = ref<string>(sessionStorage.getItem(INSTANCE_TAB_KEY) || 'my')
+
+watch(activeKey, (v) => sessionStorage.setItem(TICKET_TAB_KEY, v))
+watch(instanceTab, (v) => sessionStorage.setItem(INSTANCE_TAB_KEY, v))
 </script>
 
 <template>

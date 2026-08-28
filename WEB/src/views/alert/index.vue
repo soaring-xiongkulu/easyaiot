@@ -180,6 +180,8 @@ async function activateMapTab() {
 
 function handleTabClick(activeKey: string) {
   state.activeKey = activeKey;
+  // 同步到 URL（query.tab）：从流程设计等子页面返回时可恢复所在的 Tab，而不是落回默认地图分布
+  void router.replace({ query: { ...router.currentRoute.value.query, tab: activeKey } });
   if (activeKey === ALERT_TAB_KEYS.MAP) {
     void activateMapTab();
   }
@@ -211,7 +213,11 @@ const refreshData = () => {
     void activateMapTab();
     return;
   }
-  state.activeKey = ALERT_TAB_KEYS.EVENTS;
+  state.activeKey = tab;
+  if (tab === ALERT_TAB_KEYS.TICKET) {
+    // 告警工单 Tab：子 Tab 由 AlarmTicket 自行恢复，无需加载事件列表
+    return;
+  }
   if (route.query.task_name) {
     params.value = { task_name: route.query.task_name };
     setTimeout(() => {

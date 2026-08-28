@@ -73,13 +73,25 @@ async function handleSaveAndDeploy() {
     async onOk() {
       await deployModel(modelId)
       createMessage.success('发布成功')
-      router.push('/flow/model')
+      goBack()
     },
   })
 }
 
+/**
+ * 返回上一页：从「告警管理 → 告警工单 → 流程模型」进入时回到双层 Tab 页；
+ * 无浏览历史（如直接刷新进入设计页）时回退到流程模型列表
+ */
+function goBack() {
+  if (window.history.state?.back) {
+    router.back()
+  } else {
+    router.push('/flow/model')
+  }
+}
+
 function handleBack() {
-  router.push('/flow/model')
+  goBack()
 }
 </script>
 
