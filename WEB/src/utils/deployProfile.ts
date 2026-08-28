@@ -75,6 +75,11 @@ export function isFacePlateLibraryEnabled(): boolean {
   return !isMiniDeployProfile();
 }
 
+/** mini / edge 单机不部署 iot-flow 工作流服务，告警管理隐藏「告警工单」Tab */
+export function isFlowTicketEnabled(): boolean {
+  return !isMiniDeployProfile() && !isEdgeStandaloneDeployProfile();
+}
+
 export function isScenarioPoseLibraryEnabled(): boolean {
   return !isMiniDeployProfile();
 }
@@ -88,9 +93,10 @@ export function isEdgeNodeEnabled(): boolean {
 const VISUALIZE_HIDDEN_MENU_NAMES = ['可视化管理', '大屏管理', '可视化大屏'] as const;
 const TRANSFORM_HIDDEN_MENU_NAMES = ['系统对接', '数据转发'] as const;
 
-/** mini 形态不部署 iot-flow 工作流服务，隐藏工作流顶级菜单 */
+/** mini 形态不部署 iot-flow 工作流服务，隐藏工作流顶级菜单（菜单已改名「告警工单」，入口收敛至告警管理 Tab；
+ *  顶级目录 /flow 无 componentName，路由名由路径解析为 Flow） */
 const MINI_HIDDEN_MENU_NAMES = new Set([
-  '工作流',
+  'Flow',
   '集群管理',
   '设备管理',
   '产品管理',

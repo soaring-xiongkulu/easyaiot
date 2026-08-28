@@ -79,6 +79,9 @@
             </AlertCards>
           </div>
         </TabPane>
+        <TabPane v-if="showTicketTab" key="3" tab="告警工单">
+          <AlarmTicket />
+        </TabPane>
       </Tabs>
     </div>
 
@@ -117,7 +120,8 @@ import { getDeviceInfo } from '@/api/device/camera';
 import { openDeviceInDialogPlayer } from '@/views/camera/utils/devicePlay';
 import { playAlertRecordInModal } from '@/utils/alertRecordPlayback';
 import { hasAlertFaceMatch, hasAlertPlateMatch, isSnapAlertTask } from '@/views/alert/alertDisplay';
-import { isEdgeStandaloneDeployProfile } from '@/utils/deployProfile';
+import { isEdgeStandaloneDeployProfile, isFlowTicketEnabled } from '@/utils/deployProfile';
+import AlarmTicket from '@/views/alert/components/AlarmTicket/index.vue';
 
 const router = useRouter();
 const edgeStandalone = isEdgeStandaloneDeployProfile();
@@ -132,11 +136,15 @@ defineOptions({ name: 'Alarm' });
 const ALERT_TAB_KEYS = {
   MAP: '1',
   EVENTS: '2',
+  TICKET: '3',
 } as const;
 
 const ALERT_TAB_ID_SET = new Set<string>(Object.values(ALERT_TAB_KEYS));
 
 const viewMode = ref<'table' | 'card'>('card');
+
+// mini / edge 单机不部署 iot-flow 工作流服务，隐藏告警工单 Tab
+const showTicketTab = isFlowTicketEnabled();
 
 const state = reactive({
   activeKey: edgeStandalone ? ALERT_TAB_KEYS.EVENTS : ALERT_TAB_KEYS.MAP,
@@ -152,8 +160,9 @@ const lastTableFilterParams = ref<Record<string, any>>({});
 function normalizeAlertRouteTab(tab: unknown): string {
   if (tab === 'map') return ALERT_TAB_KEYS.MAP;
   if (tab === 'events') return ALERT_TAB_KEYS.EVENTS;
+  if (tab === 'ticket' && showTicketTab) return ALERT_TAB_KEYS.TICKET;
   const tabStr = String(tab);
-  if (ALERT_TAB_ID_SET.has(tabStr)) return tabStr;
+  if (ALERT_TAB_ID_SET.has(tabStr) && (tabStr !== ALERT_TAB_KEYS.TICKET || showTicketTab)) return tabStr;
   return edgeStandalone ? ALERT_TAB_KEYS.EVENTS : ALERT_TAB_KEYS.MAP;
 }
 
