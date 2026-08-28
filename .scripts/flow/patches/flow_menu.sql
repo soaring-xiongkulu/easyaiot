@@ -62,16 +62,16 @@ INSERT INTO system_menu (
   path = EXCLUDED.path, component = EXCLUDED.component, component_name = EXCLUDED.component_name,
   update_time = NOW();
 
--- 目录：审批中心
+-- 目录：审批中心（同样不在侧边栏展示；待办/已办/抄送入口收敛至告警工单 Tab 内）
 INSERT INTO system_menu (
   id, name, permission, type, sort, parent_id, path, icon, component, component_name,
   status, visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted
 ) VALUES (
   3304, '审批中心', '', 1, 3, 3300, 'task', 'ant-design:audit-outlined', NULL, NULL,
-  0, true, true, true, '1', NOW(), '1', NOW(), 0
+  0, false, true, true, '1', NOW(), '1', NOW(), 0
 ) ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name, parent_id = EXCLUDED.parent_id, path = EXCLUDED.path,
-  icon = EXCLUDED.icon, update_time = NOW();
+  icon = EXCLUDED.icon, visible = EXCLUDED.visible, update_time = NOW();
 
 -- 菜单：待办任务
 INSERT INTO system_menu (
