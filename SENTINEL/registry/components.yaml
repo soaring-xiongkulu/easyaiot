@@ -15,6 +15,9 @@ components:
   docker:
     functions: [live, mqtt]
     depends: []
+  ai_service_container:
+    functions: [label, infer]
+    depends: [docker]
   srs_live:
     functions: [live, forward]
     depends: [docker]

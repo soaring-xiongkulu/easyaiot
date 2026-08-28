@@ -152,6 +152,13 @@ def probe_docker(ctx: SentinelContext, level: ProbeLevel) -> ProbeResult:
 
 
 @_timed_probe
+def probe_ai_service_container(ctx: SentinelContext, level: ProbeLevel) -> ProbeResult:
+    if ps.docker_running('ai-service'):
+        return ProbeResult(ComponentState.READY, evidence={'container': 'ai-service'})
+    return ProbeResult(ComponentState.UNAVAILABLE, 'ai-service 容器未运行')
+
+
+@_timed_probe
 def probe_model_train_bundle(ctx: SentinelContext, level: ProbeLevel) -> ProbeResult:
     ai_root = ctx.env.get('AI_ROOT') or '/opt/easyaiot/AI'
     launcher = ps.bundle_launcher(ai_root, 'model_train')
@@ -199,6 +206,7 @@ COMPONENT_PROBES = {
     'srs_live': probe_srs_live,
     'ffmpeg': probe_ffmpeg,
     'docker': probe_docker,
+    'ai_service_container': probe_ai_service_container,
     'model_train_bundle': probe_model_train_bundle,
     'video_bundle_realtime': probe_video_bundle_realtime,
     'llm_bundle': probe_llm_bundle,
@@ -207,4 +215,5 @@ COMPONENT_PROBES = {
 COMPONENT_DEPENDS: Dict[str, List[str]] = {
     'gpu_vram': ['cuda'],
     'llm_bundle': ['cuda'],
+    'ai_service_container': ['docker'],
 }

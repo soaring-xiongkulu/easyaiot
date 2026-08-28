@@ -365,6 +365,7 @@ def start_pipeline_auto_label(dataset_id):
         confidence_threshold = float(data.get('confidence_threshold', 0.45))
         return_masks = bool(data.get('return_masks', annotation_type == 'polygon'))
         auto_export = bool(data.get('auto_export', True))
+        keep_annotated_images_only = bool(data.get('keep_annotated_images_only', True))
         queue_priority = int(data.get('queue_priority', 0))
 
         java_url = _dataset_java_base()
@@ -418,6 +419,7 @@ def start_pipeline_auto_label(dataset_id):
             'duration_hours': duration_hours,
             'capture_interval_sec': capture_interval_sec,
             'auto_export': auto_export,
+            'keep_annotated_images_only': keep_annotated_images_only,
             'export_train_ratio': float(data.get('train_ratio', 0.7)),
             'export_val_ratio': float(data.get('val_ratio', 0.2)),
             'export_test_ratio': float(data.get('test_ratio', 0.1)),
@@ -1315,9 +1317,13 @@ def _sam_label_images(
         on_label_batch_complete,
         _update_counters,
     )
+    from app.services.auto_label_dataset_writer import write_auto_label_result
 
     success_count = 0
     failed_count = 0
+    keep_annotated_images_only = bool(
+        _parse_pipeline_config(task).get('keep_annotated_images_only', True)
+    )
     inference_service = None
     model_id = None
     try:
@@ -1352,25 +1358,22 @@ def _sam_label_images(
             if mode_used == 'skip':
                 continue
             has_detections = len(annotations) > 0
+            annotations_json, _ = write_auto_label_result(
+                java_backend_url,
+                task.dataset_id,
+                image_id,
+                annotations,
+                keep_annotated_images_only=keep_annotated_images_only,
+                timeout=10,
+            )
             db.session.add(AutoLabelResult(
                 task_id=task_id,
                 dataset_image_id=image_id,
-                annotations=json.dumps(annotations, ensure_ascii=False),
+                annotations=annotations_json,
                 status='SUCCESS',
             ))
-            update_response = requests.put(
-                f'{java_backend_url}/admin-api/dataset/image/update',
-                json={
-                    'id': image_id,
-                    'datasetId': task.dataset_id,
-                    'annotations': json.dumps(annotations, ensure_ascii=False),
-                    'completed': 1 if annotations else 0,
-                },
-                timeout=10,
-            )
-            if update_response.status_code != 200:
-                logger.warning(f'更新图片标注失败: {image_id}')
-            success_count += 1
+            if has_detections:
+                success_count += 1
             _update_counters(task, mode_used, has_detections=has_detections)
         except Exception as e:
             logger.error(f'处理图片失败: {e}', exc_info=True)
@@ -1388,6 +1391,14 @@ def _sam_label_images(
     if app and success_count > 0:
         on_label_batch_complete(task, app)
     return success_count, failed_count
+
+
+def _successful_auto_label_image_ids(task_id: int) -> set[int]:
+    rows = AutoLabelResult.query.with_entities(AutoLabelResult.dataset_image_id).filter_by(
+        task_id=task_id,
+        status='SUCCESS',
+    ).all()
+    return {int(row[0]) for row in rows}
 
 
 def execute_pipeline_task(app, task_id: int):
@@ -1472,7 +1483,11 @@ def execute_pipeline_task(app, task_id: int):
                             db.session.commit()
 
                 all_images = _fetch_all_dataset_images(java_backend_url, task.dataset_id)
-                unlabeled = [img for img in all_images if not img.get('completed')]
+                attempted_image_ids = _successful_auto_label_image_ids(task_id)
+                unlabeled = [
+                    img for img in all_images
+                    if not img.get('completed') and img.get('id') not in attempted_image_ids
+                ]
                 batch = unlabeled[:30]
 
                 if batch:
@@ -1502,12 +1517,18 @@ def execute_pipeline_task(app, task_id: int):
             db.session.commit()
 
             all_images = _fetch_all_dataset_images(java_backend_url, task.dataset_id)
-            unlabeled = [img for img in all_images if not img.get('completed')]
+            attempted_image_ids = _successful_auto_label_image_ids(task_id)
+            unlabeled = [
+                img for img in all_images
+                if not img.get('completed') and img.get('id') not in attempted_image_ids
+            ]
             if unlabeled:
                 ok, fail = _sam_label_images(task, task_id, sam_service, java_backend_url, unlabeled, app)
                 labeled_total += ok
                 task.failed_count = (task.failed_count or 0) + fail
                 _pipeline_log(task, f'最终标注：成功 {ok}，失败 {fail}')
+
+            all_images = _fetch_all_dataset_images(java_backend_url, task.dataset_id)
 
             task.success_count = labeled_total
             task.total_images = max(captured_total, len(all_images))
@@ -1865,3 +1886,4 @@ def _parse_inference_result(result, image_width, image_height):
         logger.error(f"解析推理结果失败: {str(e)}", exc_info=True)
     
     return annotations
+    

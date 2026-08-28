@@ -404,13 +404,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                 caps.put(PLATFORM_CAPABILITY_KEY, true);
                 changed = true;
             }
-            // 旧版 hybrid 等单角色，或无法解析的 node_role，统一迁移到 PLATFORM_DEFAULT
-            if (NodeFunctions.parse(platformNode).isEmpty()
-                    || NodeFunctions.isLegacyRole(platformNode.getNodeRole())) {
-                platformNode.setNodeRole(NodeFunctions.toCsv(NodeFunctions.PLATFORM_DEFAULT));
-                caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
-                changed = true;
-            }
+            changed = ensurePlatformFunctions(platformNode, caps) || changed;
             if (!RECORDING_STORAGE_CENTRAL_SHARED.equals(platformNode.getRecordingStorageMode())
                     || !RECORDING_STORAGE_ACTIVE.equals(platformNode.getRecordingStorageState())
                     || platformNode.getRecordingStorageGeneration() == null) {
@@ -430,10 +424,7 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
                     ? new HashMap<>(byHost.getCapabilities())
                     : NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT);
             caps.put(PLATFORM_CAPABILITY_KEY, true);
-            if (NodeFunctions.parse(byHost).isEmpty() || NodeFunctions.isLegacyRole(byHost.getNodeRole())) {
-                byHost.setNodeRole(NodeFunctions.toCsv(NodeFunctions.PLATFORM_DEFAULT));
-                caps.putAll(NodeFunctions.capabilities(NodeFunctions.PLATFORM_DEFAULT));
-            }
+            ensurePlatformFunctions(byHost, caps);
             byHost.setCapabilities(caps);
             applyPlatformRecordingStorage(byHost);
             computeNodeMapper.updateById(byHost);
@@ -460,6 +451,24 @@ public class ComputeNodeServiceImpl implements ComputeNodeService {
         node.setControlPlaneId(node.getId());
         computeNodeMapper.updateById(node);
         log.info("已自动纳管控制面节点: id={}, host={}", node.getId(), node.getHost());
+    }
+
+    private boolean ensurePlatformFunctions(ComputeNodeDO node, Map<String, Boolean> capabilities) {
+        List<String> functions = NodeFunctions.withPlatformDefaults(node.getNodeRole());
+        String role = NodeFunctions.toCsv(functions);
+        boolean changed = !role.equals(node.getNodeRole());
+        if (changed) {
+            node.setNodeRole(role);
+        }
+
+        Map<String, Boolean> requiredCapabilities = NodeFunctions.capabilities(functions);
+        for (String key : requiredCapabilities.keySet()) {
+            if (!Boolean.TRUE.equals(capabilities.get(key))) {
+                changed = true;
+            }
+        }
+        capabilities.putAll(requiredCapabilities);
+        return changed;
     }
 
     @Override

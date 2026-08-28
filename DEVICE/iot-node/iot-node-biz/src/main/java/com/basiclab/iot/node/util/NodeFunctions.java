@@ -23,6 +23,8 @@ public final class NodeFunctions {
             NodeFunctionEnum.ALGORITHM.getId(),
             NodeFunctionEnum.FORWARD.getId(),
             NodeFunctionEnum.LIVE.getId(),
+            NodeFunctionEnum.LABEL.getId(),
+            NodeFunctionEnum.INFER.getId(),
             NodeFunctionEnum.NFS.getId());
     public static final List<String> NFS_CLIENT = List.of(
             NodeFunctionEnum.ALGORITHM.getId(),
@@ -124,6 +126,12 @@ public final class NodeFunctions {
             }
         }
         return new ArrayList<>(set);
+    }
+
+    public static List<String> withPlatformDefaults(String existingRole) {
+        LinkedHashSet<String> functions = new LinkedHashSet<>(PLATFORM_DEFAULT);
+        functions.addAll(parse(existingRole));
+        return new ArrayList<>(functions);
     }
 
     public static String toCsv(List<String> functions) {

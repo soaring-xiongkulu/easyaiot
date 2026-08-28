@@ -3386,6 +3386,8 @@ _curl_nacos() {
 wait_for_nacos() {
     local max_attempts="${NACOS_READY_MAX_ATTEMPTS:-90}"
     local attempt=0
+    local repair_attempted=0
+    local container_id_before="" container_id_after=""
 
     print_info "等待 Nacos 服务就绪..."
     while [ $attempt -lt $max_attempts ]; do
@@ -3399,6 +3401,20 @@ wait_for_nacos() {
             st=$(container_status nacos-server 2>/dev/null || echo "missing")
             health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' nacos-server 2>/dev/null || echo "unknown")
             print_info "等待 Nacos 就绪... (${attempt}/${max_attempts})，容器: ${st}，健康: ${health}"
+        fi
+
+        # 首次启动时 Derby 错误可能在 compose up 后几十秒才出现，初始自愈检查会错过。
+        # 等待期间持续检测一次；若容器被重建，则为新容器重新计算就绪等待时间。
+        if [ "$repair_attempted" -eq 0 ] && [ $((attempt % 5)) -eq 0 ]; then
+            container_id_before=$(docker inspect -f '{{.Id}}' nacos-server 2>/dev/null || true)
+            fix_nacos_startup_failure
+            container_id_after=$(docker inspect -f '{{.Id}}' nacos-server 2>/dev/null || true)
+            if [ -n "$container_id_after" ] && [ "$container_id_before" != "$container_id_after" ]; then
+                repair_attempted=1
+                attempt=0
+                print_info "Nacos 容器已自动重建，重新等待服务就绪..."
+                continue
+            fi
         fi
         sleep 2
     done

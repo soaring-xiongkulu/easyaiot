@@ -36,11 +36,11 @@ CAPABILITY_RULES: Dict[str, Dict[str, Any]] = {
     },
     'ai_inference': {
         'all': ['nfs_mount'],
-        'any': ['runtime', 'video_bundle_realtime'],
+        'any': ['runtime', 'video_bundle_realtime', 'ai_service_container'],
     },
     'auto_label': {
         'all': ['nfs_mount'],
-        'any': ['runtime', 'video_bundle_realtime'],
+        'any': ['runtime', 'video_bundle_realtime', 'ai_service_container'],
     },
 }
 

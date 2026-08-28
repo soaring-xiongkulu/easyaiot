@@ -19,6 +19,7 @@ if _ai_root not in sys.path:
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [auto_label_worker] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
+_worker_app = None
 
 
 def _load_env():
@@ -30,6 +31,13 @@ def _load_env():
             mod.load_ai_env(override=False)
     except Exception:
         pass
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
 
 
 def _report(status: str, **kwargs):
@@ -72,29 +80,129 @@ def _upload_frame(java_url: str, dataset_id: int, image_bytes: bytes, filename: 
         return False
 
 
-def _fetch_unlabeled(java_url: str, dataset_id: int, limit: int = 20) -> list:
+def _fetch_unlabeled(
+    java_url: str,
+    dataset_id: int,
+    limit: int = 20,
+    exclude_ids: set[int] | None = None,
+) -> list:
+    excluded = exclude_ids or set()
+    selected = []
+    page_no = 1
+    page_size = max(1, limit)
     try:
-        resp = requests.get(
-            f'{java_url.rstrip("/")}/admin-api/dataset/image/page',
-            params={'datasetId': dataset_id, 'pageNo': 1, 'pageSize': limit, 'completed': False},
-            timeout=60,
-        )
-        body = resp.json() if resp.status_code == 200 else {}
-        return (body.get('data') or {}).get('list') or [] if body.get('code') == 0 else []
+        while len(selected) < limit:
+            resp = requests.get(
+                f'{java_url.rstrip("/")}/admin-api/dataset/image/page',
+                params={
+                    'datasetId': dataset_id,
+                    'pageNo': page_no,
+                    'pageSize': page_size,
+                    'completed': 0,
+                },
+                timeout=60,
+            )
+            body = resp.json() if resp.status_code == 200 else {}
+            if body.get('code') != 0:
+                break
+            rows = (body.get('data') or {}).get('list') or []
+            selected.extend(
+                row for row in rows
+                if row.get('id') not in excluded
+            )
+            if len(rows) < page_size:
+                break
+            page_no += 1
+        return selected[:limit]
     except Exception:
         return []
 
 
-def _label_batch(task_proxy, images: list, java_url: str, dataset_id: int) -> tuple[int, int]:
+def _get_worker_app():
+    global _worker_app
+    if _worker_app is not None:
+        return _worker_app
+
+    from flask import Flask
+    from db_models import db
+
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        raise RuntimeError('DATABASE_URL 环境变量未设置')
+    app = Flask('auto_label_worker', root_path=_ai_root)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+    _worker_app = app
+    return app
+
+
+def _load_attempted_image_ids(task_id: int) -> set[int]:
+    from db_models import AutoLabelResult
+
+    app = _get_worker_app()
+    with app.app_context():
+        rows = AutoLabelResult.query.with_entities(AutoLabelResult.dataset_image_id).filter_by(
+            task_id=task_id,
+            status='SUCCESS',
+        ).all()
+    return {int(row[0]) for row in rows}
+
+
+def _record_auto_label_result(task_id: int, image_id: int, annotations: str) -> None:
+    from db_models import AutoLabelResult, db
+
+    result = AutoLabelResult.query.filter_by(
+        task_id=task_id,
+        dataset_image_id=image_id,
+    ).order_by(AutoLabelResult.id.desc()).first()
+    if result is None:
+        result = AutoLabelResult(task_id=task_id, dataset_image_id=image_id)
+        db.session.add(result)
+    result.annotations = annotations
+    result.status = 'SUCCESS'
+    result.error_message = None
+    db.session.commit()
+
+
+def _label_batch(
+    task_proxy,
+    images: list,
+    java_url: str,
+    dataset_id: int,
+    attempted_image_ids: set[int] | None = None,
+) -> tuple[int, int]:
+    app = _get_worker_app()
+    with app.app_context():
+        return _label_batch_impl(
+            task_proxy,
+            images,
+            java_url,
+            dataset_id,
+            attempted_image_ids,
+        )
+
+
+def _label_batch_impl(
+    task_proxy,
+    images: list,
+    java_url: str,
+    dataset_id: int,
+    attempted_image_ids: set[int] | None = None,
+) -> tuple[int, int]:
     from app.services.minio_service import ModelService
+    from app.services.auto_label_dataset_writer import write_auto_label_result
     from app.services.auto_label_orchestrator import label_image_with_strategy, _update_counters
     from app.services.sam_service import get_sam_service
     import tempfile
 
     sam = get_sam_service()
     ok = fail = 0
+    attempted = attempted_image_ids if attempted_image_ids is not None else set()
     for image in images:
         image_id = image.get('id')
+        if image_id in attempted:
+            continue
         path = image.get('path')
         if not path:
             fail += 1
@@ -120,17 +228,21 @@ def _label_batch(task_proxy, images: list, java_url: str, dataset_id: int) -> tu
             annos, mode = label_image_with_strategy(task_proxy, tmp.name, w, h, sam_service=sam)
             if mode == 'skip':
                 continue
-            requests.put(
-                f'{java_url.rstrip("/")}/admin-api/dataset/image/update',
-                json={
-                    'id': image_id, 'datasetId': dataset_id,
-                    'annotations': json.dumps(annos, ensure_ascii=False),
-                    'completed': 1 if annos else 0,
-                },
-                timeout=15,
+            annotations_json, _ = write_auto_label_result(
+                java_url,
+                dataset_id,
+                image_id,
+                annos,
+                keep_annotated_images_only=_env_bool(
+                    'KEEP_ANNOTATED_IMAGES_ONLY',
+                    default=True,
+                ),
             )
-            _update_counters(task_proxy, mode)
-            ok += 1
+            _record_auto_label_result(task_proxy.id, image_id, annotations_json)
+            attempted.add(image_id)
+            _update_counters(task_proxy, mode, has_detections=bool(annos))
+            if annos:
+                ok += 1
         except Exception as e:
             logger.warning('标注失败 %s: %s', image_id, e)
             fail += 1
@@ -138,6 +250,10 @@ def _label_batch(task_proxy, images: list, java_url: str, dataset_id: int) -> tu
             if os.path.exists(tmp.name):
                 os.unlink(tmp.name)
     return ok, fail
+
+
+def _parent_task_url(base: str, dataset_id: int, task_id: int) -> str:
+    return f'{base.rstrip("/")}/model/dataset/dataset/{dataset_id}/auto-label/task/{task_id}'
 
 
 class _TaskProxy:
@@ -163,7 +279,7 @@ class _TaskProxy:
             headers['X-Authorization'] = f'Bearer {token}'
         try:
             resp = requests.get(
-                f'{base}/model/dataset/{self.dataset_id}/auto-label/task/{self.id}',
+                _parent_task_url(base, self.dataset_id, self.id),
                 headers=headers,
                 timeout=30,
             )
@@ -202,7 +318,7 @@ class _TaskProxy:
             headers['X-Authorization'] = f'Bearer {token}'
         try:
             resp = requests.get(
-                f'{base}/model/dataset/{self.dataset_id}/auto-label/task/{self.id}',
+                _parent_task_url(base, self.dataset_id, self.id),
                 headers=headers,
                 timeout=15,
             )
@@ -214,6 +330,14 @@ class _TaskProxy:
         except Exception:
             pass
         return False
+
+
+def _initial_counters() -> tuple[int, int, int]:
+    return (
+        int(os.getenv('INITIAL_CAPTURED_COUNT', '0')),
+        int(os.getenv('INITIAL_LABELED_COUNT', '0')),
+        int(os.getenv('INITIAL_FAILED_COUNT', '0')),
+    )
 
 
 def main():
@@ -230,7 +354,8 @@ def main():
     capture_interval = int(os.getenv('CAPTURE_INTERVAL_SEC', '30'))
     deadline = datetime.now() + timedelta(hours=duration_hours)
     task = _TaskProxy()
-    captured = labeled = failed = 0
+    attempted_image_ids = _load_attempted_image_ids(task.id)
+    captured, labeled, failed = _initial_counters()
     cycle = 0
 
     _report('RUNNING', log='Worker 已启动（智能 SAM+YOLO 策略）')
@@ -249,9 +374,20 @@ def main():
                 captured += 1
 
         task.refresh()
-        batch = _fetch_unlabeled(java_url, dataset_id, limit=15)
+        batch = _fetch_unlabeled(
+            java_url,
+            dataset_id,
+            limit=15,
+            exclude_ids=attempted_image_ids,
+        )
         if batch:
-            ok, fl = _label_batch(task, batch, java_url, dataset_id)
+            ok, fl = _label_batch(
+                task,
+                batch,
+                java_url,
+                dataset_id,
+                attempted_image_ids,
+            )
             labeled += ok
             failed += fl
 
@@ -262,9 +398,20 @@ def main():
             break
         time.sleep(capture_interval)
 
-    remaining = _fetch_unlabeled(java_url, dataset_id, limit=500)
+    remaining = _fetch_unlabeled(
+        java_url,
+        dataset_id,
+        limit=500,
+        exclude_ids=attempted_image_ids,
+    )
     if remaining:
-        ok, fl = _label_batch(task, remaining, java_url, dataset_id)
+        ok, fl = _label_batch(
+            task,
+            remaining,
+            java_url,
+            dataset_id,
+            attempted_image_ids,
+        )
         labeled += ok
         failed += fl
 

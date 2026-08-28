@@ -34,11 +34,11 @@ capabilities:
     workload_type: srs_live
   ai_inference:
     all: [nfs_mount]
-    any: [runtime, video_bundle_realtime]
+    any: [runtime, video_bundle_realtime, ai_service_container]
     workload_type: ai_service
   auto_label:
     all: [nfs_mount]
-    any: [runtime, video_bundle_realtime]
+    any: [runtime, video_bundle_realtime, ai_service_container]
     workload_type: auto_label
 
 allocate_defaults:

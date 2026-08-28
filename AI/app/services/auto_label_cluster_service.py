@@ -72,6 +72,7 @@ def create_camera_subtasks(
             'duration_hours': pipeline_config.get('duration_hours', 8),
             'capture_interval_sec': pipeline_config.get('capture_interval_sec', 30),
             'auto_export': pipeline_config.get('auto_export', False),
+            'keep_annotated_images_only': pipeline_config.get('keep_annotated_images_only', True),
             'strategy': pipeline_config.get('strategy'),
         }
         st = AutoLabelSubTask(
@@ -156,6 +157,12 @@ def dispatch_subtask_to_node(subtask: AutoLabelSubTask, exclude_node_ids: list[i
         'RTMP_URL': subtask.rtmp_url or '',
         'DURATION_HOURS': str(cfg.get('duration_hours', 8)),
         'CAPTURE_INTERVAL_SEC': str(cfg.get('capture_interval_sec', 30)),
+        'INITIAL_CAPTURED_COUNT': str(subtask.captured_count or 0),
+        'INITIAL_LABELED_COUNT': str(subtask.labeled_count or 0),
+        'INITIAL_FAILED_COUNT': str(subtask.failed_count or 0),
+        'KEEP_ANNOTATED_IMAGES_ONLY': (
+            'true' if cfg.get('keep_annotated_images_only', True) else 'false'
+        ),
         'TEXT_PROMPTS': json.dumps(text_prompts, ensure_ascii=False),
         'STRATEGY_JSON': json.dumps(cfg.get('strategy') or {}, ensure_ascii=False),
         'ANNOTATION_TYPE': parent.annotation_type or 'rectangle',
@@ -232,12 +239,11 @@ def process_queue_once(app) -> int:
                 st.status = 'FAILED'
                 st.error_message = '父任务已结束'
                 continue
-            if parent.status == 'PENDING':
-                parent.status = 'PROCESSING'
-                parent.started_at = parent.started_at or beijing_now()
-
             ok = dispatch_subtask_to_node(st, exclude_node_ids=assigned_nodes)
             if ok and st.assigned_node_id:
+                if parent.status == 'PENDING':
+                    parent.status = 'PROCESSING'
+                    parent.started_at = parent.started_at or beijing_now()
                 dispatched += 1
                 assigned_nodes.append(int(st.assigned_node_id))
 
@@ -254,7 +260,8 @@ def update_subtask_progress(subtask_id: int, payload: dict[str, Any], app=None) 
 
     for key in ('captured_count', 'labeled_count', 'failed_count', 'processed_images'):
         if key in payload:
-            setattr(st, key, int(payload[key]))
+            current = int(getattr(st, key, 0) or 0)
+            setattr(st, key, max(current, int(payload[key])))
 
     status = payload.get('status')
     if status in ('RUNNING', 'COMPLETED', 'FAILED'):
