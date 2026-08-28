@@ -252,6 +252,39 @@ services:
       iot-infra:
         condition: service_healthy
 
+  # iot-flow（FLOW 工作流：告警处理责任到人，Flowable 6.8 + PG）
+  iot-flow:
+    image: iot-flow-biz:latest
+    container_name: iot-flow
+    user: root
+    environment:
+      - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=local # 指定程序运行环境
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=Nacos:8848 # 配置中心地址（使用Docker服务名）
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
+      - SPRING_CLOUD_NACOS_SERVER_ADDR=Nacos:8848 # 注册中心地址（使用Docker服务名）
+      - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE= # 使用默认命名空间（public）
+      # master=flow 业务库（flow_alert_record 等业务表 + Flowable ACT_ 表）；system=只读用户/角色直查（候选人策略）
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL=jdbc:postgresql://PostgresSQL:5432/iot-flow20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+      - SPRING_DATASOURCE_DYNAMIC_DATASOURCE_SYSTEM_URL=jdbc:postgresql://PostgresSQL:5432/ruoyi-vue-pro20?stringtype=unspecified
+      - SPRING_REDIS_HOST=Redis # Redis地址（使用Docker服务名）
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka地址（告警创建事件消费）
+    volumes:
+      - ../.build-cache/device/logs:/root/logs/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:48097/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: always
+    networks:
+      - easyaiot-network
+    depends_on:
+      iot-infra:
+        condition: service_healthy
+
   # iot-tdengine（默认不启动；需 TDengine 时 docker compose --profile tdengine up）
   iot-tdengine:
     profiles: ["tdengine"]

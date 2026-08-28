@@ -552,6 +552,7 @@ RUNTIME_IMAGE_SPECS=(
     "iot-message/iot-message-biz/Dockerfile|iot-module-message-biz:latest"
     "iot-sink/iot-sink-biz/Dockerfile|iot-sink-biz:latest"
     "iot-gb28181/iot-gb28181-biz/Dockerfile|iot-gb28181-biz:latest"
+    "iot-flow/iot-flow-biz/Dockerfile|iot-flow-biz:latest"
 )
 
 # 与 RUNTIME_IMAGE_SPECS 中 COPY 的 Jar 一一对应
@@ -568,6 +569,7 @@ REQUIRED_RUNTIME_JARS=(
     iot-message-biz.jar
     iot-sink-biz.jar
     iot-gb28181-biz.jar
+    iot-flow-biz.jar
 )
 
 # RUNTIME_IMAGE_SPECS 条目 → compose 服务名（dockerfile 首段目录）
