@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onHide, onLaunch, onShow } from '@dcloudio/uni-app'
 import { onMounted, onUnmounted } from 'vue'
+import { startFlowTodoBadgePolling, stopFlowTodoBadgePolling } from '@/hooks/useFlowTodoBadge'
 import { navigateToInterceptor } from '@/router/interceptor'
 import { useDictStore, useTokenStore } from '@/store'
 import { tabbarStore } from '@/tabbar/store'
@@ -27,9 +28,13 @@ onShow((options) => {
     navigateToInterceptor.invoke({ url: '/' })
   }
   tabbarStore.syncCurIdxByCurrentPageAsync()
+
+  // 流程待办角标：30s 轮询 todo-count，显示在「告警」tab
+  startFlowTodoBadgePolling()
 })
 onHide(() => {
   console.log('App Hide')
+  stopFlowTodoBadgePolling()
 })
 
 // #ifdef H5

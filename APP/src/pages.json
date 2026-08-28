@@ -145,7 +145,25 @@
       "style": {
         "navigationStyle": "custom"
       }
+    },
+    // #ifdef H5
+    {
+      "path": "pages/flow/index",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    // #endif
+    // #ifdef H5
+    {
+      "path": "pages/flow/detail/index",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
+      }
     }
+    // #endif
   ],
   "subPackages": [
     {
