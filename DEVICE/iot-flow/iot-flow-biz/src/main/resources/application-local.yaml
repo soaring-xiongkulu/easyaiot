@@ -1,0 +1,53 @@
+--- #################### 数据源配置 ####################
+
+spring:
+  autoconfigure:
+    exclude:
+      - com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
+  datasource:
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://localhost:5432/iot-flow20?autoReconnect=true&autoReconnectForPools=true&useUnicode=true&characterEncoding=utf8&createDatabaseIfNotExist=true&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&stringtype=unspecified
+          username: postgres
+          password: iot45722414822
+        # 只读访问 system 库：候选人策略（角色→用户）无 RPC 可用，直查 system_user_role
+        system:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://localhost:5432/ruoyi-vue-pro20?stringtype=unspecified
+          username: postgres
+          password: iot45722414822
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    password: basiclab@iot975248395
+
+--- #################### Kafka 配置（告警路由事件） ####################
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      acks: 1
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: latest
+      enable-auto-commit: false
+    listener:
+      missing-topics-fatal: false
+      ack-mode: MANUAL
+      concurrency: 2
+    alert-created:
+      topic: iot-alert-created
+      group-id: flow-server-alert-created-consumer
+
+logging:
+  level:
+    org.flowable: warn

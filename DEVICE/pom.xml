@@ -42,6 +42,7 @@
         <module>iot-dataset</module>
         <module>iot-node</module>
         <module>iot-visualize</module>
+        <module>iot-flow</module>
         <module>iot-device</module>
         <module>iot-tdengine</module>
         <module>iot-sink</module>

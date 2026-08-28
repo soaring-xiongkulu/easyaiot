@@ -1,0 +1,26 @@
+--- #################### 注册中心相关配置 ####################
+
+spring:
+  cloud:
+    nacos:
+      server-addr: localhost:8848
+      discovery:
+        # namespace: # 使用默认命名空间（public），不设置或设置为空字符串
+        metadata:
+          version: 1.0.0 # 服务实例的版本号，可用于灰度发布
+        username: nacos
+        password: basiclab@iot78475418754
+
+--- #################### 配置中心相关配置 ####################
+
+spring:
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848
+        # namespace: # 使用默认命名空间（public），不设置或设置为空字符串
+        group: DEFAULT_GROUP
+        name: ${spring.application.name}
+        file-extension: yaml
+        username: nacos
+        password: basiclab@iot78475418754

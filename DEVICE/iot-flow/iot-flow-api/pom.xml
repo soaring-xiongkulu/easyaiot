@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.basiclab.iot</groupId>
+        <artifactId>iot-flow</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>iot-flow-api</artifactId>
+    <name>${project.artifactId}</name>
+    <description>iot-flow-api FLOW 工作流对外 API（枚举与 DTO，预留跨服务引用）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-base</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,70 @@
+--- #################### 应用通用配置 ####################
+
+spring:
+  application:
+    name: flow-server
+  main:
+    allow-circular-references: true
+    # 允许 Bean 覆盖，例如说 Feign 等会存在重复定义的服务（infra-server 等），与 visualize/sink 一致
+    allow-bean-definition-overriding: true
+  mvc:
+    favicon:
+      enabled: false
+
+# FLOW 工作流
+iot:
+  info:
+    base-package: com.basiclab.iot.flow
+  web:
+    admin-ui:
+      url: http://dashboard.iot.iocoder.cn
+  tenant:
+    enable: true
+    # 告警路由链路与租户无关（告警来自 VIDEO 库、无 tenant_id），对应 DO 用 BaseDO
+    ignore-urls: []
+    # 无 tenant_id 列的表：Flowable 引擎表走引擎自身 SqlSessionFactory 不经过本插件，无需列出
+    ignore-tables:
+      - flow_alert_record
+      - flow_alert_route_rule
+
+--- #################### Flowable 流程引擎配置 ####################
+
+flowable:
+  # 启动时自动建表/升级 ACT_ 表
+  database-schema-update: true
+  # 显式指定数据库类型，避免 PG 新版本被误判
+  database-type: postgres
+  async-executor-activate: false
+  async-history-executor-activate: false
+  # 关闭不需要的子模块（flowable-spring-boot-starter-process 仅保留 process）
+  check-process-definitions: false
+
+--- #################### MyBatis 配置 ####################
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: ${iot.info.base-package}.dal.dataobject
+  configuration:
+    map-underscore-to-camel-case: true
+
+--- #################### WEB 配置 ####################
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+knife4j:
+  enable: true
+
+--- #################### RPC 配置 ####################
+
+feign:
+  hystrix:
+    enabled: false
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000

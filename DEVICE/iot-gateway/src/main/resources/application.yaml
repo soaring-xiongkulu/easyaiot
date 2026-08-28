@@ -72,6 +72,13 @@ spring:
             - Path=/admin-api/visualize/**
           filters:
             - RewritePath=/admin-api/visualize/v3/api-docs, /v3/api-docs
+        # FLOW 工作流（flow-server 内部 controller 已带 /admin-api 前缀，不做 StripPrefix）
+        - id: flow-admin-api
+          uri: lb://flow-server
+          predicates:
+            - Path=/admin-api/flow/**
+          filters:
+            - RewritePath=/admin-api/flow/v3/api-docs, /v3/api-docs
         # TRANSFORM 数据流转（启即入 Group 的无状态 runtime）
         - id: transform-admin-api
           uri: lb://transform-server
@@ -214,6 +221,9 @@ knife4j:
       - name: visualize-server
         service-name: visualize-server
         url: /admin-api/visualize/v3/api-docs
+      - name: flow-server
+        service-name: flow-server
+        url: /admin-api/flow/v3/api-docs
 
 --- #################### BasicLab相关配置 ####################
 

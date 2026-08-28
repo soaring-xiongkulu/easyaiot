@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.basiclab.iot</groupId>
+        <artifactId>iot-flow</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>iot-flow-biz</artifactId>
+    <name>${project.artifactId}</name>
+    <description>iot-flow-biz FLOW 工作流后台服务（Flowable 6.8.0 + 告警路由）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-env</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-flow-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-tenant</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-mybatis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-common-rpc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.basiclab.iot</groupId>
+            <artifactId>iot-system-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- Flowable 流程引擎（版本由 iot-parent 统一锁定 6.8.0） -->
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-spring-boot-starter-process</artifactId>
+        </dependency>
+        <!-- 告警路由事件消费 -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

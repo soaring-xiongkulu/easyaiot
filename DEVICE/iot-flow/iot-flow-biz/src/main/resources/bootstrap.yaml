@@ -1,0 +1,18 @@
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 25MB
+      max-request-size: 30MB
+  application:
+    name: flow-server
+
+  profiles:
+    active: local
+
+server:
+  port: 48097
+
+logging:
+  file:
+    name: ${user.home}/logs/${spring.application.name}.log
