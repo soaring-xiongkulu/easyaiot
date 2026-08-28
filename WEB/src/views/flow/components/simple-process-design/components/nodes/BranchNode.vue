@@ -33,6 +33,11 @@ const activeCondition = computed(() =>
   currentNode.value.conditionNodes?.find(item => item.id === activeConditionId.value),
 )
 
+const activePriority = computed(() => {
+  const idx = currentNode.value.conditionNodes?.findIndex(item => item.id === activeConditionId.value) ?? -1
+  return idx >= 0 ? idx + 1 : undefined
+})
+
 function openCondition(condition: SimpleFlowNode) {
   activeConditionId.value = condition.id
   conditionConfigRef.value?.open()
@@ -73,14 +78,14 @@ function removeBranchNode() {
     <span v-if="!readonly" class="fpd-branch__remove" title="删除分支节点" @click="removeBranchNode">
       <Icon icon="ant-design:delete-outlined" />
     </span>
-    <div class="fpd-branch__wrap">
+    <div class="fpd-branch__cols">
       <div v-for="(condition, idx) in currentNode.conditionNodes" :key="condition.id" class="fpd-branch__col">
         <div class="fpd-branch__inner">
-          <span class="fpd-branch__del" title="删除该分支" @click="removeBranch(idx)">
-            <Icon icon="ant-design:close-outlined" />
-          </span>
           <!-- 分支头：条件卡（并行分支显示分支卡） -->
           <div class="fpd-condition" @click="openCondition(condition)">
+            <span v-if="!readonly" class="fpd-condition__del" title="删除该分支" @click.stop="removeBranch(idx)">
+              <Icon icon="ant-design:close-outlined" />
+            </span>
             <div class="fpd-condition__head">
               <span class="fpd-condition__title">{{ condition.name }}</span>
               <span v-if="condition.conditionSetting?.defaultFlow" class="fpd-condition__tag fpd-condition__tag--default">默认</span>
@@ -97,12 +102,13 @@ function removeBranchNode() {
           <EndEventNode v-else />
         </div>
       </div>
-      <!-- 追加分支 -->
-      <div class="fpd-branch__col" style="justify-content: center">
-        <div class="fpd-condition__add" @click="addBranch">
-          <Icon icon="ant-design:plus-outlined" style="margin-right: 4px" />
-          {{ isParallel ? '添加并行分支' : '添加条件' }}
-        </div>
+      <!-- 汇聚线与主链路衔接的接头 -->
+      <span class="fpd-branch__joint fpd-branch__joint--top" />
+      <span class="fpd-branch__joint fpd-branch__joint--bottom" />
+      <!-- 追加分支：悬浮在下汇聚线上 -->
+      <div v-if="!readonly" class="fpd-branch__add" @click="addBranch">
+        <Icon icon="ant-design:plus-outlined" />
+        {{ isParallel ? '添加并行分支' : '添加条件' }}
       </div>
     </div>
     <!-- 分支汇聚后的后继链 -->
@@ -110,6 +116,6 @@ function removeBranchNode() {
     <ProcessNodeTree v-if="currentNode.childNode" v-model:flow-node="currentNode.childNode" />
     <EndEventNode v-else />
     <!-- 条件配置抽屉（绑定当前编辑的条件节点） -->
-    <ConditionNodeConfig ref="conditionConfigRef" :node="activeCondition ?? ({} as SimpleFlowNode)" />
+    <ConditionNodeConfig ref="conditionConfigRef" :node="activeCondition ?? ({} as SimpleFlowNode)" :priority="activePriority" />
   </div>
 </template>

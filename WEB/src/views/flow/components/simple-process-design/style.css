@@ -4,7 +4,7 @@
   display: flex;
   justify-content: center;
   min-height: 100%;
-  padding: 16px 0 32px;
+  padding: 40px 0 64px;
   overflow-x: auto;
   background-color: #f5f7fa;
 }
@@ -16,14 +16,15 @@
   min-width: fit-content;
 }
 
-/* ---------- 纵向连接线 + 插入按钮 ---------- */
+/* ---------- 纵向连接线 + 插入按钮 ----------
+   相邻节点间距统一为 48px（含「+」插入区），保证整条链路的纵向节奏一致 */
 .fpd-handler {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 240px;
-  height: 26px;
+  height: 48px;
   margin: 0 auto;
   flex-shrink: 0;
 }
@@ -61,7 +62,7 @@
 }
 
 .fpd-handler--readonly::before {
-  height: 40px;
+  height: 100%;
 }
 
 /* ---------- 节点卡片 ---------- */
@@ -206,6 +207,9 @@
 }
 
 /* ---------- 分支布局 ---------- */
+/* ---------- 分支布局 ----------
+   一个分支一条中轴竖线：上下汇聚横线只延伸到最外侧分支列的中心，
+   每列竖线从上横线直通下横线，节点卡片（不透明白底）压在线上方 */
 .fpd-branch {
   position: relative;
   width: fit-content;
@@ -243,33 +247,50 @@
   color: #f5222d;
 }
 
-.fpd-branch__wrap {
+.fpd-branch__cols {
   position: relative;
   display: flex;
   align-items: stretch;
   min-width: 240px;
-  padding: 0 10px;
 }
 
-/* 上下汇聚横线 */
-.fpd-branch__wrap::before,
-.fpd-branch__wrap::after {
+/* 上下汇聚横线：列宽 256、中心缩进 128，横线止于最外侧分支列中心 */
+.fpd-branch__cols::before,
+.fpd-branch__cols::after {
   content: '';
   position: absolute;
+  right: 127px;
+  left: 127px;
   height: 2px;
   background: #dee1e6;
 }
 
-.fpd-branch__wrap::before {
+.fpd-branch__cols::before {
   top: 12px;
-  right: 10px;
-  left: 10px;
 }
 
-.fpd-branch__wrap::after {
+.fpd-branch__cols::after {
   bottom: 12px;
-  right: 10px;
-  left: 10px;
+}
+
+/* 汇聚横线与上下游主链路（中轴）的衔接接头 */
+.fpd-branch__joint {
+  position: absolute;
+  left: 50%;
+  z-index: 1;
+  width: 2px;
+  background: #dee1e6;
+  transform: translateX(-50%);
+}
+
+.fpd-branch__joint--top {
+  top: 0;
+  height: 12px;
+}
+
+.fpd-branch__joint--bottom {
+  bottom: 0;
+  height: 12px;
 }
 
 .fpd-branch__col {
@@ -277,65 +298,82 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 240px;
-  padding: 0 8px;
+  width: 256px;
+  padding: 24px 8px;
 }
 
-/* 每列与上下横线之间的竖线 */
-.fpd-branch__col::before,
-.fpd-branch__col::after {
+/* 每列一条通高中轴竖线 */
+.fpd-branch__col::before {
   content: '';
   position: absolute;
+  top: 0;
+  bottom: 0;
   left: 50%;
   width: 2px;
-  height: 12px;
   transform: translateX(-50%);
   background: #dee1e6;
 }
 
-.fpd-branch__col::before {
-  top: 0;
-}
-
-.fpd-branch__col::after {
-  bottom: 0;
-}
-
-/* 内部节点链条两侧的包裹竖线 */
 .fpd-branch__inner {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   width: 240px;
-  min-height: 60px;
-  padding: 12px 10px;
-  border: 2px dashed transparent;
+}
+
+/* 追加分支：悬浮在下汇聚线上的胶囊按钮 */
+.fpd-branch__add {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid #dee1e6;
+  border-radius: 15px;
+  background: #fff;
+  color: #6b7a90;
+  font-size: 12px;
+  cursor: pointer;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 8px rgb(31 45 61 / 12%);
+  transition: color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fpd-branch__add:hover {
+  border-color: #0a7cff;
+  color: #0a7cff;
+  box-shadow: 0 4px 12px rgb(10 124 255 / 20%);
+}
+
+/* 条件分支列头卡片 */
+.fpd-condition {
+  position: relative;
+  width: 220px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
   border-radius: 10px;
-  background: rgb(245 247 250 / 60%);
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(31 45 61 / 8%);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.fpd-branch__inner::before,
-.fpd-branch__inner::after {
-  content: '';
+.fpd-condition:hover {
+  border-color: rgb(10 124 255 / 45%);
+  box-shadow: 0 8px 22px rgb(31 45 61 / 14%);
+}
+
+/* 悬停分支列时出现的删除角标 */
+.fpd-condition__del {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #dee1e6;
-}
-
-.fpd-branch__inner::before {
-  left: -2px;
-}
-
-.fpd-branch__inner::after {
-  right: -2px;
-}
-
-.fpd-branch__del {
-  position: absolute;
-  top: 2px;
-  right: 8px;
+  top: -8px;
+  right: -8px;
   z-index: 3;
   display: flex;
   justify-content: center;
@@ -345,19 +383,16 @@
   border-radius: 50%;
   background: #ff4d4f;
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-/* 条件分支列头 */
-.fpd-condition {
-  position: relative;
-  width: 220px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 4px 14px rgb(31 45 61 / 8%);
-  cursor: pointer;
+.fpd-branch__col:hover .fpd-condition__del {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .fpd-condition__head {
@@ -401,25 +436,6 @@
 .fpd-condition__tag--default {
   background: #f6ffed;
   color: #52c41a;
-}
-
-.fpd-condition__add {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 32px;
-  margin-top: 2px;
-  border: 1px dashed #c6cbd4;
-  border-radius: 8px;
-  color: #8c94a5;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.fpd-condition__add:hover {
-  border-color: #0a7cff;
-  color: #0a7cff;
 }
 
 /* ---------- 查看器状态染色 ---------- */
