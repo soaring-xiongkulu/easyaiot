@@ -37,6 +37,10 @@ public class AlertNotificationConsumer {
     @Value("${spring.kafka.alert-notification.send-topic:iot-alert-notification-send}")
     private String notificationSendTopic;
 
+    /** 告警创建事件主题（flow-server 工作流消费，与通知配置无关、独立触发） */
+    @Value("${spring.kafka.alert-created.topic:iot-alert-created}")
+    private String alertCreatedTopic;
+
     /**
      * 消费告警通知消息
      * 无论是否开启通知，都会执行存储和上传操作
@@ -125,7 +129,25 @@ public class AlertNotificationConsumer {
                 throw new IllegalStateException("告警落库失败", e);
             }
             
-            // 2. 如果开启了通知，发送到通知主题供iot-message消费
+            // 2. 告警落库成功后发布 iot-alert-created 事件（flow-server 匹配路由规则自动发起处理流程）
+            if (alertIdRef[0] != null && iotKafkaTemplate != null) {
+                try {
+                    String alertCreatedJson = JsonUtils.toJsonString(message);
+                    final Integer createdAlertId = alertIdRef[0];
+                    iotKafkaTemplate.send(alertCreatedTopic, message.getDeviceId(), alertCreatedJson)
+                            .addCallback(
+                                    result -> log.debug("✅ 告警创建事件已发送: alertId={}, topic={}",
+                                            createdAlertId, alertCreatedTopic),
+                                    failure -> log.error("❌ 发送告警创建事件失败: alertId={}, topic={}, error={}",
+                                            createdAlertId, alertCreatedTopic, failure.getMessage(), failure)
+                            );
+                } catch (Exception e) {
+                    // 工作流触发失败不影响告警主链路（FLOW 宕机不阻断告警）
+                    log.error("❌ 发布告警创建事件异常: alertId={}, error={}", alertIdRef[0], e.getMessage(), e);
+                }
+            }
+
+            // 3. 如果开启了通知，发送到通知主题供iot-message消费
             try {
                 // 检查是否有通知配置（HTTP/Webhook 只需 channels，不强制 notifyUsers）
                 boolean hasNotificationConfig = hasAlertNotificationConfig(channels, notifyUsers);
