@@ -238,4 +238,4 @@ fi
 PG -c "SELECT alert_id, process_definition_key AS 流程, process_instance_status AS 状态,
        current_task_name AS 当前节点, current_assignees AS 责任人
        FROM flow_alert_record WHERE alert_id BETWEEN 40001 AND 40008 ORDER BY alert_id"
-log "完成。APP：流程审批页（待办/已办/处理记录/抄送）；PC：工作流 → 告警处理 / 审批中心。"
+log "完成。APP：流程审批页（待办/已办/处理记录/抄送）；PC：告警管理 → 告警工单（工单列表/待办/路由规则/流程模型）。"

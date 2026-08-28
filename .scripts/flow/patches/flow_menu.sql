@@ -1,27 +1,30 @@
 -- ============================================================
--- FLOW 工作流 —— WEB 管理端菜单脚本（独立顶级菜单）
+-- FLOW 告警工单（原「工作流」）—— WEB 管理端菜单脚本
 -- 执行库：ruoyi-vue-pro20（system 库）
 -- 用法示例：
 --   docker exec -i postgres-server psql -U postgres -d ruoyi-vue-pro20 < .scripts/flow/patches/flow_menu.sql
 -- 说明：
 --   * ID 段 3300-3399（当前库菜单最大 ID 为 3208，无冲突）；
 --   * 组件路径 flow/xxx 对应 WEB/src/views/flow/xxx.vue（目录为 xxx/index.vue）；
---   * 隐藏路由：流程设计页 /flow/model/design/:id、审批详情页 /flow/process-instance/detail（query 传参）；
---   * 执行后请在【系统管理 → 角色管理】为需要使用的角色分配该菜单。
+--   * 模块已改名「告警工单」并去掉独立侧边栏菜单（顶级目录 visible=false），
+--     入口收敛至【告警管理 → 告警工单 Tab】；保留全部菜单/按钮权限行（v-auth 依赖），
+--     且路由仍会注册：流程设计页 /flow/model/design/:id、审批详情页
+--     /flow/process-instance/detail（站内信/APP deepLink）跳转不受影响；
+--   * 首次执行后请在【系统管理 → 角色管理】为需要使用的角色分配该菜单（按钮权限）。
 -- ============================================================
 
 BEGIN;
 
--- 目录：工作流
+-- 目录：告警工单（原「工作流」，不再作为独立侧边栏菜单展示）
 INSERT INTO system_menu (
   id, name, permission, type, sort, parent_id, path, icon, component, component_name,
   status, visible, keep_alive, always_show, creator, create_time, updater, update_time, deleted
 ) VALUES (
-  3300, '工作流', '', 1, 12, 0, '/flow', 'ant-design:apartment-outlined', NULL, NULL,
-  0, true, true, true, '1', NOW(), '1', NOW(), 0
+  3300, '告警工单', '', 1, 12, 0, '/flow', 'ant-design:apartment-outlined', NULL, NULL,
+  0, false, true, true, '1', NOW(), '1', NOW(), 0
 ) ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name, path = EXCLUDED.path, icon = EXCLUDED.icon,
-  sort = EXCLUDED.sort, update_time = NOW();
+  sort = EXCLUDED.sort, visible = EXCLUDED.visible, update_time = NOW();
 
 -- 菜单：流程模型（列表 + 新建 + 设计器入口 + 发布）
 INSERT INTO system_menu (
