@@ -307,6 +307,10 @@
         "pagePath": "pages/alert/index"
       },
       {
+        "text": "消息",
+        "pagePath": "pages/message/index"
+      },
+      {
         "text": "我的",
         "pagePath": "pages/user/index"
       }

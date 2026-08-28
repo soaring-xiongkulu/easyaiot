@@ -75,6 +75,7 @@ export default defineConfig({
     'i-carbon-home',
     'i-carbon-video',
     'i-carbon-warning',
+    'i-carbon-notification',
     'i-carbon-user',
     'i-carbon-flow-stream',
     'i-carbon-task-settings',

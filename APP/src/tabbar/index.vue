@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /* eslint-disable brace-style */ // 原因：unibest 官方维护的代码，尽量不要大概，避免难以合并
-// i-carbon-video i-carbon-flow-stream i-carbon-task-settings i-carbon-warning i-carbon-cube i-carbon-ai-results i-carbon-model-builder i-carbon-user-avatar
+// i-carbon-video i-carbon-flow-stream i-carbon-task-settings i-carbon-warning i-carbon-notification i-carbon-cube i-carbon-ai-results i-carbon-model-builder i-carbon-user-avatar
 import type { CustomTabBarItem } from './types'
 import { customTabbarEnable, needHideNativeTabbar, tabbarCacheEnable } from './config'
 import { tabbarList, tabbarStore } from './store'

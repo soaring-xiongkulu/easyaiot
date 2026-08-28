@@ -109,15 +109,8 @@ const menuGroupsData: MenuGroup[] = [
   },
   {
     key: 'user',
-    name: '个人与消息',
+    name: '个人',
     menus: [
-      {
-        key: 'message',
-        name: '消息中心',
-        icon: 'notification',
-        url: '/pages/message/index',
-        iconColor: '#faad14',
-      },
       {
         key: 'contact',
         name: '联系客服',

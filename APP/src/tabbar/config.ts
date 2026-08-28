@@ -87,7 +87,7 @@ export const customTabbarList: CustomTabBarItem[] = [
   //   iconActive: '/static/tabbar/homeHL.png',
   // },
   // add by 芋艿：图标可到 https://icon-sets.iconify.design/carbon/ 选择。另外，需要在 uno.config.ts 的 safelist 中添加图标类名
-  /** EasyAIoT 移动端核心 Tab：首页 / 视频 / 告警 / 我的（其余能力收纳进首页服务宫格与「我的」页） */
+  /** EasyAIoT 移动端核心 Tab：首页 / 视频 / 告警 / 消息 / 我的（其余能力收纳进首页服务宫格与「我的」页） */
   {
     text: '首页',
     pagePath: 'pages/index/index',
@@ -105,6 +105,12 @@ export const customTabbarList: CustomTabBarItem[] = [
     pagePath: 'pages/alert/index',
     iconType: 'unocss',
     icon: 'i-carbon-warning',
+  },
+  {
+    text: '消息',
+    pagePath: 'pages/message/index',
+    iconType: 'unocss',
+    icon: 'i-carbon-notification',
   },
   {
     text: '我的',
