@@ -206,6 +206,30 @@ print_section() {
     log_to_file ""
 }
 
+
+# 部署完成后初始化 FLOW 工作流并重放 demo 数据（幂等可重跑），与 install_linux.sh 的 after_stack 钩子一致。
+# 关闭：EASYAIOT_ENABLE_FLOW_DEMO=0
+ensure_flow_demo_after_stack() {
+    local flow_script="${PROJECT_ROOT}/.scripts/flow/flow_demo_replay.sh"
+    if [ "${EASYAIOT_ENABLE_FLOW_DEMO:-1}" = "0" ]; then
+        print_info "跳过 FLOW 工作流初始化与 demo 重放（EASYAIOT_ENABLE_FLOW_DEMO=0）"
+        return 0
+    fi
+    if [ ! -f "$flow_script" ]; then
+        print_warning "未找到 ${flow_script}，跳过 FLOW 初始化"
+        return 0
+    fi
+    if [ ! -x "$flow_script" ]; then
+        chmod +x "$flow_script" 2>/dev/null || true
+    fi
+    print_section "初始化 FLOW 工作流（菜单/通知模板/会签模型/路由规则 + demo 告警实例）"
+    if bash "$flow_script"; then
+        print_success "FLOW 初始化完成（APP 流程审批页 / PC 工作流菜单可查看 demo 数据）"
+    else
+        print_warning "FLOW 初始化未完全成功，可稍后手动: bash ${flow_script}"
+    fi
+}
+
 # 检测服务器架构并验证是否为 ARM（麒麟系统）
 detect_architecture() {
     print_info "检测服务器架构（麒麟系统）..."
@@ -976,6 +1000,7 @@ install_linux() {
     if [ $success_count -eq $total_count ]; then
         print_success "所有模块安装成功！"
         ensure_platform_agent_after_stack
+        ensure_flow_demo_after_stack
     else
         print_warning "部分模块安装失败，请检查日志"
         exit 1
@@ -1139,6 +1164,7 @@ start_all() {
 
     print_success "所有服务启动完成"
     ensure_platform_agent_after_stack
+    ensure_flow_demo_after_stack
 }
 
 # 停止所有服务
@@ -1224,6 +1250,7 @@ restart_all() {
 
     print_success "所有服务重启完成"
     ensure_platform_agent_after_stack
+    ensure_flow_demo_after_stack
 }
 
 # 查看所有服务状态
@@ -1515,6 +1542,7 @@ update_all() {
 
     print_success "所有服务更新完成"
     ensure_platform_agent_after_stack
+    ensure_flow_demo_after_stack
 }
 
 # 验证所有服务

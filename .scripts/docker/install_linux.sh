@@ -171,6 +171,31 @@ ensure_industrial_demo_after_stack() {
     fi
 }
 
+# 部署完成后初始化 FLOW 工作流并重放 demo 数据（幂等可重跑）：
+# 菜单/通知模板 → ruoyi-vue-pro20；烟感会签模型 + 路由规则 → iot-flow20；
+# 再向 Kafka 发 8 条告警并驱动出 通过/拒绝/取消/退回/会签半审/抄送 全状态实例。
+# 关闭：EASYAIOT_ENABLE_FLOW_DEMO=0；手动重放：bash .scripts/flow/flow_demo_replay.sh
+ensure_flow_demo_after_stack() {
+    local flow_script="${PROJECT_ROOT}/.scripts/flow/flow_demo_replay.sh"
+    if [ "${EASYAIOT_ENABLE_FLOW_DEMO:-1}" = "0" ]; then
+        print_info "跳过 FLOW 工作流初始化与 demo 重放（EASYAIOT_ENABLE_FLOW_DEMO=0）"
+        return 0
+    fi
+    if [ ! -f "$flow_script" ]; then
+        print_warning "未找到 ${flow_script}，跳过 FLOW 初始化"
+        return 0
+    fi
+    if [ ! -x "$flow_script" ]; then
+        chmod +x "$flow_script" 2>/dev/null || true
+    fi
+    print_section "初始化 FLOW 工作流（菜单/通知模板/会签模型/路由规则 + demo 告警实例）"
+    if bash "$flow_script"; then
+        print_success "FLOW 初始化完成（APP 流程审批页 / PC 工作流菜单可查看 demo 数据）"
+    else
+        print_warning "FLOW 初始化未完全成功，可稍后手动: bash ${flow_script}"
+    fi
+}
+
 stop_industrial_demo_before_stack() {
     local stopper="${PROJECT_ROOT}/.scripts/industrial-demo/stop_industrial_demo.sh"
     [ -f "$stopper" ] || return 0
@@ -1137,6 +1162,7 @@ install_linux() {
         ensure_platform_agent_after_stack
         ensure_mqtt_demo_after_stack
         ensure_industrial_demo_after_stack
+        ensure_flow_demo_after_stack
     else
         echo ""
         print_warning "部分模块安装失败，请检查日志"
@@ -1550,6 +1576,7 @@ start_all() {
     ensure_platform_agent_after_stack
     ensure_mqtt_demo_after_stack
     ensure_industrial_demo_after_stack
+    ensure_flow_demo_after_stack
 }
 
 # 停止所有服务
@@ -1653,6 +1680,7 @@ restart_all() {
     ensure_platform_agent_after_stack
     ensure_mqtt_demo_after_stack
     ensure_industrial_demo_after_stack
+    ensure_flow_demo_after_stack
 }
 
 # 查看所有服务状态
@@ -1959,6 +1987,7 @@ update_all() {
     ensure_platform_agent_after_stack
     ensure_mqtt_demo_after_stack
     ensure_industrial_demo_after_stack
+    ensure_flow_demo_after_stack
 }
 
 # 验证所有服务
