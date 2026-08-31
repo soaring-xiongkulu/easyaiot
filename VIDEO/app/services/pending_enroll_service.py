@@ -16,7 +16,7 @@ from urllib.parse import quote
 import cv2
 import numpy as np
 
-from models import FaceLibrary, FaceMatchRecord, FacePerson, PlateLibrary, PlateMatchRecord, db
+from models import FaceIdentity, FaceLibrary, FaceMatchRecord, FacePerson, PlateLibrary, PlateMatchRecord, VehicleIdentity, db
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +194,12 @@ def list_records(
         conditions = [model.device_name.ilike(kw), model.task_name.ilike(kw)]
         if kind == KIND_PLATE:
             conditions.append(model.plate_no.ilike(kw))
+            conditions.extend([
+                model.vehicle_identity_code.ilike(kw),
+                model.vehicle_identity_name.ilike(kw),
+            ])
+        else:
+            conditions.extend([model.identity_code.ilike(kw), model.identity_name.ilike(kw)])
         query = query.filter(db.or_(*conditions))
     total = query.count()
     rows = (
@@ -359,6 +365,17 @@ def _enroll_face(record: FaceMatchRecord, payload: Dict[str, Any]) -> Dict[str, 
         person_id=int(person_id) if person_id else None,
         is_enabled=bool(payload.get('is_enabled', True)),
     )
+    if record.identity_id:
+        identity = FaceIdentity.query.get(record.identity_id)
+        if identity:
+            identity.person_id = entry.person_id
+            identity.real_name = entry.person_name
+            identity.display_name = entry.person_name
+            identity.status = 'confirmed'
+            # 所有历史轨迹继续保留同一电子编码，同时刷新电子姓名快照。
+            FaceMatchRecord.query.filter_by(identity_id=identity.id).update({
+                'identity_name': identity.display_name,
+            })
     logger.info(
         '待入库工作台人脸入库: record=%s entry=%s person=%s source=%s',
         record.id, entry.id, entry.person_id, source,
@@ -399,6 +416,19 @@ def _enroll_plate(record: PlateMatchRecord, payload: Dict[str, Any]) -> Dict[str
         image_bytes=image_bytes,
         is_enabled=bool(payload.get('is_enabled', True)),
     )
+    if record.vehicle_identity_id:
+        identity = VehicleIdentity.query.get(record.vehicle_identity_id)
+        if identity:
+            identity.business_plate_entry_id = entry.id
+            identity.current_plate_no = entry.plate_no
+            identity.owner_name = entry.owner_name
+            identity.display_name = (
+                f'{entry.plate_no}-{entry.owner_name}' if entry.owner_name else entry.plate_no
+            )
+            identity.status = 'confirmed'
+            PlateMatchRecord.query.filter_by(vehicle_identity_id=identity.id).update({
+                'vehicle_identity_name': identity.display_name,
+            })
     logger.info(
         '待入库工作台车牌入库: record=%s entry=%s plate=%s source=%s',
         record.id, entry.id, entry.plate_no, source,

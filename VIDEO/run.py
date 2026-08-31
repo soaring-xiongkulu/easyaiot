@@ -969,6 +969,110 @@ def create_app(start_background_tasks=None):
                     for (lib_id,) in libs:
                         _face_lib_svc.ensure_person_records(int(lib_id))
                     print("✅ 人脸归一化人员数据迁移检查完成")
+
+                    # 人脸库自动采集生产化字段（兼容已有数据库原地升级）
+                    for col_name, col_def in (
+                        ('enroll_mode', "VARCHAR(20) NOT NULL DEFAULT 'pending'"),
+                        ('candidate_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('duplicate_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('rejected_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('capture_failed_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('error_count', 'INTEGER NOT NULL DEFAULT 0'),
+                    ):
+                        exists = db.session.execute(text("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns
+                                WHERE table_schema = 'public'
+                                  AND table_name = 'face_auto_enroll_task'
+                                  AND column_name = :column_name
+                            )
+                        """), {'column_name': col_name}).scalar()
+                        if not exists:
+                            db.session.execute(text(
+                                f'ALTER TABLE face_auto_enroll_task ADD COLUMN {col_name} {col_def}'
+                            ))
+                    db.session.commit()
+                    print("✅ 人脸自动采集数据库结构检查完成")
+
+                    # 电子身份：未知现实姓名时仍能跨摄像头归一化并形成轨迹
+                    db.create_all()
+                    for col_name, col_def in (
+                        ('identity_id', 'INTEGER'),
+                        ('identity_code', 'VARCHAR(100)'),
+                        ('identity_name', 'VARCHAR(255)'),
+                        ('identity_similarity', 'DOUBLE PRECISION'),
+                        ('identity_resolution', 'VARCHAR(20)'),
+                    ):
+                        exists = db.session.execute(text("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns
+                                WHERE table_schema = 'public'
+                                  AND table_name = 'face_match_record'
+                                  AND column_name = :column_name
+                            )
+                        """), {'column_name': col_name}).scalar()
+                        if not exists:
+                            db.session.execute(text(
+                                f'ALTER TABLE face_match_record ADD COLUMN {col_name} {col_def}'
+                            ))
+                    for index_sql in (
+                        'CREATE INDEX IF NOT EXISTS ix_face_match_record_identity_id ON face_match_record(identity_id)',
+                        'CREATE INDEX IF NOT EXISTS ix_face_match_record_identity_code ON face_match_record(identity_code)',
+                    ):
+                        db.session.execute(text(index_sql))
+                    db.session.commit()
+                    print("✅ 电子身份与轨迹数据库结构检查完成")
+
+                    # 车辆电子身份（VID）：基于现有车牌 OCR 的匿名车辆归一化与轨迹
+                    db.create_all()
+                    for col_name, col_def in (
+                        ('vehicle_identity_id', 'INTEGER'),
+                        ('vehicle_identity_code', 'VARCHAR(100)'),
+                        ('vehicle_identity_name', 'VARCHAR(255)'),
+                        ('vehicle_resolution', 'VARCHAR(30)'),
+                        ('normalized_plate_no', 'VARCHAR(20)'),
+                        ('risk_flags', 'TEXT'),
+                    ):
+                        exists = db.session.execute(text("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns
+                                WHERE table_schema = 'public'
+                                  AND table_name = 'plate_match_record'
+                                  AND column_name = :column_name
+                            )
+                        """), {'column_name': col_name}).scalar()
+                        if not exists:
+                            db.session.execute(text(
+                                f'ALTER TABLE plate_match_record ADD COLUMN {col_name} {col_def}'
+                            ))
+                    for col_name, col_def in (
+                        ('enroll_mode', "VARCHAR(20) NOT NULL DEFAULT 'pending'"),
+                        ('candidate_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('duplicate_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('rejected_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('capture_failed_count', 'INTEGER NOT NULL DEFAULT 0'),
+                        ('error_count', 'INTEGER NOT NULL DEFAULT 0'),
+                    ):
+                        exists = db.session.execute(text("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns
+                                WHERE table_schema = 'public'
+                                  AND table_name = 'plate_auto_enroll_task'
+                                  AND column_name = :column_name
+                            )
+                        """), {'column_name': col_name}).scalar()
+                        if not exists:
+                            db.session.execute(text(
+                                f'ALTER TABLE plate_auto_enroll_task ADD COLUMN {col_name} {col_def}'
+                            ))
+                    for index_sql in (
+                        'CREATE INDEX IF NOT EXISTS ix_plate_match_record_vehicle_identity_id ON plate_match_record(vehicle_identity_id)',
+                        'CREATE INDEX IF NOT EXISTS ix_plate_match_record_vehicle_identity_code ON plate_match_record(vehicle_identity_code)',
+                        'CREATE INDEX IF NOT EXISTS ix_plate_match_record_normalized_plate_no ON plate_match_record(normalized_plate_no)',
+                    ):
+                        db.session.execute(text(index_sql))
+                    db.session.commit()
+                    print("✅ 车辆电子身份与轨迹数据库结构检查完成")
                 except Exception as e:
                     print(f"⚠️  人脸归一化表迁移失败: {str(e)}")
                     import traceback
@@ -1716,6 +1820,14 @@ def create_app(start_background_tasks=None):
                 print(f"ℹ️  算法任务启动恢复: recovered={alg_recovered}")
         except Exception as e:
             print(f"⚠️  算法任务启动恢复失败: {str(e)}")
+
+        try:
+            from app.services.face_auto_enroll_service import restore_auto_enroll_jobs
+            restored_face_jobs = restore_auto_enroll_jobs()
+            if restored_face_jobs:
+                print(f"ℹ️  人脸自动采集启动恢复: restored={restored_face_jobs}")
+        except Exception as e:
+            print(f"⚠️  人脸自动采集启动恢复失败: {str(e)}")
 
     # 最后注册退出钩子，确保 LIFO 下最先执行：停止监控线程与调度器
     from app.services.camera_service import register_scheduler_shutdown

@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from flask import Blueprint, jsonify, request
 
-from app.services import plate_auto_enroll_service, plate_library_service
+from app.services import plate_auto_enroll_service, plate_library_service, vehicle_identity_service
 from app.utils.plate_model_download import get_plate_model_status, start_plate_model_download
 from models import Device
 
@@ -300,6 +300,7 @@ def save_plate_auto_enroll(library_id: int):
             device_ids=data.get('device_ids') or [],
             duration_minutes=data.get('duration_minutes', 60),
             capture_interval_sec=data.get('capture_interval_sec', 5),
+            enroll_mode=data.get('enroll_mode') or data.get('enrollMode') or 'pending',
         )
         return jsonify({'code': 0, 'msg': 'success', 'data': result})
     except ValueError as e:
@@ -448,6 +449,65 @@ def list_plate_trajectory():
     except Exception as e:
         logger.error(f"查询车牌出现轨迹失败: {str(e)}", exc_info=True)
         return jsonify({"code": 500, "msg": f"查询失败: {str(e)}"}), 500
+
+
+@plate_bp.route('/vehicle-identities', methods=['GET'])
+def list_vehicle_identities():
+    try:
+        data = vehicle_identity_service.list_identities(
+            page=int(request.args.get('page', 1)),
+            page_size=int(request.args.get('pageSize', request.args.get('page_size', 20))),
+            status=request.args.get('status') or None,
+            risk_status=request.args.get('risk_status') or None,
+            search=request.args.get('search') or None,
+        )
+        return jsonify({'code': 0, 'msg': 'success', **data})
+    except Exception as e:
+        logger.error('查询车辆电子身份失败: %s', e, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'查询失败: {str(e)}'}), 500
+
+
+@plate_bp.route('/vehicle-identities/<int:identity_id>', methods=['GET', 'PUT'])
+def vehicle_identity_detail(identity_id: int):
+    try:
+        if request.method == 'PUT':
+            data = vehicle_identity_service.update_identity(identity_id, request.get_json(silent=True) or {})
+        else:
+            from models import VehicleIdentity
+            data = VehicleIdentity.query.get_or_404(identity_id).to_dict()
+        return jsonify({'code': 0, 'msg': 'success', 'data': data})
+    except Exception as e:
+        logger.error('车辆电子身份操作失败: %s', e, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'操作失败: {str(e)}'}), 500
+
+
+@plate_bp.route('/vehicle-identities/<int:identity_id>/trajectory', methods=['GET'])
+def vehicle_identity_trajectory(identity_id: int):
+    try:
+        data = vehicle_identity_service.trajectory(
+            identity_id, date=request.args.get('date') or None,
+            limit=int(request.args.get('limit', 500)),
+        )
+        return jsonify({'code': 0, 'msg': 'success', 'data': data})
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error('查询车辆电子身份轨迹失败: %s', e, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'查询失败: {str(e)}'}), 500
+
+
+@plate_bp.route('/vehicle-identities/<int:identity_id>/merge', methods=['POST'])
+def merge_vehicle_identities(identity_id: int):
+    try:
+        payload = request.get_json(silent=True) or {}
+        source_ids = payload.get('source_ids') or payload.get('sourceIds') or []
+        if not source_ids:
+            return jsonify({'code': 400, 'msg': 'source_ids 不能为空'}), 400
+        data = vehicle_identity_service.merge_identities(identity_id, source_ids)
+        return jsonify({'code': 0, 'msg': '合并成功', 'data': data})
+    except Exception as e:
+        logger.error('合并车辆电子身份失败: %s', e, exc_info=True)
+        return jsonify({'code': 500, 'msg': f'合并失败: {str(e)}'}), 500
 
 
 @plate_bp.route('/recognize/image', methods=['POST'])

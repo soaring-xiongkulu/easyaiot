@@ -1628,11 +1628,17 @@ class FaceAutoEnrollTask(db.Model):
     duration_minutes = db.Column(db.Integer, default=60, nullable=False, comment='录入模式开启时长（分钟）')
     capture_interval_sec = db.Column(db.Integer, default=5, nullable=False, comment='抓帧间隔（秒）')
     person_name_prefix = db.Column(db.String(50), default='自动录入', nullable=False, comment='自动命名前缀')
+    enroll_mode = db.Column(db.String(20), default='pending', nullable=False, comment='录入模式[pending待审核,direct直接入库]')
     is_running = db.Column(db.Boolean, default=False, nullable=False, comment='是否正在运行')
     started_at = db.Column(db.DateTime, nullable=True, comment='本次启动时间')
     expires_at = db.Column(db.DateTime, nullable=True, comment='本次到期时间')
     enrolled_count = db.Column(db.Integer, default=0, nullable=False, comment='本次已录入数量')
     skipped_count = db.Column(db.Integer, default=0, nullable=False, comment='本次跳过数量（已存在或重复）')
+    candidate_count = db.Column(db.Integer, default=0, nullable=False, comment='本次进入待审核候选数量')
+    duplicate_count = db.Column(db.Integer, default=0, nullable=False, comment='本次重复人脸数量')
+    rejected_count = db.Column(db.Integer, default=0, nullable=False, comment='本次无人脸或质量不合格数量')
+    capture_failed_count = db.Column(db.Integer, default=0, nullable=False, comment='本次抓帧失败数量')
+    error_count = db.Column(db.Integer, default=0, nullable=False, comment='本次处理异常数量')
     last_device_index = db.Column(db.Integer, default=0, nullable=False, comment='轮询摄像头索引')
     last_tick_at = db.Column(db.DateTime, nullable=True, comment='上次抓帧时间')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
@@ -1660,15 +1666,84 @@ class FaceAutoEnrollTask(db.Model):
             'duration_minutes': self.duration_minutes,
             'capture_interval_sec': self.capture_interval_sec,
             'person_name_prefix': self.person_name_prefix,
+            'enroll_mode': self.enroll_mode,
             'is_running': self.is_running,
             'started_at': utc_isoformat_z(self.started_at),
             'expires_at': utc_isoformat_z(self.expires_at),
             'enrolled_count': self.enrolled_count,
             'skipped_count': self.skipped_count,
+            'candidate_count': self.candidate_count,
+            'duplicate_count': self.duplicate_count,
+            'rejected_count': self.rejected_count,
+            'capture_failed_count': self.capture_failed_count,
+            'error_count': self.error_count,
             'last_device_index': self.last_device_index,
             'last_tick_at': utc_isoformat_z(self.last_tick_at),
+            'effective_cycle_sec': max(1, int(self.capture_interval_sec or 1)) * max(1, len(device_ids)),
             'created_at': utc_isoformat_z(self.created_at),
             'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
+class FaceIdentity(db.Model):
+    """跨人脸库、跨摄像头的电子身份；真实姓名未知时仍可稳定追踪。"""
+    __tablename__ = 'face_identity'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    identity_code = db.Column(db.String(100), nullable=False, unique=True, index=True, comment='电子身份唯一编码')
+    display_name = db.Column(db.String(255), nullable=False, comment='电子姓名')
+    real_name = db.Column(db.String(255), nullable=True, comment='确认后的现实姓名')
+    status = db.Column(db.String(20), nullable=False, default='anonymous', index=True,
+                       comment='身份状态[anonymous,confirmed,merged,disabled]')
+    person_id = db.Column(db.Integer, nullable=True, index=True, comment='确认后关联的正式库人员ID')
+    merged_into_id = db.Column(db.Integer, nullable=True, index=True, comment='合并后的目标电子身份ID')
+    cover_image_path = db.Column(db.String(500), nullable=True, comment='最佳人脸封面路径')
+    first_seen_at = db.Column(db.DateTime, nullable=True)
+    last_seen_at = db.Column(db.DateTime, nullable=True, index=True)
+    first_device_id = db.Column(db.String(100), nullable=True)
+    last_device_id = db.Column(db.String(100), nullable=True)
+    occurrence_count = db.Column(db.Integer, nullable=False, default=0)
+    remark = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+    samples = db.relationship('FaceIdentitySample', backref='identity', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'identity_code': self.identity_code,
+            'display_name': self.display_name, 'real_name': self.real_name,
+            'status': self.status, 'person_id': self.person_id,
+            'merged_into_id': self.merged_into_id,
+            'cover_image_path': self.cover_image_path,
+            'first_seen_at': utc_isoformat_z(self.first_seen_at),
+            'last_seen_at': utc_isoformat_z(self.last_seen_at),
+            'first_device_id': self.first_device_id, 'last_device_id': self.last_device_id,
+            'occurrence_count': self.occurrence_count,
+            'sample_count': len(self.samples or []), 'remark': self.remark,
+            'created_at': utc_isoformat_z(self.created_at),
+            'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
+class FaceIdentitySample(db.Model):
+    """电子身份的人脸特征样本；与正式人脸库隔离。"""
+    __tablename__ = 'face_identity_sample'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    identity_id = db.Column(db.Integer, db.ForeignKey('face_identity.id', ondelete='CASCADE'), nullable=False, index=True)
+    embedding = db.Column(db.Text, nullable=False, comment='归一化 ArcFace 特征 JSON')
+    image_path = db.Column(db.String(500), nullable=True)
+    device_id = db.Column(db.String(100), nullable=True)
+    quality_score = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'identity_id': self.identity_id,
+            'image_path': self.image_path, 'device_id': self.device_id,
+            'quality_score': self.quality_score,
+            'created_at': utc_isoformat_z(self.created_at),
         }
 
 
@@ -1704,6 +1779,11 @@ class FaceMatchRecord(db.Model):
     enroll_person_id = db.Column(db.Integer, nullable=True, comment='入库生成/归属的人员ID')
     enroll_entry_id = db.Column(db.Integer, nullable=True, comment='入库生成的人脸条目ID')
     enroll_time = db.Column(db.DateTime, nullable=True, comment='入库时间')
+    identity_id = db.Column(db.Integer, nullable=True, index=True, comment='电子身份ID')
+    identity_code = db.Column(db.String(100), nullable=True, index=True, comment='电子身份编码快照')
+    identity_name = db.Column(db.String(255), nullable=True, comment='电子姓名快照')
+    identity_similarity = db.Column(db.Float, nullable=True, comment='电子身份匹配相似度')
+    identity_resolution = db.Column(db.String(20), nullable=True, comment='电子身份解析结果[new,matched,confirmed]')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     def to_dict(self):
@@ -1748,6 +1828,11 @@ class FaceMatchRecord(db.Model):
             'enroll_person_id': self.enroll_person_id,
             'enroll_entry_id': self.enroll_entry_id,
             'enroll_time': utc_isoformat_z(self.enroll_time),
+            'identity_id': self.identity_id,
+            'identity_code': self.identity_code,
+            'identity_name': self.identity_name,
+            'identity_similarity': self.identity_similarity,
+            'identity_resolution': self.identity_resolution,
             'created_at': utc_isoformat_z(self.created_at),
         }
 
@@ -1843,6 +1928,12 @@ class PlateAutoEnrollTask(db.Model):
     expires_at = db.Column(db.DateTime, nullable=True, comment='本次到期时间')
     enrolled_count = db.Column(db.Integer, default=0, nullable=False, comment='本次已录入数量')
     skipped_count = db.Column(db.Integer, default=0, nullable=False, comment='本次跳过数量（已存在或重复）')
+    enroll_mode = db.Column(db.String(20), default='pending', nullable=False, comment='录入模式[pending,direct]')
+    candidate_count = db.Column(db.Integer, default=0, nullable=False)
+    duplicate_count = db.Column(db.Integer, default=0, nullable=False)
+    rejected_count = db.Column(db.Integer, default=0, nullable=False)
+    capture_failed_count = db.Column(db.Integer, default=0, nullable=False)
+    error_count = db.Column(db.Integer, default=0, nullable=False)
     last_device_index = db.Column(db.Integer, default=0, nullable=False, comment='轮询摄像头索引')
     last_tick_at = db.Column(db.DateTime, nullable=True, comment='上次抓帧时间')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
@@ -1874,10 +1965,92 @@ class PlateAutoEnrollTask(db.Model):
             'expires_at': utc_isoformat_z(self.expires_at),
             'enrolled_count': self.enrolled_count,
             'skipped_count': self.skipped_count,
+            'enroll_mode': self.enroll_mode,
+            'candidate_count': self.candidate_count,
+            'duplicate_count': self.duplicate_count,
+            'rejected_count': self.rejected_count,
+            'capture_failed_count': self.capture_failed_count,
+            'error_count': self.error_count,
             'last_device_index': self.last_device_index,
             'last_tick_at': utc_isoformat_z(self.last_tick_at),
             'created_at': utc_isoformat_z(self.created_at),
             'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
+class VehicleIdentity(db.Model):
+    """车辆电子身份；第一阶段基于标准化车牌、颜色和时空观测解析。"""
+    __tablename__ = 'vehicle_identity'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    identity_code = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    display_name = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='anonymous', index=True)
+    current_plate_no = db.Column(db.String(20), nullable=True, index=True)
+    plate_color = db.Column(db.String(20), nullable=True)
+    owner_name = db.Column(db.String(255), nullable=True)
+    business_plate_entry_id = db.Column(db.Integer, nullable=True, index=True)
+    cover_image_path = db.Column(db.String(500), nullable=True)
+    first_seen_at = db.Column(db.DateTime, nullable=True)
+    last_seen_at = db.Column(db.DateTime, nullable=True, index=True)
+    first_device_id = db.Column(db.String(100), nullable=True)
+    last_device_id = db.Column(db.String(100), nullable=True)
+    occurrence_count = db.Column(db.Integer, nullable=False, default=0)
+    risk_status = db.Column(db.String(30), nullable=False, default='normal', index=True)
+    merged_into_id = db.Column(db.Integer, nullable=True, index=True)
+    remark = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+    aliases = db.relationship('VehiclePlateAlias', backref='identity', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'identity_code': self.identity_code,
+            'display_name': self.display_name, 'status': self.status,
+            'current_plate_no': self.current_plate_no, 'plate_color': self.plate_color,
+            'owner_name': self.owner_name,
+            'business_plate_entry_id': self.business_plate_entry_id,
+            'cover_image_path': self.cover_image_path,
+            'first_seen_at': utc_isoformat_z(self.first_seen_at),
+            'last_seen_at': utc_isoformat_z(self.last_seen_at),
+            'first_device_id': self.first_device_id, 'last_device_id': self.last_device_id,
+            'occurrence_count': self.occurrence_count,
+            'risk_status': self.risk_status, 'merged_into_id': self.merged_into_id,
+            'alias_count': len(self.aliases or []), 'remark': self.remark,
+            'created_at': utc_isoformat_z(self.created_at),
+            'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
+class VehiclePlateAlias(db.Model):
+    """车辆身份关联的车牌原值、标准值及历史统计。"""
+    __tablename__ = 'vehicle_plate_alias'
+    __table_args__ = (db.UniqueConstraint('identity_id', 'plate_no', name='uq_vehicle_identity_plate'),)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    identity_id = db.Column(db.Integer, db.ForeignKey('vehicle_identity.id', ondelete='CASCADE'), nullable=False, index=True)
+    plate_no = db.Column(db.String(20), nullable=False, index=True)
+    raw_plate_no = db.Column(db.String(50), nullable=True)
+    plate_color = db.Column(db.String(20), nullable=True)
+    confidence = db.Column(db.Float, nullable=True)
+    alias_type = db.Column(db.String(20), nullable=False, default='current')
+    first_seen_at = db.Column(db.DateTime, nullable=True)
+    last_seen_at = db.Column(db.DateTime, nullable=True)
+    occurrence_count = db.Column(db.Integer, nullable=False, default=1)
+    is_verified = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'identity_id': self.identity_id,
+            'plate_no': self.plate_no, 'raw_plate_no': self.raw_plate_no,
+            'plate_color': self.plate_color, 'confidence': self.confidence,
+            'alias_type': self.alias_type,
+            'first_seen_at': utc_isoformat_z(self.first_seen_at),
+            'last_seen_at': utc_isoformat_z(self.last_seen_at),
+            'occurrence_count': self.occurrence_count, 'is_verified': self.is_verified,
+            'created_at': utc_isoformat_z(self.created_at),
         }
 
 
@@ -1911,6 +2084,12 @@ class PlateMatchRecord(db.Model):
     enroll_target_library_id = db.Column(db.Integer, nullable=True, comment='入库目标车牌库ID')
     enroll_entry_id = db.Column(db.Integer, nullable=True, comment='入库生成的车牌条目ID')
     enroll_time = db.Column(db.DateTime, nullable=True, comment='入库时间')
+    vehicle_identity_id = db.Column(db.Integer, nullable=True, index=True)
+    vehicle_identity_code = db.Column(db.String(100), nullable=True, index=True)
+    vehicle_identity_name = db.Column(db.String(255), nullable=True)
+    vehicle_resolution = db.Column(db.String(30), nullable=True)
+    normalized_plate_no = db.Column(db.String(20), nullable=True, index=True)
+    risk_flags = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     def to_dict(self):
@@ -1947,6 +2126,12 @@ class PlateMatchRecord(db.Model):
             'enroll_target_library_id': self.enroll_target_library_id,
             'enroll_entry_id': self.enroll_entry_id,
             'enroll_time': utc_isoformat_z(self.enroll_time),
+            'vehicle_identity_id': self.vehicle_identity_id,
+            'vehicle_identity_code': self.vehicle_identity_code,
+            'vehicle_identity_name': self.vehicle_identity_name,
+            'vehicle_resolution': self.vehicle_resolution,
+            'normalized_plate_no': self.normalized_plate_no,
+            'risk_flags': json.loads(self.risk_flags) if self.risk_flags else [],
             'created_at': utc_isoformat_z(self.created_at),
         }
 

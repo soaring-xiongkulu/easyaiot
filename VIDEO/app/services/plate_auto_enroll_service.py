@@ -1,7 +1,9 @@
 """车牌库自动录入服务"""
 import json
 import logging
+import os
 import subprocess
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -10,7 +12,7 @@ import numpy as np
 
 from app.services import plate_library_service
 from app.utils.plate_capture_service import detect_and_recognize_plates
-from models import Device, PlateAutoEnrollTask, PlateLibrary, db
+from models import Device, PlateAutoEnrollTask, PlateLibrary, PlateMatchRecord, db
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,7 @@ def save_auto_enroll_config(
     device_ids: List[str],
     duration_minutes: int = 60,
     capture_interval_sec: int = 5,
+    enroll_mode: str = 'pending',
 ) -> Dict[str, Any]:
     PlateLibrary.query.get_or_404(library_id)
     task = PlateAutoEnrollTask.query.filter_by(library_id=library_id).first()
@@ -70,6 +73,10 @@ def save_auto_enroll_config(
     task.device_ids = json.dumps(list(device_ids or []), ensure_ascii=False)
     task.duration_minutes = max(1, int(duration_minutes))
     task.capture_interval_sec = max(1, int(capture_interval_sec))
+    mode = str(enroll_mode or 'pending').strip().lower()
+    if mode not in ('pending', 'direct'):
+        raise ValueError('录入模式只能是 pending 或 direct')
+    task.enroll_mode = mode
     task.updated_at = datetime.utcnow()
     db.session.commit()
     return _task_to_dict(task)
@@ -88,6 +95,11 @@ def start_auto_enroll(library_id: int) -> Dict[str, Any]:
     task.expires_at = now + timedelta(minutes=task.duration_minutes)
     task.enrolled_count = 0
     task.skipped_count = 0
+    task.candidate_count = 0
+    task.duplicate_count = 0
+    task.rejected_count = 0
+    task.capture_failed_count = 0
+    task.error_count = 0
     task.last_tick_at = None
     task.updated_at = now
     db.session.commit()
@@ -189,6 +201,7 @@ def _tick_single_task(task: PlateAutoEnrollTask) -> None:
     except Exception as exc:
         logger.warning('车牌自动录入抓帧失败 library=%s device=%s: %s', task.library_id, device_id, exc)
         task.skipped_count = (task.skipped_count or 0) + 1
+        task.capture_failed_count = (task.capture_failed_count or 0) + 1
         db.session.commit()
         return
 
@@ -197,11 +210,13 @@ def _tick_single_task(task: PlateAutoEnrollTask) -> None:
     except Exception as exc:
         logger.warning('车牌自动录入识别失败 library=%s: %s', task.library_id, exc)
         task.skipped_count = (task.skipped_count or 0) + 1
+        task.error_count = (task.error_count or 0) + 1
         db.session.commit()
         return
 
     if not plates:
         task.skipped_count = (task.skipped_count or 0) + 1
+        task.rejected_count = (task.rejected_count or 0) + 1
         db.session.commit()
         return
 
@@ -209,17 +224,15 @@ def _tick_single_task(task: PlateAutoEnrollTask) -> None:
     plate_no = (best.get('plate_no') or '').strip()
     if not plate_no:
         task.skipped_count = (task.skipped_count or 0) + 1
+        task.rejected_count = (task.rejected_count or 0) + 1
         db.session.commit()
         return
 
     match_result = plate_library_service.match_plate_in_library(task.library_id, plate_no)
-    if match_result.get('matched'):
-        task.skipped_count = (task.skipped_count or 0) + 1
-        db.session.commit()
-        return
 
     rect = best.get('rect') or []
     crop_bytes = None
+    crop = None
     if len(rect) >= 4:
         x1, y1, x2, y2 = [int(v) for v in rect[:4]]
         h, w = frame.shape[:2]
@@ -230,21 +243,86 @@ def _tick_single_task(task: PlateAutoEnrollTask) -> None:
             _, encoded = cv2.imencode('.jpg', crop)
             crop_bytes = encoded.tobytes()
 
-    try:
-        plate_library_service.add_entry(
-            library_id=task.library_id,
-            plate_no=plate_no,
-            plate_color=best.get('plate_color'),
-            image_bytes=crop_bytes,
-            is_enabled=True,
+    image_path = None
+    if crop is not None and crop.size:
+        root = os.getenv('PLATE_IMAGES_DIR') or os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            'data', 'plate_images',
         )
-        task.enrolled_count = (task.enrolled_count or 0) + 1
+        target = os.path.join(root, 'auto_enroll', str(task.id), str(device.id))
+        os.makedirs(target, exist_ok=True)
+        image_path = os.path.join(target, f'{datetime.utcnow():%Y%m%d_%H%M%S_%f}_{uuid.uuid4().hex[:8]}.jpg')
+        if not cv2.imwrite(image_path, crop):
+            image_path = None
+
+    try:
+        from app.services.vehicle_identity_service import apply_to_record, resolve_vehicle_identity
+        matched_entry = (match_result.get('entry') or {}) if match_result.get('matched') else {}
+        vehicle_result = resolve_vehicle_identity(
+            plate_no=plate_no, raw_plate_no=best.get('raw_plate_no') or plate_no,
+            plate_color=best.get('plate_color'), confidence=best.get('detect_conf'),
+            image_path=image_path, device_id=str(device.id),
+            formal_plate_entry_id=matched_entry.get('id'),
+        )
+        if vehicle_result.get('trajectory_suppressed'):
+            if image_path and os.path.isfile(image_path):
+                os.remove(image_path)
+            task.duplicate_count = (task.duplicate_count or 0) + 1
+            task.skipped_count = (task.skipped_count or 0) + 1
+            db.session.commit()
+            return
+
+        db.session.expire(task)
+        if not task.is_running:
+            db.session.rollback()
+            if image_path and os.path.isfile(image_path):
+                os.remove(image_path)
+            return
+
+        record = PlateMatchRecord(
+            task_name=f'车牌库自动采集-{library.name}',
+            device_id=str(device.id), device_name=device.name or str(device.id),
+            library_id=library.id, library_name=library.name,
+            plate_no=plate_no, plate_color=best.get('plate_color'),
+            plate_image_path=image_path,
+            matched=bool(match_result.get('matched')),
+            matched_plate_entry_id=matched_entry.get('id'),
+            matched_owner_name=matched_entry.get('owner_name'),
+            detect_conf=best.get('detect_conf'), task_type='auto_enroll', status='success',
+            enroll_status=(
+                'enrolled' if match_result.get('matched') else
+                ('pending' if vehicle_result.get('created') else 'tracked')
+            ),
+            bbox=json.dumps(rect[:4]) if len(rect) >= 4 else None,
+        )
+        apply_to_record(record, vehicle_result)
+        db.session.add(record)
+        if vehicle_result.get('created') and not match_result.get('matched'):
+            task.candidate_count = (task.candidate_count or 0) + 1
+        else:
+            task.duplicate_count = (task.duplicate_count or 0) + 1
+
+        # direct 仅保留向后兼容；默认 pending 不修改正式车牌库。
+        if (task.enroll_mode or 'pending') == 'direct' and vehicle_result.get('created') and not match_result.get('matched'):
+            entry = plate_library_service.add_entry(
+                library_id=task.library_id, plate_no=plate_no,
+                plate_color=best.get('plate_color'), image_bytes=crop_bytes, is_enabled=True,
+            )
+            identity = vehicle_result['identity']
+            identity.business_plate_entry_id = entry.id
+            identity.status = 'confirmed'
+            identity.owner_name = entry.owner_name
+            record.matched = True
+            record.matched_plate_entry_id = entry.id
+            record.enroll_status = 'enrolled'
+            task.enrolled_count = (task.enrolled_count or 0) + 1
     except ValueError as exc:
-        logger.info('车牌自动录入跳过 library=%s: %s', task.library_id, exc)
+        logger.info('车辆电子身份解析跳过 library=%s: %s', task.library_id, exc)
         task.skipped_count = (task.skipped_count or 0) + 1
     except Exception as exc:
-        logger.error('车牌自动录入入库失败 library=%s: %s', task.library_id, exc, exc_info=True)
+        logger.error('车辆电子身份落库失败 library=%s: %s', task.library_id, exc, exc_info=True)
         task.skipped_count = (task.skipped_count or 0) + 1
+        task.error_count = (task.error_count or 0) + 1
 
     task.updated_at = datetime.utcnow()
     db.session.commit()

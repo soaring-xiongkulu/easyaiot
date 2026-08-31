@@ -57,7 +57,7 @@ def _normalize_business_tags(tags) -> List[str]:
 
 
 def _normalize_plate_no(plate_no: str) -> str:
-    return (plate_no or '').strip().upper().replace(' ', '')
+    return re.sub(r'[\s·•.\-_]+', '', (plate_no or '').strip().upper())
 
 
 def _plate_no_similarity(plate_a: str, plate_b: str) -> float:

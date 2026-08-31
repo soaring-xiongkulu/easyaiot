@@ -13,6 +13,7 @@ from app.services.alert_service import create_alert
 from models import (
     AlgorithmTask,
     Alert,
+    FaceEntry,
     FaceLibrary,
     FaceMatchRecord,
     PlateEntry,
@@ -73,6 +74,17 @@ def _find_recent_pending_face_record(task_id, device_id: str) -> Optional[FaceMa
         .order_by(FaceMatchRecord.id.desc())
         .first()
     )
+
+
+def _find_recent_identity_record(identity_id: int, device_id: str) -> Optional[FaceMatchRecord]:
+    window_start = datetime.utcnow() - timedelta(
+        seconds=max(1, int(os.getenv('FACE_IDENTITY_TRAJECTORY_DEDUP_SECONDS', '10'))),
+    )
+    return FaceMatchRecord.query.filter(
+        FaceMatchRecord.identity_id == int(identity_id),
+        FaceMatchRecord.device_id == str(device_id or ''),
+        FaceMatchRecord.created_at >= window_start,
+    ).order_by(FaceMatchRecord.id.desc()).first()
 
 
 def parse_business_tags(raw) -> List[str]:
@@ -321,6 +333,23 @@ def process_face_matching_message(payload: Dict[str, Any]) -> FaceMatchRecord:
                 },
             )
 
+    identity_result = None
+    if face_image_path:
+        try:
+            from app.services.face_identity_service import resolve_identity
+            formal_person_id = None
+            entry_id = (best_match or {}).get('face_entry_id')
+            if entry_id:
+                entry = FaceEntry.query.get(int(entry_id))
+                formal_person_id = entry.person_id if entry else None
+            identity_result = resolve_identity(
+                image_path=face_image_path,
+                device_id=device_id,
+                formal_person_id=formal_person_id,
+            )
+        except Exception as exc:
+            logger.warning('算法任务电子身份解析失败: %s', exc, exc_info=True)
+
     record = FaceMatchRecord(
         task_id=task_id,
         task_name=task_name,
@@ -340,10 +369,19 @@ def process_face_matching_message(payload: Dict[str, Any]) -> FaceMatchRecord:
         correlation_id=correlation_id,
         task_type=task_type,
         status='success',
-        enroll_status='enrolled' if matched else 'pending',
+        enroll_status=(
+            'enrolled' if matched else
+            ('pending' if identity_result and identity_result.get('created') else 'tracked')
+        ),
         bbox=_bbox_to_json(payload.get('bbox')),
         frame_image_path=_payload_frame_path(payload) if not matched else None,
     )
+    if identity_result:
+        from app.services.face_identity_service import apply_to_record
+        apply_to_record(record, identity_result)
+        recent_identity = _find_recent_identity_record(record.identity_id, device_id)
+        if recent_identity is not None:
+            return recent_identity
     if matched:
         # 整帧仅服务于未匹配目标的标注修正，命中后立即删除避免磁盘膨胀
         _delete_frame_file(_payload_frame_path(payload))
@@ -419,6 +457,29 @@ def process_plate_matching_message(payload: Dict[str, Any]) -> PlateMatchRecord:
                 },
             )
 
+    vehicle_result = None
+    if plate_no:
+        try:
+            from app.services.vehicle_identity_service import resolve_vehicle_identity
+            vehicle_result = resolve_vehicle_identity(
+                plate_no=plate_no,
+                raw_plate_no=payload.get('rawPlateNo') or payload.get('raw_plate_no') or plate_no,
+                plate_color=plate_color,
+                confidence=payload.get('detectConf') or payload.get('detect_conf'),
+                image_path=plate_image_path,
+                device_id=device_id,
+                formal_plate_entry_id=(entry or {}).get('id') if entry else None,
+            )
+            if vehicle_result.get('trajectory_suppressed'):
+                existing = PlateMatchRecord.query.filter(
+                    PlateMatchRecord.vehicle_identity_id == vehicle_result['identity'].id,
+                    PlateMatchRecord.device_id == device_id,
+                ).order_by(PlateMatchRecord.id.desc()).first()
+                if existing:
+                    return existing
+        except Exception as exc:
+            logger.warning('算法任务车辆电子身份解析失败: %s', exc, exc_info=True)
+
     record = PlateMatchRecord(
         task_id=task_id,
         task_name=task_name,
@@ -437,10 +498,16 @@ def process_plate_matching_message(payload: Dict[str, Any]) -> PlateMatchRecord:
         correlation_id=correlation_id,
         task_type=task_type,
         status='success',
-        enroll_status='enrolled' if matched else 'pending',
+        enroll_status=(
+            'enrolled' if matched else
+            ('pending' if vehicle_result and vehicle_result.get('created') else 'tracked')
+        ),
         bbox=_bbox_to_json(payload.get('rect') or payload.get('bbox')),
         frame_image_path=_payload_frame_path(payload) if not matched else None,
     )
+    if vehicle_result:
+        from app.services.vehicle_identity_service import apply_to_record
+        apply_to_record(record, vehicle_result)
     if matched:
         # 整帧仅服务于未匹配目标的标注修正，命中后立即删除避免磁盘膨胀
         _delete_frame_file(_payload_frame_path(payload))
@@ -448,21 +515,6 @@ def process_plate_matching_message(payload: Dict[str, Any]) -> PlateMatchRecord:
         db.session.commit()
         return record
 
-    # 未匹配：同一车牌号已存在待处理记录时不重复入库工作台
-    if plate_no:
-        existing_pending = (
-            PlateMatchRecord.query
-            .filter(
-                PlateMatchRecord.matched.is_(False),
-                PlateMatchRecord.enroll_status == 'pending',
-                PlateMatchRecord.plate_no == plate_no,
-            )
-            .order_by(PlateMatchRecord.id.desc())
-            .first()
-        )
-        if existing_pending is not None:
-            db.session.expunge(record)
-            return existing_pending
     db.session.add(record)
     db.session.commit()
     return record

@@ -13,6 +13,7 @@ from app.services.face_recognition_service import decode_image_bytes, get_face_r
 from app.services.face_vector_store import get_face_vector_store
 from app.services import face_library_service
 from app.services import face_auto_enroll_service
+from app.services import face_identity_service
 from app.utils.face_model_download import get_face_rec_model_status, start_face_rec_model_download
 from models import Device
 
@@ -381,6 +382,7 @@ def save_face_auto_enroll(library_id: int):
             duration_minutes=data.get("duration_minutes") or data.get("durationMinutes") or 60,
             capture_interval_sec=data.get("capture_interval_sec") or data.get("captureIntervalSec") or 5,
             person_name_prefix=data.get("person_name_prefix") or data.get("personNamePrefix") or "摄像头自动录入",
+            enroll_mode=data.get("enroll_mode") or data.get("enrollMode") or "pending",
         )
         return jsonify({"code": 0, "msg": "保存成功", "data": result})
     except ValueError as e:
@@ -587,6 +589,64 @@ def list_person_trajectory():
     except Exception as e:
         logger.error(f"查询人物出现轨迹失败: {str(e)}", exc_info=True)
         return jsonify({"code": 500, "msg": f"查询失败: {str(e)}"}), 500
+
+
+@face_bp.route("/identities", methods=["GET"])
+def list_face_identities():
+    try:
+        data = face_identity_service.list_identities(
+            page=int(request.args.get('page', 1)),
+            page_size=int(request.args.get('pageSize', request.args.get('page_size', 20))),
+            status=request.args.get('status') or None,
+            search=request.args.get('search') or None,
+        )
+        return jsonify({"code": 0, "msg": "success", **data})
+    except Exception as e:
+        logger.error("查询电子身份失败: %s", e, exc_info=True)
+        return jsonify({"code": 500, "msg": f"查询失败: {str(e)}"}), 500
+
+
+@face_bp.route("/identities/<int:identity_id>", methods=["GET", "PUT"])
+def face_identity_detail(identity_id: int):
+    try:
+        if request.method == 'PUT':
+            data = face_identity_service.update_identity(identity_id, request.get_json(silent=True) or {})
+        else:
+            from models import FaceIdentity
+            data = FaceIdentity.query.get_or_404(identity_id).to_dict()
+        return jsonify({"code": 0, "msg": "success", "data": data})
+    except Exception as e:
+        logger.error("电子身份操作失败: %s", e, exc_info=True)
+        return jsonify({"code": 500, "msg": f"操作失败: {str(e)}"}), 500
+
+
+@face_bp.route("/identities/<int:identity_id>/trajectory", methods=["GET"])
+def face_identity_trajectory(identity_id: int):
+    try:
+        data = face_identity_service.identity_trajectory(
+            identity_id, date=request.args.get('date') or None,
+            limit=int(request.args.get('limit', 500)),
+        )
+        return jsonify({"code": 0, "msg": "success", "data": data})
+    except ValueError as e:
+        return jsonify({"code": 400, "msg": str(e)}), 400
+    except Exception as e:
+        logger.error("查询电子身份轨迹失败: %s", e, exc_info=True)
+        return jsonify({"code": 500, "msg": f"查询失败: {str(e)}"}), 500
+
+
+@face_bp.route("/identities/<int:identity_id>/merge", methods=["POST"])
+def merge_face_identities(identity_id: int):
+    try:
+        payload = request.get_json(silent=True) or {}
+        source_ids = payload.get('source_ids') or payload.get('sourceIds') or []
+        if not source_ids:
+            return jsonify({"code": 400, "msg": "source_ids 不能为空"}), 400
+        data = face_identity_service.merge_identities(identity_id, source_ids)
+        return jsonify({"code": 0, "msg": "合并成功", "data": data})
+    except Exception as e:
+        logger.error("合并电子身份失败: %s", e, exc_info=True)
+        return jsonify({"code": 500, "msg": f"合并失败: {str(e)}"}), 500
 
 
 # ====================== 兼容旧版单库 API ======================
