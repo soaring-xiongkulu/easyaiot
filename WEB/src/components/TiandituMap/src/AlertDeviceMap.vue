@@ -911,7 +911,19 @@ defineExpose({ refresh, alerts: alertData.alertsWithLocation, flyTo, updateMapSi
         :title="trajPlaying ? '暂停回放' : '播放轨迹回放'"
         @click="trajPlayToggle"
       >
-        <Icon :icon="trajPlaying ? 'ant-design:pause-filled' : 'ant-design:caret-right-filled'" :size="20" />
+        <!-- 播放/暂停为核心控件：内联 SVG 保证离线必渲染（图标库走预扫描+运行时拉取，存在空白风险） -->
+        <svg viewBox="0 0 1024 1024" width="20" height="20" aria-hidden="true">
+          <path
+            v-if="trajPlaying"
+            fill="currentColor"
+            d="M304 176h80v672h-80zm408 0h-64c-4.4 0-8 3.6-8 8v656c0 4.4 3.6 8 8 8h64c4.4 0 8-3.6 8-8V184c0-4.4-3.6-8-8-8"
+          />
+          <path
+            v-else
+            fill="currentColor"
+            d="M715.8 493.5L335 165.1c-14.2-12.2-35-1.2-35 18.5v656.8c0 19.7 20.8 30.7 35 18.5l380.8-328.4c10.9-9.4 10.9-27.6 0-37z"
+          />
+        </svg>
       </button>
       <div class="traj-timeline__main">
         <div class="traj-timeline__ticks">
@@ -1134,7 +1146,8 @@ defineExpose({ refresh, alerts: alertData.alertsWithLocation, flyTo, updateMapSi
 .alert-device-map__traj-card {
   position: absolute;
   right: 16px;
-  bottom: 16px;
+  // 抬到轨迹时间轴上方，避免与底部进度条互相遮挡
+  bottom: 118px;
   z-index: 20;
   width: 300px;
   background: #fff;
