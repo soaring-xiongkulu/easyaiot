@@ -35,6 +35,23 @@ import { fromLonLat } from 'ol/proj';
 import { boundingExtent } from 'ol/extent';
 import type { EventsKey } from 'ol/events';
 import { useMessage } from '@/hooks/web/useMessage';
+import { planRoadSegment, SEGMENT_INTERVAL_MS, type LonLat } from '../core/tiandituRoute';
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        const error = new Error('aborted');
+        error.name = 'AbortError';
+        reject(error);
+      },
+      { once: true },
+    );
+  });
+}
 import type { AlertMapItem, MapHoverInfo, MapMarkerData, TiandituBaseMapType } from '../types';
 
 const props = withDefaults(defineProps<{
@@ -130,6 +147,57 @@ const trajPlaying = ref(false);
 let trajTimer: ReturnType<typeof setInterval> | null = null;
 
 const trajectoryPoints = computed(() => props.trajectory || []);
+const roadSegments = ref<Array<LonLat[] | null>>([]);
+const roadMatching = ref(false);
+const roadMatchError = ref('');
+let roadRequestController: AbortController | null = null;
+let roadRequestVersion = 0;
+
+/** 按相邻抓拍点逐段匹配道路，单段失败不影响其他段展示。 */
+async function matchTrajectoryToRoad() {
+  roadRequestController?.abort();
+  const version = ++roadRequestVersion;
+  const list = trajectoryPoints.value;
+  roadSegments.value = [];
+  roadMatchError.value = '';
+  if (!isTrajMode.value || list.length < 2) {
+    roadMatching.value = false;
+    drawTrajectory();
+    return;
+  }
+
+  roadMatching.value = true;
+  roadRequestController = new AbortController();
+  const result: Array<LonLat[] | null> = [];
+  let failed = 0;
+  try {
+    // 顺序请求可避免浏览器端 Key 瞬时并发过高，并确保每一站都被路线经过。
+    for (let i = 0; i < list.length - 1; i++) {
+      const start: LonLat = [Number(list[i].longitude), Number(list[i].latitude)];
+      const end: LonLat = [Number(list[i + 1].longitude), Number(list[i + 1].latitude)];
+      try {
+        result.push(await planRoadSegment(start, end, props.mapMode === 'plate' ? 'plate' : 'face', roadRequestController.signal));
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') throw error;
+        result.push(null);
+        failed += 1;
+      }
+      if (version !== roadRequestVersion) return;
+      roadSegments.value = [...result];
+      drawTrajectory();
+      // 段间留出间隔，避免触发天地图浏览器端 Key 的 QPS 限制
+      if (i < list.length - 2) await sleep(SEGMENT_INTERVAL_MS, roadRequestController.signal);
+    }
+    if (failed) roadMatchError.value = `${failed} 段道路未匹配，已用虚线标识`;
+  } catch (error) {
+    if ((error as Error).name !== 'AbortError') roadMatchError.value = '道路匹配失败，请稍后重试';
+  } finally {
+    if (version === roadRequestVersion) {
+      roadMatching.value = false;
+      drawTrajectory();
+    }
+  }
+}
 
 function trajPlayToggle() {
   if (trajPlaying.value) {
@@ -267,23 +335,28 @@ function drawTrajectory() {
   for (let i = 0; i < list.length - 1; i++) {
     const segReached = reached < 0 || i < reached;
     const segColor = segReached ? '#0071e3' : '#c4d0ea';
-    const line = new Feature({
-      geometry: new LineString([coords[i], coords[i + 1]]),
-    });
+    const road = roadSegments.value[i];
+    const segmentCoords = road?.length
+      ? road.map((point) => fromLonLat(point))
+      : [coords[i], coords[i + 1]];
+    const line = new Feature({ geometry: new LineString(segmentCoords) });
     line.setStyle(
       new Style({
         stroke: new Stroke({
           color: segColor,
           width: segReached ? 3.5 : 2.5,
-          lineDash: segReached ? undefined : [4, 6],
+          lineDash: !road || !segReached ? [4, 6] : undefined,
         }),
       }),
     );
     features.push(line);
     // 段中点方向箭头
-    const midX = (coords[i][0] + coords[i + 1][0]) / 2;
-    const midY = (coords[i][1] + coords[i + 1][1]) / 2;
-    const angle = Math.atan2(coords[i + 1][1] - coords[i][1], coords[i + 1][0] - coords[i][0]);
+    const midIndex = Math.max(1, Math.floor(segmentCoords.length / 2));
+    const beforeMid = segmentCoords[midIndex - 1];
+    const atMid = segmentCoords[Math.min(midIndex, segmentCoords.length - 1)];
+    const midX = atMid[0];
+    const midY = atMid[1];
+    const angle = Math.atan2(atMid[1] - beforeMid[1], atMid[0] - beforeMid[0]);
     const arrow = new Feature({ geometry: new Point([midX, midY]) });
     arrow.setStyle(
       new Style({
@@ -291,7 +364,9 @@ function drawTrajectory() {
           points: 3,
           radius: 7,
           fill: new Fill({ color: segColor }),
-          rotation: angle,
+          // RegularShape 三角默认顶点朝上（0°=北），atan2 以正东为 0°，
+          // 需先顺时针补 90° 再叠加方位角，箭头才会指向行进方向
+          rotation: Math.PI / 2 - angle,
         }),
       }),
     );
@@ -358,6 +433,10 @@ function drawTrajectory() {
 }
 
 function clearTrajectory() {
+  roadRequestController?.abort();
+  roadSegments.value = [];
+  roadMatching.value = false;
+  roadMatchError.value = '';
   trajSource.clear();
   trajDetail.value = null;
 }
@@ -377,7 +456,7 @@ watch(
     // 新轨迹数据：重置回放状态后全览绘制
     trajStopPlay();
     trajPlayIndex.value = -1;
-    drawTrajectory();
+    void matchTrajectoryToRoad();
   },
   { deep: true },
 );
@@ -519,6 +598,7 @@ pulseTimer = setInterval(() => { nowTick.value = dayjs().valueOf(); }, 60 * 1000
 onBeforeUnmount(() => {
   if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; }
   trajStopPlay();
+  roadRequestController?.abort();
   clearHideTimer();
 });
 
@@ -555,7 +635,7 @@ watch(
       markers.setMarkers([]);
       if (heatEnabled.value) heatEnabled.value = false;
       if (trajectoryPoints.value.length) {
-        drawTrajectory();
+        void matchTrajectoryToRoad();
       }
     } else {
       // 设备模式：恢复设备/告警标记；轨迹线完全清除（各模式互不叠加）
@@ -868,10 +948,33 @@ defineExpose({ refresh, alerts: alertData.alertsWithLocation, flyTo, updateMapSi
         </template>
       </div>
     </div>
+    <div v-if="isTrajMode && trajectoryPoints.length > 1" class="road-match-status" :class="{ 'road-match-status--warn': roadMatchError }">
+      <Spin v-if="roadMatching" size="small" />
+      <Icon v-else :icon="roadMatchError ? 'ant-design:warning-outlined' : 'ant-design:check-circle-filled'" :size="15" />
+      <span>{{ roadMatching ? `正在匹配实际道路（${roadSegments.length}/${trajectoryPoints.length - 1}）` : roadMatchError || '已按实际道路绘制' }}</span>
+    </div>
   </div>
 </template>
 
 <style scoped lang="less">
+.road-match-status {
+  position: absolute;
+  z-index: 41;
+  right: 22px;
+  top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  color: #1677ff;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d8e7ff;
+  border-radius: 8px;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.14);
+
+  &--warn { color: #d46b08; border-color: #ffe0b2; }
+}
 // 人脸时空模式：底部轨迹回放时间轴（大进度条 + 时间刻度 + 当前站信息）
 .traj-timeline {
   position: absolute;
