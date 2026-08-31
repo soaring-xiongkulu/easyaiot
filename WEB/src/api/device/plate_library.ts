@@ -138,6 +138,12 @@ export interface PlateAutoEnrollTask {
   expires_at?: string;
   enrolled_count?: number;
   skipped_count?: number;
+  enroll_mode?: 'pending' | 'direct';
+  candidate_count?: number;
+  duplicate_count?: number;
+  rejected_count?: number;
+  capture_failed_count?: number;
+  error_count?: number;
 }
 
 export interface PlateMatchRecord {
@@ -156,6 +162,32 @@ export interface PlateMatchRecord {
   detect_conf?: number;
   status?: string;
   created_at?: string;
+  vehicle_identity_id?: number;
+  vehicle_identity_code?: string;
+  vehicle_identity_name?: string;
+  vehicle_resolution?: string;
+  normalized_plate_no?: string;
+  risk_flags?: string[];
+}
+
+export interface VehicleIdentity {
+  id: number;
+  identity_code: string;
+  display_name: string;
+  status: 'anonymous' | 'confirmed' | 'merged' | 'disabled';
+  current_plate_no?: string;
+  plate_color?: string;
+  owner_name?: string;
+  business_plate_entry_id?: number;
+  cover_image_path?: string;
+  first_seen_at?: string;
+  last_seen_at?: string;
+  first_device_id?: string;
+  last_device_id?: string;
+  occurrence_count: number;
+  risk_status: 'normal' | 'review' | 'suspected_clone';
+  alias_count: number;
+  remark?: string;
 }
 
 export const listPlateLibraries = (params?: { search?: string; is_enabled?: boolean }) =>
@@ -357,6 +389,24 @@ export const listPlateMatchRecords = (params?: {
     `${PLATE_PREFIX}/matching/records`,
     { params },
   );
+
+export const listVehicleIdentities = (params?: {
+  page?: number; pageSize?: number; status?: string; risk_status?: string; search?: string;
+}) => commonApi<{ code: number; msg: string; list: VehicleIdentity[]; total: number }>(
+  'get', `${PLATE_PREFIX}/vehicle-identities`, { params },
+);
+
+export const updateVehicleIdentity = (identityId: number, data: Partial<VehicleIdentity>) =>
+  plateMutationApi<VehicleIdentity>('put', `${PLATE_PREFIX}/vehicle-identities/${identityId}`, data);
+
+export const mergeVehicleIdentities = (identityId: number, sourceIds: number[]) =>
+  plateMutationApi('post', `${PLATE_PREFIX}/vehicle-identities/${identityId}/merge`, { source_ids: sourceIds });
+
+export const getVehicleIdentityTrajectory = (identityId: number, params?: { date?: string; limit?: number }) =>
+  commonApi<{
+    code: number; msg: string;
+    data: { identity: VehicleIdentity; points: PlateMatchRecord[]; total: number };
+  }>('get', `${PLATE_PREFIX}/vehicle-identities/${identityId}/trajectory`, { params });
 
 /** 车牌出现轨迹点（某车牌在某天被各摄像头识别命中的地图坐标时间线） */
 export interface PlateTrajectoryPoint {

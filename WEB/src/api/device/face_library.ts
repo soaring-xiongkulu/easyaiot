@@ -1,30 +1,30 @@
 /**
  * 人脸库管理接口
  */
-import { defHttp } from '@/utils/http/axios';
-import { resolveLibraryImageDisplayUrl } from '@/utils/alertMinioImage';
+import { defHttp } from "@/utils/http/axios";
+import { resolveLibraryImageDisplayUrl } from "@/utils/alertMinioImage";
 
 export { resolveLibraryImageDisplayUrl as resolveFaceImageDisplayUrl };
 
-const FACE_PREFIX = '/video/face';
+const FACE_PREFIX = "/video/face";
 
 const FACE_API_SUCCESS_CODES = new Set([0, 200]);
 
 /** 判断人脸库接口是否成功（兼容 transform 剥离外层后的实体对象） */
 export function isFaceLibraryApiOk(response: unknown): boolean {
-  if (response == null || typeof response !== 'object') return false;
+  if (response == null || typeof response !== "object") return false;
   const r = response as Record<string, unknown>;
-  if (typeof r.code === 'number') return FACE_API_SUCCESS_CODES.has(r.code);
-  if (typeof r.id === 'number') return true;
-  if (typeof r.success_count === 'number') return true;
+  if (typeof r.code === "number") return FACE_API_SUCCESS_CODES.has(r.code);
+  if (typeof r.id === "number") return true;
+  if (typeof r.success_count === "number") return true;
   if (Array.isArray(r.entries)) return true;
   return false;
 }
 
-export function getFaceLibraryApiMsg(response: unknown, fallback = ''): string {
-  if (response != null && typeof response === 'object') {
+export function getFaceLibraryApiMsg(response: unknown, fallback = ""): string {
+  if (response != null && typeof response === "object") {
     const msg = (response as Record<string, unknown>).msg;
-    if (typeof msg === 'string' && msg) return msg;
+    if (typeof msg === "string" && msg) return msg;
   }
   return fallback;
 }
@@ -35,16 +35,16 @@ export function unwrapFaceApiEntity<T extends { id?: number }>(
   response: T | { data?: T | null } | null | undefined,
 ): T | null {
   if (response == null) return null;
-  if (typeof response === 'object' && typeof (response as T).id === 'number') {
+  if (typeof response === "object" && typeof (response as T).id === "number") {
     return response as T;
   }
   const nested = (response as { data?: T | null }).data;
   return nested ?? null;
 }
 
-export function parseFaceApiError(error: unknown, fallback = '操作失败，请稍后重试'): string {
+export function parseFaceApiError(error: unknown, fallback = "操作失败，请稍后重试"): string {
   if (error == null) return fallback;
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     return /^Request failed with status code \d+$/i.test(error) ? fallback : error;
   }
   const e = error as {
@@ -52,9 +52,9 @@ export function parseFaceApiError(error: unknown, fallback = '操作失败，请
     response?: { data?: { msg?: string } };
   };
   const bodyMsg = e.response?.data?.msg;
-  if (typeof bodyMsg === 'string' && bodyMsg.trim()) return bodyMsg.trim();
+  if (typeof bodyMsg === "string" && bodyMsg.trim()) return bodyMsg.trim();
   const msg = e.message;
-  if (typeof msg === 'string' && msg && !/^Request failed with status code \d+$/i.test(msg)) {
+  if (typeof msg === "string" && msg && !/^Request failed with status code \d+$/i.test(msg)) {
     return msg;
   }
   return fallback;
@@ -62,27 +62,27 @@ export function parseFaceApiError(error: unknown, fallback = '操作失败，请
 
 /** 是否为摄像头自动录入未配置类错误 */
 export function isAutoEnrollConfigError(error: unknown): boolean {
-  const msg = parseFaceApiError(error, '');
+  const msg = parseFaceApiError(error, "");
   return /请先完成|请先保存|请至少绑定|绑定.*摄像头|配置.*摄像头|device_ids|摄像头/i.test(msg);
 }
 
 async function faceMutationApi<T = unknown>(
-  method: 'post' | 'put' | 'delete',
+  method: "post" | "put" | "delete",
   url: string,
   data?: unknown,
 ): Promise<{ code: number; msg: string; data?: T }> {
-  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  defHttp.setHeader({ "X-Authorization": "Bearer " + localStorage.getItem("jwt_token") });
   try {
     const res = await defHttp[method](
       {
         url,
-        ...(method === 'delete' ? {} : { data }),
+        ...(method === "delete" ? {} : { data }),
         headers: {
           // @ts-ignore
           ignoreCancelToken: true,
         },
       },
-      { isTransformResponse: false, errorMessageMode: 'none' },
+      { isTransformResponse: false, errorMessageMode: "none" },
     );
     const body = ((res as { data?: { code: number; msg: string; data?: T } })?.data ?? res) as {
       code: number;
@@ -90,20 +90,20 @@ async function faceMutationApi<T = unknown>(
       data?: T;
     };
     if (!FACE_API_SUCCESS_CODES.has(body?.code)) {
-      throw new Error(body?.msg || '请求失败');
+      throw new Error(body?.msg || "请求失败");
     }
     return body;
   } catch (error) {
-    throw new Error(parseFaceApiError(error, '请求失败'));
+    throw new Error(parseFaceApiError(error, "请求失败"));
   }
 }
 
 const commonApi = <T = any>(
-  method: 'get' | 'post' | 'delete' | 'put',
+  method: "get" | "post" | "delete" | "put",
   url: string,
   options: { params?: any; data?: any; headers?: Record<string, string> } = {},
 ) => {
-  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  defHttp.setHeader({ "X-Authorization": "Bearer " + localStorage.getItem("jwt_token") });
   return defHttp[method](
     {
       url,
@@ -112,9 +112,9 @@ const commonApi = <T = any>(
         ignoreCancelToken: true,
         ...options.headers,
       },
-      ...(method === 'get' ? { params: options.params } : { data: options.data || options.params }),
+      ...(method === "get" ? { params: options.params } : { data: options.data || options.params }),
     },
-    { isTransformResponse: true, errorMessageMode: 'none' },
+    { isTransformResponse: true, errorMessageMode: "none" },
   ) as Promise<T>;
 };
 
@@ -190,11 +190,18 @@ export interface FaceAutoEnrollTask {
   duration_minutes: number;
   capture_interval_sec: number;
   person_name_prefix?: string;
+  enroll_mode?: "pending" | "direct";
   is_running: boolean;
   started_at?: string;
   expires_at?: string;
   enrolled_count?: number;
   skipped_count?: number;
+  candidate_count?: number;
+  duplicate_count?: number;
+  rejected_count?: number;
+  capture_failed_count?: number;
+  error_count?: number;
+  effective_cycle_sec?: number;
 }
 
 export interface FaceNormalizeEntry {
@@ -252,11 +259,46 @@ export interface FaceMatchRecord {
   threshold?: number;
   status?: string;
   created_at?: string;
+  identity_id?: number;
+  identity_code?: string;
+  identity_name?: string;
+  identity_similarity?: number;
+  identity_resolution?: 'new' | 'matched' | 'confirmed';
+}
+
+export interface FaceIdentity {
+  id: number;
+  identity_code: string;
+  display_name: string;
+  real_name?: string;
+  status: 'anonymous' | 'confirmed' | 'merged' | 'disabled';
+  person_id?: number;
+  cover_image_path?: string;
+  first_seen_at?: string;
+  last_seen_at?: string;
+  first_device_id?: string;
+  last_device_id?: string;
+  occurrence_count: number;
+  sample_count: number;
+  remark?: string;
+}
+
+export interface FaceIdentityTrajectoryPoint {
+  record_id: number;
+  time: string;
+  device_id: string;
+  device_name?: string;
+  longitude?: number;
+  latitude?: number;
+  face_image_path?: string;
+  similarity?: number;
+  task_id?: number;
+  task_name?: string;
 }
 
 export const listFaceLibraries = (params?: { search?: string; is_enabled?: boolean }) => {
   return commonApi<{ code: number; msg: string; data: FaceLibrary[]; total: number }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/libraries`,
     { params },
   );
@@ -264,27 +306,27 @@ export const listFaceLibraries = (params?: { search?: string; is_enabled?: boole
 
 export const getFaceLibrary = (libraryId: number, includeEntries = false) => {
   return commonApi<{ code: number; msg: string; data: FaceLibrary }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/libraries/${libraryId}`,
     { params: { include_entries: includeEntries } },
   );
 };
 
 export const createFaceLibrary = (data: Partial<FaceLibrary>) => {
-  return faceMutationApi<FaceLibrary>('post', `${FACE_PREFIX}/libraries`, data);
+  return faceMutationApi<FaceLibrary>("post", `${FACE_PREFIX}/libraries`, data);
 };
 
 export const updateFaceLibrary = (libraryId: number, data: Partial<FaceLibrary>) => {
-  return faceMutationApi<FaceLibrary>('put', `${FACE_PREFIX}/libraries/${libraryId}`, data);
+  return faceMutationApi<FaceLibrary>("put", `${FACE_PREFIX}/libraries/${libraryId}`, data);
 };
 
 export const deleteFaceLibrary = (libraryId: number) => {
-  return faceMutationApi('delete', `${FACE_PREFIX}/libraries/${libraryId}`);
+  return faceMutationApi("delete", `${FACE_PREFIX}/libraries/${libraryId}`);
 };
 
 export const listFaceEntries = (libraryId: number, params?: { search?: string }) => {
   return commonApi<{ code: number; msg: string; data: FaceEntry[]; total: number }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/libraries/${libraryId}/entries`,
     { params },
   );
@@ -295,7 +337,7 @@ export const listFacePersons = (
   params?: { search?: string; page?: number; pageSize?: number; pageNo?: number },
 ) => {
   return commonApi<{ code: number; msg: string; data: FacePerson[]; total: number }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/libraries/${libraryId}/persons`,
     { params },
   );
@@ -303,30 +345,30 @@ export const listFacePersons = (
 
 export const getFacePerson = (personId: number, includeEntries = true) => {
   return commonApi<{ code: number; msg: string; data: FacePerson }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/persons/${personId}`,
     { params: { include_entries: includeEntries } },
   );
 };
 
 export const setFacePersonCover = (personId: number, entryId: number) => {
-  return faceMutationApi<FacePerson>('put', `${FACE_PREFIX}/persons/${personId}/cover`, {
+  return faceMutationApi<FacePerson>("put", `${FACE_PREFIX}/persons/${personId}/cover`, {
     entry_id: entryId,
   });
 };
 
 export const deleteFacePerson = (personId: number) => {
-  return faceMutationApi('delete', `${FACE_PREFIX}/persons/${personId}`);
+  return faceMutationApi("delete", `${FACE_PREFIX}/persons/${personId}`);
 };
 
 export const batchDeleteFacePersons = (personIds: number[]) => {
-  return faceMutationApi<{ deleted: number }>('post', `${FACE_PREFIX}/persons/batch-delete`, {
+  return faceMutationApi<{ deleted: number }>("post", `${FACE_PREFIX}/persons/batch-delete`, {
     person_ids: personIds,
   });
 };
 
 export const addFaceEntry = (libraryId: number, formData: FormData) => {
-  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  defHttp.setHeader({ "X-Authorization": "Bearer " + localStorage.getItem("jwt_token") });
   return defHttp.post(
     {
       url: `${FACE_PREFIX}/libraries/${libraryId}/entries`,
@@ -334,10 +376,10 @@ export const addFaceEntry = (libraryId: number, formData: FormData) => {
       headers: {
         // @ts-ignore
         ignoreCancelToken: true,
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     },
-    { isTransformResponse: true, errorMessageMode: 'none' },
+    { isTransformResponse: true, errorMessageMode: "none" },
   );
 };
 
@@ -350,7 +392,7 @@ export interface FaceBatchEntryResult {
 }
 
 export const addFaceEntriesBatch = (libraryId: number, formData: FormData) => {
-  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  defHttp.setHeader({ "X-Authorization": "Bearer " + localStorage.getItem("jwt_token") });
   return defHttp.post(
     {
       url: `${FACE_PREFIX}/libraries/${libraryId}/entries/batch`,
@@ -358,15 +400,15 @@ export const addFaceEntriesBatch = (libraryId: number, formData: FormData) => {
       headers: {
         // @ts-ignore
         ignoreCancelToken: true,
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     },
-    { isTransformResponse: true, errorMessageMode: 'none' },
+    { isTransformResponse: true, errorMessageMode: "none" },
   ) as Promise<{ code: number; msg: string; data: FaceBatchEntryResult }>;
 };
 
 export const updateFaceEntry = (entryId: number, formData: FormData) => {
-  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  defHttp.setHeader({ "X-Authorization": "Bearer " + localStorage.getItem("jwt_token") });
   return defHttp.put(
     {
       url: `${FACE_PREFIX}/entries/${entryId}`,
@@ -374,15 +416,15 @@ export const updateFaceEntry = (entryId: number, formData: FormData) => {
       headers: {
         // @ts-ignore
         ignoreCancelToken: true,
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     },
-    { isTransformResponse: true, errorMessageMode: 'none' },
+    { isTransformResponse: true, errorMessageMode: "none" },
   ) as Promise<{ code: number; msg: string; data: FaceEntry }>;
 };
 
 export const deleteFaceEntry = (entryId: number) => {
-  return faceMutationApi('delete', `${FACE_PREFIX}/entries/${entryId}`);
+  return faceMutationApi("delete", `${FACE_PREFIX}/entries/${entryId}`);
 };
 
 export const listFaceMatchRecords = (params?: {
@@ -393,11 +435,37 @@ export const listFaceMatchRecords = (params?: {
   matched?: boolean;
 }) => {
   return commonApi<{ code: number; msg: string; list: FaceMatchRecord[]; total: number }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/matching/records`,
     { params },
   );
 };
+
+export const listFaceIdentities = (params?: {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  search?: string;
+}) => commonApi<{ code: number; msg: string; list: FaceIdentity[]; total: number }>(
+  'get', `${FACE_PREFIX}/identities`, { params },
+);
+
+export const getFaceIdentity = (identityId: number) => commonApi<{
+  code: number; msg: string; data: FaceIdentity;
+}>('get', `${FACE_PREFIX}/identities/${identityId}`);
+
+export const updateFaceIdentity = (identityId: number, data: Partial<FaceIdentity>) =>
+  faceMutationApi<FaceIdentity>('put', `${FACE_PREFIX}/identities/${identityId}`, data);
+
+export const mergeFaceIdentities = (identityId: number, sourceIds: number[]) =>
+  faceMutationApi('post', `${FACE_PREFIX}/identities/${identityId}/merge`, { source_ids: sourceIds });
+
+export const getFaceIdentityTrajectory = (identityId: number, params?: { date?: string; limit?: number }) =>
+  commonApi<{
+    code: number;
+    msg: string;
+    data: { identity: FaceIdentity; points: FaceIdentityTrajectoryPoint[]; total: number };
+  }>('get', `${FACE_PREFIX}/identities/${identityId}/trajectory`, { params });
 
 /** 人物出现轨迹点（某人在某天被各摄像头识别命中的地图坐标时间线） */
 export interface FaceTrajectoryPoint {
@@ -427,22 +495,19 @@ export const getFaceTrajectory = (params: {
     code: number;
     msg: string;
     data: { person_name: string; date: string; points: FaceTrajectoryPoint[]; total: number };
-  }>('get', `${FACE_PREFIX}/matching/trajectory`, { params });
+  }>("get", `${FACE_PREFIX}/matching/trajectory`, { params });
 };
 
 export const getFaceAutoEnrollTask = (libraryId: number) => {
   return commonApi<{ code: number; msg: string; data: FaceAutoEnrollTask | null }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/libraries/${libraryId}/auto-enroll`,
   );
 };
 
-export const saveFaceAutoEnrollConfig = (
-  libraryId: number,
-  data: Partial<FaceAutoEnrollTask>,
-) => {
+export const saveFaceAutoEnrollConfig = (libraryId: number, data: Partial<FaceAutoEnrollTask>) => {
   return faceMutationApi<FaceAutoEnrollTask>(
-    'put',
+    "put",
     `${FACE_PREFIX}/libraries/${libraryId}/auto-enroll`,
     data,
   );
@@ -450,21 +515,21 @@ export const saveFaceAutoEnrollConfig = (
 
 export const startFaceAutoEnroll = (libraryId: number) => {
   return faceMutationApi<FaceAutoEnrollTask>(
-    'post',
+    "post",
     `${FACE_PREFIX}/libraries/${libraryId}/auto-enroll/start`,
   );
 };
 
 export const stopFaceAutoEnroll = (libraryId: number) => {
   return faceMutationApi<FaceAutoEnrollTask>(
-    'post',
+    "post",
     `${FACE_PREFIX}/libraries/${libraryId}/auto-enroll/stop`,
   );
 };
 
 export const previewFaceNormalizeGroups = (libraryId: number, threshold = 0.75) => {
   return commonApi<{ code: number; msg: string; data: FaceNormalizeGroup[]; total: number }>(
-    'get',
+    "get",
     `${FACE_PREFIX}/libraries/${libraryId}/normalize/preview`,
     { params: { threshold } },
   );
@@ -476,7 +541,7 @@ export const mergeFaceNormalizePersons = (
   targetPersonId: number,
   sourcePersonIds: number[],
 ) => {
-  return faceMutationApi('post', `${FACE_PREFIX}/libraries/${libraryId}/normalize/merge`, {
+  return faceMutationApi("post", `${FACE_PREFIX}/libraries/${libraryId}/normalize/merge`, {
     target_person_id: targetPersonId,
     source_person_ids: sourcePersonIds,
   });
@@ -488,7 +553,7 @@ export const mergeFaceNormalizeEntries = (
   targetEntryId: number,
   sourceEntryIds: number[],
 ) => {
-  return faceMutationApi('post', `${FACE_PREFIX}/libraries/${libraryId}/normalize/merge`, {
+  return faceMutationApi("post", `${FACE_PREFIX}/libraries/${libraryId}/normalize/merge`, {
     target_entry_id: targetEntryId,
     source_entry_ids: sourceEntryIds,
   });
@@ -496,7 +561,7 @@ export const mergeFaceNormalizeEntries = (
 
 export const mergeAllFaceNormalizeGroups = (libraryId: number, threshold = 0.75) => {
   return faceMutationApi<FaceNormalizeMergeAllResult>(
-    'post',
+    "post",
     `${FACE_PREFIX}/libraries/${libraryId}/normalize/merge-all`,
     { threshold },
   );
@@ -504,7 +569,7 @@ export const mergeAllFaceNormalizeGroups = (libraryId: number, threshold = 0.75)
 
 /** 查询人脸特征提取模型是否已下载 */
 export const getFaceRecModelStatus = () => {
-  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  defHttp.setHeader({ "X-Authorization": "Bearer " + localStorage.getItem("jwt_token") });
   return defHttp
     .get(
       {
@@ -514,13 +579,13 @@ export const getFaceRecModelStatus = () => {
           ignoreCancelToken: true,
         },
       },
-      { isTransformResponse: false, errorMessageMode: 'none' },
+      { isTransformResponse: false, errorMessageMode: "none" },
     )
     .then((res) => {
-      const body = ((res as { data?: { code: number; msg: string; data: FaceRecModelStatus } })?.data ??
-        res) as { code: number; msg: string; data: FaceRecModelStatus };
+      const body = ((res as { data?: { code: number; msg: string; data: FaceRecModelStatus } })
+        ?.data ?? res) as { code: number; msg: string; data: FaceRecModelStatus };
       if (!FACE_API_SUCCESS_CODES.has(body?.code)) {
-        throw new Error(body?.msg || '查询失败');
+        throw new Error(body?.msg || "查询失败");
       }
       return body;
     });
@@ -529,7 +594,7 @@ export const getFaceRecModelStatus = () => {
 /** 触发服务端下载人脸特征提取模型 */
 export const downloadFaceRecModel = () => {
   return faceMutationApi<{ started: boolean; message?: string } & FaceRecModelStatus>(
-    'post',
+    "post",
     `${FACE_PREFIX}/model/download`,
   );
 };

@@ -46,6 +46,17 @@ export interface PendingEnrollRecord {
   similarity?: number;
   matched?: boolean;
   matched_person_name?: string;
+  identity_id?: number;
+  identity_code?: string;
+  identity_name?: string;
+  identity_similarity?: number;
+  identity_resolution?: 'new' | 'matched' | 'confirmed';
+  vehicle_identity_id?: number;
+  vehicle_identity_code?: string;
+  vehicle_identity_name?: string;
+  vehicle_resolution?: string;
+  normalized_plate_no?: string;
+  risk_flags?: string[];
   enroll_status: PendingEnrollStatus;
   /** AI 标注框 [x1, y1, x2, y2]（整帧像素坐标） */
   bbox?: [number, number, number, number] | null;
