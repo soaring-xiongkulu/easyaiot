@@ -21,6 +21,9 @@
             待入库工作台
           </Button>
         </a-badge>
+        <Button type="default" preIcon="ant-design:idcard-outlined" @click="handleOpenIdentities">
+          电子身份档案
+        </Button>
         <Button type="default" @click="handleToggleViewMode" preIcon="ant-design:swap-outlined">
           切换视图
         </Button>
@@ -69,6 +72,9 @@
                       待入库工作台
                     </Button>
                   </a-badge>
+                  <Button type="default" preIcon="ant-design:idcard-outlined" @click="handleOpenIdentities">
+                    电子身份档案
+                  </Button>
                   <Button
                     type="default"
                     @click="handleToggleViewMode"
@@ -159,6 +165,7 @@
     <FaceLibraryModal @register="registerLibraryModal" @success="handleSuccess" />
     <FaceAutoEnrollDrawer @register="registerAutoEnrollDrawer" @success="handleSuccess" />
     <FacePendingWorkbench @register="registerWorkbench" @stats-change="onWorkbenchStatsChange" />
+    <FaceIdentityDrawer @register="registerIdentityDrawer" />
     </template>
   </div>
 </template>
@@ -190,6 +197,7 @@ import FaceLibraryModal from './FaceLibraryModal.vue';
 import FaceAutoEnrollDrawer from './FaceAutoEnrollDrawer.vue';
 import FaceModelSetupPanel from './FaceModelSetupPanel.vue';
 import FacePendingWorkbench from '../PendingEnroll/FacePendingWorkbench.vue';
+import FaceIdentityDrawer from './FaceIdentityDrawer.vue';
 import { getPendingStats, type PendingEnrollStats } from '@/api/device/pending_enroll';
 import FACE_LIBRARY_IMAGE from '@/assets/images/video/snap-task.png';
 import { Button } from '@/components/Button'
@@ -202,6 +210,7 @@ const router = useRouter();
 const [registerLibraryModal, { openDrawer: openLibraryDrawer }] = useDrawer();
 const [registerAutoEnrollDrawer, { openDrawer: openAutoEnrollDrawer }] = useDrawer();
 const [registerWorkbench, { openDrawer: openWorkbench }] = useDrawer();
+const [registerIdentityDrawer, { openDrawer: openIdentityDrawer }] = useDrawer();
 
 const pendingCount = ref(0);
 
@@ -217,6 +226,10 @@ async function refreshPendingStats() {
 function handleOpenWorkbench() {
   // 本项目 useDrawerInner 回调由 data 触发（见 useDrawer.ts watchEffect），必须携带 payload 才会执行加载
   openWorkbench(true, { openedAt: Date.now() });
+}
+
+function handleOpenIdentities() {
+  openIdentityDrawer(true, { openedAt: Date.now() });
 }
 
 function onWorkbenchStatsChange(stats: PendingEnrollStats) {
