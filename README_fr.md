@@ -970,6 +970,7 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 
 | | | |
 |:---:|:---:|:---:|
+| ![Vidéosurveillance](.image/banner/banner1237.png) | ![Vidéosurveillance](.image/banner/banner1238.png) | ![Vidéosurveillance](.image/banner/banner1239.png) |
 | ![Vidéosurveillance](.image/banner/banner1225.png) | ![Vidéosurveillance](.image/banner/banner1226.png) | ![Vidéosurveillance](.image/banner/banner1227.png) |
 | ![Vidéosurveillance](.image/banner/banner1228.png) | ![Vidéosurveillance](.image/banner/banner1229.png) | ![Vidéosurveillance](.image/banner/banner1230.png) |
 | ![Vidéosurveillance](.image/banner/banner1219.png) | ![Vidéosurveillance](.image/banner/banner1220.png) | ![Vidéosurveillance](.image/banner/banner1221.png) |

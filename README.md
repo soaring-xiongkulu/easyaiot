@@ -994,6 +994,7 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 
 | | | |
 |:---:|:---:|:---:|
+| ![Video Surveillance](.image/banner/banner1237.png) | ![Video Surveillance](.image/banner/banner1238.png) | ![Video Surveillance](.image/banner/banner1239.png) |
 | ![Video Surveillance](.image/banner/banner1225.png) | ![Video Surveillance](.image/banner/banner1226.png) | ![Video Surveillance](.image/banner/banner1227.png) |
 | ![Video Surveillance](.image/banner/banner1228.png) | ![Video Surveillance](.image/banner/banner1229.png) | ![Video Surveillance](.image/banner/banner1230.png) |
 | ![Video Surveillance](.image/banner/banner1219.png) | ![Video Surveillance](.image/banner/banner1220.png) | ![Video Surveillance](.image/banner/banner1221.png) |

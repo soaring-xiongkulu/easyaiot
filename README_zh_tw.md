@@ -980,6 +980,7 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 
 | | | |
 |:---:|:---:|:---:|
+| ![視頻監控](.image/banner/banner1237.png) | ![視頻監控](.image/banner/banner1238.png) | ![視頻監控](.image/banner/banner1239.png) |
 | ![視頻監控](.image/banner/banner1225.png) | ![視頻監控](.image/banner/banner1226.png) | ![視頻監控](.image/banner/banner1227.png) |
 | ![視頻監控](.image/banner/banner1228.png) | ![視頻監控](.image/banner/banner1229.png) | ![視頻監控](.image/banner/banner1230.png) |
 | ![視頻監控](.image/banner/banner1219.png) | ![視頻監控](.image/banner/banner1220.png) | ![視頻監控](.image/banner/banner1221.png) |

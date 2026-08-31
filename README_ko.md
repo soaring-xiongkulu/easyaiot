@@ -970,6 +970,7 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 
 | | | |
 |:---:|:---:|:---:|
+| ![영상 모니터링](.image/banner/banner1237.png) | ![영상 모니터링](.image/banner/banner1238.png) | ![영상 모니터링](.image/banner/banner1239.png) |
 | ![영상 모니터링](.image/banner/banner1225.png) | ![영상 모니터링](.image/banner/banner1226.png) | ![영상 모니터링](.image/banner/banner1227.png) |
 | ![영상 모니터링](.image/banner/banner1228.png) | ![영상 모니터링](.image/banner/banner1229.png) | ![영상 모니터링](.image/banner/banner1230.png) |
 | ![영상 모니터링](.image/banner/banner1219.png) | ![영상 모니터링](.image/banner/banner1220.png) | ![영상 모니터링](.image/banner/banner1221.png) |
