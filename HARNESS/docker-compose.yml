@@ -18,11 +18,14 @@ services:
     working_dir: ${HARNESS_WORKSPACE:-/workspace/easyaiot}
     ports:
       - "${HARNESS_LISTEN_PORT:-3080}:3080"
+      - "${LLM_GATEWAY_PORT:-3082}:3082"
     volumes:
       - ${HARNESS_WORKSPACE_HOST}:${HARNESS_WORKSPACE:-/workspace/easyaiot}
       - ./ontology:/harness/ontology:ro
       - ./cordis.patch.yml:/harness/cordis.patch.yml:ro
       - ./image/branding:/harness/image/branding:ro
+      # 插件热挂载：改 plugins/ 后重启容器即生效，免重建镜像（entrypoint 会补齐 node_modules 链接）
+      - ./plugins:/harness/plugins:ro
       - harness-dsh-home:/data/dsh-home
     environment:
       DSH_HOME: /data/dsh-home
@@ -35,6 +38,8 @@ services:
       HARNESS_TRUSTED_HOSTS: ${HARNESS_TRUSTED_HOSTS:-}
       EASYAIOT_GATEWAY_URL: ${EASYAIOT_GATEWAY_URL:-http://host.docker.internal:48080}
       EASYAIOT_IDEA_URL: ${EASYAIOT_IDEA_URL:-http://127.0.0.1:9300}
+      LLM_GATEWAY_PORT: ${LLM_GATEWAY_PORT:-3082}
+      LLM_GATEWAY_TOKEN: ${LLM_GATEWAY_TOKEN:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}

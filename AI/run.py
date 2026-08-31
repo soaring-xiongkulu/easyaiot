@@ -337,6 +337,11 @@ def create_app():
             ensure_auto_label_task_cluster_columns(db.engine)
             ensure_auto_label_subtask_table(db.engine)
             ensure_auto_label_model_history_table(db.engine)
+            # 大模型预置模板数据播种（仅空表时执行，幂等；占位密钥 sk-placeholder-* 填入真实密钥后启用）
+            from app.services.llm_template_seed import ensure_llm_template_seed
+            seed_result = ensure_llm_template_seed()
+            if seed_result.get('inserted'):
+                print(f"✅ 已播种 {seed_result['inserted']} 条大模型预置模板数据（填入真实 API 密钥后即可启用）")
             print(f"✅ 数据库连接成功，表结构已创建/验证")
         except Exception as e:
             error_msg = str(e)

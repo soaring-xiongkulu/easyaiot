@@ -492,6 +492,29 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>보안 안내</strong>: 실험 모듈, upstream <code>dsh</code> Developer Preview; 운영 환경은 접근 제한 및 쓰기/Shell 승인 설정; API Key는 Git에 커밋 금지</li>
 </ul>
 
+### 🔌 LLM 통합 게이트웨이 — 하나의 프로토콜, 모든 주요 LLM 벤더
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+플랫폼은 모든 주요 LLM 벤더를 단일 OpenAI 호환 프로토콜(<code>/v1/chat/completions</code>)로 통합합니다. 동시에 활성화되는 모델은 1개뿐이며, 페이지 내 모든 AI 기능(이미지/영상 이해, 자동 라벨링, 채팅)이 즉시 전환됩니다. 벤더 추가는 코드 변경 없이 템플릿 레지스트리에 한 줄만 추가하면 됩니다. 최초 배포 시 프리셋 템플릿 데이터가 자동 초기화되며(플레이스홀더 키 <code>sk-placeholder-*</code>, 비활성), 편집 화면에서 실제 API 키를 입력하면 활성화할 수 있습니다 — UI가 전체 과정을 안내합니다.
+</p>
+
+| 벤더 | 템플릿 키 | 모델 ID (추천 목록) | 비고 |
+| :-- | :-- | :-- | :-- |
+| DeepSeek | `deepseek` | deepseek-v4-flash, deepseek-v4-pro, deepseek-v4-flash-vision-exp | 1M 컨텍스트, 공식 API |
+| 알리바바 클라우드 백련 | `dashscope` | qwen3.8-max, qwen3.7-max/plus/flash, qwen3.6-plus/flash, qwen3.5-plus/flash, qwen3.5-omni-plus/flash, qwen3-vl-plus/flash, qwen-vl-max | OpenAI 호환 모드 엔드포인트 |
+| Zhipu GLM | `zhipu` | glm-5.3, glm-5.2, glm-5.1, glm-5-turbo, glm-5, glm-4.7, glm-4.7-flash, glm-4.5-flash, glm-4-plus/flash/air, glm-4v-plus/flash, glm-ocr | v4 엔드포인트 |
+| OpenAI | `openai` | gpt-5.6-sol, gpt-5.6, gpt-5.6-sol-pro, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5, gpt-5.4-mini, gpt-4.1-mini | max_completion_tokens 자동 호환 |
+| Kimi (Moonshot) | `kimi` | kimi-k2.6, kimi-k2.7-code | K2는 temperature=1 강제 |
+| Claude (Anthropic) | `claude` | claude-opus-4-7/4-6/4-5, claude-sonnet-4-6/4-5, claude-haiku-4-5 | 네이티브 Messages API — OpenAI 호환 릴레이/게이트웨이로 연결 |
+| Anthropic 호환 | `anthropic` | — | OpenAI 호환 릴레이 엔드포인트 입력 |
+| 커스텀 | `custom` | — | 모든 OpenAI 호환 엔드포인트 |
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>프리셋 템플릿 데이터</strong>: 신규 배포 시 6개 템플릿(DeepSeek / 백련 / GLM / OpenAI / Kimi / Claude) 자동 초기화; 플레이스홀더를 실제 키로 교체하기 전까지 활성화·연결 테스트 차단 안내</li>
+  <li><strong>다른 서비스 직접 사용</strong>: 활성 모델을 OpenAI 호환 엔드포인트(<code>POST /v1/chat/completions</code>, <code>GET /v1/models</code>)로 노출 — 모든 OpenAI SDK가 Bearer 토큰으로 호출 가능</li>
+  <li><strong>호출 복원력</strong>: 순차 파라미터 폴백(temperature → max_completion_tokens), SSE 스트리밍, 벤더별 타임아웃</li>
+</ul>
+
 ### 📦 내장 AI 모델
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">

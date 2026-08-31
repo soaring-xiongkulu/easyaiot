@@ -78,6 +78,7 @@ import { useModal } from '@/components/Modal';
 import { Col } from 'ant-design-vue';
 import { PlusOutlined, SwapOutlined } from '@ant-design/icons-vue';
 import { useMessage } from '@/hooks/web/useMessage';
+import { Modal } from 'ant-design-vue';
 import { getBasicColumns, getFormConfig } from './Data';
 import { getLLMList, deleteLLM, activateLLM, deactivateLLM, testLLM, type LLMModel } from '@/api/device/llm';
 import LLMModal from './LLMModal.vue';
@@ -286,32 +287,51 @@ const handleDelete = async (record: LLMModel) => {
 
 // 激活
 const handleActivate = async (record: LLMModel) => {
-  try {
-    createMessage.loading({ content: '正在激活...', key: 'activate' });
-    const response = await activateLLM(record.id!);
-    // 检查响应格式：如果响应转换器已经处理过，可能只返回 data，也可能返回完整对象
-    if (response && typeof response === 'object' && 'code' in response) {
-      if (response.code === 0) {
-        createMessage.success({ content: response.msg || '激活成功', key: 'activate' });
-        handleSuccess();
-      } else {
-        createMessage.error({ content: response.msg || '激活失败', key: 'activate' });
-      }
-    } else {
-      // 响应转换器已经处理过，直接返回了数据，说明操作成功
-      createMessage.success({ content: '激活成功', key: 'activate' });
-      handleSuccess();
-    }
-  } catch (error: any) {
-    console.error('激活失败', error);
-    // 从异常中提取后端返回的错误信息
-    const backendMsg = error?.response?.data?.msg;
-    if (backendMsg) {
-      createMessage.error({ content: backendMsg, key: 'activate' });
-    } else {
-      createMessage.error({ content: '激活失败', key: 'activate' });
-    }
+  // 占位密钥引导：无法真实调用厂商接口，先打开编辑填入真实密钥
+  if (record.is_preset) {
+    Modal.confirm({
+      title: '需先填入真实密钥',
+      content: `「${record.name}」当前使用占位密钥（sk-placeholder-*），无法真实调用厂商接口。端点与参数已配置好，填入真实 API 密钥后即可启用。是否打开编辑填写？`,
+      okText: '去填入密钥',
+      cancelText: '取消',
+      onOk: () => handleEdit(record),
+    });
+    return;
   }
+  Modal.confirm({
+    title: '启用大模型',
+    content: `启用「${record.name}」将替代当前启用模型（平台同一时刻仅启用 1 个大模型），所有页面 AI 能力将切换到该模型。是否继续？`,
+    okText: '启用',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        createMessage.loading({ content: '正在激活...', key: 'activate' });
+        const response = await activateLLM(record.id!);
+        // 检查响应格式：如果响应转换器已经处理过，可能只返回 data，也可能返回完整对象
+        if (response && typeof response === 'object' && 'code' in response) {
+          if (response.code === 0) {
+            createMessage.success({ content: response.msg || '激活成功', key: 'activate' });
+            handleSuccess();
+          } else {
+            createMessage.error({ content: response.msg || '激活失败', key: 'activate' });
+          }
+        } else {
+          // 响应转换器已经处理过，直接返回了数据，说明操作成功
+          createMessage.success({ content: '激活成功', key: 'activate' });
+          handleSuccess();
+        }
+      } catch (error: any) {
+        console.error('激活失败', error);
+        // 从异常中提取后端返回的错误信息
+        const backendMsg = error?.response?.data?.msg;
+        if (backendMsg) {
+          createMessage.error({ content: backendMsg, key: 'activate' });
+        } else {
+          createMessage.error({ content: '激活失败', key: 'activate' });
+        }
+      }
+    },
+  });
 };
 
 // 禁用
@@ -346,6 +366,14 @@ const handleDeactivate = async (record: LLMModel) => {
 
 // 测试
 const handleTest = async (record: LLMModel) => {
+  // 占位密钥引导：必然调用失败，先填入真实密钥
+  if (record.is_preset) {
+    createMessage.warning({
+      content: `「${record.name}」当前使用占位密钥（sk-placeholder-*），请先在编辑中填入真实 API 密钥后再测试`,
+      key: 'test',
+    });
+    return;
+  }
   try {
     createMessage.loading({ content: '正在测试连接...', key: 'test' });
     const response = await testLLM(record.id!);

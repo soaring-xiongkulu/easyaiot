@@ -1,5 +1,5 @@
 import { BasicColumn, FormProps } from '@/components/Table';
-import { Tag } from 'ant-design-vue';
+import { getVendorMeta } from './vendorMeta';
 
 export function getBasicColumns(): BasicColumn[] {
   return [
@@ -23,16 +23,8 @@ export function getBasicColumns(): BasicColumn[] {
     {
       title: '供应商',
       dataIndex: 'vendor',
-      width: 100,
-      customRender: ({ text }) => {
-        const vendorMap: Record<string, string> = {
-          aliyun: '阿里云',
-          openai: 'OpenAI',
-          anthropic: 'Anthropic',
-          local: '本地服务',
-        };
-        return vendorMap[text] || text;
-      },
+      width: 140,
+      customRender: ({ text }) => getVendorMeta(text).name,
     },
     {
       title: '模型类型',
@@ -96,10 +88,14 @@ export function getFormConfig(): Partial<FormProps> {
           placeholder: '请选择供应商',
           options: [
             { label: '全部', value: '' },
-            { label: '阿里云', value: 'aliyun' },
+            { label: '阿里云百炼', value: 'dashscope' },
+            { label: 'DeepSeek', value: 'deepseek' },
+            { label: '智谱', value: 'zhipu' },
             { label: 'OpenAI', value: 'openai' },
+            { label: 'Kimi', value: 'kimi' },
+            { label: 'Claude', value: 'claude' },
             { label: 'Anthropic', value: 'anthropic' },
-            { label: '本地服务', value: 'local' },
+            { label: '自定义', value: 'custom' },
           ],
         },
       },

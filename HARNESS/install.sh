@@ -130,9 +130,23 @@ do_build() {
   docker build "${build_args[@]}" "${ROOT}"
 }
 
+ensure_llm_gateway_token() {
+  ensure_env_file
+  load_env
+  if [[ -n "${LLM_GATEWAY_TOKEN:-}" ]]; then
+    return 0
+  fi
+  local token
+  token="$(openssl rand -hex 24 2>/dev/null || head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  set_harness_env_var LLM_GATEWAY_TOKEN "${token}"
+  export LLM_GATEWAY_TOKEN="${token}"
+  echo "[harness] 已生成 LLM_GATEWAY_TOKEN 写入 harness.env（页面/Agent 调网关需携带此 Token）"
+}
+
 do_install() {
   load_env
   prompt_deepseek_api_key
+  ensure_llm_gateway_token
   load_env
   if [[ "${EASYAIOT_SKIP_BUILD:-0}" = "1" ]] && image_exists; then
     echo "[harness] 镜像已存在且 EASYAIOT_SKIP_BUILD=1，跳过构建"

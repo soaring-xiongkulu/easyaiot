@@ -493,6 +493,29 @@ EasyAIoT — это интеллектуальная платформа Инте
   <li><strong>Безопасность</strong>: экспериментальный модуль; upstream <code>dsh</code> в Developer Preview; ограничьте доступ в prod и настройте одобрение записи/Shell; не коммитьте API Keys в Git</li>
 </ul>
 
+### 🔌 Единый LLM-шлюз — один протокол, все крупные LLM-провайдеры
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+Платформа сводит всех крупных LLM-провайдеров к единому протоколу, совместимому с OpenAI (<code>/v1/chat/completions</code>). Одновременно активна только одна модель — все встроенные AI-возможности (понимание изображений/видео, автоматическая разметка, чат) переключаются мгновенно. Добавление провайдера — без кода: одна запись в реестре шаблонов. При первом развёртывании автоматически засеиваются предустановленные данные шаблонов (плейсхолдер-ключи <code>sk-placeholder-*</code>, неактивны); введите реальный API-ключ в редакторе для активации — интерфейс ведёт по всему процессу.
+</p>
+
+| Провайдер | Ключ шаблона | Идентификаторы моделей (рекомендуемые) | Примечания |
+| :-- | :-- | :-- | :-- |
+| DeepSeek | `deepseek` | deepseek-v4-flash, deepseek-v4-pro, deepseek-v4-flash-vision-exp | Контекст 1M; официальный API |
+| Bailian (Alibaba Cloud) | `dashscope` | qwen3.8-max, qwen3.7-max/plus/flash, qwen3.6-plus/flash, qwen3.5-plus/flash, qwen3.5-omni-plus/flash, qwen3-vl-plus/flash, qwen-vl-max | Endpoint совместимый с OpenAI |
+| Zhipu GLM | `zhipu` | glm-5.3, glm-5.2, glm-5.1, glm-5-turbo, glm-5, glm-4.7, glm-4.7-flash, glm-4.5-flash, glm-4-plus/flash/air, glm-4v-plus/flash, glm-ocr | Endpoint v4 |
+| OpenAI | `openai` | gpt-5.6-sol, gpt-5.6, gpt-5.6-sol-pro, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5, gpt-5.4-mini, gpt-4.1-mini | Автосовместимость max_completion_tokens |
+| Kimi (Moonshot) | `kimi` | kimi-k2.6, kimi-k2.7-code | K2 требует temperature=1 |
+| Claude (Anthropic) | `claude` | claude-opus-4-7/4-6/4-5, claude-sonnet-4-6/4-5, claude-haiku-4-5 | Нативный Messages API — подключение через OpenAI-совместимый релей/шлюз |
+| Anthropic совместимый | `anthropic` | — | Укажите OpenAI-совместимый релейный endpoint |
+| Пользовательский | `custom` | — | Любой OpenAI-совместимый endpoint |
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Предустановленные шаблоны</strong>: 6 шаблонов (DeepSeek / Bailian / GLM / OpenAI / Kimi / Claude) засеваются при новом развёртывании; активация и тест соединения блокируются с подсказкой, пока реальный ключ не заменит плейсхолдер</li>
+  <li><strong>Для других сервисов</strong>: активная модель экспонируется как OpenAI-совместимый endpoint (<code>POST /v1/chat/completions</code>, <code>GET /v1/models</code>) — любой OpenAI SDK вызывает его с Bearer-токеном</li>
+  <li><strong>Устойчивость</strong>: упорядоченный фолбэк параметров (temperature → max_completion_tokens), SSE-стриминг, таймауты по провайдерам</li>
+</ul>
+
 ### 📦 Встроенные модели ИИ
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">

@@ -9,6 +9,15 @@
   >
     <div class="llm-modal">
       <Spin :spinning="state.editLoading">
+        <Alert
+          v-if="state.isPreset"
+          type="warning"
+          show-icon
+          banner
+          style="margin-bottom: 16px"
+          message="当前使用占位密钥"
+          description="端点与参数已按厂商最佳实践配置好，当前为占位密钥（sk-placeholder-*）。填入真实 API 密钥后即可启用。"
+        />
         <Form
           :labelCol="{ span: 6 }"
           :model="validateInfos"
@@ -16,29 +25,6 @@
         >
           <FormItem label="模型名称" name="name" v-bind="validateInfos.name">
             <Input v-model:value="llmRef.name" placeholder="请输入模型名称，如：QWENVL3视觉模型" />
-          </FormItem>
-
-          <!-- 模型图片上传 -->
-          <FormItem label="模型图片" name="icon_url" v-bind="validateInfos.icon_url">
-            <Upload
-              name="file"
-              :action="state.imageUploadUrl"
-              :headers="headers"
-              :showUploadList="false"
-              accept=".jpg,.jpeg,.png,.gif,.webp"
-              @change="handleImageUpload"
-            >
-              <Button type="primary">
-                上传模型图片
-              </Button>
-            </Upload>
-            <div v-if="llmRef.icon_url" style="margin-top: 8px">
-              <img
-                :src="llmRef.icon_url"
-                alt="模型图片预览"
-                style="max-height: 200px; max-width: 100%; border-radius: 4px; display: block;"
-              />
-            </div>
           </FormItem>
 
           <FormItem label="服务类型" name="service_type" v-bind="validateInfos.service_type">
@@ -50,24 +36,27 @@
             />
           </FormItem>
 
-          <FormItem label="供应商" name="vendor" v-bind="validateInfos.vendor">
+          <FormItem label="接入模板" name="vendor" v-bind="validateInfos.vendor" :help="state.templateHelpMessage">
             <Select
               v-model:value="llmRef.vendor"
-              placeholder="请选择供应商"
+              placeholder="请选择接入模板（OpenAI 兼容）"
               :options="state.vendorOptions"
+              :loading="state.templatesLoading"
+              @change="handleTemplateChange"
             />
-          </FormItem>
-
-          <FormItem label="模型类型" name="model_type" v-bind="validateInfos.model_type">
-            <Select
-              v-model:value="llmRef.model_type"
-              placeholder="请选择模型类型"
-              :options="state.modelTypeOptions"
-            />
+            <div v-if="state.templateDocUrl" style="margin-top: 4px; font-size: 12px; color: #666">
+              还没有密钥？
+              <a :href="state.templateDocUrl" target="_blank" rel="noopener">去厂商控制台获取 →</a>
+            </div>
           </FormItem>
 
           <FormItem label="模型标识" name="model_name" v-bind="validateInfos.model_name">
-            <Input v-model:value="llmRef.model_name" placeholder="请输入模型标识，如：qwen-vl-max" />
+            <AutoComplete
+              v-model:value="llmRef.model_name"
+              :options="state.modelNameOptions"
+              placeholder="请输入模型标识，如：qwen-vl-max"
+              :filter-option="filterModelNameOption"
+            />
           </FormItem>
 
           <FormItem label="API基础URL" name="base_url" v-bind="validateInfos.base_url" :help="state.baseUrlHelpMessage">
@@ -123,13 +112,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { BasicModal, useModalInner } from '@/components/Modal';
-import { Form, FormItem, Input, InputNumber, Select, Spin, Upload } from 'ant-design-vue';
+import { AutoComplete, Alert, Form, FormItem, Input, InputNumber, Select, Spin } from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { useUserStoreWithOut } from "@/store/modules/user";
 import { useGlobSetting } from "@/hooks/setting";
-import { createLLM, updateLLM, getLLMDetail, type LLMModel } from '@/api/device/llm';
+import { createLLM, updateLLM, getLLMDetail, getLLMTemplates, type LLMModel, type LLMTemplate } from '@/api/device/llm';
 import { Button } from '@/components/Button'
 defineOptions({ name: 'LLMModal' });
 
@@ -140,41 +129,81 @@ const TextArea = Input.TextArea;
 const InputPassword = Input.Password;
 
 const userStore = useUserStoreWithOut();
-const token = userStore.getAccessToken;
-const headers = ref({ 'Authorization': `Bearer ${token}` });
-const { uploadUrl } = useGlobSetting();
 
 const state = reactive({
-  imageUploadUrl: `${uploadUrl}/model/llm/image_upload`,
   isEdit: false,
   editLoading: false,
+  templatesLoading: false,
+  isPreset: false, // 预置模板数据（占位密钥 sk-placeholder-*）
+  templateDocUrl: '', // 当前模板的取密钥文档链接
+  // 模板兜底清单（后端 /templates 不可用时降级使用；以后端返回为准）
+  templates: [
+    { key: 'dashscope', label: '阿里云百炼', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', doc_url: 'https://bailian.console.aliyun.com/', builtin_models: ['qwen3.8-max', 'qwen3.8-max-preview', 'qwen3.7-max', 'qwen3.7-plus', 'qwen3.7-flash', 'qwen3.6-max-preview', 'qwen3.6-plus', 'qwen3.6-flash', 'qwen3.5-plus', 'qwen3.5-flash', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3-vl-plus', 'qwen3-vl-flash', 'qwen-vl-max'] },
+    { key: 'deepseek', label: 'DeepSeek', base_url: 'https://api.deepseek.com/v1', doc_url: 'https://platform.deepseek.com/', builtin_models: ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-v4-flash-vision-exp'] },
+    { key: 'zhipu', label: '智谱 GLM', base_url: 'https://open.bigmodel.cn/api/paas/v4', doc_url: 'https://open.bigmodel.cn/', builtin_models: ['glm-5.3', 'glm-5.2', 'glm-5.1', 'glm-5-turbo', 'glm-5', 'glm-4.7', 'glm-4.7-flash', 'glm-4.5-flash', 'glm-4-plus', 'glm-4-flash', 'glm-4-air', 'glm-4v-plus', 'glm-4v-flash', 'glm-ocr'] },
+    { key: 'openai', label: 'OpenAI', base_url: 'https://api.openai.com/v1', doc_url: 'https://platform.openai.com/', builtin_models: ['gpt-5.6-sol', 'gpt-5.6', 'gpt-5.6-sol-pro', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini', 'gpt-4.1-mini'] },
+    { key: 'kimi', label: 'Kimi（月之暗面）', base_url: 'https://api.moonshot.cn/v1', doc_url: 'https://platform.moonshot.cn/', builtin_models: ['kimi-k2.6', 'kimi-k2.7-code'] },
+    { key: 'claude', label: 'Claude（Anthropic）', base_url: '', doc_url: 'https://console.anthropic.com/', builtin_models: ['claude-opus-4-7', 'claude-opus-4-6', 'claude-opus-4-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-haiku-4-5'] },
+    { key: 'anthropic', label: 'Anthropic 兼容', base_url: '', doc_url: 'https://console.anthropic.com/', builtin_models: [] },
+    { key: 'custom', label: '自定义 OpenAI 兼容', base_url: '', builtin_models: [] },
+  ] as LLMTemplate[],
+  vendorOptions: [] as { label: string; value: string }[],
+  modelNameOptions: [] as { value: string }[],
+  templateHelpMessage: '选择模板后自动填充 API 端点；所有厂商统一走 OpenAI 兼容协议',
   serviceTypeOptions: [
     { label: '线上服务', value: 'online' },
     { label: '本地服务', value: 'local' },
   ],
-  vendorOptions: [
-    { label: '阿里云', value: 'aliyun' },
-    { label: 'OpenAI', value: 'openai' },
-    { label: 'Anthropic', value: 'anthropic' },
-    { label: '本地服务', value: 'local' },
-  ],
-  modelTypeOptions: [
-    { label: '文本', value: 'text' },
-    { label: '视觉', value: 'vision' },
-    { label: '多模态', value: 'multimodal' },
-  ],
-  baseUrlPlaceholder: '请输入API基础URL，如：https://dashscope.aliyuncs.com/compatible-mode/ 或 http://localhost:8000/v1/',
-  baseUrlHelpMessage: 'API服务的基础地址，以/结尾。本地服务示例：http://localhost:8000/v1/',
+  baseUrlPlaceholder: '请输入API基础URL，如：https://dashscope.aliyuncs.com/compatible-mode/v1 或 http://localhost:8000/v1',
+  baseUrlHelpMessage: 'OpenAI 兼容 API 基础地址（/v1 根地址，无需拼到 /chat/completions）',
   apiKeyPlaceholder: '请输入API密钥（本地服务可选）',
   apiKeyHelpMessage: '线上服务必须提供API密钥，本地服务通常不需要',
 });
+
+const getTemplateByKey = (key: string): LLMTemplate | undefined =>
+  state.templates.find((t) => t.key === key);
+
+const loadTemplates = async () => {
+  state.templatesLoading = true;
+  try {
+    const response: any = await getLLMTemplates();
+    const list = response?.data?.templates ?? (Array.isArray(response) ? response : null);
+    if (Array.isArray(list) && list.length) {
+      state.templates = list;
+    }
+  } catch (error) {
+    console.warn('加载模板列表失败，使用内置模板', error);
+  } finally {
+    state.vendorOptions = state.templates.map((t) => ({ label: t.label, value: t.key }));
+    state.templatesLoading = false;
+  }
+};
+
+onMounted(loadTemplates);
+
+// 选择模板：自动填充端点与常用模型建议
+const handleTemplateChange = (key: string) => {
+  const template = getTemplateByKey(key);
+  state.templateDocUrl = template?.doc_url ?? '';
+  state.modelNameOptions = (template?.builtin_models ?? []).map((m) => ({ value: m }));
+  if (template?.base_url) {
+    llmRef.base_url = template.base_url;
+  }
+  // 若模型标识为空且模板只有唯一常用模型，直接预填
+  if (!llmRef.model_name && state.modelNameOptions.length === 1) {
+    llmRef.model_name = state.modelNameOptions[0].value;
+  }
+};
+
+const filterModelNameOption = (input: string, option: any) =>
+  (option?.value ?? '').toLowerCase().includes(input.toLowerCase());
 
 const llmRef = reactive({
   id: null as number | null,
   name: '',
   icon_url: '',
   service_type: 'online',
-  vendor: 'aliyun',
+  vendor: 'dashscope',
   model_type: 'vision',
   model_name: '',
   base_url: '',
@@ -202,18 +231,22 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
       resetFields();
       const response = await getLLMDetail(record.id);
       // 处理不同的响应格式
-      let detailData = null;
+      let detailData: LLMModel | null = null;
       if (response && typeof response === 'object') {
         if ('code' in response && response.code === 0 && response.data) {
           detailData = response.data;
         } else if (!('code' in response)) {
           // 响应转换器已处理，直接使用 response
-          detailData = response;
+          detailData = response as unknown as LLMModel;
         }
       }
       
       if (detailData) {
         Object.assign(llmRef, detailData);
+        // vendor 存储的是模板 key（存量数据由后端解析为 template 字段）
+        llmRef.vendor = detailData.template || detailData.vendor || 'custom';
+        state.isPreset = !!detailData.is_preset;
+        syncModelNameOptions();
         updateFieldsByServiceType(detailData.service_type || 'online');
       } else {
         createMessage.error('获取大模型详情失败：数据格式错误');
@@ -229,26 +262,30 @@ const [register, { setModalProps, closeModal }] = useModalInner(async (data) => 
     resetFields();
     Object.assign(llmRef, {
       service_type: 'online',
-      vendor: 'aliyun',
-      model_type: 'vision',
+      vendor: 'dashscope',
       temperature: 0.7,
       max_tokens: 2000,
       timeout: 60,
       is_active: false,
       status: 'inactive',
       icon_url: '',
+      model_name: '',
+      base_url: '',
+      api_key: '',
+      description: '',
     });
+    syncModelNameOptions();
     updateFieldsByServiceType('online');
+    state.isPreset = false;
+    state.templateDocUrl = '';
   }
 });
 
 // 表单验证规则
 const rulesRef = reactive({
   name: [{ required: true, message: '请输入模型名称', trigger: ['blur', 'change'] }],
-  icon_url: [{ required: true, message: '请上传模型图片', trigger: 'change' }],
   service_type: [{ required: true, message: '请选择服务类型', trigger: ['blur', 'change'] }],
-  vendor: [{ required: true, message: '请选择供应商', trigger: ['blur', 'change'] }],
-  model_type: [{ required: true, message: '请选择模型类型', trigger: ['blur', 'change'] }],
+  vendor: [{ required: true, message: '请选择接入模板', trigger: ['blur', 'change'] }],
   model_name: [{ required: true, message: '请输入模型标识', trigger: ['blur', 'change'] }],
   base_url: [{ required: true, message: '请输入API基础URL', trigger: ['blur', 'change'] }],
   api_key: [{ required: false, message: '请输入API密钥', trigger: ['blur', 'change'] }],
@@ -260,10 +297,10 @@ const rulesRef = reactive({
 const useForm = Form.useForm;
 const { validate, resetFields, validateInfos } = useForm(llmRef, rulesRef);
 
-// 根据服务类型更新相关字段
+// 根据服务类型更新相关字段（模板选项不再随服务类型切换）
 const updateFieldsByServiceType = (serviceType: string) => {
   const isOnline = serviceType === 'online';
-  
+
   // 更新API密钥必填状态
   if (isOnline) {
     rulesRef.api_key[0].required = true;
@@ -274,36 +311,27 @@ const updateFieldsByServiceType = (serviceType: string) => {
   }
 
   // 更新提示信息
-  state.apiKeyPlaceholder = isOnline ? '请输入API密钥' : '本地服务可选，如需认证请填写';
-  state.apiKeyHelpMessage = isOnline 
-    ? '线上服务必须提供API密钥' 
-    : '本地服务通常不需要API密钥，如需认证可填写';
+  state.apiKeyPlaceholder = state.isPreset
+    ? '请输入真实 API 密钥（当前为占位密钥 sk-placeholder-*）'
+    : isOnline
+      ? '请输入API密钥'
+      : '本地服务可选，如需认证请填写';
+  state.apiKeyHelpMessage = isOnline
+    ? '线上服务必须提供API密钥'
+    : '本地大模型服务（vLLM / Ollama 等）通常无需密钥，如需认证可填写';
 
   state.baseUrlPlaceholder = isOnline
-    ? '请输入API基础URL，如：https://dashscope.aliyuncs.com/compatible-mode/'
-    : '请输入本地服务地址，如：http://localhost:8000/v1/';
+    ? '请输入API基础URL，如：https://dashscope.aliyuncs.com/compatible-mode/v1'
+    : '请输入本地服务地址，如：http://localhost:8000/v1';
   state.baseUrlHelpMessage = isOnline
-    ? 'API服务的基础地址，以/结尾'
-    : '本地大模型服务的API地址，以/结尾';
+    ? 'OpenAI 兼容 API 基础地址（/v1 根地址）'
+    : '本地大模型服务的 OpenAI 兼容 API 地址（/v1 根地址）';
+};
 
-  // 更新供应商选项
-  if (serviceType === 'local') {
-    state.vendorOptions = [
-      { label: '本地服务', value: 'local' },
-    ];
-    if (llmRef.vendor !== 'local') {
-      llmRef.vendor = 'local';
-    }
-  } else {
-    state.vendorOptions = [
-      { label: '阿里云', value: 'aliyun' },
-      { label: 'OpenAI', value: 'openai' },
-      { label: 'Anthropic', value: 'anthropic' },
-    ];
-    if (llmRef.vendor === 'local') {
-      llmRef.vendor = 'aliyun';
-    }
-  }
+// 按当前模板同步模型标识建议列表
+const syncModelNameOptions = () => {
+  const template = getTemplateByKey(llmRef.vendor);
+  state.modelNameOptions = (template?.builtin_models ?? []).map((m) => ({ value: m }));
 };
 
 // 处理服务类型变化
@@ -321,33 +349,17 @@ function handleCancel() {
   closeModal();
 }
 
-// 处理模型图片上传事件
-function handleImageUpload(info: any) {
-  if (info.file.status === 'done') {
-    const response = info.file.response;
-    if (response && response.code === 0) {
-      llmRef.icon_url = response.data.url;
-      createMessage.success('模型图片上传成功');
-    } else {
-      createMessage.error(response?.msg || '图片上传失败');
-    }
-  } else if (info.file.status === 'error') {
-    createMessage.error('图片上传失败');
-  }
-}
-
 const handleSubmit = async () => {
   try {
     await validate();
     setModalProps({ confirmLoading: true });
 
-    // 只提交必要字段
+    // 只提交必要字段（model_type 已废弃，后端保留默认值）
     const payload: any = {
       name: llmRef.name,
       icon_url: llmRef.icon_url,
       service_type: llmRef.service_type,
       vendor: llmRef.vendor,
-      model_type: llmRef.model_type,
       model_name: llmRef.model_name,
       base_url: llmRef.base_url,
       api_key: llmRef.api_key,

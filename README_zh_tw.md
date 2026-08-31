@@ -501,6 +501,29 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>安全提示</strong>：實驗模組，上游 <code>dsh</code> 處於 Developer Preview；生產請限制訪問並配置寫操作 / Shell 審批；API Key 勿提交 Git</li>
 </ul>
 
+### 🔌 LLM 統一閘道 — 一套協定，接入全部主流大模型廠商
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+平台將各大廠商大模型統一收斂到一套 OpenAI 相容協定（<code>/v1/chat/completions</code>）。同一時刻僅啟用 1 個大模型，頁面內全部 AI 能力（圖像/影片理解、自動標註、對話）一鍵切換；新增廠商零程式碼——模板註冊表加一條即可。首次部署自動播種預置模板資料（佔位金鑰 <code>sk-placeholder-*</code>、未啟用），編輯中填入真實 API 金鑰即可啟用，全流程有介面引導。
+</p>
+
+| 廠商 | 模板識別 | 模型識別（建議清單） | 說明 |
+| :-- | :-- | :-- | :-- |
+| DeepSeek | `deepseek` | deepseek-v4-flash、deepseek-v4-pro、deepseek-v4-flash-vision-exp | 100 萬上下文，官方 API |
+| 阿里雲百煉 | `dashscope` | qwen3.8-max、qwen3.7-max/plus/flash、qwen3.6-plus/flash、qwen3.5-plus/flash、qwen3.5-omni-plus/flash、qwen3-vl-plus/flash、qwen-vl-max | OpenAI 相容模式端點 |
+| 智譜 GLM | `zhipu` | glm-5.3、glm-5.2、glm-5.1、glm-5-turbo、glm-5、glm-4.7、glm-4.7-flash、glm-4.5-flash、glm-4-plus/flash/air、glm-4v-plus/flash、glm-ocr | v4 端點 |
+| OpenAI | `openai` | gpt-5.6-sol、gpt-5.6、gpt-5.6-sol-pro、gpt-5.6-terra、gpt-5.6-luna、gpt-5.5、gpt-5.4-mini、gpt-4.1-mini | 自動相容 max_completion_tokens |
+| Kimi（月之暗面） | `kimi` | kimi-k2.6、kimi-k2.7-code | K2 系列強制 temperature=1 |
+| Claude（Anthropic） | `claude` | claude-opus-4-7/4-6/4-5、claude-sonnet-4-6/4-5、claude-haiku-4-5 | 官方為 Messages 協定，經 OpenAI 相容轉發/閘道接入 |
+| Anthropic 相容 | `anthropic` | — | 自填 OpenAI 相容轉發端點 |
+| 自訂 | `custom` | — | 任意 OpenAI 相容端點 |
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>預置模板資料</strong>：全新部署自動播種 6 條模板（DeepSeek / 百煉 / GLM / OpenAI / Kimi / Claude）；佔位金鑰未替換前，啟用與連線測試均被攔截引導，不會出現無效 401</li>
+  <li><strong>其他服務直接使用</strong>：平台將當前啟用模型暴露為 OpenAI 相容端點（<code>POST /v1/chat/completions</code>、<code>GET /v1/models</code>），任何 OpenAI SDK 憑 Bearer Token 即可呼叫</li>
+  <li><strong>呼叫韌性</strong>：順序參數降級（temperature → max_completion_tokens）、SSE 串流、依廠商獨立逾時</li>
+</ul>
+
 ### 📦 內置 AI 模型
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">

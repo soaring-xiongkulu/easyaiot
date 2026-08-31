@@ -108,6 +108,12 @@ declare global {
     /** EasyAIoT HARNESS AI 助手（留空则使用当前访问域名 + 3080 端口） */
     VITE_HARNESS_URL?: string
     VITE_HARNESS_APP_NAME?: string
+    /** HARNESS LLM 统一网关模式：harness（默认，网关优先+直连回退）| direct（始终直连 AI 模块） */
+    VITE_LLM_GATEWAY_MODE?: string
+    /** HARNESS LLM 网关基址（含 /api/llm，如 http://<host>:3082/api/llm；留空则直连） */
+    VITE_LLM_GATEWAY_URL?: string
+    /** HARNESS LLM 网关令牌（与 harness.env LLM_GATEWAY_TOKEN 一致；浏览器可见，仅作轻量防护） */
+    VITE_LLM_GATEWAY_TOKEN?: string
     VITE_HARNESS_LOGO?: string
   }
 

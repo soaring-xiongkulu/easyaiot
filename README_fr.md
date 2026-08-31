@@ -492,6 +492,29 @@ Nombreux modules et chaînes longues — vérifier la santé, comprendre l'archi
   <li><strong>Sécurité</strong> : module expérimental ; <code>dsh</code> en Developer Preview ; restreindre l'accès en prod et configurer approbation écriture/Shell ; ne pas committer les clés API</li>
 </ul>
 
+### 🔌 Passerelle LLM unifiée — un protocole, tous les grands fournisseurs de LLM
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+La plateforme converge tous les grands fournisseurs de LLM vers un protocole unique compatible OpenAI (<code>/v1/chat/completions</code>). Un seul modèle est actif à la fois — toutes les capacités IA intégrées (compréhension image/vidéo, étiquetage automatique, chat) basculent instantanément. Ajouter un fournisseur est sans code : une entrée dans le registre de modèles. Les données de modèles prédéfinis sont initialisées automatiquement au premier déploiement (clés placeholder <code>sk-placeholder-*</code>, inactives) ; saisissez une vraie clé API dans l'éditeur pour l'activer — l'interface guide tout le processus.
+</p>
+
+| Fournisseur | Clé de modèle | Identifiants de modèles (suggestions) | Remarques |
+| :-- | :-- | :-- | :-- |
+| DeepSeek | `deepseek` | deepseek-v4-flash, deepseek-v4-pro, deepseek-v4-flash-vision-exp | Contexte 1M ; API officielle |
+| Bailian (Alibaba Cloud) | `dashscope` | qwen3.8-max, qwen3.7-max/plus/flash, qwen3.6-plus/flash, qwen3.5-plus/flash, qwen3.5-omni-plus/flash, qwen3-vl-plus/flash, qwen-vl-max | Point de terminaison compatible OpenAI |
+| Zhipu GLM | `zhipu` | glm-5.3, glm-5.2, glm-5.1, glm-5-turbo, glm-5, glm-4.7, glm-4.7-flash, glm-4.5-flash, glm-4-plus/flash/air, glm-4v-plus/flash, glm-ocr | Point de terminaison v4 |
+| OpenAI | `openai` | gpt-5.6-sol, gpt-5.6, gpt-5.6-sol-pro, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5, gpt-5.4-mini, gpt-4.1-mini | Compatibilité max_completion_tokens auto |
+| Kimi (Moonshot) | `kimi` | kimi-k2.6, kimi-k2.7-code | K2 impose temperature=1 |
+| Claude (Anthropic) | `claude` | claude-opus-4-7/4-6/4-5, claude-sonnet-4-6/4-5, claude-haiku-4-5 | API Messages native — connexion via relais compatible OpenAI |
+| Anthropic compatible | `anthropic` | — | Renseigner un relais compatible OpenAI |
+| Personnalisé | `custom` | — | Tout point de terminaison compatible OpenAI |
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Modèles prédéfinis</strong> : 6 modèles (DeepSeek / Bailian / GLM / OpenAI / Kimi / Claude) initialisés au déploiement neuf ; activation et test bloqués tant qu'une vraie clé API ne remplace pas le placeholder</li>
+  <li><strong>Pour d'autres services</strong> : le modèle actif est exposé comme point de terminaison compatible OpenAI (<code>POST /v1/chat/completions</code>, <code>GET /v1/models</code>) — tout SDK OpenAI peut l'appeler avec un jeton Bearer</li>
+  <li><strong>Résilience</strong> : repli paramétré ordonné (temperature → max_completion_tokens), SSE streaming, délais d'attente par fournisseur</li>
+</ul>
+
 ### 📦 Modèles IA intégrés
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">

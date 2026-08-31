@@ -500,6 +500,29 @@ Many modules and long chains—checking health, asking about architecture, and f
   <li><strong>Security note</strong>: Experimental module; upstream <code>dsh</code> is Developer Preview; restrict access in production and configure write/Shell approval; do not commit API Keys to Git</li>
 </ul>
 
+### 🔌 LLM Unified Gateway — One Protocol, Every Major LLM Vendor
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+The platform converges every major LLM vendor onto a single OpenAI-compatible protocol (<code>/v1/chat/completions</code>). Only one model is active at a time — all in-page AI capabilities (image/video understanding, auto labeling, chat) switch to it instantly. Adding a vendor is zero-code: just one entry in the template registry. Preset template data is seeded automatically on first deployment (placeholder keys <code>sk-placeholder-*</code>, inactive); fill in a real API key in the editor and enable it — the UI guides you through the whole flow.
+</p>
+
+| Vendor | Template Key | Model IDs (suggestions) | Notes |
+| :-- | :-- | :-- | :-- |
+| DeepSeek | `deepseek` | deepseek-v4-flash, deepseek-v4-pro, deepseek-v4-flash-vision-exp | 1M context; official API |
+| Alibaba Cloud Bailian | `dashscope` | qwen3.8-max, qwen3.7-max/plus/flash, qwen3.6-plus/flash, qwen3.5-plus/flash, qwen3.5-omni-plus/flash, qwen3-vl-plus/flash, qwen-vl-max | OpenAI-compatible mode endpoint |
+| Zhipu GLM | `zhipu` | glm-5.3, glm-5.2, glm-5.1, glm-5-turbo, glm-5, glm-4.7, glm-4.7-flash, glm-4.5-flash, glm-4-plus/flash/air, glm-4v-plus/flash, glm-ocr | v4 endpoint |
+| OpenAI | `openai` | gpt-5.6-sol, gpt-5.6, gpt-5.6-sol-pro, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5, gpt-5.4-mini, gpt-4.1-mini | max_completion_tokens auto-compat |
+| Kimi (Moonshot) | `kimi` | kimi-k2.6, kimi-k2.7-code | K2 forces temperature=1 |
+| Claude (Anthropic) | `claude` | claude-opus-4-7/4-6/4-5, claude-sonnet-4-6/4-5, claude-haiku-4-5 | Native Messages API — connect via an OpenAI-compatible relay/gateway |
+| Anthropic Compatible | `anthropic` | — | Fill an OpenAI-compatible relay endpoint |
+| Custom | `custom` | — | Any OpenAI-compatible endpoint |
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Preset template data</strong>: 6 templates (DeepSeek / Bailian / GLM / OpenAI / Kimi / Claude) are seeded on fresh deployment; activation and connectivity tests are blocked until a real API key replaces the placeholder — no dead-end 401s</li>
+  <li><strong>For other services</strong>: the platform exposes the active model as an OpenAI-compatible endpoint (<code>POST /v1/chat/completions</code>, <code>GET /v1/models</code>) — any OpenAI SDK can call it with a Bearer token</li>
+  <li><strong>Resilience</strong>: ordered parameter fallback (temperature → max_completion_tokens), streaming SSE, per-vendor timeouts</li>
+</ul>
+
 ### 📦 Built-in AI Models
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">

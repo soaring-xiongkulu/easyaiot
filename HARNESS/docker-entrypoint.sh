@@ -7,6 +7,13 @@ mkdir -p "${DSH_HOME:-/data/dsh-home}" "${WORKSPACE}"
 
 export NODE_PATH="/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules${NODE_PATH:+:${NODE_PATH}}"
 
+# plugins 目录可经 volume 热挂载（免重建镜像）；volume 会遮蔽构建期 node_modules 符号链接，这里补齐
+mkdir -p /harness/plugins/node_modules/@deepseek-ai
+ln -sfn /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools \
+  /harness/plugins/node_modules/@deepseek-ai/dsh-tools
+ln -sfn /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis \
+  /harness/plugins/node_modules/@deepseek-ai/cordis
+
 if [[ -x /harness/image/apply-branding.sh ]]; then
   /harness/image/apply-branding.sh
 fi
@@ -134,4 +141,10 @@ done
 
 echo "[harness] dsh ready, socat 0.0.0.0:${PUBLIC_PORT} -> ${HOST}:${DSH_PORT}"
 echo "[harness] note: standalone browser access is redirected by brand.js to IDEA portal"
+
+# LLM 统一网关（easyaiot-llm-gateway 插件监听 127.0.0.1:LLM_GATEWAY_PORT），对外暴露同号端口
+LLM_GATEWAY_PORT="${LLM_GATEWAY_PORT:-3082}"
+socat TCP-LISTEN:"${LLM_GATEWAY_PORT}",fork,reuseaddr,bind=0.0.0.0 TCP:"127.0.0.1:${LLM_GATEWAY_PORT}" &
+echo "[harness] llm-gateway socat 0.0.0.0:${LLM_GATEWAY_PORT} -> 127.0.0.1:${LLM_GATEWAY_PORT}"
+
 exec socat TCP-LISTEN:"${PUBLIC_PORT}",fork,reuseaddr,bind=0.0.0.0 TCP:"${HOST}:${DSH_PORT}"

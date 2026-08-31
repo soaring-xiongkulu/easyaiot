@@ -104,13 +104,13 @@
                 <div class="section-title">
                   <SettingOutlined class="icon" />
                   <span>大模型</span>
-                  <ReloadOutlined class="icon refresh-icon" @click="loadLLMs" :class="{ spinning: state.llmsLoading }" title="刷新大模型列表" />
+                  <ReloadOutlined class="icon refresh-icon" @click="loadLLMs" :class="{ spinning: state.llmsLoading }" title="刷新当前启用大模型" />
                 </div>
                 <div class="config-options">
                   <ApiSelect
                     v-model:value="state.selectedLLMId"
                     allow-clear
-                    placeholder="请选择大模型"
+                    placeholder="使用当前启用大模型"
                     class="class-select"
                     :options="llmOptions"
                     :immediate="false"
@@ -512,7 +512,7 @@
 import { computed, reactive, ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getModelPage, runInference, runClusterInference, uploadInputFile, getInferenceTaskDetail, getInferenceTasks, getDeployServicePage, getModelClasses, parseModelClassPayload, stopRtspInference, posePredict, posePredictVideo, poseVideoProgress, poseOutputVideo, poseRtspStart, poseRtspStop } from "@/api/device/model";
-import { getLLMList, visionInference, activateLLM, type LLMModel } from "@/api/device/llm";
+import { getLLMList, visionInference, type LLMModel } from "@/api/device/llm";
 import { getDeviceList, startStreamForwarding, getStreamStatus, type DeviceInfo } from '@/api/device/camera';
 import { ensureDeviceStreamForwardTask } from '@/api/device/stream_forward';
 import { rewriteStreamHostToPageHost, convertRtmpToHttp, resolveMonitorPlayUrl, probeStreamPlayable } from '@/views/camera/utils/devicePlay';
@@ -759,15 +759,10 @@ const deployServiceOptions = computed(() =>
   })),
 );
 
-const formatLLMTypeLabel = (modelType?: string) => {
-  if (modelType === 'vision') return '视觉';
-  if (modelType === 'text') return '文本';
-  return '多模态';
-};
-
 const llmOptions = computed(() =>
   state.llms.map((llm) => ({
-    label: `${llm.name} (${formatLLMTypeLabel(llm.model_type)})`,
+    // 单模型管控：列表仅含平台当前启用的唯一大模型
+    label: llm.name,
     value: llm.id,
   })),
 );
@@ -1410,22 +1405,7 @@ const startDetection = async () => {
       const selectedLLM = state.llms.find(llm => llm.id === state.selectedLLMId);
       if (selectedLLM) {
         useLLM = true;
-        // 先激活大模型（如果还未激活）
-        if (!selectedLLM.is_active) {
-          try {
-            await activateLLM(state.selectedLLMId);
-            // 更新本地状态
-            selectedLLM.is_active = true;
-            createMessage.success('大模型已激活');
-          } catch (error: any) {
-            console.error('激活大模型失败:', error);
-            createMessage.error(error?.response?.data?.msg || '激活大模型失败，请稍后重试');
-            state.inferenceLoading = false;
-            state.detectionStatus = 'failed';
-            state.statusText = '推理失败';
-            return;
-          }
-        }
+        // 单模型管控：列表仅含平台当前启用的唯一大模型，无需前端再激活
         // 使用大模型视觉推理接口
         // 如果有上传的文件，使用文件；否则使用历史记录的 input_source
         if (state.uploadedImageFile) {

@@ -22,7 +22,9 @@
           <template #renderItem="{ item }">
             <ListItem :class="getItemClass(item)">
               <div class="model-info">
-                <div class="status">{{ getStatusDisplayText(item) }}</div>
+                <div class="status-wrap">
+                  <div class="status">{{ getStatusDisplayText(item) }}</div>
+                </div>
                 <div class="title o2">{{ item.name }}</div>
                 <div class="props">
                   <div class="flex" style="justify-content: space-between;">
@@ -32,7 +34,7 @@
                     </div>
                     <div class="prop">
                       <div class="label">供应商</div>
-                      <div class="value">{{ getVendorText(item.vendor) }}</div>
+                      <div class="value">{{ getVendorMeta(item.vendor).name }}</div>
                     </div>
                   </div>
                   <div class="flex" style="justify-content: space-between;">
@@ -94,6 +96,7 @@ import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
 import {Icon} from '@/components/Icon';
 import AI_TASK_IMAGE from '@/assets/images/video/ai-task.png';
+import {getVendorMeta} from './vendorMeta';
 
 defineOptions({name: 'LLMManageCardList'})
 
@@ -131,10 +134,14 @@ const [registerForm, {validate, updateSchema}] = useForm({
         allowClear: true,
         options: [
           {label: '全部', value: ''},
-          {label: '阿里云', value: 'aliyun'},
+          {label: '阿里云百炼', value: 'dashscope'},
+          {label: 'DeepSeek', value: 'deepseek'},
+          {label: '智谱', value: 'zhipu'},
           {label: 'OpenAI', value: 'openai'},
+          {label: 'Kimi', value: 'kimi'},
+          {label: 'Claude', value: 'claude'},
           {label: 'Anthropic', value: 'anthropic'},
-          {label: '本地服务', value: 'local'},
+          {label: '自定义', value: 'custom'},
         ],
       },
     },
@@ -230,17 +237,6 @@ function pageSizeChange(_current: number, size: number) {
   fetch();
 }
 
-// 获取供应商文本
-function getVendorText(vendor: string) {
-  const vendorMap: Record<string, string> = {
-    aliyun: '阿里云',
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    local: '本地服务',
-  };
-  return vendorMap[vendor] || vendor || '--';
-}
-
 // 获取模型类型文本
 function getModelTypeText(modelType: string) {
   const typeMap: Record<string, string> = {
@@ -272,13 +268,15 @@ function getStatusDisplayText(item: any) {
   return item.is_active ? '已激活' : '未激活';
 }
 
-// 根据模型类型获取图片
+// 模型图片：优先使用上传的自定义图标；未上传时展示厂商官方 logo；兜底默认图
 function getModelImage(item: any) {
-  // 如果模型有上传的图标URL，优先使用
   if (item.icon_url) {
     return item.icon_url;
   }
-  // 否则使用默认图片
+  const meta = getVendorMeta(item.vendor);
+  if (meta.logo) {
+    return meta.logo;
+  }
   return AI_TASK_IMAGE;
 }
 
@@ -355,6 +353,14 @@ function handleDeactivate(record: object) {
       max-width: calc(100% - 128px);
       padding-left: 16px;
 
+      .status-wrap {
+        display: flex;
+        align-items: center;
+        position: absolute;
+        right: 0;
+        top: 16px;
+      }
+
       .status {
         min-width: 90px;
         height: 25px;
@@ -363,9 +369,6 @@ function handleDeactivate(record: object) {
         font-weight: 500;
         line-height: 25px;
         text-align: center;
-        position: absolute;
-        right: 0;
-        top: 16px;
         padding: 0 8px;
         white-space: nowrap;
       }
@@ -496,10 +499,17 @@ function handleDeactivate(record: object) {
       position: absolute;
       right: 20px;
       top: 50px;
+      width: 120px;
+      height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
       img {
         cursor: pointer;
-        width: 120px;
+        max-width: 104px;
+        max-height: 80px;
+        object-fit: contain;
       }
     }
   }

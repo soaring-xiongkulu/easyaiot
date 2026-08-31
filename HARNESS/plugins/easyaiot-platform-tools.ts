@@ -28,6 +28,11 @@ function gatewayBase(): string {
   return (process.env.EASYAIOT_GATEWAY_URL || 'http://host.docker.internal:48080').replace(/\/$/, '')
 }
 
+/** LLM 统一网关（easyaiot-llm-gateway 插件，容器内本机直连） */
+function llmGatewayBase(): string {
+  return `http://127.0.0.1:${process.env.LLM_GATEWAY_PORT || '3082'}`
+}
+
 function ideaPortalBase(): string {
   return (process.env.EASYAIOT_IDEA_URL || 'http://127.0.0.1:9300').replace(/\/$/, '')
 }
@@ -297,7 +302,77 @@ export function apply(ctx: Context) {
     }),
   )
 
+  ctx.tools.register(
+    defineTool({
+      name: 'easyaiot_llm_chat',
+      description:
+        '使用 EasyAIoT 平台当前启用的大模型进行对话分析（文本 + 可选图片/视频 URL）。'
+        + '适用于让平台配置的模型看图、分析告警/视频等业务场景；与聊天窗口自身模型无关。',
+      parameters: {
+        prompt: {
+          type: 'string',
+          required: true,
+          description: '发送给平台启用模型的提示词',
+        },
+        image_url: {
+          type: 'string',
+          description: '可选：图片 URL（http(s) 或 data:image/...;base64），交给多模态模型分析',
+        },
+        video_url: {
+          type: 'string',
+          description: '可选：视频 URL（http(s) 或 data:video/mp4;base64），交给视频理解模型分析',
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            model: { type: 'string' },
+            response: { type: 'string' },
+          },
+        },
+        render: (_args, value) => [
+          {
+            type: 'text',
+            text: `[${value.model}]\n${value.response}`,
+          },
+        ],
+      },
+      async execute(args, exec) {
+        const prompt = String(args.prompt || '').trim()
+        if (!prompt) {
+          throw new Error('prompt 不能为空')
+        }
+        const files: Array<{ type: string; url: string }> = []
+        if (typeof args.image_url === 'string' && args.image_url.trim()) {
+          files.push({ type: 'image', url: args.image_url.trim() })
+        }
+        if (typeof args.video_url === 'string' && args.video_url.trim()) {
+          files.push({ type: 'video', url: args.video_url.trim() })
+        }
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        const token = (process.env.LLM_GATEWAY_TOKEN || '').trim()
+        if (token) {
+          headers.Authorization = `Bearer ${token}`
+        }
+        const resp = await fetch(`${llmGatewayBase()}/api/llm/chat`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ prompt, files }),
+          signal: exec.signal,
+        })
+        const body = await resp.json().catch(() => null) as any
+        if (!resp.ok) {
+          throw new Error(`LLM 网关返回 ${resp.status}: ${body?.error?.message || body?.msg || '未知错误'}`)
+        }
+        const response = body?.data?.response ?? ''
+        return { model: body?.data?.model || 'unknown', response }
+      },
+    }),
+  )
+
   console.log(
-    '[easyaiot-platform-tools] registered easyaiot_gateway_health, easyaiot_list_modules, easyaiot_service_health, easyaiot_dev_portals, easyaiot_open_in_idea',
+    '[easyaiot-platform-tools] registered easyaiot_gateway_health, easyaiot_list_modules, easyaiot_service_health, easyaiot_dev_portals, easyaiot_open_in_idea, easyaiot_llm_chat',
   )
 }

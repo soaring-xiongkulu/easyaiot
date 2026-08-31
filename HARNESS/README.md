@@ -74,7 +74,8 @@ HARNESS/
   ontology/
     AGENTS.md               # 项目本体（注入工作区）
   plugins/
-    easyaiot-platform-tools.ts
+    easyaiot-platform-tools.ts   # 平台 Tool（含 easyaiot_llm_chat）
+    easyaiot-llm-gateway.ts      # LLM 统一网关（OpenAI 兼容收口，默认 3082）
     easyaiot-workspace-seed.ts
 ```
 
@@ -97,11 +98,32 @@ HARNESS/
 | `DEEPSEEK_API_KEY` | DeepSeek API Key |
 | `OPENAI_API_KEY` / `OPENAI_BASE_URL` | OpenAI 兼容端点（如 DashScope） |
 | `EASYAIOT_GATEWAY_URL` | 平台 Tool 调用的 Gateway 基址 |
+| `LLM_GATEWAY_PORT` | LLM 统一网关端口，默认 `3082` |
+| `LLM_GATEWAY_TOKEN` | LLM 网关鉴权令牌（install.sh 自动生成；未配置则网关拒绝 API） |
 | `EASYAIOT_IDEA_URL` | `easyaiot_open_in_idea` 生成的 IDEA 门户基址 |
 | `HARNESS_TRUSTED_HOSTS` | iframe 嵌入时追加 trusted-host（含 `:9300` 门户） |
+
+## LLM 统一网关
+
+`easyaiot-llm-gateway` 插件把平台「当前启用大模型」收口为 OpenAI 兼容 API（`http://<host>:3082/api/llm`），供页面（带 fallback 直连）与 Agent Tool 复用；配置 30s 轮询、密钥仅驻内存、需 Bearer Token。详见 `docs/llm-unified-gateway-design.md`。
+
+### 其他服务直接使用（OpenAI SDK）
+
+平台激活哪个模型，网关就对外提供哪个模型的 OpenAI 兼容接口：
+
+```python
+from openai import OpenAI
+client = OpenAI(base_url="http://<host>:3082/v1", api_key="<LLM_GATEWAY_TOKEN>")
+resp = client.chat.completions.create(
+    model="任意值（会被替换为平台当前启用模型）",
+    messages=[{"role": "user", "content": "你好"}],
+)
+print(resp.choices[0].message.content)
+```
+
+`client.models.list()` 可查当前启用模型；流式传 `stream=True` 即可。平台「大模型管理」页首次启动会播种各厂商预置模板数据（占位密钥 `sk-placeholder-*`，填入真实密钥后激活即用）。
 
 ## 后续扩展
 
 - 增加 DEVICE/VIDEO/AI 业务 Tool（创建设备、启停算法任务等）
-- 对接 AI 模块 LLM 配置中心
 - Milvus RAG 索引全仓 API 文档
