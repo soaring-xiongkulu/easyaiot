@@ -95,6 +95,9 @@ export enum DICT_TYPE {
   SYSTEM_MAIL_SEND_STATUS = 'system_mail_send_status',
   SYSTEM_NOTIFY_TEMPLATE_TYPE = 'system_notify_template_type',
 
+  // ========== AI 算法模块 ==========
+  AI_REGION_HIT_MODE = 'ai_region_hit_mode',
+
   // ========== INFRA 模块 ==========
   INFRA_BOOLEAN_STRING = 'infra_boolean_string',
   INFRA_REDIS_TIMEOUT_TYPE = 'infra_redis_timeout_type',

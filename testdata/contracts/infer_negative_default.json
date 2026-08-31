@@ -1,0 +1,15 @@
+{
+  "schema": "infer_event.v1",
+  "event_kind": "infer",
+  "correlation_id": "fixture-negative",
+  "task_id": 103,
+  "task_type": "snap",
+  "device_id": "camera-b",
+  "timestamp": "2026-08-27T10:00:02Z",
+  "frame_width": 640,
+  "frame_height": 480,
+  "model_ids": [-1],
+  "detections": [
+    {"model_id": -1, "bbox": [1, 2, 30, 40], "class_name": "person", "confidence": 0.75}
+  ]
+}

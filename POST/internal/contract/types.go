@@ -13,31 +13,34 @@ const SchemaTaskSync = "post_task_sync.v1"
 
 // Detection is a single bbox detection.
 type Detection struct {
-	BBox       [4]float64 `json:"bbox"`
-	ClassID    int        `json:"class_id,omitempty"`
-	ClassName  string     `json:"class_name"`
-	Confidence float64    `json:"confidence"`
-	TrackID    int        `json:"track_id,omitempty"`
+	ModelID            *int64     `json:"model_id,omitempty"`
+	BBox               [4]float64 `json:"bbox"`
+	ClassID            int        `json:"class_id,omitempty"`
+	ClassName          string     `json:"class_name"`
+	Confidence         float64    `json:"confidence"`
+	TrackID            int        `json:"track_id,omitempty"`
+	MatchedRegionIDs   []int64    `json:"matched_region_ids,omitempty"`
+	MatchedRegionNames []string   `json:"matched_region_names,omitempty"`
 }
 
 // InferEvent is the Infer → POST input contract.
 type InferEvent struct {
-	Schema         string                 `json:"schema"`
-	EventKind      string                 `json:"event_kind"`
-	CorrelationID  string                 `json:"correlation_id"`
-	TaskID         int64                  `json:"task_id"`
-	TaskName       string                 `json:"task_name,omitempty"`
-	TaskType       string                 `json:"task_type"`
-	DeviceID       string                 `json:"device_id"`
-	DeviceName     string                 `json:"device_name,omitempty"`
-	Timestamp      string                 `json:"timestamp"`
-	FrameNumber    int64                  `json:"frame_number,omitempty"`
-	FrameWidth     int                    `json:"frame_width"`
-	FrameHeight    int                    `json:"frame_height"`
-	ImagePath      string                 `json:"image_path,omitempty"`
-	Detections     []Detection            `json:"detections"`
-	ModelIDs       []int64                `json:"model_ids,omitempty"`
-	Hints          map[string]any         `json:"hints,omitempty"`
+	Schema        string         `json:"schema"`
+	EventKind     string         `json:"event_kind"`
+	CorrelationID string         `json:"correlation_id"`
+	TaskID        int64          `json:"task_id"`
+	TaskName      string         `json:"task_name,omitempty"`
+	TaskType      string         `json:"task_type"`
+	DeviceID      string         `json:"device_id"`
+	DeviceName    string         `json:"device_name,omitempty"`
+	Timestamp     string         `json:"timestamp"`
+	FrameNumber   int64          `json:"frame_number,omitempty"`
+	FrameWidth    int            `json:"frame_width"`
+	FrameHeight   int            `json:"frame_height"`
+	ImagePath     string         `json:"image_path,omitempty"`
+	Detections    []Detection    `json:"detections"`
+	ModelIDs      []int64        `json:"model_ids,omitempty"`
+	Hints         map[string]any `json:"hints,omitempty"`
 }
 
 // Validate checks required InferEvent fields.

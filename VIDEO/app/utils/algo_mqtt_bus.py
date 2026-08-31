@@ -2,6 +2,8 @@
 
 环境变量：
 - ALGO_BUS_TRANSPORT：默认空视为 mqtt；显式 http/off/0/false 时关闭总线
+- POST_INGRESS_TRANSPORT：InferEvent 进入 POST 的通道，首期支持 mqtt/off
+- POST_FAIL_STRATEGY：POST 不可用时 closed（默认）或 open
 - MQTT_BROKER_URLS：broker 列表（host:port，逗号分隔）
 - MQTT_ALGO_TENANT / MQTT_ALGO_USERNAME / MQTT_ALGO_PASSWORD / MQTT_ALGO_CLIENT_ID
 - COMPUTE_NODE_ID / NODE_ID：可选，写入 payload.node_id
@@ -207,9 +209,16 @@ def post_enabled() -> bool:
 
 
 def post_failover_open() -> bool:
-    """POST 不可用时是否 fail-open 直发 sink（v1.7 §12.3，默认 true）。"""
-    val = (os.getenv('POST_FAILOVER_OPEN') or 'true').strip().lower()
+    """POST 不可用时是否 fail-open；新配置优先，默认 fail-closed。"""
+    strategy = (os.getenv('POST_FAIL_STRATEGY') or '').strip().lower()
+    if strategy:
+        return strategy == 'open'
+    val = (os.getenv('POST_FAILOVER_OPEN') or 'false').strip().lower()
     return val in {'1', 'true', 'yes', 'on'}
+
+
+def post_ingress_enabled() -> bool:
+    return (os.getenv('POST_INGRESS_TRANSPORT') or 'mqtt').strip().lower() == 'mqtt'
 
 
 def post_base_url() -> str:
@@ -307,20 +316,27 @@ def post_is_ready() -> bool:
 
 def post_in_bypass() -> bool:
     """POST_ENABLED 且 fail-open 且 POST 不 ready → 应直发 sink。"""
+    return post_delivery_mode() == 'bypass'
+
+
+def post_fail_closed() -> bool:
+    """POST 已启用但入口不可用且策略为 closed 时，必须抑制直发告警。"""
+    return post_delivery_mode() == 'drop'
+
+
+def post_delivery_mode() -> str:
+    """返回 direct/infer/bypass/drop，统一生产者的 POST 故障语义。"""
     if not post_enabled():
-        return False
-    if not post_failover_open():
-        return False
-    return not post_is_ready()
+        return 'direct'
+    ingress_ready = post_ingress_enabled() and post_is_ready()
+    if ingress_ready:
+        return 'infer'
+    return 'bypass' if post_failover_open() else 'drop'
 
 
 def should_publish_infer_event() -> bool:
     """应走 InferEvent → POST 定制链路（防双发）。"""
-    if not post_enabled():
-        return False
-    if post_failover_open() and not post_is_ready():
-        return False
-    return True
+    return post_delivery_mode() == 'infer'
 
 
 def ensure_post_health_probe() -> None:
@@ -374,7 +390,7 @@ def ensure_post_health_probe() -> None:
 
 def _publish_raw(topic: str, payload: Dict[str, Any], *, qos: int = 1) -> bool:
     """发布裸 JSON（无 algo bus envelope），供 POST InferEvent 契约使用。"""
-    if not bus_enabled():
+    if not post_ingress_enabled():
         return False
     try:
         import paho.mqtt.client as mqtt
@@ -435,14 +451,18 @@ def build_infer_event(
             bbox4 = [float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])]
         else:
             bbox4 = [0.0, 0.0, 0.0, 0.0]
-        dets_out.append({
-            'model_id': d.get('model_id'),
+        det_out = {
             'bbox': bbox4,
             'class_id': int(d.get('class_id') or 0),
             'class_name': d.get('class_name') or 'unknown',
             'confidence': float(d.get('confidence') or 0),
             'track_id': int(d.get('track_id') or 0),
-        })
+        }
+        if d.get('model_id') is not None:
+            business_model_id = int(d.get('model_id'))
+            if business_model_id != 0:
+                det_out['model_id'] = business_model_id
+        dets_out.append(det_out)
     ts = timestamp or datetime.now(timezone.utc).astimezone().isoformat()
     return {
         'schema': 'infer_event.v1',
@@ -459,7 +479,7 @@ def build_infer_event(
         'frame_height': int(frame_height or 0),
         'image_path': image_path or '',
         'detections': dets_out,
-        'model_ids': list(model_ids or []),
+        'model_ids': [int(model_id) for model_id in (model_ids or []) if int(model_id) != 0],
         'hints': hints or {},
     }
 

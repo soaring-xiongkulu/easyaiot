@@ -22,8 +22,12 @@ type trackStateStore struct {
 
 var globalTrackState = &trackStateStore{tracks: map[string]*trackState{}}
 
-func trackStateKey(taskID int64, deviceID string, trackID int) string {
-	return fmt.Sprintf("%d:%s:%d", taskID, deviceID, trackID)
+func trackStateKey(taskID int64, deviceID string, modelID *int64, trackID int) string {
+	var mid int64
+	if modelID != nil {
+		mid = *modelID
+	}
+	return fmt.Sprintf("%d:%s:%d:%d", taskID, deviceID, mid, trackID)
 }
 
 func (s *trackStateStore) touch(key string, now time.Time) *trackState {

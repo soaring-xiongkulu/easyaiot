@@ -842,7 +842,6 @@ install_service() {
     create_directories
     create_env_file
     ensure_nginx_conf_for_profile
-    ensure_ssl_certs || exit 1
     
     # 先清理本服务的残留容器
     print_info "检查并清理残留容器..."
@@ -901,7 +900,6 @@ start_service() {
         create_env_file
     fi
     ensure_nginx_conf_for_profile
-    ensure_ssl_certs || exit 1
     
     # 先清改名孤儿
     cleanup_renamed_containers
@@ -934,7 +932,6 @@ restart_service() {
     check_docker
     check_docker_compose
     ensure_nginx_conf_for_profile
-    ensure_ssl_certs || exit 1
     
     sync_web_dist_from_image
     $COMPOSE_CMD up -d --force-recreate --remove-orphans

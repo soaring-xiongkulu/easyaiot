@@ -2341,6 +2341,7 @@ def try_send_alert_for_detections(
                 from app.utils.algo_mqtt_bus import (
                     should_publish_infer_event,
                     post_in_bypass,
+                    post_fail_closed,
                     build_infer_event,
                     publish_infer_event,
                     inject_post_bypass_info,
@@ -2349,6 +2350,7 @@ def try_send_alert_for_detections(
             except ImportError:
                 should_publish_infer_event = lambda: False
                 post_in_bypass = lambda: False
+                post_fail_closed = lambda: False
 
             if 'ensure_post_health_probe' in locals():
                 ensure_post_health_probe()
@@ -2381,6 +2383,14 @@ def try_send_alert_for_detections(
                     _update_device_runtime(device_id, last_alert_time=current_timestamp)
                 else:
                     _release_alert_suppression_slot(suppression_key, current_time)
+                continue
+            if post_fail_closed():
+                _release_alert_suppression_slot(suppression_key, current_time)
+                logger.warning(
+                    'POST 不可用且策略为 closed，抑制直发告警 task=%s device=%s',
+                    TASK_ID,
+                    device_id,
+                )
                 continue
             if post_in_bypass():
                 alert_data = inject_post_bypass_info(alert_data)

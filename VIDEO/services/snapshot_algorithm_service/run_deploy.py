@@ -1420,6 +1420,7 @@ def try_send_snapshot_detection_alert(
         from app.utils.algo_mqtt_bus import (
             should_publish_infer_event,
             post_in_bypass,
+            post_fail_closed,
             build_infer_event,
             publish_infer_event,
             inject_post_bypass_info,
@@ -1430,6 +1431,7 @@ def try_send_snapshot_detection_alert(
             from algo_mqtt_bus import (  # type: ignore
                 should_publish_infer_event,
                 post_in_bypass,
+                post_fail_closed,
                 build_infer_event,
                 publish_infer_event,
                 inject_post_bypass_info,
@@ -1438,6 +1440,7 @@ def try_send_snapshot_detection_alert(
         except ImportError:
             should_publish_infer_event = lambda: False  # type: ignore
             post_in_bypass = lambda: False  # type: ignore
+            post_fail_closed = lambda: False  # type: ignore
 
     ensure_post_health_probe()
     if should_publish_infer_event():
@@ -1470,6 +1473,14 @@ def try_send_snapshot_detection_alert(
         publish_infer_event(ev)
         logger.info(
             f"📨 设备 {device_id} InferEvent(POST): 帧 {frame_number}, {len(detections)} 个目标"
+        )
+        return
+
+    if post_fail_closed():
+        logger.warning(
+            'POST 不可用且策略为 closed，抑制直发抓拍告警 task=%s device=%s',
+            TASK_ID,
+            device_id,
         )
         return
 
@@ -2453,6 +2464,8 @@ def yolo_detection_worker(worker_id: int):
                                 infer_device=infer_device,
                                 should_keep=_should_keep_detection,
                             )
+                            for detection in model_dets:
+                                detection['model_id'] = int(model_id)
                             all_detections.extend(model_dets)
                         except Exception as e:
                             if stop_event.is_set():
@@ -2487,6 +2500,7 @@ def yolo_detection_worker(worker_id: int):
                 detections = []
                 for tracked_det in tracked_detections:
                     detections.append({
+                        'model_id': tracked_det.get('model_id'),
                         'track_id': tracked_det.get('track_id', 0),
                         'class_id': tracked_det.get('class_id', 0),
                         'class_name': tracked_det.get('class_name', 'unknown'),

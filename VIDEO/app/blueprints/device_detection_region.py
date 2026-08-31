@@ -11,7 +11,8 @@ from flask import Blueprint, request, jsonify
 from models import Device, Image, db, AlgorithmTask, DeviceDetectionRegion
 from app.services.device_detection_region_service import (
     get_device_regions, create_device_region, update_device_region,
-    delete_device_region, update_device_cover_image, _validate_task_device
+    delete_device_region, update_device_cover_image, _validate_task_device,
+    replace_device_regions, RegionRevisionConflict,
 )
 from app.blueprints.camera import upload_screenshot_to_minio, grab_frame_for_snapshot
 
@@ -29,10 +30,13 @@ def _task_has_valid_models(task: AlgorithmTask) -> bool:
         return False
 
 
-def _refresh_task_runtime(task_id: int) -> None:
+def _refresh_task_runtime(task_id: int) -> str:
+    task = AlgorithmTask.query.get(task_id)
+    if not task or task.run_status not in ('running', 'restarting'):
+        return 'not_running'
     try:
         from app.services.post_template_client import refresh_running_tasks_for_task
-        refresh_running_tasks_for_task(task_id)
+        return 'applied' if refresh_running_tasks_for_task(task_id) else 'pending'
     except ImportError:
         try:
             from app.services.post_template_client import refresh_running_tasks_for_device
@@ -40,26 +44,64 @@ def _refresh_task_runtime(task_id: int) -> None:
             if task and task.devices:
                 for device in task.devices:
                     refresh_running_tasks_for_device(device.id)
+                return 'applied'
         except Exception as e:
             logger.error('区域变更后刷新 POST 模板失败 task=%s: %s', task_id, e, exc_info=True)
     except Exception as e:
         logger.error('区域变更后刷新 POST 模板失败 task=%s: %s', task_id, e, exc_info=True)
+    return 'pending'
 
 
 @device_detection_region_bp.route('/task/<int:task_id>/device/<string:device_id>/regions', methods=['GET'])
 def list_task_device_regions(task_id, device_id):
     """获取指定任务下设备的检测区域列表"""
     try:
+        task = _validate_task_device(task_id, device_id)
         regions = get_device_regions(device_id, task_id)
         return jsonify({
             'code': 0,
             'msg': 'success',
+            'task_id': task_id,
+            'device_id': device_id,
+            'revision': int(getattr(task, 'template_revision', 1) or 1),
             'data': [region.to_dict() for region in regions]
         })
     except ValueError as e:
         return jsonify({'code': 400, 'msg': str(e)}), 400
     except Exception as e:
         logger.error(f'获取设备检测区域列表失败: {str(e)}', exc_info=True)
+        return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
+
+
+@device_detection_region_bp.route('/task/<int:task_id>/device/<string:device_id>/regions', methods=['PUT'])
+def replace_task_device_regions(task_id, device_id):
+    """原子替换指定任务和设备的全部检测区域。"""
+    try:
+        data = request.get_json(silent=True) or {}
+        if 'expected_revision' not in data:
+            return jsonify({'code': 400, 'msg': 'expected_revision 不能为空'}), 400
+        regions, revision = replace_device_regions(
+            device_id=device_id,
+            task_id=task_id,
+            regions_data=data.get('regions'),
+            expected_revision=data.get('expected_revision'),
+        )
+        runtime_sync_status = _refresh_task_runtime(task_id)
+        return jsonify({
+            'code': 0,
+            'msg': '保存成功',
+            'task_id': task_id,
+            'device_id': device_id,
+            'revision': revision,
+            'runtime_sync_status': runtime_sync_status,
+            'data': [region.to_dict() for region in regions],
+        })
+    except RegionRevisionConflict as e:
+        return jsonify({'code': 409, 'msg': str(e)}), 409
+    except (TypeError, ValueError) as e:
+        return jsonify({'code': 400, 'msg': str(e)}), 400
+    except Exception as e:
+        logger.error('批量保存设备检测区域失败: %s', e, exc_info=True)
         return jsonify({'code': 500, 'msg': f'服务器内部错误: {str(e)}'}), 500
 
 
@@ -105,7 +147,9 @@ def create_task_region(task_id, device_id):
             opacity=data.get('opacity', 0.3),
             is_enabled=data.get('is_enabled', True),
             sort_order=data.get('sort_order', 0),
-            model_ids=model_ids
+            model_ids=model_ids,
+            hit_mode=data.get('hit_mode', 'center'),
+            min_overlap_ratio=data.get('min_overlap_ratio', 0.5),
         )
 
         _refresh_task_runtime(task_id)

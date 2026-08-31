@@ -7,9 +7,9 @@ services:
     container_name: web-service
     user: root
 
-    # 端口映射：仅 HTTPS（WEB_PORT → 容器 443，HTTP/2）
+    # 端口映射：WEB_PORT → 容器 HTTP 80
     ports:
-      - "${WEB_PORT:-8888}:443"
+      - "${WEB_PORT:-8888}:80"
       # SITE 官网（nginx 内 listen 8090）
       - "${SITE_PORT:-8090}:8090"
 
@@ -23,8 +23,6 @@ services:
       - ${WEB_DIST_DIR:-./dist}:/usr/share/nginx/html:ro
       # WEB前端构建/运行日志目录（非nginx access/error日志）
       - ./logs:/app/logs
-      # SSL 证书（install 自动生成 conf/ssl/server.crt|key）
-      - ./conf/ssl:/etc/nginx/ssl:ro
       # 时区文件挂载
       - /etc/localtime:/etc/localtime:ro
 
@@ -59,9 +57,9 @@ services:
     # 重启策略
     restart: unless-stopped
 
-    # 健康检查（容器内仅 HTTPS:443）
+    # 健康检查（容器内 HTTP:80）
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--no-check-certificate", "https://127.0.0.1/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -82,4 +80,3 @@ networks:
   easyaiot-network:
     name: easyaiot-network
     external: true
-

@@ -601,7 +601,7 @@ void Pipeline::inferLoop() {
 
             if (!lastDetections.empty()) {
                 std::vector<DetectObject> alarmDetections;
-                const bool skipRegionGate = AlgoMqttBus::postEnabled();
+                const bool skipRegionGate = AlgoMqttBus::shouldPublishInferEvent();
                 for (const auto& det : lastDetections) {
                     int x1 = static_cast<int>(det.x1);
                     int y1 = static_cast<int>(det.y1);

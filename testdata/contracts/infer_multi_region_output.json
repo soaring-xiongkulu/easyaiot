@@ -1,0 +1,22 @@
+{
+  "schema": "infer_event.v1",
+  "event_kind": "infer",
+  "correlation_id": "fixture-multi-region",
+  "task_id": 105,
+  "task_type": "realtime",
+  "device_id": "camera-d",
+  "timestamp": "2026-08-27T10:00:04Z",
+  "frame_width": 1920,
+  "frame_height": 1080,
+  "model_ids": [12],
+  "detections": [
+    {
+      "model_id": 12,
+      "bbox": [400, 300, 600, 700],
+      "class_name": "car",
+      "confidence": 0.88,
+      "matched_region_ids": [301, 302],
+      "matched_region_names": ["入口", "车道"]
+    }
+  ]
+}

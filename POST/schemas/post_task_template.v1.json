@@ -6,7 +6,78 @@
   "required": ["schema", "task"],
   "properties": {
     "schema": { "const": "post_task_template.v1" },
-    "task": { "type": "object" },
-    "regions": { "type": "array" }
+    "revision": { "type": "integer", "minimum": 0 },
+    "task": {
+      "type": "object",
+      "required": ["id", "task_name", "task_type"],
+      "properties": {
+        "id": { "type": "integer" },
+        "task_name": { "type": "string" },
+        "task_type": { "type": "string" },
+        "model_ids": { "type": "array", "items": { "type": "integer" } },
+        "pipeline": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["plugin"],
+            "properties": {
+              "plugin": { "type": "string" },
+              "enabled": { "type": "boolean" },
+              "fail_strategy": { "type": "string" },
+              "params": {
+                "type": "object",
+                "properties": {
+                  "hit_mode": {
+                    "enum": [
+                      "center",
+                      "bottom_center",
+                      "any_intersection",
+                      "overlap_ratio",
+                      "fully_inside",
+                      "any_corner",
+                      "any",
+                      "all",
+                      "bottom"
+                    ]
+                  },
+                  "min_overlap_ratio": { "type": "number", "minimum": 0.01, "maximum": 1.0 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "device_id", "region_name", "region_type", "points"],
+        "properties": {
+          "id": { "type": "integer" },
+          "device_id": { "type": "string" },
+          "region_name": { "type": "string" },
+          "region_type": { "enum": ["polygon", "rectangle", "line"] },
+          "points": { "type": "array" },
+          "model_ids": { "type": "array", "items": { "type": "integer" } },
+          "hit_mode": {
+            "enum": [
+              "center",
+              "bottom_center",
+              "any_intersection",
+              "overlap_ratio",
+              "fully_inside",
+              "any_corner",
+              "any",
+              "all",
+              "bottom"
+            ]
+          },
+          "min_overlap_ratio": { "type": "number", "minimum": 0.01, "maximum": 1.0 },
+          "is_enabled": { "type": "boolean" },
+          "sort_order": { "type": "integer" }
+        }
+      }
+    }
   }
 }

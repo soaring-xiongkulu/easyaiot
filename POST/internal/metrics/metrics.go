@@ -39,6 +39,14 @@ var (
 		Name: "post_task_template_delete_total", Help: "Template deletes",
 	}, []string{"instance"})
 
+	TemplateStale = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "post_task_template_stale_total", Help: "Stale task template mutations rejected",
+	}, []string{"op", "instance"})
+
+	RegionDetection = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "post_region_detection_total", Help: "Region detection filter results",
+	}, []string{"result", "mode"})
+
 	SyncApply = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "post_task_sync_apply_total", Help: "Task sync applied",
 	}, []string{"op", "instance"})

@@ -3,6 +3,7 @@
 @email andywebjava@163.com
 @wechat EasyAIoT2025
 """
+import json
 from datetime import datetime, timezone, timedelta
 
 from flask_sqlalchemy import SQLAlchemy
@@ -1154,6 +1155,7 @@ class AlgorithmTask(db.Model):
     post_process_replicas = db.Column(db.Integer, default=1, nullable=False, comment='后处理 Worker 副本数（集群水平扩展）')
     # POST 定制后处理流水线 JSON（NULL = 默认 region_gate → default_pass）
     post_pipeline = db.Column(db.Text, nullable=True, comment='POST 定制后处理 pipeline JSON')
+    template_revision = db.Column(db.BigInteger, default=1, nullable=False, comment='POST任务模板单调版本号')
 
     # 布防时段配置
     defense_mode = db.Column(db.String(20), default='half', nullable=False, comment='布防模式[full:全防模式,half:半防模式,day:白天模式,night:夜间模式]')
@@ -1332,6 +1334,7 @@ class AlgorithmTask(db.Model):
             'post_process_script': self.post_process_script,
             'post_process_replicas': int(self.post_process_replicas or 1),
             'post_pipeline': self._parse_post_pipeline(),
+            'template_revision': int(getattr(self, 'template_revision', 1) or 1),
             'created_at': utc_isoformat_z(self.created_at),
             'updated_at': utc_isoformat_z(self.updated_at)
         }
@@ -2268,6 +2271,10 @@ class DeviceDetectionRegion(db.Model):
     
     # 模型绑定
     model_ids = db.Column(db.Text, nullable=True, comment='关联的算法模型ID列表（JSON格式，如[1,2,3]）')
+
+    # 区域级事件命中判定（NULL 仅用于兼容迁移前数据）
+    hit_mode = db.Column(db.String(50), nullable=True, comment='区域命中方式')
+    min_overlap_ratio = db.Column(db.Float, nullable=True, comment='检测框落入区域的最小面积比例(0-1)')
     
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
@@ -2306,7 +2313,12 @@ class DeviceDetectionRegion(db.Model):
             'opacity': self.opacity,
             'is_enabled': self.is_enabled,
             'sort_order': self.sort_order,
+            'model_scope': 'selected' if model_ids_list else 'all',
             'model_ids': model_ids_list,
+            'hit_mode': self.hit_mode or 'center',
+            'min_overlap_ratio': (
+                float(self.min_overlap_ratio) if self.min_overlap_ratio is not None else 0.5
+            ),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -2708,6 +2720,7 @@ def ensure_algorithm_task_post_process_columns(engine):
         'post_process_script': 'VARCHAR(255)',
         'post_process_replicas': 'INTEGER DEFAULT 1',
         'post_pipeline': 'TEXT',
+        'template_revision': 'BIGINT NOT NULL DEFAULT 1',
     }
     try:
         inspector = inspect(engine)

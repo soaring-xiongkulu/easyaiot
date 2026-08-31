@@ -10,8 +10,19 @@ from app.services.algorithm_task_service import _normalize_task_model_ids
 from app.services.runtime_config_service import (
     _resolve_ai_rtmp_url,
     _resolve_model_paths,
+    _resolve_models_with_ids,
     generate_runtime_inis,
 )
+
+
+def _fake_builtin_model(model_id, **_kwargs):
+    names = '/models/coco.names'
+    paths = {
+        -1: ('/models/yolo11n.onnx', names),
+        -2: ('/models/yolov8n.onnx', names),
+        -3: ('/models/yolo26n.onnx', names),
+    }
+    return paths.get(int(model_id))
 
 
 class TestRuntimeMultiModelCompatibility(unittest.TestCase):
@@ -20,13 +31,28 @@ class TestRuntimeMultiModelCompatibility(unittest.TestCase):
 
     def test_resolve_model_paths_returns_all_models_in_order(self):
         task = SimpleNamespace(model_ids='[-1, -3]')
-        pairs = _resolve_model_paths(task)
+        with patch(
+            'app.services.runtime_config_service._resolve_single_model_path',
+            side_effect=_fake_builtin_model,
+        ):
+            pairs = _resolve_model_paths(task)
         self.assertEqual(len(pairs), 2)
         self.assertIn('yolo11n', pairs[0][0])
         self.assertIn('yolo26n', pairs[1][0])
 
     def test_resolve_model_paths_single_model_returns_single_pair(self):
-        self.assertEqual(len(_resolve_model_paths(SimpleNamespace(model_ids='[-1]'))), 1)
+        with patch(
+            'app.services.runtime_config_service._resolve_single_model_path',
+            side_effect=_fake_builtin_model,
+        ):
+            self.assertEqual(len(_resolve_model_paths(SimpleNamespace(model_ids='[-1]'))), 1)
+
+    def test_runtime_model_id_stays_aligned_when_first_model_is_unresolvable(self):
+        task = SimpleNamespace(model_ids='[101, 202]')
+        with patch('app.services.runtime_config_service._resolve_single_model_path') as resolve:
+            resolve.side_effect = [None, ('/models/202.onnx', '/models/202.names')]
+            specs = _resolve_models_with_ids(task)
+        self.assertEqual(specs, [(202, '/models/202.onnx', '/models/202.names')])
 
     def test_cpp_task_ini_contains_every_model_key(self):
         task = SimpleNamespace(
@@ -51,7 +77,19 @@ class TestRuntimeMultiModelCompatibility(unittest.TestCase):
             )],
         )
         with tempfile.TemporaryDirectory() as cfg_dir:
-            with patch.dict(os.environ, {'RUNTIME_CONFIG_DIR': cfg_dir}, clear=False):
+            model_dir = Path(cfg_dir) / 'models'
+            model_dir.mkdir()
+            names_path = model_dir / 'coco.names'
+            names_path.touch()
+            model_paths = {}
+            for model_id, filename in ((-1, 'yolo11n.onnx'), (-3, 'yolo26n.onnx')):
+                model_path = model_dir / filename
+                model_path.touch()
+                model_paths[model_id] = (str(model_path), str(names_path))
+            with patch.dict(os.environ, {'RUNTIME_CONFIG_DIR': cfg_dir}, clear=False), patch(
+                'app.services.runtime_config_service._resolve_single_model_path',
+                side_effect=lambda model_id, **_kwargs: model_paths.get(int(model_id)),
+            ):
                 paths = generate_runtime_inis(task, log_path='', write_local=True)
                 self.assertEqual(len(paths), 1)
                 content = Path(paths[0]).read_text()
@@ -60,6 +98,8 @@ class TestRuntimeMultiModelCompatibility(unittest.TestCase):
         self.assertIn('classes_path=', content)
         self.assertIn('model_path_1=', content)
         self.assertIn('classes_path_1=', content)
+        self.assertIn('model_id=-1', content)
+        self.assertIn('model_id_1=-3', content)
         self.assertNotIn('model_path_2=', content)
 
     def test_cpp_single_model_task_ini_has_no_multi_model_keys(self):
@@ -85,11 +125,21 @@ class TestRuntimeMultiModelCompatibility(unittest.TestCase):
             )],
         )
         with tempfile.TemporaryDirectory() as cfg_dir:
-            with patch.dict(os.environ, {'RUNTIME_CONFIG_DIR': cfg_dir}, clear=False):
+            model_dir = Path(cfg_dir) / 'models'
+            model_dir.mkdir()
+            names_path = model_dir / 'coco.names'
+            names_path.touch()
+            model_path = model_dir / 'yolo11n.onnx'
+            model_path.touch()
+            with patch.dict(os.environ, {'RUNTIME_CONFIG_DIR': cfg_dir}, clear=False), patch(
+                'app.services.runtime_config_service._resolve_single_model_path',
+                return_value=(str(model_path), str(names_path)),
+            ):
                 paths = generate_runtime_inis(task, log_path='', write_local=True)
                 self.assertEqual(len(paths), 1)
                 content = Path(paths[0]).read_text()
         self.assertIn('model_path=', content)
+        self.assertIn('model_id=-1', content)
         self.assertNotIn('model_path_1=', content)
 
     def test_cpp_output_url_is_unique_per_task_on_same_camera(self):

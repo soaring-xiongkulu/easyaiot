@@ -4,6 +4,7 @@
 @wechat EasyAIoT2025
 """
 import argparse
+import json
 import os
 import socket
 import sys
@@ -446,6 +447,144 @@ def create_app(start_background_tasks=None):
                         """))
                         db.session.commit()
                         print("✅ device_detection_region.task_id 列添加成功")
+
+                    for col_name, col_def in (
+                        ('hit_mode', 'VARCHAR(50)'),
+                        ('min_overlap_ratio', 'DOUBLE PRECISION'),
+                    ):
+                        result = db.session.execute(text("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.columns
+                                WHERE table_schema = 'public'
+                                AND table_name = 'device_detection_region'
+                                AND column_name = :column_name
+                            );
+                        """), {'column_name': col_name})
+                        if not result.scalar():
+                            print(f"⚠️  device_detection_region.{col_name} 列不存在，正在添加...")
+                            db.session.execute(text(
+                                f'ALTER TABLE device_detection_region ADD COLUMN {col_name} {col_def};'
+                            ))
+                            db.session.commit()
+                            print(f"✅ device_detection_region.{col_name} 列添加成功")
+
+                    # 将旧任务级 region_gate 参数一次性迁移为区域级配置；无旧配置则使用中心点/50%。
+                    supported_region_hit_modes = {
+                        'center', 'bottom_center', 'any_intersection', 'overlap_ratio',
+                        'fully_inside', 'any_corner', 'any', 'all', 'bottom',
+                    }
+                    region_hit_rows = db.session.execute(text("""
+                        SELECT region.id, region.hit_mode, region.min_overlap_ratio, task.post_pipeline
+                        FROM device_detection_region AS region
+                        LEFT JOIN algorithm_task AS task ON task.id = region.task_id
+                        WHERE region.hit_mode IS NULL OR region.min_overlap_ratio IS NULL;
+                    """)).all()
+                    for region_id, current_mode, current_ratio, raw_pipeline in region_hit_rows:
+                        mode = current_mode if current_mode in supported_region_hit_modes else 'center'
+                        ratio = current_ratio
+                        try:
+                            pipeline = json.loads(raw_pipeline) if isinstance(raw_pipeline, str) else raw_pipeline
+                            if isinstance(pipeline, list):
+                                gate = next(
+                                    (step for step in pipeline if isinstance(step, dict)
+                                     and step.get('plugin') == 'region_gate'),
+                                    None,
+                                )
+                                params = gate.get('params') if isinstance(gate, dict) else None
+                                if isinstance(params, dict):
+                                    legacy_mode = params.get('hit_mode')
+                                    if current_mode is None and legacy_mode in supported_region_hit_modes:
+                                        mode = legacy_mode
+                                    if current_ratio is None and params.get('min_overlap_ratio') is not None:
+                                        ratio = float(params['min_overlap_ratio'])
+                        except (TypeError, ValueError, json.JSONDecodeError):
+                            pass
+                        try:
+                            ratio = float(ratio) if ratio is not None else 0.5
+                        except (TypeError, ValueError):
+                            ratio = 0.5
+                        if not 0.01 <= ratio <= 1:
+                            ratio = 0.5
+                        db.session.execute(text("""
+                            UPDATE device_detection_region
+                            SET hit_mode = :hit_mode, min_overlap_ratio = :min_overlap_ratio
+                            WHERE id = :region_id;
+                        """), {
+                            'region_id': region_id,
+                            'hit_mode': mode,
+                            'min_overlap_ratio': ratio,
+                        })
+
+                    # 任务级区域运行态只接受明确 task_id；历史无归属区域先禁用，避免串入多个任务。
+                    db.session.execute(text("""
+                        UPDATE device_detection_region
+                        SET model_ids = NULL
+                        WHERE model_ids IS NOT NULL
+                          AND (BTRIM(model_ids) = '' OR BTRIM(model_ids) = '[]');
+                    """))
+                    invalid_model_scope_ids = []
+                    model_scope_rows = db.session.execute(text("""
+                        SELECT id, model_ids
+                        FROM device_detection_region
+                        WHERE model_ids IS NOT NULL;
+                    """)).all()
+                    for region_id, raw_model_ids in model_scope_rows:
+                        try:
+                            parsed_model_ids = json.loads(raw_model_ids)
+                            if not isinstance(parsed_model_ids, list):
+                                raise ValueError('model_ids is not an array')
+                            normalized_model_ids = sorted({int(value) for value in parsed_model_ids})
+                            if not normalized_model_ids or 0 in normalized_model_ids:
+                                raise ValueError('model_ids is empty or contains reserved zero')
+                            db.session.execute(text("""
+                                UPDATE device_detection_region
+                                SET model_ids = :model_ids
+                                WHERE id = :region_id;
+                            """), {
+                                'region_id': region_id,
+                                'model_ids': json.dumps(normalized_model_ids, separators=(',', ':')),
+                            })
+                        except (TypeError, ValueError, json.JSONDecodeError):
+                            invalid_model_scope_ids.append(region_id)
+                            db.session.execute(text("""
+                                UPDATE device_detection_region
+                                SET model_ids = NULL, is_enabled = FALSE
+                                WHERE id = :region_id;
+                            """), {'region_id': region_id})
+                    if invalid_model_scope_ids:
+                        print(
+                            f"⚠️  已禁用模型范围无效的历史区域: {invalid_model_scope_ids}，"
+                            "请在任务区域编辑器中重新确认"
+                        )
+                    db.session.execute(text("""
+                        WITH unique_task AS (
+                            SELECT device_id, MIN(task_id) AS task_id
+                            FROM algorithm_task_device
+                            GROUP BY device_id
+                            HAVING COUNT(DISTINCT task_id) = 1
+                        )
+                        UPDATE device_detection_region AS region
+                        SET task_id = unique_task.task_id
+                        FROM unique_task
+                        WHERE region.task_id IS NULL
+                          AND region.device_id = unique_task.device_id;
+                    """))
+                    orphan_count = db.session.execute(text("""
+                        SELECT COUNT(*) FROM device_detection_region WHERE task_id IS NULL;
+                    """)).scalar() or 0
+                    if orphan_count:
+                        db.session.execute(text("""
+                            UPDATE device_detection_region
+                            SET is_enabled = FALSE
+                            WHERE task_id IS NULL AND COALESCE(is_enabled, TRUE) = TRUE;
+                        """))
+                        print(f"⚠️  已禁用 {orphan_count} 条无 task_id 的历史区域，请人工确认归属")
+                    db.session.execute(text("""
+                        CREATE INDEX IF NOT EXISTS idx_device_detection_region_task_device_enabled
+                        ON device_detection_region (task_id, device_id, sort_order)
+                        WHERE is_enabled = TRUE;
+                    """))
+                    db.session.commit()
 
                 # 轨迹回放表：device_track_session / device_track_point
                 for track_table in ('device_track_session', 'device_track_point'):

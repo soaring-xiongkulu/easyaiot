@@ -29,6 +29,7 @@ int YoloThreadPool::setUp(const std::vector<ModelSpec>& models,
     }
     threadsPerModel_ = num_threads;
     groups_.clear();
+    businessModelIds_.clear();
     groups_.reserve(models.size());
     for (const auto& spec : models) {
         std::vector<std::shared_ptr<YoloEngine>> group;
@@ -43,6 +44,7 @@ int YoloThreadPool::setUp(const std::vector<ModelSpec>& models,
             group.push_back(engine);
         }
         groups_.push_back(std::move(group));
+        businessModelIds_.push_back(spec.businessModelId);
     }
     for (int i = 0; i < static_cast<int>(groups_.size()) * num_threads; ++i) {
         threads.emplace_back(&YoloThreadPool::worker, this, i);
@@ -97,7 +99,9 @@ void YoloThreadPool::worker(int id) {
         }
         // 标记检测来源模型，供多模型告警审计与模型_ids 上报
         for (auto& det : detections) {
-            det.model_id = model_id;
+            det.model_id = groupIdx >= 0 && groupIdx < static_cast<int>(businessModelIds_.size())
+                ? businessModelIds_[static_cast<size_t>(groupIdx)]
+                : 0;
         }
         {
             std::lock_guard<std::mutex> lock(mtx2);
