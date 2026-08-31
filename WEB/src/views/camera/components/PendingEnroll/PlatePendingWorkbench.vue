@@ -141,6 +141,9 @@
                 </div>
               </div>
               <div class="target-card__body">
+                <p v-if="item.vehicle_identity_code" class="target-card__device" :title="item.vehicle_identity_code">
+                  <CarOutlined /> {{ item.vehicle_identity_name || '未知车辆' }} · {{ item.vehicle_identity_code }}
+                </p>
                 <p class="target-card__plate">
                   <span class="plate-no" :class="{ 'is-empty': !item.plate_no }">
                     {{ item.plate_no || '未识别车牌号' }}
@@ -200,6 +203,7 @@ import { computed, ref } from 'vue';
 import {
   AuditOutlined,
   DeleteOutlined,
+  CarOutlined,
   EyeInvisibleOutlined,
   SearchOutlined,
   UndoOutlined,

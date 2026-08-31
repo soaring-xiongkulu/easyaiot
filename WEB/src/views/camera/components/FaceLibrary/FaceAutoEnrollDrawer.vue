@@ -11,7 +11,9 @@
     <template #footer>
       <div class="footer-buttons">
         <Button @click="closeDrawer">关闭</Button>
-        <Button v-if="!taskStatus?.is_running" :loading="saving" @click="handleSave">保存配置</Button>
+        <Button v-if="!taskStatus?.is_running" :loading="saving" @click="handleSave"
+          >保存配置</Button
+        >
         <Button
           v-if="!taskStatus?.is_running"
           type="primary"
@@ -31,8 +33,8 @@
         type="info"
         show-icon
         :closable="false"
-        message="摄像头自动录入"
-        description="绑定摄像头后开启，系统将从视频流中检测未入库人脸并自动录入。已存在于库中的人脸将被跳过。"
+        message="摄像头人脸采集"
+        description="默认将清晰、未匹配的人脸送入待入库工作台，审核确认后再进入正式库；已存在、低质量或抓帧失败的样本会分类统计。"
         class="tip-alert"
       />
 
@@ -44,12 +46,32 @@
             <span class="value">{{ taskStatus.enrolled_count ?? 0 }}</span>
           </div>
           <div class="status-item">
+            <span class="label">待审核</span>
+            <span class="value">{{ taskStatus.candidate_count ?? 0 }}</span>
+          </div>
+          <div class="status-item">
+            <span class="label">重复</span>
+            <span class="value">{{ taskStatus.duplicate_count ?? 0 }}</span>
+          </div>
+          <div class="status-item">
+            <span class="label">质量拒绝</span>
+            <span class="value">{{ taskStatus.rejected_count ?? 0 }}</span>
+          </div>
+          <div class="status-item">
+            <span class="label">抓帧失败</span>
+            <span class="value">{{ taskStatus.capture_failed_count ?? 0 }}</span>
+          </div>
+          <div class="status-item">
             <span class="label">已跳过</span>
             <span class="value">{{ taskStatus.skipped_count ?? 0 }}</span>
           </div>
           <div class="status-item">
             <span class="label">到期时间</span>
             <span class="value">{{ formatTime(taskStatus.expires_at) }}</span>
+          </div>
+          <div class="status-item">
+            <span class="label">单轮预计</span>
+            <span class="value">{{ taskStatus.effective_cycle_sec ?? "-" }} 秒</span>
           </div>
         </div>
       </div>
@@ -60,14 +82,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onUnmounted, ref } from 'vue';
-import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
-import { BasicForm, useForm } from '@/components/Form';
-import { useMessage } from '@/hooks/web/useMessage';
-import { getDeviceList } from '@/api/device/camera';
-import { Button } from '@/components/Button'
+import { onUnmounted, ref } from "vue";
+import { BasicDrawer, useDrawerInner } from "@/components/Drawer";
+import { BasicForm, useForm } from "@/components/Form";
+import { useMessage } from "@/hooks/web/useMessage";
+import { getDeviceList } from "@/api/device/camera";
+import { Button } from "@/components/Button";
 import {
-getFaceAutoEnrollTask,
+  getFaceAutoEnrollTask,
   isAutoEnrollConfigError,
   parseFaceApiError,
   saveFaceAutoEnrollConfig,
@@ -75,11 +97,11 @@ getFaceAutoEnrollTask,
   stopFaceAutoEnroll,
   type FaceAutoEnrollTask,
   type FaceLibrary,
-} from '@/api/device/face_library';
+} from "@/api/device/face_library";
 
-defineOptions({ name: 'FaceAutoEnrollDrawer' });
+defineOptions({ name: "FaceAutoEnrollDrawer" });
 
-const emit = defineEmits(['success', 'register']);
+const emit = defineEmits(["success", "register"]);
 const { createMessage } = useMessage();
 
 const library = ref<FaceLibrary | null>(null);
@@ -111,7 +133,7 @@ function startStatusTimer() {
 onUnmounted(clearStatusTimer);
 
 function formatTime(val?: string) {
-  if (!val) return '-';
+  if (!val) return "-";
   try {
     return new Date(val).toLocaleString();
   } catch {
@@ -119,35 +141,50 @@ function formatTime(val?: string) {
   }
 }
 
-const numberFieldStyle = { width: '160px' };
+const numberFieldStyle = { width: "160px" };
 
 const [registerForm, { setFieldsValue, validate, updateSchema, resetFields }] = useForm({
   labelWidth: 96,
   baseColProps: { span: 24 },
   schemas: [
     {
-      field: 'device_ids',
-      label: '绑定摄像头',
-      component: 'Select',
+      field: "device_ids",
+      label: "绑定摄像头",
+      component: "Select",
       required: true,
-      itemProps: { class: 'form-item-device-ids' },
+      itemProps: { class: "form-item-device-ids" },
       componentProps: {
-        placeholder: '请选择摄像头',
-        mode: 'multiple',
+        placeholder: "请选择摄像头",
+        mode: "multiple",
         showSearch: true,
         allowClear: true,
         maxTagCount: 2,
         maxTagPlaceholder: (omitted: unknown[]) => `+${omitted.length}`,
         options: deviceOptions,
-        style: { width: '100%', maxWidth: '400px' },
+        style: { width: "100%", maxWidth: "400px" },
         filterOption: (input: string, option: any) =>
-          (option?.label ?? '').toLowerCase().includes(input.toLowerCase()),
+          (option?.label ?? "").toLowerCase().includes(input.toLowerCase()),
       },
     },
     {
-      field: 'duration_minutes',
-      label: '开启时长',
-      component: 'InputNumber',
+      field: "enroll_mode",
+      label: "入库方式",
+      component: "Select",
+      required: true,
+      defaultValue: "pending",
+      componentProps: {
+        options: [
+          { label: "待审核（推荐）", value: "pending" },
+          { label: "直接进入正式库", value: "direct" },
+        ],
+        style: { width: "240px" },
+      },
+      helpMessage: "仅受控单人正脸点位建议使用直接入库",
+    },
+    {
+      field: "duration_minutes",
+      label: "开启时长",
+      component: "InputNumber",
       required: true,
       defaultValue: 60,
       colProps: { span: 12 },
@@ -155,16 +192,16 @@ const [registerForm, { setFieldsValue, validate, updateSchema, resetFields }] = 
         min: 1,
         max: 1440,
         precision: 0,
-        addonAfter: '分钟',
+        addonAfter: "分钟",
         style: numberFieldStyle,
-        placeholder: '如 60',
+        placeholder: "如 60",
       },
-      helpMessage: '到期后自动停止',
+      helpMessage: "到期后自动停止",
     },
     {
-      field: 'capture_interval_sec',
-      label: '抓帧间隔',
-      component: 'InputNumber',
+      field: "capture_interval_sec",
+      label: "抓帧间隔",
+      component: "InputNumber",
       required: true,
       defaultValue: 5,
       colProps: { span: 12 },
@@ -172,23 +209,23 @@ const [registerForm, { setFieldsValue, validate, updateSchema, resetFields }] = 
         min: 2,
         max: 300,
         precision: 0,
-        addonAfter: '秒',
+        addonAfter: "秒",
         style: numberFieldStyle,
-        placeholder: '如 5',
+        placeholder: "如 5",
       },
-      helpMessage: '两次抓帧之间的间隔',
+      helpMessage: "两次抓帧之间的间隔",
     },
     {
-      field: 'person_name_prefix',
-      label: '命名前缀',
-      component: 'Input',
-      defaultValue: '摄像头自动录入',
+      field: "person_name_prefix",
+      label: "命名前缀",
+      component: "Input",
+      defaultValue: "摄像头自动录入",
       componentProps: {
-        placeholder: '如：摄像头自动录入',
+        placeholder: "如：摄像头自动录入",
         maxlength: 50,
-        style: { maxWidth: '360px' },
+        style: { maxWidth: "360px" },
       },
-      helpMessage: '新人脸命名为「前缀-001」，可在人脸管理中修改',
+      helpMessage: "新人脸命名为「前缀-001」，可在人脸管理中修改",
     },
   ],
 });
@@ -201,13 +238,13 @@ async function loadDevices() {
   }));
   updateSchema([
     {
-      field: 'device_ids',
+      field: "device_ids",
       componentProps: {
         options: deviceOptions.value,
-        mode: 'multiple',
+        mode: "multiple",
         maxTagCount: 2,
         maxTagPlaceholder: (omitted: unknown[]) => `+${omitted.length}`,
-        style: { width: '100%', maxWidth: '400px' },
+        style: { width: "100%", maxWidth: "400px" },
       },
     },
   ]);
@@ -223,54 +260,66 @@ async function loadTaskConfig() {
       device_ids: res.data.device_ids || [],
       duration_minutes: res.data.duration_minutes ?? 60,
       capture_interval_sec: res.data.capture_interval_sec ?? 5,
-      person_name_prefix: res.data.person_name_prefix || '摄像头自动录入',
+      person_name_prefix: res.data.person_name_prefix || "摄像头自动录入",
+      enroll_mode: res.data.enroll_mode || "pending",
     });
   }
 }
 
 const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {
   library.value = data?.library || null;
-  setDrawerProps({ title: `摄像头自动录入 · ${library.value?.name || ''}` });
+  setDrawerProps({ title: `摄像头自动录入 · ${library.value?.name || ""}` });
   await loadDevices();
   await loadTaskConfig();
   const formDisabled = !!taskStatus.value?.is_running;
   updateSchema([
     {
-      field: 'device_ids',
+      field: "device_ids",
       componentProps: {
         disabled: formDisabled,
         options: deviceOptions.value,
-        mode: 'multiple',
+        mode: "multiple",
         maxTagCount: 2,
         maxTagPlaceholder: (omitted: unknown[]) => `+${omitted.length}`,
-        style: { width: '100%', maxWidth: '400px' },
+        style: { width: "100%", maxWidth: "400px" },
       },
     },
     {
-      field: 'duration_minutes',
+      field: "enroll_mode",
+      componentProps: {
+        disabled: formDisabled,
+        options: [
+          { label: "待审核（推荐）", value: "pending" },
+          { label: "直接进入正式库", value: "direct" },
+        ],
+        style: { width: "240px" },
+      },
+    },
+    {
+      field: "duration_minutes",
       componentProps: {
         disabled: formDisabled,
         min: 1,
         max: 1440,
         precision: 0,
-        addonAfter: '分钟',
+        addonAfter: "分钟",
         style: numberFieldStyle,
       },
     },
     {
-      field: 'capture_interval_sec',
+      field: "capture_interval_sec",
       componentProps: {
         disabled: formDisabled,
         min: 2,
         max: 300,
         precision: 0,
-        addonAfter: '秒',
+        addonAfter: "秒",
         style: numberFieldStyle,
       },
     },
     {
-      field: 'person_name_prefix',
-      componentProps: { disabled: formDisabled, maxlength: 50, style: { maxWidth: '360px' } },
+      field: "person_name_prefix",
+      componentProps: { disabled: formDisabled, maxlength: 50, style: { maxWidth: "360px" } },
     },
   ]);
   if (taskStatus.value?.is_running) {
@@ -286,11 +335,11 @@ async function handleSave() {
     const values = await validate();
     saving.value = true;
     await saveFaceAutoEnrollConfig(library.value.id, values);
-    createMessage.success('配置已保存');
+    createMessage.success("配置已保存");
     await loadTaskConfig();
-    emit('success');
+    emit("success");
   } catch (e: any) {
-    createMessage.error(e?.message || '保存失败');
+    createMessage.error(e?.message || "保存失败");
   } finally {
     saving.value = false;
   }
@@ -303,15 +352,15 @@ async function handleStart() {
     starting.value = true;
     await saveFaceAutoEnrollConfig(library.value.id, values);
     await startFaceAutoEnroll(library.value.id);
-    createMessage.success('摄像头自动录入已开启');
+    createMessage.success("摄像头自动录入已开启");
     await loadTaskConfig();
     startStatusTimer();
-    emit('success');
+    emit("success");
   } catch (e: unknown) {
     if (isAutoEnrollConfigError(e)) {
-      createMessage.warning('请至少绑定一个摄像头后再开启');
+      createMessage.warning("请至少绑定一个摄像头后再开启");
     } else {
-      createMessage.error(parseFaceApiError(e, '开启摄像头自动录入失败'));
+      createMessage.error(parseFaceApiError(e, "开启摄像头自动录入失败"));
     }
   } finally {
     starting.value = false;
@@ -323,12 +372,12 @@ async function handleStop() {
   try {
     stopping.value = true;
     await stopFaceAutoEnroll(library.value.id);
-    createMessage.success('摄像头自动录入已关闭');
+    createMessage.success("摄像头自动录入已关闭");
     clearStatusTimer();
     await loadTaskConfig();
-    emit('success');
+    emit("success");
   } catch (e: unknown) {
-    createMessage.error(parseFaceApiError(e, '关闭摄像头自动录入失败'));
+    createMessage.error(parseFaceApiError(e, "关闭摄像头自动录入失败"));
   } finally {
     stopping.value = false;
   }

@@ -141,6 +141,10 @@
                 </div>
               </div>
               <div class="target-card__body">
+                <p v-if="item.identity_code" class="target-card__identity" :title="item.identity_code">
+                  <IdcardOutlined />
+                  {{ item.identity_name || '未知人员' }} · {{ item.identity_code }}
+                </p>
                 <p class="target-card__device" :title="item.device_name || item.device_id">
                   <VideoCameraOutlined />
                   {{ item.device_name || item.device_id }}
@@ -192,6 +196,7 @@ import {
   AuditOutlined,
   DeleteOutlined,
   EyeInvisibleOutlined,
+  IdcardOutlined,
   SearchOutlined,
   UndoOutlined,
   VideoCameraOutlined,

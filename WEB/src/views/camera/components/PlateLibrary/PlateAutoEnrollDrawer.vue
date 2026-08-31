@@ -32,7 +32,7 @@
         show-icon
         :closable="false"
         message="摄像头自动录入"
-        description="绑定摄像头后开启，系统将从视频流中识别未入库车牌并自动录入。已存在于库中的车牌将被跳过。"
+        description="绑定摄像头后，系统为车辆生成 VID 并记录轨迹。新车辆默认进入待入库工作台，不会直接修改正式车牌库。"
         class="tip-alert"
       />
 
@@ -40,12 +40,16 @@
         <a-badge status="processing" text="摄像头自动录入运行中" />
         <div class="status-grid">
           <div class="status-item">
-            <span class="label">已录入</span>
-            <span class="value">{{ taskStatus.enrolled_count ?? 0 }}</span>
+            <span class="label">新 VID</span>
+            <span class="value">{{ taskStatus.candidate_count ?? 0 }}</span>
           </div>
           <div class="status-item">
-            <span class="label">已跳过</span>
-            <span class="value">{{ taskStatus.skipped_count ?? 0 }}</span>
+            <span class="label">重复轨迹</span>
+            <span class="value">{{ taskStatus.duplicate_count ?? 0 }}</span>
+          </div>
+          <div class="status-item">
+            <span class="label">质量拒绝</span>
+            <span class="value">{{ taskStatus.rejected_count ?? 0 }}</span>
           </div>
           <div class="status-item">
             <span class="label">到期时间</span>
@@ -270,7 +274,7 @@ async function handleSave() {
   try {
     const values = await validate();
     saving.value = true;
-    await savePlateAutoEnrollConfig(library.value.id, values);
+    await savePlateAutoEnrollConfig(library.value.id, { ...values, enroll_mode: 'pending' });
     createMessage.success('配置已保存');
     await loadTaskConfig();
     emit('success');
@@ -286,7 +290,7 @@ async function handleStart() {
   try {
     const values = await validate();
     starting.value = true;
-    await savePlateAutoEnrollConfig(library.value.id, values);
+    await savePlateAutoEnrollConfig(library.value.id, { ...values, enroll_mode: 'pending' });
     await startPlateAutoEnroll(library.value.id);
     createMessage.success('摄像头自动录入已开启');
     await loadTaskConfig();
