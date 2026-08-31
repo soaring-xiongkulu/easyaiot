@@ -1019,13 +1019,6 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Кадр](.image/banner/banner1064.jpg) | ![Анализ](.image/banner/banner1065.jpg) | ![Результаты](.image/banner/banner1066.jpg) |
 | ![Повтор](.image/banner/banner1067.jpg) | ![Живой просмотр](.image/banner/banner1052.jpg) | ![Интеллект](.image/banner/banner1054.jpg) |
 
-#### 📋 Заявки по тревогам
-
-| | | |
-|:---:|:---:|:---:|
-| ![Конструктор процессов](.image/banner/banner1231.png) | ![Настройка узла](.image/banner/banner1232.png) | ![Выбор согласующих](.image/banner/banner1233.png) |
-| ![Условные ветвления](.image/banner/banner1234.png) | ![Правила условий](.image/banner/banner1235.png) | ![Параллельные ветвления](.image/banner/banner1236.png) |
-
 #### 📦 Наборы данных
 
 | | | |
@@ -1063,13 +1056,20 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Список](.image/banner/banner1133.jpg) | ![Статус](.image/banner/banner1134.jpg) | ![Конфигурация](.image/banner/banner1135.jpg) |
 | ![Распределение](.image/banner/banner1136.jpg) |  |  |
 
-#### 🔔 Тревоги
+#### 🔔 События тревог
 
 | | | |
 |:---:|:---:|:---:|
 | ![События](.image/banner/banner1089.jpg) | ![Обработка](.image/banner/banner1090.jpg) | ![Уведомление](.image/banner/banner1029.jpg) |
 | ![Конфигурация](.image/banner/banner1030.jpg) | ![Список](.image/banner/banner1072.jpg) | ![Детали](.image/banner/banner1031.jpg) |
 | ![Обработка](.image/banner/banner1070.jpg) | ![Статистика](.image/banner/banner1071.jpg) |  |
+
+#### 📋 Заявки по тревогам
+
+| | | |
+|:---:|:---:|:---:|
+| ![Конструктор процессов](.image/banner/banner1231.png) | ![Настройка узла](.image/banner/banner1232.png) | ![Выбор согласующих](.image/banner/banner1233.png) |
+| ![Условные ветвления](.image/banner/banner1234.png) | ![Правила условий](.image/banner/banner1235.png) | ![Параллельные ветвления](.image/banner/banner1236.png) |
 
 #### ⚙️ Система
 

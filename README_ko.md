@@ -1018,13 +1018,6 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![화면](.image/banner/banner1064.jpg) | ![분석](.image/banner/banner1065.jpg) | ![결과](.image/banner/banner1066.jpg) |
 | ![다시보기](.image/banner/banner1067.jpg) | ![실황](.image/banner/banner1052.jpg) | ![스마트](.image/banner/banner1054.jpg) |
 
-#### 📋 알람 워크오더
-
-| | | |
-|:---:|:---:|:---:|
-| ![플로우 디자인](.image/banner/banner1231.png) | ![노드 구성](.image/banner/banner1232.png) | ![승인자 선택](.image/banner/banner1233.png) |
-| ![조건 분기](.image/banner/banner1234.png) | ![조건 규칙](.image/banner/banner1235.png) | ![병렬 분기](.image/banner/banner1236.png) |
-
 #### 📦 데이터셋
 
 | | | |
@@ -1062,13 +1055,20 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![목록](.image/banner/banner1133.jpg) | ![상태](.image/banner/banner1134.jpg) | ![구성](.image/banner/banner1135.jpg) |
 | ![할당](.image/banner/banner1136.jpg) |  |  |
 
-#### 🔔 경보
+#### 🔔 경보 이벤트
 
 | | | |
 |:---:|:---:|:---:|
 | ![이벤트](.image/banner/banner1089.jpg) | ![처리](.image/banner/banner1090.jpg) | ![알림](.image/banner/banner1029.jpg) |
 | ![구성](.image/banner/banner1030.jpg) | ![목록](.image/banner/banner1072.jpg) | ![상세](.image/banner/banner1031.jpg) |
 | ![조치](.image/banner/banner1070.jpg) | ![통계](.image/banner/banner1071.jpg) |  |
+
+#### 📋 알람 워크오더
+
+| | | |
+|:---:|:---:|:---:|
+| ![플로우 디자인](.image/banner/banner1231.png) | ![노드 구성](.image/banner/banner1232.png) | ![승인자 선택](.image/banner/banner1233.png) |
+| ![조건 분기](.image/banner/banner1234.png) | ![조건 규칙](.image/banner/banner1235.png) | ![병렬 분기](.image/banner/banner1236.png) |
 
 #### ⚙️ 시스템
 

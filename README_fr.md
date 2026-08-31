@@ -1018,13 +1018,6 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 | ![Image](.image/banner/banner1064.jpg) | ![Analyse](.image/banner/banner1065.jpg) | ![Résultats](.image/banner/banner1066.jpg) |
 | ![Relecture](.image/banner/banner1067.jpg) | ![Vue live](.image/banner/banner1052.jpg) | ![Intelligent](.image/banner/banner1054.jpg) |
 
-#### 📋 Bons de travail d'alerte
-
-| | | |
-|:---:|:---:|:---:|
-| ![Conception de flux](.image/banner/banner1231.png) | ![Configuration de nœud](.image/banner/banner1232.png) | ![Sélection des approbateurs](.image/banner/banner1233.png) |
-| ![Branches conditionnelles](.image/banner/banner1234.png) | ![Règles de condition](.image/banner/banner1235.png) | ![Branches parallèles](.image/banner/banner1236.png) |
-
 #### 📦 Jeux de données
 
 | | | |
@@ -1062,13 +1055,20 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 | ![Liste](.image/banner/banner1133.jpg) | ![État](.image/banner/banner1134.jpg) | ![Configuration](.image/banner/banner1135.jpg) |
 | ![Allocation](.image/banner/banner1136.jpg) |  |  |
 
-#### 🔔 Alertes
+#### 🔔 Événements d'alerte
 
 | | | |
 |:---:|:---:|:---:|
 | ![Événements](.image/banner/banner1089.jpg) | ![Traitement](.image/banner/banner1090.jpg) | ![Notification](.image/banner/banner1029.jpg) |
 | ![Configuration](.image/banner/banner1030.jpg) | ![Liste](.image/banner/banner1072.jpg) | ![Détails](.image/banner/banner1031.jpg) |
 | ![Traitement](.image/banner/banner1070.jpg) | ![Statistiques](.image/banner/banner1071.jpg) |  |
+
+#### 📋 Bons de travail d'alerte
+
+| | | |
+|:---:|:---:|:---:|
+| ![Conception de flux](.image/banner/banner1231.png) | ![Configuration de nœud](.image/banner/banner1232.png) | ![Sélection des approbateurs](.image/banner/banner1233.png) |
+| ![Branches conditionnelles](.image/banner/banner1234.png) | ![Règles de condition](.image/banner/banner1235.png) | ![Branches parallèles](.image/banner/banner1236.png) |
 
 #### ⚙️ Système
 

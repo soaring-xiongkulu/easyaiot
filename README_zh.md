@@ -1084,13 +1084,6 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 | ![画面](.image/banner/banner1064.jpg) | ![分析](.image/banner/banner1065.jpg) | ![结果](.image/banner/banner1066.jpg) |
 | ![回看](.image/banner/banner1067.jpg) | ![实况](.image/banner/banner1052.jpg) | ![智能](.image/banner/banner1054.jpg) |
 
-#### 📋 告警工单
-
-| | | |
-|:---:|:---:|:---:|
-| ![流程设计](.image/banner/banner1231.png) | ![节点配置](.image/banner/banner1232.png) | ![选择审批人](.image/banner/banner1233.png) |
-| ![条件分支](.image/banner/banner1234.png) | ![条件规则](.image/banner/banner1235.png) | ![并行分支](.image/banner/banner1236.png) |
-
 #### 📦 数据集
 
 | | | |
@@ -1128,13 +1121,20 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 | ![列表](.image/banner/banner1133.jpg) | ![状态](.image/banner/banner1134.jpg) | ![配置](.image/banner/banner1135.jpg) |
 | ![分配](.image/banner/banner1136.jpg) |  |  |
 
-#### 🔔 告警
+#### 🔔 告警事件
 
 | | | |
 |:---:|:---:|:---:|
 | ![事件](.image/banner/banner1089.jpg) | ![处理](.image/banner/banner1090.jpg) | ![通知](.image/banner/banner1029.jpg) |
 | ![配置](.image/banner/banner1030.jpg) | ![列表](.image/banner/banner1072.jpg) | ![详情](.image/banner/banner1031.jpg) |
 | ![处置](.image/banner/banner1070.jpg) | ![统计](.image/banner/banner1071.jpg) |  |
+
+#### 📋 告警工单
+
+| | | |
+|:---:|:---:|:---:|
+| ![流程设计](.image/banner/banner1231.png) | ![节点配置](.image/banner/banner1232.png) | ![选择审批人](.image/banner/banner1233.png) |
+| ![条件分支](.image/banner/banner1234.png) | ![条件规则](.image/banner/banner1235.png) | ![并行分支](.image/banner/banner1236.png) |
 
 #### ⚙️ 系统
 

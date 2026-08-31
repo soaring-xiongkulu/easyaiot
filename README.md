@@ -1042,13 +1042,6 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 | ![Frame](.image/banner/banner1064.jpg) | ![Analysis](.image/banner/banner1065.jpg) | ![Results](.image/banner/banner1066.jpg) |
 | ![Playback](.image/banner/banner1067.jpg) | ![Live View](.image/banner/banner1052.jpg) | ![Intelligent](.image/banner/banner1054.jpg) |
 
-#### 📋 Alert Work Orders
-
-| | | |
-|:---:|:---:|:---:|
-| ![Flow Design](.image/banner/banner1231.png) | ![Node Configuration](.image/banner/banner1232.png) | ![Select Approver](.image/banner/banner1233.png) |
-| ![Condition Branches](.image/banner/banner1234.png) | ![Condition Rules](.image/banner/banner1235.png) | ![Parallel Branches](.image/banner/banner1236.png) |
-
 #### 📦 Datasets
 
 | | | |
@@ -1086,13 +1079,20 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 | ![List](.image/banner/banner1133.jpg) | ![Status](.image/banner/banner1134.jpg) | ![Configuration](.image/banner/banner1135.jpg) |
 | ![Allocation](.image/banner/banner1136.jpg) |  |  |
 
-#### 🔔 Alerts
+#### 🔔 Alert Events
 
 | | | |
 |:---:|:---:|:---:|
 | ![Events](.image/banner/banner1089.jpg) | ![Processing](.image/banner/banner1090.jpg) | ![Notification](.image/banner/banner1029.jpg) |
 | ![Configuration](.image/banner/banner1030.jpg) | ![List](.image/banner/banner1072.jpg) | ![Details](.image/banner/banner1031.jpg) |
 | ![Handling](.image/banner/banner1070.jpg) | ![Statistics](.image/banner/banner1071.jpg) |  |
+
+#### 📋 Alert Work Orders
+
+| | | |
+|:---:|:---:|:---:|
+| ![Flow Design](.image/banner/banner1231.png) | ![Node Configuration](.image/banner/banner1232.png) | ![Select Approver](.image/banner/banner1233.png) |
+| ![Condition Branches](.image/banner/banner1234.png) | ![Condition Rules](.image/banner/banner1235.png) | ![Parallel Branches](.image/banner/banner1236.png) |
 
 #### ⚙️ System
 
