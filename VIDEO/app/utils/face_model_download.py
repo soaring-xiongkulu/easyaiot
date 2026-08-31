@@ -8,7 +8,7 @@ import urllib.request
 import zipfile
 from typing import Any, Dict
 
-from app.utils.face_model_paths import FACE_MATCH_MODEL_PATH
+from app.utils.face_model_paths import FACE_DETECT_MODEL_PATH, FACE_MATCH_MODEL_PATH
 
 FACE_REC_DOWNLOAD_URL = os.getenv(
     'FACE_REC_MODEL_DOWNLOAD_URL',
@@ -55,6 +55,7 @@ def _prepare_model_target() -> None:
     os.makedirs(parent, exist_ok=True)
     _ensure_writable_file_path(FACE_MATCH_MODEL_PATH)
     _ensure_writable_file_path(_onnx_partial_path())
+    _ensure_writable_file_path(FACE_DETECT_MODEL_PATH)
     if os.path.isdir(_zip_partial_path()):
         _ensure_writable_file_path(_zip_partial_path())
 
@@ -94,7 +95,11 @@ def is_face_rec_model_available() -> bool:
     if not os.path.isfile(FACE_MATCH_MODEL_PATH):
         return False
     try:
-        return os.path.getsize(FACE_MATCH_MODEL_PATH) >= MIN_MODEL_SIZE_BYTES
+        return (
+            os.path.getsize(FACE_MATCH_MODEL_PATH) >= MIN_MODEL_SIZE_BYTES
+            and os.path.isfile(FACE_DETECT_MODEL_PATH)
+            and os.path.getsize(FACE_DETECT_MODEL_PATH) >= 1024 * 1024
+        )
     except OSError:
         return False
 
@@ -169,6 +174,9 @@ def _build_status_locked() -> Dict[str, Any]:
         'exists': exists,
         'filename': os.path.basename(FACE_MATCH_MODEL_PATH),
         'path': FACE_MATCH_MODEL_PATH,
+        'detector_exists': os.path.isfile(FACE_DETECT_MODEL_PATH),
+        'detector_filename': os.path.basename(FACE_DETECT_MODEL_PATH),
+        'detector_path': FACE_DETECT_MODEL_PATH,
         'size_bytes': size_bytes,
         'downloading': downloading,
         'resumable': resumable,
@@ -288,6 +296,18 @@ def _extract_onnx(zip_path: str, target_path: str) -> None:
                 _set_progress('extracting', progress, downloaded=written, total=total)
 
 
+def _extract_scrfd(zip_path: str, target_path: str) -> None:
+    with zipfile.ZipFile(zip_path) as zf:
+        member = next(
+            (name for name in zf.namelist() if name.rstrip('/').endswith('det_10g.onnx')),
+            None,
+        )
+        if member is None:
+            raise KeyError('模型包中未找到 SCRFD det_10g.onnx')
+        with zf.open(member) as src, open(target_path, 'wb') as dst:
+            shutil.copyfileobj(src, dst)
+
+
 def _cleanup_zip_partial() -> None:
     zip_path = _zip_partial_path()
     if os.path.isfile(zip_path):
@@ -334,8 +354,13 @@ def _do_download() -> None:
 
         _ensure_writable_file_path(onnx_partial)
         _extract_onnx(zip_path, onnx_partial)
+        detect_partial = f'{FACE_DETECT_MODEL_PATH}.downloading'
+        _ensure_writable_file_path(detect_partial)
+        _extract_scrfd(zip_path, detect_partial)
         _ensure_writable_file_path(FACE_MATCH_MODEL_PATH)
         os.replace(onnx_partial, FACE_MATCH_MODEL_PATH)
+        _ensure_writable_file_path(FACE_DETECT_MODEL_PATH)
+        os.replace(detect_partial, FACE_DETECT_MODEL_PATH)
         _cleanup_zip_partial()
 
         with _lock:

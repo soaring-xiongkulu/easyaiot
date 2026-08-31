@@ -319,7 +319,9 @@ def add_entry(
     image = decode_image_bytes(image_bytes)
     service = get_face_recognition_service()
     try:
-        crop_info = service.extract_and_crop_largest_face(image)
+        crop_info = service.extract_and_crop_largest_face(
+            image, allow_full_frame_fallback=False, enforce_quality=True,
+        )
     except FileNotFoundError as exc:
         raise ValueError(
             '人脸特征模型 face_rec.onnx 未安装，请在人脸库页面下载安装后再录入'

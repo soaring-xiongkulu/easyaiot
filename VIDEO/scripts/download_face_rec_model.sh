@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# 下载 InsightFace buffalo_l 识别模型并重命名为 VIDEO/face_rec.onnx
+# 下载 InsightFace buffalo_l 的 ArcFace 识别模型和 SCRFD 检测模型
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${SCRIPT_DIR}/face_rec.onnx"
+DETECT_TARGET="${SCRIPT_DIR}/scrfd_10g.onnx"
 ZIP_URL="${FACE_REC_MODEL_DOWNLOAD_URL:-https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip}"
 ONNX_IN_ZIP_CANDIDATES=("w600k_r50.onnx" "buffalo_l/w600k_r50.onnx")
 
-if [ -f "$TARGET" ] && [ "$(stat -c%s "$TARGET" 2>/dev/null || stat -f%z "$TARGET" 2>/dev/null || echo 0)" -ge 10485760 ]; then
-  echo "[INFO] face_rec.onnx 已存在: $TARGET"
+if [ -f "$TARGET" ] && [ -f "$DETECT_TARGET" ] \
+  && [ "$(stat -c%s "$TARGET" 2>/dev/null || stat -f%z "$TARGET" 2>/dev/null || echo 0)" -ge 10485760 ] \
+  && [ "$(stat -c%s "$DETECT_TARGET" 2>/dev/null || stat -f%z "$DETECT_TARGET" 2>/dev/null || echo 0)" -ge 1048576 ]; then
+  echo "[INFO] ArcFace 与 SCRFD 模型均已存在"
   exit 0
 fi
 
@@ -73,4 +76,15 @@ with zipfile.ZipFile(zip_path) as zf:
 PY
 fi
 
-echo "[SUCCESS] 已保存为 $TARGET ($(du -h "$TARGET" | awk '{print $1}'))"
+if command -v unzip >/dev/null 2>&1; then
+  unzip -q -p "$ZIP_FILE" det_10g.onnx > "$DETECT_TARGET"
+else
+  python3 - "$ZIP_FILE" "$DETECT_TARGET" <<'PY'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as zf, zf.open('det_10g.onnx') as src, open(sys.argv[2], 'wb') as dst:
+    dst.write(src.read())
+PY
+fi
+
+echo "[SUCCESS] ArcFace: $TARGET ($(du -h "$TARGET" | awk '{print $1}'))"
+echo "[SUCCESS] SCRFD: $DETECT_TARGET ($(du -h "$DETECT_TARGET" | awk '{print $1}'))"

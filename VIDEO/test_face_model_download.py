@@ -55,16 +55,23 @@ class TestFaceModelDownloadHelpers(unittest.TestCase):
     def test_extract_and_replace_clears_target_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
             model_path = os.path.join(tmp, 'face_rec.onnx')
+            detect_path = os.path.join(tmp, 'scrfd_10g.onnx')
             zip_path = os.path.join(tmp, 'buffalo_l.zip')
             onnx_member = os.path.join(tmp, 'w600k_r50.onnx')
+            detect_member = os.path.join(tmp, 'det_10g.onnx')
             with open(onnx_member, 'wb') as f:
                 f.write(b'0' * 1024)
+            with open(detect_member, 'wb') as f:
+                f.write(b'1' * 1024)
             with zipfile.ZipFile(zip_path, 'w') as zf:
                 zf.write(onnx_member, arcname='w600k_r50.onnx')
+                zf.write(detect_member, arcname='det_10g.onnx')
             os.makedirs(model_path)
             onnx_partial = f'{model_path}.downloading'
 
             with mock.patch.object(fmd, 'FACE_MATCH_MODEL_PATH', model_path), mock.patch.object(
+                fmd, 'FACE_DETECT_MODEL_PATH', detect_path
+            ), mock.patch.object(
                 fmd, '_zip_partial_path', return_value=zip_path
             ), mock.patch.object(
                 fmd, '_onnx_partial_path', return_value=onnx_partial
@@ -73,6 +80,8 @@ class TestFaceModelDownloadHelpers(unittest.TestCase):
 
             self.assertTrue(os.path.isfile(model_path))
             self.assertGreater(os.path.getsize(model_path), 0)
+            self.assertTrue(os.path.isfile(detect_path))
+            self.assertGreater(os.path.getsize(detect_path), 0)
         with tempfile.TemporaryDirectory() as tmp:
             zip_path = os.path.join(tmp, 'buffalo_l.zip')
             onnx_path = os.path.join(tmp, 'w600k_r50.onnx')

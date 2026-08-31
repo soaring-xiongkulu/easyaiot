@@ -12,12 +12,13 @@ import cv2
 import numpy as np
 
 from app.services.face_vector_store import get_face_vector_store
-from app.utils.face_model_paths import FACE_MATCH_MODEL_PATH
+from app.utils.face_model_paths import FACE_DETECT_MODEL_PATH, FACE_MATCH_MODEL_PATH
 
 logger = logging.getLogger(__name__)
 
 try:
     from insightface.model_zoo import get_model as insightface_get_model
+    from insightface.utils import face_align
     _INSIGHTFACE_IMPORT_ERROR: Optional[Exception] = None
 except Exception as exc:  # pragma: no cover
     insightface_get_model = None
@@ -43,8 +44,11 @@ class FaceRecognitionService:
         self._vector_store = get_face_vector_store()
         self.similarity_threshold = float(os.getenv("FACE_SIMILARITY_THRESHOLD", "0.55"))
         self.face_model_path = os.getenv("FACE_MATCH_MODEL_PATH", FACE_MATCH_MODEL_PATH)
+        self.face_detect_model_path = os.getenv("FACE_DETECT_MODEL_PATH", FACE_DETECT_MODEL_PATH)
         self._rec_model = None
         self._rec_model_lock = threading.Lock()
+        self._det_model = None
+        self._det_model_lock = threading.Lock()
 
     @property
     def collection_name(self) -> str:
@@ -78,29 +82,67 @@ class FaceRecognitionService:
         feat = self._rec_model.get_feat(aligned)
         return _normalize_embedding(feat)
 
-    def _extract_faces(self, image: np.ndarray) -> List[Any]:
-        from app.utils.face_capture_service import detect_faces
+    def _ensure_det_model(self):
+        if _INSIGHTFACE_IMPORT_ERROR is not None or insightface_get_model is None:
+            raise RuntimeError(f"InsightFace 未安装或加载失败: {_INSIGHTFACE_IMPORT_ERROR}")
+        if self._det_model is not None:
+            return
+        with self._det_model_lock:
+            if self._det_model is not None:
+                return
+            if not os.path.isfile(self.face_detect_model_path):
+                raise FileNotFoundError(
+                    f"SCRFD 人脸检测模型不存在: {self.face_detect_model_path}"
+                )
+            # SCRFD 默认独立走 CPU，规避部分 CUDA/TensorRT 组合在动态 1280 输入时崩溃；
+            # 需要时可通过 FACE_SCRFD_USE_GPU=true 单独开启并验收。
+            use_gpu = _to_bool(os.getenv("FACE_SCRFD_USE_GPU"), default=False)
+            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if use_gpu else ["CPUExecutionProvider"]
+            try:
+                import onnxruntime as ort
+                ort.set_default_logger_severity(3)
+            except Exception:
+                pass
+            self._det_model = insightface_get_model(
+                self.face_detect_model_path,
+                providers=providers,
+                provider_options=[{} for _ in providers],
+            )
+            self._det_model.prepare(
+                ctx_id=0 if use_gpu else -1,
+                det_thresh=float(os.getenv('FACE_SCRFD_CONF_THRESHOLD', '0.5')),
+                input_size=(640, 640),
+            )
+            logger.info('SCRFD 人脸检测模型已加载: %s', self.face_detect_model_path)
 
-        detections = detect_faces(image)
+    def _extract_faces(self, image: np.ndarray) -> List[Any]:
+        self._ensure_det_model()
+        input_size = max(320, int(os.getenv('FACE_SCRFD_INPUT_SIZE', '1280')))
+        bboxes, keypoints = self._det_model.detect(
+            image, input_size=(input_size, input_size), max_num=0,
+        )
         faces: List[Any] = []
         h, w = image.shape[:2]
-        for det in detections:
-            bbox = det.get("bbox") or []
-            if len(bbox) < 4:
-                continue
-            x1, y1, x2, y2 = [int(v) for v in bbox[:4]]
+        for index, raw_bbox in enumerate(bboxes if bboxes is not None else []):
+            x1, y1, x2, y2 = [int(v) for v in raw_bbox[:4]]
             x1, y1 = max(0, x1), max(0, y1)
             x2, y2 = min(w, x2), min(h, y2)
             if x2 <= x1 or y2 <= y1:
                 continue
-            crop = image[y1:y2, x1:x2]
-            if crop.size == 0:
+            kps = keypoints[index] if keypoints is not None and index < len(keypoints) else None
+            if kps is None or len(kps) != 5:
                 continue
-            embedding = self._embed_crop(crop)
+            aligned = face_align.norm_crop(image, landmark=np.asarray(kps), image_size=112)
+            if aligned is None or aligned.size == 0:
+                continue
+            embedding = self._embed_crop(aligned)
             faces.append(
                 SimpleNamespace(
                     bbox=np.array([x1, y1, x2, y2], dtype=np.float32),
                     normed_embedding=embedding,
+                    crop=aligned,
+                    kps=np.asarray(kps, dtype=np.float32),
+                    det_score=float(raw_bbox[4]) if len(raw_bbox) > 4 else 1.0,
                 )
             )
         return faces
@@ -285,36 +327,59 @@ class FaceRecognitionService:
             result['bbox'] = bbox
         return result
 
-    def extract_and_crop_largest_face(self, image: np.ndarray) -> Optional[Dict[str, Any]]:
-        from app.utils.face_capture_service import detect_faces
-
-        min_area_ratio = float(os.getenv('FACE_ENROLL_MIN_AREA_RATIO', '0.02'))
+    def extract_and_crop_largest_face(
+        self,
+        image: np.ndarray,
+        *,
+        allow_full_frame_fallback: bool = False,
+        enforce_quality: bool = True,
+    ) -> Optional[Dict[str, Any]]:
+        min_area_ratio = float(os.getenv('FACE_ENROLL_MIN_AREA_RATIO', '0.0002'))
         h, w = image.shape[:2]
         image_area = max(h * w, 1)
 
-        detections = detect_faces(image)
         valid_boxes = []
-        for det in detections:
-            bbox = det.get('bbox') or []
-            if len(bbox) < 4:
-                continue
-            x1, y1, x2, y2 = [int(v) for v in bbox[:4]]
-            x1, y1 = max(0, x1), max(0, y1)
-            x2, y2 = min(w, x2), min(h, y2)
+        for face in self._extract_faces(image):
+            x1, y1, x2, y2 = [int(v) for v in face.bbox[:4]]
             if x2 <= x1 or y2 <= y1:
                 continue
             area = (x2 - x1) * (y2 - y1)
             if area / image_area < min_area_ratio:
                 continue
-            valid_boxes.append(([x1, y1, x2, y2], area))
+            valid_boxes.append((face, area))
 
         if valid_boxes:
-            bbox, _ = max(valid_boxes, key=lambda item: item[1])
+            face, _ = max(valid_boxes, key=lambda item: item[1])
+            bbox = [int(v) for v in face.bbox[:4]]
+            confidence = face.det_score
             x1, y1, x2, y2 = bbox
-            crop = image[y1:y2, x1:x2]
+            crop = face.crop
             if crop.size > 0:
+                gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
+                blur_score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+                brightness = float(gray.mean())
+                min_dimension = min(x2 - x1, y2 - y1)
+                quality = {
+                    'confidence': confidence,
+                    'blur_score': blur_score,
+                    'brightness': brightness,
+                    'min_dimension': min_dimension,
+                    'area_ratio': ((x2 - x1) * (y2 - y1)) / image_area,
+                }
+                if enforce_quality:
+                    min_dimension_required = int(os.getenv('FACE_ENROLL_MIN_FACE_PIXELS', '24'))
+                    min_blur = float(os.getenv('FACE_ENROLL_MIN_BLUR_SCORE', '20'))
+                    min_brightness = float(os.getenv('FACE_ENROLL_MIN_BRIGHTNESS', '35'))
+                    max_brightness = float(os.getenv('FACE_ENROLL_MAX_BRIGHTNESS', '225'))
+                    if (
+                        min_dimension < min_dimension_required
+                        or blur_score < min_blur
+                        or brightness < min_brightness
+                        or brightness > max_brightness
+                    ):
+                        return None
                 try:
-                    embedding = self._embed_crop(crop)
+                    embedding = face.normed_embedding
                 except FileNotFoundError:
                     raise
                 except Exception as exc:
@@ -324,7 +389,12 @@ class FaceRecognitionService:
                         'bbox': bbox,
                         'crop': crop,
                         'embedding': embedding,
+                        'quality': quality,
+                        'keypoints': face.kps.tolist(),
                     }
+
+        if not allow_full_frame_fallback:
+            return None
 
         try:
             self._ensure_rec_model()

@@ -10,6 +10,12 @@ FACE_CAPTURE_MODEL_PATH = os.getenv(
 )
 FACE_CAPTURE_CLASS_NAMES = {0: 'face'}
 
+# 专用人脸检测（SCRFD 10G，输出人脸框 + 五点关键点）
+FACE_DETECT_MODEL_PATH = os.getenv(
+    'FACE_DETECT_MODEL_PATH',
+    os.path.join(_VIDEO_ROOT, 'scrfd_10g.onnx'),
+)
+
 # 人脸特征提取（1:N 匹配，InsightFace ArcFace ONNX）
 FACE_MATCH_MODEL_PATH = os.getenv(
     'FACE_MATCH_MODEL_PATH',
