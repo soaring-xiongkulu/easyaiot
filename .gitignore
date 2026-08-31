@@ -176,6 +176,8 @@ venv
 **/.venv
 # VIDEO 运行日志与告警截图（任务运行时生成）
 VIDEO/logs/
+# VIDEO 临时上传文件（运行时生成，不随仓库分发）
+VIDEO/temp_uploads/
 # VIDEO 运行时生成的 RUNTIME/推流转发 ini（含设备凭证，勿提交）
 VIDEO/data/runtime_config/
 # VIDEO 运行时抓拍数据：人脸/车牌抓取队列输出与人脸库匹配校验截图
@@ -189,6 +191,7 @@ VIDEO/data/models
 VIDEO/face_capture_head_yolov8.onnx
 VIDEO/face_matching_insightface_buffalo_l/
 VIDEO/face_rec.onnx
+VIDEO/scrfd_10g.onnx
 VIDEO/ffmpeg-master-*.tar.xz
 # VIDEO 离线 ffmpeg 运行时打包产物（体积大，不随仓库分发）
 VIDEO/.bundle-ffmpeg/

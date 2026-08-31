@@ -44,4 +44,5 @@ hs_err_pid*
 .build-cache
 .offline-cache
 face_rec.onnx
+scrfd_10g.onnx
 .recording-storage.env

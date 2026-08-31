@@ -157,6 +157,8 @@ VIDEO/.bundle-ffmpeg/**/*.zip binary -diff
 # VIDEO 离线 pip wheels 缓存（体积大，不参与 diff；与 .gitignore 对齐）
 VIDEO/.bundle-wheels/** -diff
 VIDEO/.bundle-wheels/**/*.whl binary -diff
+# VIDEO 临时上传文件（运行时生成，不参与 diff；与 .gitignore 对齐）
+VIDEO/temp_uploads/** -diff
 RUNTIME/build/** -diff
 RUNTIME/build-mqtt/** -diff
 RUNTIME/build-linux/** -diff
