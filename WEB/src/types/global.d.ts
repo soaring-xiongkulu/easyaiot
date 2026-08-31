@@ -87,6 +87,8 @@ declare global {
     VITE_GENERATE_UI: string
     /** 天地图 API Key */
     VITE_TIANDITU_KEY: string
+    /** 天地图道路规划浏览器端 Key */
+    VITE_TIANDITU_ROUTE_KEY?: string
     /** 部署形态：mini | standard | full */
     VITE_GLOB_DEPLOY_PROFILE?: string
     /** edge 单机合装标识（与 mini 前端裁剪区分） */
