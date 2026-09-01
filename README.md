@@ -498,6 +498,22 @@ Built on the unified LLM gateway, the platform turns business documents into <st
   <li><strong>AI assistant</strong>: A floating assistant answers right on business pages; the HARNESS conversational assistant lives inside the IDEA cloud IDE — drag files to auto <code>@</code>, co-create in split pane — and the same <code>easyaiot_*</code> capabilities are exposed via MCP + Cursor Skill to Cursor and other IDEs</li>
 </ul>
 
+### 🧠 LLM Post-Processing for Alerts (LLM Judgment) — From “Detected” to “Trusted”
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+Traditional vision algorithms solve “seeing” but leave “believing” to people — bounding boxes for helmets, line-crossing, flames and sleep-on-duty flood the screen every day, forcing watch officers to open each alert image and re-check it manually; false alarms drown out real incidents, and real incidents are feared to be missed. EasyAIoT connects <strong>LLM semantic understanding to the alert pipeline</strong>: algorithm tasks can attach <strong>LLM post-processing rules</strong>, alerts that match a rule automatically enter a dedicated judgment queue, where a multimodal LLM inspects each scene image (or short clip) one by one and writes back a <strong>“Confirmed / False Positive” verdict with confidence and reasoning</strong> — watch officers go from “staring at every frame” to “reading conclusions”, and high-frequency false alarms are kept out of notifications.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Dedicated async judgment queue</strong>: rule-matched alerts are delivered via Kafka and judged asynchronously — slow or flaky models never block alert persistence or the notification pipeline; a failed judgment only logs, never disrupts the main flow</li>
+  <li><strong>Sampling & throttling control cost</strong>: matched alerts enter the LLM queue by a <strong>sampling rate</strong> (e.g. 10% = 1 in 10), combined with a <strong>per-task minimum judgment interval</strong> to avoid repeated calls on high-frequency events; alerts not sampled or throttled are automatically marked “Not Sampled / Rate-Limited Skipped”, decoupling LLM spend from alert volume</li>
+  <li><strong>Image / video dual judgment</strong>: image judgment by default, switchable to short-clip judgment with configurable pre/post event windows and max slice duration; automatically falls back to image judgment when footage is missing</li>
+  <li><strong>Gated notifications (secondary judgment)</strong>: for false-alarm-sensitive tasks, <strong>notifications are sent only after the LLM confirms the event; false positives are suppressed</strong> — turning an alert storm into precise reminders, so duty phones are not bombarded</li>
+  <li><strong>Failure policy chosen per site</strong>: on model-call failure choose <code>skip</code> (leave original result) / <code>confirm</code> (let notification pass) / <code>reject</code> (suppress notification) — trade false-negative vs false-positive risk the way the site prefers</li>
+  <li><strong>Bindable agents & models</strong>: judgment can mount a RAG expert (answering with knowledge-base context), or pin a specific LLM, override the judgment prompt, and force JSON structured output — vendor switching is one click away via the unified LLM gateway</li>
+  <li><strong>Full verdict write-back & display</strong>: judgment status (Confirmed / False Positive / Judging / Failed / Not Sampled…), confidence, reasoning and structured attributes are all written back to the alert; WEB and APP alert lists carry status tags, filter by “Sampled / Not Sampled / per verdict”, and the judgment detail modal shows the image, verdict, reasoning and execution info in one screen</li>
+</ul>
+
 ### 📦 Built-in AI Models
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
