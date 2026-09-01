@@ -492,7 +492,8 @@ def get_active_model() -> Optional[LLMModel]:
 def chat():
     """通用大模型对话接口：使用当前启用模型，支持文本 + 可选图片/视频 URL。
 
-    请求 JSON：{prompt, stream?: bool, files?: [{type: 'image'|'video', url}]}
+    请求 JSON：{prompt, messages?: [{role, content}], context?: {...}, stream?: bool,
+    files?: [{type: 'image'|'video', url}]}
     非流式返回 {code, msg, data:{response, usage, model}}；流式返回 SSE（data: {"content": ...} / data: [DONE]）
     """
     try:
@@ -502,8 +503,29 @@ def chat():
 
         data = request.get_json(silent=True) or {}
         prompt = (data.get('prompt') or '').strip()
-        if not prompt:
-            return jsonify({'code': 400, 'msg': 'prompt 不能为空'}), 400
+
+        # 平台助手可携带最近对话。只接受 user/assistant 文本，避免客户端注入 system
+        # 指令；数量和单条长度均限制，防止浏览器长期会话无限膨胀。
+        history = []
+        for item in (data.get('messages') or [])[-20:]:
+            role = item.get('role') if isinstance(item, dict) else None
+            content = item.get('content') if isinstance(item, dict) else None
+            if role in ('user', 'assistant') and isinstance(content, str) and content.strip():
+                history.append({'role': role, 'content': content.strip()[:12000]})
+
+        if not prompt and not history:
+            return jsonify({'code': 400, 'msg': 'prompt 或 messages 不能为空'}), 400
+
+        context = data.get('context') if isinstance(data.get('context'), dict) else {}
+        page_title = str(context.get('pageTitle') or '')[:100]
+        page_path = str(context.get('pagePath') or '')[:300]
+        system_prompt = (
+            '你是 EasyAIoT 平台智能助手。请使用简洁、准确、可操作的中文回答。'
+            '优先结合用户当前所在页面给出操作路径；不知道实时平台数据时要明确说明，'
+            '不得编造设备状态、告警数量或执行结果。'
+        )
+        if page_title or page_path:
+            system_prompt += f' 用户当前页面：{page_title or "未知"}（{page_path or "未知路径"}）。'
 
         content_parts = []
         for f in (data.get('files') or []):
@@ -515,10 +537,13 @@ def chat():
                 content_parts.append({'type': 'image_url', 'image_url': {'url': furl}})
             elif ftype == 'video':
                 content_parts.append({'type': 'video_url', 'video_url': {'url': furl}})
-        if content_parts:
-            messages = [{'role': 'user', 'content': [{'type': 'text', 'text': prompt}] + content_parts}]
-        else:
-            messages = [{'role': 'user', 'content': prompt}]
+        messages = [{'role': 'system', 'content': system_prompt}] + history
+        # 兼容原有只传 prompt 的调用；新助手传 history 时，prompt 是本轮消息且不会重复。
+        if prompt:
+            if content_parts:
+                messages.append({'role': 'user', 'content': [{'type': 'text', 'text': prompt}] + content_parts})
+            else:
+                messages.append({'role': 'user', 'content': prompt})
 
         logger.info(f"LLM 对话请求: 模型 id={model.id}（{model.model_name}）, stream={bool(data.get('stream'))}, 附件数={len(content_parts)}")
 
