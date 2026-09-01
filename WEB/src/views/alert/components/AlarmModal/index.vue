@@ -36,6 +36,33 @@
           <FormItem label="告警录像" name="record_path" v-bind=validateInfos.record_path>
             <Input v-model:value="modelRef.record_path"/>
           </FormItem>
+          <FormItem v-if="llmInfo" label="大模型研判" name="llm">
+            <div class="llm-judge-result">
+              <a-descriptions size="small" :column="2" bordered>
+                <a-descriptions-item label="结论">
+                  <a-tag :color="llmStatusColor">{{ llmStatusText }}</a-tag>
+                </a-descriptions-item>
+                <a-descriptions-item label="置信度">
+                  {{ llmInfo.detail?.confidence != null ? Number(llmInfo.detail.confidence).toFixed(2) : '-' }}
+                </a-descriptions-item>
+                <a-descriptions-item label="判断方式" :span="2">
+                  {{ llmInfo.detail?.judge_mode === 'video' ? '事件视频' : '事件图片' }}
+                </a-descriptions-item>
+                <a-descriptions-item label="理由" :span="2">
+                  <div class="llm-judge-reason">{{ llmInfo.detail?.reason || '-' }}</div>
+                </a-descriptions-item>
+                <a-descriptions-item label="耗时(ms)">
+                  {{ llmInfo.detail?.duration_ms ?? '-' }}
+                </a-descriptions-item>
+                <a-descriptions-item label="研判时间">
+                  {{ formatJudgeTime(llmInfo.detail?.judged_at) }}
+                </a-descriptions-item>
+                <a-descriptions-item v-if="llmAttributesText" label="结构化输出" :span="2">
+                  <pre class="llm-judge-attributes">{{ llmAttributesText }}</pre>
+                </a-descriptions-item>
+              </a-descriptions>
+            </div>
+          </FormItem>
         </Form>
       </Spin>
     </div>
@@ -84,6 +111,74 @@ const [register, {closeModal}] = useModalInner((data) => {
 
 const emits = defineEmits(['success']);
 
+/** information.llm 研判结论（iot-sink 异步回写：{status, detail}） */
+const llmInfo = computed(() => {
+  if (!modelRef.information) return null;
+  let info: any = modelRef.information;
+  if (typeof info === 'string') {
+    try {
+      info = JSON.parse(info);
+    } catch (e) {
+      return null;
+    }
+  }
+  const llm = info?.llm;
+  if (!llm) return null;
+  let detail: any = llm.detail;
+  if (typeof detail === 'string') {
+    try {
+      detail = JSON.parse(detail);
+    } catch (e) {
+      detail = null;
+    }
+  }
+  return { status: llm.status || null, detail: detail || null };
+});
+
+const llmStatusText = computed(() => {
+  switch (llmInfo.value?.status) {
+    case 'confirmed':
+      return '事件成立';
+    case 'rejected':
+      return '事件不成立';
+    case 'error':
+      return '研判失败';
+    default:
+      return '待研判';
+  }
+});
+
+const llmStatusColor = computed(() => {
+  switch (llmInfo.value?.status) {
+    case 'confirmed':
+      return 'green';
+    case 'rejected':
+      return 'red';
+    case 'error':
+      return 'orange';
+    default:
+      return 'default';
+  }
+});
+
+const llmAttributesText = computed(() => {
+  const attrs = llmInfo.value?.detail?.attributes;
+  if (!attrs) return '';
+  try {
+    return typeof attrs === 'string' ? attrs : JSON.stringify(attrs, null, 2);
+  } catch (e) {
+    return String(attrs);
+  }
+});
+
+function formatJudgeTime(ts: number | string | undefined | null): string {
+  if (!ts) return '-';
+  const num = Number(ts);
+  if (!Number.isFinite(num)) return String(ts);
+  const d = new Date(num > 1e12 ? num : num * 1000);
+  return d.toLocaleString();
+}
+
 const rulesRef = reactive({
   deviceVersion: [{required: true, message: '请输入告警事件号', trigger: ['change']}],
 });
@@ -126,6 +221,29 @@ function handleOk() {
     & > label::after {
       content: '';
     }
+  }
+}
+
+.llm-judge-result {
+  width: 100%;
+
+  .llm-judge-reason {
+    max-height: 120px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  .llm-judge-attributes {
+    max-height: 160px;
+    overflow-y: auto;
+    margin: 0;
+    font-size: 12px;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 4px;
+    padding: 8px;
   }
 }
 </style>

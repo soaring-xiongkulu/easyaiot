@@ -130,6 +130,8 @@ export interface AlgorithmTask {
   post_process_script?: string;
   /** 后处理 Worker 副本数 */
   post_process_replicas?: number;
+  /** 是否启用大模型（LLM）后处理：事件触发后由智能体对图片/视频研判（独立队列，不影响算法主链路） */
+  llm_post_process_enabled?: boolean;
   /** POST 定制后处理 pipeline JSON */
   post_pipeline?: Array<{
     plugin: string;
@@ -244,6 +246,8 @@ export const createAlgorithmTask = (data: {
   post_process_enabled?: boolean;
   /** 后处理 Worker 副本数 */
   post_process_replicas?: number;
+  /** 是否启用大模型（LLM）后处理，默认关闭 */
+  llm_post_process_enabled?: boolean;
 }) => {
   return commonApi<{ code: number; msg: string; data: AlgorithmTask }>(
     'post',
@@ -896,4 +900,94 @@ export const debugPostPipeline = (payload: PostPipelineDebugPayload, taskId?: nu
     data: payload,
     errorMessageMode: 'none',
   });
+};
+
+// ====================== 大模型（LLM）后处理规则 ======================
+/** 大模型研判方式 */
+export type LlmJudgeMode = 'image' | 'video';
+/** LLM 研判失败策略 */
+export type LlmFailPolicy = 'skip' | 'confirm' | 'reject';
+
+export interface LlmJudgeRule {
+  id: number;
+  task_id: number;
+  rule_name: string;
+  /** 匹配的检测对象/事件类别（小写匹配），null=全部 */
+  match_objects?: string[] | null;
+  /** 匹配的事件类型，null=全部 */
+  match_events?: string[] | null;
+  /** 智能体 ID（AI 模块 rag_expert.id） */
+  agent_id: number;
+  /** 大模型 ID（llm_config.id），null=智能体默认模型 */
+  model_id?: number | null;
+  /** 判断方式：image=事件图片，video=事件间隔视频 */
+  judge_mode: LlmJudgeMode;
+  video_pre_seconds: number;
+  video_post_seconds: number;
+  video_max_seconds: number;
+  /** true=大模型确认后才发通知（门控），false=后置增强仅回写 */
+  secondary_judge: boolean;
+  fail_policy: LlmFailPolicy;
+  prompt_override?: string | null;
+  require_json: boolean;
+  min_interval_sec: number;
+  priority: number;
+  enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface LlmJudgeRulePayload {
+  rule_name: string;
+  match_objects?: string[];
+  match_events?: string[];
+  agent_id: number;
+  model_id?: number | null;
+  judge_mode?: LlmJudgeMode;
+  video_pre_seconds?: number;
+  video_post_seconds?: number;
+  video_max_seconds?: number;
+  secondary_judge?: boolean;
+  fail_policy?: LlmFailPolicy;
+  prompt_override?: string | null;
+  require_json?: boolean;
+  min_interval_sec?: number;
+  priority?: number;
+  enabled?: boolean;
+}
+
+/** 查询任务的大模型后处理规则列表 */
+export const listLlmJudgeRules = (taskId: number) => {
+  return commonApi<{ code: number; msg: string; data: LlmJudgeRule[] }>(
+    'get',
+    `${ALGORITHM_PREFIX}/llm-rule/task/${taskId}/rules`,
+    { errorMessageMode: 'none' },
+  );
+};
+
+/** 新增规则（自动开启任务级大模型后处理总开关） */
+export const createLlmJudgeRule = (taskId: number, data: LlmJudgeRulePayload) => {
+  return commonApi<{ code: number; msg: string; data: LlmJudgeRule }>(
+    'post',
+    `${ALGORITHM_PREFIX}/llm-rule/task/${taskId}/rule`,
+    { data, errorMessageMode: 'none' },
+  );
+};
+
+/** 更新规则 */
+export const updateLlmJudgeRule = (ruleId: number, data: LlmJudgeRulePayload) => {
+  return commonApi<{ code: number; msg: string; data: LlmJudgeRule }>(
+    'put',
+    `${ALGORITHM_PREFIX}/llm-rule/rule/${ruleId}`,
+    { data, errorMessageMode: 'none' },
+  );
+};
+
+/** 删除规则（删除后无启用规则时自动关闭任务总开关） */
+export const deleteLlmJudgeRule = (ruleId: number) => {
+  return commonApi<{ code: number; msg: string; data: null }>(
+    'delete',
+    `${ALGORITHM_PREFIX}/llm-rule/rule/${ruleId}`,
+    { errorMessageMode: 'none' },
+  );
 };

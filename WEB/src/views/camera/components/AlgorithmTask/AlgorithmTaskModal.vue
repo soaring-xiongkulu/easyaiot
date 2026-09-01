@@ -38,6 +38,7 @@
     </a-tabs>
     <PostPipelineDrawer @register="registerPostPipelineDrawer" />
     <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
+    <LlmJudgeRuleDrawer @register="registerLlmJudgeDrawer" @changed="handleLlmRulesChanged" />
   </BasicDrawer>
 </template>
 
@@ -51,8 +52,11 @@ import { Popover, Select, Button as AntButton } from 'ant-design-vue';
 import {
   createAlgorithmTask,
   updateAlgorithmTask,
+  getAlgorithmTask,
   getRuntimeInfo,
+  listLlmJudgeRules,
   type AlgorithmTask,
+  type LlmJudgeRule,
 } from '@/api/device/algorithm_task';
 import { listFaceLibraries } from '@/api/device/face_library';
 import { listPlateLibraries } from '@/api/device/plate_library';
@@ -67,6 +71,7 @@ import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 import ServiceStatusTab from './ServiceStatusTab.vue';
 import PostPipelineDrawer from './PostPipelineDrawer.vue';
 import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
+import LlmJudgeRuleDrawer from './LlmJudgeRuleDrawer.vue';
 import { isCustomPipeline, summarizePipeline } from './postPipelineTypes';
 import CronExpressionField from './CronExpressionField.vue';
 import {
@@ -124,6 +129,7 @@ const confirmLoading = ref(false);
 const postPipeline = ref<any[] | null>(null);
 const [registerPostPipelineDrawer, { openDrawer: openPostPipelineDrawer }] = useDrawer();
 const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
+const [registerLlmJudgeDrawer, { openDrawer: openLlmJudgeDrawer }] = useDrawer();
 /** 任务是否运行中（运行中不可编辑区域） */
 const taskIsEnabled = ref(false);
 /** VIDEO 本机 RUNTIME 版本（高性能模式下展示） */
@@ -160,6 +166,27 @@ const postTaskContext = computed(() => {
       : [],
   };
 });
+
+/** 「大模型（LLM）后处理规则」入口的摘要文案 */
+const llmRuleSummary = ref('');
+
+async function refreshLlmRuleSummary() {
+  if (!taskId.value) {
+    llmRuleSummary.value = '';
+    return;
+  }
+  try {
+    const res: any = await listLlmJudgeRules(taskId.value);
+    const list = Array.isArray(res) ? res : res?.data || [];
+    const enabled = list.filter((r: LlmJudgeRule) => r.enabled).length;
+    llmRuleSummary.value = list.length
+      ? `已配置 ${list.length} 条规则（启用 ${enabled} 条）`
+      : '未配置研判规则';
+  } catch (error: any) {
+    console.error('加载大模型研判规则摘要失败', error);
+    llmRuleSummary.value = '';
+  }
+}
 
 async function loadRuntimeInfo() {
   try {
@@ -1205,6 +1232,46 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         && !!values.alert_event_enabled,
     },
     {
+      field: 'llm_post_process_enabled',
+      label: '启用大模型后处理',
+      component: 'Switch',
+      defaultValue: false,
+      componentProps: { checkedChildren: '开', unCheckedChildren: '关' },
+      helpMessage:
+        '告警事件触发后，由规则绑定的智能体对事件图片/视频独立队列研判，不阻塞算法主链路；新增研判规则时自动开启，删除全部规则后自动关闭',
+      ifShow: ({ values }) => baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol',
+    },
+    {
+      field: 'llm_judge_entry',
+      label: '大模型后处理',
+      component: 'Input',
+      render: () =>
+        h('div', { class: 'post-pipeline-entry' }, [
+          h(
+            Button,
+            {
+              type: 'link',
+              size: 'small',
+              disabled: !taskId.value,
+              onClick: (e: Event) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openLlmJudgeRules();
+              },
+            },
+            () => (isViewMode.value ? '查看研判规则' : '管理研判规则'),
+          ),
+          h('span', { class: 'post-pipeline-entry__hint muted' }, llmRuleSummary.value),
+        ]),
+      helpMessage:
+        '告警事件触发后，按规则绑定的智能体对事件图片/视频在独立队列研判，不阻塞算法主链路；开启「二次判断」后，大模型确认事件成立才发送通知',
+      ifShow: ({ values }) =>
+        (baseTaskType(values.task_mode) === 'realtime' ||
+          baseTaskType(values.task_mode) === 'snap' ||
+          baseTaskType(values.task_mode) === 'patrol') &&
+        !!values.alert_event_enabled,
+    },
+    {
       field: 'post_pipeline_entry',
       label: '后处理规则链',
       component: 'Input',
@@ -1844,6 +1911,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       pose_intent_temporal_window: record.pose_intent_config?.temporal_window_frames ?? 6,
       post_process_enabled: record.post_process_enabled === true,
       post_process_replicas: record.post_process_replicas ?? 1,
+      llm_post_process_enabled: record.llm_post_process_enabled === true,
       alarm_suppress_time: record.alarm_suppress_time ?? 300,
       alert_notification_enabled: record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false,
       notification_channels: notificationChannels.value,
@@ -1852,6 +1920,9 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     postPipeline.value = Array.isArray((record as any).post_pipeline)
       ? (record as any).post_pipeline
       : null;
+
+    // 刷新大模型研判规则摘要（静默失败不影响表单）
+    void refreshLlmRuleSummary();
 
     // 更新告警通知启用状态
     alertNotificationEnabled.value = record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false;
@@ -1885,6 +1956,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'alert_event_suppress_time', componentProps: { disabled: true } },
         { field: 'post_process_enabled', componentProps: { disabled: true } },
         { field: 'post_process_replicas', componentProps: { disabled: true } },
+        { field: 'llm_post_process_enabled', componentProps: { disabled: true } },
         { field: 'alarm_suppress_time', componentProps: { disabled: true } },
         { field: 'alert_notification_enabled', componentProps: { disabled: true } },
         { field: 'notification_channels', componentProps: { disabled: true } },
@@ -1914,6 +1986,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
         { field: 'alert_event_suppress_time', componentProps: { disabled: false } },
         { field: 'post_process_enabled', componentProps: { disabled: false } },
         { field: 'post_process_replicas', componentProps: { disabled: false } },
+        { field: 'llm_post_process_enabled', componentProps: { disabled: false } },
         { field: 'alarm_suppress_time', componentProps: { disabled: false } },
         { field: 'alert_notification_enabled', componentProps: { disabled: false } },
         { field: 'notification_channels', componentProps: { disabled: false } },
@@ -1945,6 +2018,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       { field: 'alert_event_suppress_time', componentProps: { disabled: false } },
       { field: 'post_process_enabled', componentProps: { disabled: false } },
       { field: 'post_process_replicas', componentProps: { disabled: false } },
+      { field: 'llm_post_process_enabled', componentProps: { disabled: false } },
       { field: 'alarm_suppress_time', componentProps: { disabled: false } },
       { field: 'alert_notification_enabled', componentProps: { disabled: false } },
       { field: 'notification_channels', componentProps: { disabled: false } },
@@ -1986,6 +2060,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       pose_conf: 0.25,
       post_process_enabled: false,
       post_process_replicas: 1,
+      llm_post_process_enabled: false,
       alarm_suppress_time: 300,
       notification_channels: [],
       is_full_day_defense: true, // 默认全天布防
@@ -2017,6 +2092,36 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   );
   formValues.value = { ...formValues.value, ...await getFieldsValue() };
 });
+
+function openLlmJudgeRules() {
+  if (!taskId.value) {
+    createMessage.warning('请先保存算法任务后再配置大模型研判规则');
+    return;
+  }
+  openLlmJudgeDrawer(true, {
+    taskId: taskId.value,
+    taskName: formValues.value?.task_name || '',
+    disabled: isViewMode.value,
+  });
+}
+
+async function handleLlmRulesChanged() {
+  // 规则变更可能联动任务级总开关（新增规则自动开启、删除全部规则后自动关闭），同步表单开关
+  if (!taskId.value) return;
+  void refreshLlmRuleSummary();
+  try {
+    const res: any = await getAlgorithmTask(taskId.value);
+    const task = Array.isArray(res) ? res : res?.data;
+    if (task) {
+      const enabled = task.llm_post_process_enabled === true;
+      const current = await getFieldsValue();
+      await setFieldsValue({ ...current, llm_post_process_enabled: enabled });
+      formValues.value = { ...formValues.value, llm_post_process_enabled: enabled };
+    }
+  } catch (error: any) {
+    console.error('同步大模型后处理总开关失败', error);
+  }
+}
 
 function openPostPipelineEditor() {
   if (!formValues.value?.alert_event_enabled) {
@@ -2441,6 +2546,7 @@ const handleSubmit = async () => {
     } else {
       values.post_process_replicas = 1;
     }
+    values.llm_post_process_enabled = !!values.llm_post_process_enabled;
     values.post_pipeline = values.alert_event_enabled && isCustomPipeline(postPipeline.value)
       ? postPipeline.value
       : null;
@@ -2538,6 +2644,7 @@ const handleReset = async () => {
       pose_conf: 0.25,
       post_process_enabled: false,
       post_process_replicas: 1,
+      llm_post_process_enabled: false,
       alarm_suppress_time: 300,
       is_full_day_defense: true, // 默认全天布防
     });
@@ -2595,6 +2702,7 @@ const handleReset = async () => {
       alert_class_names: Array.isArray(record.alert_class_names) ? record.alert_class_names : [],
       post_process_enabled: record.post_process_enabled === true,
       post_process_replicas: record.post_process_replicas ?? 1,
+      llm_post_process_enabled: record.llm_post_process_enabled === true,
       alarm_suppress_time: record.alarm_suppress_time ?? 300,
       alert_notification_enabled: record.alert_notification_enabled !== undefined ? record.alert_notification_enabled : false,
       is_full_day_defense: fullDayDefense,
