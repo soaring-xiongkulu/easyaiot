@@ -486,54 +486,17 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
   <li><strong>呼叫韌性</strong>：順序參數降級（temperature → max_completion_tokens）、SSE 串流、依廠商獨立逾時</li>
 </ul>
 
-### 🧠 RAG 知識庫與智能體
+### 🤖 RAG 知識庫與智能體
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-在 LLM 統一閘道之上，平台將業務文件轉化為<strong>可問答的知識資產</strong>，並封裝為可對話的<strong>智能體</strong>。知識按四層顯式組織，內容可追溯、可審核、可重用，而不是堆進黑盒向量庫裡。
+在 LLM 統一閘道之上，平台將業務文件轉化為<strong>可問答的知識資產</strong>，並封裝為可對話的<strong>智能體</strong>——從知識沉澱、檢索回答到頁面內與 IDE 內的智能助手，一條鏈路打通。
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>知識文件</strong>：上傳 TXT / Markdown / CSV / JSON / LOG 檔案（UTF-8、單檔 ≤10MB），解析後自動切片並寫入 Milvus 向量索引</li>
-  <li><strong>知識片段</strong>：自動切片只是起點——可編輯標題、內容與標籤，也可人工標註新片段；每個片段可獨立<em>啟停檢索</em>，過期內容可停用而不必刪除</li>
-  <li><strong>知識集</strong>：跨文件組合片段，沉澱為可重用的業務知識資產；同一片段可被多個知識集引用，不複製資料</li>
-  <li><strong>RAG 專家（智能體）</strong>：組合多個知識集、設定角色指令與歡迎語，即可對接當前啟用的大模型做真實問答測試——回答引用<code>【資料 N】</code>，資料不足時明確說明不編造；模型不可達時自動降級為純檢索回答</li>
-  <li><strong>檢索驗證</strong>：知識集發布前可先做檢索驗證，逐條展示來源與相關度分數，召回品質看得見而非靠猜</li>
-  <li><strong>混合檢索</strong>：Milvus 向量檢索與關鍵字（類 BM25）詞項打分融合；內建 <code>local-hash</code> 離線降級 Embedding，無外部 Key 也能跑通全鏈路演示，生產可無縫切換 1024 維 OpenAI 相容 Embedding 服務</li>
-  <li><strong>頁面內智能助手</strong>：業務頁面內建浮動平台助手——詢問平台用法、探測服務健康，或讓智能體基於你的知識集回答，不離開當前頁面</li>
-</ul>
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-開源共建與現場 PoC 常卡在同一處：模組多、鏈路長，改代碼要先配環境，查健康要登伺服器，問架構要翻文檔、找人。EasyAIoT 把 <strong>HARNESS 對話式助手</strong>嵌進 <strong>IDEA 在線 IDE</strong>——左側完整 VS Code 工作區，右側 AI 助手分屏；從資源管理器拖文件即可自動 <code>@</code> 引用進對話，邊讀源碼邊問端口、配置與服務健康，縮短「不懂—找人—再改」的閉環。
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>IDEA 分屏共創</strong>：工具欄一鍵打開右側 AI 助手，編輯器與 Agent 同屏；亦可 <code>?file=路徑&harness=1</code> 深鏈打開指定文件並分屏</li>
-  <li><strong>拖入自動 @</strong>：資源管理器文件拖到助手面板，自動關聯為對話上下文，少打路徑、少丟上下文</li>
-  <li><strong>問即查</strong>：Agent 調平臺 Tool 探測 Gateway / 視頻 / 算法等服務健康，並指向相關配置與源碼——把 SSH + 翻 compose 壓縮成一次對話</li>
-  <li><strong>懂本體</strong>：內置 <code>HARNESS/ontology/AGENTS.md</code> 與全倉工作區，架構、端口、API、安裝約定有統一答案</li>
-  <li><strong>管控臺同口徑</strong>：業務頁懸浮抽屜 / 全屏「AI 助手」與 IDEA 側同一套能力；MCP + Cursor Skill 可跨環境復用</li>
-  <li><strong>雙向跳轉</strong>：助手可通過 <code>easyaiot_open_in_idea</code> 生成門戶鏈接，從問答回到可改可發的完整 IDE</li>
-</ul>
-
-| | | |
-|:---:|:---:|:---:|
-| ![IDEA登入](.image/banner/banner1203.png) | ![IDEA工作區](.image/banner/banner1204.png) | ![IDEA開發](.image/banner/banner1205.png) |
-| ![AI助手對話](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手協作](.image/banner/banner1212.png) |
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
-模組多、鏈路長，查健康、問架構、找配置常要翻文檔、登伺服器。HARNESS 把平臺知識與即時探測收成<strong>對話式助手</strong>——業務頁右下角即問即查，縮短排障與 PoC 週期，少依賴原廠與口口相傳的經驗。
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>問即查</strong>：Agent 調平臺 Tool 探測 Gateway / 視頻 / 算法等服務健康，並指向相關配置與源碼——把 SSH + 翻 compose 壓縮成一次對話</li>
-  <li><strong>懂本體</strong>：內置 <code>HARNESS/ontology/AGENTS.md</code> 與全倉工作區，架構、端口、API、安裝約定有統一答案</li>
-  <li><strong>頁內即聊</strong>：懸浮抽屜 iframe 嵌入，看告警/設備時不跳轉、不丟上下文；亦可全屏「AI 助手」或新視窗</li>
-  <li><strong>IDEA 分屏共創</strong>：工具欄一鍵打開右側 AI 助手，編輯器與 Agent 同屏；亦可 <code>?file=路徑&harness=1</code> 深鏈打開指定文件並分屏</li>
-  <li><strong>拖入自動 @</strong>：從資源管理器拖文件到助手面板，自動關聯為對話上下文</li>
-  <li><strong>雙向跳轉</strong>：Agent 可通過 <code>easyaiot_open_in_idea</code> 生成門戶鏈接，從問答回到可改可發的完整 IDE；IDEA 改代碼提 PR，HARNESS 問架構查健康</li>
-  <li><strong>MCP + Cursor Skill</strong>：同一套 <code>easyaiot_*</code> 能力經 MCP 暴露給 Cursor 等 IDE——管控臺能問能查的，開發環境裡同樣能調，Skill 可跨項目復用</li>
-  <li><strong>全形態開箱</strong>：基於 <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar（<code>:3080</code>），<code>mini / standard / full</code> 默認部署即帶（<code>EASYAIOT_ENABLE_HARNESS=0</code> 可關）；DeepSeek / OpenAI 兼容端點，Key 在 <code>harness.env</code> 或 UI 自備</li>
-  <li><strong>安全提示</strong>：實驗模組，上游 <code>dsh</code> 處於 Developer Preview；生產請限制訪問並配置寫操作 / Shell 審批；API Key 勿提交 Git</li>
+  <li><strong>知識文件 → 片段 → 知識集</strong>：上傳 TXT / Markdown / CSV / JSON / LOG 檔案（UTF-8、≤10MB），自動切片寫入 Milvus 向量索引；片段可編輯、可獨立啟停檢索，跨文件組合成為可複用的知識集</li>
+  <li><strong>RAG 專家（智能體）</strong>：組合多個知識集、設定角色指令與歡迎語即可開聊——回答引用<code>【資料 N】</code>，資料不足不編造，模型不可達時自動降級為純檢索</li>
+  <li><strong>混合檢索</strong>：Milvus 向量檢索與關鍵字（類 BM25）打分融合；內建 <code>local-hash</code> 離線 Embedding，無外部 Key 也能跑通全鏈路</li>
+  <li><strong>AI 助手</strong>：業務頁懸浮助手即問即查；HARNESS 對話式助手嵌入 IDEA 在線 IDE，拖檔自動 <code>@</code>、分屏共創，並經 MCP + Cursor Skill 複用到 Cursor 等開發環境</li>
 </ul>
 
 ### 📦 內置 AI 模型
@@ -1015,6 +978,7 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 
 | | | |
 |:---:|:---:|:---:|
+| ![視頻監控](.image/banner/banner1255.png) | ![視頻監控](.image/banner/banner1256.png) | ![視頻監控](.image/banner/banner1257.png) |
 | ![視頻監控](.image/banner/banner1237.png) | ![視頻監控](.image/banner/banner1238.png) | ![視頻監控](.image/banner/banner1239.png) |
 | ![視頻監控](.image/banner/banner1225.png) | ![視頻監控](.image/banner/banner1226.png) | ![視頻監控](.image/banner/banner1227.png) |
 | ![視頻監控](.image/banner/banner1228.png) | ![視頻監控](.image/banner/banner1229.png) | ![視頻監控](.image/banner/banner1230.png) |

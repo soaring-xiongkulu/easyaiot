@@ -477,54 +477,17 @@ La plateforme converge tous les grands fournisseurs de LLM vers un protocole uni
   <li><strong>Résilience</strong> : repli paramétré ordonné (temperature → max_completion_tokens), SSE streaming, délais d'attente par fournisseur</li>
 </ul>
 
-### 🧠 Base de connaissances RAG et agents IA
+### 🤖 Base de connaissances RAG et agents IA
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Construite sur la passerelle LLM unifiée, la plateforme transforme vos documents métier en <strong>connaissances interrogeables</strong>, puis les encapsule dans des <strong>agents IA conversationnels</strong>. Le savoir est organisé en quatre niveaux explicites : le contenu reste traçable, vérifiable et réutilisable, au lieu de dormir dans un tas de vecteurs en boîte noire.
+Construite sur la passerelle LLM unifiée, la plateforme transforme vos documents métier en <strong>connaissances interrogeables</strong> encapsulées dans des <strong>agents IA conversationnels</strong> — une seule chaîne, de la curation des connaissances aux réponses sourcées, jusqu'aux assistants intégrés aux pages et à l'IDE.
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Documents de connaissances</strong> : importez des fichiers TXT / Markdown / CSV / JSON / LOG (UTF-8, ≤ 10 Mo) ; chaque document est analysé et découpé automatiquement en segments vérifiables, indexés en vecteurs dans Milvus</li>
-  <li><strong>Segments de connaissances</strong> : le découpage automatique n'est qu'un point de départ — modifiez titres, contenus et étiquettes, ou annotez manuellement de nouveaux segments ; activez/désactivez la participation de chaque segment à la recherche pour retirer un contenu obsolète sans le supprimer</li>
-  <li><strong>Ensembles de connaissances</strong> : composez des segments issus de plusieurs documents pour en faire des actifs métier réutilisables ; un même segment peut être référencé par plusieurs ensembles sans duplication de données</li>
-  <li><strong>Experts RAG (agents)</strong> : combinez plusieurs ensembles, définissez une consigne de rôle et un message d'accueil, puis testez de vraies questions/réponses sur le LLM actif — les réponses citent <code>【Source N】</code> et refusent d'inventer quand le matériel est insuffisant ; si le modèle est injoignable, l'expert retombe élégamment en mode recherche seule</li>
-  <li><strong>Vérification de la recherche</strong> : testez la recherche de chaque ensemble avant publication, avec les scores de pertinence par source, pour valider la qualité du rappel au lieu de la supposer</li>
-  <li><strong>Recherche hybride</strong> : recherche vectorielle (Milvus) fusionnée avec un score de mots-clés type BM25 ; un repli d'embedding <code>local-hash</code> hors ligne garde toute la chaîne démontrable sans clé externe, tandis qu'un service d'embedding 1024 dims compatible OpenAI s'intègre sans couture en production</li>
-  <li><strong>Assistant IA intégré aux pages</strong> : un assistant flottant est disponible sur les pages métier — interrogez le fonctionnement de la plateforme, sondez la santé des services, ou laissez un agent répondre depuis vos ensembles de connaissances sans quitter l'écran</li>
-</ul>
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-La contribution open source et les PoC terrain butent souvent au même endroit : beaucoup de modules, des chaînes longues — éditer exige un environnement local, vérifier la santé demande du SSH, l'architecture signifie fouiller la doc et demander autour. EasyAIoT intègre l'<strong>assistant conversationnel HARNESS</strong> dans l'<strong>IDE cloud IDEA</strong> — espace VS Code complet à gauche, assistant IA en écran partagé à droite ; glissez des fichiers depuis l'explorateur pour les <code>@</code>-mentionner automatiquement, lisez le code tout en posant des questions sur ports, config et santé des services, et raccourcissez la boucle « je ne sais pas → demander → modifier ».
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Co-création IDEA en écran partagé</strong> : la barre d'outils ouvre l'assistant à droite — éditeur et Agent côte à côte ; ou deep-link <code>?file=chemin&harness=1</code> pour ouvrir un fichier et partager l'écran</li>
-  <li><strong>Glisser pour @ auto</strong> : déposez des fichiers de l'explorateur sur le panneau assistant pour les attacher au contexte — moins de chemins à taper, moins de contexte perdu</li>
-  <li><strong>Demander et vérifier</strong> : l'Agent appelle les Tools plateforme pour sonder Gateway / vidéo / IA et pointe config et sources — SSH + compose en une conversation</li>
-  <li><strong>Connaît l'ontologie</strong> : <code>HARNESS/ontology/AGENTS.md</code> intégré et workspace dépôt complet — architecture, ports, API et conventions d'install au même endroit</li>
-  <li><strong>Même sémantique console</strong> : tiroir flottant / « Assistant IA » plein écran partagent les capacités IDEA ; MCP + Cursor Skill réutilisables entre environnements</li>
-  <li><strong>Saut bidirectionnel</strong> : l'assistant peut générer des liens portail via <code>easyaiot_open_in_idea</code> — du Q&amp;R vers un IDE complet où l'on édite et publie</li>
-</ul>
-
-| | | |
-|:---:|:---:|:---:|
-| ![Connexion IDEA](.image/banner/banner1203.png) | ![Espace IDEA](.image/banner/banner1204.png) | ![Développement IDEA](.image/banner/banner1205.png) |
-| ![Dialogue Assistant IA](.image/banner/banner1210.png) | ![Analyse Assistant IA](.image/banner/banner1211.png) | ![Collaboration Assistant IA](.image/banner/banner1212.png) |
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
-Nombreux modules et chaînes longues — vérifier la santé, comprendre l'architecture ou trouver une config impliquent souvent documentation et SSH. HARNESS regroupe connaissance plateforme et sondes live dans un <strong>assistant conversationnel</strong> : demandez et vérifiez depuis le coin inférieur droit de toute page métier, pour raccourcir dépannage et PoC avec moins de dépendance au fournisseur et au savoir tacite.
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Demander et vérifier</strong> : l'Agent appelle les Tools plateforme pour sonder Gateway / vidéo / IA et pointe config et sources — SSH + compose en une conversation</li>
-  <li><strong>Connaît l'ontologie</strong> : <code>HARNESS/ontology/AGENTS.md</code> intégré et workspace dépôt complet — architecture, ports, API et conventions d'install au même endroit</li>
-  <li><strong>Discuter dans la page</strong> : tiroir flottant iframe — pas de changement de page ni perte de contexte sur alertes/appareils ; plein écran « Assistant IA » ou nouvelle fenêtre</li>
-  <li><strong>Co-création IDEA en écran partagé</strong> : la barre d'outils ouvre l'assistant à droite — éditeur et Agent côte à côte ; ou deep-link <code>?file=chemin&harness=1</code></li>
-  <li><strong>Glisser pour @ auto</strong> : déposez des fichiers de l'explorateur sur le panneau assistant pour les attacher au contexte</li>
-  <li><strong>Saut bidirectionnel</strong> : l'Agent peut générer des liens portail via <code>easyaiot_open_in_idea</code> — du Q&amp;R vers un IDE complet ; IDEA pour le code et les PR, HARNESS pour architecture et santé</li>
-  <li><strong>MCP + Cursor Skill</strong> : mêmes capacités <code>easyaiot_*</code> via MCP vers Cursor et autres IDE — ce que la console permet de demander/vérifier, l'environnement dev peut l'invoquer ; Skills réutilisables entre projets</li>
-  <li><strong>Prêt dans tous les profils</strong> : Sidecar <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> (<code>:3080</code>) ; inclus par défaut en <code>mini / standard / full</code> (<code>EASYAIOT_ENABLE_HARNESS=0</code> pour désactiver) ; endpoints DeepSeek / compatibles OpenAI ; clé dans <code>harness.env</code> ou l'UI</li>
-  <li><strong>Sécurité</strong> : module expérimental ; <code>dsh</code> en Developer Preview ; restreindre l'accès en prod et configurer approbation écriture/Shell ; ne pas committer les clés API</li>
+  <li><strong>Documents → segments → ensembles</strong> : importez des fichiers TXT / Markdown / CSV / JSON / LOG (UTF-8, ≤ 10 Mo) ; chaque document est découpé automatiquement en segments indexés en vecteurs dans Milvus — segments modifiables, activables/désactivables individuellement dans la recherche, et composables entre documents en ensembles réutilisables</li>
+  <li><strong>Experts RAG (agents)</strong> : combinez plusieurs ensembles, définissez une consigne de rôle et un message d'accueil, puis discutez — les réponses citent <code>【Source N】</code>, refusent d'inventer quand le matériel est insuffisant, et retombent en mode recherche seule si le modèle est injoignable</li>
+  <li><strong>Recherche hybride</strong> : recherche vectorielle (Milvus) fusionnée avec un score de mots-clés type BM25 ; le repli d'embedding <code>local-hash</code> hors ligne garde toute la chaîne démontrable sans clé externe</li>
+  <li><strong>Assistant IA</strong> : un assistant flottant répond sur les pages métier ; l'assistant conversationnel HARNESS vit dans l'IDE cloud IDEA — glissez des fichiers pour <code>@</code>-mentionner automatiquement, co-créez en écran partagé — et les mêmes capacités <code>easyaiot_*</code> sont exposées via MCP + Cursor Skill à Cursor et autres IDE</li>
 </ul>
 
 ### 📦 Modèles IA intégrés
@@ -1005,6 +968,7 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 
 | | | |
 |:---:|:---:|:---:|
+| ![Vidéosurveillance](.image/banner/banner1255.png) | ![Vidéosurveillance](.image/banner/banner1256.png) | ![Vidéosurveillance](.image/banner/banner1257.png) |
 | ![Vidéosurveillance](.image/banner/banner1237.png) | ![Vidéosurveillance](.image/banner/banner1238.png) | ![Vidéosurveillance](.image/banner/banner1239.png) |
 | ![Vidéosurveillance](.image/banner/banner1225.png) | ![Vidéosurveillance](.image/banner/banner1226.png) | ![Vidéosurveillance](.image/banner/banner1227.png) |
 | ![Vidéosurveillance](.image/banner/banner1228.png) | ![Vidéosurveillance](.image/banner/banner1229.png) | ![Vidéosurveillance](.image/banner/banner1230.png) |

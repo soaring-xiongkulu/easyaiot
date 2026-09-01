@@ -530,54 +530,33 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>调用韧性</strong>：顺序参数降级（temperature → max_completion_tokens）、SSE 流式、按厂商独立超时</li>
 </ul>
 
-### 🧠 RAG 知识库与智能体
+### 🤖 RAG 知识库与智能体
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-在 LLM 统一网关之上，平台将业务文档转化为<strong>可问答的知识资产</strong>，并封装为可对话的<strong>智能体</strong>。知识按四层显式组织，内容可追溯、可审核、可复用，而不是堆进黑盒向量库里。
+在 LLM 统一网关之上，平台将业务文档转化为<strong>可问答的知识资产</strong>，并封装为可对话的<strong>智能体</strong>——从知识沉淀、检索回答到页面内与 IDE 内的智能助手，一条链路打通。
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>知识文档</strong>：上传 TXT / Markdown / CSV / JSON / LOG 文件（UTF-8、单文件 ≤10MB），解析后自动切片并写入 Milvus 向量索引</li>
-  <li><strong>知识片段</strong>：自动切片只是起点——可编辑标题、内容与标签，也可人工标注新片段；每个片段可独立<em>启停检索</em>，过期内容可停用而不必删除</li>
-  <li><strong>知识集</strong>：跨文档组合片段，沉淀为可复用的业务知识资产；同一片段可被多个知识集引用，不复制数据</li>
-  <li><strong>RAG 专家（智能体）</strong>：组合多个知识集、配置角色指令与欢迎语，即可对接当前启用的大模型做真实问答测试——回答引用<code>【资料 N】</code>，资料不足时明确说明不编造；模型不可达时自动降级为纯检索回答</li>
-  <li><strong>检索验证</strong>：知识集发布前可先做检索验证，逐条展示来源与相关度分数，召回质量看得见而非靠猜</li>
-  <li><strong>混合检索</strong>：Milvus 向量检索与关键词（类 BM25）词项打分融合；内置 <code>local-hash</code> 离线降级 Embedding，无外部 Key 也能跑通全链路演示，生产可无缝切换 1024 维 OpenAI 兼容 Embedding 服务</li>
-  <li><strong>页面内智能助手</strong>：业务页面内置悬浮平台助手——询问平台用法、探测服务健康，或让智能体基于你的知识集回答，不离开当前页面</li>
+  <li><strong>知识文档 → 片段 → 知识集</strong>：上传 TXT / Markdown / CSV / JSON / LOG 文件（UTF-8、≤10MB），自动切片写入 Milvus 向量索引；片段可编辑、可独立启停检索，跨文档组合为可复用的知识集</li>
+  <li><strong>RAG 专家（智能体）</strong>：组合多个知识集、配置角色指令与欢迎语即可开聊——回答引用<code>【资料 N】</code>，资料不足不编造，模型不可达时自动降级为纯检索</li>
+  <li><strong>混合检索</strong>：Milvus 向量检索与关键词（类 BM25）打分融合；内置 <code>local-hash</code> 离线 Embedding，无外部 Key 也能跑通全链路</li>
+  <li><strong>AI 助手</strong>：业务页悬浮助手即问即查；HARNESS 对话式助手嵌入 IDEA 在线 IDE，拖文件自动 <code>@</code>、分屏共创，并经 MCP + Cursor Skill 复用到 Cursor 等开发环境</li>
 </ul>
 
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-开源共建与现场 PoC 常卡在同一处：模块多、链路长，改代码要先配环境，查健康要登服务器，问架构要翻文档、找人。EasyAIoT 把 <strong>HARNESS 对话式助手</strong>嵌进 <strong>IDEA 在线 IDE</strong>——左侧完整 VS Code 工作区，右侧 AI 助手分屏；从资源管理器拖文件即可自动 <code>@</code> 引用进对话，边读源码边问端口、配置与服务健康，缩短「不懂—找人—再改」的闭环。
+### 🧠 大模型告警后处理（LLM 研判）— 让「检出」变成「可信」
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+传统视觉算法解决了「看见」，却把「信不信」留给了人——安全帽、越线、明火、睡岗的检测框每天刷屏，值守要逐条点开图片人工复核，误报淹没真警情，真警情又怕漏掉。EasyAIoT 把<strong>大模型语义理解接入告警链路</strong>：算法任务可配置<strong>大模型后处理规则</strong>，命中规则的告警自动进入独立研判队列，由多模态大模型逐条查看现场图片（或短视频），给出<strong>「确认成立 / 判定误报」的结论、置信度与理由</strong>并回写告警——值守从「逐图盯帧」变成「只看结论」，把高频误报挡在通知之外。
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>IDEA 分屏共创</strong>：工具栏一键打开右侧 AI 助手，编辑器与 Agent 同屏；亦可 <code>?file=路径&harness=1</code> 深链打开指定文件并分屏</li>
-  <li><strong>拖入自动 @</strong>：资源管理器文件拖到助手面板，自动关联为对话上下文，少打路径、少丢上下文</li>
-  <li><strong>问即查</strong>：Agent 调平台 Tool 探测 Gateway / 视频 / 算法等服务健康，并指向相关配置与源码——把 SSH + 翻 compose 压缩成一次对话</li>
-  <li><strong>懂本体</strong>：内置 <code>HARNESS/ontology/AGENTS.md</code> 与全仓工作区，架构、端口、API、安装约定有统一答案</li>
-  <li><strong>管控台同口径</strong>：业务页悬浮抽屉 / 全屏「AI 助手」与 IDEA 侧同一套能力；MCP + Cursor Skill 可跨环境复用</li>
-  <li><strong>双向跳转</strong>：助手可通过 <code>easyaiot_open_in_idea</code> 生成门户链接，从问答回到可改可发的完整 IDE</li>
-</ul>
-
-| | | |
-|:---:|:---:|:---:|
-| ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
-| ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
-模块多、链路长，查健康、问架构、找配置常要翻文档、登服务器。HARNESS 把平台知识与实时探测收成<strong>对话式助手</strong>——业务页右下角即问即查，缩短排障与 PoC 周期，少依赖原厂与口口相传的经验。
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>问即查</strong>：Agent 调平台 Tool 探测 Gateway / 视频 / 算法等服务健康，并指向相关配置与源码——把 SSH + 翻 compose 压缩成一次对话</li>
-  <li><strong>懂本体</strong>：内置 <code>HARNESS/ontology/AGENTS.md</code> 与全仓工作区，架构、端口、API、安装约定有统一答案</li>
-  <li><strong>页内即聊</strong>：悬浮抽屉 iframe 嵌入，看告警/设备时不跳转、不丢上下文；亦可全屏「AI 助手」或新窗口</li>
-  <li><strong>IDEA 分屏共创</strong>：工具栏一键打开右侧 AI 助手，编辑器与 Agent 同屏；亦可 <code>?file=路径&harness=1</code> 深链打开指定文件并分屏</li>
-  <li><strong>拖入自动 @</strong>：从资源管理器拖文件到助手面板，自动关联为对话上下文</li>
-  <li><strong>双向跳转</strong>：Agent 可通过 <code>easyaiot_open_in_idea</code> 生成门户链接，从问答回到可改可发的完整 IDE；IDEA 改代码提 PR，HARNESS 问架构查健康</li>
-  <li><strong>MCP + Cursor Skill</strong>：同一套 <code>easyaiot_*</code> 能力经 MCP 暴露给 Cursor 等 IDE——管控台能问能查的，开发环境里同样能调，Skill 可跨项目复用</li>
-  <li><strong>全形态开箱</strong>：基于 <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar（<code>:3080</code>），<code>mini / standard / full</code> 默认部署即带（<code>EASYAIOT_ENABLE_HARNESS=0</code> 可关）；DeepSeek / OpenAI 兼容端点，Key 在 <code>harness.env</code> 或 UI 自备</li>
-  <li><strong>安全提示</strong>：实验模块，上游 <code>dsh</code> 处于 Developer Preview；生产请限制访问并配置写操作 / Shell 审批；API Key 勿提交 Git</li>
+  <li><strong>独立异步研判队列</strong>：规则匹配后经 Kafka 投递、异步执行，研判慢、模型抖动都不阻塞告警落库与通知链路；研判失败只记日志，绝不拖垮主流程</li>
+  <li><strong>抽检与限流控成本</strong>：命中规则的告警按<strong>抽检比例</strong>（如 10% = 每 10 条抽 1 条）进入大模型队列，叠加<strong>同任务最小研判间隔</strong>防止高频事件重复调用；未命中抽检或被限流的告警自动标记「未抽检 / 限流跳过」，大模型费用与告警量解耦，量再大成本也可控</li>
+  <li><strong>图片 / 视频双研判</strong>：默认看图研判，可切换短视频研判并配置事件前后窗口与切片最大时长；录像缺失时自动回退图片研判，链路不断</li>
+  <li><strong>门控通知（二次判断）</strong>：对误报敏感的任务开启后，<strong>大模型确认事件成立才发送通知，判定误报则直接抑制</strong>——把「告警风暴」收敛成「精准提醒」，值班手机不再被误报轰炸</li>
+  <li><strong>失败策略按现场取值</strong>：模型调用失败时可选 <code>skip</code>（不改动原结果）/ <code>confirm</code>（放行通知）/ <code>reject</code>（抑制通知），在漏报与误报之间按现场风险偏好取值，宁缺毋滥还是宁滥毋缺由你定</li>
+  <li><strong>可绑定智能体与模型</strong>：研判可挂载 RAG 专家（携带知识库上下文作答），也可单独指定大模型、覆盖研判提示词、强制 JSON 结构化输出，与 LLM 统一网关一键切换厂商</li>
+  <li><strong>结论完整回写与展示</strong>：研判状态（确认成立 / 误报 / 研判中 / 研判失败 / 未抽检等）、置信度、理由与结构化属性全部回写告警；WEB 与 APP 告警列表带状态标签、可按「已抽检 / 未抽检 / 各结论」筛选，研判详情弹框一屏查看图片、结论、理由与执行信息</li>
 </ul>
 
 ### 📦 内置 AI 模型
@@ -1071,6 +1050,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 | | | |
 |:---:|:---:|:---:|
+| ![视频监控](.image/banner/banner1255.png) | ![视频监控](.image/banner/banner1256.png) | ![视频监控](.image/banner/banner1257.png) |
 | ![视频监控](.image/banner/banner1237.png) | ![视频监控](.image/banner/banner1238.png) | ![视频监控](.image/banner/banner1239.png) |
 | ![视频监控](.image/banner/banner1225.png) | ![视频监控](.image/banner/banner1226.png) | ![视频监控](.image/banner/banner1227.png) |
 | ![视频监控](.image/banner/banner1228.png) | ![视频监控](.image/banner/banner1229.png) | ![视频监控](.image/banner/banner1230.png) |

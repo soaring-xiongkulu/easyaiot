@@ -485,54 +485,17 @@ The platform converges every major LLM vendor onto a single OpenAI-compatible pr
   <li><strong>Resilience</strong>: ordered parameter fallback (temperature → max_completion_tokens), streaming SSE, per-vendor timeouts</li>
 </ul>
 
-### 🧠 RAG Knowledge Base & AI Agents
+### 🤖 RAG Knowledge Base & AI Agents
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-Built on the unified LLM gateway, the platform turns your business documents into <strong>answerable knowledge</strong> and packages it as conversational <strong>AI agents</strong>. Knowledge is organized in four explicit layers, so content stays traceable, reviewable, and reusable instead of living in a black-box vector pile.
+Built on the unified LLM gateway, the platform turns business documents into <strong>answerable knowledge assets</strong> packaged as conversational <strong>AI agents</strong> — one pipeline from knowledge curation to retrieval-backed answers to in-page and in-IDE assistants.
 </p>
 
 <ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Knowledge documents</strong>: Upload TXT / Markdown / CSV / JSON / LOG files (UTF-8, up to 10 MB); each document is parsed and auto-split into reviewable segments with Milvus vector indexing</li>
-  <li><strong>Knowledge segments</strong>: Auto-splitting is only the starting point — edit titles, content and tags, or manually annotate new segments; toggle <em>participation in retrieval</em> per segment so stale content can be retired without deletion</li>
-  <li><strong>Knowledge sets</strong>: Compose segments across documents into reusable business assets; the same segment can be referenced by multiple sets with no data duplication</li>
-  <li><strong>RAG experts (agents)</strong>: Combine multiple knowledge sets, define a role prompt and welcome message, then test real Q&amp;A against the active LLM — answers cite <code>【Source N】</code> and refuse to fabricate when the material is insufficient; if the model is unreachable the expert degrades gracefully to retrieval-only mode</li>
-  <li><strong>Retrieval verification</strong>: Search any knowledge set before publishing it, with per-source relevance scores, so you can validate recall quality instead of trusting it</li>
-  <li><strong>Hybrid retrieval</strong>: Vector search (Milvus) fused with keyword/BM25-style term scoring; an offline <code>local-hash</code> embedding fallback keeps the whole chain demo-able without external keys, while a 1024-dim OpenAI-compatible embedding service drops in seamlessly for production</li>
-  <li><strong>In-page AI assistant</strong>: A floating platform assistant is available on business pages — ask how the platform works, probe service health, or let an agent answer from your curated knowledge sets without leaving the current screen</li>
-</ul>
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-Open-source contribution and on-site PoCs often stall in the same place: many modules, long chains—editing needs a local setup, health checks need SSH, architecture questions mean digging docs and asking people. EasyAIoT embeds the <strong>HARNESS conversational assistant</strong> into the <strong>IDEA cloud IDE</strong>—full VS Code workspace on the left, AI assistant split on the right; drag files from the explorer to auto <code>@</code>-mention them in chat, read source while asking about ports, config, and service health, shortening the “don’t know → ask someone → edit again” loop.
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>IDEA split-pane co-creation</strong>: Toolbar opens the AI assistant on the right—editor and Agent side by side; or deep-link with <code>?file=path&harness=1</code> to open a file and split</li>
-  <li><strong>Drag to auto @</strong>: Drop explorer files onto the assistant pane to attach them as chat context—fewer paths typed, less context lost</li>
-  <li><strong>Ask and check</strong>: The Agent calls platform Tools to probe Gateway / video / AI health and points to related config and source—compressing SSH + compose digging into one conversation</li>
-  <li><strong>Knows the ontology</strong>: Built-in <code>HARNESS/ontology/AGENTS.md</code> and full-repo workspace—architecture, ports, APIs, and install conventions in one place</li>
-  <li><strong>Same semantics in the console</strong>: In-page floating drawer / full-screen “AI Assistant” share the same capabilities as IDEA; MCP + Cursor Skill reusable across environments</li>
-  <li><strong>Two-way jump</strong>: The assistant can generate portal links via <code>easyaiot_open_in_idea</code>—from Q&amp;A back to a full IDE where you can edit and publish</li>
-</ul>
-
-| | | |
-|:---:|:---:|:---:|
-| ![IDEA Login](.image/banner/banner1203.png) | ![IDEA Workspace](.image/banner/banner1204.png) | ![IDEA Development](.image/banner/banner1205.png) |
-| ![AI Assistant Chat](.image/banner/banner1210.png) | ![AI Assistant Analysis](.image/banner/banner1211.png) | ![AI Assistant Collaboration](.image/banner/banner1212.png) |
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
-Many modules and long chains—checking health, asking about architecture, and finding configs often means digging through docs and SSH. HARNESS bundles platform knowledge and live probes into a <strong>conversational assistant</strong>: ask and check from the bottom-right corner of any business page, shortening troubleshooting and PoC cycles with less reliance on the vendor and tribal knowledge.
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Ask and check</strong>: The Agent calls platform Tools to probe Gateway / video / AI service health and points to related config and source—compressing SSH + compose digging into one conversation</li>
-  <li><strong>Knows the ontology</strong>: Built-in <code>HARNESS/ontology/AGENTS.md</code> and full-repo workspace—architecture, ports, APIs, and install conventions in one place</li>
-  <li><strong>Chat in-page</strong>: Floating drawer iframe—no page switch or lost context while viewing alarms/devices; full-screen “AI Assistant” or new window also available</li>
-  <li><strong>IDEA split-pane co-creation</strong>: Toolbar opens the AI assistant on the right—editor and Agent side by side; or deep-link with <code>?file=path&harness=1</code> to open a file and split</li>
-  <li><strong>Drag to auto @</strong>: Drop explorer files onto the assistant pane to attach them as chat context</li>
-  <li><strong>Two-way jump</strong>: Agent can generate portal links via <code>easyaiot_open_in_idea</code>—from Q&amp;A back to a full IDE where you can edit and publish; IDEA for code and PRs, HARNESS for architecture and health</li>
-  <li><strong>MCP + Cursor Skill</strong>: Same <code>easyaiot_*</code> capabilities exposed via MCP to Cursor and other IDEs—what you can ask and check in the console, you can invoke in dev; Skills reusable across projects</li>
-  <li><strong>Ready in all profiles</strong>: Based on <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar (<code>:3080</code>); included by default in <code>mini / standard / full</code> (<code>EASYAIOT_ENABLE_HARNESS=0</code> to disable); DeepSeek / OpenAI-compatible endpoints; bring your own Key in <code>harness.env</code> or the UI</li>
-  <li><strong>Security note</strong>: Experimental module; upstream <code>dsh</code> is Developer Preview; restrict access in production and configure write/Shell approval; do not commit API Keys to Git</li>
+  <li><strong>Documents → segments → knowledge sets</strong>: Upload TXT / Markdown / CSV / JSON / LOG files (UTF-8, up to 10 MB); each document is auto-split into Milvus vector-indexed segments — editable, individually toggleable in retrieval, and composable across documents into reusable knowledge sets</li>
+  <li><strong>RAG experts (agents)</strong>: Combine multiple knowledge sets, set a role prompt and welcome message, and start chatting — answers cite <code>【Source N】</code>, refuse to fabricate when the material is insufficient, and degrade gracefully to retrieval-only mode when the model is unreachable</li>
+  <li><strong>Hybrid retrieval</strong>: Milvus vector search fused with keyword/BM25-style scoring; an offline <code>local-hash</code> embedding fallback keeps the whole chain demo-able without external keys</li>
+  <li><strong>AI assistant</strong>: A floating assistant answers right on business pages; the HARNESS conversational assistant lives inside the IDEA cloud IDE — drag files to auto <code>@</code>, co-create in split pane — and the same <code>easyaiot_*</code> capabilities are exposed via MCP + Cursor Skill to Cursor and other IDEs</li>
 </ul>
 
 ### 📦 Built-in AI Models
@@ -1029,6 +992,7 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 
 | | | |
 |:---:|:---:|:---:|
+| ![Video Surveillance](.image/banner/banner1255.png) | ![Video Surveillance](.image/banner/banner1256.png) | ![Video Surveillance](.image/banner/banner1257.png) |
 | ![Video Surveillance](.image/banner/banner1237.png) | ![Video Surveillance](.image/banner/banner1238.png) | ![Video Surveillance](.image/banner/banner1239.png) |
 | ![Video Surveillance](.image/banner/banner1225.png) | ![Video Surveillance](.image/banner/banner1226.png) | ![Video Surveillance](.image/banner/banner1227.png) |
 | ![Video Surveillance](.image/banner/banner1228.png) | ![Video Surveillance](.image/banner/banner1229.png) | ![Video Surveillance](.image/banner/banner1230.png) |
