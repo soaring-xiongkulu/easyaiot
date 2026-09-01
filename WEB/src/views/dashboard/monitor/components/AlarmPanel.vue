@@ -40,6 +40,13 @@
             >
               {{ getTaskTypeText(alarm) }}
             </span>
+            <span
+              v-if="isLlmSampled(alarm.llm_judge_status)"
+              :class="['llm-judge-tag', `llm-judge-tag--${alarm.llm_judge_status}`]"
+              title="大模型研判：点击查看研判结论"
+            >
+              {{ formatLlmJudgeStatus(alarm.llm_judge_status) }}
+            </span>
             <span class="alarm-location">{{ alarm.device_name || alarm.location || '未知设备' }}</span>
           </div>
           <div class="alarm-time">{{ alarm.time }}</div>
@@ -57,6 +64,7 @@
 
 <script lang="ts" setup>
 import { Icon } from '@/components/Icon'
+import { formatLlmJudgeStatus, isLlmSampled } from '@/views/alert/alertDisplay'
 import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage'
 
 defineOptions({
@@ -368,6 +376,42 @@ const handleImageLoad = (alarm: any) => {
       box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
       background: #059669;
     }
+  }
+}
+
+.llm-judge-tag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: rgba(82, 196, 26, 0.18);
+  color: #95de64;
+  border: 1px solid rgba(82, 196, 26, 0.4);
+
+  &--pending {
+    background: rgba(22, 119, 255, 0.18);
+    color: #69b1ff;
+    border-color: rgba(22, 119, 255, 0.4);
+  }
+
+  &--rejected,
+  &--rate_limited,
+  &--skipped {
+    background: rgba(245, 158, 11, 0.18);
+    color: #ffd591;
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+
+  &--error {
+    background: rgba(255, 77, 79, 0.18);
+    color: #ff7875;
+    border-color: rgba(255, 77, 79, 0.4);
   }
 }
 
