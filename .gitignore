@@ -255,6 +255,8 @@ IDEA/__pycache__/
 # HARNESS 运行时数据与本地配置（与 HARNESS/.gitignore 对齐；容器挂载工作区时会在仓库根生成 AGENTS.md 软链）
 HARNESS/.data/
 HARNESS/harness.env
+# 容器 entrypoint 在热挂载的 plugins/ 内补齐的 node_modules 符号链接（指向容器内路径，宿主机为断链）
+HARNESS/plugins/node_modules/
 /AGENTS.md
 /HARNESS-README.md
 

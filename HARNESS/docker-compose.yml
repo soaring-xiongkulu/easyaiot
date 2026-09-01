@@ -24,8 +24,9 @@ services:
       - ./ontology:/harness/ontology:ro
       - ./cordis.patch.yml:/harness/cordis.patch.yml:ro
       - ./image/branding:/harness/image/branding:ro
-      # 插件热挂载：改 plugins/ 后重启容器即生效，免重建镜像（entrypoint 会补齐 node_modules 链接）
-      - ./plugins:/harness/plugins:ro
+      # 插件热挂载：改 plugins/ 后重启容器即生效，免重建镜像
+      # 注意不能挂 :ro —— entrypoint 需要在目录内补齐 node_modules 符号链接（构建期链接被 volume 遮蔽）
+      - ./plugins:/harness/plugins
       - harness-dsh-home:/data/dsh-home
     environment:
       DSH_HOME: /data/dsh-home
