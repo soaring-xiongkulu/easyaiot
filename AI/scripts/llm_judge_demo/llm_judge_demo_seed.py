@@ -214,7 +214,8 @@ SCHEMA_DDL = [
       duration_ms INTEGER,
       status VARCHAR(20) NOT NULL DEFAULT 'pending',
       error_msg TEXT,
-      created_at TIMESTAMP
+      created_at TIMESTAMP,
+      updated_at TIMESTAMP
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_llm_judge_result_corr ON algorithm_llm_judge_result (correlation_id)",
@@ -227,6 +228,10 @@ def ensure_schema(cur):
     log('== Schema ensure（新列/新表，幂等） ==')
     for stmt in SCHEMA_DDL:
         cur.execute(stmt)
+    cur.execute(
+        'ALTER TABLE algorithm_llm_judge_result '
+        'ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP'
+    )
     ok('algorithm_task.llm_post_process_enabled / alert.llm_judge_* / 规则表 / 研判结果表 已就绪')
 
 
