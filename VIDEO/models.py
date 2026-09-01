@@ -1473,6 +1473,8 @@ class AlgorithmTaskLlmRule(db.Model):
     prompt_override = db.Column(db.Text, nullable=True, comment='覆盖智能体默认研判提示词（含占位符）')
     require_json = db.Column(db.Boolean, default=True, nullable=False, comment='强制 JSON 结构化输出')
     # 节流与启停
+    sample_rate_percent = db.Column(db.Integer, default=10, nullable=False,
+                                    comment='告警抽检比例 1~100；与最小间隔共同生效')
     min_interval_sec = db.Column(db.Integer, default=0, nullable=False, comment='同任务/设备 LLM 研判最小间隔（秒），0=不限')
     priority = db.Column(db.SmallInteger, default=5, nullable=False, comment='规则优先级（多规则命中取最高）')
     enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
@@ -1497,6 +1499,7 @@ class AlgorithmTaskLlmRule(db.Model):
             'fail_policy': self.fail_policy,
             'prompt_override': self.prompt_override,
             'require_json': bool(self.require_json),
+            'sample_rate_percent': int(self.sample_rate_percent or 10),
             'min_interval_sec': int(self.min_interval_sec or 0),
             'priority': int(self.priority or 5),
             'enabled': bool(self.enabled),
@@ -1529,6 +1532,8 @@ class AlgorithmLlmJudgeResult(db.Model):
     status = db.Column(db.String(20), default='pending', nullable=False, comment='状态[pending,success,error,dlt]')
     error_msg = db.Column(db.Text, nullable=True, comment='失败原因')
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), index=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(),
+                           onupdate=lambda: datetime.utcnow())
 
     def to_dict(self):
         import json
@@ -1553,6 +1558,7 @@ class AlgorithmLlmJudgeResult(db.Model):
             'status': self.status,
             'error_msg': self.error_msg,
             'created_at': utc_isoformat_z(self.created_at),
+            'updated_at': utc_isoformat_z(self.updated_at),
         }
 
 
@@ -3325,6 +3331,11 @@ def ensure_post_plugin_tables(engine):
         with engine.begin() as conn:
             for stmt in ddl:
                 conn.execute(text(stmt))
+            # 兼容早期已创建的表；Sink 成功/失败回写会更新该字段。
+            conn.execute(text(
+                'ALTER TABLE algorithm_llm_judge_result '
+                'ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP'
+            ))
         log.info('ensure_post_plugin_tables ok')
     except Exception as e:
         log.warning('ensure_post_plugin_tables: %s', e)
@@ -3403,6 +3414,7 @@ def ensure_algorithm_llm_tables(engine):
           fail_policy VARCHAR(10) NOT NULL DEFAULT 'skip',
           prompt_override TEXT,
           require_json BOOLEAN DEFAULT TRUE,
+          sample_rate_percent INTEGER NOT NULL DEFAULT 10,
           min_interval_sec INTEGER DEFAULT 0,
           priority SMALLINT DEFAULT 5,
           enabled BOOLEAN DEFAULT TRUE,
@@ -3432,7 +3444,8 @@ def ensure_algorithm_llm_tables(engine):
           duration_ms INTEGER,
           status VARCHAR(20) NOT NULL DEFAULT 'pending',
           error_msg TEXT,
-          created_at TIMESTAMP
+          created_at TIMESTAMP,
+          updated_at TIMESTAMP
         )
         """,
     ]
@@ -3449,6 +3462,10 @@ def ensure_algorithm_llm_tables(engine):
             conn.execute(
                 text('CREATE INDEX IF NOT EXISTS idx_llm_rule_task ON algorithm_task_llm_rule (task_id)')
             )
+            conn.execute(text(
+                'ALTER TABLE algorithm_task_llm_rule '
+                'ADD COLUMN IF NOT EXISTS sample_rate_percent INTEGER NOT NULL DEFAULT 10'
+            ))
         log.info('ensure_algorithm_llm_tables ok')
     except Exception as e:
         log.warning('ensure_algorithm_llm_tables: %s', e)

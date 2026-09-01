@@ -29,6 +29,41 @@ def list_rules(task_id: int):
         return jsonify({'code': 500, 'msg': str(exc)}), 500
 
 
+@algorithm_task_llm_rule_bp.route('/task/<int:task_id>/results', methods=['GET'])
+def list_results(task_id: int):
+    try:
+        data = svc.list_llm_results(
+            task_id,
+            page=request.args.get('page', 1, type=int),
+            page_size=request.args.get('pageSize', 20, type=int),
+            status=request.args.get('status') or None,
+        )
+        return jsonify({'code': 0, 'msg': 'success', 'data': data})
+    except ValueError as exc:
+        return jsonify({'code': 400, 'msg': str(exc)}), 400
+    except Exception as exc:
+        logger.error('查询 LLM 研判结果失败 task_id=%s: %s', task_id, exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(exc)}), 500
+
+
+@algorithm_task_llm_rule_bp.route('/task/<int:task_id>/stats', methods=['GET'])
+def task_stats(task_id: int):
+    try:
+        return jsonify({'code': 0, 'msg': 'success', 'data': svc.get_llm_stats(task_id)})
+    except Exception as exc:
+        logger.error('查询 LLM 研判指标失败 task_id=%s: %s', task_id, exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(exc)}), 500
+
+
+@algorithm_task_llm_rule_bp.route('/alert/<int:alert_id>', methods=['GET'])
+def alert_judgement(alert_id: int):
+    try:
+        return jsonify({'code': 0, 'msg': 'success', 'data': svc.get_alert_llm_judgement(alert_id)})
+    except Exception as exc:
+        logger.error('查询告警 LLM 研判详情失败 alert_id=%s: %s', alert_id, exc, exc_info=True)
+        return jsonify({'code': 500, 'msg': str(exc)}), 500
+
+
 @algorithm_task_llm_rule_bp.route('/task/<int:task_id>/rule', methods=['POST'])
 def create_rule(task_id: int):
     try:

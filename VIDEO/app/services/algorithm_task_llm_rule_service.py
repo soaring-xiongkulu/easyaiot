@@ -11,7 +11,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from models import db, AlgorithmTask, AlgorithmTaskLlmRule
+from models import db, Alert, AlgorithmTask, AlgorithmTaskLlmRule, AlgorithmLlmJudgeResult
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ VALID_RULE_FIELDS = {
     'rule_name', 'match_objects', 'match_events', 'agent_id', 'model_id',
     'judge_mode', 'video_pre_seconds', 'video_post_seconds', 'video_max_seconds',
     'secondary_judge', 'fail_policy', 'prompt_override', 'require_json',
-    'min_interval_sec', 'priority', 'enabled',
+    'sample_rate_percent', 'min_interval_sec', 'priority', 'enabled',
 }
 
 
@@ -96,6 +96,7 @@ def _normalize_rule_payload(payload: Dict[str, Any], task: AlgorithmTask) -> Dic
     data['prompt_override'] = str(prompt_override).strip() if prompt_override else None
 
     data['require_json'] = bool(payload.get('require_json', True))
+    data['sample_rate_percent'] = max(1, min(int(payload.get('sample_rate_percent', 10) or 10), 100))
     data['min_interval_sec'] = max(0, int(payload.get('min_interval_sec', 0) or 0))
     data['priority'] = max(0, min(int(payload.get('priority', 5) or 5), 100))
     data['enabled'] = bool(payload.get('enabled', True))
@@ -115,6 +116,115 @@ def list_llm_rules(task_id: int) -> List[Dict[str, Any]]:
              .order_by(AlgorithmTaskLlmRule.priority.desc(), AlgorithmTaskLlmRule.id.asc())
              .all())
     return [rule.to_dict() for rule in rules]
+
+
+def list_llm_results(task_id: int, page: int = 1, page_size: int = 20,
+                     status: Optional[str] = None) -> Dict[str, Any]:
+    """查询任务的研判审计记录，供规则页面展示端到端执行状态。"""
+    AlgorithmTask.query.get_or_404(task_id)
+    page = max(1, int(page or 1))
+    page_size = max(1, min(int(page_size or 20), 100))
+    query = AlgorithmLlmJudgeResult.query.filter_by(task_id=task_id)
+    if status:
+        normalized = str(status).strip().lower()
+        if normalized not in ('pending', 'success', 'error', 'dlt'):
+            raise ValueError('status 必须为 pending|success|error|dlt')
+        query = query.filter_by(status=normalized)
+    total = query.count()
+    rows = (query.order_by(AlgorithmLlmJudgeResult.created_at.desc(),
+                           AlgorithmLlmJudgeResult.id.desc())
+            .offset((page - 1) * page_size).limit(page_size).all())
+    return {'items': [row.to_dict() for row in rows], 'total': total,
+            'page': page, 'page_size': page_size}
+
+
+def get_llm_stats(task_id: int) -> Dict[str, Any]:
+    """任务级研判价值指标：覆盖率、结论分布、耗时与队列状态。"""
+    AlgorithmTask.query.get_or_404(task_id)
+    total_alerts = Alert.query.filter_by(task_id=task_id).count()
+    result_query = AlgorithmLlmJudgeResult.query.filter_by(task_id=task_id)
+    sampled = result_query.count()
+    completed = result_query.filter_by(status='success').count()
+    pending = result_query.filter_by(status='pending').count()
+    failed = result_query.filter(AlgorithmLlmJudgeResult.status.in_(('error', 'dlt'))).count()
+    confirmed = result_query.filter_by(status='success', confirm=True).count()
+    rejected = result_query.filter_by(status='success', confirm=False).count()
+    avg_duration = (db.session.query(db.func.avg(AlgorithmLlmJudgeResult.duration_ms))
+                    .filter(AlgorithmLlmJudgeResult.task_id == task_id,
+                            AlgorithmLlmJudgeResult.status == 'success')
+                    .scalar())
+    configured_rates = [int(r.sample_rate_percent or 10) for r in
+                        AlgorithmTaskLlmRule.query.filter_by(task_id=task_id, enabled=True).all()]
+    return {
+        'total_alerts': total_alerts,
+        'sampled': sampled,
+        'completed': completed,
+        'pending': pending,
+        'failed': failed,
+        'confirmed': confirmed,
+        'rejected': rejected,
+        'actual_sample_rate_percent': round(sampled * 100.0 / total_alerts, 1) if total_alerts else 0,
+        'configured_sample_rates': configured_rates,
+        'avg_duration_ms': round(float(avg_duration or 0)),
+    }
+
+
+def get_alert_llm_judgement(alert_id: int) -> Dict[str, Any]:
+    """返回告警绑定的最新研判记录与规则快照，供独立详情弹框使用。"""
+    alert = Alert.query.get_or_404(alert_id)
+    result = (AlgorithmLlmJudgeResult.query.filter_by(alert_id=alert.id)
+              .order_by(AlgorithmLlmJudgeResult.id.desc()).first())
+    rule = AlgorithmTaskLlmRule.query.get(result.rule_id) if result and result.rule_id else None
+    detail = None
+    if alert.llm_judge_detail:
+        try:
+            detail = json.loads(alert.llm_judge_detail)
+        except Exception:
+            detail = {'reason': alert.llm_judge_detail}
+
+    # 从 information 提取检测目标列表与任务类型，供弹框展示检测对象
+    detections = []
+    task_type = getattr(alert, 'task_type', None)
+    information = alert.information
+    if isinstance(information, str):
+        try:
+            information = json.loads(information)
+        except Exception:
+            information = None
+    if isinstance(information, dict):
+        if not task_type:
+            task_type = information.get('task_type')
+        detections = information.get('detections') or []
+        if isinstance(detections, list):
+            detections = [
+                {
+                    'class_name': d.get('class_name'),
+                    'confidence': d.get('confidence'),
+                    'bbox': d.get('bbox'),
+                }
+                for d in detections
+                if isinstance(d, dict)
+            ][:12]
+
+    return {
+        'alert_id': alert.id,
+        'status': alert.llm_judge_status or ('pending' if result else 'not_sampled'),
+        'detail': detail,
+        'result': result.to_dict() if result else None,
+        'rule': rule.to_dict() if rule else None,
+        'image_url': alert.image_url,
+        'record_path': getattr(alert, 'record_path', None),
+        'device_id': alert.device_id,
+        'device_name': alert.device_name,
+        'event': alert.event,
+        'object': alert.object,
+        'region': alert.region,
+        'task_id': getattr(alert, 'task_id', None),
+        'task_name': getattr(alert, 'task_name', None),
+        'task_type': task_type or 'realtime',
+        'detections': detections,
+        'time': alert.time.isoformat() if alert.time else None,
+    }
 
 
 def create_llm_rule(task_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
