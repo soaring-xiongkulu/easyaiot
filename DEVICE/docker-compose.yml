@@ -443,6 +443,9 @@ services:
       # VIDEO/Gateway 服务地址：iot-gateway 为 host 网络，容器内 localhost 指向自身，
       # 必须用 easyaiot-network 网关（宿主机）地址，否则人脸匹配/告警回调 Connection refused
       - BASICLAB_VIDEO_SERVICE_URL=${BASICLAB_VIDEO_SERVICE_URL:-http://172.18.0.1:48080}
+      # AI 服务使用 host 网络；Sink 容器需通过宿主机网关调用，不能使用默认 localhost:8000。
+      - BASICLAB_LLM_JUDGE_AI_INTERNAL_BASE_URL=${BASICLAB_LLM_JUDGE_AI_INTERNAL_BASE_URL:-http://host.docker.internal:5000}
+      - BASICLAB_LLM_JUDGE_AI_INTERNAL_TOKEN=${AI_INTERNAL_TOKEN:-}
       # SkyWalking配置（如需要，请取消注释并配置）
       # - JAVA_TOOL_OPTIONS=-javaagent:/data/skywalking/skywalking-agent/skywalking-agent.jar
       # - SW_AGENT_NAME=iot-sink
