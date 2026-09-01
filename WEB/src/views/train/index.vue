@@ -48,6 +48,11 @@
             <LLMManage ref="llmManageRef"></LLMManage>
           </div>
         </TabPane>
+        <TabPane v-if="showAdvancedTabs" key="8" tab="RAG 专家训练">
+          <div class="tab-pane-scroll">
+            <LLMTraining />
+          </div>
+        </TabPane>
       </Tabs>
     </div>
   </div>
@@ -63,8 +68,8 @@ import AiModelTool from "@/views/train/components/AiModelTool/index.vue";
 import ModelExport from "@/views/train/components/ModelExport/index.vue";
 import DeployService from "@/views/train/components/DeployService/index.vue";
 import LLMManage from "@/views/train/components/LLMManage/index.vue";
+import LLMTraining from "@/views/train/components/LLMTraining/index.vue";
 import SamInferencePage from "@/views/model/SamInference/index.vue";
-import GpuStackMonitorTip from '@/components/GpuStackMonitorTip/index.vue';
 import { isEdgeStandaloneDeployProfile, isTrainAdvancedEnabled } from '@/utils/deployProfile';
 
 defineOptions({name: 'TRAIN'})
@@ -83,6 +88,7 @@ const TRAIN_TAB_KEYS = {
   LLM: '5',
   TRAIN_TASK: '6',
   SAM: '7',
+  LLM_TRAINING: '8',
 } as const;
 
 const MINI_TRAIN_TAB_KEYS = new Set<string>([
@@ -104,7 +110,7 @@ function normalizeTrainRouteTab(tab: string): string {
   return tab;
 }
 
-const state = reactive({
+const state = reactive<{ activeKey: string }>({
   activeKey: TRAIN_TAB_KEYS.MODEL_LIST
 });
 
