@@ -86,6 +86,12 @@ public class LlmJudgeEnricherImpl implements LlmJudgeEnricher {
             if (matched == null) {
                 return false;
             }
+            if (!selectedBySample(message, matched)) {
+                markNotSampled(alertId, matched);
+                log.debug("[LlmJudgeEnricher] 比例抽检未命中，跳过研判 alertId={} ruleId={} rate={}%",
+                        alertId, matched.ruleId, matched.sampleRatePercent);
+                return false;
+            }
             String judgeMode = matched.judgeMode;
             String imageUrl = message.getAlert().getImagePath();
             String recordPath = message.getAlert().getRecordPath();
@@ -100,6 +106,8 @@ public class LlmJudgeEnricherImpl implements LlmJudgeEnricher {
                 judgeMode = "image"; // 录像缺失回退图片研判
             }
             if (matched.minIntervalSec > 0 && !tryThrottle(deviceId, matched.ruleId, matched.minIntervalSec)) {
+                markSkipped(alertId, matched, "rate_limited",
+                        "已命中比例抽检，但处于最小研判间隔内");
                 log.debug("[LlmJudgeEnricher] 规则节流命中，跳过研判 deviceId={} ruleId={}", deviceId, matched.ruleId);
                 return false;
             }
@@ -211,7 +219,7 @@ public class LlmJudgeEnricherImpl implements LlmJudgeEnricher {
                     "SELECT r.id, r.match_objects, r.match_events, r.agent_id, r.model_id, "
                             + "r.judge_mode, r.video_pre_seconds, r.video_post_seconds, r.video_max_seconds, "
                             + "r.secondary_judge, r.fail_policy, r.prompt_override, r.require_json, "
-                            + "r.min_interval_sec "
+                            + "r.sample_rate_percent, r.min_interval_sec "
                             + "FROM algorithm_task_llm_rule r "
                             + "INNER JOIN algorithm_task at ON at.id = r.task_id "
                             + "INNER JOIN algorithm_task_device atd ON atd.task_id = at.id "
@@ -254,6 +262,7 @@ public class LlmJudgeEnricherImpl implements LlmJudgeEnricher {
             Object prompt = row.get("prompt_override");
             rule.promptOverride = prompt != null ? String.valueOf(prompt) : null;
             rule.requireJson = boolOf(row.get("require_json"), true);
+            rule.sampleRatePercent = intOf(row.get("sample_rate_percent"), 10);
             rule.minIntervalSec = intOf(row.get("min_interval_sec"), 0);
             return rule;
         } catch (Exception e) {
@@ -278,6 +287,48 @@ public class LlmJudgeEnricherImpl implements LlmJudgeEnricher {
             return rule;
         }
         return null;
+    }
+
+    /**
+     * 稳定比例抽检：同一 correlationId 在重复投递/重放时始终得到相同选择结果，
+     * 避免随机数导致重复调用或审计口径漂移。
+     */
+    private boolean selectedBySample(AlertNotificationMessage message, RuleView rule) {
+        int rate = rule.sampleRatePercent == null ? 10 : Math.max(1, Math.min(100, rule.sampleRatePercent));
+        if (rate >= 100) {
+            return true;
+        }
+        String identity = StringUtils.hasText(message.getCorrelationId())
+                ? message.getCorrelationId()
+                : String.valueOf(message.getDeviceId()) + "|" + message.getAlert().getTime();
+        int bucket = Math.floorMod((identity + "|" + rule.ruleId).hashCode(), 100);
+        return bucket < rate;
+    }
+
+    /** 未抽中的告警也明确标记，前端可区分“未抽检”和“研判尚未返回”。 */
+    private void markNotSampled(Integer alertId, RuleView rule) {
+        markSkipped(alertId, rule, "not_sampled", "未命中本次比例抽检，不调用大模型");
+    }
+
+    private void markSkipped(Integer alertId, RuleView rule, String status, String reason) {
+        if (jdbcTemplate == null || alertId == null) {
+            return;
+        }
+        try {
+            DynamicDataSourceContextHolder.push("video");
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("status", status);
+            detail.put("rule_id", rule.ruleId);
+            detail.put("sample_rate_percent", rule.sampleRatePercent);
+            detail.put("reason", reason);
+            jdbcTemplate.update(
+                    "UPDATE alert SET llm_judge_status = ?, llm_judge_detail = ? WHERE id = ?",
+                    status, JsonUtils.toJsonString(detail), alertId);
+        } catch (Exception e) {
+            log.warn("[LlmJudgeEnricher] 写入未抽检状态失败 alertId={}: {}", alertId, e.getMessage());
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
     }
 
     private boolean matchesObjects(List<String> matchObjects, AlertNotificationMessage.AlertInfo alert) {
@@ -434,6 +485,7 @@ public class LlmJudgeEnricherImpl implements LlmJudgeEnricher {
         String failPolicy;
         String promptOverride;
         Boolean requireJson;
+        Integer sampleRatePercent;
         Integer minIntervalSec;
     }
 
