@@ -930,6 +930,8 @@ export interface LlmJudgeRule {
   fail_policy: LlmFailPolicy;
   prompt_override?: string | null;
   require_json: boolean;
+  /** 进入大模型队列的告警抽检比例（1~100） */
+  sample_rate_percent: number;
   min_interval_sec: number;
   priority: number;
   enabled: boolean;
@@ -951,9 +953,30 @@ export interface LlmJudgeRulePayload {
   fail_policy?: LlmFailPolicy;
   prompt_override?: string | null;
   require_json?: boolean;
+  sample_rate_percent?: number;
   min_interval_sec?: number;
   priority?: number;
   enabled?: boolean;
+}
+
+export type LlmJudgeResultStatus = 'pending' | 'success' | 'error' | 'dlt';
+export interface LlmJudgeResult {
+  id: number;
+  correlation_id: string;
+  alert_id: number;
+  task_id?: number;
+  rule_id?: number;
+  agent_id?: number;
+  model_id?: number;
+  judge_mode?: LlmJudgeMode;
+  media_url?: string;
+  confirm?: boolean | null;
+  confidence?: number | null;
+  reason?: string;
+  duration_ms?: number;
+  status: LlmJudgeResultStatus;
+  error_msg?: string;
+  created_at?: string;
 }
 
 /** 查询任务的大模型后处理规则列表 */
@@ -964,6 +987,33 @@ export const listLlmJudgeRules = (taskId: number) => {
     { errorMessageMode: 'none' },
   );
 };
+
+export const listLlmJudgeResults = (taskId: number, params?: {
+  page?: number; pageSize?: number; status?: LlmJudgeResultStatus;
+}) => {
+  return commonApi<{
+    code: number;
+    msg: string;
+    data: { items: LlmJudgeResult[]; total: number; page: number; page_size: number };
+  }>('get', `${ALGORITHM_PREFIX}/llm-rule/task/${taskId}/results`, {
+    params,
+    errorMessageMode: 'none',
+  });
+};
+
+export interface LlmJudgeStats {
+  total_alerts: number; sampled: number; completed: number; pending: number; failed: number;
+  confirmed: number; rejected: number; actual_sample_rate_percent: number;
+  configured_sample_rates: number[]; avg_duration_ms: number;
+}
+
+export const getLlmJudgeStats = (taskId: number) => commonApi<{
+  code: number; msg: string; data: LlmJudgeStats;
+}>('get', `${ALGORITHM_PREFIX}/llm-rule/task/${taskId}/stats`, { errorMessageMode: 'none' });
+
+export const getAlertLlmJudgement = (alertId: number) => commonApi<{
+  code: number; msg: string; data: any;
+}>('get', `${ALGORITHM_PREFIX}/llm-rule/alert/${alertId}`, { errorMessageMode: 'none' });
 
 /** 新增规则（自动开启任务级大模型后处理总开关） */
 export const createLlmJudgeRule = (taskId: number, data: LlmJudgeRulePayload) => {
