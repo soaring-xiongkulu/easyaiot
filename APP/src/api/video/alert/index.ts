@@ -16,6 +16,9 @@ export interface AlertRecord {
   image_url?: string
   record_path?: string
   information?: unknown
+  /** 大模型（LLM）研判状态：not_sampled/pending/confirmed/rejected/error/rate_limited/skipped */
+  llm_judge_status?: string | null
+  llm_judge_detail?: Record<string, unknown> | null
 }
 
 export interface AlertListResult {

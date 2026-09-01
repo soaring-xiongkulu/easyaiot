@@ -52,8 +52,17 @@
               {{ item.task_name || '-' }}
             </view>
             <view class="flex items-center justify-between">
-              <view class="task-pill">
-                {{ getTaskTypeText(item.task_type) }}
+              <view class="flex items-center gap-8rpx">
+                <view class="task-pill">
+                  {{ getTaskTypeText(item.task_type) }}
+                </view>
+                <view
+                  v-if="isLlmSampled(item.llm_judge_status)"
+                  class="llm-pill"
+                  :class="`llm-pill--${item.llm_judge_status}`"
+                >
+                  {{ formatLlmJudgeStatus(item.llm_judge_status) }}
+                </view>
               </view>
               <text class="text-22rpx text-[#98a2b3]">
                 {{ formatDateTime(item.time) }}
@@ -80,8 +89,10 @@ import { parseListResponse } from '@/utils/listResponse'
 import {
   formatAlertEvent,
   formatAlertListTitle,
+  formatLlmJudgeStatus,
   getAlertEventTagType,
   getTaskTypeText,
+  isLlmSampled,
 } from '@/utils/video/alertDisplay'
 import { resolveAlertImageDisplayUrl } from '@/utils/mediaDisplay'
 import DetailPopup from './components/detail-popup.vue'
@@ -235,5 +246,31 @@ async function handleClearAll() {
   font-size: 20rpx;
   color: #6b7688;
   background: #f4f6fb;
+}
+
+.llm-pill {
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #0fa36e;
+  background: #e6f7f1;
+
+  &--pending {
+    color: #2f6bff;
+    background: #eaf1ff;
+  }
+
+  &--rejected,
+  &--rate_limited,
+  &--skipped {
+    color: #d97706;
+    background: #fdf3e2;
+  }
+
+  &--error {
+    color: #e5484d;
+    background: #fef2f2;
+  }
 }
 </style>
