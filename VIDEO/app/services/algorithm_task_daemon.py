@@ -720,6 +720,12 @@ class AlgorithmTaskDaemon:
         env['TASK_ID'] = str(self._task_id)
         env['LOG_PATH'] = self._log_path
         env['RUNTIME_BIN'] = runtime_bin
+        # POST's InferEvent ingress is MQTT-only.  When this task is explicitly
+        # configured for the local HTTP alert hook, do not let the container-wide
+        # POST_ENABLED setting divert alarms into an unavailable MQTT publisher.
+        transport = (env.get('ALGO_BUS_TRANSPORT') or '').strip().lower()
+        if transport in {'http', 'off', '0', 'false', 'no'}:
+            env['POST_ENABLED'] = 'false'
         for key in (
             'ALERT_HOOK_URL', 'VIDEO_SERVICE_HOST', 'VIDEO_SERVICE_URL', 'VIDEO_SERVICE_PORT',
             'POD_IP', 'HOST_IP', 'RUNTIME_MODEL_PATH', 'RUNTIME_CLASSES_PATH',
@@ -795,4 +801,3 @@ class AlgorithmTaskDaemon:
         
         self._log(f'未找到Conda环境，将使用系统Python', 'DEBUG')
         return None
-

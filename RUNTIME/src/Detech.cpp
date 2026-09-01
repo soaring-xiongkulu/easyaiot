@@ -1149,7 +1149,10 @@ void Detech::_alarmSenderThreadFunc() {
             const bool snapshot = (_config.taskType == "snap" || _config.taskType == "snapshot");
             bool usedHttpAlert = false;
             AlgoMqttBus::ensureHealthProbe();
-            if (AlgoMqttBus::shouldPublishInferEvent()) {
+            // InferEvent is an MQTT-only ingress. In edge/HTTP mode POST may still
+            // be globally enabled for other services, but it must not shadow the
+            // configured VIDEO alert hook.
+            if (AlgoMqttBus::busEnabled(_config) && AlgoMqttBus::shouldPublishInferEvent()) {
                 Json::Value ev;
                 ev["schema"] = "infer_event.v1";
                 ev["event_kind"] = "infer";
@@ -1367,7 +1370,7 @@ void Detech::_heartbeatThreadFunc() {
         auto now = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(now - lastInferHb).count() >= inferHbSec) {
             lastInferHb = now;
-            if (AlgoMqttBus::shouldPublishInferEvent()) {
+            if (AlgoMqttBus::busEnabled(_config) && AlgoMqttBus::shouldPublishInferEvent()) {
                 Json::Value ev;
                 ev["schema"] = "infer_event.v1";
                 ev["event_kind"] = "heartbeat";
