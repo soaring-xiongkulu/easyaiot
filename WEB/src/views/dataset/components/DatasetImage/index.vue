@@ -464,7 +464,7 @@ function handleRetryMinioSync() {
 
 function handleStartTrain() {
   void router.push({
-    path: '/train',
+    path: '/train/index',
     query: {tab: '6', launch: '1', datasetId: String(route.params.id)},
   });
 }

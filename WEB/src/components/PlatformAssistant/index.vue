@@ -360,7 +360,7 @@ function newChat() {
 
 function goModelManage() {
   open.value = false
-  router.push({ path: '/train', query: { tab: '5' } }).catch(() => {})
+  router.push({ path: '/train/index', query: { tab: '5' } }).catch(() => {})
 }
 
 // ---------- 消息操作 ----------

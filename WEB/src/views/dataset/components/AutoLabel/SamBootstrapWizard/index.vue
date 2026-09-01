@@ -235,7 +235,7 @@ async function submitReview() {
 }
 
 function goTrain() {
-  router.push({ path: '/train', query: { tab: '6' } });
+  router.push({ path: '/train/index', query: { tab: '6' } });
 }
 </script>
 

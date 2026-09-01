@@ -397,7 +397,7 @@ const filterModelOption = (input: string, option: { children?: { children?: stri
 
 function goModelPage() {
   closeModal();
-  router.push({ path: '/train', query: { tab: '1' } });
+  router.push({ path: '/train/index', query: { tab: '1' } });
 }
 
 async function handleStart() {

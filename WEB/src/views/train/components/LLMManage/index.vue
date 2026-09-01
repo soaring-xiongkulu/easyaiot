@@ -415,7 +415,7 @@ const handleTest = async (record: LLMModel) => {
     if (testSuccess && record.id) {
       // 跳转到训练页面，并切换到模型推理tab（key="2"），传递大模型ID
       router.push({
-        path: '/train',
+        path: '/train/index',
         query: {
           tab: '2',
           llmId: record.id.toString()
