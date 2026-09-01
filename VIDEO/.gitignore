@@ -46,3 +46,4 @@ hs_err_pid*
 face_rec.onnx
 scrfd_10g.onnx
 .recording-storage.env
+.docker-compose.runc.override.yaml
