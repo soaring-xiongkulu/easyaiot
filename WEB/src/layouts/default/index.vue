@@ -23,7 +23,7 @@ defineOptions({ name: 'DefaultLayout' })
 
 const LayoutFeatures = createAsyncComponent(() => import('@/layouts/default/feature/index.vue'))
 const LayoutFooter = createAsyncComponent(() => import('@/layouts/default/footer/index.vue'))
-const IdeaFloatBall = createAsyncComponent(() => import('@/components/IdeaFloatBall/index.vue'))
+const PlatformAssistant = createAsyncComponent(() => import('@/components/PlatformAssistant/index.vue'))
 
 const { prefixCls } = useDesign('default-layout')
 const { getIsMobile } = useAppInject()
@@ -61,7 +61,7 @@ const layoutClass = computed(() => {
         <LayoutFooter />
       </Layout>
     </Layout>
-    <IdeaFloatBall v-if="showIdeaBall" />
+    <PlatformAssistant v-if="showIdeaBall" />
   </Layout>
 </template>
 

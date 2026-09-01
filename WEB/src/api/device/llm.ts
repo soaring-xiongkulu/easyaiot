@@ -107,6 +107,17 @@ export interface VisionAnalyzeResponse {
   };
 }
 
+export interface LLMChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface LLMChatResponse {
+  response: string;
+  usage?: Record<string, number>;
+  model: string;
+}
+
 // 获取大模型列表
 export const getLLMList = (params?: LLMListParams) => {
   return defHttp.get<LLMListResponse>({ url: Api.LLM_LIST, params });
@@ -150,6 +161,18 @@ export const deactivateLLM = (modelId: number) => {
 // 测试大模型连接
 export const testLLM = (modelId: number) => {
   return defHttp.post<LLMTestResponse>({ url: `${Api.LLM_TEST}/${modelId}` });
+};
+
+/** 平台智能助手：后端始终路由到“大模型管理”中当前唯一启用的模型。 */
+export const chatWithActiveLLM = (data: {
+  prompt: string;
+  messages?: LLMChatMessage[];
+  context?: { pageTitle?: string; pagePath?: string };
+}) => {
+  return defHttp.post<LLMChatResponse>(
+    { url: Api.LLM_CHAT, data },
+    { errorMessageMode: 'none' },
+  );
 };
 
 // ========== HARNESS LLM 统一网关（收口通道，见 HARNESS/docs/llm-unified-gateway-design.md）==========
