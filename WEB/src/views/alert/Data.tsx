@@ -1,7 +1,7 @@
 import {BasicColumn, FormProps} from "@/components/Table";
 import { Tag } from "ant-design-vue";
 import {queryAlertCameras} from "@/api/device/calculate";
-import { ALERT_EVENT_OPTIONS, formatAlertEvent, getAlertEventTagColor, getAlertMatchedPersonName, getAlertSourceEvent } from "@/views/alert/alertDisplay";
+import { ALERT_EVENT_OPTIONS, formatAlertEvent, getAlertEventTagColor, getAlertMatchedPersonName, getAlertSourceEvent, formatLlmJudgeStatus, getLlmJudgeStatusColor, isLlmSampled } from "@/views/alert/alertDisplay";
 
 /** 告警列表摄像头筛选：与算法任务里摄像头下拉一致的模糊匹配（按名称） */
 export const alertCameraSelectProps = {
@@ -119,6 +119,19 @@ export function getBasicColumns(): BasicColumn[] {
       },
     },
     {
+      title: 'AI研判',
+      dataIndex: 'llm_judge_status',
+      width: 110,
+      customRender: ({ record }) => {
+        const status: string | undefined = record?.llm_judge_status;
+        // 未命中抽检的告警不显示 AI 标签，仅被抽检的告警展示
+        if (!isLlmSampled(status)) {
+          return '-';
+        }
+        return <Tag color={getLlmJudgeStatusColor(status)}>{formatLlmJudgeStatus(status)}</Tag>;
+      },
+    },
+    {
       width: 120,
       title: '操作',
       dataIndex: 'action',
@@ -171,15 +184,21 @@ export function getFormConfig(): Partial<FormProps> {
         colProps: {span: 8},
       },
       {
-        field: 'business_tags',
-        label: '业务标签',
+        field: 'llm_judge_status',
+        label: 'AI抽检',
         component: 'Select',
-        helpMessage: '筛选告警携带的业务标签（库匹配命中后会写入）',
+        helpMessage: '已抽检含确认成立/误报/研判中/研判失败全部被 AI 抽检的告警，未抽检为未命中抽检',
         componentProps: {
-          mode: 'tags',
-          placeholder: '输入标签后回车，支持多个',
-          tokenSeparators: [','],
-          open: false,
+          options: [
+            { label: '全部', value: '' },
+            { label: '未抽检', value: 'not_sampled' },
+            { label: '已抽检', value: 'confirmed,rejected,pending,error' },
+            { label: '确认成立', value: 'confirmed' },
+            { label: '误报', value: 'rejected' },
+            { label: '研判中', value: 'pending' },
+            { label: '研判失败', value: 'error' },
+          ],
+          placeholder: '全部',
         },
         colProps: {span: 8},
       },
@@ -229,7 +248,7 @@ export function getAlertMapFilterFormConfig(): Partial<FormProps> {
     'event',
     'device_id',
     'task_name',
-    'business_tags',
+    'llm_judge_status',
   ];
   const schemas = orderedFields
     .map((field) => schemaMap.get(field))

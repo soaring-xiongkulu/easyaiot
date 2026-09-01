@@ -58,6 +58,9 @@ export function normalizeAlertQueryParams(
   if (p.end_datetime === null || p.end_datetime === undefined || p.end_datetime === '') {
     delete p.end_datetime;
   }
+  if (p.llm_judge_status === null || p.llm_judge_status === undefined || p.llm_judge_status === '') {
+    delete p.llm_judge_status;
+  }
 
   return p;
 }
@@ -77,6 +80,9 @@ export function snapshotAlertFilters(processed: Record<string, unknown>): Record
   if (processed.business_tags) {
     filterParams.business_tags = processed.business_tags;
   }
+  if (processed.llm_judge_status !== undefined && processed.llm_judge_status !== null && processed.llm_judge_status !== '') {
+    filterParams.llm_judge_status = processed.llm_judge_status;
+  }
   return filterParams;
 }
 
@@ -87,7 +93,8 @@ export function hasAlertFilterParams(p: Record<string, unknown>): boolean {
     p.task_name ||
     p.device_id ||
     p.event ||
-    (p.business_tags && String(p.business_tags).trim())
+    (p.business_tags && String(p.business_tags).trim()) ||
+    (p.llm_judge_status && String(p.llm_judge_status).trim())
   );
 }
 

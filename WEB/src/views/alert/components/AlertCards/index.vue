@@ -26,8 +26,18 @@
 
           <template #renderItem="{ item }">
             <ListItem class="alert-item normal">
-              <span class="task-type-tag" :class="getTaskTypeClass(item)">
-                {{ getTaskTypeText(item) }}
+              <span class="corner-tags">
+                <span
+                  v-if="isLlmSampled(item.llm_judge_status)"
+                  class="llm-judge-tag"
+                  :class="`llm-judge-tag--${item.llm_judge_status}`"
+                  title="该告警已被大模型抽检，点击图片可查看研判结论"
+                >
+                  {{ formatLlmJudgeStatus(item.llm_judge_status) }}
+                </span>
+                <span class="task-type-tag" :class="getTaskTypeClass(item)">
+                  {{ getTaskTypeText(item) }}
+                </span>
               </span>
               <div class="alert-info">
                 <div class="title-wrapper">
@@ -104,7 +114,7 @@ import { Icon } from '@/components/Icon';
 import moment from 'moment';
 import ALERT from "@/assets/images/alert/alert.png";
 import { alertCameraSelectProps, alertFilterActionColOptions } from '@/views/alert/Data';
-import { ALERT_EVENT_OPTIONS, formatAlertEvent, getAlertMatchedPersonName, getAlertSourceEvent, normalizeAlertBusinessTagsParam } from '@/views/alert/alertDisplay';
+import { ALERT_EVENT_OPTIONS, formatAlertEvent, getAlertMatchedPersonName, getAlertSourceEvent, normalizeAlertBusinessTagsParam, formatLlmJudgeStatus, isLlmSampled } from '@/views/alert/alertDisplay';
 import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage';
 
 const ListItem = List.Item;
@@ -187,6 +197,13 @@ function processFormData(formData: Record<string, any>): Record<string, any> {
   ) {
     delete processedData.end_datetime;
   }
+  if (
+    processedData.llm_judge_status === null ||
+    processedData.llm_judge_status === undefined ||
+    processedData.llm_judge_status === ''
+  ) {
+    delete processedData.llm_judge_status;
+  }
   return processedData;
 }
 
@@ -203,6 +220,9 @@ function snapshotFilters(processedData: Record<string, any>): Record<string, any
   }
   if (processedData.business_tags) {
     filterParams.business_tags = processedData.business_tags;
+  }
+  if (processedData.llm_judge_status !== undefined && processedData.llm_judge_status !== null && processedData.llm_judge_status !== '') {
+    filterParams.llm_judge_status = processedData.llm_judge_status;
   }
   return filterParams;
 }
@@ -255,14 +275,20 @@ const [registerForm, { validate, setFieldsValue, getFieldsValue }] = useForm({
       colProps: { span: 8 },
     },
     {
-      field: 'business_tags',
-      label: '业务标签',
+      field: 'llm_judge_status',
+      label: 'AI抽检',
       component: 'Select',
       componentProps: {
-        mode: 'tags',
-        placeholder: '输入标签后回车，支持多个',
-        tokenSeparators: [','],
-        open: false,
+        options: [
+          { label: '全部', value: '' },
+          { label: '未抽检', value: 'not_sampled' },
+          { label: '已抽检', value: 'confirmed,rejected,pending,error' },
+          { label: '确认成立', value: 'confirmed' },
+          { label: '误报', value: 'rejected' },
+          { label: '研判中', value: 'pending' },
+          { label: '研判失败', value: 'error' },
+        ],
+        placeholder: '全部',
       },
       colProps: { span: 8 },
     },
@@ -353,7 +379,8 @@ function pageChange(p: number, pz: number) {
     processedData.end_datetime ||
     processedData.task_name ||
     processedData.device_id ||
-    processedData.event
+    processedData.event ||
+    processedData.llm_judge_status
   );
 
   let formParams: Record<string, any> = {};
@@ -378,7 +405,8 @@ function pageSizeChange(_current, size: number) {
     processedData.end_datetime ||
     processedData.task_name ||
     processedData.device_id ||
-    processedData.event
+    processedData.event ||
+    processedData.llm_judge_status
   );
 
   let formParams: Record<string, any> = {};
@@ -574,11 +602,19 @@ function thumbUrl(imageUrl: string | null | undefined): string {
       background-image: url('@/assets/images/product/red-bg.101af5ac.png');
     }
 
-    .task-type-tag {
+    .corner-tags {
       position: absolute;
       top: 0;
       right: 0;
       z-index: 2;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .task-type-tag {
+      position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -586,8 +622,7 @@ function thumbUrl(imageUrl: string | null | undefined): string {
       border-radius: 0 11px 0 8px;
       font-size: 12px;
       font-weight: 500;
-      line-height: 1.2;
-      white-space: nowrap;
+      line-height: 1.2;      white-space: nowrap;
       transition: all 0.3s ease;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
@@ -608,12 +643,68 @@ function thumbUrl(imageUrl: string | null | undefined): string {
         background: #10B981;
         color: #ffffff;
         border: 1px solid #059669;
-        border-top: none;
-        border-right: none;
 
         &:hover {
           box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
           background: #059669;
+        }
+      }
+    }
+
+    .llm-judge-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 8px 0 0 8px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.2;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+      &--confirmed {
+        background: #10B981;
+        color: #ffffff;
+        border: 1px solid #059669;
+
+        &:hover {
+          box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+          background: #059669;
+        }
+      }
+
+      &--rejected {
+        background: #F59E0B;
+        color: #ffffff;
+        border: 1px solid #D97706;
+
+        &:hover {
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+          background: #D97706;
+        }
+      }
+
+      &--pending {
+        background: #8B5CF6;
+        color: #ffffff;
+        border: 1px solid #7C3AED;
+
+        &:hover {
+          box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+          background: #7C3AED;
+        }
+      }
+
+      &--error {
+        background: #EF4444;
+        color: #ffffff;
+        border: 1px solid #DC2626;
+
+        &:hover {
+          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+          background: #DC2626;
         }
       }
     }

@@ -324,3 +324,54 @@ export function getAlertMatchedPlateNo(record: {
   }
   return undefined;
 }
+
+/**
+ * 大模型（LLM）研判状态展示映射（与 iot-sink 回写枚举一致）：
+ * not_sampled 未抽检 / pending 研判中 / confirmed 已抽检·确认成立 /
+ * rejected 已抽检·判定误报 / error 研判失败 / rate_limited 限流跳过 / skipped 已跳过
+ *
+ * 标签展示口径：未命中抽检（not_sampled/rate_limited/skipped）不显示 AI 标签，
+ * 仅被抽检的告警（已进大模型队列，含排队中）显示标签。
+ */
+const LLM_JUDGE_LABEL_MAP: Record<string, string> = {
+  not_sampled: '未抽检',
+  pending: '研判中',
+  confirmed: '确认成立',
+  rejected: '误报',
+  error: '研判失败',
+  rate_limited: '限流跳过',
+  skipped: '已跳过',
+};
+
+const LLM_JUDGE_COLOR_MAP: Record<string, string> = {
+  not_sampled: 'default',
+  pending: 'processing',
+  confirmed: 'success',
+  rejected: 'warning',
+  error: 'error',
+  rate_limited: 'default',
+  skipped: 'default',
+};
+
+/** 已进入大模型研判队列的状态（被抽检，含排队中与失败） */
+export const LLM_SAMPLED_STATUSES = ['confirmed', 'rejected', 'pending', 'error'] as const;
+
+/** 告警是否已被 AI 抽检（决定标签显示与弹框分流） */
+export function isLlmSampled(status?: string | null): boolean {
+  return Boolean(status) && (LLM_SAMPLED_STATUSES as readonly string[]).includes(String(status));
+}
+
+/** 告警是否进入大模型后处理链路（有状态即已参与，含未抽检与排队中） */
+export function hasLlmJudge(record: { llm_judge_status?: string | null }): boolean {
+  return Boolean(record.llm_judge_status);
+}
+
+export function formatLlmJudgeStatus(status?: string | null): string {
+  if (!status) return '';
+  return LLM_JUDGE_LABEL_MAP[status] || status;
+}
+
+export function getLlmJudgeStatusColor(status?: string | null): string {
+  if (!status) return 'default';
+  return LLM_JUDGE_COLOR_MAP[status] || 'default';
+}
