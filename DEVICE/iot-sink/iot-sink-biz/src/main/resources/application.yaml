@@ -212,6 +212,17 @@ basiclab:
   post-process:
     worker-http-port: 19680
     local-worker-url: http://127.0.0.1:19680
+  llm-judge:
+    # 大模型（LLM）后处理全局总开关（false 时规则匹配直接跳过，告警链路与旧版完全一致）
+    enabled: true
+    # AI 模块内部研判接口地址
+    ai-internal-base-url: http://localhost:8000
+    # 内部接口鉴权 token（与 AI 模块 AI_INTERNAL_TOKEN 一致；为空则不校验）
+    ai-internal-token: ${AI_INTERNAL_TOKEN:}
+    # 单次研判调用总超时（毫秒），视频理解可能较慢
+    judge-timeout-ms: 120000
+    # 事件规则缓存 TTL（秒），规则变更后最多延迟该时长生效
+    rule-cache-ttl-sec: 60
   iot:
     message-bus:
       type: local # 消息总线类型：local、kafka（默认 local）

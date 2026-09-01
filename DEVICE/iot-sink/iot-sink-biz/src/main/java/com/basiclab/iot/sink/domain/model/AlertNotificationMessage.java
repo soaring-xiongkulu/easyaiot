@@ -130,6 +130,14 @@ public class AlertNotificationMessage {
     /** compute_node.id */
     @JsonAlias({"node_id", "nodeId", "compute_node_id"})
     private Long nodeId;
+
+    /**
+     * 二次判断（门控）挂起标记：命中 LLM 门控规则后置 true，
+     * 通知发送前检查并跳过；研判确认后由 LlmJudgeService 补发。
+     * 仅进程内使用，不参与消息序列化。
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Boolean llmJudgePending;
     
     /**
      * 告警信息内部类

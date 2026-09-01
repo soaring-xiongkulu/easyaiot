@@ -68,6 +68,21 @@ public class KafkaConfig {
     @Value("${spring.kafka.iot.listener.concurrency:16}")
     private int listenerConcurrency;
 
+    /**
+     * LLM 研判队列消费并发线程数（独立于告警消费，慢链路隔离）
+     */
+    @Value("${spring.kafka.iot.llm-judge.concurrency:3}")
+    private int llmJudgeConcurrency;
+
+    @Value("${spring.kafka.iot.llm-judge.max-poll-records:50}")
+    private String llmJudgeMaxPollRecords;
+
+    @Value("${spring.kafka.iot.llm-judge.max-poll-interval-ms:300000}")
+    private String llmJudgeMaxPollInterval;
+
+    @Value("${spring.kafka.iot.llm-judge.session-timeout-ms:10000}")
+    private String llmJudgeSessionTimeout;
+
     @Bean
     public Map<String, Object> producerConfigs() {
         Map<String, Object> props = new HashMap<>(16);
@@ -139,6 +154,35 @@ public class KafkaConfig {
         factory.setConsumerFactory(iotConsumerFactory());
         factory.setConcurrency(listenerConcurrency);
         // 设置手动确认模式，支持Acknowledgment参数
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+        return factory;
+    }
+
+    /**
+     * LLM 研判队列消费者配置（独立 group 语义在监听注解处指定；此处仅隔离并发与拉取参数）
+     */
+    @Bean
+    public Map<String, Object> llmJudgeConsumerConfigs() {
+        Map<String, Object> propsMap = consumerConfigs();
+        propsMap.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, llmJudgeMaxPollRecords);
+        propsMap.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, llmJudgeMaxPollInterval);
+        propsMap.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, llmJudgeSessionTimeout);
+        return propsMap;
+    }
+
+    @Bean
+    public ConsumerFactory<String, String> llmJudgeConsumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(llmJudgeConsumerConfigs());
+    }
+
+    /**
+     * LLM 研判队列监听容器工厂（独立并发，慢链路不占用告警消费线程）
+     */
+    @Bean(name = "iotLlmJudgeKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, String> iotLlmJudgeKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(llmJudgeConsumerFactory());
+        factory.setConcurrency(llmJudgeConcurrency);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         return factory;
     }

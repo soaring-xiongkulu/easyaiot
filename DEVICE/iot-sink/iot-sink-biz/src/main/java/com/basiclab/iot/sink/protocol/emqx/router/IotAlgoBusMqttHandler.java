@@ -410,6 +410,12 @@ public class IotAlgoBusMqttHandler {
         if (msg == null || alertId == null) {
             return;
         }
+        // LLM 门控：命中二次判断规则时通知延迟，待研判结论 confirm 后由 LlmJudgeService 补发
+        if (Boolean.TRUE.equals(msg.getLlmJudgePending())) {
+            log.info("[IotAlgoBusMqttHandler] LLM 门控挂起，通知延迟待研判 alertId={} deviceId={}",
+                    alertId, msg.getDeviceId());
+            return;
+        }
         List<Map<String, Object>> channels = msg.getChannels();
         List<Map<String, Object>> notifyUsers = msg.getNotifyUsers();
         Boolean shouldNotify = msg.getShouldNotify();

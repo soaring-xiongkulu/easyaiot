@@ -161,8 +161,13 @@ public class AlertNotificationConsumer {
                         "hasNotificationConfig={}", 
                         message.getDeviceId(), alertIdRef[0], shouldNotify, hasNotificationConfig);
                 
+                // LLM 门控：命中二次判断规则时通知延迟，研判确认后由 LlmJudgeService 补发
+                if (Boolean.TRUE.equals(message.getLlmJudgePending())) {
+                    log.debug("📋 LLM 门控挂起，通知延迟: alertId={}, deviceId={}",
+                            alertIdRef[0], message.getDeviceId());
+                }
                 // 告警未落库（如不在布防时段内）时不发送通知，与布防时段限制保持一致
-                if (shouldNotify && hasNotificationConfig && alertIdRef[0] != null) {
+                else if (shouldNotify && hasNotificationConfig && alertIdRef[0] != null) {
                     // 发送到通知主题供iot-message消费
                     if (iotKafkaTemplate != null) {
                         try {

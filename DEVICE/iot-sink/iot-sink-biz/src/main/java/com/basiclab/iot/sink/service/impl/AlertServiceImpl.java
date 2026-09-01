@@ -81,6 +81,9 @@ public class AlertServiceImpl implements AlertService {
     @Autowired(required = false)
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired(required = false)
+    private com.basiclab.iot.sink.service.LlmJudgeEnricher llmJudgeEnricher;
+
     /**
      * 告警图片根前缀（默认 /app）。算法若写相对路径或路径被截断时，可辅助拼接可读路径。
      */
@@ -137,6 +140,7 @@ public class AlertServiceImpl implements AlertService {
             // 如果没有图片路径，跳过图片上传
             if (imagePath == null || imagePath.isEmpty()) {
                 log.debug("告警 {} 没有图片路径，跳过图片上传", alertId);
+                maybeEnqueueLlmJudge(notificationMessage, alertId);
                 return alertId;
             }
 
@@ -166,6 +170,7 @@ public class AlertServiceImpl implements AlertService {
             }
 
             log.info("告警处理完成: alertId={}", alertId);
+            maybeEnqueueLlmJudge(notificationMessage, alertId);
             return alertId;
 
         } catch (Exception e) {
@@ -264,6 +269,7 @@ public class AlertServiceImpl implements AlertService {
             // 如果没有图片路径，跳过图片上传
             if (imagePath == null || imagePath.isEmpty()) {
                 log.debug("抓拍算法任务告警 {} 没有图片路径，跳过图片上传", alertId);
+                maybeEnqueueLlmJudge(notificationMessage, alertId);
                 return alertId;
             }
 
@@ -289,6 +295,7 @@ public class AlertServiceImpl implements AlertService {
             }
 
             log.info("抓拍算法任务告警处理完成: alertId={}", alertId);
+            maybeEnqueueLlmJudge(notificationMessage, alertId);
             return alertId;
 
         } catch (Exception e) {
@@ -297,6 +304,21 @@ public class AlertServiceImpl implements AlertService {
                     e.getMessage(), e);
             // 不抛出异常，避免影响消息确认
             return null;
+        }
+    }
+
+    /**
+     * LLM 后处理规则匹配与投递（主链路零等待；命中门控规则则置 pending 标记，通知延迟待研判）。
+     */
+    private void maybeEnqueueLlmJudge(AlertNotificationMessage message, Integer alertId) {
+        try {
+            if (llmJudgeEnricher != null && alertId != null
+                    && llmJudgeEnricher.tryEnqueue(message, alertId)) {
+                message.setLlmJudgePending(true);
+            }
+        } catch (Exception e) {
+            // 主链路零影响：异常只记日志
+            log.warn("LLM 后处理匹配异常（忽略）: {}", e.getMessage());
         }
     }
 

@@ -129,6 +129,15 @@ spring:
       result-topic: iot-post-process-result
       request-group-id: iot-sink-post-process-request
       result-group-id: iot-sink-post-process-result
+    llm-judge:
+      request-topic: iot-alert-llm-judge
+      group-id: iot-sink-llm-judge
+    iot:
+      llm-judge:
+        # LLM 研判队列消费并发（独立于告警消费，慢链路隔离；建议 <= 主题分区数）
+        concurrency: 3
+        max-poll-records: 50
+        max-poll-interval-ms: 300000
 
 --- #################### 定时任务相关配置 ####################
 
