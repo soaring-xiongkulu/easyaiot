@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'vue'
 import { computed, onMounted, ref, unref, watch } from 'vue'
 import type { RouteLocationNormalized } from 'vue-router'
+import { Tooltip } from 'ant-design-vue'
 import { onClickOutside } from '@vueuse/core'
 import { useDragLine } from './useLayoutSider'
 import type { Menu } from '@/router/types'
@@ -105,10 +106,10 @@ const getDensityClass = computed(() => {
 const getModuleIconSize = computed(() => {
   const density = unref(getMixSidebarDensity)
   if (density === 'compact')
-    return 26
+    return 17
   if (density === 'comfortable')
-    return 30
-  return 28
+    return 20
+  return 19
 })
 
 onMounted(async () => {
@@ -266,16 +267,18 @@ onClickOutside(wrap, () => {
           ]"
         >
           <SimpleMenuTag :item="item" collapse-parent dot />
-          <img
-            v-if="item.img"
-            :src="item.img"
-            :class="[`${prefixCls}-module__icon`, 'w-16px h-16px']"
-          >
-          <Icon
-            v-else
-            :class="`${prefixCls}-module__icon`" :size="getModuleIconSize"
-            :icon="item.icon || (item.meta && item.meta.icon)"
-          />
+          <Tooltip placement="right" :title="t(item.name)">
+            <img
+              v-if="item.img"
+              :src="item.img"
+              :class="[`${prefixCls}-module__icon`, 'w-16px h-16px']"
+            >
+            <Icon
+              v-else
+              :class="`${prefixCls}-module__icon`" :size="getModuleIconSize"
+              :icon="item.icon || (item.meta && item.meta.icon)"
+            />
+          </Tooltip>
           <p :class="`${prefixCls}-module__name`">
             {{ t(item.name) }}
           </p>
@@ -308,44 +311,44 @@ onClickOutside(wrap, () => {
 
 <style lang="less">
 @prefix-cls: ~'@{namespace}-layout-mix-sider';
-@width: 80px;
+@width: 56px;
 
 .@{prefix-cls} {
-  --mix-module-item-padding-min: 9px;
-  --mix-module-item-padding-vh: 1.2vh;
-  --mix-module-item-padding-max: 14px;
-  --mix-module-icon-gap-min: 5px;
-  --mix-module-icon-gap-vh: 0.7vh;
-  --mix-module-icon-gap-max: 8px;
-  --mix-module-icon-font-min: 26px;
-  --mix-module-icon-font-vh: 2.2vh;
-  --mix-module-icon-font-max: 30px;
-  --mix-module-name-font-size: 13px;
+  --mix-module-item-padding-min: 6px;
+  --mix-module-item-padding-vh: 0.9vh;
+  --mix-module-item-padding-max: 10px;
+  --mix-module-icon-gap-min: 3px;
+  --mix-module-icon-gap-vh: 0.5vh;
+  --mix-module-icon-gap-max: 5px;
+  --mix-module-icon-font-min: 18px;
+  --mix-module-icon-font-vh: 1.7vh;
+  --mix-module-icon-font-max: 21px;
+  --mix-module-name-font-size: 12px;
   position: fixed;
   &--density-compact {
-    --mix-module-item-padding-min: 7px;
-    --mix-module-item-padding-vh: 1vh;
-    --mix-module-item-padding-max: 12px;
-    --mix-module-icon-gap-min: 4px;
-    --mix-module-icon-gap-vh: 0.6vh;
-    --mix-module-icon-gap-max: 6px;
-    --mix-module-icon-font-min: 24px;
-    --mix-module-icon-font-vh: 2vh;
-    --mix-module-icon-font-max: 28px;
-    --mix-module-name-font-size: 12px;
+    --mix-module-item-padding-min: 5px;
+    --mix-module-item-padding-vh: 0.7vh;
+    --mix-module-item-padding-max: 8px;
+    --mix-module-icon-gap-min: 2px;
+    --mix-module-icon-gap-vh: 0.4vh;
+    --mix-module-icon-gap-max: 4px;
+    --mix-module-icon-font-min: 16px;
+    --mix-module-icon-font-vh: 1.5vh;
+    --mix-module-icon-font-max: 18px;
+    --mix-module-name-font-size: 11px;
   }
 
   &--density-comfortable {
-    --mix-module-item-padding-min: 10px;
-    --mix-module-item-padding-vh: 1.3vh;
-    --mix-module-item-padding-max: 15px;
-    --mix-module-icon-gap-min: 6px;
-    --mix-module-icon-gap-vh: 0.8vh;
-    --mix-module-icon-gap-max: 9px;
-    --mix-module-icon-font-min: 27px;
-    --mix-module-icon-font-vh: 2.3vh;
-    --mix-module-icon-font-max: 31px;
-    --mix-module-name-font-size: 13px;
+    --mix-module-item-padding-min: 7px;
+    --mix-module-item-padding-vh: 1vh;
+    --mix-module-item-padding-max: 11px;
+    --mix-module-icon-gap-min: 3px;
+    --mix-module-icon-gap-vh: 0.55vh;
+    --mix-module-icon-gap-max: 6px;
+    --mix-module-icon-font-min: 19px;
+    --mix-module-icon-font-vh: 1.8vh;
+    --mix-module-icon-font-max: 22px;
+    --mix-module-name-font-size: 12px;
   }
 
   top: 0;
