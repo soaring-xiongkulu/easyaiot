@@ -7,9 +7,11 @@ services:
     container_name: web-service
     user: root
 
-    # 端口映射：WEB_PORT → 容器 HTTP 80
+    # 端口映射：WEB_PORT → 容器 HTTPS 443
     ports:
-      - "${WEB_PORT:-8888}:80"
+      - "${WEB_PORT:-8888}:443"
+      # 管理端 HTTP 验收入口（避免内网 IP 使用自签名证书时被浏览器拦截）
+      - "${WEB_HTTP_PORT:-8890}:8091"
       # SITE 官网（nginx 内 listen 8090）
       - "${SITE_PORT:-8090}:8090"
 
@@ -17,6 +19,8 @@ services:
     volumes:
       # Nginx配置文件（mini/edge 由 install_linux.sh 写入 NGINX_CONF）
       - ${NGINX_CONF:-./conf/nginx.conf}:/etc/nginx/nginx.conf:ro
+      # TLS 证书（nginx.conf 中 listen 443 ssl 使用）
+      - ./conf/ssl:/etc/nginx/ssl:ro
       # SITE 官网静态产物（可选）：先 pnpm --dir SITE build，再挂载
       # - ${SITE_HTML:-../SITE/dist}:/usr/share/nginx/html/SITE:ro
       # 前端构建产物（pnpm build 后热挂载，无需重建镜像；_app.config.js 文件挂载优先级更高）
