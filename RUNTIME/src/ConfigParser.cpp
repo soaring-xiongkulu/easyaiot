@@ -72,12 +72,12 @@ bool ConfigParser::parseRegion(const std::string& regionJson, std::vector<cv::Po
         Json::Value root;
 
         if (!reader.parse(regionJson, root)) {
-            LOG(ERROR) << "[ERROR] JSON parse failed: " << regionJson;
+            LOG(ERROR) << "[错误] JSON 解析失败: " << regionJson;
             return false;
         }
 
         if (!root.isArray()) {
-            LOG(ERROR) << "[ERROR] Region format error, should be array: " << regionJson;
+            LOG(ERROR) << "[错误] 区域格式错误，应为数组: " << regionJson;
             return false;
         }
 
@@ -112,7 +112,7 @@ bool ConfigParser::parseRegion(const std::string& regionJson, std::vector<cv::Po
         return points.size() >= 3;
 
     } catch (const std::exception& e) {
-        LOG(ERROR) << "[ERROR] Parse region exception: " << e.what();
+        LOG(ERROR) << "[错误] 区域解析异常: " << e.what();
         return false;
     }
 }
@@ -139,7 +139,7 @@ static void parseDevicesJson(const std::string& json, std::vector<DeviceStreamCo
 bool ConfigParser::parse(const std::string& filename, Config& config) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        LOG(ERROR) << "[ERROR] Cannot open config file: " << filename;
+        LOG(ERROR) << "[错误] 无法打开配置文件: " << filename;
         return false;
     }
 
@@ -157,7 +157,7 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         if (line[0] == '[' && line[line.length()-1] == ']') {
             currentSection = line.substr(1, line.length()-2);
             currentSection = trim(currentSection);
-            LOG(INFO) << "[CONFIG] Reading section: [" << currentSection << "]";
+            LOG(INFO) << "[配置] 读取配置节: [" << currentSection << "]";
             continue;
         }
 
@@ -269,8 +269,8 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "alert_class_names") {
                 config.alertClassNames = AlertClassFilter::parseAlertClassNames(value);
                 if (!config.alertClassNames.empty()) {
-                    LOG(INFO) << "[CONFIG] alert_class_names loaded: "
-                              << config.alertClassNames.size() << " labels";
+                    LOG(INFO) << "[配置] 告警类别名单已加载: "
+                              << config.alertClassNames.size() << " 个标签";
                 }
             }
         }
@@ -384,9 +384,9 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             if (parseRegion(value, points)) {
                 std::string regionName = key.empty() ? "default" : key;
                 config.regions[regionName].push_back(points);
-                LOG(INFO) << "  [OK] Alarm region '" << regionName << "' loaded: " << points.size() << " points";
+                LOG(INFO) << "  [成功] 告警区域 '" << regionName << "' 已加载: " << points.size() << " 个坐标点";
             } else {
-                LOG(WARNING) << "  [WARNING] Alarm region '" << key << "' parse failed";
+                LOG(WARNING) << "  [警告] 告警区域 '" << key << "' 解析失败";
             }
         }
     }
@@ -411,15 +411,15 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
     const bool isForward = (tt == "forward");
     const bool needsPersistentRtsp = (tt == "realtime" || tt == "forward" || tt.empty());
     if (needsPersistentRtsp && config.rtspUrl.empty()) {
-        LOG(ERROR) << "[ERROR] Missing required config: rtsp_url";
+        LOG(ERROR) << "[错误] 缺少必要配置项: rtsp_url";
         return false;
     }
     if (isForward && config.rtmpUrl.empty()) {
-        LOG(ERROR) << "[ERROR] forward mode requires rtmp_url";
+        LOG(ERROR) << "[错误] 转发模式需要 rtmp_url";
         return false;
     }
     if ((tt == "snap" || tt == "patrol") && config.devices.empty()) {
-        LOG(ERROR) << "[ERROR] snap/patrol requires at least one device stream";
+        LOG(ERROR) << "[错误] 抓拍/巡检模式至少需要一个设备视频流";
         return false;
     }
 
@@ -428,11 +428,11 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         config.enableAlarm = false;
         config.enableDrawRtmp = false;
         config.enableRtmp = true;
-        LOG(INFO) << "[CONFIG] forward mode: AI/alarm disabled, RTMP copy relay enabled";
+        LOG(INFO) << "[配置] 转发模式：AI/告警已禁用，RTMP 复制转发已启用";
     }
 
     if (config.enableAI && config.modelPaths.empty()) {
-        LOG(ERROR) << "[ERROR] AI inference enabled but model path not configured";
+        LOG(ERROR) << "[错误] 已启用 AI 推理但未配置模型路径";
         return false;
     }
 
@@ -471,11 +471,11 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
 
     const bool mqttBus = AlgoMqttBus::busEnabled(config);
     if (config.enableAlarm && !mqttBus) {
-        LOG(WARNING) << "[CONFIG] Alarm enabled but ALGO_BUS_TRANSPORT disabled "
-                     << "(set MQTT_BROKER_URLS + leave ALGO_BUS_TRANSPORT=mqtt)";
+        LOG(WARNING) << "[配置] 告警已启用但 ALGO_BUS_TRANSPORT 未配置 "
+                     << "（请设置 MQTT_BROKER_URLS 并保留 ALGO_BUS_TRANSPORT=mqtt）";
     }
     if (config.enableAlarm && config.mqttBrokerUrls.empty()) {
-        LOG(WARNING) << "[CONFIG] Alarm enabled but mqtt_broker_urls / MQTT_BROKER_URLS empty";
+        LOG(WARNING) << "[配置] 告警已启用但 mqtt_broker_urls / MQTT_BROKER_URLS 为空";
     }
 
     if (config.alertImageDir.empty() && !config.logPath.empty()) {
@@ -558,7 +558,7 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         config.preferHwaccel = false;
     }
 
-    LOG(INFO) << "[CONFIG] AI prefer_gpu=" << (config.preferGpu ? "true" : "false")
+    LOG(INFO) << "[配置] AI 推理参数: prefer_gpu=" << (config.preferGpu ? "true" : "false")
               << " force_cpu=" << (config.forceCpu ? "true" : "false")
               << " gpu_device_id=" << config.gpuDeviceId
               << " prefer_hwaccel=" << (config.preferHwaccel ? "true" : "false")

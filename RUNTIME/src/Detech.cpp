@@ -135,7 +135,7 @@ std::string resolveNodeId(const Config& config) {
 }  // namespace
 
 Detech::Detech(Config &config): _config(config) {
-    LOG(INFO) << "[INIT] Config initialization completed";
+    LOG(INFO) << "[初始化] 配置初始化完成";
 }
 
 std::string Detech::_normalizedTaskType() const {
@@ -146,7 +146,7 @@ std::string Detech::_normalizedTaskType() const {
 }
 
 Detech::~Detech() {
-    LOG(INFO) << "[CLEANUP] Detech destructor called, cleaning up resources...";
+    LOG(INFO) << "[清理] Detech 析构函数被调用，正在释放资源...";
     stop();
 
     if (_workerThread.joinable()) {
@@ -191,40 +191,40 @@ Detech::~Detech() {
         yolo_thread_pool = nullptr;
     }
     runtime::releaseHwDecodeState(&_hwDecodeState);
-    LOG(INFO) << "[CLEANUP] Detech cleanup completed successfully";
+    LOG(INFO) << "[清理] Detech 资源清理完成";
 }
 
 int Detech::start() {
     _isRun = true;
     const std::string mode = _normalizedTaskType();
     const bool isForward = (mode == "forward");
-    LOG(INFO) << "[INIT] task_type=" << mode;
+    LOG(INFO) << "[初始化] task_type=" << mode;
 
     if (!isForward && !_init_yolo_detector()) {
-        LOG(ERROR) << "[INIT] YOLO detector initialization failed!";
+        LOG(ERROR) << "[初始化] YOLO 检测器初始化失败！";
         return -1;
     }
 
     // realtime needs FFmpeg decode pipeline; forward uses copy relay
     if (mode == "realtime") {
         if (!_init_media_player()) {
-            LOG(ERROR) << "[INIT] Media player initialization failed!";
+            LOG(ERROR) << "[初始化] 媒体播放器初始化失败！";
             return -2;
         }
     } else if (isForward) {
         if (_config.rtspUrl.empty()) {
-            LOG(ERROR) << "[INIT] forward mode requires rtsp_url";
+            LOG(ERROR) << "[初始化] 转发模式需要 rtsp_url";
             return -2;
         }
         if (_config.rtmpUrl.empty()) {
-            LOG(ERROR) << "[INIT] forward mode requires rtmp_url";
+            LOG(ERROR) << "[初始化] 转发模式需要 rtmp_url";
             return -2;
         }
-        LOG(INFO) << "[INIT] forward-only relay (no AI/decode/encode)";
+        LOG(INFO) << "[初始化] 纯转发中继（无 AI/解码/编码）";
     }
 
     if (!_init_http_client()) {
-        LOG(ERROR) << "[INIT] HTTP client initialization failed!";
+        LOG(ERROR) << "[初始化] HTTP 客户端初始化失败！";
         return -3;
     }
     if (!isForward && !_init_media_alarmer()) {
@@ -246,24 +246,24 @@ int Detech::start() {
     _startHeartbeatThread();
 
     if (isForward) {
-        LOG(INFO) << "[VIDEO] Forward-only copy relay mode";
+        LOG(INFO) << "[视频] 纯转发复制中继模式";
         _streamingEnabled.store(true);
         _workerThread = std::thread([this]() { _run_forward_loop(); });
     } else if (mode == "snap") {
-        LOG(INFO) << "[VIDEO] Snap scheduler mode";
+        LOG(INFO) << "[视频] 抓拍调度模式";
         _workerThread = std::thread([this]() { _run_snap_loop(); });
     } else if (mode == "patrol") {
-        LOG(INFO) << "[VIDEO] Patrol scheduler mode";
+        LOG(INFO) << "[视频] 巡检调度模式";
         _workerThread = std::thread([this]() { _run_patrol_loop(); });
     } else if (_config.headless) {
-        LOG(INFO) << "[VIDEO] Headless realtime pipeline";
+        LOG(INFO) << "[视频] 无界面实时流水线";
         _workerThread = std::thread([this]() { _run_pipeline_loop(); });
     } else {
-        LOG(WARNING) << "[VIDEO] Display mode not supported in production; forcing headless pipeline";
+        LOG(WARNING) << "[视频] 生产环境不支持显示模式，强制使用无界面流水线";
         _workerThread = std::thread([this]() { _run_pipeline_loop(); });
     }
 
-    LOG(INFO) << "[OK] RUNTIME started (non-blocking)";
+    LOG(INFO) << "[成功] RUNTIME 已启动（非阻塞）";
     return 0;
 }
 
@@ -302,7 +302,7 @@ void Detech::_run_forward_loop() {
     _streamForwarder->start();
     _streamForwarder->join();
     _streamForwarder.reset();
-    LOG(INFO) << "[FORWARD] Relay loop exited";
+    LOG(INFO) << "[转发] 中继循环已退出";
 }
 
 void Detech::_run_pipeline_loop() {
@@ -336,7 +336,7 @@ void Detech::_run_pipeline_loop() {
     }
     // Finite file/VOD exhausted: exit process (Manage waits on s_exit)
     if (_pipeline && _pipeline->endedByEof()) {
-        LOG(INFO) << "[VIDEO] Finite media EOF — requesting process shutdown";
+        LOG(INFO) << "[视频] 有限时长媒体已到结尾 — 请求进程退出";
         _isRun = false;
         s_exit.store(1, std::memory_order_release);
     }
@@ -392,16 +392,16 @@ bool Detech::startStreaming() {
     
     // 如果已经在推流，直接返回
     if (_streamingEnabled.load()) {
-        LOG(WARNING) << "[STREAMING] Already streaming, ignoring start request";
+        LOG(WARNING) << "[推流] 已在推流，忽略启动请求";
         return true;
     }
     
-    LOG(INFO) << "[STREAMING] Starting RTMP streaming...";
+    LOG(INFO) << "[推流] 正在启动 RTMP 推流...";
     
     // 如果RTMP编码器未初始化，需要先初始化
     if (!_rtmpEncoder) {
         if (_config.rtmpUrl.empty()) {
-            LOG(ERROR) << "[STREAMING] Cannot start streaming: RTMP URL not configured";
+            LOG(ERROR) << "[推流] 无法启动推流：未配置 RTMP 地址";
             return false;
         }
         
@@ -409,21 +409,21 @@ bool Detech::startStreaming() {
         _rtmpEncoder = new RTMPEncoder();
         if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
                                 makeRtmpOpts(_config))) {
-            LOG(ERROR) << "[STREAMING] Failed to initialize RTMP encoder";
+            LOG(ERROR) << "[推流] RTMP 编码器初始化失败";
             delete _rtmpEncoder;
             _rtmpEncoder = nullptr;
             return false;
         }
         
-        LOG(INFO) << "[STREAMING] RTMP encoder initialized successfully encode_ep="
+        LOG(INFO) << "[推流] RTMP 编码器初始化成功 encode_ep="
                   << _rtmpEncoder->encodeEp();
     }
     
     // 启用推流
     _streamingEnabled.store(true);
-    LOG(INFO) << "[STREAMING] ✅ RTMP streaming started successfully";
-    LOG(INFO) << "[STREAMING]   → URL: " << _config.rtmpUrl;
-    LOG(INFO) << "[STREAMING]   → Resolution: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
+    LOG(INFO) << "[推流] ✅ RTMP 推流启动成功";
+    LOG(INFO) << "[推流]   → 地址: " << _config.rtmpUrl;
+    LOG(INFO) << "[推流]   → 分辨率: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
     
     return true;
 }
@@ -434,25 +434,25 @@ bool Detech::stopStreaming() {
     
     // 如果已经停止，直接返回
     if (!_streamingEnabled.load()) {
-        LOG(WARNING) << "[STREAMING] Already stopped, ignoring stop request";
+        LOG(WARNING) << "[推流] 已停止推流，忽略停止请求";
         return true;
     }
     
-    LOG(INFO) << "[STREAMING] Stopping RTMP streaming...";
+    LOG(INFO) << "[推流] 正在停止 RTMP 推流...";
     
     // 禁用推流标志
     _streamingEnabled.store(false);
     
     // 释放RTMP编码器资源（节省内存）
     if (_rtmpEncoder) {
-        LOG(INFO) << "[STREAMING] Releasing RTMP encoder to free memory...";
+        LOG(INFO) << "[推流] 正在释放 RTMP 编码器以节省内存...";
         _rtmpEncoder->release();
         delete _rtmpEncoder;
         _rtmpEncoder = nullptr;
-        LOG(INFO) << "[STREAMING] RTMP encoder released (~111MB memory freed)";
+        LOG(INFO) << "[推流] RTMP 编码器已释放（约释放 111MB 内存）";
     }
     
-    LOG(INFO) << "[STREAMING] ✅ RTMP streaming stopped successfully";
+    LOG(INFO) << "[推流] ✅ RTMP 推流停止成功";
     
     return true;
 }
@@ -468,13 +468,13 @@ bool Detech::isStreaming() const {
 bool Detech::_init_control_server() {
     // 检查控制端口是否配置
     if (_config.controlPort <= 0) {
-        LOG(INFO) << "[CONTROL] Control port not configured, control server disabled";
+        LOG(INFO) << "[控制] 未配置控制端口，控制服务已禁用";
         return true;
     }
     
     _controlPort = _config.controlPort;
-    LOG(INFO) << "[CONTROL] Control server will listen on port " << _controlPort;
-    LOG(INFO) << "[CONTROL] Task ID: " << _config.taskId;
+    LOG(INFO) << "[控制] 控制服务将监听端口 " << _controlPort;
+    LOG(INFO) << "[控制] 任务 ID: " << _config.taskId;
     
     return true;
 }
@@ -485,10 +485,10 @@ void Detech::_startControlServer() {
         return;  // 未配置控制端口
     }
     
-    LOG(INFO) << "[CONTROL] Starting control server thread...";
+    LOG(INFO) << "[控制] 正在启动控制服务线程...";
     _controlServerRunning.store(true);
     _controlServerThread = std::thread(&Detech::_controlServerThreadFunc, this);
-    LOG(INFO) << "[CONTROL] Control server thread started on port " << _controlPort;
+    LOG(INFO) << "[控制] 控制服务线程已在端口 " << _controlPort << " 启动";
 }
 
 // 停止HTTP控制服务器线程
@@ -497,7 +497,7 @@ void Detech::_stopControlServer() {
         return;
     }
 
-    LOG(INFO) << "[CONTROL] Stopping control server...";
+    LOG(INFO) << "[控制] 正在停止控制服务...";
     _controlServerRunning.store(false);
     if (_controlHttpServer) {
         _controlHttpServer->stop();
@@ -507,15 +507,15 @@ void Detech::_stopControlServer() {
         _controlServerThread.join();
     }
     _controlHttpServer = nullptr;
-    LOG(INFO) << "[CONTROL] Control server stopped";
+    LOG(INFO) << "[控制] 控制服务已停止";
 }
 
 // HTTP控制服务器线程主函数
 void Detech::_controlServerThreadFunc() {
     using namespace httplib;
     
-    LOG(INFO) << "[CONTROL-THREAD] Control server thread running (Thread ID: " << std::this_thread::get_id() << ")";
-    LOG(INFO) << "[CONTROL-THREAD] Listening on http://0.0.0.0:" << _controlPort;
+    LOG(INFO) << "[控制线程] 控制服务线程运行中（线程 ID: " << std::this_thread::get_id() << ")";
+    LOG(INFO) << "[控制线程] 正在监听 http://0.0.0.0:" << _controlPort;
     
     try {
         // 创建HTTP服务器
@@ -577,7 +577,7 @@ void Detech::_controlServerThreadFunc() {
         
         // 启动推流接口
         svr.Post("/control/streaming/start", [this](const Request& req, Response& res) {
-            LOG(INFO) << "[CONTROL-THREAD] Received start streaming request";
+            LOG(INFO) << "[控制线程] 收到启动推流请求";
             
             bool success = this->startStreaming();
             
@@ -593,7 +593,7 @@ void Detech::_controlServerThreadFunc() {
         
         // 停止推流接口
         svr.Post("/control/streaming/stop", [this](const Request& req, Response& res) {
-            LOG(INFO) << "[CONTROL-THREAD] Received stop streaming request";
+            LOG(INFO) << "[控制线程] 收到停止推流请求";
             
             bool success = this->stopStreaming();
             
@@ -622,25 +622,25 @@ void Detech::_controlServerThreadFunc() {
         svr.set_read_timeout(5, 0);   // 5秒超时
         svr.set_write_timeout(5, 0);
         
-        LOG(INFO) << "[CONTROL-THREAD] ✅ Control server ready";
-        LOG(INFO) << "[CONTROL-THREAD] Available endpoints:";
-        LOG(INFO) << "[CONTROL-THREAD]   GET  /health - Health check";
-        LOG(INFO) << "[CONTROL-THREAD]   POST /control/streaming/start - Start streaming";
-        LOG(INFO) << "[CONTROL-THREAD]   POST /control/streaming/stop - Stop streaming";
-        LOG(INFO) << "[CONTROL-THREAD]   GET  /control/streaming/status - Get streaming status";
+        LOG(INFO) << "[控制线程] ✅ 控制服务就绪";
+        LOG(INFO) << "[控制线程] 可用接口:";
+        LOG(INFO) << "[控制线程]   GET  /health - 健康检查";
+        LOG(INFO) << "[控制线程]   POST /control/streaming/start - 启动推流";
+        LOG(INFO) << "[控制线程]   POST /control/streaming/stop - 停止推流";
+        LOG(INFO) << "[控制线程]   GET  /control/streaming/status - 查询推流状态";
         
         // 启动服务器（阻塞）
         if (!svr.listen("0.0.0.0", _controlPort)) {
-            LOG(ERROR) << "[CONTROL-THREAD] Failed to start control server on port " << _controlPort;
+            LOG(ERROR) << "[控制线程] 控制服务在端口 " << _controlPort << " 启动失败";
         }
         _controlHttpServer = nullptr;
         
     } catch (const std::exception& e) {
         _controlHttpServer = nullptr;
-        LOG(ERROR) << "[CONTROL-THREAD] Exception in control server: " << e.what();
+        LOG(ERROR) << "[控制线程] 控制服务异常: " << e.what();
     }
     
-    LOG(INFO) << "[CONTROL-THREAD] Control server thread exiting";
+    LOG(INFO) << "[控制线程] 控制服务线程退出";
 }
 
 bool Detech::_init_http_client() {
@@ -668,20 +668,20 @@ bool Detech::_init_http_client() {
         }
     }
 
-    LOG(INFO) << "[INIT] Creating HTTP client for " << host << ":" << port;
+    LOG(INFO) << "[初始化] 正在创建 HTTP 客户端，目标 " << host << ":" << port;
     _httpClient = new httplib::Client(host, port);
     _httpClient->set_connection_timeout(5, 0);
     _httpClient->set_read_timeout(5, 0);
     _httpClient->set_write_timeout(5, 0);
 
-    LOG(INFO) << "[INIT] HTTP client created successfully";
+    LOG(INFO) << "[初始化] HTTP 客户端创建成功";
     return true;
 }
 
 bool Detech::_init_yolo_detector() {
     // Skip YOLO initialization if AI is disabled
     if (!_config.enableAI) {
-        LOG(INFO) << "[INIT] AI inference disabled, skipping YOLO initialization";
+        LOG(INFO) << "[初始化] AI 推理已禁用，跳过 YOLO 初始化";
         return true;
     }
     
@@ -689,7 +689,7 @@ bool Detech::_init_yolo_detector() {
         yolo_thread_pool = new YoloThreadPool();
 
         if (_config.modelPaths.empty()) {
-            LOG(ERROR) << "[ERROR] No model path configured in config file!";
+            LOG(ERROR) << "[错误] 配置文件中未配置模型路径！";
             return false;
         }
 
@@ -708,11 +708,11 @@ bool Detech::_init_yolo_detector() {
                 spec.businessModelId = businessIdIt->second;
             }
             spec.modelPath = pathIt->second;
-            LOG(INFO) << "[INIT] Model path [" << modelKey << "]: " << spec.modelPath;
+            LOG(INFO) << "[初始化] 模型路径 [" << modelKey << "]: " << spec.modelPath;
 
             auto classIt = _config.modelClasses.find(modelKey);
             if (classIt != _config.modelClasses.end()) {
-                LOG(INFO) << "[INIT] Classes file [" << modelKey << "]: " << classIt->second;
+                LOG(INFO) << "[初始化] 类别文件 [" << modelKey << "]: " << classIt->second;
                 std::ifstream ifs(classIt->second);
                 if (ifs.is_open()) {
                     std::string line;
@@ -723,22 +723,22 @@ bool Detech::_init_yolo_detector() {
                         size_t b = line.find_last_not_of(" \t\r\n");
                         spec.classes.push_back(line.substr(a, b - a + 1));
                     }
-                    LOG(INFO) << "[INIT] Loaded " << spec.classes.size()
-                              << " classes from file [" << modelKey << "]";
+                    LOG(INFO) << "[初始化] 已从文件 [" << modelKey << "] 加载 "
+                              << spec.classes.size() << " 个类别";
                 } else {
-                    LOG(WARNING) << "[INIT] Cannot open classes file, using default COCO names";
+                    LOG(WARNING) << "[初始化] 无法打开类别文件，使用默认 COCO 类别名";
                 }
             }
             modelSpecs.push_back(std::move(spec));
         }
 
         if (modelSpecs.empty()) {
-            LOG(ERROR) << "[ERROR] No usable model path configured in config file!";
+            LOG(ERROR) << "[错误] 配置文件中没有可用的模型路径！";
             return false;
         }
 
-        LOG(INFO) << "[INIT] Loading " << modelSpecs.size() << " model(s), "
-                  << _config.threadNums << " threads each"
+        LOG(INFO) << "[初始化] 正在加载 " << modelSpecs.size() << " 个模型，每模型 "
+                  << _config.threadNums << " 线程"
                   << " prefer_gpu=" << (_config.preferGpu ? "true" : "false")
                   << " force_cpu=" << (_config.forceCpu ? "true" : "false")
                   << " gpu_device_id=" << _config.gpuDeviceId;
@@ -747,10 +747,10 @@ bool Detech::_init_yolo_detector() {
             _config.preferGpu, _config.forceCpu, _config.gpuDeviceId,
             _config.alarmConfidenceThreshold);
         if (ret) {
-            LOG(ERROR) << "[ERROR] YOLO thread pool initialization failed, error code: " << ret;
+            LOG(ERROR) << "[错误] YOLO 线程池初始化失败，错误码: " << ret;
             return false;
         }
-        LOG(INFO) << "[OK] YOLO thread pool initialized infer_ep=" << yolo_thread_pool->inferEp()
+        LOG(INFO) << "[成功] YOLO 线程池初始化完成 infer_ep=" << yolo_thread_pool->inferEp()
                   << " layout=" << yolo_thread_pool->modelLayout()
                   << " models=" << yolo_thread_pool->modelCount();
     }
@@ -758,7 +758,7 @@ bool Detech::_init_yolo_detector() {
 }
 
 bool Detech::_init_media_player() {
-    LOG(INFO) << "[INIT] Initializing media player"
+    LOG(INFO) << "[初始化] 正在初始化媒体播放器"
               << " prefer_hwaccel=" << (_config.preferHwaccel ? "true" : "false")
               << " force_soft_av=" << (_config.forceSoftAv ? "true" : "false")
               << " hwaccel_device_id=" << _config.hwaccelDeviceId;
@@ -781,13 +781,13 @@ bool Detech::_init_media_player() {
     int ret = avformat_open_input(&_ffmpegFormatCtx, openUrl.c_str(), NULL, &fmt_options);
     av_dict_free(&fmt_options);
     if (ret != 0) {
-        LOG(ERROR) << "avformat_open_input error: url=" << _config.rtspUrl.c_str();
+        LOG(ERROR) << "[错误] avformat_open_input 打开输入流失败: url=" << _config.rtspUrl.c_str();
         return false;
     }
 
     if (avformat_find_stream_info(_ffmpegFormatCtx, NULL) < 0)
     {
-        LOG(ERROR) << "avformat_find_stream_info error";
+        LOG(ERROR) << "[错误] avformat_find_stream_info 获取流信息失败";
         return false;
     }
     _videoIndex = av_find_best_stream(_ffmpegFormatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
@@ -798,12 +798,13 @@ bool Detech::_init_media_player() {
                                        _config.forceSoftAv,
                                        _config.hwaccelDeviceId,
                                        &_hwDecodeState)) {
-            LOG(ERROR) << "openVideoDecoder error";
+            LOG(ERROR) << "[错误] 视频解码器打开失败 (openVideoDecoder)";
             return false;
         }
         _ffmpegStream = _ffmpegFormatCtx->streams[_videoIndex];
         if (0 == _ffmpegStream->avg_frame_rate.den) {
-            LOG(ERROR) << "videoIndex=" << _videoIndex << ",videoStream->avg_frame_rate.den = 0";
+            LOG(ERROR) << "[错误] 视频流帧率分母为 0 videoIndex=" << _videoIndex
+                       << ", 回退为 25fps";
             _videoFps = 25;
         }
         else {
@@ -812,8 +813,8 @@ bool Detech::_init_media_player() {
         _videoWidth = _ffmpegCodecCtx->width;
         _videoHeight = _ffmpegCodecCtx->height;
         _videoChannel = 3;
-        LOG(INFO) << "[OK] Media player ready " << _videoWidth << "x" << _videoHeight
-                  << "@" << _videoFps << "fps decode_ep=" << _hwDecodeState.decodeEp;
+        LOG(INFO) << "[成功] 媒体播放器就绪 " << _videoWidth << "x" << _videoHeight
+                  << "@" << _videoFps << "fps 解码后端=" << _hwDecodeState.decodeEp;
     }
     return true;
 }
@@ -821,15 +822,15 @@ bool Detech::_init_media_player() {
 bool Detech::_init_media_pusher() {
     // 检查配置：如果enable_rtmp=true，则默认启用推流
     if (!_config.enableRtmp) {
-        LOG(INFO) << "[INIT] RTMP streaming disabled in config";
-        LOG(INFO) << "[INIT]   → Can be enabled later via API call (on-demand streaming)";
+        LOG(INFO) << "[初始化] 配置中已禁用 RTMP 推流";
+        LOG(INFO) << "[初始化]   → 后续可通过 API 调用按需开启推流";
         _streamingEnabled.store(false);
         return true;
     }
     
     // 检查RTMP URL是否配置
     if (_config.rtmpUrl.empty()) {
-        LOG(WARNING) << "[INIT] RTMP URL not configured, streaming disabled";
+        LOG(WARNING) << "[初始化] 未配置 RTMP 地址，推流已禁用";
         _streamingEnabled.store(false);
         return true;
     }
@@ -837,15 +838,15 @@ bool Detech::_init_media_pusher() {
     // 创建并初始化RTMP编码器
     _rtmpEncoder = new RTMPEncoder();
     
-    LOG(INFO) << "[INIT] Initializing RTMP encoder...";
-    LOG(INFO) << "[INIT] RTMP URL: " << _config.rtmpUrl;
-    LOG(INFO) << "[INIT] Video: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
+    LOG(INFO) << "[初始化] 正在初始化 RTMP 编码器...";
+    LOG(INFO) << "[初始化] RTMP 地址: " << _config.rtmpUrl;
+    LOG(INFO) << "[初始化] 视频: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
     
     if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
                             makeRtmpOpts(_config))) {
-        LOG(WARNING) << "[INIT] ⚠️ RTMP encoder initialization failed (ZLMediaKit not running?)";
-        LOG(WARNING) << "[INIT] ⚠️ Streaming disabled, but program will continue";
-        LOG(WARNING) << "[INIT] ⚠️ You can start streaming later via API when ZLM is ready";
+        LOG(WARNING) << "[初始化] ⚠️ RTMP 编码器初始化失败（ZLMediaKit 未运行？）";
+        LOG(WARNING) << "[初始化] ⚠️ 推流已禁用，但程序将继续运行";
+        LOG(WARNING) << "[初始化] ⚠️ ZLM 就绪后可通过 API 启动推流";
         delete _rtmpEncoder;
         _rtmpEncoder = nullptr;
         _streamingEnabled.store(false);
@@ -854,9 +855,9 @@ bool Detech::_init_media_pusher() {
     
     // 默认启用推流
     _streamingEnabled.store(true);
-    LOG(INFO) << "[OK] RTMP encoder initialized successfully encode_ep="
+    LOG(INFO) << "[成功] RTMP 编码器初始化成功 encode_ep="
               << _rtmpEncoder->encodeEp();
-    LOG(INFO) << "[OK] Streaming enabled by default (can be controlled via API)";
+    LOG(INFO) << "[成功] 推流默认已启用（可通过 API 控制）";
     
     return true;
 }
@@ -871,27 +872,27 @@ uint64_t Detech::_get_curtime_stamp_ms() {
 
 bool Detech::_init_media_alarmer() {
     if (!_config.enableAlarm) {
-        LOG(INFO) << "[INIT] Alarm detection disabled";
+        LOG(INFO) << "[初始化] 告警检测已禁用";
         return true;
     }
 
     if (AlgoMqttBus::busEnabled(_config)) {
         if (_config.mqttBrokerUrls.empty()) {
-            LOG(WARNING) << "[INIT] Alarm enabled but MQTT broker URLs empty "
-                         << "(set mqtt_broker_urls / MQTT_BROKER_URLS)";
+            LOG(WARNING) << "[初始化] 告警已启用但 MQTT broker 地址为空 "
+                         << "（请设置 mqtt_broker_urls / MQTT_BROKER_URLS）";
         }
-        LOG(INFO) << "[INIT] Alarm callback initialized (MQTT → iot-sink)";
-        LOG(INFO) << "  → MQTT brokers: " << _config.mqttBrokerUrls;
+        LOG(INFO) << "[初始化] 告警回调已初始化（MQTT → iot-sink）";
+        LOG(INFO) << "  → MQTT broker 地址: " << _config.mqttBrokerUrls;
     } else if (httpAlertFallbackEnabled(_config)) {
-        LOG(INFO) << "[INIT] Alarm callback initialized (HTTP → VIDEO hook)";
-        LOG(INFO) << "  → hook: " << resolveAlertHookUrl(_config);
+        LOG(INFO) << "[初始化] 告警回调已初始化（HTTP → VIDEO hook）";
+        LOG(INFO) << "  → 回调地址: " << resolveAlertHookUrl(_config);
     } else {
-        LOG(WARNING) << "[INIT] Alarm enabled but no MQTT bus and no alert_hook_url";
+        LOG(WARNING) << "[初始化] 告警已启用但未配置 MQTT 总线和 alert_hook_url";
         return true;
     }
 
-    LOG(INFO) << "  → Confidence threshold: " << _config.alarmConfidenceThreshold;
-    LOG(INFO) << "  → Cooldown time: " << _config.alarmCooldownTime << "s";
+    LOG(INFO) << "  → 置信度阈值: " << _config.alarmConfidenceThreshold;
+    LOG(INFO) << "  → 冷却时间: " << _config.alarmCooldownTime << " 秒";
 
     return true;
 }
@@ -1017,14 +1018,14 @@ bool Detech::_checkAlarmCooldown() {
 // 启动告警发送线程
 void Detech::_startAlarmSenderThread() {
     if (!_config.enableAlarm || !alarmDeliveryEnabled(_config)) {
-        LOG(INFO) << "[ALARM] Alarm disabled or no delivery path (MQTT/HTTP hook), skipping alarm thread";
+        LOG(INFO) << "[告警] 告警已禁用或没有投递通道（MQTT/HTTP 回调），跳过告警线程";
         return;
     }
     
-    LOG(INFO) << "[ALARM] Starting alarm sender thread...";
+    LOG(INFO) << "[告警] 正在启动告警发送线程...";
     _alarmThreadRunning.store(true);
     _alarmSenderThread = std::thread(&Detech::_alarmSenderThreadFunc, this);
-    LOG(INFO) << "[ALARM] Alarm sender thread started successfully";
+    LOG(INFO) << "[告警] 告警发送线程启动成功";
 }
 
 // 停止告警发送线程
@@ -1033,7 +1034,7 @@ void Detech::_stopAlarmSenderThread() {
         return;
     }
     
-    LOG(INFO) << "[ALARM] Stopping alarm sender thread...";
+    LOG(INFO) << "[告警] 正在停止告警发送线程...";
     _alarmThreadRunning.store(false);
     _alarmQueueCV.notify_all();  // 唤醒线程
     
@@ -1049,12 +1050,12 @@ void Detech::_stopAlarmSenderThread() {
         }
     }
     
-    LOG(INFO) << "[ALARM] Alarm sender thread stopped successfully";
+    LOG(INFO) << "[告警] 告警发送线程已停止";
 }
 
 // 告警发送线程主函数
 void Detech::_alarmSenderThreadFunc() {
-    LOG(INFO) << "[ALARM-THREAD] Alarm sender thread running (Thread ID: " << std::this_thread::get_id() << ")";
+    LOG(INFO) << "[告警线程] 告警发送线程运行中（线程 ID: " << std::this_thread::get_id() << ")";
     
     while (_alarmThreadRunning.load()) {
         AlarmData alarmData;
@@ -1079,7 +1080,7 @@ void Detech::_alarmSenderThreadFunc() {
                 alarmData = std::move(_alarmQueue.front());
                 _alarmQueue.pop();
                 hasData = true;
-                LOG(INFO) << "[ALARM-THREAD] Dequeued alarm, remaining in queue: " << _alarmQueue.size();
+                LOG(INFO) << "[告警线程] 已取出告警，队列剩余: " << _alarmQueue.size();
             }
         }
         

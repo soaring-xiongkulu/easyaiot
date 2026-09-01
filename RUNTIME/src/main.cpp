@@ -66,51 +66,51 @@ int main(int argc, char* argv[]) {
     FLAGS_minloglevel = 0;
 
     LOG(INFO) << "============================================================";
-    LOG(INFO) << "[STARTING] RUNTIME module initializing...";
-    LOG(INFO) << "[VERSION] " << RUNTIME_VERSION_STR;
-    LOG(INFO) << "[CONFIG] Config file: " << config_file;
+    LOG(INFO) << "[启动] RUNTIME 模块初始化中...";
+    LOG(INFO) << "[版本] " << RUNTIME_VERSION_STR;
+    LOG(INFO) << "[配置] 配置文件: " << config_file;
     LOG(INFO) << "============================================================";
 
     Config config;
     ConfigParser parser;
 
     if (!parser.parse(config_file, config)) {
-        LOG(ERROR) << "[ERROR] Config file parse failed: " << config_file;
+        LOG(ERROR) << "[错误] 配置文件解析失败: " << config_file;
         google::ShutdownGoogleLogging();
         return -1;
     }
 
-    LOG(INFO) << "[OK] Config file parsed successfully";
-    LOG(INFO) << "  - RTSP URL: " << config.rtspUrl;
-    LOG(INFO) << "  - Task type: " << config.taskType;
-    LOG(INFO) << "  - RTMP URL: " << (config.rtmpUrl.empty() ? "N/A" : config.rtmpUrl);
-    LOG(INFO) << "  - Alert hook: " << (config.enableAlarm ? config.hookHttpUrl : "Disabled");
-    LOG(INFO) << "  - Heartbeat: " << (config.heartbeatUrl.empty() ? "Disabled" : config.heartbeatUrl);
-    LOG(INFO) << "  - Device: " << config.deviceId << " / " << config.deviceName;
-    LOG(INFO) << "  - Headless: " << (config.headless ? "true" : "false");
+    LOG(INFO) << "[成功] 配置文件解析成功";
+    LOG(INFO) << "  - RTSP 地址: " << config.rtspUrl;
+    LOG(INFO) << "  - 任务类型: " << config.taskType;
+    LOG(INFO) << "  - RTMP 地址: " << (config.rtmpUrl.empty() ? "无" : config.rtmpUrl);
+    LOG(INFO) << "  - 告警回调: " << (config.enableAlarm ? config.hookHttpUrl : "已禁用");
+    LOG(INFO) << "  - 心跳: " << (config.heartbeatUrl.empty() ? "已禁用" : config.heartbeatUrl);
+    LOG(INFO) << "  - 设备: " << config.deviceId << " / " << config.deviceName;
+    LOG(INFO) << "  - 无界面模式: " << (config.headless ? "开启" : "关闭");
 
     try {
         g_server = new Server(config);
 
-        LOG(INFO) << "[STARTING] Starting RUNTIME service...";
+        LOG(INFO) << "[启动] RUNTIME 服务启动中...";
 
         if (!g_server->start()) {
-            LOG(ERROR) << "[ERROR] RUNTIME service start failed";
+            LOG(ERROR) << "[错误] RUNTIME 服务启动失败";
             delete g_server;
             google::ShutdownGoogleLogging();
             return -1;
         }
 
-        LOG(INFO) << "[OK] RUNTIME service started successfully!";
+        LOG(INFO) << "[成功] RUNTIME 服务启动成功！";
         g_server->waitForShutdown();
 
-        LOG(INFO) << "[SHUTDOWN] Received exit signal, shutting down...";
+        LOG(INFO) << "[关闭] 收到退出信号，正在关闭...";
         g_server->stop();
         delete g_server;
         g_server = nullptr;
-        LOG(INFO) << "[OK] Service shutdown safely";
+        LOG(INFO) << "[成功] 服务已安全关闭";
     } catch (const std::exception& e) {
-        LOG(ERROR) << "[EXCEPTION] " << e.what();
+        LOG(ERROR) << "[异常] " << e.what();
         if (g_server) {
             delete g_server;
             g_server = nullptr;
