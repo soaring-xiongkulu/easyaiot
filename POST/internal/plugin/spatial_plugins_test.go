@@ -189,3 +189,99 @@ func TestHeadcountGate_BelowThreshold(t *testing.T) {
 		t.Fatalf("expected headcount_not_met, got %s", delta.DropReason)
 	}
 }
+
+func TestLineCross_ModelSpecificLineDoesNotConsumeOtherModelState(t *testing.T) {
+	resetTrackState()
+	lines := []config.Region{{
+		ID: 10, RegionName: "模型1警戒线", RegionType: "line", IsEnabled: true, ModelIDs: []int64{1},
+		Points: []config.Point{{X: 0, Y: 0.5}, {X: 1, Y: 0.5}},
+	}}
+	params := map[string]any{"direction": "both"}
+	above := [4]float64{900, 200, 1000, 400}
+	below := [4]float64{900, 600, 1000, 800}
+
+	// 同 track_id 的模型2不能为模型1预热越线状态。
+	for _, bbox := range [][4]float64{above, below} {
+		det := contract.Detection{ModelID: modelID(2), BBox: bbox, TrackID: 9}
+		delta, _ := (LineCross{}).Process(spatialCtx([]contract.Detection{det}, lines, params))
+		if delta.DropReason != "no_line_cross" {
+			t.Fatalf("model2 should not use model1 line: %#v", delta)
+		}
+	}
+
+	first := contract.Detection{ModelID: modelID(1), BBox: above, TrackID: 9}
+	second := contract.Detection{ModelID: modelID(1), BBox: below, TrackID: 9}
+	_, _ = (LineCross{}).Process(spatialCtx([]contract.Detection{first}, lines, params))
+	delta, _ := (LineCross{}).Process(spatialCtx([]contract.Detection{second}, lines, params))
+	if delta.Detections == nil || len(*delta.Detections) != 1 {
+		t.Fatalf("model1 crossing not detected: %#v", delta)
+	}
+}
+
+func TestTrackStateKeySeparatesTaskDeviceModelAndTrack(t *testing.T) {
+	keys := map[string]struct{}{
+		trackStateKey(1, "cam-a", modelID(1), 7): {},
+		trackStateKey(2, "cam-a", modelID(1), 7): {},
+		trackStateKey(1, "cam-b", modelID(1), 7): {},
+		trackStateKey(1, "cam-a", modelID(2), 7): {},
+		trackStateKey(1, "cam-a", modelID(1), 8): {},
+	}
+	if len(keys) != 5 {
+		t.Fatalf("track state key collision: %#v", keys)
+	}
+}
+
+func TestHeadcountGateSameTrackFromDifferentModelsCountsIndependently(t *testing.T) {
+	regions := []config.Region{
+		{ID: 1, RegionName: "模型1区", RegionType: "polygon", IsEnabled: true, ModelIDs: []int64{1},
+			Points: []config.Point{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 1, Y: 1}, {X: 0, Y: 1}}},
+		{ID: 2, RegionName: "模型2区", RegionType: "polygon", IsEnabled: true, ModelIDs: []int64{2},
+			Points: []config.Point{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 1, Y: 1}, {X: 0, Y: 1}}},
+	}
+	dets := []contract.Detection{
+		{ModelID: modelID(1), BBox: [4]float64{100, 100, 200, 200}, TrackID: 5, ClassName: "person"},
+		{ModelID: modelID(2), BBox: [4]float64{100, 100, 200, 200}, TrackID: 5, ClassName: "person"},
+	}
+	delta, _ := (HeadcountGate{}).Process(spatialCtx(dets, regions, map[string]any{
+		"threshold": 2, "operator": "gte",
+	}))
+	if delta.Detections == nil || len(*delta.Detections) != 2 {
+		t.Fatalf("same track from two models was deduplicated: %#v", delta)
+	}
+}
+
+func TestSpatialPluginsSkipMissingTrackID(t *testing.T) {
+	resetTrackState()
+	line := []config.Region{{
+		ID: 1, RegionName: "线", RegionType: "line", IsEnabled: true,
+		Points: []config.Point{{X: 0, Y: 0.5}, {X: 1, Y: 0.5}},
+	}}
+	polygon := []config.Region{{
+		ID: 2, RegionName: "区", RegionType: "polygon", IsEnabled: true,
+		Points: []config.Point{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 1, Y: 1}, {X: 0, Y: 1}},
+	}}
+	det := contract.Detection{ModelID: modelID(1), BBox: [4]float64{100, 100, 200, 200}, TrackID: 0}
+	cases := []struct {
+		name string
+		run  func() pipeline.PluginDelta
+	}{
+		{"line", func() pipeline.PluginDelta {
+			d, _ := (LineCross{}).Process(spatialCtx([]contract.Detection{det}, line, nil))
+			return d
+		}},
+		{"enter_exit", func() pipeline.PluginDelta {
+			d, _ := (RegionEnterExit{}).Process(spatialCtx([]contract.Detection{det}, polygon, nil))
+			return d
+		}},
+		{"dwell", func() pipeline.PluginDelta {
+			d, _ := (DwellTimer{}).Process(spatialCtx([]contract.Detection{det}, polygon, nil))
+			return d
+		}},
+	}
+	for _, tc := range cases {
+		with := tc.run()
+		if with.Decision == nil || *with.Decision != pipeline.DecisionDrop {
+			t.Fatalf("%s should skip track_id=0: %#v", tc.name, with)
+		}
+	}
+}

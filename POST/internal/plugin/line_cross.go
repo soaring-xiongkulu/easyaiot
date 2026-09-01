@@ -14,8 +14,7 @@ func (LineCross) Kinds() []pipeline.PluginKind {
 }
 
 func (LineCross) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
-	lines := activeLineRegions(ctx)
-	if len(lines) == 0 {
+	if len(activeLineRegions(ctx)) == 0 {
 		return pipeline.PluginDelta{
 			EnrichmentPatch: map[string]any{
 				"line_cross": "bypass",
@@ -44,7 +43,11 @@ func (LineCross) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 			continue
 		}
 		pt := detectionPoint(det, samplePoint)
-		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.TrackID)
+		lines := activeLineRegionsForDetection(ctx, det.ModelID)
+		if len(lines) == 0 {
+			continue
+		}
+		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
 		st := globalTrackState.touch(key, now)
 
 		for _, line := range lines {
@@ -102,7 +105,7 @@ func (LineCross) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 
 func appendUniqueDetection(dets []contract.Detection, det contract.Detection) []contract.Detection {
 	for _, d := range dets {
-		if d.TrackID > 0 && d.TrackID == det.TrackID {
+		if d.TrackID > 0 && d.TrackID == det.TrackID && sameModelID(d.ModelID, det.ModelID) {
 			return dets
 		}
 		if d.TrackID == 0 && d.ClassName == det.ClassName && d.BBox == det.BBox {
@@ -110,4 +113,11 @@ func appendUniqueDetection(dets []contract.Detection, det contract.Detection) []
 		}
 	}
 	return append(dets, det)
+}
+
+func sameModelID(a, b *int64) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
 }

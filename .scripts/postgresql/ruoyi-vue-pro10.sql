@@ -17164,6 +17164,11 @@ COPY public.system_dict_data (id, sort, label, value, dict_type, status, color_t
 1534	1	赢单	1	crm_business_end_status_type	0	success			1	2024-04-13 23:26:57	1	2024-04-13 23:26:57	0
 1535	2	输单	2	crm_business_end_status_type	0	primary			1	2024-04-13 23:27:31	1	2024-04-13 23:27:31	0
 1536	3	无效	3	crm_business_end_status_type	0	info			1	2024-04-13 23:27:59	1	2024-04-13 23:27:59	0
+1537	1	中心点	center	ai_region_hit_mode	0	primary		检测框中心点位于区域内	admin	2026-08-31 00:00:00	admin	2026-08-31 00:00:00	0
+1538	2	底边中点	bottom_center	ai_region_hit_mode	0	success		检测框底边中点位于区域内	admin	2026-08-31 00:00:00	admin	2026-08-31 00:00:00	0
+1539	3	任意交集	any_intersection	ai_region_hit_mode	0	warning		检测框与区域存在交集或边界接触	admin	2026-08-31 00:00:00	admin	2026-08-31 00:00:00	0
+1540	4	区域内面积达到阈值	overlap_ratio	ai_region_hit_mode	0	primary		检测框区域内面积比例达到任务阈值	admin	2026-08-31 00:00:00	admin	2026-08-31 00:00:00	0
+1541	5	完全位于区域内	fully_inside	ai_region_hit_mode	0	danger		检测框完全位于区域内	admin	2026-08-31 00:00:00	admin	2026-08-31 00:00:00	0
 \.
 
 
@@ -17255,6 +17260,7 @@ COPY public.system_dict_type (id, name, type, status, remark, creator, create_ti
 615	BPM 监听器值类型	bpm_process_listener_value_type	0		1	2024-03-23 13:00:31	1	2024-03-23 13:00:31	0	1970-01-01 00:00:00
 616	时间间隔	date_interval	0		1	2024-03-29 22:50:09	1	2024-03-29 22:50:09	0	1970-01-01 00:00:00
 619	CRM 商机结束状态类型	crm_business_end_status_type	0		1	2024-04-13 23:23:00	1	2024-04-13 23:23:00	0	1970-01-01 00:00:00
+620	AI 区域命中模式	ai_region_hit_mode	0	算法任务区域事件过滤的可选命中方式	admin	2026-08-31 00:00:00	admin	2026-08-31 00:00:00	0	1970-01-01 00:00:00
 \.
 
 
@@ -28984,14 +28990,14 @@ SELECT pg_catalog.setval('public.system_dept_seq', 114, false);
 -- Name: system_dict_data_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_dict_data_seq', 1537, false);
+SELECT pg_catalog.setval('public.system_dict_data_seq', 1542, false);
 
 
 --
 -- Name: system_dict_type_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.system_dict_type_seq', 620, false);
+SELECT pg_catalog.setval('public.system_dict_type_seq', 621, false);
 
 
 --
@@ -29906,4 +29912,3 @@ ALTER TABLE ONLY public.qrtz_triggers
 --
 
 \unrestrict lHKTRHsiAYh9gijjAFrIL3pbtB0G71ugGq0SDGq6TzddFa2Xib2TZ96hG3qKwvu
-

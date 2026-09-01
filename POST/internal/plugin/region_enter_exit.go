@@ -14,8 +14,7 @@ func (RegionEnterExit) Kinds() []pipeline.PluginKind {
 }
 
 func (RegionEnterExit) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
-	regions := activePolygonRegions(ctx)
-	if len(regions) == 0 {
+	if len(activePolygonRegions(ctx)) == 0 {
 		return pipeline.PluginDelta{
 			EnrichmentPatch: map[string]any{
 				"region_enter_exit": "bypass",
@@ -43,7 +42,11 @@ func (RegionEnterExit) Process(ctx *pipeline.Context) (pipeline.PluginDelta, err
 		if det.TrackID <= 0 {
 			continue
 		}
-		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.TrackID)
+		regions := activePolygonRegionsForDetection(ctx, det.ModelID)
+		if len(regions) == 0 {
+			continue
+		}
+		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
 		st := globalTrackState.touch(key, now)
 
 		for _, region := range regions {

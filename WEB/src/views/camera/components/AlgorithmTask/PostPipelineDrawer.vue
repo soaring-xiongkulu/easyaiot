@@ -45,7 +45,7 @@
 
     <Spin :spinning="loading">
       <div class="pp-shell">
-        <a-alert
+        <AAlert
           class="pp-intro"
           type="info"
           show-icon
@@ -103,7 +103,7 @@
                 </div>
               </template>
 
-              <a-empty
+              <AEmpty
                 v-if="!groupedAddablePlugins.builtin.length && !groupedAddablePlugins.external.length"
                 :description="usedPluginIds.size ? '所有可选插件已添加' : '无匹配插件'"
                 :image="false"
@@ -117,7 +117,7 @@
               <span class="pp-panel__meta">{{ localSteps.length }} 步</span>
             </div>
             <div class="pp-steps-body" @click="clearSelection">
-              <a-alert
+              <AAlert
                 v-if="middleStepCount === 0"
                 class="pp-steps-tip"
                 type="info"
@@ -217,7 +217,7 @@
                 </div>
               </div>
 
-              <a-alert
+              <AAlert
                 v-if="selectedStep.plugin === 'default_pass'"
                 type="info"
                 show-icon
@@ -225,15 +225,15 @@
                 message="当前面所有步骤均未拦截本次检测时，本步骤会正式产生一条告警记录；任一步骤拦截则不会产生告警。"
               />
 
-              <a-alert
+              <AAlert
                 v-if="selectedStep.plugin === 'region_gate'"
                 type="info"
                 show-icon
                 class="mb-3"
-                message="根据摄像头已配置的检测区域过滤目标，区域外的检测框不会进入后续步骤。"
+                message="根据摄像头已配置的检测区域过滤目标；命中方式和面积阈值请在「区域检测配置」中选中具体区域后设置。"
               />
 
-              <a-alert
+              <AAlert
                 v-if="needsTracking(selectedStep.plugin)"
                 type="warning"
                 show-icon
@@ -241,7 +241,7 @@
                 message="此插件依赖目标追踪，请在任务基础配置中开启「启用目标追踪」。"
               />
 
-              <a-alert
+              <AAlert
                 v-if="selectedStep.plugin === 'user_script' && !postProcessEnabled"
                 type="warning"
                 show-icon
@@ -278,10 +278,7 @@
                       v-if="field.enum"
                       v-model:value="selectedStep.params![field.key]"
                       :disabled="disabled"
-                      :options="field.enum.map((v) => ({
-                        label: enumOptionLabel(field.key, v),
-                        value: v,
-                      }))"
+                      :options="enumOptionsForField(field)"
                       style="width: 100%"
                     />
                     <a-input-number
@@ -294,9 +291,14 @@
                       v-else-if="field.type === 'number'"
                       v-model:value="selectedStep.params![field.key]"
                       :disabled="disabled"
-                      :step="0.1"
+                      :min="field.minimum"
+                      :max="field.maximum"
+                      :step="field.key === 'min_overlap_ratio' ? 0.01 : 0.1"
                       style="width: 100%"
                     />
+                    <div v-if="field.key === 'min_overlap_ratio'" class="pp-field-help">
+                      交集面积 ÷ 检测框面积，0.5 表示至少 50% 位于区域内。
+                    </div>
                     <a-select
                       v-else-if="field.type === 'array'"
                       v-model:value="selectedStep.params![field.key]"
@@ -312,10 +314,10 @@
                     />
                   </div>
                 </template>
-                <a-empty v-else description="此步骤无可配置参数" :image="false" />
+                <AEmpty v-else description="此步骤无可配置参数" :image="false" />
               </div>
             </div>
-            <a-empty v-else description="请选择步骤查看参数" :image="false" class="pp-config-empty" />
+            <AEmpty v-else description="请选择步骤查看参数" :image="false" class="pp-config-empty" />
           </aside>
         </div>
       </div>
@@ -342,7 +344,7 @@ import {
   LockOutlined,
   PlusOutlined,
 } from '@ant-design/icons-vue';
-import { Spin } from 'ant-design-vue';
+import { Alert as AAlert, Empty as AEmpty, Spin } from 'ant-design-vue';
 import { BasicDrawer, useDrawer, useDrawerInner } from '@/components/Drawer';
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
@@ -462,14 +464,33 @@ const groupedAddablePlugins = computed(() => ({
 }));
 
 const paramFields = computed(() => {
+  // region_gate 的命中规则属于具体检测区域，不在算法任务规则链中配置。
+  if (selectedStep.value?.plugin === 'region_gate') return [];
   const schema = selectedMeta.value?.params_schema?.properties || {};
-  return Object.entries(schema).map(([key, val]) => ({
-    key,
-    title: val.title || key,
-    type: val.type,
-    enum: val.enum,
-  }));
+  return Object.entries(schema)
+    .filter(([, val]) => {
+      const condition = val.visible_when;
+      if (!condition || !selectedStep.value) return true;
+      return Object.entries(condition).every(
+        ([key, expected]) => selectedStep.value?.params?.[key] === expected,
+      );
+    })
+    .map(([key, val]) => ({
+      key,
+      title: val.title || key,
+      type: val.type,
+      enum: val.enum,
+      minimum: val.minimum,
+      maximum: val.maximum,
+    }));
 });
+
+function enumOptionsForField(field: { key: string; enum?: string[] }) {
+  return (field.enum || []).map((value) => ({
+    label: enumOptionLabel(field.key, value),
+    value,
+  }));
+}
 
 function kindLabelText(kind: string) {
   return PLUGIN_KIND_LABEL[kind] || kind;
@@ -582,7 +603,8 @@ async function loadCatalog() {
     const data = await getPostPluginCatalog();
     const builtins = data?.builtins || [];
     const externals = data?.externals || [];
-    catalog.value = [...builtins, ...externals].map((p) => {
+    catalog.value = [...builtins, ...externals].map((raw) => {
+      const p = raw as unknown as PostPluginCatalogItem;
       const fallback = BUILTIN_PLUGIN_CATALOG.find((item) => item.id === p.id);
       return {
         ...p,

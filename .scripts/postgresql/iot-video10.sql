@@ -559,7 +559,8 @@ CREATE TABLE public.algorithm_task (
     runtime_bin_path character varying(500),
     runtime_control_port integer,
     device_deployments text,
-    post_pipeline text
+    post_pipeline text,
+    template_revision bigint DEFAULT 1 NOT NULL
 );
 
 
@@ -7190,6 +7191,13 @@ CREATE INDEX idx_alert_time ON public.alert USING btree ("time" DESC);
 --
 
 CREATE INDEX idx_device_detection_region_task_device ON public.device_detection_region USING btree (task_id, device_id);
+
+
+--
+-- Name: idx_device_detection_region_task_device_enabled; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_device_detection_region_task_device_enabled ON public.device_detection_region USING btree (task_id, device_id, sort_order) WHERE (is_enabled = true);
 
 
 --

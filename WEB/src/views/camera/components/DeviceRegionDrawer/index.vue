@@ -35,7 +35,7 @@
             <span>刷新抓图</span>
           </button>
 
-          <a-popconfirm
+          <APopconfirm
             placement="topRight"
             title="确定清空所有检测区域？"
             :disabled="!currentImage || regions.length === 0"
@@ -49,9 +49,9 @@
               <Icon icon="ant-design:clear-outlined" :size="14" />
               <span>清空</span>
             </button>
-          </a-popconfirm>
+          </APopconfirm>
 
-          <a-popconfirm
+          <APopconfirm
             placement="topRight"
             title="确定删除当前选中的区域？"
             :disabled="selectedRegionId === null"
@@ -61,7 +61,7 @@
               <Icon icon="ant-design:delete-outlined" :size="14" />
               <span>删除</span>
             </button>
-          </a-popconfirm>
+          </APopconfirm>
         </div>
       </header>
 
@@ -77,11 +77,11 @@
         />
 
         <div v-if="!currentImage && !imageLoading" class="region-editor__empty">
-          <a-empty description="正在抓取摄像头画面…">
+          <AEmpty description="正在抓取摄像头画面…">
             <template #image>
               <Icon icon="ant-design:camera-outlined" :size="48" color="rgba(0,0,0,0.25)" />
             </template>
-          </a-empty>
+          </AEmpty>
         </div>
 
         <div
@@ -89,7 +89,7 @@
           class="region-editor__loading"
           :class="{ 'region-editor__loading--passive': !!currentImage }"
         >
-          <a-spin :tip="loadingTip" size="large" />
+          <ASpin :tip="loadingTip" size="large" />
         </div>
       </div>
 
@@ -103,7 +103,7 @@
       <div class="region-editor__aside-head">
         <div class="region-editor__aside-head-main">
           <span class="region-editor__aside-title">区域</span>
-          <a-badge
+          <ABadge
             :count="regions.length"
             :number-style="{ backgroundColor: 'rgba(0, 0, 0, 0.25)', fontSize: '11px' }"
             :show-zero="true"
@@ -126,7 +126,7 @@
             <span class="region-item__swatch" />
             <span class="region-item__name">{{ getDisplayRegionName(region, index) }}</span>
             <span class="region-item__type">{{ getRegionTypeName(region.region_type) }}</span>
-            <a-popconfirm
+            <APopconfirm
               title="确定删除该区域？"
               placement="topRight"
               @confirm="deleteRegion(getRegionKey(region, index))"
@@ -134,7 +134,7 @@
               <button type="button" class="region-item__delete" title="删除" @click.stop>
                 <Icon icon="ant-design:delete-outlined" :size="14" />
               </button>
-            </a-popconfirm>
+            </APopconfirm>
           </div>
         </div>
         <div v-else class="region-editor__aside-empty">
@@ -153,6 +153,55 @@
           @blur="handleRegionNameChange"
           @press-enter="handleRegionNameChange"
         />
+        <label class="region-editor__field-label region-editor__field-label--models">适用模型</label>
+        <RadioGroup
+          v-model:value="selectedRegion.model_scope"
+          button-style="solid"
+          size="small"
+          @change="handleModelScopeChange"
+        >
+          <RadioButton value="all">全部模型</RadioButton>
+          <RadioButton value="selected">指定模型</RadioButton>
+        </RadioGroup>
+        <Select
+          v-if="selectedRegion.model_scope === 'selected'"
+          v-model:value="selectedRegion.model_ids"
+          class="region-editor__model-select"
+          mode="multiple"
+          size="small"
+          placeholder="选择适用模型"
+          :options="taskModelOptions"
+          @change="handleRegionModelsChange"
+        />
+
+        <label class="region-editor__field-label region-editor__field-label--hit-mode">
+          事件命中判定
+        </label>
+        <Select
+          v-model:value="selectedRegion.hit_mode"
+          class="region-editor__hit-mode-select"
+          size="small"
+          placeholder="选择命中判定方式"
+          :options="regionHitModeOptions"
+          @change="handleRegionHitModeChange"
+        />
+        <div class="region-editor__field-help">{{ selectedRegionHitModeHelp }}</div>
+
+        <template v-if="selectedRegion.hit_mode === 'overlap_ratio'">
+          <label class="region-editor__field-label region-editor__field-label--overlap">
+            检测框区域内面积比例
+          </label>
+          <AInputNumber
+            v-model:value="selectedRegionOverlapPercent"
+            :min="1"
+            :max="100"
+            :precision="0"
+            addon-after="%"
+            size="small"
+            style="width: 100%"
+            @change="handleRegionOverlapChange"
+          />
+        </template>
       </div>
     </aside>
   </div>
@@ -160,14 +209,22 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { Input } from 'ant-design-vue';
+import {
+  Badge as ABadge,
+  Empty as AEmpty,
+  Input,
+  InputNumber as AInputNumber,
+  Popconfirm as APopconfirm,
+  RadioButton,
+  RadioGroup,
+  Select,
+  Spin as ASpin,
+} from 'ant-design-vue';
 import { Icon } from '@/components/Icon';
 import { useMessage } from '@/hooks/web/useMessage';
 import {
-  listDeviceRegionsSafe,
-  createDeviceRegion,
-  updateDeviceRegion,
-  deleteDeviceRegion,
+  getDeviceRegionsSnapshot,
+  replaceDeviceRegions,
   type DeviceDetectionRegion,
 } from '@/api/device/device_detection_region';
 import type { DeviceInfo } from '@/api/device/camera';
@@ -175,6 +232,18 @@ import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage';
 import { formatApiErrorMessage } from '@/views/camera/utils/apiErrorMessage';
 import { captureSnapshotWithQuality } from '@/views/camera/utils/deviceSnapshotCapture';
 import { isGb28181Device, verifySnapshotQuality } from '@/views/camera/utils/snapshotQuality';
+import {
+  appendDistinctRegionPoint,
+  isRegionRevisionConflict,
+  normalizeRegionForSave,
+  normalizeRegionModelScope,
+  regionSyncSuccessMessage,
+} from './regionEditorContract';
+import { DICT_TYPE, getDictOptions } from '@/utils/dict';
+import {
+  REGION_HIT_MODE_HELP,
+  resolveRegionHitModeOptions,
+} from './regionHitMode';
 defineOptions({ name: 'DeviceRegionDrawer' });
 
 function parseRegionsList(response: unknown): DeviceDetectionRegion[] {
@@ -186,20 +255,9 @@ function parseRegionsList(response: unknown): DeviceDetectionRegion[] {
   return [];
 }
 
-function parseRegionEntity(response: unknown): DeviceDetectionRegion | null {
-  if (!response || typeof response !== 'object') return null;
-  const obj = response as Record<string, unknown>;
-  if (obj.id != null && (obj.region_name != null || obj.points != null)) {
-    return obj as DeviceDetectionRegion;
-  }
-  if (obj.data && typeof obj.data === 'object' && (obj.data as DeviceDetectionRegion).id != null) {
-    return obj.data as DeviceDetectionRegion;
-  }
-  return null;
-}
-
 function markRegionsDirty() {
   regionsDirty.value = true;
+  editVersion++;
 }
 
 function getRegionKey(region: DeviceDetectionRegion, index: number): number | string {
@@ -208,6 +266,7 @@ function getRegionKey(region: DeviceDetectionRegion, index: number): number | st
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let persistQueue: Promise<void> = Promise.resolve();
+let editVersion = 0;
 
 function schedulePersist(delay = 400) {
   if (persistTimer) clearTimeout(persistTimer);
@@ -226,6 +285,7 @@ const props = defineProps<{
   initialImagePath?: string;
   /** 无基准图时自动抓图 */
   autoCapture?: boolean;
+  taskModels?: Array<{ id: number; name: string }>;
 }>();
 
 const emit = defineEmits<{
@@ -283,10 +343,15 @@ const currentImage = ref<HTMLImageElement | null>(null);
 const currentImageId = ref<number | null>(props.initialImageId || null);
 const currentImagePath = ref<string | null>(props.initialImagePath || null);
 const imageLoaded = ref(false);
+const regionRevision = ref(1);
 
 // 区域数据
 const regions = ref<DeviceDetectionRegion[]>((props.initialRegions || []).map(region => ({
   ...region,
+  model_scope: region.model_scope || ((region.model_ids || []).length ? 'selected' : 'all'),
+  model_ids: region.model_ids || [],
+  hit_mode: region.hit_mode || 'center',
+  min_overlap_ratio: region.min_overlap_ratio ?? 0.5,
   color: region.color || generateRandomColor(),
 })));
 const selectedRegionId = ref<number | string | null>(null);
@@ -336,6 +401,54 @@ const selectedRegion = computed(() => {
   if (selectedRegionId.value === null) return null;
   return regions.value.find((r, index) => getRegionKey(r, index) === selectedRegionId.value) || null;
 });
+
+const taskModelOptions = computed(() =>
+  (props.taskModels || []).map((model) => ({ label: model.name, value: model.id })),
+);
+
+const regionHitModeOptions = computed(() => resolveRegionHitModeOptions(
+  getDictOptions(DICT_TYPE.AI_REGION_HIT_MODE, 'string'),
+  selectedRegion.value?.hit_mode,
+));
+const selectedRegionHitModeHelp = computed(() => REGION_HIT_MODE_HELP[
+  selectedRegion.value?.hit_mode || 'center'
+] || '这是存量兼容模式；如需调整，请选择数据字典中启用的新模式。');
+const selectedRegionOverlapPercent = computed<number>({
+  get: () => Math.round((selectedRegion.value?.min_overlap_ratio ?? 0.5) * 100),
+  set: (value) => {
+    if (!selectedRegion.value || !Number.isFinite(value)) return;
+    selectedRegion.value.min_overlap_ratio = Math.min(1, Math.max(0.01, value / 100));
+  },
+});
+
+function handleModelScopeChange() {
+  if (!selectedRegion.value) return;
+  if (selectedRegion.value.model_scope === 'all') {
+    selectedRegion.value.model_ids = [];
+  } else if (!(selectedRegion.value.model_ids || []).length && taskModelOptions.value.length) {
+    selectedRegion.value.model_ids = [taskModelOptions.value[0].value];
+  }
+  markRegionsDirty();
+  schedulePersist();
+}
+
+function handleRegionModelsChange() {
+  markRegionsDirty();
+  schedulePersist();
+}
+
+function handleRegionHitModeChange() {
+  if (!selectedRegion.value) return;
+  selectedRegion.value.min_overlap_ratio ??= 0.5;
+  markRegionsDirty();
+  schedulePersist();
+}
+
+function handleRegionOverlapChange() {
+  if (!selectedRegion.value) return;
+  markRegionsDirty();
+  schedulePersist();
+}
 
 // 获取区域类型名称
 const getRegionTypeName = (type: string) => {
@@ -762,6 +875,7 @@ const drawRegion = (region: DeviceDetectionRegion) => {
 // 绘制当前正在创建的区域
 const drawCurrentRegion = () => {
   if (!ctx.value || !imageDisplaySize.value || currentPoints.value.length === 0) return;
+  const canvasContext = ctx.value;
 
   const { x: imgX, y: imgY, width: imgWidth, height: imgHeight } = imageDisplaySize.value;
 
@@ -810,10 +924,10 @@ const drawCurrentRegion = () => {
         // 绘制点
         currentPoints.value.forEach(point => {
           const canvasPoint = toCanvasCoords(point);
-          ctx.value.fillStyle = redColor;
-          ctx.value.beginPath();
-          ctx.value.arc(canvasPoint.x, canvasPoint.y, 4, 0, Math.PI * 2);
-          ctx.value.fill();
+          canvasContext.fillStyle = redColor;
+          canvasContext.beginPath();
+          canvasContext.arc(canvasPoint.x, canvasPoint.y, 4, 0, Math.PI * 2);
+          canvasContext.fill();
         });
       }
       break;
@@ -890,7 +1004,7 @@ const handleMouseDown = (e: MouseEvent) => {
     isDrawing.value = true;
 
     if (activeTool.value === ToolType.POLYGON && currentPoints.value.length === 0) {
-      currentPoints.value.push({ x, y });
+      appendDistinctRegionPoint(currentPoints.value, { x, y });
     } else if (activeTool.value === ToolType.RECTANGLE) {
       currentPoints.value = [{ x, y }];
     }
@@ -915,8 +1029,8 @@ const handleMouseMove = (e: MouseEvent) => {
   const point = getCanvasNormalizedPoint(e);
   if (!point) return;
 
-  startX.value = point.x;
-  startY.value = point.y;
+  startX.value = Math.min(1, Math.max(0, point.x));
+  startY.value = Math.min(1, Math.max(0, point.y));
 
   if (isDrawing.value) {
     draw();
@@ -958,6 +1072,10 @@ const handleMouseUp = () => {
           opacity: 0.3,
           is_enabled: true,
           sort_order: regions.value.length,
+          model_scope: 'all',
+          model_ids: [],
+          hit_mode: 'center',
+          min_overlap_ratio: 0.5,
         };
 
         regions.value.push(newRegion);
@@ -967,7 +1085,7 @@ const handleMouseUp = () => {
         void persistRegions({ silent: true }).catch(() => {});
       }
     } else if (activeTool.value === ToolType.POLYGON) {
-      currentPoints.value.push({ x: startX.value, y: startY.value });
+      appendDistinctRegionPoint(currentPoints.value, { x: startX.value, y: startY.value });
       return;
     }
 
@@ -984,7 +1102,7 @@ const handleDoubleClick = () => {
 
 // 完成多边形绘制（封闭并结束）
 const finishPolygon = () => {
-  if (activeTool.value === ToolType.POLYGON && currentPoints.value.length >= 2) {
+  if (activeTool.value === ToolType.POLYGON && currentPoints.value.length >= 3) {
     const newRegion: DeviceDetectionRegion = {
       id: -Date.now(),  // 负数=前端未保存的临时区域，区别于数据库正整数 id（删除/保存据此判断）
       device_id: props.deviceId,
@@ -996,6 +1114,10 @@ const finishPolygon = () => {
       opacity: 0.3,
       is_enabled: true,
       sort_order: regions.value.length,
+      model_scope: 'all',
+      model_ids: [],
+      hit_mode: 'center',
+      min_overlap_ratio: 0.5,
     };
 
     regions.value.push(newRegion);
@@ -1015,7 +1137,7 @@ const handleContextMenu = (e: MouseEvent) => {
   e.preventDefault();
   
   // 如果正在绘制多边形，右键点击时自动封闭并结束绘制
-  if (activeTool.value === ToolType.POLYGON && isDrawing.value && currentPoints.value.length >= 2) {
+  if (activeTool.value === ToolType.POLYGON && isDrawing.value && currentPoints.value.length >= 3) {
     finishPolygon();
   }
 };
@@ -1030,7 +1152,6 @@ const selectRegion = (id: number | string) => {
 const deleteRegion = async (id: number | string) => {
   const index = regions.value.findIndex((r, idx) => getRegionKey(r, idx) === id);
   if (index !== -1) {
-    const region = regions.value[index];
     regions.value.splice(index, 1);
     markRegionsDirty();
     if (selectedRegionId.value === id) {
@@ -1061,7 +1182,7 @@ const handleCapture = async (silent = false, skipPreWait = false) => {
     const result = await captureSnapshotWithQuality(props.deviceId, {
       silent,
       skipPreWait,
-      device: props.deviceMeta ?? { id: props.deviceId },
+      device: props.deviceMeta ?? null,
     });
     if (result.ok && result.imageUrl) {
       captureRetryOnLoadFail.value = 0;
@@ -1106,6 +1227,7 @@ async function persistRegions(options: { silent?: boolean } = {}) {
   if (!props.deviceId || !props.taskId) return;
 
   const run = async () => {
+    const requestEditVersion = editVersion;
     if (regions.value.length > 0) {
       const usedNames = new Set<string>();
       for (let i = 0; i < regions.value.length; i++) {
@@ -1129,105 +1251,49 @@ async function persistRegions(options: { silent?: boolean } = {}) {
     try {
       saving.value = true;
 
-      const existingRegions = await listDeviceRegionsSafe(props.deviceId, props.taskId);
-      const existingRegionIds = new Set(existingRegions.map(r => r.id));
-      const currentRegionIds = new Set(
-        regions.value.map(r => r.id).filter(id => id && typeof id === 'number' && id > 0),
+      const payload = regions.value.map((region, index) =>
+        normalizeRegionForSave(region, index, currentImageId.value),
+      ) as DeviceDetectionRegion[];
+      const response = await replaceDeviceRegions(
+        props.deviceId,
+        props.taskId,
+        regionRevision.value,
+        payload,
       );
+      const responseObj = ((((response as any)?.data || response) || {}) as Record<string, any>);
+      regionRevision.value = Number(responseObj.revision || regionRevision.value + 1);
+      const list = parseRegionsList(responseObj.data).map(normalizeRegionModelScope);
+      if (editVersion === requestEditVersion) {
+        regions.value = list.map(region => ({
+          ...region,
+          color: region.color || generateRandomColor(),
+        }));
+        normalizeRegionNames(regions.value);
 
-      for (const region of regions.value) {
-        const regionName =
-          region.region_name && region.region_name.trim() !== ''
-            ? region.region_name.trim()
-            : `区域 ${regions.value.indexOf(region) + 1}`;
-        const isValidDbId = region.id && typeof region.id === 'number' && region.id > 0;
-
-        if (isValidDbId && existingRegionIds.has(region.id)) {
-          const updateResponse = await updateDeviceRegion(region.id, {
-            region_name: regionName,
-            region_type: region.region_type,
-            points: region.points,
-            color: region.color,
-            opacity: region.opacity,
-            is_enabled: region.is_enabled,
-            sort_order: region.sort_order,
-            model_ids: [],
-          });
-          const updated = parseRegionEntity(updateResponse);
-          if (updated) {
-            const index = regions.value.findIndex(r => r.id === region.id);
-            if (index !== -1) {
-              regions.value[index] = {
-                ...regions.value[index],
-                ...updated,
-                color: region.color || updated.color || generateRandomColor(),
-              };
-            }
-          }
-        } else {
-          const createResponse = await createDeviceRegion(props.deviceId, props.taskId, {
-            region_name: regionName,
-            region_type: region.region_type,
-            points: region.points,
-            image_id: currentImageId.value || undefined,
-            color: region.color,
-            opacity: region.opacity,
-            is_enabled: region.is_enabled,
-            sort_order: region.sort_order,
-            model_ids: [],
-          });
-          const created = parseRegionEntity(createResponse);
-          if (created) {
-            const index = regions.value.findIndex(r => r === region);
-            if (index !== -1) {
-              regions.value[index] = {
-                ...created,
-                color: region.color || created.color || generateRandomColor(),
-              };
-              existingRegionIds.add(created.id);
-              currentRegionIds.add(created.id);
-            }
+        if (previousSelectedId != null) {
+          const matched = regions.value.find((r, index) => getRegionKey(r, index) === previousSelectedId);
+          if (matched) {
+            selectedRegionId.value = getRegionKey(matched, regions.value.indexOf(matched));
+          } else if (regions.value.length > 0) {
+            selectedRegionId.value = getRegionKey(regions.value[regions.value.length - 1], regions.value.length - 1);
+          } else {
+            selectedRegionId.value = null;
           }
         }
+
+        regionsDirty.value = false;
+        emit('save', regions.value);
+        draw();
       }
-
-      const regionsToDelete = existingRegions.filter(r => !currentRegionIds.has(r.id));
-      for (const regionToDelete of regionsToDelete) {
-        try {
-          await deleteDeviceRegion(regionToDelete.id);
-        } catch (error) {
-          console.error('删除区域失败:', regionToDelete.id, error);
-        }
-      }
-
-      const list = await listDeviceRegionsSafe(props.deviceId, props.taskId);
-      regions.value = list.map(region => ({
-        ...region,
-        color: region.color || generateRandomColor(),
-      }));
-      normalizeRegionNames(regions.value);
-
-      if (previousSelectedId != null) {
-        const matched = regions.value.find((r, index) => getRegionKey(r, index) === previousSelectedId);
-        if (matched) {
-          selectedRegionId.value = getRegionKey(matched, regions.value.indexOf(matched));
-        } else if (regions.value.length > 0) {
-          selectedRegionId.value = getRegionKey(regions.value[regions.value.length - 1], regions.value.length - 1);
-        } else {
-          selectedRegionId.value = null;
-        }
-      }
-
-      regionsDirty.value = false;
-      emit('save', regions.value);
-      draw();
 
       if (!options.silent) {
-        createMessage.success('区域已保存');
+        createMessage.success(regionSyncSuccessMessage(responseObj.runtime_sync_status));
       }
     } catch (error) {
       console.error('保存失败', error);
-      if (!options.silent) {
+      if (isRegionRevisionConflict(error)) {
+        createMessage.warning('区域配置已被其他用户修改，请重新打开后再保存');
+      } else if (!options.silent) {
         createMessage.error(formatApiErrorMessage(error, '区域保存失败，请稍后重试'));
       }
     } finally {
@@ -1273,6 +1339,10 @@ watch(
       if (newRegionsArray.length > 0) {
         regions.value = newRegionsArray.map(region => ({
           ...region,
+          model_scope: region.model_scope || ((region.model_ids || []).length ? 'selected' : 'all'),
+          model_ids: region.model_ids || [],
+          hit_mode: region.hit_mode || 'center',
+          min_overlap_ratio: region.min_overlap_ratio ?? 0.5,
           color: region.color || generateRandomColor(),
         }));
         normalizeRegionNames(regions.value);
@@ -1366,55 +1436,32 @@ onMounted(async () => {
     loadImage(props.initialImagePath, { retryCaptureOnFail: !!props.autoCapture });
   }
 
-  // 加载现有区域：优先使用 props.initialRegions，否则从服务器加载
+  // 始终读取服务端快照，以获得批量保存需要的 template revision。
   if (props.deviceId) {
-    if (props.initialRegions && Array.isArray(props.initialRegions)) {
-      if (props.initialRegions.length > 0) {
-        regions.value = props.initialRegions.map(region => ({
-          ...region,
-          color: region.color || generateRandomColor(),
-        }));
-        normalizeRegionNames(regions.value);
-        if (props.initialRegions[0].image_path) {
-          currentImagePath.value = props.initialRegions[0].image_path;
-          loadImage(props.initialRegions[0].image_path, { retryCaptureOnFail: true });
-        } else if (props.initialImagePath && !currentImage.value) {
-          currentImagePath.value = props.initialImagePath;
-          loadImage(props.initialImagePath, { retryCaptureOnFail: true });
-        }
-      } else {
-        regions.value = [];
-        if (props.initialImagePath && !currentImage.value) {
-          currentImagePath.value = props.initialImagePath;
-          loadImage(props.initialImagePath, { retryCaptureOnFail: true });
-        }
+    try {
+      const snapshot = await getDeviceRegionsSnapshot(props.deviceId, props.taskId);
+      regionRevision.value = snapshot.revision;
+      regions.value = snapshot.regions.map(region => ({
+        ...region,
+        model_scope: region.model_scope || ((region.model_ids || []).length ? 'selected' : 'all'),
+        model_ids: region.model_ids || [],
+        hit_mode: region.hit_mode || 'center',
+        min_overlap_ratio: region.min_overlap_ratio ?? 0.5,
+        color: region.color || generateRandomColor(),
+      }));
+      normalizeRegionNames(regions.value);
+      if (regions.value[0]?.image_path) {
+        currentImagePath.value = regions.value[0].image_path || null;
+        loadImage(regions.value[0].image_path!, { retryCaptureOnFail: true });
+      } else if (props.initialImagePath && !currentImage.value) {
+        currentImagePath.value = props.initialImagePath;
+        loadImage(props.initialImagePath, { retryCaptureOnFail: true });
       }
-    } else {
-      try {
-        const list = await listDeviceRegionsSafe(props.deviceId, props.taskId);
-        if (list.length > 0) {
-          regions.value = list.map(region => ({
-            ...region,
-            color: region.color || generateRandomColor(),
-          }));
-          normalizeRegionNames(regions.value);
-          if (list[0].image_path) {
-            currentImagePath.value = list[0].image_path;
-            loadImage(list[0].image_path, { retryCaptureOnFail: true });
-          } else if (props.initialImagePath && !currentImage.value) {
-            currentImagePath.value = props.initialImagePath;
-            loadImage(props.initialImagePath, { retryCaptureOnFail: true });
-          }
-        } else if (props.initialImagePath && !currentImage.value) {
-          currentImagePath.value = props.initialImagePath;
-          loadImage(props.initialImagePath, { retryCaptureOnFail: true });
-        }
-      } catch (error) {
-        console.warn('加载区域失败', error);
-        if (props.initialImagePath && !currentImage.value) {
-          currentImagePath.value = props.initialImagePath;
-          loadImage(props.initialImagePath, { retryCaptureOnFail: true });
-        }
+    } catch (error) {
+      console.warn('加载区域失败', error);
+      if (props.initialImagePath && !currentImage.value) {
+        currentImagePath.value = props.initialImagePath;
+        loadImage(props.initialImagePath, { retryCaptureOnFail: true });
       }
     }
   } else if (props.initialImagePath && !currentImage.value) {
@@ -1428,7 +1475,13 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  if (persistTimer) clearTimeout(persistTimer);
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  if (regionsDirty.value) {
+    void persistRegions({ silent: true }).catch(() => {});
+  }
   window.removeEventListener('resize', resizeCanvas);
   window.removeEventListener('keydown', handleKeyDown);
   window.removeEventListener('mousemove', onWindowMouseMove);
@@ -1716,6 +1769,28 @@ onUnmounted(() => {
   line-height: 1;
 }
 
+.region-editor__field-label--models {
+  margin-top: 12px;
+}
+
+.region-editor__field-label--hit-mode,
+.region-editor__field-label--overlap {
+  margin-top: 14px;
+}
+
+.region-editor__model-select,
+.region-editor__hit-mode-select {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.region-editor__field-help {
+  margin-top: 6px;
+  color: @text-muted;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .region-item {
   display: flex;
   align-items: center;
@@ -1803,4 +1878,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

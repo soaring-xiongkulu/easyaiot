@@ -17,6 +17,7 @@ public:
     /** 单个模型规格；key 为 ini 中的模型键（如 "default" 或模型 ID） */
     struct ModelSpec {
         std::string key;
+        int businessModelId{0};
         std::string modelPath;
         std::vector<std::string> classes;
     };
@@ -26,6 +27,7 @@ private:
     std::queue<std::tuple<int, int, int, cv::Mat>> tasks;
     /** 每个模型一组引擎：groups_[model_id][engine_idx] */
     std::vector<std::vector<std::shared_ptr<YoloEngine>>> groups_;
+    std::vector<int> businessModelIds_;
     int threadsPerModel_{0};
     /** 结果：results_[model_id][input_id][frame_id] */
     std::map<int, std::map<int, std::map<int, std::vector<DetectObject>>>> results;

@@ -682,8 +682,10 @@ def _resolve_single_model_path(
     return None
 
 
-def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> List[Tuple[str, str]]:
-    """Resolve task.model_ids → [(onnx_path, names_path), ...] in model order for RUNTIME.
+def _resolve_models_with_ids(
+    task: AlgorithmTask, prefer_cluster: bool = False
+) -> List[Tuple[Optional[int], str, str]]:
+    """Resolve task.model_ids → [(business_model_id, onnx_path, names_path), ...].
 
     Supports:
       - builtin ids: -1 yolo11n, -2 yolov8n, -3 yolo26n (.pt auto-exported to onnx)
@@ -705,18 +707,23 @@ def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> L
         except Exception:
             model_ids = []
 
-    resolved: List[Tuple[str, str]] = []
+    parsed_model_ids: List[int] = []
+    resolved: List[Tuple[Optional[int], str, str]] = []
     for mid in model_ids:
         try:
             mid_int = int(mid)
         except Exception:
             continue
+        parsed_model_ids.append(mid_int)
         pair = _resolve_single_model_path(mid_int, prefer_cluster=prefer_cluster, default_names=default_names)
         if pair:
-            resolved.append(pair)
+            resolved.append((mid_int, pair[0], pair[1]))
 
     if resolved:
         return resolved
+
+    if parsed_model_ids:
+        raise ValueError(f'任务模型均无法解析: {parsed_model_ids}')
 
     if prefer_cluster:
         remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolo11n.onnx')
@@ -724,19 +731,24 @@ def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> L
             remote_default_onnx = Path('/opt/easyaiot/RUNTIME/models/yolov11n.onnx')
         if remote_default_onnx.is_file():
             names = str(remote_default_names if remote_default_names.is_file() else (env_names or remote_default_names))
-            return [(str(remote_default_onnx), names)]
+            fallback_id = parsed_model_ids[0] if parsed_model_ids else None
+            return [(fallback_id, str(remote_default_onnx), names)]
 
     if env_model:
         p = Path(env_model)
         if p.suffix.lower() == '.pt':
             exported = _export_pt_to_onnx(p, p.with_suffix('.onnx'))
             if exported and exported.is_file():
-                return [(str(exported), (env_names or _pick_names(exported, default_names)))]
-        return [(env_model, (env_names or str(default_names)))]
+                fallback_id = parsed_model_ids[0] if parsed_model_ids else None
+                return [(fallback_id, str(exported), (env_names or _pick_names(exported, default_names)))]
+        fallback_id = parsed_model_ids[0] if parsed_model_ids else None
+        return [(fallback_id, env_model, (env_names or str(default_names)))]
 
     # Final fallback: ensure yolo11n onnx exists
     try:
-        return [_resolve_builtin_onnx('yolo11n')]
+        path, names = _resolve_builtin_onnx('yolo11n')
+        fallback_id = parsed_model_ids[0] if parsed_model_ids else None
+        return [(fallback_id, path, names)]
     except Exception:
         pass
     default_onnx = root / 'RUNTIME' / 'models' / 'yolo11n.onnx'
@@ -744,7 +756,18 @@ def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> L
         legacy = root / 'RUNTIME' / 'models' / 'yolov11n.onnx'
         if legacy.is_file():
             default_onnx = legacy
-    return [(str(default_onnx), env_names or str(default_names))]
+    fallback_id = parsed_model_ids[0] if parsed_model_ids else None
+    return [(fallback_id, str(default_onnx), env_names or str(default_names))]
+
+
+def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> List[Tuple[str, str]]:
+    """兼容旧调用方，仅返回模型文件和类别文件；业务模型 ID 由生成器单独透传。"""
+    return [
+        (onnx_path, names_path)
+        for _model_id, onnx_path, names_path in _resolve_models_with_ids(
+            task, prefer_cluster=prefer_cluster
+        )
+    ]
 
 
 def _control_port(task: AlgorithmTask) -> int:
@@ -905,7 +928,7 @@ def _build_runtime_ini_text(
     rtsp_url: str,
     rtmp_out: str,
     enable_rtmp: bool,
-    models: List[Tuple[str, str]],
+    models: List[Tuple[Optional[int], str, str]],
     log_path: str,
     alert_image_dir: str,
     control_port: int,
@@ -954,11 +977,14 @@ def _build_runtime_ini_text(
     ) else 'false'
     # 多模型：首模型写 model_path/classes_path，其余写 model_path_<i>/classes_path_<i>
     ai_model_lines: List[str] = []
-    for i, (onnx_path, names_path) in enumerate(models):
+    for i, (business_model_id, onnx_path, names_path) in enumerate(models):
         prefix = 'model_path' if i == 0 else f'model_path_{i}'
         class_prefix = 'classes_path' if i == 0 else f'classes_path_{i}'
+        id_prefix = 'model_id' if i == 0 else f'model_id_{i}'
         ai_model_lines.append(f'{prefix}={onnx_path}')
         ai_model_lines.append(f'{class_prefix}={names_path}')
+        if business_model_id is not None:
+            ai_model_lines.append(f'{id_prefix}={business_model_id}')
     ai_model_block = '\n'.join(ai_model_lines)
     return f"""# Auto-generated by VIDEO for executor=cpp — do not edit by hand while task is running
 [video]
@@ -1087,8 +1113,8 @@ def generate_runtime_inis(
     if not devices:
         raise ValueError(f'任务 {task.id} 的设备均无可用 RTSP/source 地址')
 
-    models = _resolve_model_paths(task, prefer_cluster=prefer_cluster_model)
-    for onnx_path, _names_path in models:
+    models = _resolve_models_with_ids(task, prefer_cluster=prefer_cluster_model)
+    for _business_model_id, onnx_path, _names_path in models:
         if write_local and not os.path.isfile(onnx_path):
             raise ValueError(f'模型文件不存在: {onnx_path}（cpp 需要 .onnx；.pt 应已自动导出）')
         if write_local and not str(onnx_path).lower().endswith('.onnx'):

@@ -400,13 +400,30 @@ bool AlgoMqttBus::postEnabled() {
 }
 
 bool AlgoMqttBus::postFailoverOpen() {
+    const char* strategyEnv = std::getenv("POST_FAIL_STRATEGY");
+    if (strategyEnv && *strategyEnv) {
+        std::string strategy(strategyEnv);
+        for (auto& c : strategy) {
+            if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+        }
+        return strategy == "open";
+    }
     const char* env = std::getenv("POST_FAILOVER_OPEN");
-    if (!env || !*env) return true;
+    if (!env || !*env) return false;
     std::string v(env);
     for (auto& c : v) {
         if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
     }
     return v == "1" || v == "true" || v == "yes" || v == "on";
+}
+
+bool AlgoMqttBus::postIngressEnabled() {
+    const char* env = std::getenv("POST_INGRESS_TRANSPORT");
+    std::string value = (env && *env) ? env : "mqtt";
+    for (auto& c : value) {
+        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+    }
+    return value == "mqtt";
 }
 
 std::string AlgoMqttBus::postBaseUrl() {
@@ -598,17 +615,21 @@ bool AlgoMqttBus::postIsReady() {
 bool AlgoMqttBus::postInBypass() {
     if (!postEnabled()) return false;
     if (!postFailoverOpen()) return false;
-    return !postIsReady();
+    return !postIngressEnabled() || !postIsReady();
+}
+
+bool AlgoMqttBus::postFailClosed() {
+    if (!postEnabled() || postFailoverOpen()) return false;
+    return !postIngressEnabled() || !postIsReady();
 }
 
 bool AlgoMqttBus::shouldPublishInferEvent() {
     if (!postEnabled()) return false;
-    if (postFailoverOpen() && !postIsReady()) return false;
-    return true;
+    return postIngressEnabled() && postIsReady();
 }
 
 bool AlgoMqttBus::publishBytes(const Config& config, const std::string& topic, const std::string& body, int /*qos*/) {
-    if (!busEnabled(config)) return false;
+    if (!postIngressEnabled()) return false;
     auto brokers = resolveBrokers(config);
     if (brokers.empty()) {
         LOG(WARNING) << "[AlgoMqttBus] MQTT_BROKER_URLS empty, skip topic=" << topic;

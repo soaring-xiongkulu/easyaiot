@@ -101,6 +101,17 @@ func main() {
 		t := time.NewTicker(30 * time.Second)
 		defer t.Stop()
 		for range t.C {
+			if store != nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+				n, err := template.Warmup(ctx, store, cache)
+				cancel()
+				if err != nil {
+					metrics.WarmupError.WithLabelValues(cfg.InstanceID).Inc()
+					slog.Warn("template_reconcile_failed", "err", err)
+				} else {
+					slog.Debug("template_reconcile_ok", "tasks", n)
+				}
+			}
 			cache.SweepExpired()
 			plugin.SweepTrackState()
 		}

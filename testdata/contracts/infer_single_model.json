@@ -1,0 +1,22 @@
+{
+  "schema": "infer_event.v1",
+  "event_kind": "infer",
+  "correlation_id": "fixture-single",
+  "task_id": 101,
+  "task_type": "realtime",
+  "device_id": "camera-a",
+  "timestamp": "2026-08-27T10:00:00Z",
+  "frame_width": 1920,
+  "frame_height": 1080,
+  "model_ids": [11],
+  "detections": [
+    {
+      "model_id": 11,
+      "bbox": [100, 120, 260, 480],
+      "class_id": 0,
+      "class_name": "person",
+      "confidence": 0.92,
+      "track_id": 123
+    }
+  ]
+}

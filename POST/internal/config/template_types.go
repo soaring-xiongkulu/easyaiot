@@ -33,14 +33,16 @@ type TaskConfig struct {
 
 // Region is a detection region snapshot.
 type Region struct {
-	ID         int64   `json:"id"`
-	DeviceID   string  `json:"device_id"`
-	RegionName string  `json:"region_name"`
-	RegionType string  `json:"region_type"`
-	Points     []Point `json:"points"`
-	IsEnabled  bool    `json:"is_enabled"`
-	SortOrder  int     `json:"sort_order"`
-	ModelIDs   []int64 `json:"model_ids,omitempty"`
+	ID              int64    `json:"id"`
+	DeviceID        string   `json:"device_id"`
+	RegionName      string   `json:"region_name"`
+	RegionType      string   `json:"region_type"`
+	Points          []Point  `json:"points"`
+	IsEnabled       bool     `json:"is_enabled"`
+	SortOrder       int      `json:"sort_order"`
+	ModelIDs        []int64  `json:"model_ids,omitempty"`
+	HitMode         string   `json:"hit_mode,omitempty"`
+	MinOverlapRatio *float64 `json:"min_overlap_ratio,omitempty"`
 }
 
 // Point supports {x,y} and [x,y] JSON forms.
@@ -84,9 +86,10 @@ func asFloat(v any) float64 {
 
 // TaskTemplate is the full cache entry body.
 type TaskTemplate struct {
-	Schema  string     `json:"schema"`
-	Task    TaskConfig `json:"task"`
-	Regions []Region   `json:"regions"`
+	Schema   string     `json:"schema"`
+	Revision int64      `json:"revision,omitempty"`
+	Task     TaskConfig `json:"task"`
+	Regions  []Region   `json:"regions"`
 }
 
 // DefaultPipeline returns region_gate → default_pass.
