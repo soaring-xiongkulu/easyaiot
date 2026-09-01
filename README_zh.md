@@ -291,26 +291,6 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>四类内置研判插件（免登记）</strong>：<strong><code>line_cross</code></strong>（越线检测，配合 <code>line</code> 检测线与追踪）、<strong><code>region_enter_exit</code></strong>（区域进出）、<strong><code>dwell_timer</code></strong>（停留/滞留超时）、<strong><code>headcount_gate</code></strong>（人数阈值）——可与区域闸门、放行、业务脚本及行业插件编排成贴现场的规则链</li>
 </ul>
 
-### 🤖 AI助手：IDEA 分屏共创，边改代码边问架构查健康
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-开源共建与现场 PoC 常卡在同一处：模块多、链路长，改代码要先配环境，查健康要登服务器，问架构要翻文档、找人。EasyAIoT 把 <strong>HARNESS 对话式助手</strong>嵌进 <strong>IDEA 在线 IDE</strong>——左侧完整 VS Code 工作区，右侧 AI 助手分屏；从资源管理器拖文件即可自动 <code>@</code> 引用进对话，边读源码边问端口、配置与服务健康，缩短「不懂—找人—再改」的闭环。
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>IDEA 分屏共创</strong>：工具栏一键打开右侧 AI 助手，编辑器与 Agent 同屏；亦可 <code>?file=路径&harness=1</code> 深链打开指定文件并分屏</li>
-  <li><strong>拖入自动 @</strong>：资源管理器文件拖到助手面板，自动关联为对话上下文，少打路径、少丢上下文</li>
-  <li><strong>问即查</strong>：Agent 调平台 Tool 探测 Gateway / 视频 / 算法等服务健康，并指向相关配置与源码——把 SSH + 翻 compose 压缩成一次对话</li>
-  <li><strong>懂本体</strong>：内置 <code>HARNESS/ontology/AGENTS.md</code> 与全仓工作区，架构、端口、API、安装约定有统一答案</li>
-  <li><strong>管控台同口径</strong>：业务页悬浮抽屉 / 全屏「AI 助手」与 IDEA 侧同一套能力；MCP + Cursor Skill 可跨环境复用</li>
-  <li><strong>双向跳转</strong>：助手可通过 <code>easyaiot_open_in_idea</code> 生成门户链接，从问答回到可改可发的完整 IDE</li>
-</ul>
-
-| | | |
-|:---:|:---:|:---:|
-| ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
-| ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
-
 ### 📱 ANDROID / IOS / HARMONYOS：一套前端三端壳，人手一部手机都能用
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -527,24 +507,6 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>贡献闭环</strong>：绑定个人 fork → 开分支改代码 → 推送到 fork → 向官方仓提交 PR</li>
 </ul>
 
-#### 🤖 HARNESS AI 助手
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
-模块多、链路长，查健康、问架构、找配置常要翻文档、登服务器。HARNESS 把平台知识与实时探测收成<strong>对话式助手</strong>——业务页右下角即问即查，缩短排障与 PoC 周期，少依赖原厂与口口相传的经验。
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>问即查</strong>：Agent 调平台 Tool 探测 Gateway / 视频 / 算法等服务健康，并指向相关配置与源码——把 SSH + 翻 compose 压缩成一次对话</li>
-  <li><strong>懂本体</strong>：内置 <code>HARNESS/ontology/AGENTS.md</code> 与全仓工作区，架构、端口、API、安装约定有统一答案</li>
-  <li><strong>页内即聊</strong>：悬浮抽屉 iframe 嵌入，看告警/设备时不跳转、不丢上下文；亦可全屏「AI 助手」或新窗口</li>
-  <li><strong>IDEA 分屏共创</strong>：工具栏一键打开右侧 AI 助手，编辑器与 Agent 同屏；亦可 <code>?file=路径&harness=1</code> 深链打开指定文件并分屏</li>
-  <li><strong>拖入自动 @</strong>：从资源管理器拖文件到助手面板，自动关联为对话上下文</li>
-  <li><strong>双向跳转</strong>：Agent 可通过 <code>easyaiot_open_in_idea</code> 生成门户链接，从问答回到可改可发的完整 IDE；IDEA 改代码提 PR，HARNESS 问架构查健康</li>
-  <li><strong>MCP + Cursor Skill</strong>：同一套 <code>easyaiot_*</code> 能力经 MCP 暴露给 Cursor 等 IDE——管控台能问能查的，开发环境里同样能调，Skill 可跨项目复用</li>
-  <li><strong>全形态开箱</strong>：基于 <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar（<code>:3080</code>），<code>mini / standard / full</code> 默认部署即带（<code>EASYAIOT_ENABLE_HARNESS=0</code> 可关）；DeepSeek / OpenAI 兼容端点，Key 在 <code>harness.env</code> 或 UI 自备</li>
-  <li><strong>安全提示</strong>：实验模块，上游 <code>dsh</code> 处于 Developer Preview；生产请限制访问并配置写操作 / Shell 审批；API Key 勿提交 Git</li>
-</ul>
-
 ### 🔌 LLM 统一网关 — 一套协议，接入全部主流大模型厂商
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -582,6 +544,40 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>检索验证</strong>：知识集发布前可先做检索验证，逐条展示来源与相关度分数，召回质量看得见而非靠猜</li>
   <li><strong>混合检索</strong>：Milvus 向量检索与关键词（类 BM25）词项打分融合；内置 <code>local-hash</code> 离线降级 Embedding，无外部 Key 也能跑通全链路演示，生产可无缝切换 1024 维 OpenAI 兼容 Embedding 服务</li>
   <li><strong>页面内智能助手</strong>：业务页面内置悬浮平台助手——询问平台用法、探测服务健康，或让智能体基于你的知识集回答，不离开当前页面</li>
+</ul>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+开源共建与现场 PoC 常卡在同一处：模块多、链路长，改代码要先配环境，查健康要登服务器，问架构要翻文档、找人。EasyAIoT 把 <strong>HARNESS 对话式助手</strong>嵌进 <strong>IDEA 在线 IDE</strong>——左侧完整 VS Code 工作区，右侧 AI 助手分屏；从资源管理器拖文件即可自动 <code>@</code> 引用进对话，边读源码边问端口、配置与服务健康，缩短「不懂—找人—再改」的闭环。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>IDEA 分屏共创</strong>：工具栏一键打开右侧 AI 助手，编辑器与 Agent 同屏；亦可 <code>?file=路径&harness=1</code> 深链打开指定文件并分屏</li>
+  <li><strong>拖入自动 @</strong>：资源管理器文件拖到助手面板，自动关联为对话上下文，少打路径、少丢上下文</li>
+  <li><strong>问即查</strong>：Agent 调平台 Tool 探测 Gateway / 视频 / 算法等服务健康，并指向相关配置与源码——把 SSH + 翻 compose 压缩成一次对话</li>
+  <li><strong>懂本体</strong>：内置 <code>HARNESS/ontology/AGENTS.md</code> 与全仓工作区，架构、端口、API、安装约定有统一答案</li>
+  <li><strong>管控台同口径</strong>：业务页悬浮抽屉 / 全屏「AI 助手」与 IDEA 侧同一套能力；MCP + Cursor Skill 可跨环境复用</li>
+  <li><strong>双向跳转</strong>：助手可通过 <code>easyaiot_open_in_idea</code> 生成门户链接，从问答回到可改可发的完整 IDE</li>
+</ul>
+
+| | | |
+|:---:|:---:|:---:|
+| ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
+| ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
+模块多、链路长，查健康、问架构、找配置常要翻文档、登服务器。HARNESS 把平台知识与实时探测收成<strong>对话式助手</strong>——业务页右下角即问即查，缩短排障与 PoC 周期，少依赖原厂与口口相传的经验。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>问即查</strong>：Agent 调平台 Tool 探测 Gateway / 视频 / 算法等服务健康，并指向相关配置与源码——把 SSH + 翻 compose 压缩成一次对话</li>
+  <li><strong>懂本体</strong>：内置 <code>HARNESS/ontology/AGENTS.md</code> 与全仓工作区，架构、端口、API、安装约定有统一答案</li>
+  <li><strong>页内即聊</strong>：悬浮抽屉 iframe 嵌入，看告警/设备时不跳转、不丢上下文；亦可全屏「AI 助手」或新窗口</li>
+  <li><strong>IDEA 分屏共创</strong>：工具栏一键打开右侧 AI 助手，编辑器与 Agent 同屏；亦可 <code>?file=路径&harness=1</code> 深链打开指定文件并分屏</li>
+  <li><strong>拖入自动 @</strong>：从资源管理器拖文件到助手面板，自动关联为对话上下文</li>
+  <li><strong>双向跳转</strong>：Agent 可通过 <code>easyaiot_open_in_idea</code> 生成门户链接，从问答回到可改可发的完整 IDE；IDEA 改代码提 PR，HARNESS 问架构查健康</li>
+  <li><strong>MCP + Cursor Skill</strong>：同一套 <code>easyaiot_*</code> 能力经 MCP 暴露给 Cursor 等 IDE——管控台能问能查的，开发环境里同样能调，Skill 可跨项目复用</li>
+  <li><strong>全形态开箱</strong>：基于 <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> Sidecar（<code>:3080</code>），<code>mini / standard / full</code> 默认部署即带（<code>EASYAIOT_ENABLE_HARNESS=0</code> 可关）；DeepSeek / OpenAI 兼容端点，Key 在 <code>harness.env</code> 或 UI 自备</li>
+  <li><strong>安全提示</strong>：实验模块，上游 <code>dsh</code> 处于 Developer Preview；生产请限制访问并配置写操作 / Shell 审批；API Key 勿提交 Git</li>
 </ul>
 
 ### 📦 内置 AI 模型
@@ -1094,14 +1090,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 | ![预览](.image/banner/banner1104.png) | ![接入](.image/banner/banner1105.png) | ![NVR](.image/banner/banner1106.png) |
 | ![实况](.image/banner/banner1183.jpg) | ![地图](.image/banner/banner1184.jpg) |  |
 
-#### 🤖 AI助手
-
-| | | |
-|:---:|:---:|:---:|
-| ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
-| ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
-
-#### 🤖 大模型与智能体
+#### 🤖 RAG 知识库与智能体
 
 | | | |
 |:---:|:---:|:---:|
@@ -1110,6 +1099,8 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 | ![知识库](.image/banner/banner1246.png) | ![知识文档](.image/banner/banner1247.png) | ![知识片段](.image/banner/banner1248.png) |
 | ![知识集](.image/banner/banner1249.png) | ![RAG专家](.image/banner/banner1250.png) | ![RAG问答](.image/banner/banner1251.png) |
 | ![智能助手](.image/banner/banner1252.png) | ![智能体对话](.image/banner/banner1253.png) | ![智能体效果测试](.image/banner/banner1254.png) |
+| ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
+| ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
 
 #### 🧠 AI模型
 

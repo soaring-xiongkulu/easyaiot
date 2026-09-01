@@ -238,26 +238,6 @@ EasyAIoT — это интеллектуальная платформа Инте
   <li><strong>Четыре встроенных плагина суждения (без регистрации)</strong>: <strong><code>line_cross</code></strong> (пересечение линии с линиями <code>line</code> + трекинг), <strong><code>region_enter_exit</code></strong> (вход/выход из зоны), <strong><code>dwell_timer</code></strong> (таймаут пребывания/задержки), <strong><code>headcount_gate</code></strong> (порог численности) — составляются с фильтром зон, пропуском, бизнес-скриптами и отраслевыми плагинами в полевые цепочки правил</li>
 </ul>
 
-### 🤖 AI-ассистент: совместная работа в разделённом экране IDEA — править код и спрашивать об архитектуре и здоровье
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-Вклад в open source и полевые PoC часто упираются в одно и то же: много модулей, длинные цепочки — для правок нужна локальная среда, для здоровья — SSH, для архитектуры — документация и люди. EasyAIoT встраивает <strong>разговорного ассистента HARNESS</strong> в <strong>облачную IDE IDEA</strong> — слева полный workspace VS Code, справа AI-ассистент в split; перетащите файлы из проводника для авто <code>@</code>-упоминания, читайте исходники и спрашивайте о портах, конфиге и здоровье сервисов, сокращая цикл «не знаю → спросить → править снова».
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Совместная работа IDEA в split</strong>: панель инструментов открывает AI-ассистента справа — редактор и Agent рядом; deep-link <code>?file=путь&harness=1</code> открывает файл и split</li>
-  <li><strong>Перетащить для авто @</strong>: файлы из проводника на панель ассистента автоматически становятся контекстом чата — меньше путей вручную, меньше потери контекста</li>
-  <li><strong>Спросил — проверил</strong>: Agent вызывает Tools платформы для Gateway / видео / AI и указывает конфиг и исходники — SSH + compose в одном диалоге</li>
-  <li><strong>Знает онтологию</strong>: встроенный <code>HARNESS/ontology/AGENTS.md</code> и workspace всего репозитория — архитектура, порты, API и соглашения об установке в одном месте</li>
-  <li><strong>Та же семантика в консоли</strong>: плавающий drawer / полноэкранный «AI-ассистент» делят возможности с IDEA; MCP + Cursor Skill переиспользуются между средами</li>
-  <li><strong>Двусторонний переход</strong>: ассистент может сгенерировать ссылку портала через <code>easyaiot_open_in_idea</code> — из Q&amp;A обратно в полный IDE, где можно править и публиковать</li>
-</ul>
-
-| | | |
-|:---:|:---:|:---:|
-| ![Вход IDEA](.image/banner/banner1203.png) | ![Рабочая область IDEA](.image/banner/banner1204.png) | ![Разработка IDEA](.image/banner/banner1205.png) |
-| ![Диалог AI-ассистента](.image/banner/banner1210.png) | ![Анализ AI-ассистента](.image/banner/banner1211.png) | ![Совместная работа AI-ассистента](.image/banner/banner1212.png) |
-
 ### 📱 ANDROID / IOS / HARMONYOS: один фронтенд, три нативные оболочки — один App для любого телефона
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -475,24 +455,6 @@ EasyAIoT — это интеллектуальная платформа Инте
   <li><strong>Цикл вклада</strong>: Привязать свой fork → ветка → правки → push в fork → PR в официальный репозиторий</li>
 </ul>
 
-#### 🤖 AI-ассистент HARNESS
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
-Много модулей и длинные цепочки — проверка здоровья, вопросы об архитектуре и поиск конфигов часто требуют документации и SSH. HARNESS объединяет знания платформы и живые пробы в <strong>разговорного ассистента</strong>: спрашивайте и проверяйте из правого нижнего угла любой бизнес-страницы — короче цикл устранения неполадок и PoC, меньше зависимости от вендора и устных знаний.
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Спросил — проверил</strong>: Agent вызывает Tools платформы для Gateway / видео / AI и указывает конфиг и исходники — SSH + compose в одном диалоге</li>
-  <li><strong>Знает онтологию</strong>: встроенный <code>HARNESS/ontology/AGENTS.md</code> и workspace всего репозитория — архитектура, порты, API и соглашения об установке в одном месте</li>
-  <li><strong>Чат на странице</strong>: плавающий drawer iframe — без перехода и потери контекста на экранах тревог/устройств; полноэкранный «AI-ассистент» или новое окно</li>
-  <li><strong>Совместная работа IDEA в split</strong>: панель инструментов открывает AI-ассистента справа — редактор и Agent рядом; deep-link <code>?file=путь&harness=1</code></li>
-  <li><strong>Перетащить для авто @</strong>: файлы из проводника на панель ассистента автоматически становятся контекстом чата</li>
-  <li><strong>Двусторонний переход</strong>: Agent может сгенерировать ссылку портала через <code>easyaiot_open_in_idea</code> — из Q&amp;A обратно в полный IDE; IDEA — код и PR, HARNESS — архитектура и здоровье</li>
-  <li><strong>MCP + Cursor Skill</strong>: те же возможности <code>easyaiot_*</code> через MCP в Cursor и другие IDE — что можно спросить в консоли, можно вызвать в dev; Skills переиспользуются между проектами</li>
-  <li><strong>Готов во всех профилях</strong>: Sidecar <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> (<code>:3080</code>); по умолчанию в <code>mini / standard / full</code> (<code>EASYAIOT_ENABLE_HARNESS=0</code> для отключения); DeepSeek / OpenAI-совместимые endpoints; ключ в <code>harness.env</code> или UI</li>
-  <li><strong>Безопасность</strong>: экспериментальный модуль; upstream <code>dsh</code> в Developer Preview; ограничьте доступ в prod и настройте одобрение записи/Shell; не коммитьте API Keys в Git</li>
-</ul>
-
 ### 🔌 Единый LLM-шлюз — один протокол, все крупные LLM-провайдеры
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -530,6 +492,40 @@ EasyAIoT — это интеллектуальная платформа Инте
   <li><strong>Проверка поиска</strong>: ищите по любому набору знаний до публикации, с оценками релевантности по источникам, чтобы проверить качество полноты, а не верить на слово</li>
   <li><strong>Гибридный поиск</strong>: векторный поиск (Milvus) объединён с оценкой ключевых слов (стиль BM25); офлайн-фолбэк эмбеддингов <code>local-hash</code> позволяет демонстрировать всю цепочку без внешних ключей, а 1024-мерный OpenAI-совместимый сервис эмбеддингов подключается без швов для продакшена</li>
   <li><strong>Встроенный ИИ-ассистент</strong>: плавающий ассистент доступен на бизнес-страницах — спрашивайте об устройстве платформы, проверяйте здоровье сервисов или дайте агенту ответить по вашим наборам знаний, не покидая экран</li>
+</ul>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Вклад в open source и полевые PoC часто упираются в одно и то же: много модулей, длинные цепочки — для правок нужна локальная среда, для здоровья — SSH, для архитектуры — документация и люди. EasyAIoT встраивает <strong>разговорного ассистента HARNESS</strong> в <strong>облачную IDE IDEA</strong> — слева полный workspace VS Code, справа AI-ассистент в split; перетащите файлы из проводника для авто <code>@</code>-упоминания, читайте исходники и спрашивайте о портах, конфиге и здоровье сервисов, сокращая цикл «не знаю → спросить → править снова».
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Совместная работа IDEA в split</strong>: панель инструментов открывает AI-ассистента справа — редактор и Agent рядом; deep-link <code>?file=путь&harness=1</code> открывает файл и split</li>
+  <li><strong>Перетащить для авто @</strong>: файлы из проводника на панель ассистента автоматически становятся контекстом чата — меньше путей вручную, меньше потери контекста</li>
+  <li><strong>Спросил — проверил</strong>: Agent вызывает Tools платформы для Gateway / видео / AI и указывает конфиг и исходники — SSH + compose в одном диалоге</li>
+  <li><strong>Знает онтологию</strong>: встроенный <code>HARNESS/ontology/AGENTS.md</code> и workspace всего репозитория — архитектура, порты, API и соглашения об установке в одном месте</li>
+  <li><strong>Та же семантика в консоли</strong>: плавающий drawer / полноэкранный «AI-ассистент» делят возможности с IDEA; MCP + Cursor Skill переиспользуются между средами</li>
+  <li><strong>Двусторонний переход</strong>: ассистент может сгенерировать ссылку портала через <code>easyaiot_open_in_idea</code> — из Q&amp;A обратно в полный IDE, где можно править и публиковать</li>
+</ul>
+
+| | | |
+|:---:|:---:|:---:|
+| ![Вход IDEA](.image/banner/banner1203.png) | ![Рабочая область IDEA](.image/banner/banner1204.png) | ![Разработка IDEA](.image/banner/banner1205.png) |
+| ![Диалог AI-ассистента](.image/banner/banner1210.png) | ![Анализ AI-ассистента](.image/banner/banner1211.png) | ![Совместная работа AI-ассистента](.image/banner/banner1212.png) |
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
+Много модулей и длинные цепочки — проверка здоровья, вопросы об архитектуре и поиск конфигов часто требуют документации и SSH. HARNESS объединяет знания платформы и живые пробы в <strong>разговорного ассистента</strong>: спрашивайте и проверяйте из правого нижнего угла любой бизнес-страницы — короче цикл устранения неполадок и PoC, меньше зависимости от вендора и устных знаний.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Спросил — проверил</strong>: Agent вызывает Tools платформы для Gateway / видео / AI и указывает конфиг и исходники — SSH + compose в одном диалоге</li>
+  <li><strong>Знает онтологию</strong>: встроенный <code>HARNESS/ontology/AGENTS.md</code> и workspace всего репозитория — архитектура, порты, API и соглашения об установке в одном месте</li>
+  <li><strong>Чат на странице</strong>: плавающий drawer iframe — без перехода и потери контекста на экранах тревог/устройств; полноэкранный «AI-ассистент» или новое окно</li>
+  <li><strong>Совместная работа IDEA в split</strong>: панель инструментов открывает AI-ассистента справа — редактор и Agent рядом; deep-link <code>?file=путь&harness=1</code></li>
+  <li><strong>Перетащить для авто @</strong>: файлы из проводника на панель ассистента автоматически становятся контекстом чата</li>
+  <li><strong>Двусторонний переход</strong>: Agent может сгенерировать ссылку портала через <code>easyaiot_open_in_idea</code> — из Q&amp;A обратно в полный IDE; IDEA — код и PR, HARNESS — архитектура и здоровье</li>
+  <li><strong>MCP + Cursor Skill</strong>: те же возможности <code>easyaiot_*</code> через MCP в Cursor и другие IDE — что можно спросить в консоли, можно вызвать в dev; Skills переиспользуются между проектами</li>
+  <li><strong>Готов во всех профилях</strong>: Sidecar <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> (<code>:3080</code>); по умолчанию в <code>mini / standard / full</code> (<code>EASYAIOT_ENABLE_HARNESS=0</code> для отключения); DeepSeek / OpenAI-совместимые endpoints; ключ в <code>harness.env</code> или UI</li>
+  <li><strong>Безопасность</strong>: экспериментальный модуль; upstream <code>dsh</code> в Developer Preview; ограничьте доступ в prod и настройте одобрение записи/Shell; не коммитьте API Keys в Git</li>
 </ul>
 
 ### 📦 Встроенные модели ИИ
@@ -1029,14 +1025,7 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Просмотр](.image/banner/banner1104.png) | ![Подключение](.image/banner/banner1105.png) | ![NVR](.image/banner/banner1106.png) |
 | ![Живой просмотр](.image/banner/banner1183.jpg) | ![Карта](.image/banner/banner1184.jpg) |  |
 
-#### 🤖 AI-ассистент
-
-| | | |
-|:---:|:---:|:---:|
-| ![Вход IDEA](.image/banner/banner1203.png) | ![Рабочая область IDEA](.image/banner/banner1204.png) | ![Разработка IDEA](.image/banner/banner1205.png) |
-| ![Диалог AI-ассистента](.image/banner/banner1210.png) | ![Анализ AI-ассистента](.image/banner/banner1211.png) | ![Совместная работа AI-ассистента](.image/banner/banner1212.png) |
-
-#### 🤖 LLM и ИИ-агенты
+#### 🤖 RAG-база знаний и ИИ-агенты
 
 | | | |
 |:---:|:---:|:---:|
@@ -1045,6 +1034,8 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![База знаний](.image/banner/banner1246.png) | ![Документы знаний](.image/banner/banner1247.png) | ![Сегменты знаний](.image/banner/banner1248.png) |
 | ![Наборы знаний](.image/banner/banner1249.png) | ![RAG-эксперт](.image/banner/banner1250.png) | ![RAG Q&A](.image/banner/banner1251.png) |
 | ![ИИ-ассистент](.image/banner/banner1252.png) | ![Диалог агента](.image/banner/banner1253.png) | ![Тест эффекта агента](.image/banner/banner1254.png) |
+| ![Вход IDEA](.image/banner/banner1203.png) | ![Рабочая область IDEA](.image/banner/banner1204.png) | ![Разработка IDEA](.image/banner/banner1205.png) |
+| ![Диалог AI-ассистента](.image/banner/banner1210.png) | ![Анализ AI-ассистента](.image/banner/banner1211.png) | ![Совместная работа AI-ассистента](.image/banner/banner1212.png) |
 
 #### 🧠 AI-модели
 

@@ -238,26 +238,6 @@ Les projets vision butent souvent sur « le modèle a déjà encadré personnes/
   <li><strong>Quatre plugins de jugement intégrés (sans enregistrement)</strong> : <strong><code>line_cross</code></strong> (franchissement de ligne avec lignes <code>line</code> + suivi), <strong><code>region_enter_exit</code></strong> (entrée/sortie de zone), <strong><code>dwell_timer</code></strong> (séjour prolongé / timeout), <strong><code>headcount_gate</code></strong> (seuil d’effectif) — composables avec porte de zone, passage, scripts métier et plugins sectoriels en chaînes prêtes pour le terrain</li>
 </ul>
 
-### 🤖 Assistant IA : co-création en écran partagé IDEA — modifier le code tout en interrogeant architecture et santé
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-La contribution open source et les PoC terrain butent souvent au même endroit : beaucoup de modules, des chaînes longues — éditer exige un environnement local, vérifier la santé demande du SSH, l'architecture signifie fouiller la doc et demander autour. EasyAIoT intègre l'<strong>assistant conversationnel HARNESS</strong> dans l'<strong>IDE cloud IDEA</strong> — espace VS Code complet à gauche, assistant IA en écran partagé à droite ; glissez des fichiers depuis l'explorateur pour les <code>@</code>-mentionner automatiquement, lisez le code tout en posant des questions sur ports, config et santé des services, et raccourcissez la boucle « je ne sais pas → demander → modifier ».
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Co-création IDEA en écran partagé</strong> : la barre d'outils ouvre l'assistant à droite — éditeur et Agent côte à côte ; ou deep-link <code>?file=chemin&harness=1</code> pour ouvrir un fichier et partager l'écran</li>
-  <li><strong>Glisser pour @ auto</strong> : déposez des fichiers de l'explorateur sur le panneau assistant pour les attacher au contexte — moins de chemins à taper, moins de contexte perdu</li>
-  <li><strong>Demander et vérifier</strong> : l'Agent appelle les Tools plateforme pour sonder Gateway / vidéo / IA et pointe config et sources — SSH + compose en une conversation</li>
-  <li><strong>Connaît l'ontologie</strong> : <code>HARNESS/ontology/AGENTS.md</code> intégré et workspace dépôt complet — architecture, ports, API et conventions d'install au même endroit</li>
-  <li><strong>Même sémantique console</strong> : tiroir flottant / « Assistant IA » plein écran partagent les capacités IDEA ; MCP + Cursor Skill réutilisables entre environnements</li>
-  <li><strong>Saut bidirectionnel</strong> : l'assistant peut générer des liens portail via <code>easyaiot_open_in_idea</code> — du Q&amp;R vers un IDE complet où l'on édite et publie</li>
-</ul>
-
-| | | |
-|:---:|:---:|:---:|
-| ![Connexion IDEA](.image/banner/banner1203.png) | ![Espace IDEA](.image/banner/banner1204.png) | ![Développement IDEA](.image/banner/banner1205.png) |
-| ![Dialogue Assistant IA](.image/banner/banner1210.png) | ![Analyse Assistant IA](.image/banner/banner1211.png) | ![Collaboration Assistant IA](.image/banner/banner1212.png) |
-
 ### 📱 ANDROID / IOS / HARMONYOS : un front-end, trois coques natives — un seul App pour tous les téléphones
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -474,24 +454,6 @@ Beaucoup de projets réduisent l'IoT à un « registre d'appareils + relais de m
   <li><strong>Boucle de contribution</strong> : Lier votre fork → branche → éditer → pousser vers le fork → ouvrir une PR vers l'officiel</li>
 </ul>
 
-#### 🤖 Assistant IA HARNESS
-
-<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
-Nombreux modules et chaînes longues — vérifier la santé, comprendre l'architecture ou trouver une config impliquent souvent documentation et SSH. HARNESS regroupe connaissance plateforme et sondes live dans un <strong>assistant conversationnel</strong> : demandez et vérifiez depuis le coin inférieur droit de toute page métier, pour raccourcir dépannage et PoC avec moins de dépendance au fournisseur et au savoir tacite.
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Demander et vérifier</strong> : l'Agent appelle les Tools plateforme pour sonder Gateway / vidéo / IA et pointe config et sources — SSH + compose en une conversation</li>
-  <li><strong>Connaît l'ontologie</strong> : <code>HARNESS/ontology/AGENTS.md</code> intégré et workspace dépôt complet — architecture, ports, API et conventions d'install au même endroit</li>
-  <li><strong>Discuter dans la page</strong> : tiroir flottant iframe — pas de changement de page ni perte de contexte sur alertes/appareils ; plein écran « Assistant IA » ou nouvelle fenêtre</li>
-  <li><strong>Co-création IDEA en écran partagé</strong> : la barre d'outils ouvre l'assistant à droite — éditeur et Agent côte à côte ; ou deep-link <code>?file=chemin&harness=1</code></li>
-  <li><strong>Glisser pour @ auto</strong> : déposez des fichiers de l'explorateur sur le panneau assistant pour les attacher au contexte</li>
-  <li><strong>Saut bidirectionnel</strong> : l'Agent peut générer des liens portail via <code>easyaiot_open_in_idea</code> — du Q&amp;R vers un IDE complet ; IDEA pour le code et les PR, HARNESS pour architecture et santé</li>
-  <li><strong>MCP + Cursor Skill</strong> : mêmes capacités <code>easyaiot_*</code> via MCP vers Cursor et autres IDE — ce que la console permet de demander/vérifier, l'environnement dev peut l'invoquer ; Skills réutilisables entre projets</li>
-  <li><strong>Prêt dans tous les profils</strong> : Sidecar <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> (<code>:3080</code>) ; inclus par défaut en <code>mini / standard / full</code> (<code>EASYAIOT_ENABLE_HARNESS=0</code> pour désactiver) ; endpoints DeepSeek / compatibles OpenAI ; clé dans <code>harness.env</code> ou l'UI</li>
-  <li><strong>Sécurité</strong> : module expérimental ; <code>dsh</code> en Developer Preview ; restreindre l'accès en prod et configurer approbation écriture/Shell ; ne pas committer les clés API</li>
-</ul>
-
 ### 🔌 Passerelle LLM unifiée — un protocole, tous les grands fournisseurs de LLM
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -529,6 +491,40 @@ Construite sur la passerelle LLM unifiée, la plateforme transforme vos document
   <li><strong>Vérification de la recherche</strong> : testez la recherche de chaque ensemble avant publication, avec les scores de pertinence par source, pour valider la qualité du rappel au lieu de la supposer</li>
   <li><strong>Recherche hybride</strong> : recherche vectorielle (Milvus) fusionnée avec un score de mots-clés type BM25 ; un repli d'embedding <code>local-hash</code> hors ligne garde toute la chaîne démontrable sans clé externe, tandis qu'un service d'embedding 1024 dims compatible OpenAI s'intègre sans couture en production</li>
   <li><strong>Assistant IA intégré aux pages</strong> : un assistant flottant est disponible sur les pages métier — interrogez le fonctionnement de la plateforme, sondez la santé des services, ou laissez un agent répondre depuis vos ensembles de connaissances sans quitter l'écran</li>
+</ul>
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+La contribution open source et les PoC terrain butent souvent au même endroit : beaucoup de modules, des chaînes longues — éditer exige un environnement local, vérifier la santé demande du SSH, l'architecture signifie fouiller la doc et demander autour. EasyAIoT intègre l'<strong>assistant conversationnel HARNESS</strong> dans l'<strong>IDE cloud IDEA</strong> — espace VS Code complet à gauche, assistant IA en écran partagé à droite ; glissez des fichiers depuis l'explorateur pour les <code>@</code>-mentionner automatiquement, lisez le code tout en posant des questions sur ports, config et santé des services, et raccourcissez la boucle « je ne sais pas → demander → modifier ».
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Co-création IDEA en écran partagé</strong> : la barre d'outils ouvre l'assistant à droite — éditeur et Agent côte à côte ; ou deep-link <code>?file=chemin&harness=1</code> pour ouvrir un fichier et partager l'écran</li>
+  <li><strong>Glisser pour @ auto</strong> : déposez des fichiers de l'explorateur sur le panneau assistant pour les attacher au contexte — moins de chemins à taper, moins de contexte perdu</li>
+  <li><strong>Demander et vérifier</strong> : l'Agent appelle les Tools plateforme pour sonder Gateway / vidéo / IA et pointe config et sources — SSH + compose en une conversation</li>
+  <li><strong>Connaît l'ontologie</strong> : <code>HARNESS/ontology/AGENTS.md</code> intégré et workspace dépôt complet — architecture, ports, API et conventions d'install au même endroit</li>
+  <li><strong>Même sémantique console</strong> : tiroir flottant / « Assistant IA » plein écran partagent les capacités IDEA ; MCP + Cursor Skill réutilisables entre environnements</li>
+  <li><strong>Saut bidirectionnel</strong> : l'assistant peut générer des liens portail via <code>easyaiot_open_in_idea</code> — du Q&amp;R vers un IDE complet où l'on édite et publie</li>
+</ul>
+
+| | | |
+|:---:|:---:|:---:|
+| ![Connexion IDEA](.image/banner/banner1203.png) | ![Espace IDEA](.image/banner/banner1204.png) | ![Développement IDEA](.image/banner/banner1205.png) |
+| ![Dialogue Assistant IA](.image/banner/banner1210.png) | ![Analyse Assistant IA](.image/banner/banner1211.png) | ![Collaboration Assistant IA](.image/banner/banner1212.png) |
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 10px 0 12px;">
+Nombreux modules et chaînes longues — vérifier la santé, comprendre l'architecture ou trouver une config impliquent souvent documentation et SSH. HARNESS regroupe connaissance plateforme et sondes live dans un <strong>assistant conversationnel</strong> : demandez et vérifiez depuis le coin inférieur droit de toute page métier, pour raccourcir dépannage et PoC avec moins de dépendance au fournisseur et au savoir tacite.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Demander et vérifier</strong> : l'Agent appelle les Tools plateforme pour sonder Gateway / vidéo / IA et pointe config et sources — SSH + compose en une conversation</li>
+  <li><strong>Connaît l'ontologie</strong> : <code>HARNESS/ontology/AGENTS.md</code> intégré et workspace dépôt complet — architecture, ports, API et conventions d'install au même endroit</li>
+  <li><strong>Discuter dans la page</strong> : tiroir flottant iframe — pas de changement de page ni perte de contexte sur alertes/appareils ; plein écran « Assistant IA » ou nouvelle fenêtre</li>
+  <li><strong>Co-création IDEA en écran partagé</strong> : la barre d'outils ouvre l'assistant à droite — éditeur et Agent côte à côte ; ou deep-link <code>?file=chemin&harness=1</code></li>
+  <li><strong>Glisser pour @ auto</strong> : déposez des fichiers de l'explorateur sur le panneau assistant pour les attacher au contexte</li>
+  <li><strong>Saut bidirectionnel</strong> : l'Agent peut générer des liens portail via <code>easyaiot_open_in_idea</code> — du Q&amp;R vers un IDE complet ; IDEA pour le code et les PR, HARNESS pour architecture et santé</li>
+  <li><strong>MCP + Cursor Skill</strong> : mêmes capacités <code>easyaiot_*</code> via MCP vers Cursor et autres IDE — ce que la console permet de demander/vérifier, l'environnement dev peut l'invoquer ; Skills réutilisables entre projets</li>
+  <li><strong>Prêt dans tous les profils</strong> : Sidecar <a href="https://github.com/deepseek-ai/deepseek-harness" style="color: #3498db; text-decoration: none; font-weight: 600;">DeepSeek Harness</a> (<code>:3080</code>) ; inclus par défaut en <code>mini / standard / full</code> (<code>EASYAIOT_ENABLE_HARNESS=0</code> pour désactiver) ; endpoints DeepSeek / compatibles OpenAI ; clé dans <code>harness.env</code> ou l'UI</li>
+  <li><strong>Sécurité</strong> : module expérimental ; <code>dsh</code> en Developer Preview ; restreindre l'accès en prod et configurer approbation écriture/Shell ; ne pas committer les clés API</li>
 </ul>
 
 ### 📦 Modèles IA intégrés
@@ -1028,14 +1024,7 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 | ![Aperçu](.image/banner/banner1104.png) | ![Accès](.image/banner/banner1105.png) | ![NVR](.image/banner/banner1106.png) |
 | ![Vue live](.image/banner/banner1183.jpg) | ![Carte](.image/banner/banner1184.jpg) |  |
 
-#### 🤖 Assistant IA
-
-| | | |
-|:---:|:---:|:---:|
-| ![Connexion IDEA](.image/banner/banner1203.png) | ![Espace IDEA](.image/banner/banner1204.png) | ![Développement IDEA](.image/banner/banner1205.png) |
-| ![Dialogue Assistant IA](.image/banner/banner1210.png) | ![Analyse Assistant IA](.image/banner/banner1211.png) | ![Collaboration Assistant IA](.image/banner/banner1212.png) |
-
-#### 🤖 LLM et agents IA
+#### 🤖 Base de connaissances RAG et agents IA
 
 | | | |
 |:---:|:---:|:---:|
@@ -1044,6 +1033,8 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 | ![Base de connaissances](.image/banner/banner1246.png) | ![Documents de connaissances](.image/banner/banner1247.png) | ![Segments de connaissances](.image/banner/banner1248.png) |
 | ![Ensembles de connaissances](.image/banner/banner1249.png) | ![Expert RAG](.image/banner/banner1250.png) | ![Q&R RAG](.image/banner/banner1251.png) |
 | ![Assistant IA](.image/banner/banner1252.png) | ![Dialogue agent IA](.image/banner/banner1253.png) | ![Test d'effet agent](.image/banner/banner1254.png) |
+| ![Connexion IDEA](.image/banner/banner1203.png) | ![Espace IDEA](.image/banner/banner1204.png) | ![Développement IDEA](.image/banner/banner1205.png) |
+| ![Dialogue Assistant IA](.image/banner/banner1210.png) | ![Analyse Assistant IA](.image/banner/banner1211.png) | ![Collaboration Assistant IA](.image/banner/banner1212.png) |
 
 #### 🧠 Modèles IA
 
