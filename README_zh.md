@@ -568,6 +568,22 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
   <li><strong>调用韧性</strong>：顺序参数降级（temperature → max_completion_tokens）、SSE 流式、按厂商独立超时</li>
 </ul>
 
+### 🧠 RAG 知识库与智能体
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+在 LLM 统一网关之上，平台将业务文档转化为<strong>可问答的知识资产</strong>，并封装为可对话的<strong>智能体</strong>。知识按四层显式组织，内容可追溯、可审核、可复用，而不是堆进黑盒向量库里。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>知识文档</strong>：上传 TXT / Markdown / CSV / JSON / LOG 文件（UTF-8、单文件 ≤10MB），解析后自动切片并写入 Milvus 向量索引</li>
+  <li><strong>知识片段</strong>：自动切片只是起点——可编辑标题、内容与标签，也可人工标注新片段；每个片段可独立<em>启停检索</em>，过期内容可停用而不必删除</li>
+  <li><strong>知识集</strong>：跨文档组合片段，沉淀为可复用的业务知识资产；同一片段可被多个知识集引用，不复制数据</li>
+  <li><strong>RAG 专家（智能体）</strong>：组合多个知识集、配置角色指令与欢迎语，即可对接当前启用的大模型做真实问答测试——回答引用<code>【资料 N】</code>，资料不足时明确说明不编造；模型不可达时自动降级为纯检索回答</li>
+  <li><strong>检索验证</strong>：知识集发布前可先做检索验证，逐条展示来源与相关度分数，召回质量看得见而非靠猜</li>
+  <li><strong>混合检索</strong>：Milvus 向量检索与关键词（类 BM25）词项打分融合；内置 <code>local-hash</code> 离线降级 Embedding，无外部 Key 也能跑通全链路演示，生产可无缝切换 1024 维 OpenAI 兼容 Embedding 服务</li>
+  <li><strong>页面内智能助手</strong>：业务页面内置悬浮平台助手——询问平台用法、探测服务健康，或让智能体基于你的知识集回答，不离开当前页面</li>
+</ul>
+
 ### 📦 内置 AI 模型
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -1084,6 +1100,16 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 |:---:|:---:|:---:|
 | ![IDEA登录](.image/banner/banner1203.png) | ![IDEA工作区](.image/banner/banner1204.png) | ![IDEA开发](.image/banner/banner1205.png) |
 | ![AI助手对话](.image/banner/banner1210.png) | ![AI助手分析](.image/banner/banner1211.png) | ![AI助手协作](.image/banner/banner1212.png) |
+
+#### 🤖 大模型与智能体
+
+| | | |
+|:---:|:---:|:---:|
+| ![大模型网关](.image/banner/banner1240.png) | ![大模型管理](.image/banner/banner1241.png) | ![大模型配置](.image/banner/banner1242.png) |
+| ![模型模板](.image/banner/banner1243.png) | ![厂商接入](.image/banner/banner1244.png) | ![模型调用](.image/banner/banner1245.png) |
+| ![知识库](.image/banner/banner1246.png) | ![知识文档](.image/banner/banner1247.png) | ![知识片段](.image/banner/banner1248.png) |
+| ![知识集](.image/banner/banner1249.png) | ![RAG专家](.image/banner/banner1250.png) | ![RAG问答](.image/banner/banner1251.png) |
+| ![智能助手](.image/banner/banner1252.png) | ![智能体对话](.image/banner/banner1253.png) | ![智能体效果测试](.image/banner/banner1254.png) |
 
 #### 🧠 AI模型
 

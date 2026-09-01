@@ -515,6 +515,22 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
   <li><strong>호출 복원력</strong>: 순차 파라미터 폴백(temperature → max_completion_tokens), SSE 스트리밍, 벤더별 타임아웃</li>
 </ul>
 
+### 🧠 RAG 지식 베이스 및 AI 에이전트
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+통합 LLM 게이트웨이 위에서 플랫폼은 업무 문서를 <strong>답변 가능한 지식</strong>으로 바꾸고, 이를 대화형 <strong>AI 에이전트</strong>로 패키징합니다. 지식은 명시적인 4개 계층으로 구성되어, 블랙박스 벡터 더미가 아닌 추적·검토·재사용이 가능한 자산이 됩니다.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>지식 문서</strong>: TXT / Markdown / CSV / JSON / LOG 파일(UTF-8, 최대 10MB) 업로드; 각 문서는 파싱되어 검토 가능한 세그먼트로 자동 분할되고 Milvus에 벡터 인덱싱됩니다</li>
+  <li><strong>지식 세그먼트</strong>: 자동 분할은 시작점일 뿐입니다 — 제목·내용·태그를 편집하거나 새 세그먼트를 수동으로 작성할 수 있습니다; 세그먼트별로 검색 참여를 켜고 끌 수 있어, 오래된 콘텐츠는 삭제 없이 제외할 수 있습니다</li>
+  <li><strong>지식 세트</strong>: 여러 문서의 세그먼트를 조합해 재사용 가능한 업무 자산으로 만듭니다; 동일한 세그먼트는 데이터 복제 없이 여러 세트에서 참조할 수 있습니다</li>
+  <li><strong>RAG 전문가(에이전트)</strong>: 여러 지식 세트를 결합하고 역할 프롬프트와 환영 메시지를 정의한 뒤, 활성 LLM으로 실제 Q&A를 테스트합니다 — 답변은 <code>【자료 N】</code>을 인용하고 자료가 부족하면 지어내지 않는다고 명확히 답합니다; 모델에 연결할 수 없으면 검색 전용 모드로 자동 전환됩니다</li>
+  <li><strong>검색 검증</strong>: 게시 전에 지식 세트를 검색해 보고, 소스별 관련도 점수를 확인해 리콜 품질을 검증할 수 있습니다</li>
+  <li><strong>하이브리드 검색</strong>: Milvus 벡터 검색과 키워드(BM25 스타일) 점수를 융합합니다; 외부 키 없이도 전체 체인을 시연할 수 있는 오프라인 <code>local-hash</code> 임베딩 폴백을 제공하며, 프로덕션에서는 1024차원 OpenAI 호환 임베딩 서비스로 무중단 전환됩니다</li>
+  <li><strong>페이지 내 AI 어시스턴트</strong>: 업무 페이지에 플로팅 플랫폼 어시스턴트가 제공됩니다 — 플랫폼 사용법을 묻고, 서비스 상태를 확인하고, 화면을 떠나지 않고 큐레이션한 지식 세트로 에이전트가 답변하게 할 수 있습니다</li>
+</ul>
+
 ### 📦 내장 AI 모델
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -1018,6 +1034,16 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 |:---:|:---:|:---:|
 | ![IDEA 로그인](.image/banner/banner1203.png) | ![IDEA 워크스페이스](.image/banner/banner1204.png) | ![IDEA 개발](.image/banner/banner1205.png) |
 | ![AI 어시스턴트 대화](.image/banner/banner1210.png) | ![AI 어시스턴트 분석](.image/banner/banner1211.png) | ![AI 어시스턴트 협업](.image/banner/banner1212.png) |
+
+#### 🤖 LLM 및 AI 에이전트
+
+| | | |
+|:---:|:---:|:---:|
+| ![LLM 게이트웨이](.image/banner/banner1240.png) | ![LLM 모델 관리](.image/banner/banner1241.png) | ![LLM 구성](.image/banner/banner1242.png) |
+| ![모델 템플릿](.image/banner/banner1243.png) | ![벤더 연동](.image/banner/banner1244.png) | ![모델 호출](.image/banner/banner1245.png) |
+| ![지식 베이스](.image/banner/banner1246.png) | ![지식 문서](.image/banner/banner1247.png) | ![지식 세그먼트](.image/banner/banner1248.png) |
+| ![지식 세트](.image/banner/banner1249.png) | ![RAG 전문가](.image/banner/banner1250.png) | ![RAG Q&A](.image/banner/banner1251.png) |
+| ![AI 어시스턴트](.image/banner/banner1252.png) | ![에이전트 대화](.image/banner/banner1253.png) | ![에이전트 효과 테스트](.image/banner/banner1254.png) |
 
 #### 🧠 AI 모델
 

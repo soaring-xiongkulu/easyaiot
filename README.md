@@ -523,6 +523,22 @@ The platform converges every major LLM vendor onto a single OpenAI-compatible pr
   <li><strong>Resilience</strong>: ordered parameter fallback (temperature → max_completion_tokens), streaming SSE, per-vendor timeouts</li>
 </ul>
 
+### 🧠 RAG Knowledge Base & AI Agents
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+Built on the unified LLM gateway, the platform turns your business documents into <strong>answerable knowledge</strong> and packages it as conversational <strong>AI agents</strong>. Knowledge is organized in four explicit layers, so content stays traceable, reviewable, and reusable instead of living in a black-box vector pile.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Knowledge documents</strong>: Upload TXT / Markdown / CSV / JSON / LOG files (UTF-8, up to 10 MB); each document is parsed and auto-split into reviewable segments with Milvus vector indexing</li>
+  <li><strong>Knowledge segments</strong>: Auto-splitting is only the starting point — edit titles, content and tags, or manually annotate new segments; toggle <em>participation in retrieval</em> per segment so stale content can be retired without deletion</li>
+  <li><strong>Knowledge sets</strong>: Compose segments across documents into reusable business assets; the same segment can be referenced by multiple sets with no data duplication</li>
+  <li><strong>RAG experts (agents)</strong>: Combine multiple knowledge sets, define a role prompt and welcome message, then test real Q&amp;A against the active LLM — answers cite <code>【Source N】</code> and refuse to fabricate when the material is insufficient; if the model is unreachable the expert degrades gracefully to retrieval-only mode</li>
+  <li><strong>Retrieval verification</strong>: Search any knowledge set before publishing it, with per-source relevance scores, so you can validate recall quality instead of trusting it</li>
+  <li><strong>Hybrid retrieval</strong>: Vector search (Milvus) fused with keyword/BM25-style term scoring; an offline <code>local-hash</code> embedding fallback keeps the whole chain demo-able without external keys, while a 1024-dim OpenAI-compatible embedding service drops in seamlessly for production</li>
+  <li><strong>In-page AI assistant</strong>: A floating platform assistant is available on business pages — ask how the platform works, probe service health, or let an agent answer from your curated knowledge sets without leaving the current screen</li>
+</ul>
+
 ### 📦 Built-in AI Models
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -1042,6 +1058,16 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 |:---:|:---:|:---:|
 | ![IDEA Login](.image/banner/banner1203.png) | ![IDEA Workspace](.image/banner/banner1204.png) | ![IDEA Development](.image/banner/banner1205.png) |
 | ![AI Assistant Chat](.image/banner/banner1210.png) | ![AI Assistant Analysis](.image/banner/banner1211.png) | ![AI Assistant Collaboration](.image/banner/banner1212.png) |
+
+#### 🤖 LLM & AI Agents
+
+| | | |
+|:---:|:---:|:---:|
+| ![LLM Gateway](.image/banner/banner1240.png) | ![LLM Model Management](.image/banner/banner1241.png) | ![LLM Configuration](.image/banner/banner1242.png) |
+| ![LLM Templates](.image/banner/banner1243.png) | ![LLM Vendor](.image/banner/banner1244.png) | ![LLM Invocation](.image/banner/banner1245.png) |
+| ![Knowledge Base](.image/banner/banner1246.png) | ![Knowledge Documents](.image/banner/banner1247.png) | ![Knowledge Segments](.image/banner/banner1248.png) |
+| ![Knowledge Sets](.image/banner/banner1249.png) | ![RAG Expert](.image/banner/banner1250.png) | ![RAG Q&A](.image/banner/banner1251.png) |
+| ![AI Assistant](.image/banner/banner1252.png) | ![AI Agent Chat](.image/banner/banner1253.png) | ![Agent Effect Test](.image/banner/banner1254.png) |
 
 #### 🧠 AI Models
 

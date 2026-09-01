@@ -515,6 +515,22 @@ La plateforme converge tous les grands fournisseurs de LLM vers un protocole uni
   <li><strong>Résilience</strong> : repli paramétré ordonné (temperature → max_completion_tokens), SSE streaming, délais d'attente par fournisseur</li>
 </ul>
 
+### 🧠 Base de connaissances RAG et agents IA
+
+<p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
+Construite sur la passerelle LLM unifiée, la plateforme transforme vos documents métier en <strong>connaissances interrogeables</strong>, puis les encapsule dans des <strong>agents IA conversationnels</strong>. Le savoir est organisé en quatre niveaux explicites : le contenu reste traçable, vérifiable et réutilisable, au lieu de dormir dans un tas de vecteurs en boîte noire.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Documents de connaissances</strong> : importez des fichiers TXT / Markdown / CSV / JSON / LOG (UTF-8, ≤ 10 Mo) ; chaque document est analysé et découpé automatiquement en segments vérifiables, indexés en vecteurs dans Milvus</li>
+  <li><strong>Segments de connaissances</strong> : le découpage automatique n'est qu'un point de départ — modifiez titres, contenus et étiquettes, ou annotez manuellement de nouveaux segments ; activez/désactivez la participation de chaque segment à la recherche pour retirer un contenu obsolète sans le supprimer</li>
+  <li><strong>Ensembles de connaissances</strong> : composez des segments issus de plusieurs documents pour en faire des actifs métier réutilisables ; un même segment peut être référencé par plusieurs ensembles sans duplication de données</li>
+  <li><strong>Experts RAG (agents)</strong> : combinez plusieurs ensembles, définissez une consigne de rôle et un message d'accueil, puis testez de vraies questions/réponses sur le LLM actif — les réponses citent <code>【Source N】</code> et refusent d'inventer quand le matériel est insuffisant ; si le modèle est injoignable, l'expert retombe élégamment en mode recherche seule</li>
+  <li><strong>Vérification de la recherche</strong> : testez la recherche de chaque ensemble avant publication, avec les scores de pertinence par source, pour valider la qualité du rappel au lieu de la supposer</li>
+  <li><strong>Recherche hybride</strong> : recherche vectorielle (Milvus) fusionnée avec un score de mots-clés type BM25 ; un repli d'embedding <code>local-hash</code> hors ligne garde toute la chaîne démontrable sans clé externe, tandis qu'un service d'embedding 1024 dims compatible OpenAI s'intègre sans couture en production</li>
+  <li><strong>Assistant IA intégré aux pages</strong> : un assistant flottant est disponible sur les pages métier — interrogez le fonctionnement de la plateforme, sondez la santé des services, ou laissez un agent répondre depuis vos ensembles de connaissances sans quitter l'écran</li>
+</ul>
+
 ### 📦 Modèles IA intégrés
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
@@ -1018,6 +1034,16 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 |:---:|:---:|:---:|
 | ![Connexion IDEA](.image/banner/banner1203.png) | ![Espace IDEA](.image/banner/banner1204.png) | ![Développement IDEA](.image/banner/banner1205.png) |
 | ![Dialogue Assistant IA](.image/banner/banner1210.png) | ![Analyse Assistant IA](.image/banner/banner1211.png) | ![Collaboration Assistant IA](.image/banner/banner1212.png) |
+
+#### 🤖 LLM et agents IA
+
+| | | |
+|:---:|:---:|:---:|
+| ![Passerelle LLM](.image/banner/banner1240.png) | ![Gestion des modèles LLM](.image/banner/banner1241.png) | ![Configuration LLM](.image/banner/banner1242.png) |
+| ![Modèles LLM](.image/banner/banner1243.png) | ![Fournisseur LLM](.image/banner/banner1244.png) | ![Appel LLM](.image/banner/banner1245.png) |
+| ![Base de connaissances](.image/banner/banner1246.png) | ![Documents de connaissances](.image/banner/banner1247.png) | ![Segments de connaissances](.image/banner/banner1248.png) |
+| ![Ensembles de connaissances](.image/banner/banner1249.png) | ![Expert RAG](.image/banner/banner1250.png) | ![Q&R RAG](.image/banner/banner1251.png) |
+| ![Assistant IA](.image/banner/banner1252.png) | ![Dialogue agent IA](.image/banner/banner1253.png) | ![Test d'effet agent](.image/banner/banner1254.png) |
 
 #### 🧠 Modèles IA
 
