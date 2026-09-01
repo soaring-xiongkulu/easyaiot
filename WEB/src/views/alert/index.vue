@@ -88,6 +88,7 @@
     <ImageModal @register="registerImageModal" />
     <FaceAlertModal @register="registerFaceAlertModal" />
     <PlateAlertModal @register="registerPlateAlertModal" />
+    <LlmJudgeModal @register="registerLlmJudgeModal" />
     <DialogPlayer @register="registerVideoModal" />
     <DeviceLocationDrawer @register="registerLocationDrawer" @success="handleLocationDrawerSuccess" />
   </div>
@@ -107,6 +108,7 @@ import AlertListToolbar from '@/views/alert/components/AlertListToolbar.vue';
 import ImageModal from '@/views/alert/components/ImageModal/index.vue';
 import FaceAlertModal from '@/views/alert/components/FaceAlertModal/index.vue';
 import PlateAlertModal from '@/views/alert/components/PlateAlertModal/index.vue';
+import LlmJudgeModal from '@/views/alert/components/LlmJudgeModal/index.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import { useModal } from '@/components/Modal';
 import {
@@ -119,7 +121,7 @@ import { canSetDeviceLocation } from '@/views/camera/utils/deviceLocation';
 import { getDeviceInfo } from '@/api/device/camera';
 import { openDeviceInDialogPlayer } from '@/views/camera/utils/devicePlay';
 import { playAlertRecordInModal } from '@/utils/alertRecordPlayback';
-import { hasAlertFaceMatch, hasAlertPlateMatch, isSnapAlertTask } from '@/views/alert/alertDisplay';
+import { hasAlertFaceMatch, hasAlertPlateMatch, isSnapAlertTask, isLlmSampled } from '@/views/alert/alertDisplay';
 import { isEdgeStandaloneDeployProfile, isFlowTicketEnabled } from '@/utils/deployProfile';
 import AlarmTicket from '@/views/alert/components/AlarmTicket/index.vue';
 
@@ -128,6 +130,7 @@ const edgeStandalone = isEdgeStandaloneDeployProfile();
 const [registerImageModal, { openModal: openImageModal }] = useModal();
 const [registerFaceAlertModal, { openModal: openFaceAlertModal }] = useModal();
 const [registerPlateAlertModal, { openModal: openPlateAlertModal }] = useModal();
+const [registerLlmJudgeModal, { openModal: openLlmJudgeModal }] = useModal();
 const [registerVideoModal, { openModal: openVideoModal, closeModal: closeVideoModal, setModalProps: setVideoModalProps }] = useModal();
 const [registerLocationDrawer, { openModal: openLocationModal }] = useModal();
 
@@ -334,6 +337,13 @@ const handleViewImage = (record: Record<string, any>) => {
   const minioUrl = record['image_url'];
   if (minioUrl == null || String(minioUrl).trim() === '') {
     createMessage.warn('告警图片不存在');
+    return;
+  }
+  // 已被 AI 抽检的告警（含排队中/已出结论/研判失败）打开独立的大模型研判弹框，
+  // 该弹框在告警图片之外携带研判结论、规则与执行信息；
+  // 未命中抽检（not_sampled/限流/跳过）与未开启研判的告警走原有图片弹框
+  if (isLlmSampled(record['llm_judge_status'])) {
+    openLlmJudgeModal(true, { record });
     return;
   }
   // 关联人脸的告警走人脸专属弹框（全景图 + 人脸头像 + 姓名/行为/地点/事件），

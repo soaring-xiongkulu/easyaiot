@@ -33,6 +33,7 @@
     <ImageModal @register="registerImageModal" />
     <FaceAlertModal @register="registerFaceAlertModal" />
     <PlateAlertModal @register="registerPlateAlertModal" />
+    <LlmJudgeModal @register="registerLlmJudgeModal" />
   </div>
 </template>
 
@@ -45,6 +46,7 @@ import AlarmPanel from './components/AlarmPanel.vue'
 import ImageModal from '@/views/alert/components/ImageModal/index.vue'
 import FaceAlertModal from '@/views/alert/components/FaceAlertModal/index.vue'
 import PlateAlertModal from '@/views/alert/components/PlateAlertModal/index.vue'
+import LlmJudgeModal from '@/views/alert/components/LlmJudgeModal/index.vue'
 import { useModal } from '@/components/Modal'
 import { useMessage } from '@/hooks/web/useMessage'
 import { queryAlarmList, getDashboardStatistics } from '@/api/device/calculate'
@@ -53,12 +55,14 @@ import {
   formatAlertListTitle,
   hasAlertFaceMatch,
   hasAlertPlateMatch,
+  isLlmSampled,
 } from '@/views/alert/alertDisplay'
 
 const { createMessage } = useMessage()
 const [registerImageModal, { openModal: openImageModal }] = useModal()
 const [registerFaceAlertModal, { openModal: openFaceAlertModal }] = useModal()
 const [registerPlateAlertModal, { openModal: openPlateAlertModal }] = useModal()
+const [registerLlmJudgeModal, { openModal: openLlmJudgeModal }] = useModal()
 
 defineOptions({
   name: 'MonitorDashboard'
@@ -297,11 +301,15 @@ const handleDevicePlay = (device: any) => {
   }
 }
 
-// 告警事件点击查看告警图片（关联人脸的告警走人脸识别弹框，关联车牌的告警走车牌弹框，否则普通图片弹框）
+// 告警事件点击查看告警图片（已被 AI 抽检的告警走独立研判弹框，携带结论；关联人脸的告警走人脸识别弹框，关联车牌的告警走车牌弹框，否则普通图片弹框）
 const handlePlayAlarm = (alarm: any) => {
   const minioUrl = alarm.image_url
   if (minioUrl == null || String(minioUrl).trim() === '') {
     createMessage.warn('告警图片不存在')
+    return
+  }
+  if (isLlmSampled(alarm.llm_judge_status)) {
+    openLlmJudgeModal(true, { record: alarm })
     return
   }
   if (hasAlertFaceMatch(alarm)) {
