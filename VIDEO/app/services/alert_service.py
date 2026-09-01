@@ -311,6 +311,20 @@ def _alert_to_dict(alert: Alert) -> dict:
         except Exception as exc:
             logger.debug('告警关联车牌匹配信息增强失败: %s', exc)
 
+    # —— 大模型（LLM）研判状态：iot-sink 异步回写 llm_judge_status/llm_judge_detail ——
+    # 状态枚举：not_sampled(未抽检)/pending(排队中)/confirmed(确认成立)/rejected(判定误报)/
+    # error(研判失败)/rate_limited(限流跳过)。前端据此分流到独立的大模型研判弹框。
+    result['llm_judge_status'] = getattr(alert, 'llm_judge_status', None) or None
+    raw_detail = getattr(alert, 'llm_judge_detail', None)
+    if raw_detail:
+        try:
+            parsed_detail = json.loads(raw_detail) if isinstance(raw_detail, str) else raw_detail
+            result['llm_judge_detail'] = parsed_detail if isinstance(parsed_detail, dict) else {'reason': str(parsed_detail)}
+        except (json.JSONDecodeError, TypeError):
+            result['llm_judge_detail'] = {'reason': raw_detail}
+    else:
+        result['llm_judge_detail'] = None
+
     return result
 
 
@@ -411,6 +425,37 @@ def _get_alert_filter_query(args: dict) -> Query:
                     logger.warning(f'无法解析结束时间格式: {end_datetime_value}')
             except Exception as e:
                 logger.warning(f'解析结束时间失败: {end_datetime_value}, 错误: {str(e)}')
+
+    # AI 抽检筛选：
+    #  - llm_judge_status: 按具体研判状态过滤（逗号分隔多值）；值 not_sampled 表示"AI未抽检"组
+    #    （含未命中抽检/限流跳过/已跳过/无状态）
+    #  - llm_sampled: 兼容布尔筛选（1=已抽检组，0=未抽检组）
+    llm_status = args.get('llm_judge_status')
+    if llm_status:
+        status_values = [v.strip() for v in str(llm_status).split(',') if v.strip()]
+        if status_values:
+            if 'not_sampled' in status_values:
+                query = query.filter(
+                    db.or_(
+                        Alert.llm_judge_status.is_(None),
+                        Alert.llm_judge_status.in_(('not_sampled', 'rate_limited', 'skipped')),
+                    )
+                )
+            else:
+                query = query.filter(Alert.llm_judge_status.in_(status_values))
+    elif 'llm_sampled' in args and args['llm_sampled'] is not None:
+        llm_sampled = str(args['llm_sampled']).strip().lower()
+        if llm_sampled in ('1', 'true', 'yes', 'on'):
+            query = query.filter(
+                Alert.llm_judge_status.in_(('confirmed', 'rejected', 'pending', 'error'))
+            )
+        elif llm_sampled in ('0', 'false', 'no', 'off'):
+            query = query.filter(
+                db.or_(
+                    Alert.llm_judge_status.is_(None),
+                    Alert.llm_judge_status.in_(('not_sampled', 'rate_limited', 'skipped')),
+                )
+            )
 
     return query
 
