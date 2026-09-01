@@ -55,7 +55,7 @@
               v-model:value="llmRef.model_name"
               :options="state.modelNameOptions"
               placeholder="请输入模型标识，如：qwen-vl-max"
-              :filter-option="filterModelNameOption"
+              :filter-option="false"
             />
           </FormItem>
 
@@ -140,7 +140,7 @@ const state = reactive({
   templates: [
     { key: 'dashscope', label: '阿里云百炼', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', doc_url: 'https://bailian.console.aliyun.com/', builtin_models: ['qwen3.8-max', 'qwen3.8-max-preview', 'qwen3.7-max', 'qwen3.7-plus', 'qwen3.7-flash', 'qwen3.6-max-preview', 'qwen3.6-plus', 'qwen3.6-flash', 'qwen3.5-plus', 'qwen3.5-flash', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3-vl-plus', 'qwen3-vl-flash', 'qwen-vl-max'] },
     { key: 'deepseek', label: 'DeepSeek', base_url: 'https://api.deepseek.com/v1', doc_url: 'https://platform.deepseek.com/', builtin_models: ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-v4-flash-vision-exp'] },
-    { key: 'zhipu', label: '智谱 GLM', base_url: 'https://open.bigmodel.cn/api/paas/v4', doc_url: 'https://open.bigmodel.cn/', builtin_models: ['glm-5.3', 'glm-5.2', 'glm-5.1', 'glm-5-turbo', 'glm-5', 'glm-4.7', 'glm-4.7-flash', 'glm-4.5-flash', 'glm-4-plus', 'glm-4-flash', 'glm-4-air', 'glm-4v-plus', 'glm-4v-flash', 'glm-ocr'] },
+    { key: 'zhipu', label: '智谱 GLM', base_url: 'https://open.bigmodel.cn/api/paas/v4', doc_url: 'https://open.bigmodel.cn/', builtin_models: ['glm-5.3', 'glm-5.3-flash', 'glm-5.2', 'glm-5.1', 'glm-5-turbo', 'glm-5', 'glm-4.7', 'glm-4.7-flashx', 'glm-4.7-flash', 'glm-4.6', 'glm-4.5', 'glm-4.5-air', 'glm-4.5-airx', 'glm-4.5-flash', 'glm-4-plus', 'glm-4-long', 'glm-4-air', 'glm-4-airx', 'glm-4-flashx-250414', 'glm-4-flash-250414', 'glm-4-flash', 'glm-5v-turbo', 'glm-4.6v', 'glm-4.6v-flash', 'glm-4.5v', 'glm-4.1v-thinking-flashx', 'glm-4.1v-thinking-flash', 'glm-4v-plus', 'glm-4v-flash', 'glm-ocr'] },
     { key: 'openai', label: 'OpenAI', base_url: 'https://api.openai.com/v1', doc_url: 'https://platform.openai.com/', builtin_models: ['gpt-5.6-sol', 'gpt-5.6', 'gpt-5.6-sol-pro', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini', 'gpt-4.1-mini'] },
     { key: 'kimi', label: 'Kimi（月之暗面）', base_url: 'https://api.moonshot.cn/v1', doc_url: 'https://platform.moonshot.cn/', builtin_models: ['kimi-k2.6', 'kimi-k2.7-code'] },
     { key: 'claude', label: 'Claude（Anthropic）', base_url: '', doc_url: 'https://console.anthropic.com/', builtin_models: ['claude-opus-4-7', 'claude-opus-4-6', 'claude-opus-4-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-haiku-4-5'] },
@@ -194,9 +194,6 @@ const handleTemplateChange = (key: string) => {
     llmRef.model_name = state.modelNameOptions[0].value;
   }
 };
-
-const filterModelNameOption = (input: string, option: any) =>
-  (option?.value ?? '').toLowerCase().includes(input.toLowerCase());
 
 const llmRef = reactive({
   id: null as number | null,

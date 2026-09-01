@@ -36,7 +36,16 @@ LLM_TEMPLATES: Dict[str, LLMTemplate] = {
         key='zhipu', label='智谱 GLM',
         base_url='https://open.bigmodel.cn/api/paas/v4',
         doc_url='https://open.bigmodel.cn/',
-        builtin_models=('glm-5.3', 'glm-5.2', 'glm-5.1', 'glm-5-turbo', 'glm-5', 'glm-4.7', 'glm-4.7-flash', 'glm-4.5-flash', 'glm-4-plus', 'glm-4-flash', 'glm-4-air', 'glm-4v-plus', 'glm-4v-flash', 'glm-ocr'),
+        builtin_models=(
+            'glm-5.3', 'glm-5.3-flash', 'glm-5.2', 'glm-5.1', 'glm-5-turbo', 'glm-5',
+            'glm-4.7', 'glm-4.7-flashx', 'glm-4.7-flash', 'glm-4.6',
+            'glm-4.5', 'glm-4.5-air', 'glm-4.5-airx', 'glm-4.5-flash',
+            'glm-4-plus', 'glm-4-long', 'glm-4-air', 'glm-4-airx',
+            'glm-4-flashx-250414', 'glm-4-flash-250414', 'glm-4-flash',
+            'glm-5v-turbo', 'glm-4.6v', 'glm-4.6v-flash', 'glm-4.5v',
+            'glm-4.1v-thinking-flashx', 'glm-4.1v-thinking-flash',
+            'glm-4v-plus', 'glm-4v-flash', 'glm-ocr',
+        ),
     ),
     'openai': LLMTemplate(
         key='openai', label='OpenAI',
