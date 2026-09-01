@@ -280,7 +280,7 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "control_port") {
                 int port = parseInt(value);
                 if (port < 8000 || port > 9000) {
-                    LOG(ERROR) << "[CONFIG] control_port=" << port
+                    LOG(ERROR) << "[配置] control_port=" << port
                                << " 超出允许范围 [8000,9000]（与 VIDEO runtime_control_port 一致），"
                                << "回退为 8000；请改 ini 或任务端口";
                     config.controlPort = 8000;

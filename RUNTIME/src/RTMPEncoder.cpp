@@ -52,7 +52,7 @@ int64_t RTMPEncoder::defaultBitRate(int width, int height) {
 bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEncoderOptions& opts) {
     _codecCtx = avcodec_alloc_context3(codec);
     if (!_codecCtx) {
-        LOG(ERROR) << "[RTMP] Failed to allocate codec context";
+        LOG(ERROR) << "[推流] 编码器上下文分配失败";
         return false;
     }
 
@@ -102,16 +102,16 @@ bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEnco
     if (ret < 0) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(WARNING) << "[RTMP] Failed to open codec " << codec->name << ": " << errbuf;
+        LOG(WARNING) << "[推流] 编码器打开失败 " << codec->name << ": " << errbuf;
         avcodec_free_context(&_codecCtx);
         _codecCtx = nullptr;
         return false;
     }
 
-    LOG(INFO) << "[RTMP] Codec open " << codec->name
-              << " bitrate=" << (bitRate / 1000) << "k"
-              << " gop=" << gop
-              << " bufsize=" << (_codecCtx->rc_buffer_size / 1000) << "k"
+    LOG(INFO) << "[推流] 编码器已打开 " << codec->name
+              << " 码率=" << (bitRate / 1000) << "k"
+              << " 关键帧间隔=" << gop
+              << " 缓冲=" << (_codecCtx->rc_buffer_size / 1000) << "k"
               << " " << _encWidth << "x" << _encHeight << "@" << _fps << "fps";
     return true;
 }
@@ -119,7 +119,7 @@ bool RTMPEncoder::openEncoder(const AVCodec* codec, bool isNvenc, const RtmpEnco
 bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fps,
                        const RtmpEncoderOptions& opts) {
     if (_initialized) {
-        LOG(WARNING) << "[RTMP] Encoder already initialized";
+        LOG(WARNING) << "[推流] 编码器已初始化";
         return true;
     }
 
@@ -138,18 +138,18 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
         _encHeight = height;
     }
 
-    LOG(INFO) << "[RTMP] Initializing encoder: " << rtmpUrl
+    LOG(INFO) << "[推流] 正在初始化编码器: " << rtmpUrl
               << " (" << width << "x" << height << " -> " << _encWidth << "x" << _encHeight
               << "@" << _fps << "fps)"
-              << " prefer_hw=" << (opts.preferHw ? "true" : "false")
-              << " force_soft=" << (opts.forceSoft ? "true" : "false")
-              << " bitrate_hint=" << (opts.bitRate > 0 ? opts.bitRate / 1000 : 0) << "k";
+              << " 优先硬编=" << (opts.preferHw ? "true" : "false")
+              << " 强制软编=" << (opts.forceSoft ? "true" : "false")
+              << " 码率提示=" << (opts.bitRate > 0 ? opts.bitRate / 1000 : 0) << "k";
 
     int ret = avformat_alloc_output_context2(&_outputCtx, nullptr, "flv", rtmpUrl.c_str());
     if (ret < 0 || !_outputCtx) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(ERROR) << "[RTMP] Failed to create output context: " << errbuf;
+        LOG(ERROR) << "[推流] 输出上下文创建失败: " << errbuf;
         return false;
     }
 
@@ -160,15 +160,15 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
             if (openEncoder(nvenc, true, opts)) {
                 _encodeEp = "h264_nvenc";
                 opened = true;
-                LOG(INFO) << "[RTMP] Using h264_nvenc preset=" << opts.nvencPreset
-                          << " gpu=" << opts.gpuDeviceId;
+                LOG(INFO) << "[推流] 使用 h264_nvenc 预设=" << opts.nvencPreset
+                          << " GPU=" << opts.gpuDeviceId;
             } else {
-                LOG(WARNING) << "[RTMP] h264_nvenc open failed, falling back to libx264";
+                LOG(WARNING) << "[推流] h264_nvenc 打开失败，回退到 libx264";
                 _encWidth = width;
                 _encHeight = height;
             }
         } else {
-            LOG(INFO) << "[RTMP] h264_nvenc not found in FFmpeg, using libx264";
+            LOG(INFO) << "[推流] FFmpeg 中未找到 h264_nvenc，使用 libx264";
             _encWidth = width;
             _encHeight = height;
         }
@@ -180,12 +180,12 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
             soft = avcodec_find_encoder(AV_CODEC_ID_H264);
         }
         if (!soft) {
-            LOG(ERROR) << "[RTMP] H.264 codec not found";
+            LOG(ERROR) << "[推流] 未找到 H.264 编码器";
             release();
             return false;
         }
         if (!openEncoder(soft, false, opts)) {
-            LOG(ERROR) << "[RTMP] Failed to open libx264";
+            LOG(ERROR) << "[推流] libx264 打开失败";
             release();
             return false;
         }
@@ -194,7 +194,7 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
 
     _videoStream = avformat_new_stream(_outputCtx, nullptr);
     if (!_videoStream) {
-        LOG(ERROR) << "[RTMP] Failed to create video stream";
+        LOG(ERROR) << "[推流] 视频流创建失败";
         release();
         return false;
     }
@@ -206,7 +206,7 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
     if (ret < 0) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(ERROR) << "[RTMP] Failed to copy codec parameters: " << errbuf;
+        LOG(ERROR) << "[推流] 复制编码参数失败: " << errbuf;
         release();
         return false;
     }
@@ -221,8 +221,8 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
         if (ret < 0) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(ret, errbuf, sizeof(errbuf));
-            LOG(ERROR) << "[RTMP] Failed to open RTMP URL: " << errbuf
-                      << " (URL: " << rtmpUrl << ")";
+            LOG(ERROR) << "[推流] RTMP 地址打开失败: " << errbuf
+                      << "（地址: " << rtmpUrl << "）";
             av_dict_free(&options);
             release();
             return false;
@@ -239,7 +239,7 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
     if (ret < 0) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(ERROR) << "[RTMP] Failed to write header: " << errbuf;
+        LOG(ERROR) << "[推流] 封装头写入失败: " << errbuf;
         release();
         return false;
     }
@@ -251,14 +251,14 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
         SWS_BICUBIC, nullptr, nullptr, nullptr
     );
     if (!_swsCtx) {
-        LOG(ERROR) << "[RTMP] Failed to create sws context";
+        LOG(ERROR) << "[推流] sws 转换上下文创建失败";
         release();
         return false;
     }
 
     _yuvFrame = av_frame_alloc();
     if (!_yuvFrame) {
-        LOG(ERROR) << "[RTMP] Failed to allocate YUV frame";
+        LOG(ERROR) << "[推流] YUV 帧分配失败";
         release();
         return false;
     }
@@ -271,14 +271,14 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
     if (ret < 0) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(ERROR) << "[RTMP] Failed to allocate frame buffer: " << errbuf;
+        LOG(ERROR) << "[推流] 帧缓冲分配失败: " << errbuf;
         release();
         return false;
     }
 
     _packet = av_packet_alloc();
     if (!_packet) {
-        LOG(ERROR) << "[RTMP] Failed to allocate packet";
+        LOG(ERROR) << "[推流] 数据包分配失败";
         release();
         return false;
     }
@@ -286,19 +286,19 @@ bool RTMPEncoder::init(const std::string& rtmpUrl, int width, int height, int fp
     _initialized = true;
     _frameIndex = 0;
 
-    LOG(INFO) << "[RTMP] Encoder initialized successfully encode_ep=" << _encodeEp
+    LOG(INFO) << "[推流] 编码器初始化成功 encode_ep=" << _encodeEp
               << " url=" << rtmpUrl;
     return true;
 }
 
 bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
     if (!_initialized) {
-        LOG(ERROR) << "[RTMP] Encoder not initialized";
+        LOG(ERROR) << "[推流] 编码器未初始化";
         return false;
     }
 
     if (frame.empty()) {
-        LOG(WARNING) << "[RTMP] Empty frame received";
+        LOG(WARNING) << "[推流] 收到空帧";
         return false;
     }
 
@@ -314,7 +314,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
     int ret = sws_scale(_swsCtx, srcData, srcLinesize, 0, _srcHeight,
                        _yuvFrame->data, _yuvFrame->linesize);
     if (ret < 0) {
-        LOG(ERROR) << "[RTMP] Failed to convert color space";
+        LOG(ERROR) << "[推流] 色彩空间转换失败";
         return false;
     }
 
@@ -325,7 +325,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
     if (ret < 0) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(ERROR) << "[RTMP] Failed to send frame: " << errbuf;
+        LOG(ERROR) << "[推流] 帧送入编码器失败: " << errbuf;
         return false;
     }
 
@@ -337,7 +337,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
         } else if (ret < 0) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(ret, errbuf, sizeof(errbuf));
-            LOG(ERROR) << "[RTMP] Failed to receive packet: " << errbuf;
+            LOG(ERROR) << "[推流] 接收编码包失败: " << errbuf;
             return false;
         }
 
@@ -348,7 +348,7 @@ bool RTMPEncoder::encodeAndPush(const cv::Mat& frame) {
         if (ret < 0) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(ret, errbuf, sizeof(errbuf));
-            LOG(ERROR) << "[RTMP] Failed to write frame: " << errbuf;
+            LOG(ERROR) << "[推流] 帧写入失败: " << errbuf;
             av_packet_unref(_packet);
             return false;
         }
@@ -364,7 +364,7 @@ void RTMPEncoder::release() {
         return;
     }
 
-    LOG(INFO) << "[RTMP] Releasing encoder resources encode_ep=" << _encodeEp;
+    LOG(INFO) << "[推流] 正在释放编码器资源 encode_ep=" << _encodeEp;
 
     if (_codecCtx && _initialized) {
         avcodec_send_frame(_codecCtx, nullptr);
@@ -419,5 +419,5 @@ void RTMPEncoder::release() {
     _frameIndex = 0;
     _encodeEp = "none";
 
-    LOG(INFO) << "[RTMP] Encoder resources released";
+    LOG(INFO) << "[推流] 编码器资源已释放";
 }

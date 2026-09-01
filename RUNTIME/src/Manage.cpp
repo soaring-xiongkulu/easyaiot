@@ -5,7 +5,7 @@ std::atomic<int> s_exit(0);
 
 // 信号处理函数
 void procSignal(int s) {
-    LOG(INFO) << "receive signal: " << s << ",will exit...";
+    LOG(INFO) << "收到信号: " << s << "，即将退出...";
     s_exit.store(1, std::memory_order_release);
 }
 
@@ -49,12 +49,12 @@ bool Server::start() {
         _detectHandle = std::make_unique<Detech>(_local);
         int ret = _detectHandle->start();
         if (ret != 0) {
-            LOG(ERROR) << "CManage start failed.errcode:" << ret;
+            LOG(ERROR) << "RUNTIME 启动失败，错误码: " << ret;
             _detectHandle.reset();
             return false;
         }
     } catch (const std::exception &e) {
-        LOG(ERROR) << "CManage start exception: " << e.what();
+        LOG(ERROR) << "RUNTIME 启动异常: " << e.what();
         return false;
     }
     _isRun.store(true, std::memory_order_release);
@@ -69,7 +69,7 @@ void Server::stop() {
         _detectHandle->stop();
         _detectHandle.reset();
     }
-    LOG(WARNING) << "ALL RELEASE success.";
+    LOG(WARNING) << "所有资源已释放。";
 }
 
 bool Server::isRun() const {

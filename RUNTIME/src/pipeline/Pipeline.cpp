@@ -153,7 +153,7 @@ void Pipeline::start() {
     if (running_.exchange(true)) {
         return;
     }
-    LOG(INFO) << "[PIPELINE] Starting pull/decode + infer + emit stages decode_ep=" << decodeEp_;
+    LOG(INFO) << "[流水线] 正在启动 拉流/解码 + 推理 + 推送 各阶段 解码后端=" << decodeEp_;
     pullThread_ = std::thread(&Pipeline::pullDecodeLoop, this);
     inferThread_ = std::thread(&Pipeline::inferLoop, this);
     emitThread_ = std::thread(&Pipeline::emitLoop, this);
@@ -177,7 +177,7 @@ void Pipeline::join() {
 
 bool Pipeline::reopenStream(bool forceSoft) {
     if (rtspUrl_.empty()) {
-        LOG(ERROR) << "[PIPELINE] reopenStream: empty rtsp url";
+        LOG(ERROR) << "[流水线] reopenStream: 视频地址为空";
         return false;
     }
 
@@ -209,7 +209,7 @@ bool Pipeline::reopenStream(bool forceSoft) {
     if (ret != 0) {
         char errbuf[128];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(ERROR) << "[PIPELINE] avformat_open_input failed: " << errbuf;
+        LOG(ERROR) << "[流水线] avformat_open_input 打开输入流失败: " << errbuf;
         if (formatCtx_) {
             avformat_free_context(formatCtx_);
             formatCtx_ = nullptr;
@@ -218,14 +218,14 @@ bool Pipeline::reopenStream(bool forceSoft) {
     }
 
     if (avformat_find_stream_info(formatCtx_, nullptr) < 0) {
-        LOG(ERROR) << "[PIPELINE] avformat_find_stream_info failed";
+        LOG(ERROR) << "[流水线] avformat_find_stream_info 获取流信息失败";
         avformat_close_input(&formatCtx_);
         return false;
     }
 
     videoIndex_ = av_find_best_stream(formatCtx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (videoIndex_ < 0) {
-        LOG(ERROR) << "[PIPELINE] no video stream";
+        LOG(ERROR) << "[流水线] 未找到视频流";
         avformat_close_input(&formatCtx_);
         return false;
     }
@@ -237,7 +237,7 @@ bool Pipeline::reopenStream(bool forceSoft) {
                           soft,
                           config_.hwaccelDeviceId,
                           &hwState_)) {
-        LOG(ERROR) << "[PIPELINE] openVideoDecoder failed";
+        LOG(ERROR) << "[流水线] openVideoDecoder 打开解码器失败";
         avformat_close_input(&formatCtx_);
         return false;
     }
@@ -251,15 +251,15 @@ bool Pipeline::reopenStream(bool forceSoft) {
     }
     videoWidth_ = codecCtx_->width;
     videoHeight_ = codecCtx_->height;
-    LOG(INFO) << "[PIPELINE] reopened stream " << videoWidth_ << "x" << videoHeight_
-              << "@" << videoFps_ << "fps decode_ep=" << decodeEp_;
+    LOG(INFO) << "[流水线] 已重开视频流 " << videoWidth_ << "x" << videoHeight_
+              << "@" << videoFps_ << "fps 解码后端=" << decodeEp_;
     return true;
 }
 
 void Pipeline::pullDecodeLoop() {
-    LOG(INFO) << "[PIPELINE-PULL] thread started decode_ep=" << decodeEp_;
+    LOG(INFO) << "[拉流线程] 线程已启动 解码后端=" << decodeEp_;
     if (!formatCtx_ || !codecCtx_) {
-        LOG(ERROR) << "[PIPELINE-PULL] FFmpeg not ready";
+        LOG(ERROR) << "[拉流线程] FFmpeg 尚未就绪";
         running_.store(false);
         return;
     }
@@ -269,7 +269,7 @@ void Pipeline::pullDecodeLoop() {
     AVFrame* swFrame = av_frame_alloc();
     AVFrame* frameBGR = av_frame_alloc();
     if (!packet || !frame || !swFrame || !frameBGR) {
-        LOG(ERROR) << "[PIPELINE-PULL] alloc failed";
+        LOG(ERROR) << "[拉流线程] 内存分配失败";
         running_.store(false);
         return;
     }
@@ -306,7 +306,7 @@ void Pipeline::pullDecodeLoop() {
     }
 
     if (!swsCtx) {
-        LOG(ERROR) << "[PIPELINE-PULL] sws_getContext failed";
+        LOG(ERROR) << "[拉流线程] sws_getContext 创建失败";
         av_free(buffer);
         av_frame_free(&frameBGR);
         av_frame_free(&swFrame);
@@ -324,8 +324,8 @@ void Pipeline::pullDecodeLoop() {
     int rapidEofStreak = 0;
     const bool finiteSource = isFiniteMediaUrl(rtspUrl_);
     if (finiteSource) {
-        LOG(INFO) << "[PIPELINE-PULL] finite media source detected (file/VOD); "
-                     "EOF will end pull loop instead of reconnect storm";
+        LOG(INFO) << "[拉流线程] 检测到有限时长媒体源（文件/点播）；"
+                     "流结束将直接退出拉流循环，避免反复重连";
     }
 
     auto rebuildConverters = [&](AVPixelFormat srcFmt) -> bool {
@@ -347,7 +347,7 @@ void Pipeline::pullDecodeLoop() {
             videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
             SWS_BILINEAR, nullptr, nullptr, nullptr);
         if (!swsCtx) {
-            LOG(ERROR) << "[PIPELINE-PULL] sws rebuild failed src_fmt=" << srcFmt;
+            LOG(ERROR) << "[拉流线程] sws 转换器重建失败 src_fmt=" << srcFmt;
             return false;
         }
         framePool_.reset(8, videoWidth_, videoHeight_);
@@ -363,19 +363,19 @@ void Pipeline::pullDecodeLoop() {
 
             // Finite file/VOD: stop cleanly — reopen would just EOF again and burn CPU
             if (isEof && finiteSource) {
-                LOG(INFO) << "[PIPELINE-PULL] EOF on finite source, ending pull loop "
-                             "(packets_this_session=" << packetsThisSession << ")";
+                LOG(INFO) << "[拉流线程] 有限时长源已到结尾，结束拉流循环 "
+                             "（本会话包数=" << packetsThisSession << "）";
                 endedByEof_.store(true);
                 break;
             }
 
             if (isEof) {
-                LOG(WARNING) << "[PIPELINE-PULL] EOF, attempting reconnect"
-                             << " session_packets=" << packetsThisSession
-                             << " rapid_eof_streak=" << rapidEofStreak;
+                LOG(WARNING) << "[拉流线程] 流已结束，尝试重连"
+                             << " 会话包数=" << packetsThisSession
+                             << " 快速结束次数=" << rapidEofStreak;
             } else {
-                LOG(WARNING) << "[PIPELINE-PULL] read error: " << errbuf
-                             << ", attempting reconnect";
+                LOG(WARNING) << "[拉流线程] 读取错误: " << errbuf
+                             << "，尝试重连";
             }
 
             // Live: short session ending in EOF → grow backoff (avoid 1s reopen storms)
@@ -386,13 +386,13 @@ void Pipeline::pullDecodeLoop() {
                 if (rapidEofStreak >= 3) {
                     reconnectBackoffSec = std::max(reconnectBackoffSec, 5);
                 }
-                LOG(WARNING) << "[PIPELINE-PULL] rapid EOF (short session), backoff="
-                             << reconnectBackoffSec << "s streak=" << rapidEofStreak;
+                LOG(WARNING) << "[拉流线程] 短会话快速 EOF，退避="
+                             << reconnectBackoffSec << " 秒，连续次数=" << rapidEofStreak;
             }
 
             bool reopened = false;
             while (running_.load()) {
-                LOG(INFO) << "[PIPELINE-PULL] reconnect sleep " << reconnectBackoffSec << "s";
+                LOG(INFO) << "[拉流线程] 等待重连 " << reconnectBackoffSec << " 秒";
                 for (int s = 0; s < reconnectBackoffSec && running_.load(); ++s) {
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                 }
@@ -404,15 +404,15 @@ void Pipeline::pullDecodeLoop() {
                     packetsThisSession = 0;
                     hwTransferFailStreak_ = 0;
                     // Do NOT reset backoff here — wait until sustained packets
-                    LOG(INFO) << "[PIPELINE-PULL] reconnect success decode_ep=" << decodeEp_
-                              << " (backoff stays " << reconnectBackoffSec
-                              << "s until sustained read)";
+                    LOG(INFO) << "[拉流线程] 重连成功 解码后端=" << decodeEp_
+                              << "（退避保持 " << reconnectBackoffSec
+                              << " 秒，直至持续读取后重置）";
                     reopened = true;
                     break;
                 }
                 reconnectBackoffSec = std::min(reconnectBackoffSec * 2, kMaxBackoffSec);
-                LOG(WARNING) << "[PIPELINE-PULL] reopen failed, next backoff="
-                             << reconnectBackoffSec << "s";
+                LOG(WARNING) << "[拉流线程] 重开失败，下次退避="
+                             << reconnectBackoffSec << " 秒";
             }
             if (!reopened) {
                 break;
@@ -423,8 +423,8 @@ void Pipeline::pullDecodeLoop() {
         ++packetsThisSession;
         if (packetsThisSession >= kSustainPacketsToResetBackoff) {
             if (reconnectBackoffSec != 1 || rapidEofStreak != 0) {
-                LOG(INFO) << "[PIPELINE-PULL] sustained read (" << packetsThisSession
-                          << " packets), reset reconnect backoff";
+                LOG(INFO) << "[拉流线程] 已持续读取（" << packetsThisSession
+                          << " 个包），重置重连退避";
             }
             reconnectBackoffSec = 1;
             rapidEofStreak = 0;
@@ -457,9 +457,9 @@ void Pipeline::pullDecodeLoop() {
             if (!srcForSws) {
                 ++hwTransferFailStreak_;
                 if (!forceSoftSession_ && hwTransferFailStreak_ >= kHwFailDowngradeThreshold) {
-                    LOG(WARNING) << "[PIPELINE-PULL] NVDEC transfer failed "
+                    LOG(WARNING) << "[拉流线程] NVDEC 传输失败 "
                                  << hwTransferFailStreak_
-                                 << " times, downgrading to software decode";
+                                 << " 次，降级为软件解码";
                     forceSoftSession_ = true;
                     if (reopenStream(true) &&
                         rebuildConverters(codecCtx_ ? codecCtx_->pix_fmt : AV_PIX_FMT_YUV420P)) {
@@ -533,11 +533,11 @@ void Pipeline::pullDecodeLoop() {
     av_frame_free(&frame);
     av_packet_free(&packet);
     running_.store(false);
-    LOG(INFO) << "[PIPELINE-PULL] thread exit";
+    LOG(INFO) << "[拉流线程] 线程已退出";
 }
 
 void Pipeline::inferLoop() {
-    LOG(INFO) << "[PIPELINE-INFER] thread started";
+    LOG(INFO) << "[推理线程] 线程已启动";
     std::vector<DetectObject> lastDetections;
     int lastSubmittedFrameId = -1;
     int aiFrameInterval = 0;
@@ -652,11 +652,11 @@ void Pipeline::inferLoop() {
         framePool_.release(poolIndex);
     }
 
-    LOG(INFO) << "[PIPELINE-INFER] thread exit";
+    LOG(INFO) << "[推理线程] 线程已退出";
 }
 
 void Pipeline::emitLoop() {
-    LOG(INFO) << "[PIPELINE-EMIT] thread started";
+    LOG(INFO) << "[推送线程] 线程已启动";
     while (running_.load() || resultRing_.sizeApprox() > 0) {
         InferResult result;
         if (!resultRing_.pop(result)) {
@@ -673,7 +673,7 @@ void Pipeline::emitLoop() {
             }
         }
     }
-    LOG(INFO) << "[PIPELINE-EMIT] thread exit";
+    LOG(INFO) << "[推送线程] 线程已退出";
 }
 
 }  // namespace runtime

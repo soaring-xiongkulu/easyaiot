@@ -93,7 +93,7 @@ void YoloThreadPool::worker(int id) {
                 instance->Run(std::get<3>(task), detections);
             } catch (const std::exception& e) {
                 // 推理异常不得逃逸 worker 线程（进程退出瞬间 ORT 会话异常曾导致 std::terminate）
-                LOG(ERROR) << "[YOLO] worker inference exception model=" << model_id
+                LOG(ERROR) << "[YOLO] 工作线程推理异常 model=" << model_id
                            << ": " << e.what();
             }
         }

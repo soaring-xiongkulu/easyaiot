@@ -73,15 +73,15 @@ void PatrolScheduler::start() {
         return;
     }
     if (config_.devices.empty()) {
-        LOG(ERROR) << "[PATROL] no devices configured";
+        LOG(ERROR) << "[巡检] 未配置设备";
         running_.store(false);
         return;
     }
     lastPatrolTime_.assign(config_.devices.size(), 0);
-    LOG(INFO) << "[PATROL] starting scheduler for " << config_.devices.size() << " device(s)"
-              << " mode=" << config_.patrolMode
-              << " interval=" << config_.patrolIntervalSec << "s"
-              << " pool_size=" << config_.patrolPoolSize;
+    LOG(INFO) << "[巡检] 正在启动调度器，共 " << config_.devices.size() << " 个设备"
+              << " 模式=" << config_.patrolMode
+              << " 间隔=" << config_.patrolIntervalSec << " 秒"
+              << " 并发池大小=" << config_.patrolPoolSize;
     thread_ = std::thread(&PatrolScheduler::loop, this);
 }
 
@@ -98,7 +98,7 @@ void PatrolScheduler::join() {
 bool PatrolScheduler::grabOneShot(const DeviceStreamConfig& device, cv::Mat& out) {
     cv::VideoCapture cap;
     if (!cap.open(device.rtspUrl, cv::CAP_FFMPEG)) {
-        LOG(WARNING) << "[PATROL] open failed device=" << device.deviceId;
+        LOG(WARNING) << "[巡检] 打开失败，设备=" << device.deviceId;
         return false;
     }
     cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
@@ -171,16 +171,16 @@ void PatrolScheduler::processDevice(const DeviceStreamConfig& device, const cv::
     if (!alarmDetections.empty()) {
         totalDetections.fetch_add(alarmDetections.size(), std::memory_order_relaxed);
         if (alarmFn_ && config_.enableAlarm) {
-            LOG(INFO) << "[PATROL] alarm device=" << device.deviceId
-                      << " dets=" << alarmDetections.size()
-                      << " region=" << regionName;
+            LOG(INFO) << "[巡检] 告警，设备=" << device.deviceId
+                      << " 检测数=" << alarmDetections.size()
+                      << " 区域=" << regionName;
             alarmFn_(alarmDetections, regionName, device.deviceId, device.deviceName, frame);
         }
     }
 }
 
 void PatrolScheduler::loop() {
-    LOG(INFO) << "[PATROL] loop started";
+    LOG(INFO) << "[巡检] 调度循环已启动";
     const size_t n = config_.devices.size();
     const int baseInterval = std::max(3, config_.patrolIntervalSec);
     const bool rotateMode = (config_.patrolMode == "rotate");
@@ -193,7 +193,7 @@ void PatrolScheduler::loop() {
             size_t idx = rotateIdx_ % n;
             rotateIdx_++;
             const auto& device = config_.devices[idx];
-            LOG(INFO) << "[PATROL] rotate device=" << device.deviceId;
+            LOG(INFO) << "[巡检] 轮转巡检设备=" << device.deviceId;
             cv::Mat frame;
             if (grabOneShot(device, frame)) {
                 processDevice(device, frame);
@@ -215,7 +215,7 @@ void PatrolScheduler::loop() {
             for (size_t k = 0; k < take && running_.load(); ++k) {
                 size_t idx = due[k];
                 const auto& device = config_.devices[idx];
-                LOG(INFO) << "[PATROL] pool device=" << device.deviceId;
+                LOG(INFO) << "[巡检] 并发池巡检设备=" << device.deviceId;
                 cv::Mat frame;
                 if (grabOneShot(device, frame)) {
                     processDevice(device, frame);
@@ -226,7 +226,7 @@ void PatrolScheduler::loop() {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     }
-    LOG(INFO) << "[PATROL] loop exit";
+    LOG(INFO) << "[巡检] 调度循环已退出";
 }
 
 }  // namespace runtime

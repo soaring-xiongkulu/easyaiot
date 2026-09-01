@@ -21,14 +21,14 @@ Server* g_server = nullptr;
 void printUsage(const char* program) {
     std::cout << "\n";
     std::cout << "============================================\n";
-    std::cout << "  RUNTIME - AI Real-time Inference Worker\n";
+    std::cout << "  RUNTIME - AI 实时推理工作进程\n";
     std::cout << "============================================\n";
-    std::cout << "\nUsage:\n";
+    std::cout << "\n用法:\n";
     std::cout << "  " << program << " <config.ini>\n";
     std::cout << "  " << program << " --version\n";
-    std::cout << "\nExample:\n";
+    std::cout << "\n示例:\n";
     std::cout << "  " << program << " config/task_123.ini\n";
-    std::cout << "\nRefer to: config/config.example.ini\n";
+    std::cout << "\n参考: config/config.example.ini\n";
     std::cout << "============================================\n\n";
 }
 
@@ -36,8 +36,8 @@ void printBanner() {
     std::cout << "\n";
     std::cout << "============================================\n";
     std::cout << "  EasyAIoT RUNTIME\n";
-    std::cout << "  C++ frame pipeline for VIDEO executor=cpp\n";
-    std::cout << "  Version " << RUNTIME_VERSION_STR << "\n";
+    std::cout << "  C++ 帧流水线（VIDEO executor=cpp）\n";
+    std::cout << "  版本 " << RUNTIME_VERSION_STR << "\n";
     std::cout << "============================================\n";
     std::cout << "\n";
 }
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
     printBanner();
 
     if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <config_file.ini>" << std::endl;
+        std::cerr << "用法: " << argv[0] << " <config_file.ini>" << std::endl;
         printUsage(argv[0]);
         return -1;
     }

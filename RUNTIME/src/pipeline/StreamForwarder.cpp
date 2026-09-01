@@ -183,14 +183,14 @@ bool shouldTranscodeToH264(const std::string& inputUrl) {
     }
     const std::string codec = probeInputVideoCodec(inputUrl);
     if (codec.empty()) {
-        LOG(WARNING) << "[FORWARD] codec probe failed, try copy first";
+        LOG(WARNING) << "[转发] 编码探测失败，先尝试直接复制";
         return false;
     }
     if (isH264CodecName(codec)) {
-        LOG(INFO) << "[FORWARD] source codec=" << codec << " use copy";
+        LOG(INFO) << "[转发] 源编码=" << codec << " 使用直接复制";
         return false;
     }
-    LOG(INFO) << "[FORWARD] source codec=" << codec << " auto-transcode to H.264 for Web FLV";
+    LOG(INFO) << "[转发] 源编码=" << codec << " 自动转码为 H.264 供 Web FLV 使用";
     return true;
 }
 
@@ -249,7 +249,7 @@ bool StreamForwarder::openInput() {
 
     inCtx_ = avformat_alloc_context();
     if (!inCtx_) {
-        LOG(ERROR) << "[FORWARD] Failed to allocate input context";
+        LOG(ERROR) << "[转发] 输入上下文分配失败";
         return false;
     }
 
@@ -279,7 +279,7 @@ bool StreamForwarder::openInput() {
     int ret = avformat_open_input(&inCtx_, openUrl.c_str(), nullptr, &fmtOptions);
     av_dict_free(&fmtOptions);
     if (ret < 0) {
-        logAvError("[FORWARD] avformat_open_input failed", ret);
+        logAvError("[转发] avformat_open_input 打开输入失败", ret);
         return false;
     }
 
@@ -291,22 +291,22 @@ bool StreamForwarder::openInput() {
     ret = avformat_find_stream_info(inCtx_, &probeOptions);
     av_dict_free(&probeOptions);
     if (ret < 0) {
-        logAvError("[FORWARD] avformat_find_stream_info failed", ret);
+        logAvError("[转发] avformat_find_stream_info 获取流信息失败", ret);
         return false;
     }
 
     videoInIndex_ = av_find_best_stream(inCtx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (videoInIndex_ < 0) {
-        LOG(ERROR) << "[FORWARD] No video stream found in " << openUrl;
+        LOG(ERROR) << "[转发] 未找到视频流: " << openUrl;
         return false;
     }
 
     AVStream* inStream = inCtx_->streams[videoInIndex_];
     const char* codecName = avcodec_get_name(inStream->codecpar->codec_id);
-    LOG(INFO) << "[FORWARD] Input ready: " << openUrl
-              << " video=" << inStream->codecpar->width << "x" << inStream->codecpar->height
-              << " codec=" << (codecName ? codecName : "unknown")
-              << " extradata=" << inStream->codecpar->extradata_size << "B";
+    LOG(INFO) << "[转发] 输入就绪: " << openUrl
+              << " 视频=" << inStream->codecpar->width << "x" << inStream->codecpar->height
+              << " 编码=" << (codecName ? codecName : "unknown")
+              << " 附加数据=" << inStream->codecpar->extradata_size << "B";
     return true;
 }
 
@@ -324,20 +324,20 @@ bool StreamForwarder::openOutput() {
 
     int ret = avformat_alloc_output_context2(&outCtx_, nullptr, "flv", config_.rtmpUrl.c_str());
     if (ret < 0 || !outCtx_) {
-        logAvError("[FORWARD] avformat_alloc_output_context2 failed", ret);
+        logAvError("[转发] avformat_alloc_output_context2 分配输出上下文失败", ret);
         return false;
     }
 
     AVStream* inStream = inCtx_->streams[videoInIndex_];
     AVStream* outStream = avformat_new_stream(outCtx_, nullptr);
     if (!outStream) {
-        LOG(ERROR) << "[FORWARD] avformat_new_stream failed";
+        LOG(ERROR) << "[转发] avformat_new_stream 创建输出流失败";
         return false;
     }
 
     ret = avcodec_parameters_copy(outStream->codecpar, inStream->codecpar);
     if (ret < 0) {
-        logAvError("[FORWARD] avcodec_parameters_copy failed", ret);
+        logAvError("[转发] avcodec_parameters_copy 复制编码参数失败", ret);
         return false;
     }
     outStream->codecpar->codec_tag = 0;
@@ -355,19 +355,19 @@ bool StreamForwarder::openOutput() {
         // bitstreams while local .flv remux still succeeds.
         ret = avio_open(&outCtx_->pb, config_.rtmpUrl.c_str(), AVIO_FLAG_WRITE);
         if (ret < 0) {
-            logAvError("[FORWARD] avio_open failed", ret);
+            logAvError("[转发] avio_open 打开输出失败", ret);
             return false;
         }
     }
 
     ret = avformat_write_header(outCtx_, nullptr);
     if (ret < 0) {
-        logAvError("[FORWARD] avformat_write_header failed", ret);
+        logAvError("[转发] avformat_write_header 写入封装头失败", ret);
         return false;
     }
 
-    LOG(INFO) << "[FORWARD] Output ready: " << config_.rtmpUrl
-              << " mode=copy extradata=" << outStream->codecpar->extradata_size << "B";
+    LOG(INFO) << "[转发] 输出就绪: " << config_.rtmpUrl
+              << " 模式=复制 附加数据=" << outStream->codecpar->extradata_size << "B";
     return true;
 }
 
@@ -382,7 +382,7 @@ bool StreamForwarder::remuxSession() {
 
     AVPacket* pkt = av_packet_alloc();
     if (!pkt) {
-        LOG(ERROR) << "[FORWARD] av_packet_alloc failed";
+        LOG(ERROR) << "[转发] av_packet_alloc 分配失败";
         closeAll();
         return false;
     }
@@ -392,9 +392,9 @@ bool StreamForwarder::remuxSession() {
         int ret = av_read_frame(inCtx_, pkt);
         if (ret < 0) {
             if (ret == AVERROR_EOF) {
-                LOG(INFO) << "[FORWARD] Input EOF";
+                LOG(INFO) << "[转发] 输入流已结束";
             } else {
-                logAvError("[FORWARD] av_read_frame failed", ret);
+                logAvError("[转发] av_read_frame 读取帧失败", ret);
             }
             break;
         }
@@ -411,7 +411,7 @@ bool StreamForwarder::remuxSession() {
                 continue;
             }
             startedOnKey = true;
-            LOG(INFO) << "[FORWARD] First keyframe size=" << pkt->size;
+            LOG(INFO) << "[转发] 首个关键帧，大小=" << pkt->size;
         }
 
         if (metrics_) {
@@ -431,7 +431,7 @@ bool StreamForwarder::remuxSession() {
         ret = av_interleaved_write_frame(outCtx_, pkt);
         av_packet_unref(pkt);
         if (ret < 0) {
-            logAvError("[FORWARD] av_interleaved_write_frame failed", ret);
+            logAvError("[转发] av_interleaved_write_frame 写入帧失败", ret);
             break;
         }
     }
@@ -533,14 +533,14 @@ bool StreamForwarder::ffmpegRelaySession() {
     }
     argv.push_back(nullptr);
 
-    LOG(INFO) << "[FORWARD] Starting ffmpeg CLI "
-              << (transcode ? "transcode(H.264)" : "copy") << " relay "
+    LOG(INFO) << "[转发] 正在启动 ffmpeg 命令行 "
+              << (transcode ? "转码(H.264)" : "复制") << " 中继 "
               << config_.rtspUrl << " -> " << config_.rtmpUrl
-              << " via " << ffmpegBin;
+              << "，使用 " << ffmpegBin;
 
     pid_t pid = fork();
     if (pid < 0) {
-        LOG(ERROR) << "[FORWARD] fork failed errno=" << errno;
+        LOG(ERROR) << "[转发] fork 失败 errno=" << errno;
         return false;
     }
     if (pid == 0) {
@@ -572,14 +572,14 @@ bool StreamForwarder::ffmpegRelaySession() {
         pid_t waited = waitpid(pid, &status, WNOHANG);
         if (waited == pid) {
             if (WIFEXITED(status)) {
-                LOG(WARNING) << "[FORWARD] ffmpeg exited code=" << WEXITSTATUS(status);
+                LOG(WARNING) << "[转发] ffmpeg 退出，退出码=" << WEXITSTATUS(status);
             } else if (WIFSIGNALED(status)) {
-                LOG(WARNING) << "[FORWARD] ffmpeg killed by signal=" << WTERMSIG(status);
+                LOG(WARNING) << "[转发] ffmpeg 被信号终止，信号=" << WTERMSIG(status);
             }
             return WIFEXITED(status) && WEXITSTATUS(status) == 0;
         }
         if (waited < 0) {
-            LOG(ERROR) << "[FORWARD] waitpid failed errno=" << errno;
+            LOG(ERROR) << "[转发] waitpid 失败 errno=" << errno;
             return false;
         }
         if (metrics_) {
@@ -603,26 +603,24 @@ bool StreamForwarder::ffmpegRelaySession() {
         kill(pid, SIGKILL);
         waitpid(pid, &status, 0);
     }
-    LOG(INFO) << "[FORWARD] ffmpeg relay stopped";
+    LOG(INFO) << "[转发] ffmpeg 中继已停止";
     return true;
 }
 
 void StreamForwarder::forwardLoop() {
     const bool useFfmpeg = preferFfmpegRelay(config_.rtmpUrl);
-    LOG(INFO) << "[FORWARD] Starting copy relay "
+    LOG(INFO) << "[转发] 正在启动复制中继 "
               << config_.rtspUrl << " -> " << config_.rtmpUrl
-              << (useFfmpeg ? " (ffmpeg CLI)" : " (libav remux)");
+              << (useFfmpeg ? "（ffmpeg 命令行）" : "（libav 封装）");
 
     while (running_.load()) {
         const bool ok = useFfmpeg ? ffmpegRelaySession() : remuxSession();
         if (!ok) {
-            LOG(WARNING) << "[FORWARD] Session failed, retry in "
-                         << kReconnectDelayMs << "ms";
+            LOG(WARNING) << "[转发] 会话失败，" << kReconnectDelayMs << " 毫秒后重试";
         } else if (!running_.load()) {
             break;
         } else {
-            LOG(WARNING) << "[FORWARD] Session ended, reconnect in "
-                         << kReconnectDelayMs << "ms";
+            LOG(WARNING) << "[转发] 会话结束，" << kReconnectDelayMs << " 毫秒后重连";
         }
 
         for (int i = 0; i < kReconnectDelayMs / 100 && running_.load(); ++i) {
@@ -631,7 +629,7 @@ void StreamForwarder::forwardLoop() {
     }
 
     closeAll();
-    LOG(INFO) << "[FORWARD] Relay stopped, packets=" << packetsRemuxed_.load();
+    LOG(INFO) << "[转发] 中继已停止，转发包数=" << packetsRemuxed_.load();
 }
 
 }  // namespace runtime

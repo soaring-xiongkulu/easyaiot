@@ -24,7 +24,7 @@ enum AVPixelFormat getHwFormatCuda(AVCodecContext* /*ctx*/, const enum AVPixelFo
 bool openSoftDecoder(AVCodecContext** codecCtxOut, AVCodecParameters* par) {
     const AVCodec* codec = avcodec_find_decoder(par->codec_id);
     if (!codec) {
-        LOG(ERROR) << "[HW] avcodec_find_decoder failed codec_id=" << par->codec_id;
+        LOG(ERROR) << "[硬解] avcodec_find_decoder 未找到解码器 codec_id=" << par->codec_id;
         return false;
     }
     AVCodecContext* ctx = avcodec_alloc_context3(codec);
@@ -77,7 +77,7 @@ bool openCudaDecoder(AVCodecContext** codecCtxOut,
     ctx->get_format = getHwFormatCuda;
 
     if (avcodec_open2(ctx, codec, nullptr) < 0) {
-        LOG(WARNING) << "[HW] CUDA decoder open failed, will fall back to software";
+        LOG(WARNING) << "[硬解] CUDA 解码器打开失败，将回退到软件解码";
         avcodec_free_context(&ctx);
         releaseHwDecodeState(state);
         return false;
@@ -86,8 +86,8 @@ bool openCudaDecoder(AVCodecContext** codecCtxOut,
     *codecCtxOut = ctx;
     state->usingCuda = true;
     state->decodeEp = "cuda";
-    LOG(INFO) << "[HW] NVDEC enabled decode_ep=cuda device_id=" << deviceId
-              << " codec=" << codec->name;
+    LOG(INFO) << "[硬解] NVDEC 已启用 decode_ep=cuda 设备号=" << deviceId
+              << " 编码=" << codec->name;
     return true;
 }
 
@@ -101,7 +101,7 @@ bool createCudaHwDevice(AVBufferRef** out, int deviceId) {
 
     enum AVHWDeviceType type = av_hwdevice_find_type_by_name("cuda");
     if (type == AV_HWDEVICE_TYPE_NONE) {
-        LOG(INFO) << "[HW] FFmpeg build has no CUDA hwdevice";
+        LOG(INFO) << "[硬解] 当前 FFmpeg 构建不支持 CUDA 硬件设备";
         return false;
     }
 
@@ -111,7 +111,7 @@ bool createCudaHwDevice(AVBufferRef** out, int deviceId) {
     if (ret < 0) {
         char errbuf[128];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(WARNING) << "[HW] av_hwdevice_ctx_create(cuda) failed: " << errbuf;
+        LOG(WARNING) << "[硬解] av_hwdevice_ctx_create(cuda) 失败: " << errbuf;
         *out = nullptr;
         return false;
     }
@@ -137,16 +137,16 @@ bool openVideoDecoder(AVCodecContext** codecCtxOut,
         if (openCudaDecoder(codecCtxOut, par, deviceId, state)) {
             return true;
         }
-        LOG(INFO) << "[HW] Falling back to software decode";
+        LOG(INFO) << "[硬解] 回退到软件解码";
     }
 
     if (!openSoftDecoder(codecCtxOut, par)) {
-        LOG(ERROR) << "[HW] Software decoder open failed";
+        LOG(ERROR) << "[硬解] 软件解码器打开失败";
         return false;
     }
     state->usingCuda = false;
     state->decodeEp = "cpu";
-    LOG(INFO) << "[HW] Using software decode decode_ep=cpu";
+    LOG(INFO) << "[硬解] 使用软件解码 decode_ep=cpu";
     return true;
 }
 
@@ -177,7 +177,7 @@ AVFrame* ensureSoftwareFrame(AVFrame* src, AVFrame* dst) {
     if (ret < 0) {
         char errbuf[128];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(WARNING) << "[HW] av_hwframe_transfer_data failed: " << errbuf;
+        LOG(WARNING) << "[硬解] av_hwframe_transfer_data 传输失败: " << errbuf;
         return nullptr;
     }
     dst->pts = src->pts;

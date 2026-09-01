@@ -102,12 +102,12 @@ void SnapScheduler::start() {
         return;
     }
     if (config_.devices.empty()) {
-        LOG(ERROR) << "[SNAP] no devices configured";
+        LOG(ERROR) << "[抓拍] 未配置设备";
         running_.store(false);
         return;
     }
     caps_.resize(config_.devices.size());
-    LOG(INFO) << "[SNAP] starting scheduler for " << config_.devices.size() << " device(s)"
+    LOG(INFO) << "[抓拍] 正在启动调度器，共 " << config_.devices.size() << " 个设备"
               << " cron=\"" << config_.cronExpression << "\""
               << " frameSkip=" << config_.frameSkip << "s";
     thread_ = std::thread(&SnapScheduler::loop, this);
@@ -154,9 +154,9 @@ bool SnapScheduler::ensureCapture(size_t idx) {
         return true;
     }
     const auto& device = config_.devices[idx];
-    LOG(INFO) << "[SNAP] opening stream device=" << device.deviceId << " url=" << device.rtspUrl;
+    LOG(INFO) << "[抓拍] 正在打开视频流，设备=" << device.deviceId << " 地址=" << device.rtspUrl;
     if (!cap.open(device.rtspUrl, cv::CAP_FFMPEG)) {
-        LOG(WARNING) << "[SNAP] open failed device=" << device.deviceId;
+        LOG(WARNING) << "[抓拍] 打开失败，设备=" << device.deviceId;
         return false;
     }
     cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
@@ -170,7 +170,7 @@ bool SnapScheduler::grabFrame(size_t idx, cv::Mat& out) {
     auto& cap = caps_[idx];
     cv::Mat frame;
     if (!cap.read(frame) || frame.empty()) {
-        LOG(WARNING) << "[SNAP] read failed, reopening device=" << config_.devices[idx].deviceId;
+        LOG(WARNING) << "[抓拍] 读取失败，正在重开设备=" << config_.devices[idx].deviceId;
         cap.release();
         if (!ensureCapture(idx)) {
             return false;
@@ -225,15 +225,15 @@ void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame) {
     }
 
     if (!alarmDetections.empty() && alarmFn_ && config_.enableAlarm) {
-        LOG(INFO) << "[SNAP] alarm device=" << device.deviceId
-                  << " dets=" << alarmDetections.size()
-                  << " region=" << regionName;
+        LOG(INFO) << "[抓拍] 告警，设备=" << device.deviceId
+                  << " 检测数=" << alarmDetections.size()
+                  << " 区域=" << regionName;
         alarmFn_(alarmDetections, regionName, device.deviceId, device.deviceName, frame);
     }
 }
 
 void SnapScheduler::loop() {
-    LOG(INFO) << "[SNAP] loop started";
+    LOG(INFO) << "[抓拍] 调度循环已启动";
     while (running_.load()) {
         std::time_t now = std::time(nullptr);
         bool fire = false;
@@ -248,7 +248,7 @@ void SnapScheduler::loop() {
         } else if (cronDue(now, slotKey)) {
             fire = true;
             lastSlot_ = slotKey;
-            LOG(INFO) << "[SNAP] cron slot fired: " << slotKey;
+            LOG(INFO) << "[抓拍] Cron 时间片触发: " << slotKey;
         }
 
         if (fire) {
@@ -263,7 +263,7 @@ void SnapScheduler::loop() {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
-    LOG(INFO) << "[SNAP] loop exit";
+    LOG(INFO) << "[抓拍] 调度循环已退出";
 }
 
 }  // namespace runtime

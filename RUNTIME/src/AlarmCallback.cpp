@@ -12,7 +12,7 @@ AlarmCallback::AlarmCallback(const std::string& hookUrl)
     : hookUrl_(hookUrl), port_(0), client_(nullptr) {
 
     if (!parseUrl(hookUrl, host_, port_, path_)) {
-        LOG(ERROR) << "[ERROR] Invalid callback URL: " << hookUrl;
+        LOG(ERROR) << "[错误] 无效的回调 URL: " << hookUrl;
         return;
     }
 
@@ -26,7 +26,7 @@ AlarmCallback::AlarmCallback(const std::string& hookUrl)
     client_->set_read_timeout(5, 0);
     client_->set_write_timeout(5, 0);
 
-    LOG(INFO) << "[OK] HTTP callback client created: " << baseUrl << path_;
+    LOG(INFO) << "[成功] HTTP 回调客户端已创建: " << baseUrl << path_;
 }
 
 AlarmCallback::~AlarmCallback() {
@@ -169,7 +169,7 @@ bool AlarmCallback::sendVideoAlert(
     const std::string& imagePath
 ) {
     if (!client_) {
-        LOG(ERROR) << "[ERROR] HTTP client not initialized";
+        LOG(ERROR) << "[错误] HTTP 客户端未初始化";
         return false;
     }
     if (detections.empty()) {
@@ -177,28 +177,28 @@ bool AlarmCallback::sendVideoAlert(
     }
 
     std::string jsonBody = buildVideoJsonBody(ctx, detections, regionId, timestamp, imagePath);
-    LOG(INFO) << "Sending VIDEO alert hook: device_id=" << ctx.deviceId
-              << ", event=" << ctx.algorithmName
-              << ", detections=" << detections.size();
+    LOG(INFO) << "正在发送 VIDEO 告警回调: 设备ID=" << ctx.deviceId
+              << ", 事件=" << ctx.algorithmName
+              << ", 检测数=" << detections.size();
 
     httplib::Headers headers = {{"Content-Type", "application/json"}};
     auto res = client_->Post(path_.c_str(), headers, jsonBody, "application/json");
     if (!res) {
-        LOG(ERROR) << "[ERROR] HTTP request failed: " << httplib::to_string(res.error());
+        LOG(ERROR) << "[错误] HTTP 请求失败: " << httplib::to_string(res.error());
         return false;
     }
     if (res->status != 200) {
-        LOG(ERROR) << "[ERROR] HTTP response error: status=" << res->status
-                   << ", body=" << res->body;
+        LOG(ERROR) << "[错误] HTTP 响应异常: 状态码=" << res->status
+                   << ", 响应体=" << res->body;
         return false;
     }
-    LOG(INFO) << "[OK] VIDEO alert hook accepted";
+    LOG(INFO) << "[成功] VIDEO 告警回调已被接收";
     return true;
 }
 
 bool AlarmCallback::sendVideoAlertJson(const std::string& jsonBody) {
     if (!client_) {
-        LOG(ERROR) << "[ERROR] HTTP client not initialized";
+        LOG(ERROR) << "[错误] HTTP 客户端未初始化";
         return false;
     }
     if (jsonBody.empty()) {
@@ -208,15 +208,15 @@ bool AlarmCallback::sendVideoAlertJson(const std::string& jsonBody) {
     httplib::Headers headers = {{"Content-Type", "application/json"}};
     auto res = client_->Post(path_.c_str(), headers, jsonBody, "application/json");
     if (!res) {
-        LOG(ERROR) << "[ERROR] HTTP request failed: " << httplib::to_string(res.error());
+        LOG(ERROR) << "[错误] HTTP 请求失败: " << httplib::to_string(res.error());
         return false;
     }
     if (res->status != 200) {
-        LOG(ERROR) << "[ERROR] HTTP response error: status=" << res->status
-                   << ", body=" << res->body;
+        LOG(ERROR) << "[错误] HTTP 响应异常: 状态码=" << res->status
+                   << ", 响应体=" << res->body;
         return false;
     }
-    LOG(INFO) << "[OK] VIDEO hook JSON accepted";
+    LOG(INFO) << "[成功] VIDEO 回调 JSON 已被接收";
     return true;
 }
 
@@ -227,7 +227,7 @@ bool AlarmCallback::sendAlarm(
     const std::string& timestamp
 ) {
     if (!client_) {
-        LOG(ERROR) << "[ERROR] HTTP client not initialized";
+        LOG(ERROR) << "[错误] HTTP 客户端未初始化";
         return false;
     }
     if (detections.empty()) {
@@ -238,11 +238,11 @@ bool AlarmCallback::sendAlarm(
     httplib::Headers headers = {{"Content-Type", "application/json"}};
     auto res = client_->Post(path_.c_str(), headers, jsonBody, "application/json");
     if (!res) {
-        LOG(ERROR) << "[ERROR] HTTP request failed: " << httplib::to_string(res.error());
+        LOG(ERROR) << "[错误] HTTP 请求失败: " << httplib::to_string(res.error());
         return false;
     }
     if (res->status != 200) {
-        LOG(ERROR) << "[ERROR] HTTP response error: status=" << res->status;
+        LOG(ERROR) << "[错误] HTTP 响应异常: 状态码=" << res->status;
         return false;
     }
     return true;

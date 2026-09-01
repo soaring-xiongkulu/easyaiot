@@ -97,19 +97,19 @@ std::string YoloEngine::ensureOnnxPath(const std::string& model_path) {
         return model_path;
     }
     if (!(lower.size() >= 3 && lower.substr(lower.size() - 3) == ".pt")) {
-        LOG(WARNING) << "[YOLO] Unexpected model suffix (expect .onnx/.pt): " << model_path;
+        LOG(WARNING) << "[YOLO] 意外的模型后缀（应为 .onnx/.pt）: " << model_path;
         // Still try sibling .onnx
     }
 
     const std::string sibling = replaceExt(model_path, ".onnx");
     if (fileExists(sibling)) {
-        LOG(INFO) << "[YOLO] Using existing ONNX beside weights: " << sibling;
+        LOG(INFO) << "[YOLO] 使用权重旁的已有 ONNX 文件: " << sibling;
         return sibling;
     }
 
     const std::string script = findEnsureScript();
     if (script.empty()) {
-        LOG(ERROR) << "[YOLO] .pt given but no ONNX and ensure_onnx_model.py not found: " << model_path;
+        LOG(ERROR) << "[YOLO] 提供了 .pt 但无 ONNX 且找不到 ensure_onnx_model.py: " << model_path;
         return "";
     }
 
@@ -124,10 +124,10 @@ std::string YoloEngine::ensureOnnxPath(const std::string& model_path) {
     }
     cmd << "\"" << py << "\" \"" << script << "\" --input \"" << model_path
         << "\" --output \"" << sibling << "\" 2>&1";
-    LOG(INFO) << "[YOLO] Exporting .pt → ONNX: " << cmd.str();
+    LOG(INFO) << "[YOLO] 正在导出 .pt → ONNX: " << cmd.str();
     FILE* pipe = popen(cmd.str().c_str(), "r");
     if (!pipe) {
-        LOG(ERROR) << "[YOLO] Failed to spawn ensure_onnx_model.py";
+        LOG(ERROR) << "[YOLO] 无法启动 ensure_onnx_model.py";
         return "";
     }
     char buf[512];
@@ -138,15 +138,15 @@ std::string YoloEngine::ensureOnnxPath(const std::string& model_path) {
             line.pop_back();
         }
         if (!line.empty()) {
-            LOG(INFO) << "[YOLO-EXPORT] " << line;
+            LOG(INFO) << "[YOLO-导出] " << line;
         }
     }
     const int rc = pclose(pipe);
     if (rc != 0 || !fileExists(sibling)) {
-        LOG(ERROR) << "[YOLO] .pt → ONNX export failed rc=" << rc << " out=" << sibling;
+        LOG(ERROR) << "[YOLO] .pt → ONNX 导出失败 rc=" << rc << " 输出=" << sibling;
         return "";
     }
-    LOG(INFO) << "[YOLO] Export OK: " << sibling;
+    LOG(INFO) << "[YOLO] 导出成功: " << sibling;
     return sibling;
 }
 
@@ -196,10 +196,10 @@ void YoloEngine::loadNamesFromOnnxMetadata() {
         }
         if (values.size() >= 2) {
             g_classes = values;
-            LOG(INFO) << "[YOLO] Loaded " << g_classes.size() << " class names from ONNX metadata";
+            LOG(INFO) << "[YOLO] 已从 ONNX 元数据加载 " << g_classes.size() << " 个类别名";
         }
     } catch (const std::exception& e) {
-        LOG(WARNING) << "[YOLO] ONNX names metadata parse skipped: " << e.what();
+        LOG(WARNING) << "[YOLO] 跳过 ONNX names 元数据解析: " << e.what();
     }
 }
 
@@ -233,9 +233,9 @@ int YoloEngine::createSession(const std::string& model_path, bool use_cuda, int 
         cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
         cuda_options.do_copy_in_default_stream = 1;
         onnxSessionOptions.AppendExecutionProvider_CUDA(cuda_options);
-        LOG(INFO) << "[YOLO] Appending CUDA EP device_id=" << gpu_device_id;
+        LOG(INFO) << "[YOLO] 追加 CUDA 执行提供器 device_id=" << gpu_device_id;
     } else {
-        LOG(INFO) << "[YOLO] Using CPU execution";
+        LOG(INFO) << "[YOLO] 使用 CPU 执行";
     }
 
     onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
@@ -251,13 +251,13 @@ int YoloEngine::LoadModel(std::string model_path,
     try {
         const std::string onnx_path = ensureOnnxPath(model_path);
         if (onnx_path.empty() || !fileExists(onnx_path)) {
-            LOG(ERROR) << "[YOLO] No loadable ONNX for: " << model_path;
+            LOG(ERROR) << "[YOLO] 没有可加载的 ONNX: " << model_path;
             inferEp_ = "none";
             return -3;
         }
         loadedOnnxPath_ = onnx_path;
 
-        LOG(INFO) << "[YOLO] Creating ONNX Runtime environment... path=" << onnx_path;
+        LOG(INFO) << "[YOLO] 正在创建 ONNX Runtime 环境... 路径=" << onnx_path;
         onnxEnv = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "YOLO");
 
         const bool try_cuda = prefer_gpu && !force_cpu;
@@ -267,13 +267,13 @@ int YoloEngine::LoadModel(std::string model_path,
             try {
                 createSession(onnx_path, true, gpu_device_id);
                 loaded = true;
-                LOG(INFO) << "[YOLO] Using CUDA EP";
+                LOG(INFO) << "[YOLO] 使用 CUDA 执行提供器";
             } catch (const Ort::Exception& e) {
-                LOG(WARNING) << "[YOLO] CUDA EP failed, falling back to CPU: " << e.what();
+                LOG(WARNING) << "[YOLO] CUDA 执行提供器失败，回退到 CPU: " << e.what();
                 onnxSession.release();
                 onnxSessionOptions.release();
             } catch (const std::exception& e) {
-                LOG(WARNING) << "[YOLO] CUDA EP failed, falling back to CPU: " << e.what();
+                LOG(WARNING) << "[YOLO] CUDA 执行提供器失败，回退到 CPU: " << e.what();
                 onnxSession.release();
                 onnxSessionOptions.release();
             }
@@ -281,7 +281,7 @@ int YoloEngine::LoadModel(std::string model_path,
 
         if (!loaded) {
             createSession(onnx_path, false, gpu_device_id);
-            LOG(INFO) << "[YOLO] Using CPU execution" << (try_cuda ? " (fallback)" : "");
+            LOG(INFO) << "[YOLO] 使用 CPU 执行" << (try_cuda ? "（回退）" : "");
         }
 
         // Peek output shape for layout
@@ -293,13 +293,13 @@ int YoloEngine::LoadModel(std::string model_path,
 
         if (!model_class.empty()) {
             g_classes = model_class;
-            LOG(INFO) << "[YOLO] Using " << model_class.size() << " classes from names file";
+            LOG(INFO) << "[YOLO] 使用类别文件中的 " << model_class.size() << " 个类别";
         } else {
             loadNamesFromOnnxMetadata();
             if (g_classes.empty()) {
-                LOG(WARNING) << "[YOLO] No class names; detections will use class_N";
+                LOG(WARNING) << "[YOLO] 没有类别名，检测结果将使用 class_N";
             } else {
-                LOG(INFO) << "[YOLO] Using " << g_classes.size() << " class names";
+                LOG(INFO) << "[YOLO] 使用 " << g_classes.size() << " 个类别名";
             }
         }
 
@@ -309,16 +309,16 @@ int YoloEngine::LoadModel(std::string model_path,
         }
 
         ready_ = true;
-        LOG(INFO) << "[YOLO] Model loaded infer_ep=" << inferEp_
+        LOG(INFO) << "[YOLO] 模型加载完成 infer_ep=" << inferEp_
                   << " layout=" << modelLayout_
                   << " onnx=" << loadedOnnxPath_;
         return 0;
     } catch (const Ort::Exception& e) {
-        LOG(ERROR) << "[YOLO] ONNX Runtime exception: " << e.what();
+        LOG(ERROR) << "[YOLO] ONNX Runtime 异常: " << e.what();
         inferEp_ = "none";
         return -1;
     } catch (const std::exception& e) {
-        LOG(ERROR) << "[YOLO] Exception loading model: " << e.what();
+        LOG(ERROR) << "[YOLO] 加载模型异常: " << e.what();
         inferEp_ = "none";
         return -2;
     }
@@ -356,7 +356,7 @@ int YoloEngine::Inference(const cv::Mat& image, std::vector<DetectObject>& detec
         }
     }
     if (input_w <= 0 || input_h <= 0) {
-        LOG(ERROR) << "[YOLO] Invalid input shape";
+        LOG(ERROR) << "[YOLO] 无效的输入形状";
         return -1;
     }
 
@@ -391,7 +391,7 @@ int YoloEngine::Inference(const cv::Mat& image, std::vector<DetectObject>& detec
         ort_outputs = onnxSession.Run(Ort::RunOptions{nullptr}, inputNames.data(), &input_tensor, 1,
                                       outNames.data(), outNames.size());
     } catch (const std::exception& e) {
-        LOG(ERROR) << "[YOLO] Inference exception: " << e.what();
+        LOG(ERROR) << "[YOLO] 推理异常: " << e.what();
         return -1;
     }
 
@@ -415,7 +415,7 @@ int YoloEngine::Inference(const cv::Mat& image, std::vector<DetectObject>& detec
         } else if (out_dims.size() == 2) {
             rows = out_dims[0];
         } else {
-            LOG(ERROR) << "[YOLO] Unexpected end2end rank=" << out_dims.size();
+            LOG(ERROR) << "[YOLO] 意外的 end2end 输出维度 rank=" << out_dims.size();
             return -1;
         }
         for (int64_t i = 0; i < rows; ++i) {
@@ -447,7 +447,7 @@ int YoloEngine::Inference(const cv::Mat& image, std::vector<DetectObject>& detec
             d1 = out_dims[0];
             d2 = out_dims[1];
         } else {
-            LOG(ERROR) << "[YOLO] Unexpected detect rank=" << out_dims.size();
+            LOG(ERROR) << "[YOLO] 意外的 detect 输出维度 rank=" << out_dims.size();
             return -1;
         }
 
@@ -509,7 +509,7 @@ int YoloEngine::Inference(const cv::Mat& image, std::vector<DetectObject>& detec
 
     static int debug_count = 0;
     if (debug_count < 3) {
-        LOG(INFO) << "[YOLO] layout=" << modelLayout_ << " detections=" << detections.size();
+        LOG(INFO) << "[YOLO] layout=" << modelLayout_ << " 检测数=" << detections.size();
         debug_count++;
     }
     return 0;

@@ -118,7 +118,7 @@ bool mqttPublishOnce(const std::string& host,
                      const std::string& payload) {
     int fd = tcpConnect(host, port);
     if (fd < 0) {
-        LOG(WARNING) << "[AlgoMqttBus] TCP connect failed " << host << ":" << port;
+        LOG(WARNING) << "[算法总线] TCP 连接失败 " << host << ":" << port;
         return false;
     }
 
@@ -146,7 +146,7 @@ bool mqttPublishOnce(const std::string& host,
 
     uint8_t connack[4];
     if (!recvExact(fd, connack, 4) || connack[0] != 0x20 || connack[3] != 0x00) {
-        LOG(WARNING) << "[AlgoMqttBus] CONNACK failed broker=" << host << ":" << port;
+        LOG(WARNING) << "[算法总线] CONNACK 失败 broker=" << host << ":" << port;
         ::close(fd);
         return false;
     }
@@ -173,7 +173,7 @@ bool mqttPublishOnce(const std::string& host,
     // PUBACK
     uint8_t puback[4];
     if (!recvExact(fd, puback, 4) || (puback[0] & 0xF0) != 0x40) {
-        LOG(WARNING) << "[AlgoMqttBus] PUBACK missing/failed topic=" << topic;
+        LOG(WARNING) << "[算法总线] PUBACK 缺失/失败 topic=" << topic;
         ::close(fd);
         return false;
     }
@@ -263,7 +263,7 @@ std::string AlgoMqttBus::normalizeAlertPayload(const std::string& flatAlertJson,
     std::string errs;
     std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
     if (!reader->parse(flatAlertJson.data(), flatAlertJson.data() + flatAlertJson.size(), &root, &errs)) {
-        LOG(ERROR) << "[AlgoMqttBus] invalid alert json: " << errs;
+        LOG(ERROR) << "[算法总线] 告警 JSON 无效: " << errs;
         return "{}";
     }
 
@@ -319,7 +319,7 @@ bool AlgoMqttBus::publishRaw(const Config& config,
     if (!busEnabled(config)) return false;
     auto brokers = resolveBrokers(config);
     if (brokers.empty()) {
-        LOG(WARNING) << "[AlgoMqttBus] MQTT_BROKER_URLS empty, skip topic=" << topic;
+        LOG(WARNING) << "[算法总线] MQTT_BROKER_URLS 为空，跳过 topic=" << topic;
         return false;
     }
 
@@ -357,7 +357,7 @@ bool AlgoMqttBus::publishRaw(const Config& config,
         std::string errs;
         std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
         if (!reader->parse(payloadJson.data(), payloadJson.data() + payloadJson.size(), &payload, &errs)) {
-            LOG(ERROR) << "[AlgoMqttBus] payload parse failed: " << errs;
+            LOG(ERROR) << "[算法总线] 消息负载解析失败: " << errs;
             return false;
         }
         envelope["payload"] = payload;
@@ -368,12 +368,12 @@ bool AlgoMqttBus::publishRaw(const Config& config,
 
     for (const auto& bp : brokers) {
         if (mqttPublishOnce(bp.first, bp.second, clientId, username, password, topic, body)) {
-            LOG(INFO) << "[AlgoMqttBus] published topic=" << topic
+            LOG(INFO) << "[算法总线] 已发布 topic=" << topic
                       << " broker=" << bp.first << ":" << bp.second;
             return true;
         }
     }
-    LOG(ERROR) << "[AlgoMqttBus] all brokers failed topic=" << topic;
+    LOG(ERROR) << "[算法总线] 所有 broker 均发布失败 topic=" << topic;
     return false;
 }
 
@@ -577,7 +577,7 @@ void AlgoMqttBus::ensureHealthProbe() {
     if (!ok) {
         g_failStreak.store(healthFailThreshold());
         g_postReady.store(false);
-        LOG(WARNING) << "[POST-HEALTH] initial readyz failed → bypass if FAILOVER_OPEN";
+        LOG(WARNING) << "[POST-健康检查] 初始 readyz 探测失败 → 若 FAILOVER_OPEN 则进入旁路";
     } else {
         g_postReady.store(true);
     }
@@ -592,14 +592,14 @@ void AlgoMqttBus::ensureHealthProbe() {
                 int okSt = g_okStreak.fetch_add(1) + 1;
                 if (!g_postReady.load() && okSt >= thr) {
                     g_postReady.store(true);
-                    LOG(INFO) << "[POST-HEALTH] recovered → exit bypass";
+                    LOG(INFO) << "[POST-健康检查] 已恢复 → 退出旁路";
                 }
             } else {
                 g_okStreak.store(0);
                 int fs = g_failStreak.fetch_add(1) + 1;
                 if (g_postReady.load() && fs >= thr) {
                     g_postReady.store(false);
-                    LOG(WARNING) << "[POST-HEALTH] failed " << thr << "x → bypass";
+                    LOG(WARNING) << "[POST-健康检查] 连续失败 " << thr << " 次 → 进入旁路";
                 }
             }
             std::this_thread::sleep_for(std::chrono::seconds(interval));
@@ -632,7 +632,7 @@ bool AlgoMqttBus::publishBytes(const Config& config, const std::string& topic, c
     if (!postIngressEnabled()) return false;
     auto brokers = resolveBrokers(config);
     if (brokers.empty()) {
-        LOG(WARNING) << "[AlgoMqttBus] MQTT_BROKER_URLS empty, skip topic=" << topic;
+        LOG(WARNING) << "[算法总线] MQTT_BROKER_URLS 为空，跳过 topic=" << topic;
         return false;
     }
     std::string username = config.mqttUsername;
@@ -654,12 +654,12 @@ bool AlgoMqttBus::publishBytes(const Config& config, const std::string& topic, c
 
     for (const auto& bp : brokers) {
         if (mqttPublishOnce(bp.first, bp.second, clientId, username, password, topic, body)) {
-            LOG(INFO) << "[AlgoMqttBus] InferEvent published topic=" << topic
+            LOG(INFO) << "[算法总线] InferEvent 已发布 topic=" << topic
                       << " broker=" << bp.first << ":" << bp.second;
             return true;
         }
     }
-    LOG(ERROR) << "[AlgoMqttBus] InferEvent publish failed topic=" << topic;
+    LOG(ERROR) << "[算法总线] InferEvent 发布失败 topic=" << topic;
     return false;
 }
 

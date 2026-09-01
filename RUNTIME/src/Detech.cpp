@@ -1200,12 +1200,12 @@ void Detech::_alarmSenderThreadFunc() {
                 }
                 std::string inferJson = Json::writeString(writer, ev);
                 if (AlgoMqttBus::publishInferEvent(_config, inferJson)) {
-                    LOG(INFO) << "[ALARM-THREAD] InferEvent published device=" << did;
+                    LOG(INFO) << "[告警线程] InferEvent 已发布，设备=" << did;
                 } else {
-                    LOG(ERROR) << "[ALARM-THREAD] InferEvent publish failed device=" << did;
+                    LOG(ERROR) << "[告警线程] InferEvent 发布失败，设备=" << did;
                 }
             } else if (AlgoMqttBus::postFailClosed()) {
-                LOG(WARNING) << "[ALARM-THREAD] POST unavailable with closed strategy; direct alert suppressed device=" << did;
+                LOG(WARNING) << "[告警线程] 关闭策略下 POST 不可用，直接告警已抑制，设备=" << did;
             } else if (AlgoMqttBus::busEnabled(_config)) {
                 if (AlgoMqttBus::postInBypass()) {
                     Json::Value infoObj;
@@ -1220,12 +1220,12 @@ void Detech::_alarmSenderThreadFunc() {
                     infoObj["post_bypass_reason"] = "post_unready";
                     root["information"] = Json::writeString(compact, infoObj);
                     jsonStr = Json::writeString(writer, root);
-                    LOG(WARNING) << "[ALARM-THREAD] POST bypass direct alert device=" << did;
+                    LOG(WARNING) << "[告警线程] POST 旁路直接告警，设备=" << did;
                 }
                 if (AlgoMqttBus::publishAlert(_config, jsonStr, snapshot)) {
-                    LOG(INFO) << "[ALARM-THREAD] MQTT alert published device=" << did;
+                    LOG(INFO) << "[告警线程] MQTT 告警已发布，设备=" << did;
                 } else {
-                    LOG(ERROR) << "[ALARM-THREAD] MQTT alert publish failed device=" << did;
+                    LOG(ERROR) << "[告警线程] MQTT 告警发布失败，设备=" << did;
                 }
             } else if (httpAlertFallbackEnabled(_config)) {
                 usedHttpAlert = true;
@@ -1243,13 +1243,13 @@ void Detech::_alarmSenderThreadFunc() {
                         alarmData.regionName,
                         ts,
                         alarmData.imagePath)) {
-                    LOG(INFO) << "[ALARM-THREAD] HTTP alert accepted device=" << did;
+                    LOG(INFO) << "[告警线程] HTTP 告警已被接收，设备=" << did;
                 } else {
-                    LOG(ERROR) << "[ALARM-THREAD] HTTP alert failed device=" << did
-                               << " hook=" << hookUrl;
+                    LOG(ERROR) << "[告警线程] HTTP 告警发送失败，设备=" << did
+                               << " 回调地址=" << hookUrl;
                 }
             } else {
-                LOG(ERROR) << "[ALARM-THREAD] No MQTT/HTTP alert delivery path; alert dropped";
+                LOG(ERROR) << "[告警线程] 无 MQTT/HTTP 告警投递通道，告警已丢弃";
             }
 
             // RUNTIME 人脸/车牌链路桥：任务启用人脸或车牌匹配且告警未走 HTTP hook 时
@@ -1266,20 +1266,20 @@ void Detech::_alarmSenderThreadFunc() {
                 std::string feedJson = Json::writeString(writer, feedRoot);
                 AlarmCallback feedCallback(resolveAlertHookUrl(_config));
                 if (feedCallback.sendVideoAlertJson(feedJson)) {
-                    LOG(INFO) << "[ALARM-THREAD] feed_only delivered device=" << did
-                              << " face=" << (_config.faceMatchingEnabled ? "on" : "off")
-                              << " plate=" << (_config.plateMatchingEnabled ? "on" : "off")
+                    LOG(INFO) << "[告警线程] feed_only 投递成功，设备=" << did
+                              << " 人脸=" << (_config.faceMatchingEnabled ? "开" : "关")
+                              << " 车牌=" << (_config.plateMatchingEnabled ? "开" : "关")
                               << " corr=" << root.get("correlation_id", "").asString();
                 } else {
-                    LOG(WARNING) << "[ALARM-THREAD] feed_only delivery failed device=" << did;
+                    LOG(WARNING) << "[告警线程] feed_only 投递失败，设备=" << did;
                 }
             }
         } catch (const std::exception& e) {
-            LOG(ERROR) << "[ALARM-THREAD] Exception while sending alarm: " << e.what();
+            LOG(ERROR) << "[告警线程] 发送告警时发生异常: " << e.what();
         }
     }
     
-    LOG(INFO) << "[ALARM-THREAD] Alarm sender thread exiting gracefully";
+    LOG(INFO) << "[告警线程] 告警发送线程正常退出";
 }
 
 void Detech::_startHeartbeatThread() {
@@ -1289,8 +1289,8 @@ void Detech::_startHeartbeatThread() {
     }
     _heartbeatRunning.store(true);
     _heartbeatThread = std::thread(&Detech::_heartbeatThreadFunc, this);
-    LOG(INFO) << "[HEARTBEAT] thread started"
-              << (_config.heartbeatUrl.empty() ? " (InferEvent only)" : (" -> " + _config.heartbeatUrl));
+    LOG(INFO) << "[心跳] 心跳线程已启动"
+              << (_config.heartbeatUrl.empty() ? "（仅 InferEvent 心跳）" : (" -> " + _config.heartbeatUrl));
 }
 
 void Detech::_stopHeartbeatThread() {
@@ -1301,7 +1301,7 @@ void Detech::_stopHeartbeatThread() {
     if (_heartbeatThread.joinable()) {
         _heartbeatThread.join();
     }
-    LOG(INFO) << "[HEARTBEAT] thread stopped";
+    LOG(INFO) << "[心跳] 心跳线程已停止";
 }
 
 void Detech::_heartbeatThreadFunc() {
@@ -1312,7 +1312,7 @@ void Detech::_heartbeatThreadFunc() {
     if (!_config.heartbeatUrl.empty() && parseHttpUrl(_config.heartbeatUrl, host, port, path)) {
         httpOk = true;
     } else if (!_config.heartbeatUrl.empty()) {
-        LOG(ERROR) << "[HEARTBEAT] invalid URL: " << _config.heartbeatUrl;
+        LOG(ERROR) << "[心跳] 无效的 URL: " << _config.heartbeatUrl;
     }
     httplib::Client client(host, port);
     client.set_connection_timeout(3, 0);
@@ -1359,12 +1359,12 @@ void Detech::_heartbeatThreadFunc() {
                 std::string body = Json::writeString(writer, root);
                 auto res = client.Post(path.c_str(), body, "application/json");
                 if (!(res && res->status == 200)) {
-                    LOG(WARNING) << "[HEARTBEAT] post failed status="
+                    LOG(WARNING) << "[心跳] 心跳上报失败，状态码="
                                  << (res ? res->status : -1);
                 }
             }
         } catch (const std::exception& e) {
-            LOG(WARNING) << "[HEARTBEAT] exception: " << e.what();
+            LOG(WARNING) << "[心跳] 心跳异常: " << e.what();
         }
 
         // InferEvent heartbeat for POST TTL (skip while bypass)
@@ -1457,7 +1457,7 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
         return;
     }
     if (!_alarmThreadRunning.load()) {
-        LOG(WARNING) << "[ALARM] Alarm sender thread not running, alarm dropped";
+        LOG(WARNING) << "[告警] 告警发送线程未运行，告警已丢弃";
         return;
     }
 
@@ -1476,7 +1476,7 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
         }
         AlarmData alarmData(filtered, regionName, _get_curtime_stamp_ms(), imagePath, deviceId, deviceName);
         _alarmQueue.push(std::move(alarmData));
-        LOG(INFO) << "[ALARM] Alarm enqueued, queue size: " << _alarmQueue.size();
+        LOG(INFO) << "[告警] 告警已入队，队列大小: " << _alarmQueue.size();
     }
     _alarmQueueCV.notify_one();
     _lastAlarmTime = _get_curtime_stamp_ms();
@@ -1484,7 +1484,7 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
 
 void Detech::_display_video_loop() {
     if (!_ffmpegFormatCtx || !_ffmpegCodecCtx) {
-        LOG(ERROR) << "[VIDEO] FFmpeg not initialized!";
+        LOG(ERROR) << "[视频] FFmpeg 未初始化！";
         return;
     }
     
@@ -1499,7 +1499,7 @@ void Detech::_display_video_loop() {
     AVFrame* frameRGB = av_frame_alloc();
     
     if (!packet || !frame || !frameRGB) {
-        LOG(ERROR) << "[VIDEO] Failed to allocate AVPacket or AVFrame";
+        LOG(ERROR) << "[视频] AVPacket 或 AVFrame 分配失败";
         return;
     }
     
@@ -1516,7 +1516,7 @@ void Detech::_display_video_loop() {
     );
     
     if (!swsCtx) {
-        LOG(ERROR) << "[VIDEO] Failed to create SwsContext";
+        LOG(ERROR) << "[视频] SwsContext 创建失败";
         av_free(buffer);
         av_frame_free(&frameRGB);
         av_frame_free(&frame);
@@ -1524,7 +1524,7 @@ void Detech::_display_video_loop() {
         return;
     }
     
-    LOG(INFO) << "[VIDEO] Display loop started";
+    LOG(INFO) << "[视频] 显示循环已启动";
     
     // FPS calculation
     int frameCount = 0;
@@ -1538,10 +1538,10 @@ void Detech::_display_video_loop() {
         int ret = av_read_frame(_ffmpegFormatCtx, packet);
         if (ret < 0) {
             if (ret == AVERROR_EOF) {
-                LOG(INFO) << "[VIDEO] End of stream";
+                LOG(INFO) << "[视频] 视频流已结束";
                 break;
             }
-            LOG(WARNING) << "[VIDEO] Error reading frame: " << ret;
+            LOG(WARNING) << "[视频] 读取帧失败: " << ret;
             continue;
         }
         
@@ -1554,7 +1554,7 @@ void Detech::_display_video_loop() {
         // Decode video packet
         ret = avcodec_send_packet(_ffmpegCodecCtx, packet);
         if (ret < 0) {
-            LOG(WARNING) << "[VIDEO] Error sending packet to decoder";
+            LOG(WARNING) << "[视频] 发送数据包到解码器失败";
             av_packet_unref(packet);
             continue;
         }
@@ -1564,7 +1564,7 @@ void Detech::_display_video_loop() {
             av_packet_unref(packet);
             continue;
         } else if (ret < 0) {
-            LOG(WARNING) << "[VIDEO] Error decoding frame";
+            LOG(WARNING) << "[视频] 解码帧失败";
             av_packet_unref(packet);
             continue;
         }
@@ -1741,7 +1741,7 @@ void Detech::_display_video_loop() {
                 static int pushErrorCount = 0;
                 pushErrorCount++;
                 if (pushErrorCount % 100 == 1) {  // 每100次失败输出一次日志
-                    LOG(WARNING) << "[RTMP] Push frame failed (error count: " << pushErrorCount << ")";
+                    LOG(WARNING) << "[推流] 帧推送失败（累计失败次数: " << pushErrorCount << "）";
                 }
             }
         }
@@ -1749,7 +1749,7 @@ void Detech::_display_video_loop() {
         // Check for key press
         int key = cv::waitKey(1);
         if (key == 'q' || key == 'Q' || key == 27) { // 'q' or ESC
-            LOG(INFO) << "[VIDEO] User requested exit";
+            LOG(INFO) << "[视频] 用户请求退出";
             _isRun = false;
             break;
         }
@@ -1758,7 +1758,7 @@ void Detech::_display_video_loop() {
     }
     
     // Cleanup
-    LOG(INFO) << "[VIDEO] Cleaning up...";
+    LOG(INFO) << "[视频] 正在清理...";
     cv::destroyAllWindows();
     sws_freeContext(swsCtx);
     av_free(buffer);
@@ -1766,5 +1766,5 @@ void Detech::_display_video_loop() {
     av_frame_free(&frame);
     av_packet_free(&packet);
     
-    LOG(INFO) << "[VIDEO] Display loop stopped";
+    LOG(INFO) << "[视频] 显示循环已停止";
 }
