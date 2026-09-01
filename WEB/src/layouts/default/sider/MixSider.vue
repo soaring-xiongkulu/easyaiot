@@ -4,7 +4,6 @@ import type { CSSProperties } from 'vue'
 import { computed, onMounted, ref, unref, watch } from 'vue'
 import type { RouteLocationNormalized } from 'vue-router'
 import { onClickOutside } from '@vueuse/core'
-import LayoutTrigger from '../trigger/index.vue'
 import { useDragLine } from './useLayoutSider'
 import type { Menu } from '@/router/types'
 import { ScrollContainer } from '@/components/Container'
@@ -17,7 +16,7 @@ import { useGlobSetting } from '@/hooks/setting'
 import { useDesign } from '@/hooks/web/useDesign'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useGo } from '@/hooks/web/usePage'
-import { SIDE_BAR_MINI_WIDTH, SIDE_BAR_SHOW_TIT_MINI_WIDTH } from '@/enums/appEnum'
+import { SIDE_BAR_MINI_WIDTH } from '@/enums/appEnum'
 import { getChildrenMenus, getCurrentParentPath, getShallowMenus } from '@/router/menus'
 import { listenerRouteChange } from '@/logics/mitt/routeChange'
 import { createAsyncComponent } from '@/utils/factory/createAsyncComponent'
@@ -47,7 +46,6 @@ const {
   mixSideHasChildren,
   setMenuSetting,
   getIsMixSidebar,
-  getCollapsed,
   getMixSidebarDensity,
 } = useMenuSetting()
 
@@ -57,7 +55,7 @@ const permissionStore = usePermissionStore()
 useDragLine(sideRef, dragBarRef, true)
 
 const getMixSideWidth = computed(() => {
-  return unref(getCollapsed) ? SIDE_BAR_MINI_WIDTH : SIDE_BAR_SHOW_TIT_MINI_WIDTH
+  return SIDE_BAR_MINI_WIDTH
 })
 
 const getMenuStyle = computed((): CSSProperties => {
@@ -107,10 +105,10 @@ const getDensityClass = computed(() => {
 const getModuleIconSize = computed(() => {
   const density = unref(getMixSidebarDensity)
   if (density === 'compact')
-    return unref(getCollapsed) ? 14 : 16
+    return 26
   if (density === 'comfortable')
-    return unref(getCollapsed) ? 16 : 18
-  return unref(getCollapsed) ? 15 : 17
+    return 30
+  return 28
 })
 
 onMounted(async () => {
@@ -251,13 +249,11 @@ onClickOutside(wrap, () => {
       getMenuTheme,
       {
         open: openMenu,
-        mini: getCollapsed,
+        mini: true,
       },
     ]" v-bind="getMenuEvents"
   >
     <AppLogo :show-title="false" :class="`${prefixCls}-logo`" />
-
-    <LayoutTrigger :class="`${prefixCls}-trigger`" />
 
     <ScrollContainer>
       <ul :class="`${prefixCls}-module`">
@@ -273,7 +269,7 @@ onClickOutside(wrap, () => {
           <img
             v-if="item.img"
             :src="item.img"
-            :class="[`${prefixCls}-module__icon`, getCollapsed ? 'w-16px h-16px' : 'w-20px h-20px']"
+            :class="[`${prefixCls}-module__icon`, 'w-16px h-16px']"
           >
           <Icon
             v-else
@@ -315,41 +311,41 @@ onClickOutside(wrap, () => {
 @width: 80px;
 
 .@{prefix-cls} {
-  --mix-module-item-padding-min: 6px;
-  --mix-module-item-padding-vh: 0.8vh;
-  --mix-module-item-padding-max: 9px;
-  --mix-module-icon-gap-min: 3px;
-  --mix-module-icon-gap-vh: 0.45vh;
-  --mix-module-icon-gap-max: 5px;
-  --mix-module-icon-font-min: 17px;
-  --mix-module-icon-font-vh: 1.6vh;
-  --mix-module-icon-font-max: 19px;
-  --mix-module-name-font-size: 12px;
+  --mix-module-item-padding-min: 9px;
+  --mix-module-item-padding-vh: 1.2vh;
+  --mix-module-item-padding-max: 14px;
+  --mix-module-icon-gap-min: 5px;
+  --mix-module-icon-gap-vh: 0.7vh;
+  --mix-module-icon-gap-max: 8px;
+  --mix-module-icon-font-min: 26px;
+  --mix-module-icon-font-vh: 2.2vh;
+  --mix-module-icon-font-max: 30px;
+  --mix-module-name-font-size: 13px;
   position: fixed;
   &--density-compact {
-    --mix-module-item-padding-min: 5px;
-    --mix-module-item-padding-vh: 0.7vh;
-    --mix-module-item-padding-max: 8px;
-    --mix-module-icon-gap-min: 2px;
-    --mix-module-icon-gap-vh: 0.35vh;
-    --mix-module-icon-gap-max: 4px;
-    --mix-module-icon-font-min: 16px;
-    --mix-module-icon-font-vh: 1.5vh;
-    --mix-module-icon-font-max: 18px;
-    --mix-module-name-font-size: 11px;
+    --mix-module-item-padding-min: 7px;
+    --mix-module-item-padding-vh: 1vh;
+    --mix-module-item-padding-max: 12px;
+    --mix-module-icon-gap-min: 4px;
+    --mix-module-icon-gap-vh: 0.6vh;
+    --mix-module-icon-gap-max: 6px;
+    --mix-module-icon-font-min: 24px;
+    --mix-module-icon-font-vh: 2vh;
+    --mix-module-icon-font-max: 28px;
+    --mix-module-name-font-size: 12px;
   }
 
   &--density-comfortable {
-    --mix-module-item-padding-min: 7px;
-    --mix-module-item-padding-vh: 0.9vh;
-    --mix-module-item-padding-max: 10px;
-    --mix-module-icon-gap-min: 4px;
-    --mix-module-icon-gap-vh: 0.55vh;
-    --mix-module-icon-gap-max: 6px;
-    --mix-module-icon-font-min: 18px;
-    --mix-module-icon-font-vh: 1.75vh;
-    --mix-module-icon-font-max: 20px;
-    --mix-module-name-font-size: 12px;
+    --mix-module-item-padding-min: 10px;
+    --mix-module-item-padding-vh: 1.3vh;
+    --mix-module-item-padding-max: 15px;
+    --mix-module-icon-gap-min: 6px;
+    --mix-module-icon-gap-vh: 0.8vh;
+    --mix-module-icon-gap-max: 9px;
+    --mix-module-icon-font-min: 27px;
+    --mix-module-icon-font-vh: 2.3vh;
+    --mix-module-icon-font-max: 31px;
+    --mix-module-name-font-size: 13px;
   }
 
   top: 0;
@@ -440,7 +436,7 @@ onClickOutside(wrap, () => {
   }
 
   >.scrollbar {
-    height: calc(100% - @header-height - 38px);
+    height: calc(100% - @header-height);
   }
 
   &.mini &-module {
@@ -523,7 +519,7 @@ onClickOutside(wrap, () => {
   &-menu-list {
     position: fixed;
     top: 0;
-    width: 200px;
+    width: 240px;
     height: calc(100%);
     background-color: #fff;
     transition: all 0.2s;

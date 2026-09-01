@@ -21,6 +21,7 @@ import { getCommonStoragePrefix, getStorageShortName } from '@/utils/env'
 import { Persistent } from '@/utils/cache/persistent'
 import { deepMerge } from '@/utils'
 import { ThemeEnum } from '@/enums/appEnum'
+import { MenuTypeEnum, TriggerEnum } from '@/enums/menuEnum'
 
 // Initial project configuration
 export function initAppConfigStore() {
@@ -28,6 +29,16 @@ export function initAppConfigStore() {
   const appStore = useAppStore()
   let projCfg: ProjectConfig = Persistent.getLocal(PROJ_CFG_KEY) as ProjectConfig
   projCfg = deepMerge(projectSetting, projCfg || {})
+  // 产品导航固定为桌面端窄图标栏；覆盖旧版本保存在浏览器里的展开状态。
+  projCfg.menuSetting = deepMerge(projCfg.menuSetting, {
+    type: MenuTypeEnum.MIX_SIDEBAR,
+    collapsed: true,
+    collapsedShowTitle: false,
+    canDrag: false,
+    mixSideFixed: false,
+    trigger: TriggerEnum.NONE,
+    menuWidth: 240,
+  })
   const darkMode = appStore.getDarkMode
   const {
     colorWeak,

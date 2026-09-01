@@ -90,7 +90,8 @@ const setting: ProjectConfig = {
     //  Whether to fix the left menu
     fixed: true,
     // Menu collapse
-    collapsed: false,
+    // 桌面端混合侧栏固定为窄图标栏，避免刷新或历史缓存导致宽窄反复变化
+    collapsed: true,
     // When sider hide because of the responsive layout
     siderHidden: false,
     // Whether to display the menu name when folding the menu
@@ -103,7 +104,7 @@ const setting: ProjectConfig = {
     // Whether to show dom
     hidden: false,
     // Menu width
-    menuWidth: 210,
+    menuWidth: 240,
     // Menu mode
     mode: MenuModeEnum.INLINE,
     // Menu type
@@ -115,7 +116,7 @@ const setting: ProjectConfig = {
     // Top menu layout
     topMenuAlign: 'center',
     // Fold trigger position
-    trigger: TriggerEnum.HEADER,
+    trigger: TriggerEnum.NONE,
     // Turn on accordion mode, only show a menu
     accordion: true,
     // Switch page to close menu
