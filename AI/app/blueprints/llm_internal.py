@@ -15,6 +15,7 @@ import logging
 import os
 import re
 import time
+import mimetypes
 from typing import Any, Dict, Optional
 
 import requests
@@ -172,7 +173,7 @@ def _repair_json(text: str, model: LLMModel) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _fetch_image_base64(image_url: str) -> str:
+def _fetch_image_base64(image_url: str) -> tuple[str, str]:
     """下载图片转 base64；优先走 MinIO 客户端（内部域名），失败回退 HTTP。"""
     from app.services.minio_service import ModelService, parse_minio_download_url
 
@@ -188,7 +189,8 @@ def _fetch_image_base64(image_url: str) -> str:
                     data = f.read()
                 if len(data) > MAX_IMAGE_BYTES:
                     raise ValueError(f'图片超过 {MAX_IMAGE_BYTES} 字节限制')
-                return base64.b64encode(data).decode('utf-8')
+                mime = mimetypes.guess_type(object_key)[0] or 'image/jpeg'
+                return base64.b64encode(data).decode('utf-8'), mime
             logger.warning('MinIO 下载失败，回退 HTTP: %s', error)
         except Exception as exc:
             logger.warning('MinIO 下载异常，回退 HTTP: %s', exc)
@@ -199,7 +201,10 @@ def _fetch_image_base64(image_url: str) -> str:
     resp.raise_for_status()
     if len(resp.content) > MAX_IMAGE_BYTES:
         raise ValueError(f'图片超过 {MAX_IMAGE_BYTES} 字节限制')
-    return base64.b64encode(resp.content).decode('utf-8')
+    mime = (resp.headers.get('Content-Type') or '').split(';', 1)[0]
+    if not mime.startswith('image/'):
+        mime = mimetypes.guess_type(image_url.split('?', 1)[0])[0] or 'image/jpeg'
+    return base64.b64encode(resp.content).decode('utf-8'), mime
 
 
 def _build_system_prompt(agent: RagExpert, media_desc: str, rag_context: str) -> str:
@@ -245,9 +250,12 @@ def judge():
             image_url = media.get('image_url') or media.get('url')
             if not image_url:
                 return jsonify({'code': 400, 'msg': 'image 模式缺少 media.image_url'}), 400
-            image_base64 = _fetch_image_base64(image_url)
+            image_base64, image_mime = _fetch_image_base64(image_url)
             system_prompt = _build_system_prompt(agent, '图片', rag_context)
-            result = invoke_vision(model, image_base64, user_prompt, mode='inference')
+            result = invoke_vision(
+                model, image_base64, user_prompt, mode='inference',
+                system_prompt=system_prompt, mime_type=image_mime,
+            )
             response_text = result.get('response', '')
         else:
             video_url = media.get('record_path') or media.get('url')
@@ -268,7 +276,10 @@ def judge():
                 if os.path.exists(clip_path):
                     os.unlink(clip_path)
             system_prompt = _build_system_prompt(agent, '视频', rag_context)
-            result = invoke_video(model, video_base64, None, user_prompt, mode='inference')
+            result = invoke_video(
+                model, video_base64, None, user_prompt, mode='inference',
+                system_prompt=system_prompt,
+            )
             response_text = result.get('response', '')
 
         parsed = _parse_json_output(response_text)

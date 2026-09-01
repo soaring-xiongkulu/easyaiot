@@ -56,26 +56,36 @@ def enhance_prompt(prompt: str, mode: Optional[str], media: str = 'vision') -> s
     return table.get(mode, '{prompt}').format(prompt=prompt)
 
 
-def build_vision_messages(prompt: str, image_data_url: str) -> List[dict]:
+def build_vision_messages(prompt: str, image_data_url: str,
+                          system_prompt: Optional[str] = None) -> List[dict]:
     """图片多模态消息（OpenAI 兼容 content 数组）。"""
-    return [{
+    messages = []
+    if system_prompt:
+        messages.append({'role': 'system', 'content': system_prompt})
+    messages.append({
         'role': 'user',
         'content': [
             {'type': 'text', 'text': prompt},
             {'type': 'image_url', 'image_url': {'url': image_data_url}},
         ],
-    }]
+    })
+    return messages
 
 
-def build_video_messages(prompt: str, video_url: str) -> List[dict]:
+def build_video_messages(prompt: str, video_url: str,
+                         system_prompt: Optional[str] = None) -> List[dict]:
     """视频多模态消息（video_url 结构，百炼兼容模式与主流多模态端点通用）。"""
-    return [{
+    messages = []
+    if system_prompt:
+        messages.append({'role': 'system', 'content': system_prompt})
+    messages.append({
         'role': 'user',
         'content': [
             {'type': 'video_url', 'video_url': {'url': video_url}},
             {'type': 'text', 'text': prompt},
         ],
-    }]
+    })
+    return messages
 
 
 def call_openai_compatible(
@@ -174,10 +184,15 @@ def process_stream_response(response) -> tuple:
     return full_response, usage_info
 
 
-def invoke_vision(model, base64_image: str, prompt: str, mode: Optional[str] = None) -> dict:
+def invoke_vision(model, base64_image: str, prompt: str, mode: Optional[str] = None,
+                  system_prompt: Optional[str] = None,
+                  mime_type: str = 'image/jpeg') -> dict:
     """图片调用。mode=None 保持 analyze 契约（不增强提示词、无 mode 键）。"""
     text = enhance_prompt(prompt, mode, media='vision')
-    messages = build_vision_messages(text, f"data:image/jpeg;base64,{base64_image}")
+    safe_mime = mime_type if mime_type.startswith('image/') else 'image/jpeg'
+    messages = build_vision_messages(
+        text, f"data:{safe_mime};base64,{base64_image}", system_prompt=system_prompt
+    )
 
     max_tokens = model.max_tokens
     timeout = model.timeout
@@ -198,7 +213,8 @@ def invoke_vision(model, base64_image: str, prompt: str, mode: Optional[str] = N
     return data
 
 
-def invoke_video(model, video_base64: Optional[str], video_url: Optional[str], prompt: str, mode: str) -> dict:
+def invoke_video(model, video_base64: Optional[str], video_url: Optional[str], prompt: str,
+                 mode: str, system_prompt: Optional[str] = None) -> dict:
     """视频调用（内部流式请求、聚合后返回，与重构前契约一致）。"""
     if not video_base64 and not video_url:
         raise ValueError('必须提供 video_base64 或 video_url 之一')
@@ -209,7 +225,7 @@ def invoke_video(model, video_base64: Optional[str], video_url: Optional[str], p
         video_ref = video_url
 
     text = enhance_prompt(prompt, mode, media='video')
-    messages = build_video_messages(text, video_ref)
+    messages = build_video_messages(text, video_ref, system_prompt=system_prompt)
 
     max_tokens = min(model.max_tokens * 2, 8000) if mode == 'deep-thinking' else model.max_tokens
     timeout = model.timeout * 3 if mode == 'deep-thinking' else model.timeout * 2

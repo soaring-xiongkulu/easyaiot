@@ -627,7 +627,10 @@ def vision_analyze():
             with open(image_path, 'rb') as f:
                 base64_image = base64.b64encode(f.read()).decode('utf-8')
 
-            result = invoke_vision(model, base64_image, prompt)
+            result = invoke_vision(
+                model, base64_image, prompt,
+                mime_type=image_file.mimetype or 'image/jpeg',
+            )
 
             logger.info(f"视觉分析成功: 返回 {len(result.get('response', ''))} 字符")
             return jsonify({'code': 0, 'msg': '分析成功', 'data': result})
@@ -683,7 +686,10 @@ def _vision_with_mode(mode: str, label: str, success_msg: str):
             with open(image_path, 'rb') as f:
                 base64_image = base64.b64encode(f.read()).decode('utf-8')
 
-            result = invoke_vision(model, base64_image, prompt, mode=mode)
+            result = invoke_vision(
+                model, base64_image, prompt, mode=mode,
+                mime_type=image_file.mimetype or 'image/jpeg',
+            )
 
             logger.info(f"{label}成功: 返回 {len(result.get('response', ''))} 字符")
             return jsonify({'code': 0, 'msg': success_msg, 'data': result})
