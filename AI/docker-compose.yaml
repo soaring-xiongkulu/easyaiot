@@ -64,6 +64,14 @@ services:
       # 数据库配置（使用localhost，因为使用host网络模式，中间件端口已映射到宿主机）
       - DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-ai20
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-please-change-this-to-a-random-string}
+      # RAG：OpenAI 兼容 Embeddings + 平台 Milvus（固定 1024 维）
+      - RAG_EMBEDDING_BASE_URL=${RAG_EMBEDDING_BASE_URL:-}
+      - RAG_EMBEDDING_API_KEY=${RAG_EMBEDDING_API_KEY:-}
+      - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL:-}
+      - RAG_EMBEDDING_PROVIDER=${RAG_EMBEDDING_PROVIDER:-openai-compatible}
+      - RAG_EMBEDDING_DIMENSIONS=1024
+      - MILVUS_URI=${MILVUS_URI:-http://localhost:19530}
+      - RAG_MILVUS_COLLECTION=${RAG_MILVUS_COLLECTION:-rag_knowledge_chunks}
       # Nacos配置（使用localhost，因为使用host网络模式）
       - NACOS_SERVER=${NACOS_SERVER:-localhost:8848}
       - NACOS_NAMESPACE=${NACOS_NAMESPACE:-}

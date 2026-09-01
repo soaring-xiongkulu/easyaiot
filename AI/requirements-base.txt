@@ -13,6 +13,9 @@ python-dotenv==1.0.0
 PyYAML>=6.0.2
 requests>=2.31.0
 psycopg2-binary==2.9.9
+pymilvus>=2.4,<3
+# pymilvus 的 environs 依赖尚不兼容 marshmallow 4
+marshmallow>=3.13,<4
 nacos-sdk-python==2.0.9
 minio==7.2.0
 python-magic==0.4.27
