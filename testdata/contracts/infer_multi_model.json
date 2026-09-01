@@ -1,0 +1,16 @@
+{
+  "schema": "infer_event.v1",
+  "event_kind": "infer",
+  "correlation_id": "fixture-multi",
+  "task_id": 102,
+  "task_type": "realtime",
+  "device_id": "camera-a",
+  "timestamp": "2026-08-27T10:00:01Z",
+  "frame_width": 1280,
+  "frame_height": 720,
+  "model_ids": [11, 12],
+  "detections": [
+    {"model_id": 11, "bbox": [10, 20, 110, 220], "class_name": "person", "confidence": 0.9},
+    {"model_id": 12, "bbox": [900, 200, 1200, 500], "class_name": "car", "confidence": 0.8}
+  ]
+}

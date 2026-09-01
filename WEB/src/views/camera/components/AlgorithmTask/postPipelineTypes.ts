@@ -25,6 +25,9 @@ export interface PostPluginCatalogItem {
         default?: unknown;
         enum?: string[];
         items?: { type?: string };
+        minimum?: number;
+        maximum?: number;
+        visible_when?: Record<string, unknown>;
       }
     >;
   };
@@ -81,7 +84,14 @@ export const PLUGIN_DISPLAY_NAME: Record<string, string> = {
 };
 
 export const PARAM_ENUM_LABEL: Record<string, Record<string, string>> = {
-  hit_mode: { center: '中心点', any: '任意点', all: '全部点' },
+  hit_mode: {
+    center: '中心点',
+    bottom_center: '底边中点',
+    any_intersection: '任意交集',
+    overlap_ratio: '区域内面积达到阈值',
+    fully_inside: '完全位于区域内',
+    any_corner: '任一角点（兼容）',
+  },
   direction: { both: '双向', forward: '正向', backward: '反向' },
   sample_point: { center: '中心点', bottom: '底边中点' },
   event_type: { enter: '进入', exit: '离开', both: '进入或离开' },
@@ -102,7 +112,15 @@ export const BUILTIN_PLUGIN_CATALOG: PostPluginCatalogItem[] = [
           type: 'string',
           title: '命中判定',
           default: 'center',
-          enum: ['center', 'any', 'all'],
+          enum: ['center', 'bottom_center', 'any_intersection', 'overlap_ratio', 'fully_inside'],
+        },
+        min_overlap_ratio: {
+          type: 'number',
+          title: '区域内面积比例',
+          default: 0.5,
+          minimum: 0.01,
+          maximum: 1,
+          visible_when: { hit_mode: 'overlap_ratio' },
         },
       },
     },
@@ -147,7 +165,7 @@ export const BUILTIN_PLUGIN_CATALOG: PostPluginCatalogItem[] = [
         },
         hit_mode: {
           type: 'string',
-          enum: ['center', 'any'],
+          enum: ['center', 'bottom_center', 'any_corner'],
           default: 'center',
           title: '命中判定',
         },
@@ -166,7 +184,7 @@ export const BUILTIN_PLUGIN_CATALOG: PostPluginCatalogItem[] = [
         min_dwell_sec: { type: 'number', default: 5, title: '最短停留（秒）' },
         hit_mode: {
           type: 'string',
-          enum: ['center', 'any'],
+          enum: ['center', 'bottom_center', 'any_corner'],
           default: 'center',
           title: '命中判定',
         },
@@ -197,7 +215,7 @@ export const BUILTIN_PLUGIN_CATALOG: PostPluginCatalogItem[] = [
         },
         hit_mode: {
           type: 'string',
-          enum: ['center', 'any'],
+          enum: ['center', 'bottom_center', 'any_corner'],
           default: 'center',
           title: '命中判定',
         },
@@ -237,9 +255,18 @@ export function normalizePipelineStructure(steps: PostPipelineStep[]): PostPipel
   let tail: PostPipelineStep = { ...DEFAULT_PIPELINE[1], params: {} };
 
   for (const step of steps) {
+    const params = step.params ? { ...step.params } : {};
+    if (typeof params.hit_mode === 'string') {
+      const legacyModes: Record<string, string> = {
+        any: 'any_corner',
+        all: 'any_corner',
+        bottom: 'bottom_center',
+      };
+      params.hit_mode = legacyModes[params.hit_mode] || params.hit_mode;
+    }
     const normalized: PostPipelineStep = {
       ...step,
-      params: step.params ? { ...step.params } : {},
+      params,
     };
     if (step.plugin === FIXED_HEAD_PLUGIN) {
       head = { ...normalized, enabled: true };

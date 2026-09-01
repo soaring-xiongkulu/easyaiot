@@ -1,0 +1,15 @@
+{
+  "schema": "infer_event.v1",
+  "event_kind": "infer",
+  "correlation_id": "fixture-missing-model",
+  "task_id": 104,
+  "task_type": "patrol",
+  "device_id": "camera-c",
+  "timestamp": "2026-08-27T10:00:03Z",
+  "frame_width": 1920,
+  "frame_height": 1080,
+  "model_ids": [11],
+  "detections": [
+    {"bbox": [100, 100, 200, 200], "class_name": "person", "confidence": 0.66}
+  ]
+}

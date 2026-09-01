@@ -11,6 +11,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from models import db, PostPlugin, PostPluginService
+from app.utils.region_hit_mode import (
+    DEFAULT_MIN_OVERLAP_RATIO,
+    MAX_OVERLAP_RATIO,
+    MIN_OVERLAP_RATIO,
+    SELECTABLE_REGION_HIT_MODES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +45,17 @@ BUILTIN_PLUGIN_CATALOG: List[Dict[str, Any]] = [
             'properties': {
                 'hit_mode': {
                     'type': 'string',
-                    'enum': ['center', 'any', 'all'],
+                    'enum': list(SELECTABLE_REGION_HIT_MODES),
                     'default': 'center',
                     'title': '命中模式',
+                },
+                'min_overlap_ratio': {
+                    'type': 'number',
+                    'minimum': MIN_OVERLAP_RATIO,
+                    'maximum': MAX_OVERLAP_RATIO,
+                    'default': DEFAULT_MIN_OVERLAP_RATIO,
+                    'title': '区域内面积比例',
+                    'visible_when': {'hit_mode': 'overlap_ratio'},
                 },
             },
         },
@@ -88,7 +102,7 @@ BUILTIN_PLUGIN_CATALOG: List[Dict[str, Any]] = [
                 },
                 'hit_mode': {
                     'type': 'string',
-                    'enum': ['center', 'any'],
+                    'enum': ['center', 'bottom_center', 'any_corner'],
                     'default': 'center',
                     'title': '命中模式',
                 },
@@ -108,7 +122,7 @@ BUILTIN_PLUGIN_CATALOG: List[Dict[str, Any]] = [
                 'min_dwell_sec': {'type': 'number', 'default': 5, 'title': '最短停留(秒)'},
                 'hit_mode': {
                     'type': 'string',
-                    'enum': ['center', 'any'],
+                    'enum': ['center', 'bottom_center', 'any_corner'],
                     'default': 'center',
                     'title': '命中模式',
                 },
@@ -140,7 +154,7 @@ BUILTIN_PLUGIN_CATALOG: List[Dict[str, Any]] = [
                 },
                 'hit_mode': {
                     'type': 'string',
-                    'enum': ['center', 'any'],
+                    'enum': ['center', 'bottom_center', 'any_corner'],
                     'default': 'center',
                     'title': '命中模式',
                 },

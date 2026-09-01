@@ -33,7 +33,7 @@
       <div class="p-2 bg-white">
         <Spin :spinning="loading">
           <List
-            :grid="{ gutter: 12, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 4 }"
+            :grid="{ gutter: 12, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 4 }"
             :data-source="taskList"
             :pagination="paginationProp"
           >
@@ -104,6 +104,14 @@
                       :title="item.is_enabled ? '任务运行中，无法编辑' : '编辑'"
                     >
                       <Icon icon="ant-design:edit-filled" :size="15" color="#3B82F6" />
+                    </div>
+                    <div
+                      class="btn"
+                      :class="{ disabled: !hasCameras(item) }"
+                      @click="hasCameras(item) && handleOpenRegions(item)"
+                      title="区域配置（支持运行时热更新）"
+                    >
+                      <Icon icon="ant-design:border-outer-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div
                       class="btn"
@@ -185,7 +193,10 @@
 
     <!-- 创建/编辑模态框 -->
     <AlgorithmTaskModal @register="registerModal" @success="handleSuccess" />
-    
+
+    <!-- 独立区域配置入口：运行中的任务也允许热更新区域 -->
+    <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
+
     <!-- 服务管理抽屉 -->
     <ServiceManageDrawer @register="registerServiceDrawer" @success="handleSuccess" />
     
@@ -238,6 +249,7 @@ import {
   type CameraStreamInfo,
 } from '@/api/device/algorithm_task';
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
+import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
 import ServiceManageDrawer from './ServiceManageDrawer.vue';
 import SnapSpaceDrawer from './SnapSpaceDrawer.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
@@ -278,6 +290,7 @@ const setTaskPending = (id: number, pending: boolean) => {
   }
 };
 const [registerModal, { openDrawer }] = useDrawer();
+const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
 const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
 const [registerSnapSpaceDrawer, { openDrawer: openSnapSpaceDrawer }] = useDrawer();
 const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
@@ -381,6 +394,12 @@ const getTableActions = (record: AlgorithmTask) => {
         }
         handleEdit(record);
       },
+    },
+    {
+      icon: 'ant-design:border-outer-outlined',
+      tooltip: '区域配置（支持运行时热更新）',
+      disabled: !hasCameras(record),
+      onClick: () => handleOpenRegions(record),
     },
     {
       icon: 'ant-design:code-outlined',
@@ -584,6 +603,38 @@ const handleEdit = (record: AlgorithmTask) => {
     return;
   }
   openDrawer(true, { type: 'edit', record });
+};
+
+const handleOpenRegions = (record: AlgorithmTask) => {
+  const deviceIds = Array.isArray(record.device_ids)
+    ? record.device_ids.map(String).filter(Boolean)
+    : [];
+  if (!deviceIds.length) {
+    createMessage.warning('任务未关联摄像头');
+    return;
+  }
+
+  const deviceLabels: Record<string, string> = {};
+  deviceIds.forEach((deviceId, index) => {
+    deviceLabels[deviceId] = record.device_names?.[index] || deviceId;
+  });
+  const modelNames = String(record.model_names || '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const taskModels = (Array.isArray(record.model_ids) ? record.model_ids : [])
+    .map((id, index) => ({
+      id: Number(id),
+      name: modelNames[index] || String(id),
+    }))
+    .filter((model) => Number.isFinite(model.id) && model.id !== 0);
+
+  openRegionDrawer(true, {
+    taskId: record.id,
+    deviceIds,
+    deviceLabels,
+    taskModels,
+  });
 };
 
 const handleManageServices = (record: AlgorithmTask) => {
@@ -977,7 +1028,9 @@ onMounted(() => {
 
     .task-info {
       flex-direction: column;
-      max-width: calc(100% - 128px);
+      box-sizing: border-box;
+      width: calc(100% - 156px);
+      min-width: 0;
       padding-left: 16px;
 
       .status {
@@ -1002,13 +1055,24 @@ onMounted(() => {
         line-height: 20px;
         height: 40px;
         padding-right: 90px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        word-break: break-word;
       }
 
       .props {
         margin-top: 10px;
 
+        > .flex {
+          gap: 8px;
+          min-width: 0;
+        }
+
         .prop {
           flex: 1;
+          min-width: 0;
           margin-bottom: 10px;
 
           .label {
@@ -1027,6 +1091,12 @@ onMounted(() => {
             overflow: hidden;
             text-overflow: ellipsis;
             margin-top: 6px;
+
+            span {
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
           }
         }
       }
@@ -1037,7 +1107,9 @@ onMounted(() => {
         left: 16px;
         bottom: 16px;
         margin-top: 20px;
-        width: 220px;
+        box-sizing: border-box;
+        width: calc(100% - 32px);
+        max-width: 280px;
         height: 28px;
         border-radius: 45px;
         justify-content: space-around;
@@ -1046,7 +1118,10 @@ onMounted(() => {
         border: 2px solid #266cfbff;
 
         .btn {
-          width: 28px;
+          flex: 1 1 0;
+          width: auto;
+          min-width: 20px;
+          max-width: 28px;
           text-align: center;
           position: relative;
           cursor: pointer;

@@ -2043,10 +2043,6 @@ function openPostPipelineEditor() {
 }
 
 async function openRegionDetectionEditor() {
-  if (taskIsEnabled.value) {
-    createMessage.warning('任务运行中，无法配置，请先停止任务');
-    return;
-  }
   if (!taskId.value) {
     createMessage.warning('请先保存算法任务后再配置区域检测');
     return;
@@ -2084,6 +2080,13 @@ async function openRegionDetectionEditor() {
     taskId: taskId.value || undefined,
     deviceIds,
     deviceLabels,
+    taskModels: (Array.isArray(values.model_ids) ? values.model_ids : [])
+      .map((id: any) => {
+        const numericId = Number(id);
+        const option = modelOptions.value.find((item) => Number(item.value) === numericId);
+        return { id: numericId, name: String(option?.label || numericId) };
+      })
+      .filter((model: { id: number }) => Number.isFinite(model.id) && model.id !== 0),
   });
 }
 

@@ -23,10 +23,18 @@ export function clonePipeline(steps: PostPipelineStep[] | null | undefined): Pos
   if (!steps || !steps.length) {
     return DEFAULT_PIPELINE.map((s) => ({ ...s, params: { ...(s.params || {}) } }));
   }
-  return steps.map((s) => ({
-    ...s,
-    params: s.params ? { ...s.params } : {},
-  }));
+  return steps.map((s) => {
+    const params = s.params ? { ...s.params } : {};
+    if (typeof params.hit_mode === 'string') {
+      const legacyModes: Record<string, string> = {
+        any: 'any_corner',
+        all: 'any_corner',
+        bottom: 'bottom_center',
+      };
+      params.hit_mode = legacyModes[params.hit_mode] || params.hit_mode;
+    }
+    return { ...s, params };
+  });
 }
 
 export function effectiveSteps(steps: PostPipelineStep[]): PostPipelineStep[] {

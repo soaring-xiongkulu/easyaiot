@@ -24,8 +24,9 @@ public:
 
     /** POST_ENABLED=true → InferEvent path instead of final alert. */
     static bool postEnabled();
+    static bool postIngressEnabled();
 
-    /** POST_FAILOVER_OPEN (default true). */
+    /** POST_FAIL_STRATEGY=open or legacy POST_FAILOVER_OPEN=true; default fail-closed. */
     static bool postFailoverOpen();
 
     /** Probe cluster: Nacos healthy instances, else GET {POST_BASE_URL}/readyz. */
@@ -36,6 +37,9 @@ public:
 
     /** Fail-open bypass: POST enabled, failover open, not ready. */
     static bool postInBypass();
+
+    /** Fail-closed: POST enabled but ingress is disabled or not ready. */
+    static bool postFailClosed();
 
     /** Should publish InferEvent (not direct alert). */
     static bool shouldPublishInferEvent();

@@ -703,6 +703,10 @@ bool Detech::_init_yolo_detector() {
 
             YoloThreadPool::ModelSpec spec;
             spec.key = modelKey;
+            auto businessIdIt = _config.modelBusinessIds.find(modelKey);
+            if (businessIdIt != _config.modelBusinessIds.end()) {
+                spec.businessModelId = businessIdIt->second;
+            }
             spec.modelPath = pathIt->second;
             LOG(INFO) << "[INIT] Model path [" << modelKey << "]: " << spec.modelPath;
 
@@ -1129,7 +1133,7 @@ void Detech::_alarmSenderThreadFunc() {
                 bbox.append(static_cast<int>(det.y2));
                 detObj["bbox"] = bbox;
                 detectionsArray.append(detObj);
-                if (det.model_id >= 0) {
+                if (det.model_id != 0) {
                     modelIds.insert(det.model_id);
                 }
             }
@@ -1170,6 +1174,9 @@ void Detech::_alarmSenderThreadFunc() {
                 Json::Value dets(Json::arrayValue);
                 for (const auto& det : alarmData.detections) {
                     Json::Value d;
+                    if (det.model_id != 0) {
+                        d["model_id"] = det.model_id;
+                    }
                     d["class_name"] = det.class_name;
                     d["confidence"] = det.class_score;
                     d["class_id"] = det.class_id;
@@ -1193,6 +1200,8 @@ void Detech::_alarmSenderThreadFunc() {
                 } else {
                     LOG(ERROR) << "[ALARM-THREAD] InferEvent publish failed device=" << did;
                 }
+            } else if (AlgoMqttBus::postFailClosed()) {
+                LOG(WARNING) << "[ALARM-THREAD] POST unavailable with closed strategy; direct alert suppressed device=" << did;
             } else if (AlgoMqttBus::busEnabled(_config)) {
                 if (AlgoMqttBus::postInBypass()) {
                     Json::Value infoObj;
@@ -1612,8 +1621,8 @@ void Detech::_display_video_loop() {
                     int centerX = (x1 + x2) / 2;
                     int centerY = (y1 + y2) / 2;
                     
-                    // POST 启用时告警不做本地区域过滤（几何仅在 POST region_gate）
-                    bool inAlarmRegion = AlgoMqttBus::postEnabled()
+                    // InferEvent 真实交给 POST 时不重复做本地区域过滤；fail-open 旁路仍执行本地判断。
+                    bool inAlarmRegion = AlgoMqttBus::shouldPublishInferEvent()
                         ? true
                         : _isInAlarmRegion(centerX, centerY, img.cols, img.rows);
                     if (inAlarmRegion) {

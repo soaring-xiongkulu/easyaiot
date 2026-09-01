@@ -90,6 +90,7 @@ def _task_regions(task) -> List[Dict[str, Any]]:
     if not device_ids:
         return []
     rows = DeviceDetectionRegion.query.filter(
+        DeviceDetectionRegion.task_id == int(task.id),
         DeviceDetectionRegion.device_id.in_(device_ids),
         DeviceDetectionRegion.is_enabled.is_(True),
     ).all()
@@ -109,8 +110,12 @@ def _task_regions(task) -> List[Dict[str, Any]]:
         if r.model_ids:
             try:
                 model_ids = json.loads(r.model_ids) if isinstance(r.model_ids, str) else list(r.model_ids or [])
+                if not isinstance(model_ids, list) or not model_ids or any(int(model_id) == 0 for model_id in model_ids):
+                    raise ValueError('invalid model_ids')
+                model_ids = [int(model_id) for model_id in model_ids]
             except Exception:
-                model_ids = []
+                logger.error('跳过模型范围无效的区域 task=%s region=%s', task.id, r.id)
+                continue
         out.append({
             'id': r.id,
             'device_id': r.device_id,
@@ -120,6 +125,12 @@ def _task_regions(task) -> List[Dict[str, Any]]:
             'is_enabled': bool(r.is_enabled),
             'sort_order': int(r.sort_order or 0),
             'model_ids': model_ids,
+            'hit_mode': getattr(r, 'hit_mode', None) or 'center',
+            'min_overlap_ratio': float(
+                getattr(r, 'min_overlap_ratio', None)
+                if getattr(r, 'min_overlap_ratio', None) is not None
+                else 0.5
+            ),
         })
     return out
 
@@ -140,6 +151,7 @@ def build_template_from_task(task) -> Dict[str, Any]:
         pipeline = None
     return {
         'schema': 'post_task_template.v1',
+        'revision': int(getattr(task, 'template_revision', 1) or 1),
         'task': {
             'id': int(task.id),
             'task_name': task.task_name,
@@ -165,6 +177,9 @@ def put_template(task_id: int, *, task=None) -> bool:
     if status >= 400:
         logger.error('PUT POST 模板失败 task=%s status=%s payload=%s', task_id, status, payload)
         return False
+    if isinstance(payload, dict) and payload.get('applied') is False:
+        logger.warning('PUT POST 模板被版本门禁拒绝 task=%s payload=%s', task_id, payload)
+        return False
     return True
 
 
@@ -173,9 +188,18 @@ def push_template_on_start(task) -> bool:
 
 
 def push_template_on_stop(task_id: int) -> bool:
-    status, payload = _request_post(f'/v1/tasks/{int(task_id)}/template', method='DELETE')
+    from models import AlgorithmTask
+
+    task = AlgorithmTask.query.get(int(task_id))
+    revision = int(getattr(task, 'template_revision', 0) or 0) if task else 0
+    status, payload = _request_post(
+        f'/v1/tasks/{int(task_id)}/template?revision={revision}', method='DELETE'
+    )
     if status >= 400:
         logger.warning('DELETE POST 模板失败 task=%s status=%s payload=%s', task_id, status, payload)
+        return False
+    if isinstance(payload, dict) and payload.get('applied') is False:
+        logger.warning('DELETE POST 模板被版本门禁拒绝 task=%s payload=%s', task_id, payload)
         return False
     return True
 
@@ -201,6 +225,19 @@ def refresh_running_tasks_for_device(device_id: str) -> None:
             )
 
 
+def refresh_running_tasks_for_task(task_id: int) -> bool:
+    """区域或流水线变更后，只刷新所属的运行中任务。"""
+    from models import AlgorithmTask
+
+    task = AlgorithmTask.query.get(int(task_id))
+    if not task or task.run_status not in ('running', 'restarting'):
+        return False
+    ok = put_template(task.id, task=task)
+    if not ok:
+        logger.error('运行中任务 PUT POST 模板失败: task_id=%s', task_id)
+    return ok
+
+
 def build_sample_event(task, *, device_id: str = '', frame_width: int = 1920, frame_height: int = 1080) -> Dict[str, Any]:
     dev_id = device_id
     if not dev_id:
@@ -209,6 +246,22 @@ def build_sample_event(task, *, device_id: str = '', frame_width: int = 1920, fr
             if dev_id:
                 break
     now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    task_model_ids = []
+    try:
+        raw_model_ids = getattr(task, 'model_ids', None)
+        task_model_ids = json.loads(raw_model_ids) if isinstance(raw_model_ids, str) else list(raw_model_ids or [])
+    except Exception:
+        task_model_ids = []
+    sample_model_id = task_model_ids[0] if task_model_ids else None
+    sample_detection = {
+        'bbox': [0.42, 0.38, 0.58, 0.72],
+        'class_id': 0,
+        'class_name': 'person',
+        'confidence': 0.86,
+        'track_id': 1,
+    }
+    if sample_model_id is not None:
+        sample_detection['model_id'] = sample_model_id
     return {
         'schema': 'infer_event.v1',
         'event_kind': 'infer',
@@ -220,13 +273,5 @@ def build_sample_event(task, *, device_id: str = '', frame_width: int = 1920, fr
         'timestamp': now,
         'frame_width': int(frame_width),
         'frame_height': int(frame_height),
-        'detections': [
-            {
-                'bbox': [0.42, 0.38, 0.58, 0.72],
-                'class_id': 0,
-                'class_name': 'person',
-                'confidence': 0.86,
-                'track_id': 1,
-            },
-        ],
+        'detections': [sample_detection],
     }

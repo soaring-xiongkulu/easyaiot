@@ -32,21 +32,23 @@ func (HeadcountGate) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error
 			}
 		}
 	} else {
-		seenTrack := map[int]struct{}{}
+		seenTrack := map[string]struct{}{}
 		for _, det := range ctx.Detections {
 			if !classAllowed(det.ClassName, classes) {
 				continue
 			}
 			if det.TrackID > 0 {
-				if _, ok := seenTrack[det.TrackID]; ok {
+				key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
+				if _, ok := seenTrack[key]; ok {
 					continue
 				}
 			}
-			for _, region := range regions {
+			for _, region := range activePolygonRegionsForDetection(ctx, det.ModelID) {
 				if detectionInRegion(det, region, fw, fh, hitMode) {
 					counted = append(counted, det)
 					if det.TrackID > 0 {
-						seenTrack[det.TrackID] = struct{}{}
+						key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
+						seenTrack[key] = struct{}{}
 					}
 					break
 				}

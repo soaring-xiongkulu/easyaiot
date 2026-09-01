@@ -80,11 +80,26 @@ func (e *Engine) Handle(ev contract.InferEvent) (result string, dropReason strin
 
 	regions := entry.ByDevice[ev.DeviceID]
 	task := entry.Template.Task
+	if reason := normalizeDetectionModelIDs(&ev, task, regions); reason != "" {
+		metrics.DropTotal.WithLabelValues(reason, e.Cfg.InstanceID).Inc()
+		slog.Info("post_drop",
+			"correlation_id", ev.CorrelationID, "task_id", ev.TaskID, "device_id", ev.DeviceID,
+			"template_revision", entry.Template.Revision,
+			"instance_id", e.Cfg.InstanceID, "result", "drop", "drop_reason", reason,
+			"detections_in", len(ev.Detections), "detections_out", 0)
+		return "drop", reason, nil
+	}
 	res := pipeline.RunWith(pipeline.Options{
 		Registry: e.Registry,
 		Resolve:  e.Resolve,
 		Debug:    e.Cfg.Debug,
 	}, ev, task, regions)
+	if res.Context != nil {
+		res.Context.Enrichment["template_revision"] = entry.Template.Revision
+		if regionInfo, ok := res.Context.Enrichment["region_gate"].(map[string]any); ok {
+			regionInfo["region_revision"] = entry.Template.Revision
+		}
+	}
 
 	inN := len(ev.Detections)
 	outN := 0
@@ -96,6 +111,7 @@ func (e *Engine) Handle(ev contract.InferEvent) (result string, dropReason strin
 		metrics.DropTotal.WithLabelValues(res.DropReason, e.Cfg.InstanceID).Inc()
 		slog.Info("post_drop",
 			"correlation_id", ev.CorrelationID, "task_id", ev.TaskID, "device_id", ev.DeviceID,
+			"template_revision", entry.Template.Revision,
 			"instance_id", e.Cfg.InstanceID, "result", "drop", "drop_reason", res.DropReason,
 			"detections_in", inN, "detections_out", outN)
 		if e.Cfg.Debug && e.Bus != nil {
@@ -111,6 +127,7 @@ func (e *Engine) Handle(ev contract.InferEvent) (result string, dropReason strin
 	metrics.PassTotal.WithLabelValues(e.Cfg.InstanceID).Inc()
 	slog.Info("post_pass",
 		"correlation_id", ev.CorrelationID, "task_id", ev.TaskID, "device_id", ev.DeviceID,
+		"template_revision", entry.Template.Revision,
 		"instance_id", e.Cfg.InstanceID, "result", "pass",
 		"detections_in", inN, "detections_out", outN)
 
@@ -133,6 +150,74 @@ func (e *Engine) Handle(ev contract.InferEvent) (result string, dropReason strin
 		}
 	}
 	return "pass", "", alert
+}
+
+func normalizeDetectionModelIDs(ev *contract.InferEvent, task config.TaskConfig, regions []config.Region) string {
+	taskModels := make(map[int64]struct{}, len(task.ModelIDs))
+	for _, id := range task.ModelIDs {
+		taskModels[id] = struct{}{}
+	}
+	var fallback *int64
+	if len(ev.ModelIDs) == 1 {
+		id := ev.ModelIDs[0]
+		fallback = &id
+	} else if len(task.ModelIDs) == 1 {
+		id := task.ModelIDs[0]
+		fallback = &id
+	}
+	hasModelSpecificRegion := false
+	for _, r := range regions {
+		if !r.IsEnabled {
+			continue
+		}
+		if len(r.ModelIDs) > 0 {
+			hasModelSpecificRegion = true
+		}
+	}
+	requiresFrameSize := false
+	for i := range ev.Detections {
+		det := &ev.Detections[i]
+		if det.ModelID == nil && fallback != nil {
+			id := *fallback
+			det.ModelID = &id
+		}
+		if det.ModelID == nil {
+			if hasModelSpecificRegion {
+				return "missing_detection_model_id"
+			}
+		} else if _, ok := taskModels[*det.ModelID]; !ok {
+			return "foreign_detection_model_id"
+		}
+		for _, region := range regions {
+			if !region.IsEnabled || !regionAppliesToDetectionModel(region.ModelIDs, det.ModelID) {
+				continue
+			}
+			if region.RegionType == "" || region.RegionType == "polygon" ||
+				region.RegionType == "rectangle" || region.RegionType == "line" {
+				requiresFrameSize = true
+				break
+			}
+		}
+	}
+	if requiresFrameSize && (ev.FrameWidth <= 0 || ev.FrameHeight <= 0) {
+		return "invalid_frame_size"
+	}
+	return ""
+}
+
+func regionAppliesToDetectionModel(regionModelIDs []int64, detectionModelID *int64) bool {
+	if len(regionModelIDs) == 0 {
+		return true
+	}
+	if detectionModelID == nil {
+		return false
+	}
+	for _, id := range regionModelIDs {
+		if id == *detectionModelID {
+			return true
+		}
+	}
+	return false
 }
 
 func stringsEqualFoldAny(s string, opts ...string) bool {

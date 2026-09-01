@@ -63,7 +63,7 @@ func (d *HTTPDeps) handleTaskPath(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut, http.MethodPost:
 		d.handleUpsert(w, r, taskID)
 	case http.MethodDelete:
-		d.handleDelete(w, taskID)
+		d.handleDelete(w, r, taskID)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -81,23 +81,39 @@ func (d *HTTPDeps) handleUpsert(w http.ResponseWriter, r *http.Request, taskID i
 	if tpl.Task.ID == 0 {
 		tpl.Task.ID = taskID
 	}
-	exp := d.Cache.Upsert(tpl)
+	if tpl.Task.ID != taskID {
+		http.Error(w, "task_id mismatch", http.StatusBadRequest)
+		return
+	}
+	if err := config.ValidateTaskTemplate(tpl); err != nil {
+		http.Error(w, "invalid template: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	exp, applied := d.Cache.UpsertVersioned(tpl)
 	metrics.TemplateUpsert.WithLabelValues(d.InstanceID).Inc()
-	if d.Sync != nil {
+	if !applied {
+		metrics.TemplateStale.WithLabelValues("upsert", d.InstanceID).Inc()
+	}
+	if applied && d.Sync != nil {
 		d.Sync.PublishUpsert(tpl)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok": true, "task_id": taskID, "expires_at": exp.Format(time.RFC3339),
+		"ok": true, "applied": applied, "task_id": taskID,
+		"revision": tpl.Revision, "expires_at": exp.Format(time.RFC3339),
 	})
 }
 
-func (d *HTTPDeps) handleDelete(w http.ResponseWriter, taskID int64) {
-	d.Cache.Delete(taskID)
+func (d *HTTPDeps) handleDelete(w http.ResponseWriter, r *http.Request, taskID int64) {
+	revision, _ := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("revision")), 10, 64)
+	applied := d.Cache.DeleteVersioned(taskID, revision)
 	metrics.TemplateDelete.WithLabelValues(d.InstanceID).Inc()
-	if d.Sync != nil {
-		d.Sync.PublishDelete(taskID)
+	if !applied {
+		metrics.TemplateStale.WithLabelValues("delete", d.InstanceID).Inc()
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "task_id": taskID})
+	if applied && d.Sync != nil {
+		d.Sync.PublishDelete(taskID, revision)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "applied": applied, "task_id": taskID, "revision": revision})
 }
 
 func (d *HTTPDeps) handleReload(w http.ResponseWriter, r *http.Request) {

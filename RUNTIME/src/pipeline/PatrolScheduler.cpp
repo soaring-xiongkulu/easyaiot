@@ -151,7 +151,7 @@ void PatrolScheduler::processDevice(const DeviceStreamConfig& device, const cv::
 
     std::vector<DetectObject> alarmDetections;
     std::string regionName = "全画面";
-    const bool skipRegionGate = AlgoMqttBus::postEnabled();
+    const bool skipRegionGate = AlgoMqttBus::shouldPublishInferEvent();
     for (const auto& det : detections) {
         if (config_.enableAlarm && det.class_score < config_.alarmConfidenceThreshold) {
             continue;

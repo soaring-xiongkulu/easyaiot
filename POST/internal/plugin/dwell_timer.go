@@ -14,8 +14,7 @@ func (DwellTimer) Kinds() []pipeline.PluginKind {
 }
 
 func (DwellTimer) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
-	regions := activePolygonRegions(ctx)
-	if len(regions) == 0 {
+	if len(activePolygonRegions(ctx)) == 0 {
 		return pipeline.PluginDelta{
 			EnrichmentPatch: map[string]any{
 				"dwell_timer": "bypass",
@@ -44,7 +43,11 @@ func (DwellTimer) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 		if det.TrackID <= 0 {
 			continue
 		}
-		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.TrackID)
+		regions := activePolygonRegionsForDetection(ctx, det.ModelID)
+		if len(regions) == 0 {
+			continue
+		}
+		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
 		st := globalTrackState.touch(key, now)
 
 		for _, region := range regions {
@@ -66,11 +69,11 @@ func (DwellTimer) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 					continue
 				}
 				dwells = append(dwells, map[string]any{
-					"track_id":     det.TrackID,
-					"region_id":    region.ID,
-					"region_name":  region.RegionName,
-					"class_name":   det.ClassName,
-					"dwell_sec":    elapsed,
+					"track_id":      det.TrackID,
+					"region_id":     region.ID,
+					"region_name":   region.RegionName,
+					"class_name":    det.ClassName,
+					"dwell_sec":     elapsed,
 					"min_dwell_sec": minDwell,
 				})
 				kept = appendUniqueDetection(kept, det)

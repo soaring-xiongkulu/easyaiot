@@ -20,6 +20,9 @@ type Store struct {
 	db *sql.DB
 }
 
+const taskDeviceIDsQuery = `
+	SELECT device_id FROM algorithm_task_device WHERE task_id = $1`
+
 func OpenStore(databaseURL string) (*Store, error) {
 	databaseURL = config.NormalizePostgresURL(databaseURL)
 	if strings.TrimSpace(databaseURL) == "" {
@@ -50,7 +53,8 @@ func (s *Store) Close() error {
 // LoadRunningTemplates loads run_status=running tasks into snapshots.
 func (s *Store) LoadRunningTemplates(ctx context.Context) ([]config.TaskTemplate, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, task_name, task_type, COALESCE(model_ids,''), COALESCE(post_pipeline,''),
+		SELECT id, COALESCE((to_jsonb(algorithm_task)->>'template_revision')::bigint,1),
+		       task_name, task_type, COALESCE(model_ids,''), COALESCE(post_pipeline,''),
 		       COALESCE(post_process_script,''), COALESCE(alert_event_enabled,false)
 		FROM algorithm_task
 		WHERE run_status = 'running'`)
@@ -65,13 +69,13 @@ func (s *Store) LoadRunningTemplates(ctx context.Context) ([]config.TaskTemplate
 
 	var out []config.TaskTemplate
 	for rows.Next() {
-		var id int64
+		var id, revision int64
 		var name, taskType, modelIDsRaw, pipelineRaw, script string
 		var alertEnabled bool
-		if err := rows.Scan(&id, &name, &taskType, &modelIDsRaw, &pipelineRaw, &script, &alertEnabled); err != nil {
+		if err := rows.Scan(&id, &revision, &name, &taskType, &modelIDsRaw, &pipelineRaw, &script, &alertEnabled); err != nil {
 			return nil, err
 		}
-		tpl, err := s.buildTemplate(ctx, id, name, taskType, modelIDsRaw, pipelineRaw, script)
+		tpl, err := s.buildTemplate(ctx, id, revision, name, taskType, modelIDsRaw, pipelineRaw, script)
 		if err != nil {
 			slog.Warn("warmup_skip_task", "task_id", id, "err", err)
 			continue
@@ -83,7 +87,8 @@ func (s *Store) LoadRunningTemplates(ctx context.Context) ([]config.TaskTemplate
 
 func (s *Store) loadRunningWithoutPipeline(ctx context.Context) ([]config.TaskTemplate, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, task_name, task_type, COALESCE(model_ids,''), COALESCE(post_process_script,'')
+		SELECT id, COALESCE((to_jsonb(algorithm_task)->>'template_revision')::bigint,1),
+		       task_name, task_type, COALESCE(model_ids,''), COALESCE(post_process_script,'')
 		FROM algorithm_task WHERE run_status = 'running'`)
 	if err != nil {
 		return nil, err
@@ -91,12 +96,12 @@ func (s *Store) loadRunningWithoutPipeline(ctx context.Context) ([]config.TaskTe
 	defer rows.Close()
 	var out []config.TaskTemplate
 	for rows.Next() {
-		var id int64
+		var id, revision int64
 		var name, taskType, modelIDsRaw, script string
-		if err := rows.Scan(&id, &name, &taskType, &modelIDsRaw, &script); err != nil {
+		if err := rows.Scan(&id, &revision, &name, &taskType, &modelIDsRaw, &script); err != nil {
 			return nil, err
 		}
-		tpl, err := s.buildTemplate(ctx, id, name, taskType, modelIDsRaw, "", script)
+		tpl, err := s.buildTemplate(ctx, id, revision, name, taskType, modelIDsRaw, "", script)
 		if err != nil {
 			continue
 		}
@@ -105,12 +110,12 @@ func (s *Store) loadRunningWithoutPipeline(ctx context.Context) ([]config.TaskTe
 	return out, rows.Err()
 }
 
-func (s *Store) buildTemplate(ctx context.Context, id int64, name, taskType, modelIDsRaw, pipelineRaw, script string) (config.TaskTemplate, error) {
+func (s *Store) buildTemplate(ctx context.Context, id, revision int64, name, taskType, modelIDsRaw, pipelineRaw, script string) (config.TaskTemplate, error) {
 	deviceIDs, err := s.taskDeviceIDs(ctx, id)
 	if err != nil {
 		return config.TaskTemplate{}, err
 	}
-	regions, err := s.loadRegions(ctx, deviceIDs)
+	regions, err := s.loadRegions(ctx, id, deviceIDs)
 	if err != nil {
 		return config.TaskTemplate{}, err
 	}
@@ -120,20 +125,23 @@ func (s *Store) buildTemplate(ctx context.Context, id int64, name, taskType, mod
 	if strings.TrimSpace(pipelineRaw) != "" {
 		_ = json.Unmarshal([]byte(pipelineRaw), &steps)
 	}
-	return config.TaskTemplate{
-		Schema: contract.SchemaTaskTemplate,
+	tpl := config.TaskTemplate{
+		Schema: contract.SchemaTaskTemplate, Revision: revision,
 		Task: config.TaskConfig{
 			ID: id, TaskName: name, TaskType: taskType,
 			ModelIDs: modelIDs, Pipeline: steps, PostProcessScript: script,
 			AlertEvent: "检测告警",
 		},
 		Regions: regions,
-	}, nil
+	}
+	if err := config.ValidateTaskTemplate(tpl); err != nil {
+		return config.TaskTemplate{}, err
+	}
+	return tpl, nil
 }
 
 func (s *Store) taskDeviceIDs(ctx context.Context, taskID int64) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT device_id FROM algorithm_task_device WHERE algorithm_task_id = $1`, taskID)
+	rows, err := s.db.QueryContext(ctx, taskDeviceIDsQuery, taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,22 +157,24 @@ func (s *Store) taskDeviceIDs(ctx context.Context, taskID int64) ([]string, erro
 	return ids, rows.Err()
 }
 
-func (s *Store) loadRegions(ctx context.Context, deviceIDs []string) ([]config.Region, error) {
+func (s *Store) loadRegions(ctx context.Context, taskID int64, deviceIDs []string) ([]config.Region, error) {
 	if len(deviceIDs) == 0 {
 		return nil, nil
 	}
 	// build IN clause
-	args := make([]any, len(deviceIDs))
+	args := make([]any, len(deviceIDs)+1)
+	args[0] = taskID
 	placeholders := make([]string, len(deviceIDs))
 	for i, id := range deviceIDs {
-		args[i] = id
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i+1] = id
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
 	}
 	q := fmt.Sprintf(`
 		SELECT id, device_id, region_name, COALESCE(region_type,'polygon'), points,
 		       COALESCE(is_enabled,true), COALESCE(sort_order,0), COALESCE(model_ids,'')
 		FROM device_detection_region
-		WHERE device_id IN (%s) AND COALESCE(is_enabled,true) = true`, strings.Join(placeholders, ","))
+		WHERE task_id = $1 AND device_id IN (%s) AND COALESCE(is_enabled,true) = true
+		ORDER BY device_id, sort_order, id`, strings.Join(placeholders, ","))
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
@@ -178,7 +188,22 @@ func (s *Store) loadRegions(ctx context.Context, deviceIDs []string) ([]config.R
 			return nil, err
 		}
 		r.Points = normalizePoints(pointsRaw)
-		_ = json.Unmarshal([]byte(nullJSONArray(modelRaw)), &r.ModelIDs)
+		modelJSON := nullJSONArray(modelRaw)
+		if err := json.Unmarshal([]byte(modelJSON), &r.ModelIDs); err != nil {
+			slog.Warn("warmup_skip_invalid_region_model_scope", "task_id", taskID, "region_id", r.ID)
+			continue
+		}
+		invalidModelID := false
+		for _, modelID := range r.ModelIDs {
+			if modelID == 0 {
+				invalidModelID = true
+				break
+			}
+		}
+		if invalidModelID {
+			slog.Warn("warmup_skip_invalid_region_model_scope", "task_id", taskID, "region_id", r.ID)
+			continue
+		}
 		out = append(out, r)
 	}
 	return out, rows.Err()

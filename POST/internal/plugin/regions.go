@@ -8,7 +8,14 @@ import (
 )
 
 func activePolygonRegions(ctx *pipeline.Context) []config.Region {
-	modelSet := unionModelIDs(ctx.Event.ModelIDs, ctx.Task.ModelIDs)
+	return activePolygonRegionsForModel(ctx, nil, false)
+}
+
+func activePolygonRegionsForDetection(ctx *pipeline.Context, modelID *int64) []config.Region {
+	return activePolygonRegionsForModel(ctx, modelID, true)
+}
+
+func activePolygonRegionsForModel(ctx *pipeline.Context, modelID *int64, filterModel bool) []config.Region {
 	var active []config.Region
 	for _, r := range ctx.Regions {
 		if !r.IsEnabled {
@@ -27,19 +34,29 @@ func activePolygonRegions(ctx *pipeline.Context) []config.Region {
 		if len(r.Points) < 3 {
 			continue
 		}
-		if len(r.ModelIDs) > 0 && !intersects(r.ModelIDs, modelSet) {
+		if filterModel && !regionAppliesToModel(r.ModelIDs, modelID) {
 			continue
 		}
 		active = append(active, r)
 	}
 	sort.SliceStable(active, func(i, j int) bool {
+		if active[i].SortOrder == active[j].SortOrder {
+			return active[i].ID < active[j].ID
+		}
 		return active[i].SortOrder < active[j].SortOrder
 	})
 	return active
 }
 
 func activeLineRegions(ctx *pipeline.Context) []config.Region {
-	modelSet := unionModelIDs(ctx.Event.ModelIDs, ctx.Task.ModelIDs)
+	return activeLineRegionsForModel(ctx, nil, false)
+}
+
+func activeLineRegionsForDetection(ctx *pipeline.Context, modelID *int64) []config.Region {
+	return activeLineRegionsForModel(ctx, modelID, true)
+}
+
+func activeLineRegionsForModel(ctx *pipeline.Context, modelID *int64, filterModel bool) []config.Region {
 	var active []config.Region
 	for _, r := range ctx.Regions {
 		if !r.IsEnabled {
@@ -51,12 +68,15 @@ func activeLineRegions(ctx *pipeline.Context) []config.Region {
 		if len(r.Points) < 2 {
 			continue
 		}
-		if len(r.ModelIDs) > 0 && !intersects(r.ModelIDs, modelSet) {
+		if filterModel && !regionAppliesToModel(r.ModelIDs, modelID) {
 			continue
 		}
 		active = append(active, r)
 	}
 	sort.SliceStable(active, func(i, j int) bool {
+		if active[i].SortOrder == active[j].SortOrder {
+			return active[i].ID < active[j].ID
+		}
 		return active[i].SortOrder < active[j].SortOrder
 	})
 	return active

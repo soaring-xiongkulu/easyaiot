@@ -16,6 +16,7 @@ type SyncMessage struct {
 	Schema         string               `json:"schema"`
 	Op             string               `json:"op"`
 	TaskID         int64                `json:"task_id"`
+	Revision       int64                `json:"revision,omitempty"`
 	Template       *config.TaskTemplate `json:"template,omitempty"`
 	TS             string               `json:"ts"`
 	SourceInstance string               `json:"source_instance"`
@@ -34,19 +35,19 @@ func (s *SyncPublisher) PublishUpsert(tpl config.TaskTemplate) {
 	}
 	msg := SyncMessage{
 		Schema: contract.SchemaTaskSync, Op: "upsert", TaskID: tpl.Task.ID,
-		Template: &tpl, TS: time.Now().Format(time.RFC3339), SourceInstance: s.InstanceID,
+		Revision: tpl.Revision, Template: &tpl, TS: time.Now().Format(time.RFC3339), SourceInstance: s.InstanceID,
 	}
 	if err := s.Bus.PublishJSON(s.Topic, 1, msg); err != nil {
 		slog.Error("task_sync_publish_failed", "op", "upsert", "task_id", tpl.Task.ID, "err", err)
 	}
 }
 
-func (s *SyncPublisher) PublishDelete(taskID int64) {
+func (s *SyncPublisher) PublishDelete(taskID int64, revision int64) {
 	if s == nil || s.Bus == nil {
 		return
 	}
 	msg := SyncMessage{
-		Schema: contract.SchemaTaskSync, Op: "delete", TaskID: taskID,
+		Schema: contract.SchemaTaskSync, Op: "delete", TaskID: taskID, Revision: revision,
 		TS: time.Now().Format(time.RFC3339), SourceInstance: s.InstanceID,
 	}
 	if err := s.Bus.PublishJSON(s.Topic, 1, msg); err != nil {
@@ -85,11 +86,21 @@ func ApplySync(cache *Cache, instanceID string, payload []byte) {
 		if msg.Template.Task.ID == 0 {
 			msg.Template.Task.ID = msg.TaskID
 		}
-		cache.Upsert(*msg.Template)
-		metrics.SyncApply.WithLabelValues("upsert", instanceID).Inc()
+		if err := config.ValidateTaskTemplate(*msg.Template); err != nil {
+			slog.Warn("task_sync_invalid_template", "task_id", msg.TaskID, "err", err)
+			return
+		}
+		if _, applied := cache.UpsertVersioned(*msg.Template); applied {
+			metrics.SyncApply.WithLabelValues("upsert", instanceID).Inc()
+		} else {
+			metrics.TemplateStale.WithLabelValues("sync_upsert", instanceID).Inc()
+		}
 	case "delete":
-		cache.Delete(msg.TaskID)
-		metrics.SyncApply.WithLabelValues("delete", instanceID).Inc()
+		if cache.DeleteVersioned(msg.TaskID, msg.Revision) {
+			metrics.SyncApply.WithLabelValues("delete", instanceID).Inc()
+		} else {
+			metrics.TemplateStale.WithLabelValues("sync_delete", instanceID).Inc()
+		}
 	case "touch":
 		if cache.Touch(msg.TaskID) {
 			metrics.SyncApply.WithLabelValues("touch", instanceID).Inc()

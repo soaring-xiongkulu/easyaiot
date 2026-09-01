@@ -10,7 +10,7 @@
   >
     <div class="region-config-shell">
       <div v-if="initializing" class="region-config-loading">
-        <a-spin :tip="initializingTip" size="large" />
+        <ASpin :tip="initializingTip" size="large" />
       </div>
 
       <!-- 紧凑摄像头切换条 -->
@@ -44,13 +44,13 @@
                 </span>
               </span>
               <span class="camera-chip__name">{{ device.name || device.id }}</span>
-              <a-tag
+              <ATag
                 v-if="captureFailedDeviceIds.has(device.id)"
                 color="error"
                 class="camera-chip__tag"
               >
                 失败
-              </a-tag>
+              </ATag>
               <span v-else class="camera-chip__count">{{ getRegionCount(device.id) }}</span>
             </div>
           </div>
@@ -65,7 +65,7 @@
           </Button>
         </div>
         <div v-else-if="!initializing" class="camera-bar camera-bar--empty">
-          <a-empty description="未加载到任务关联的摄像头" :image="false" />
+          <AEmpty description="未加载到任务关联的摄像头" :image="false" />
         </div>
 
         <!-- 主工作区：画布占满剩余空间 -->
@@ -80,12 +80,13 @@
             :initial-image-id="deviceImageIds[selectedDeviceId]"
             :initial-image-path="deviceImagePaths[selectedDeviceId]"
             :auto-capture="!deviceImagePaths[selectedDeviceId] || captureFailedDeviceIds.has(selectedDeviceId)"
+            :task-models="taskModels"
             @save="handleRegionSave"
             @image-captured="handleImageCaptured"
             @cover-updated="handleCoverUpdated"
           />
           <div v-else class="region-workspace__empty">
-            <a-empty description="暂无关联摄像头" :image="false" />
+            <AEmpty description="暂无关联摄像头" :image="false" />
           </div>
         </div>
     </div>
@@ -95,6 +96,11 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue';
 import { LoadingOutlined } from '@ant-design/icons-vue';
+import {
+  Empty as AEmpty,
+  Spin as ASpin,
+  Tag as ATag,
+} from 'ant-design-vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/Button';
@@ -120,6 +126,7 @@ defineOptions({ name: 'DeviceRegionDetectionDrawer' });
 const { createMessage } = useMessage();
 
 const taskId = ref<number | null>(null);
+const taskModels = ref<Array<{ id: number; name: string }>>([]);
 /** 打开抽屉时锁定的设备 ID，防止抓图后列表被全量设备污染 */
 const pinnedDeviceIds = ref<string[] | null>(null);
 
@@ -200,6 +207,7 @@ const [register] = useDrawerInner(async (data) => {
   captureFailedDeviceIds.value = new Set();
   pinnedDeviceIds.value = null;
   taskId.value = null;
+  taskModels.value = [];
 
   const incomingIds = Array.isArray(data?.deviceIds)
     ? data.deviceIds.map(String).filter(Boolean)
@@ -209,6 +217,11 @@ const [register] = useDrawerInner(async (data) => {
 
   if (data?.taskId) {
     taskId.value = data.taskId;
+  }
+  if (Array.isArray(data?.taskModels)) {
+    taskModels.value = data.taskModels
+      .map((model: any) => ({ id: Number(model.id), name: String(model.name || model.id) }))
+      .filter((model) => Number.isFinite(model.id) && model.id !== 0);
   }
 
   // 优先使用表单传入的设备 ID（与任务配置一致），taskId 仅作封面等信息补充
@@ -249,7 +262,7 @@ function parseDeviceInfo(response: unknown): DeviceInfo | null {
     return obj.data as DeviceInfo;
   }
   if ('id' in obj && obj.id) {
-    return obj as DeviceInfo;
+    return obj as unknown as DeviceInfo;
   }
   return null;
 }

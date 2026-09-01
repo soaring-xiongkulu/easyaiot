@@ -11,6 +11,7 @@
 #include <cstring>
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 
 std::string ConfigParser::trim(const std::string& str) {
     const std::string whitespace = " \t\r\n";
@@ -82,16 +83,29 @@ bool ConfigParser::parseRegion(const std::string& regionJson, std::vector<cv::Po
 
         points.clear();
         for (const auto& point : root) {
+            double x = 0.0;
+            double y = 0.0;
+            bool validPoint = false;
             if (point.isArray() && point.size() == 2) {
-                // Support normalized 0-1 or absolute pixel coords
-                double x = point[0].asDouble();
-                double y = point[1].asDouble();
-                if (x >= 0.0 && x <= 1.0 && y >= 0.0 && y <= 1.0) {
-                    // Will be scaled later when video size known; store as 0-10000 fixed
-                    points.push_back(cv::Point(static_cast<int>(x * 10000), static_cast<int>(y * 10000)));
-                } else {
-                    points.push_back(cv::Point(static_cast<int>(x), static_cast<int>(y)));
-                }
+                validPoint = point[0].isNumeric() && point[1].isNumeric();
+                x = point[0].asDouble();
+                y = point[1].asDouble();
+            } else if (point.isObject() && point.isMember("x") && point.isMember("y")) {
+                // VIDEO persists normalized coordinates as {"x": ..., "y": ...}.
+                // Keep accepting the historical [x, y] representation above.
+                validPoint = point["x"].isNumeric() && point["y"].isNumeric();
+                x = point["x"].asDouble();
+                y = point["y"].asDouble();
+            }
+            if (!validPoint || !std::isfinite(x) || !std::isfinite(y)) {
+                continue;
+            }
+            // Support normalized 0-1 or absolute pixel coords.
+            if (x >= 0.0 && x <= 1.0 && y >= 0.0 && y <= 1.0) {
+                // Will be scaled later when video size known; store as 0-10000 fixed.
+                points.push_back(cv::Point(static_cast<int>(x * 10000), static_cast<int>(y * 10000)));
+            } else {
+                points.push_back(cv::Point(static_cast<int>(x), static_cast<int>(y)));
             }
         }
 
@@ -205,6 +219,12 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
                 std::string clsModel = key.substr(std::strlen("classes_path_"));
                 if (clsModel.empty()) clsModel = "default";
                 config.modelClasses[clsModel] = value;
+            } else if (key == "model_id") {
+                config.modelBusinessIds["default"] = parseInt(value);
+            } else if (key.rfind("model_id_", 0) == 0) {
+                std::string idModel = key.substr(std::strlen("model_id_"));
+                if (idModel.empty()) idModel = "default";
+                config.modelBusinessIds[idModel] = parseInt(value);
             } else if (key == "threads") {
                 config.threadNums = parseInt(value);
                 if (config.threadNums <= 0) config.threadNums = 3;

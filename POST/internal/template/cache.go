@@ -16,32 +16,65 @@ type Entry struct {
 
 // Cache is an in-process TTL map (no Redis).
 type Cache struct {
-	mu  sync.RWMutex
-	ttl time.Duration
-	m   map[int64]*Entry
+	mu        sync.RWMutex
+	ttl       time.Duration
+	m         map[int64]*Entry
+	versions  map[int64]int64
+	tombstone map[int64]bool
 }
 
 func NewCache(ttl time.Duration) *Cache {
-	return &Cache{ttl: ttl, m: make(map[int64]*Entry)}
+	return &Cache{
+		ttl: ttl, m: make(map[int64]*Entry), versions: make(map[int64]int64),
+		tombstone: make(map[int64]bool),
+	}
 }
 
 func (c *Cache) Upsert(tpl config.TaskTemplate) time.Time {
+	exp, _ := c.UpsertVersioned(tpl)
+	return exp
+}
+
+func (c *Cache) UpsertVersioned(tpl config.TaskTemplate) (time.Time, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	exp := time.Now().Add(c.ttl)
 	id := tpl.Task.ID
+	if current, ok := c.versions[id]; ok {
+		if tpl.Revision < current || (tpl.Revision == current && c.tombstone[id]) {
+			return exp, false
+		}
+	}
 	c.m[id] = &Entry{
 		Template:  tpl,
 		ExpiresAt: exp,
 		ByDevice:  config.RegionsByDevice(tpl.Regions),
 	}
-	return exp
+	c.versions[id] = tpl.Revision
+	delete(c.tombstone, id)
+	return exp, true
 }
 
 func (c *Cache) Delete(taskID int64) {
+	c.DeleteVersioned(taskID, c.Version(taskID))
+}
+
+func (c *Cache) DeleteVersioned(taskID int64, revision int64) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if current, ok := c.versions[taskID]; ok && revision < current {
+		return false
+	}
 	delete(c.m, taskID)
+	c.versions[taskID] = revision
+	c.tombstone[taskID] = true
+	return true
+}
+
+func (c *Cache) Version(taskID int64) int64 {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.versions[taskID]
 }
 
 func (c *Cache) Get(taskID int64) (*Entry, bool) {
