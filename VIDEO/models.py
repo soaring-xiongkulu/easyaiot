@@ -309,6 +309,9 @@ class Alert(db.Model):
     edge_node_name = db.Column(db.String(128), nullable=True, comment='边缘节点名称（冗余）')
     edge_node_host = db.Column(db.String(128), nullable=True, comment='边缘节点主机（冗余）')
     node_id = db.Column(db.BigInteger, nullable=True, comment='运行 compute_node.id（可选）')
+    # 大模型（LLM）研判状态（iot-sink 独立队列异步回写）：pending/confirmed/rejected/error/skipped
+    llm_judge_status = db.Column(db.String(20), nullable=True, comment='LLM研判状态[pending,confirmed,rejected,error,skipped]')
+    llm_judge_detail = db.Column(db.Text, nullable=True, comment='LLM研判结论快照（JSON，与 information.llm 双写）')
 
 
 class SnapSpace(db.Model):
@@ -1157,6 +1160,10 @@ class AlgorithmTask(db.Model):
     post_pipeline = db.Column(db.Text, nullable=True, comment='POST 定制后处理 pipeline JSON')
     template_revision = db.Column(db.BigInteger, default=1, nullable=False, comment='POST任务模板单调版本号')
 
+    # 大模型（LLM）后处理总开关（事件规则绑定智能体研判，由 iot-sink 独立队列异步执行）
+    llm_post_process_enabled = db.Column(db.Boolean, default=False, nullable=False,
+                                         comment='是否启用大模型后处理（事件规则绑定智能体研判）')
+
     # 布防时段配置
     defense_mode = db.Column(db.String(20), default='half', nullable=False, comment='布防模式[full:全防模式,half:半防模式,day:白天模式,night:夜间模式]')
     defense_schedule = db.Column(db.Text, nullable=True, comment='布防时段配置（JSON格式，7天×24小时的二维数组）')
@@ -1334,6 +1341,7 @@ class AlgorithmTask(db.Model):
             'post_process_script': self.post_process_script,
             'post_process_replicas': int(self.post_process_replicas or 1),
             'post_pipeline': self._parse_post_pipeline(),
+            'llm_post_process_enabled': bool(self.llm_post_process_enabled),
             'template_revision': int(getattr(self, 'template_revision', 1) or 1),
             'created_at': utc_isoformat_z(self.created_at),
             'updated_at': utc_isoformat_z(self.updated_at)
@@ -1431,6 +1439,119 @@ class AlgorithmPostProcessResult(db.Model):
             'alerts': json.loads(self.alerts) if self.alerts else None,
             'payload': json.loads(self.payload) if self.payload else None,
             'correlation_id': self.correlation_id,
+            'created_at': utc_isoformat_z(self.created_at),
+        }
+
+
+class AlgorithmTaskLlmRule(db.Model):
+    """算法任务大模型（LLM）后处理规则：事件规则 × 智能体绑定。
+
+    每条规则按检测对象/事件类别匹配告警，绑定智能体（AI 模块 rag_expert），
+    配置判断方式（图片/视频窗口）与是否二次判断（门控通知）。
+    """
+    __tablename__ = 'algorithm_task_llm_rule'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task_id = db.Column(db.Integer, nullable=False, index=True, comment='算法任务ID')
+    rule_name = db.Column(db.String(100), nullable=False, comment='规则名称')
+    # 事件匹配维度：与告警 alert.object / information.detections[].class_name 匹配
+    match_objects = db.Column(db.Text, nullable=True, comment='匹配的检测对象/事件类别 JSON 数组，NULL=全部')
+    match_events = db.Column(db.Text, nullable=True, comment='匹配的事件类型 JSON 数组，NULL=全部')
+    # 智能体绑定
+    agent_id = db.Column(db.Integer, nullable=False, comment='智能体ID（AI 模块 rag_expert.id）')
+    model_id = db.Column(db.Integer, nullable=True, comment='大模型ID（llm_config.id），NULL=智能体/系统默认模型')
+    # 判断方式
+    judge_mode = db.Column(db.String(10), default='image', nullable=False, comment='判断方式[image:事件图片,video:事件间隔视频]')
+    # 视频窗口（仅 judge_mode=video 生效）：事件时间前/后各取 N 秒，切片受最大时长上限保护
+    video_pre_seconds = db.Column(db.Integer, default=5, nullable=False, comment='事件前窗口（秒）')
+    video_post_seconds = db.Column(db.Integer, default=10, nullable=False, comment='事件后窗口（秒）')
+    video_max_seconds = db.Column(db.Integer, default=30, nullable=False, comment='切片最大时长（秒）')
+    # 二次判断（门控）
+    secondary_judge = db.Column(db.Boolean, default=False, nullable=False, comment='true=大模型确认后才发通知; false=后置增强仅回写')
+    fail_policy = db.Column(db.String(10), default='skip', nullable=False, comment='LLM失败时策略[skip:不改动原结果,confirm:放行,reject:抑制]')
+    # 提示词与输出
+    prompt_override = db.Column(db.Text, nullable=True, comment='覆盖智能体默认研判提示词（含占位符）')
+    require_json = db.Column(db.Boolean, default=True, nullable=False, comment='强制 JSON 结构化输出')
+    # 节流与启停
+    min_interval_sec = db.Column(db.Integer, default=0, nullable=False, comment='同任务/设备 LLM 研判最小间隔（秒），0=不限')
+    priority = db.Column(db.SmallInteger, default=5, nullable=False, comment='规则优先级（多规则命中取最高）')
+    enabled = db.Column(db.Boolean, default=True, nullable=False, comment='是否启用')
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+    def to_dict(self):
+        import json
+        return {
+            'id': self.id,
+            'task_id': self.task_id,
+            'rule_name': self.rule_name,
+            'match_objects': json.loads(self.match_objects) if self.match_objects else None,
+            'match_events': json.loads(self.match_events) if self.match_events else None,
+            'agent_id': self.agent_id,
+            'model_id': self.model_id,
+            'judge_mode': self.judge_mode,
+            'video_pre_seconds': int(self.video_pre_seconds or 5),
+            'video_post_seconds': int(self.video_post_seconds or 10),
+            'video_max_seconds': int(self.video_max_seconds or 30),
+            'secondary_judge': bool(self.secondary_judge),
+            'fail_policy': self.fail_policy,
+            'prompt_override': self.prompt_override,
+            'require_json': bool(self.require_json),
+            'min_interval_sec': int(self.min_interval_sec or 0),
+            'priority': int(self.priority or 5),
+            'enabled': bool(self.enabled),
+            'created_at': utc_isoformat_z(self.created_at),
+            'updated_at': utc_isoformat_z(self.updated_at),
+        }
+
+
+class AlgorithmLlmJudgeResult(db.Model):
+    """算法事件大模型研判结果（由 iot-sink 独立队列消费者异步写入，审计/回放）。"""
+    __tablename__ = 'algorithm_llm_judge_result'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    correlation_id = db.Column(db.String(64), nullable=False, index=True, comment='关联ID（与 alert.correlation_id 对齐，去重/追溯）')
+    alert_id = db.Column(db.Integer, nullable=False, index=True, comment='关联告警ID')
+    task_id = db.Column(db.Integer, nullable=True, index=True, comment='算法任务ID')
+    device_id = db.Column(db.String(100), nullable=True, index=True, comment='设备ID')
+    rule_id = db.Column(db.Integer, nullable=True, comment='命中规则ID')
+    agent_id = db.Column(db.Integer, nullable=True, comment='智能体ID')
+    model_id = db.Column(db.Integer, nullable=True, comment='大模型ID')
+    judge_mode = db.Column(db.String(10), nullable=True, comment='判断方式[image,video]')
+    media_url = db.Column(db.String(500), nullable=True, comment='图片 URL 或视频切片 URL')
+    prompt = db.Column(db.Text, nullable=True, comment='实际发送提示词（含 RAG 上下文）')
+    raw_response = db.Column(db.Text, nullable=True, comment='模型原始返回')
+    confirm = db.Column(db.Boolean, nullable=True, comment='研判结论：事件是否成立')
+    confidence = db.Column(db.Float, nullable=True, comment='置信度 0~1')
+    reason = db.Column(db.Text, nullable=True, comment='模型理由')
+    structured = db.Column(db.Text, nullable=True, comment='解析后的结构化输出 JSON')
+    duration_ms = db.Column(db.Integer, nullable=True, comment='单次研判耗时（毫秒）')
+    status = db.Column(db.String(20), default='pending', nullable=False, comment='状态[pending,success,error,dlt]')
+    error_msg = db.Column(db.Text, nullable=True, comment='失败原因')
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), index=True)
+
+    def to_dict(self):
+        import json
+        return {
+            'id': self.id,
+            'correlation_id': self.correlation_id,
+            'alert_id': self.alert_id,
+            'task_id': self.task_id,
+            'device_id': self.device_id,
+            'rule_id': self.rule_id,
+            'agent_id': self.agent_id,
+            'model_id': self.model_id,
+            'judge_mode': self.judge_mode,
+            'media_url': self.media_url,
+            'prompt': self.prompt,
+            'raw_response': self.raw_response,
+            'confirm': self.confirm,
+            'confidence': self.confidence,
+            'reason': self.reason,
+            'structured': json.loads(self.structured) if self.structured else None,
+            'duration_ms': self.duration_ms,
+            'status': self.status,
+            'error_msg': self.error_msg,
             'created_at': utc_isoformat_z(self.created_at),
         }
 
@@ -3207,3 +3328,127 @@ def ensure_post_plugin_tables(engine):
         log.info('ensure_post_plugin_tables ok')
     except Exception as e:
         log.warning('ensure_post_plugin_tables: %s', e)
+
+
+def ensure_algorithm_task_llm_columns(engine):
+    """老库 algorithm_task 表补大模型（LLM）后处理总开关列。"""
+    import logging
+    from sqlalchemy import inspect, text
+
+    log = logging.getLogger(__name__)
+    columns = {
+        'llm_post_process_enabled': 'BOOLEAN DEFAULT FALSE',
+    }
+    try:
+        inspector = inspect(engine)
+        if 'algorithm_task' not in inspector.get_table_names():
+            return
+        col_names = {c['name'] for c in inspector.get_columns('algorithm_task')}
+        for col, ddl in columns.items():
+            if col in col_names:
+                continue
+            with engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE algorithm_task ADD COLUMN {col} {ddl}'))
+            log.info('已为 algorithm_task 表添加 %s 列', col)
+    except Exception as e:
+        log.warning('ensure_algorithm_task_llm_columns: %s', e)
+
+
+def ensure_alert_llm_columns(engine):
+    """老库 alert 表补大模型研判状态列。"""
+    import logging
+    from sqlalchemy import inspect, text
+
+    log = logging.getLogger(__name__)
+    columns = {
+        'llm_judge_status': 'VARCHAR(20)',
+        'llm_judge_detail': 'TEXT',
+    }
+    try:
+        inspector = inspect(engine)
+        if 'alert' not in inspector.get_table_names():
+            return
+        col_names = {c['name'] for c in inspector.get_columns('alert')}
+        for col, ddl in columns.items():
+            if col in col_names:
+                continue
+            with engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE alert ADD COLUMN {col} {ddl}'))
+            log.info('已为 alert 表添加 %s 列', col)
+    except Exception as e:
+        log.warning('ensure_alert_llm_columns: %s', e)
+
+
+def ensure_algorithm_llm_tables(engine):
+    """创建大模型后处理规则表与研判结果表（若不存在）。"""
+    import logging
+    from sqlalchemy import text
+
+    log = logging.getLogger(__name__)
+    ddl = [
+        """
+        CREATE TABLE IF NOT EXISTS algorithm_task_llm_rule (
+          id SERIAL PRIMARY KEY,
+          task_id INTEGER NOT NULL,
+          rule_name VARCHAR(100) NOT NULL,
+          match_objects TEXT,
+          match_events TEXT,
+          agent_id INTEGER NOT NULL,
+          model_id INTEGER,
+          judge_mode VARCHAR(10) NOT NULL DEFAULT 'image',
+          video_pre_seconds INTEGER DEFAULT 5,
+          video_post_seconds INTEGER DEFAULT 10,
+          video_max_seconds INTEGER DEFAULT 30,
+          secondary_judge BOOLEAN DEFAULT FALSE,
+          fail_policy VARCHAR(10) NOT NULL DEFAULT 'skip',
+          prompt_override TEXT,
+          require_json BOOLEAN DEFAULT TRUE,
+          min_interval_sec INTEGER DEFAULT 0,
+          priority SMALLINT DEFAULT 5,
+          enabled BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP,
+          updated_at TIMESTAMP,
+          UNIQUE (task_id, rule_name)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS algorithm_llm_judge_result (
+          id SERIAL PRIMARY KEY,
+          correlation_id VARCHAR(64) NOT NULL,
+          alert_id INTEGER NOT NULL,
+          task_id INTEGER,
+          device_id VARCHAR(100),
+          rule_id INTEGER,
+          agent_id INTEGER,
+          model_id INTEGER,
+          judge_mode VARCHAR(10),
+          media_url VARCHAR(500),
+          prompt TEXT,
+          raw_response TEXT,
+          confirm BOOLEAN,
+          confidence FLOAT,
+          reason TEXT,
+          structured TEXT,
+          duration_ms INTEGER,
+          status VARCHAR(20) NOT NULL DEFAULT 'pending',
+          error_msg TEXT,
+          created_at TIMESTAMP
+        )
+        """,
+    ]
+    try:
+        with engine.begin() as conn:
+            for stmt in ddl:
+                conn.execute(text(stmt))
+            conn.execute(
+                text('CREATE INDEX IF NOT EXISTS idx_llm_judge_result_corr ON algorithm_llm_judge_result (correlation_id)')
+            )
+            conn.execute(
+                text('CREATE INDEX IF NOT EXISTS idx_llm_judge_result_alert ON algorithm_llm_judge_result (alert_id)')
+            )
+            conn.execute(
+                text('CREATE INDEX IF NOT EXISTS idx_llm_rule_task ON algorithm_task_llm_rule (task_id)')
+            )
+        log.info('ensure_algorithm_llm_tables ok')
+    except Exception as e:
+        log.warning('ensure_algorithm_llm_tables: %s', e)

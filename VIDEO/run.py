@@ -220,6 +220,7 @@ def create_app(start_background_tasks=None):
                 AlgorithmModelService, RegionModelService, DeviceStorageConfig, Playback,
                 RecordSpace,                 AlgorithmTask, FrameExtractor, Sorter, Pusher, DeviceDetectionRegion,
                 DeviceTrackSession, DeviceTrackPoint, PatrolSession, AlgorithmPostProcessResult,
+                AlgorithmTaskLlmRule, AlgorithmLlmJudgeResult,
                 AiModel, PostPlugin, PostPluginService,
             )
             db.create_all()
@@ -235,6 +236,9 @@ def create_app(start_background_tasks=None):
                 ensure_camera_ingress_columns,
                 ensure_media_asset_compat_columns,
                 ensure_post_plugin_tables,
+                ensure_algorithm_task_llm_columns,
+                ensure_alert_llm_columns,
+                ensure_algorithm_llm_tables,
             )
             ensure_algorithm_task_sam_columns(db.engine)
             ensure_algorithm_task_pose_columns(db.engine)
@@ -247,6 +251,9 @@ def create_app(start_background_tasks=None):
             ensure_camera_ingress_columns(db.engine)
             ensure_media_asset_compat_columns(db.engine)
             ensure_post_plugin_tables(db.engine)
+            ensure_algorithm_task_llm_columns(db.engine)
+            ensure_alert_llm_columns(db.engine)
+            ensure_algorithm_llm_tables(db.engine)
             
             # 迁移：检查并添加缺失的列和表
             try:
@@ -1299,6 +1306,16 @@ def create_app(start_background_tasks=None):
         print(f"✅ Algorithm Task Blueprint 注册成功")
     except Exception as e:
         print(f"❌ Algorithm Task Blueprint 注册失败: {str(e)}")
+
+    try:
+        from app.blueprints import algorithm_task_llm_rule
+        app.register_blueprint(
+            algorithm_task_llm_rule.algorithm_task_llm_rule_bp,
+            url_prefix='/video/algorithm/llm-rule',
+        )
+        print(f"✅ Algorithm Task LLM Rule Blueprint 注册成功")
+    except Exception as e:
+        print(f"❌ Algorithm Task LLM Rule Blueprint 注册失败: {str(e)}")
 
     try:
         from app.blueprints import patrol

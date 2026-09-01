@@ -165,6 +165,7 @@ def create_task():
             post_process_enabled=data.get('post_process_enabled', False),
             post_process_replicas=data.get('post_process_replicas', 1),
             post_pipeline=data.get('post_pipeline'),
+            llm_post_process_enabled=data.get('llm_post_process_enabled', False),
             executor=data.get('executor', 'cpp'),
             runtime_bin_path=data.get('runtime_bin_path'),
             runtime_control_port=data.get('runtime_control_port'),

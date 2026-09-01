@@ -890,6 +890,7 @@ def create_algorithm_task(task_name: str,
                          post_process_enabled: bool = False,
                          post_process_replicas: int = 1,
                          post_pipeline=None,
+                         llm_post_process_enabled: bool = False,
                          executor: str = 'cpp',
                          runtime_bin_path: Optional[str] = None,
                          runtime_control_port: Optional[int] = None) -> AlgorithmTask:
@@ -1180,6 +1181,7 @@ def create_algorithm_task(task_name: str,
             post_process_enabled=bool(post_process_enabled),
             post_process_replicas=max(1, int(post_process_replicas or 1)),
             post_pipeline=_resolve_post_pipeline_for_alert(post_pipeline, alert_event_enabled),
+            llm_post_process_enabled=bool(llm_post_process_enabled),
             executor=executor or 'cpp',
             runtime_bin_path=(runtime_bin_path or None),
             runtime_control_port=runtime_control_port,
@@ -1394,6 +1396,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             'pose_intent_enabled', 'pose_library_ids', 'pose_intent_threshold', 'pose_intent_config',
             'post_process_enabled', 'post_process_script', 'post_process_replicas',
             'post_pipeline',
+            'llm_post_process_enabled',
             'executor', 'runtime_bin_path', 'runtime_control_port',
         ]
         
