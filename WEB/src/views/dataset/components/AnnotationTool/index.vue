@@ -80,13 +80,23 @@
         </button>
         <button
           type="button"
+          class="action-btn llm-smart-label-btn"
+          :disabled="batchTaskRunning || totalImages === 0"
+          title="用自然语言描述真实业务场景，由当前启用的大模型精准批量标注"
+          @click="openLlmSmartLabelModal"
+        >
+          <Icon icon="ant-design:thunderbolt-outlined"/>
+          大模型智能标注
+        </button>
+        <button
+          type="button"
           class="action-btn sam-bootstrap-btn"
           :disabled="batchTaskRunning"
-          title="SAM 冷启动批量标注，对数据集中已有图片生成初始标注"
+          title="SAM3 万物识别冷启动批量标注，对数据集中已有图片生成初始标注"
           @click="openSamAutoLabelDrawer"
         >
           <Icon icon="ant-design:experiment-outlined"/>
-          智能标注
+          SAM3 智能标注
           <span
             v-if="samModelChecked && !samModelReady"
             class="sam-model-badge"
@@ -483,6 +493,14 @@
       :get-container="getModalContainer"
       @success="onBatchAiSuccess"
     />
+    <LlmSmartLabelModal
+      ref="llmSmartLabelModalRef"
+      :dataset-id="datasetId"
+      :images="images"
+      :dataset-labels="labels"
+      :get-container="getModalContainer"
+      @success="onLlmSmartLabelSuccess"
+    />
     <SamAutoLabelDrawer
       @register="registerSamDrawer"
       :dataset-id="datasetId"
@@ -560,6 +578,7 @@ import { getAutoLabelTask } from '@/api/device/auto-label';
 import { getSamModelStatus } from '@/api/device/sam';
 import { useDrawer } from '@/components/Drawer';
 import AILabelModal from '@/views/dataset/components/AutoLabel/AILabelModal/index.vue';
+import LlmSmartLabelModal from '@/views/dataset/components/AutoLabel/LlmSmartLabelModal/index.vue';
 import SamAutoLabelDrawer from '@/views/dataset/components/AutoLabel/SamAutoLabelDrawer/index.vue';
 import UnattendedLabelDrawer from '@/views/dataset/components/AutoLabel/UnattendedLabelDrawer/index.vue';
 import ImportDatasetModal from '@/views/dataset/components/AutoLabel/ImportDatasetModal/index.vue';
@@ -624,6 +643,7 @@ async function refreshSyncCheck() {
   }
 }
 const aiLabelModalRef = ref<InstanceType<typeof AILabelModal> | null>(null);
+const llmSmartLabelModalRef = ref<InstanceType<typeof LlmSmartLabelModal> | null>(null);
 const unattendedDrawerRef = ref<InstanceType<typeof UnattendedLabelDrawer> | null>(null);
 const [registerSamDrawer, { openDrawer: openSamDrawer }] = useDrawer();
 const [registerUnattendedDrawer, { openDrawer: openUnattendedDrawer }] = useDrawer();
@@ -2207,6 +2227,17 @@ const handleKeyDown = (e: KeyboardEvent): void => {
 
 function openAiBatchModal(): void {
   aiLabelModalRef.value?.openModal();
+}
+
+function openLlmSmartLabelModal(): void {
+  llmSmartLabelModalRef.value?.openModal();
+}
+
+async function onLlmSmartLabelSuccess(): Promise<void> {
+  listChunkPage.value = 1;
+  await fetchImages(1);
+  await syncTagsAfterImport();
+  await refreshSyncCheck();
 }
 
 async function refreshSamModelStatus(): Promise<boolean> {

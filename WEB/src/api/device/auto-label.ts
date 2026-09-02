@@ -136,6 +136,19 @@ export const startSamBootstrap = (datasetId: number, data: StartSamBootstrapPara
   return commonApi('post', `${Api.AutoLabel}/dataset/${datasetId}/auto-label/bootstrap/start`, { data });
 };
 
+export interface StartLlmBootstrapParams {
+  scene_description: string;
+  output_labels?: string[];
+  bootstrap_limit?: number;
+  bootstrap_selection?: 'unlabeled_first' | 'unlabeled_only' | 'random' | 'all';
+  confidence_threshold?: number;
+}
+
+/** HARNESS 当前启用视觉大模型：自然语言场景冷启动。 */
+export const startLlmBootstrap = (datasetId: number, data: StartLlmBootstrapParams) => {
+  return commonApi('post', `${Api.AutoLabel}/dataset/${datasetId}/auto-label/llm-bootstrap/start`, { data });
+};
+
 export const getSamBootstrapStatus = (datasetId: number) => {
   return commonApi('get', `${Api.AutoLabel}/dataset/${datasetId}/auto-label/bootstrap/status`);
 };
@@ -146,6 +159,11 @@ export const completeSamBootstrapReview = (
 ) => {
   return commonApi('post', `${Api.AutoLabel}/dataset/${datasetId}/auto-label/bootstrap/complete-review`, { data });
 };
+
+export const trainBootstrapSmallModel = (
+  datasetId: number,
+  data: { train_epochs?: number; train_batch_size?: number; train_imgsz?: number; use_gpu?: boolean } = {},
+) => commonApi('post', `${Api.AutoLabel}/dataset/${datasetId}/auto-label/bootstrap/train`, { data });
 
 export interface SamBootstrapStatus {
   has_task?: boolean;
