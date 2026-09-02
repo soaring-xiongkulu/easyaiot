@@ -62,7 +62,7 @@ import { listFaceLibraries } from '@/api/device/face_library';
 import { listPlateLibraries } from '@/api/device/plate_library';
 import { listScenarioPoseLibraries } from '@/api/device/scenario_pose_library';
 import { getDeviceList, getDeviceInfo, registerDevice, updateDevice } from '@/api/device/camera';
-import { getModelPage } from '@/api/device/model';
+import { getModelDetail, getModelPage } from '@/api/device/model';
 import { getNodePage } from '@/api/device/node';
 import { nodeHasFunction } from '@/views/node/utils/constants';
 import { notifyTemplateQueryByType } from '@/api/device/notice';
@@ -714,7 +714,9 @@ const loadModels = async () => {
   initDefaultModels();
 
   try {
-    const response = await getModelPage({ pageNo: 1, pageSize: 1000 });
+    // 家族归并拉取：同族多版本只展示对外生效版本（默认最高版本）；
+    // 任务已引用的历史版本由 hydrateStoredModelOptions 在编辑/查看时补回选项，避免误切或丢引用
+    const response = await getModelPage({ pageNo: 1, pageSize: 1000, family_grouped: 1 });
     // 处理响应数据：可能是转换后的数组，也可能是包含 code/data 的对象
     let allModels: any[] = [];
     if (Array.isArray(response)) {
@@ -752,6 +754,47 @@ const loadModels = async () => {
       options: modelOptions.value,
     },
   });
+};
+
+/**
+ * 编辑/查看回显补全：家族归并后下拉只含生效版本，而旧任务可能引用了当时的历史版本。
+ * 这些被引用版本必须补进选项（保持任务语义不变、避免保存时被误删），但不进入候选默认列表。
+ */
+const hydrateStoredModelOptions = async (modelIds: number[]): Promise<void> => {
+  const known = new Set(modelOptions.value.map((o) => o.value));
+  const missing = modelIds.filter((id) => !known.has(id));
+  if (missing.length === 0) {
+    return;
+  }
+  try {
+    const results = await Promise.all(
+      missing.map((id) => getModelDetail(id).catch(() => null)),
+    );
+    let appended = false;
+    results.forEach((res: any) => {
+      const item = res?.data ?? res;
+      const id = Number(item?.id);
+      if (!id || Number.isNaN(id)) return;
+      if (modelOptions.value.some((o) => o.value === id)) return;
+      modelMap.value.set(id, item);
+      modelOptions.value = [
+        ...modelOptions.value,
+        {
+          label: `${item.name}${item.version ? ` (v${item.version})` : ''}`,
+          value: id,
+        },
+      ];
+      appended = true;
+    });
+    if (appended) {
+      updateSchema({
+        field: 'model_ids',
+        componentProps: { options: modelOptions.value },
+      });
+    }
+  } catch (error) {
+    console.error('加载任务引用模型详情失败', error);
+  }
 };
 
 const refreshAlertClassOptions = async (modelIds: unknown, selectedNames?: string[]) => {
@@ -1930,6 +1973,9 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     // 更新formValues以便AlertNotificationConfig组件响应
     formValues.value = { ...formValues.value, ...await getFieldsValue() };
 
+    // 把任务引用的历史版本补回模型下拉（家族归并后这些 id 不在默认候选里）
+    await hydrateStoredModelOptions(modelIds);
+
     await refreshAlertClassOptions(modelIds, record.alert_class_names || []);
 
     // 查看模式禁用表单和按钮
@@ -2743,6 +2789,10 @@ const handleReset = async () => {
         schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
       };
     }
+
+    // 把任务引用的历史版本补回模型下拉（家族归并后这些 id 不在默认候选里）
+    await hydrateStoredModelOptions(modelIds);
+
     await refreshAlertClassOptions(modelIds, record.alert_class_names || []);
   }
   const currentValues = await getFieldsValue();
