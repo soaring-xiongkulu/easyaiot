@@ -3,57 +3,26 @@
     v-bind="$attrs"
     @register="register"
     @close="autoRefresh = false"
+    title="大模型研判队列"
     width="1180"
     placement="right"
     :showFooter="false"
     destroy-on-close
-    :z-index="1150"
-    root-class-name="llm-judge-queue-drawer"
   >
-    <template #title>
-      <div class="queue-title">
-        <div class="queue-title__mark"><Icon icon="ant-design:robot-outlined" :size="24" /></div>
-        <div class="queue-title__copy">
-          <div class="queue-title__name">大模型研判队列</div>
-          <div class="queue-title__sub">{{ taskName }} · 配置与运行结果独立管理</div>
-        </div>
-        <div class="queue-title__actions">
-          <a-switch v-model:checked="autoRefresh" size="small" />
-          <span>自动刷新</span>
-          <Button :loading="loading" @click="refreshAll">
-            <template #icon><ReloadOutlined /></template>
-            刷新
-          </Button>
-        </div>
-      </div>
-    </template>
-
-    <div class="queue-shell">
-      <div class="queue-hero">
-        <div>
-          <div class="queue-hero__eyebrow">LLM POST-PROCESSING</div>
-          <div class="queue-hero__title">从算法检出，到可信结论</div>
-          <div class="queue-hero__desc">这里仅展示独立队列的执行过程与研判结果；规则配置仍在算法任务的新增、编辑和详情中维护。</div>
-        </div>
-        <div class="queue-hero__pulse">
-          <span :class="{ active: stats.pending > 0 }" />
-          {{ stats.pending > 0 ? `${stats.pending} 条正在处理` : '队列当前空闲' }}
-        </div>
-      </div>
-
+    <div class="queue-container">
       <div class="queue-stats">
-        <div class="stat-card stat-card--primary">
+        <div class="stat-card">
           <div class="stat-card__label">实际抽检率</div>
-          <div class="stat-card__value">{{ stats.actual_sample_rate_percent || 0 }}<small>%</small></div>
+          <div class="stat-card__value">{{ stats.actual_sample_rate_percent || 0 }}%</div>
           <div class="stat-card__meta">已抽检 {{ stats.sampled || 0 }} / 告警 {{ stats.total_alerts || 0 }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-card__label">完成研判</div>
           <div class="stat-card__value">{{ stats.completed || 0 }}</div>
-          <div class="stat-card__meta"><span class="ok">成立 {{ stats.confirmed || 0 }}</span> · <span class="reject">误报 {{ stats.rejected || 0 }}</span></div>
+          <div class="stat-card__meta">成立 {{ stats.confirmed || 0 }} · 误报 {{ stats.rejected || 0 }}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-card__label">队列状态</div>
+          <div class="stat-card__label">队列中</div>
           <div class="stat-card__value">{{ stats.pending || 0 }}</div>
           <div class="stat-card__meta">失败 {{ stats.failed || 0 }} 条</div>
         </div>
@@ -66,11 +35,21 @@
 
       <div class="queue-panel">
         <div class="queue-toolbar">
-          <div>
-            <div class="queue-toolbar__title">研判记录</div>
-            <div class="queue-toolbar__sub">共 {{ total }} 条，按进入队列时间倒序展示</div>
+          <div class="queue-toolbar__info">
+            <span class="queue-toolbar__title">研判记录</span>
+            <span class="queue-toolbar__sub">任务：{{ taskName }} · 共 {{ total }} 条</span>
           </div>
-          <a-segmented v-model:value="status" :options="statusOptions" @change="handleFilterChange" />
+          <div class="queue-toolbar__actions">
+            <a-segmented v-model:value="status" :options="statusOptions" @change="handleFilterChange" />
+            <div class="auto-refresh">
+              <a-switch v-model:checked="autoRefresh" size="small" />
+              <span>自动刷新</span>
+            </div>
+            <Button size="small" :loading="loading" @click="refreshAll">
+              <template #icon><ReloadOutlined /></template>
+              刷新
+            </Button>
+          </div>
         </div>
 
         <a-alert v-if="errorMessage" type="error" show-icon message="队列加载失败" :description="errorMessage" class="queue-error">
@@ -78,25 +57,22 @@
         </a-alert>
         <a-spin :spinning="loading">
           <div v-if="items.length" class="queue-list">
-            <div v-for="item in items" :key="item.id" class="queue-item" :class="`queue-item--${item.status}`">
-              <div class="queue-item__rail"><span /></div>
-              <div class="queue-item__main">
-                <div class="queue-item__top">
-                  <div class="queue-item__identity">
-                    <a-tag :color="statusColor(item.status)">{{ statusLabel(item.status) }}</a-tag>
-                    <strong>{{ verdict(item) }}</strong>
-                    <span>告警 #{{ item.alert_id }}</span>
-                    <span>任务 #{{ item.task_id || taskId }}</span>
-                  </div>
-                  <time>{{ formatTime(item.created_at) }}</time>
+            <div v-for="item in items" :key="item.id" class="queue-item">
+              <div class="queue-item__top">
+                <div class="queue-item__identity">
+                  <a-tag :color="statusColor(item.status)">{{ statusLabel(item.status) }}</a-tag>
+                  <strong>{{ verdict(item) }}</strong>
+                  <span>告警 #{{ item.alert_id }}</span>
+                  <span>任务 #{{ item.task_id || taskId }}</span>
                 </div>
-                <div class="queue-item__reason">{{ item.reason || item.error_msg || '任务已进入队列，正在等待大模型返回研判结论…' }}</div>
-                <div class="queue-item__meta">
-                  <span><Icon icon="ant-design:file-image-outlined" />{{ item.judge_mode === 'video' ? '视频研判' : '图片研判' }}</span>
-                  <span v-if="item.confidence != null"><Icon icon="ant-design:dashboard-outlined" />置信度 {{ Math.round(item.confidence * 100) }}%</span>
-                  <span v-if="item.duration_ms != null"><Icon icon="ant-design:clock-circle-outlined" />耗时 {{ formatDuration(item.duration_ms) }}</span>
-                  <span v-if="item.correlation_id" class="correlation">ID {{ item.correlation_id }}</span>
-                </div>
+                <time>{{ formatTime(item.created_at) }}</time>
+              </div>
+              <div class="queue-item__reason">{{ item.reason || item.error_msg || '任务已进入队列，正在等待大模型返回研判结论…' }}</div>
+              <div class="queue-item__meta">
+                <span><Icon icon="ant-design:file-image-outlined" />{{ item.judge_mode === 'video' ? '视频研判' : '图片研判' }}</span>
+                <span v-if="item.confidence != null"><Icon icon="ant-design:dashboard-outlined" />置信度 {{ Math.round(item.confidence * 100) }}%</span>
+                <span v-if="item.duration_ms != null"><Icon icon="ant-design:clock-circle-outlined" />耗时 {{ formatDuration(item.duration_ms) }}</span>
+                <span v-if="item.correlation_id" class="correlation">ID {{ item.correlation_id }}</span>
               </div>
             </div>
           </div>
@@ -228,53 +204,189 @@ function formatTime(value?: string) {
 </script>
 
 <style lang="less" scoped>
-.queue-title { display:flex; align-items:center; gap:12px; width:100%; padding-right:8px; }
-.queue-title__mark { display:grid; place-items:center; width:42px; height:42px; color:#fff; border-radius:13px; background:linear-gradient(135deg,#4f46e5,#1677ff 58%,#06b6d4); box-shadow:0 8px 20px rgba(22,119,255,.24); }
-.queue-title__copy { min-width:0; flex:1; }
-.queue-title__name { font-size:17px; font-weight:700; color:#172033; }
-.queue-title__sub { margin-top:2px; overflow:hidden; color:rgba(0,0,0,.45); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
-.queue-title__actions { display:flex; align-items:center; gap:8px; color:rgba(0,0,0,.55); font-size:12px; }
-.queue-shell { display:flex; flex-direction:column; gap:16px; padding-bottom:20px; }
-.queue-hero { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 28px; overflow:hidden; color:#fff; border-radius:16px; background:radial-gradient(circle at 80% -40%,rgba(34,211,238,.5),transparent 45%),linear-gradient(120deg,#111b45,#243b8f 58%,#135c89); box-shadow:0 12px 30px rgba(20,47,110,.18); }
-.queue-hero__eyebrow { color:#8ee7ff; font-size:11px; font-weight:700; letter-spacing:1.8px; }
-.queue-hero__title { margin-top:5px; font-size:23px; font-weight:700; letter-spacing:.5px; }
-.queue-hero__desc { max-width:720px; margin-top:6px; color:rgba(255,255,255,.7); font-size:13px; line-height:1.7; }
-.queue-hero__pulse { display:flex; align-items:center; gap:8px; flex-shrink:0; padding:9px 14px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.09); font-size:12px; backdrop-filter:blur(8px); }
-.queue-hero__pulse span { width:8px; height:8px; border-radius:50%; background:#5eead4; box-shadow:0 0 0 5px rgba(94,234,212,.12); }
-.queue-hero__pulse span.active { animation:pulse 1.6s infinite; }
-.queue-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-.stat-card { padding:17px 18px; border:1px solid #e7ebf2; border-radius:13px; background:#fff; box-shadow:0 5px 16px rgba(28,45,80,.05); }
-.stat-card--primary { border-color:#cbdcff; background:linear-gradient(145deg,#f4f7ff,#fff); }
-.stat-card__label { color:#65708a; font-size:12px; }
-.stat-card__value { margin-top:5px; color:#172033; font-size:28px; font-weight:750; line-height:1.2; }
-.stat-card__value small { margin-left:2px; font-size:15px; }
-.stat-card__meta { margin-top:6px; color:#8b94a8; font-size:12px; }
-.stat-card__meta .ok { color:#159b62; } .stat-card__meta .reject { color:#d97706; }
-.queue-panel { padding:20px; border:1px solid #e7ebf2; border-radius:15px; background:#fff; box-shadow:0 7px 22px rgba(28,45,80,.05); }
-.queue-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
-.queue-toolbar__title { color:#172033; font-size:16px; font-weight:700; }
-.queue-toolbar__sub { margin-top:3px; color:#929bad; font-size:12px; }
-.queue-error { margin-bottom:14px; }
-.queue-list { display:flex; flex-direction:column; }
-.queue-item { display:flex; gap:16px; padding:17px 6px; border-top:1px solid #f0f2f6; }
-.queue-item:first-child { border-top:0; }
-.queue-item__rail { width:12px; padding-top:5px; flex-shrink:0; }
-.queue-item__rail span { display:block; width:10px; height:10px; border:3px solid #fff; border-radius:50%; background:#9ca3af; box-shadow:0 0 0 2px #d7dce5; }
-.queue-item--pending .queue-item__rail span { background:#1677ff; box-shadow:0 0 0 2px #b8d6ff; }
-.queue-item--success .queue-item__rail span { background:#22a06b; box-shadow:0 0 0 2px #bce8d3; }
-.queue-item--error .queue-item__rail span,.queue-item--dlt .queue-item__rail span { background:#e5484d; box-shadow:0 0 0 2px #ffc9cb; }
-.queue-item__main { min-width:0; flex:1; }
-.queue-item__top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
-.queue-item__identity { display:flex; align-items:center; flex-wrap:wrap; gap:7px 14px; color:#7a8499; font-size:12px; }
-.queue-item__identity :deep(.ant-tag) { margin:0; }
-.queue-item__identity strong { color:#20283a; font-size:14px; }
-.queue-item__top time { flex-shrink:0; color:#9aa2b2; font-size:12px; }
-.queue-item__reason { margin-top:9px; color:#4e586d; font-size:13px; line-height:1.7; word-break:break-word; }
-.queue-item__meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px 20px; margin-top:10px; color:#8a93a5; font-size:12px; }
-.queue-item__meta span { display:flex; align-items:center; gap:5px; }
-.queue-item__meta .correlation { overflow:hidden; max-width:300px; text-overflow:ellipsis; white-space:nowrap; }
-.queue-empty { padding:70px 0; }
-.queue-pagination { display:flex; justify-content:flex-end; padding-top:18px; border-top:1px solid #f0f2f6; }
-@keyframes pulse { 50% { box-shadow:0 0 0 9px rgba(94,234,212,0); } }
-@media (max-width:900px) { .queue-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .queue-hero { align-items:flex-start; flex-direction:column; } }
+.queue-container {
+  padding: 0 4px;
+}
+
+.queue-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  padding: 12px 14px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fafafa;
+
+  &__label {
+    color: #8c8c8c;
+    font-size: 12px;
+  }
+
+  &__value {
+    margin-top: 4px;
+    color: #262626;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  &__meta {
+    margin-top: 4px;
+    color: #8c8c8c;
+    font-size: 12px;
+  }
+}
+
+.queue-panel {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+}
+
+.queue-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  &__info {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__title {
+    color: #262626;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  &__sub {
+    overflow: hidden;
+    color: #8c8c8c;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.auto-refresh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #595959;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.queue-error {
+  margin-bottom: 12px;
+}
+
+.queue-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.queue-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__identity {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    color: #8c8c8c;
+    font-size: 12px;
+
+    :deep(.ant-tag) {
+      margin: 0;
+    }
+
+    strong {
+      color: #262626;
+      font-size: 14px;
+    }
+  }
+
+  time {
+    flex-shrink: 0;
+    color: #8c8c8c;
+    font-size: 12px;
+  }
+
+  &__reason {
+    margin-top: 8px;
+    color: #595959;
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 8px;
+    color: #8c8c8c;
+    font-size: 12px;
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .correlation {
+      overflow: hidden;
+      max-width: 300px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}
+
+.queue-empty {
+  padding: 60px 0;
+}
+
+.queue-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+}
+
+@media (max-width: 900px) {
+  .queue-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>

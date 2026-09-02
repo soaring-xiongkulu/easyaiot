@@ -126,7 +126,7 @@
                       @click="hasLlmPostProcess(item) && handleOpenLlmQueue(item)"
                       :title="hasLlmPostProcess(item) ? '查看大模型研判队列' : '未启用大模型后处理，暂无研判队列'"
                     >
-                      <Icon icon="ant-design:robot-outlined" :size="16" :color="hasLlmPostProcess(item) ? '#6554d9' : '#b7bdc8'" />
+                      <Icon icon="ant-design:robot-outlined" :size="16" :color="hasLlmPostProcess(item) ? '#3B82F6' : '#b7bdc8'" />
                     </div>
                     <div class="btn" @click="handleManageServices(item)" title="心跳信息">
                       <Icon icon="ant-design:heart-outlined" :size="15" color="#3B82F6" />
