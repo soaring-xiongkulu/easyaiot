@@ -1,9 +1,40 @@
 <template>
   <Teleport to="body">
-    <button v-if="!open" class="assistant-fab" type="button" title="打开 EasyAIoT 智能助手" @click="openAssistant">
-      <span class="assistant-fab__halo" />
-      <RobotOutlined />
-    </button>
+    <Transition name="assistant-edge">
+      <button v-if="hidden" class="assistant-edge" type="button" title="显示智能助手入口" @click="showEntry">
+        <RobotOutlined />
+      </button>
+    </Transition>
+
+    <div v-if="!open && !hidden" class="assistant-fab-wrap" :class="{ 'is-dragging': fabDragging }" :style="fabStyle">
+      <button
+        class="assistant-fab"
+        type="button"
+        title="单击选择智能助手；按住拖动；右键隐藏"
+        @click.stop="toggleAssistantMenu"
+        @contextmenu.prevent="hideEntry"
+        @mousedown="onFabDragStart"
+        @touchstart.passive="onFabTouchStart"
+      >
+        <span class="assistant-fab__halo" />
+        <RobotOutlined />
+      </button>
+    </div>
+
+    <Transition name="assistant-menu">
+      <div v-if="assistantMenu" class="assistant-picker" :style="pickerStyle" @click.stop>
+        <div class="assistant-picker__title">选择智能助手</div>
+        <button type="button" @click="choosePlatformAssistant">
+          <span class="assistant-picker__icon"><RobotOutlined /></span>
+          <span><strong>EasyAIoT 智能助手</strong><small>平台功能、配置与故障排查</small></span>
+        </button>
+        <button type="button" @click="chooseIdeaAssistant">
+          <span class="assistant-picker__icon idea"><CodeOutlined /></span>
+          <span><strong>IDEA 智能助手</strong><small>进入在线 IDE 开发与编程助手</small></span>
+        </button>
+        <button class="assistant-picker__hide" type="button" @click="hideEntry">隐藏入口</button>
+      </div>
+    </Transition>
 
     <Transition name="assistant-panel">
       <section
@@ -14,7 +45,7 @@
         aria-label="EasyAIoT 平台智能助手"
       >
         <!-- 头部 -->
-        <header class="assistant-header">
+        <header class="assistant-header" title="拖动窗口" @mousedown="onPanelDragStart">
           <div class="assistant-brand">
             <span class="assistant-logo"><RobotOutlined /></span>
             <div class="assistant-brand__text">
@@ -25,7 +56,7 @@
           <div class="assistant-actions">
             <button type="button" title="新对话" @click="newChat"><PlusOutlined /></button>
             <button type="button" :title="expanded ? '还原窗口' : '全屏展开'" @click="expanded = !expanded"><ExpandOutlined /></button>
-            <button type="button" title="关闭" @click="open = false"><CloseOutlined /></button>
+            <button type="button" title="收起" @click="open = false"><CloseOutlined /></button>
           </div>
         </header>
         <div class="assistant-header__accent" />
@@ -115,7 +146,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowRightOutlined, ArrowUpOutlined, BulbOutlined, CheckOutlined, CloseOutlined, CodeOutlined,
@@ -125,6 +156,7 @@ import {
 } from '@ant-design/icons-vue'
 import { getLLMList, type LLMChatMessage, type LLMModel } from '@/api/device/llm'
 import { getAccessToken } from '@/utils/auth'
+import { openHarnessPortal } from '@/utils/harness'
 import { useRootSetting } from '@/hooks/setting/useRootSetting'
 import { escapeHtml, isUnbalancedFence, renderMarkdown } from './utils/markdown'
 
@@ -133,6 +165,9 @@ defineOptions({ name: 'PlatformAssistant' })
 /** 与旧版存储 key 保持一致，可读入已保存的历史消息 */
 const STORAGE_KEY = 'easyaiot.platform-assistant.messages.v1'
 const SIZE_KEY = 'easyaiot.platform-assistant.size.v1'
+const FAB_POS_KEY = 'easyaiot.smart-assistant.entry-pos.v1'
+const PANEL_POS_KEY = 'easyaiot.platform-assistant.panel-pos.v1'
+const HIDDEN_KEY = 'easyaiot.smart-assistant.entry-hidden.v1'
 const CHAT_URL = `${import.meta.env.VITE_GLOB_API_URL || ''}${import.meta.env.VITE_GLOB_API_URL_PREFIX || ''}/model/llm/chat`
 
 interface ChatMsg {
@@ -146,6 +181,8 @@ const router = useRouter()
 const { getDarkMode } = useRootSetting()
 
 const open = ref(false)
+const hidden = ref(false)
+const assistantMenu = ref(false)
 const expanded = ref(false)
 const loading = ref(false)
 const draft = ref('')
@@ -161,10 +198,28 @@ const composerEl = ref<HTMLTextAreaElement | null>(null)
 /** 面板尺寸（可拖拽，localStorage 记忆） */
 const panelW = ref(540)
 const panelH = ref(720)
+const fabDragging = ref(false)
+const fabPos = reactive({ x: 0, y: 0 })
+const panelPos = reactive({ x: 0, y: 0 })
+const FAB_SIZE = 60
+const VIEWPORT_MARGIN = 20
+const DRAG_THRESHOLD = 6
+let fabMoved = false
+let fabStartX = 0
+let fabStartY = 0
+let fabOffsetX = 0
+let fabOffsetY = 0
 const isDark = computed(() => getDarkMode.value === 'dark')
-const panelStyle = computed(() =>
-  typeof window !== 'undefined' && window.innerWidth <= 600 ? {} : { width: `${panelW.value}px`, height: `${panelH.value}px` },
-)
+const fabStyle = computed(() => ({ left: `${fabPos.x}px`, top: `${fabPos.y}px` }))
+const pickerStyle = computed(() => {
+  const width = 300
+  const x = Math.min(Math.max(12, fabPos.x + FAB_SIZE - width), window.innerWidth - width - 12)
+  const openAbove = fabPos.y > 260
+  return { left: `${x}px`, top: `${openAbove ? fabPos.y - 218 : fabPos.y + FAB_SIZE + 10}px` }
+})
+const panelStyle = computed(() => typeof window !== 'undefined' && window.innerWidth <= 600
+  ? {}
+  : { width: `${panelW.value}px`, height: `${panelH.value}px`, left: `${panelPos.x}px`, top: `${panelPos.y}px` })
 const pageTitle = computed(() => String(route.meta?.title || route.name || '当前页面'))
 const canSend = computed(() => !!activeModel.value && !loading.value && !!draft.value.trim())
 const quickQuestions = computed(() => [
@@ -228,6 +283,142 @@ function restoreSize() {
   panelW.value = Math.min(panelW.value, window.innerWidth - 32)
   panelH.value = Math.min(panelH.value, window.innerHeight - 60)
 }
+
+function clampPoint(x: number, y: number, width: number, height: number) {
+  return {
+    x: clamp(x, VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN)),
+    y: clamp(y, VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, window.innerHeight - height - VIEWPORT_MARGIN)),
+  }
+}
+
+function restorePlacement() {
+  hidden.value = localStorage.getItem(HIDDEN_KEY) === '1'
+  try {
+    const savedFab = JSON.parse(localStorage.getItem(FAB_POS_KEY) || 'null')
+    const savedPanel = JSON.parse(localStorage.getItem(PANEL_POS_KEY) || 'null')
+    Object.assign(fabPos, savedFab && typeof savedFab.x === 'number' && typeof savedFab.y === 'number'
+      ? clampPoint(savedFab.x, savedFab.y, FAB_SIZE, FAB_SIZE)
+      : clampPoint(window.innerWidth - FAB_SIZE - 28, window.innerHeight - FAB_SIZE - 28, FAB_SIZE, FAB_SIZE))
+    Object.assign(panelPos, savedPanel && typeof savedPanel.x === 'number' && typeof savedPanel.y === 'number'
+      ? clampPoint(savedPanel.x, savedPanel.y, panelW.value, panelH.value)
+      : clampPoint(window.innerWidth - panelW.value - 20, window.innerHeight - panelH.value - 20, panelW.value, panelH.value))
+  } catch {
+    Object.assign(fabPos, clampPoint(window.innerWidth - FAB_SIZE - 28, window.innerHeight - FAB_SIZE - 28, FAB_SIZE, FAB_SIZE))
+    Object.assign(panelPos, clampPoint(window.innerWidth - panelW.value - 20, window.innerHeight - panelH.value - 20, panelW.value, panelH.value))
+  }
+}
+
+function persistPoint(key: string, point: { x: number; y: number }) {
+  try { localStorage.setItem(key, JSON.stringify(point)) } catch { /* ignore */ }
+}
+
+function toggleAssistantMenu() {
+  if (fabMoved) {
+    fabMoved = false
+    return
+  }
+  assistantMenu.value = !assistantMenu.value
+}
+
+function hideEntry() {
+  assistantMenu.value = false
+  hidden.value = true
+  try { localStorage.setItem(HIDDEN_KEY, '1') } catch { /* ignore */ }
+}
+
+function showEntry() {
+  hidden.value = false
+  try { localStorage.setItem(HIDDEN_KEY, '0') } catch { /* ignore */ }
+}
+
+function choosePlatformAssistant() {
+  assistantMenu.value = false
+  openAssistant()
+}
+
+function chooseIdeaAssistant() {
+  assistantMenu.value = false
+  openHarnessPortal()
+}
+
+function beginFabDrag(clientX: number, clientY: number) {
+  assistantMenu.value = false
+  fabMoved = false
+  fabDragging.value = true
+  fabStartX = clientX
+  fabStartY = clientY
+  fabOffsetX = clientX - fabPos.x
+  fabOffsetY = clientY - fabPos.y
+}
+
+function onFabDragStart(e: MouseEvent) {
+  if (e.button !== 0) return
+  beginFabDrag(e.clientX, e.clientY)
+  document.addEventListener('mousemove', onFabDragMove)
+  document.addEventListener('mouseup', onFabDragEnd)
+}
+
+function onFabTouchStart(e: TouchEvent) {
+  const touch = e.touches[0]
+  if (!touch) return
+  beginFabDrag(touch.clientX, touch.clientY)
+  document.addEventListener('touchmove', onFabTouchMove, { passive: false })
+  document.addEventListener('touchend', onFabDragEnd)
+}
+
+function moveFab(clientX: number, clientY: number) {
+  if (!fabMoved && Math.hypot(clientX - fabStartX, clientY - fabStartY) < DRAG_THRESHOLD) return
+  fabMoved = true
+  Object.assign(fabPos, clampPoint(clientX - fabOffsetX, clientY - fabOffsetY, FAB_SIZE, FAB_SIZE))
+}
+
+function onFabDragMove(e: MouseEvent) { moveFab(e.clientX, e.clientY) }
+function onFabTouchMove(e: TouchEvent) {
+  const touch = e.touches[0]
+  if (!touch) return
+  moveFab(touch.clientX, touch.clientY)
+  if (fabMoved) e.preventDefault()
+}
+
+function onFabDragEnd() {
+  fabDragging.value = false
+  document.removeEventListener('mousemove', onFabDragMove)
+  document.removeEventListener('mouseup', onFabDragEnd)
+  document.removeEventListener('touchmove', onFabTouchMove)
+  document.removeEventListener('touchend', onFabDragEnd)
+  if (fabMoved) persistPoint(FAB_POS_KEY, fabPos)
+}
+
+function onPanelDragStart(e: MouseEvent) {
+  if (window.innerWidth <= 600 || expanded.value || (e.target as HTMLElement).closest('button')) return
+  const startX = e.clientX
+  const startY = e.clientY
+  const origin = { ...panelPos }
+  const onMove = (ev: MouseEvent) => Object.assign(panelPos, clampPoint(
+    origin.x + ev.clientX - startX,
+    origin.y + ev.clientY - startY,
+    panelW.value,
+    panelH.value,
+  ))
+  const onUp = () => {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    persistPoint(PANEL_POS_KEY, panelPos)
+  }
+  document.body.style.cursor = 'grabbing'
+  document.body.style.userSelect = 'none'
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
+function onViewportResize() {
+  Object.assign(fabPos, clampPoint(fabPos.x, fabPos.y, FAB_SIZE, FAB_SIZE))
+  Object.assign(panelPos, clampPoint(panelPos.x, panelPos.y, panelW.value, panelH.value))
+}
+
+function closePicker() { assistantMenu.value = false }
 
 // ---------- 对话 ----------
 
@@ -444,6 +635,7 @@ function onResizeStart(e: MouseEvent) {
   const onMove = (ev: MouseEvent) => {
     panelW.value = clamp(startW + ev.clientX - startX, 360, Math.min(880, window.innerWidth - 24))
     panelH.value = clamp(startH + ev.clientY - startY, 480, window.innerHeight - 24)
+    Object.assign(panelPos, clampPoint(panelPos.x, panelPos.y, panelW.value, panelH.value))
   }
   const onUp = () => {
     window.removeEventListener('mousemove', onMove)
@@ -463,9 +655,15 @@ function onResizeStart(e: MouseEvent) {
 onMounted(() => {
   restore()
   restoreSize()
+  restorePlacement()
+  window.addEventListener('resize', onViewportResize)
+  document.addEventListener('click', closePicker)
 })
 onBeforeUnmount(() => {
   if (abortCtrl.value) abortCtrl.value.abort()
+  window.removeEventListener('resize', onViewportResize)
+  document.removeEventListener('click', closePicker)
+  onFabDragEnd()
 })
 </script>
 
@@ -507,11 +705,18 @@ onBeforeUnmount(() => {
 }
 
 /* ========== 悬浮球 ========== */
-.assistant-fab {
+.assistant-fab-wrap {
   position: fixed;
-  right: 28px;
-  bottom: 28px;
   z-index: 1190;
+  width: 60px;
+  height: 60px;
+  touch-action: none;
+  transition: transform 0.18s ease;
+}
+.assistant-fab-wrap.is-dragging { transform: scale(1.05); }
+.assistant-fab-wrap.is-dragging .assistant-fab { cursor: grabbing; }
+.assistant-fab {
+  position: relative;
   display: grid;
   place-items: center;
   width: 60px;
@@ -521,10 +726,92 @@ onBeforeUnmount(() => {
   color: #fff;
   background: linear-gradient(135deg, #3d7bff, #266cfb 55%, #1d5ce0);
   box-shadow: 0 12px 30px rgba(38, 108, 251, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  cursor: pointer;
+  cursor: grab;
   font-size: 26px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+.assistant-edge {
+  position: fixed;
+  right: -8px;
+  top: 48%;
+  z-index: 1190;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 58px;
+  border: 1px solid #bcd0ff;
+  border-right: 0;
+  border-radius: 16px 0 0 16px;
+  color: #266cfb;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(38, 108, 251, 0.2);
+  cursor: pointer;
+  font-size: 18px;
+  transition: right 0.2s ease;
+}
+.assistant-edge:hover { right: 0; }
+.assistant-picker {
+  position: fixed;
+  z-index: 1200;
+  width: 300px;
+  padding: 9px;
+  border: 1px solid #e3e8f2;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(24, 39, 75, 0.2);
+}
+.assistant-picker__title {
+  padding: 4px 8px 8px;
+  color: #8a94a9;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.assistant-picker > button:not(.assistant-picker__hide) {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  color: #263149;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.assistant-picker > button:hover { background: #eef4ff; }
+.assistant-picker button span:not(.assistant-picker__icon) { min-width: 0; }
+.assistant-picker strong, .assistant-picker small { display: block; }
+.assistant-picker strong { font-size: 13px; }
+.assistant-picker small { margin-top: 2px; color: #8490a7; font-size: 11px; }
+.assistant-picker__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #3d7bff, #266cfb);
+  font-size: 16px;
+}
+.assistant-picker__icon.idea { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.assistant-picker__hide {
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px;
+  border: 0;
+  border-top: 1px solid #edf0f5;
+  color: #8a94a9;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+}
+.assistant-edge-enter-active, .assistant-edge-leave-active,
+.assistant-menu-enter-active, .assistant-menu-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.assistant-edge-enter-from, .assistant-edge-leave-to { opacity: 0; transform: translateX(18px); }
+.assistant-menu-enter-from, .assistant-menu-leave-to { opacity: 0; transform: translateY(6px) scale(0.96); }
 .assistant-fab:hover {
   transform: translateY(-3px) scale(1.03);
   box-shadow: 0 18px 40px rgba(38, 108, 251, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -545,8 +832,6 @@ onBeforeUnmount(() => {
 /* ========== 面板骨架 ========== */
 .assistant-panel {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
   z-index: 1195;
   display: flex;
   flex-direction: column;
@@ -559,8 +844,11 @@ onBeforeUnmount(() => {
   transform-origin: bottom right;
 }
 .assistant-panel.expanded {
+  left: 50% !important;
+  top: 50% !important;
   width: min(880px, calc(100vw - 40px)) !important;
   height: min(880px, calc(100vh - 40px)) !important;
+  transform: translate(-50%, -50%);
 }
 .theme-dark.assistant-panel {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 24px 60px rgba(0, 0, 0, 0.5), 0 60px 140px rgba(0, 0, 0, 0.45);
@@ -574,7 +862,10 @@ onBeforeUnmount(() => {
   padding: 15px 17px 13px;
   background: linear-gradient(180deg, var(--bg), var(--bg-soft));
   user-select: none;
+  cursor: grab;
 }
+.assistant-header:active { cursor: grabbing; }
+.assistant-actions { cursor: default; }
 .assistant-header__accent {
   flex: 0 0 2px;
   background: linear-gradient(90deg, transparent, var(--brand), var(--brand-2), transparent);
@@ -1225,8 +1516,8 @@ textarea:disabled {
     grid-template-columns: 1fr;
   }
   .assistant-fab {
-    right: 16px;
-    bottom: 16px;
+    width: 56px;
+    height: 56px;
   }
   .assistant-resize {
     display: none;
