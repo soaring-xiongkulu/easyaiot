@@ -670,6 +670,10 @@ def resume_auto_label_task(dataset_id, task_id):
     app = current_app._get_current_object()
     from app.services.auto_label_cluster_service import process_queue_once
     process_queue_once(app)
+    # 冷启动/直连量产任务：重启本地执行线程（执行器会跳过已成功图片，断点续跑）
+    task = AutoLabelTask.query.get(task_id)
+    if task and task.phase != 'PIPELINE' and (task.label_mode or '') != 'smart':
+        threading.Thread(target=execute_auto_label_task, args=(app, task_id), daemon=True).start()
     return jsonify({'code': 0, 'msg': '任务已恢复'})
 
 
@@ -1757,13 +1761,20 @@ def execute_auto_label_task(app, task_id):
 
             if task.phase == 'BOOTSTRAP' or (task.bootstrap_limit and label_mode in ('sam', 'llm') and task.phase != 'PIPELINE'):
                 images = _select_bootstrap_images(images, task)
+                # 断点续跑：跳过本任务已成功写回的图片，暂停恢复不重复标注
+                attempted_ids = _successful_auto_label_image_ids(task_id)
+                if attempted_ids:
+                    images = [img for img in images if img.get('id') not in attempted_ids]
             elif task.bootstrap_selection == 'unlabeled_only':
                 images = [img for img in images if not img.get('completed')]
 
-            task.total_images = len(images)
-            task.processed_images = 0
-            task.success_count = 0
-            task.failed_count = 0
+            base_processed = task.processed_images or 0
+            base_success = task.success_count or 0
+            base_failed = task.failed_count or 0
+            task.total_images = len(images) + base_processed
+            task.processed_images = base_processed
+            task.success_count = base_success
+            task.failed_count = base_failed
             db.session.commit()
 
             if not images:
@@ -1778,12 +1789,18 @@ def execute_auto_label_task(app, task_id):
                 db.session.commit()
                 return
 
+            engine_name = {'sam': 'SAM3', 'llm': '大模型'}.get(label_mode, label_mode.upper())
+            if task.phase == 'BOOTSTRAP':
+                _pipeline_log(task, f'{engine_name}冷启动开始：本批待标注 {len(images)} 张')
+
             logger.info(f"数据集 {task.dataset_id} 本批 {len(images)} 张，label_mode={label_mode}")
 
             success_count = 0
             failed_count = 0
             sam_hit_count = 0
             sam_empty_count = 0
+            task_paused = False
+            task_cancelled = False
             prefetch_workers = int(os.getenv('AUTO_LABEL_PREFETCH_WORKERS', '2'))
             annotation_type = task.annotation_type or 'rectangle'
             return_masks = bool(task.return_masks)
@@ -1809,6 +1826,15 @@ def execute_auto_label_task(app, task_id):
                         yield row
 
             for idx, (image_id, temp_path, image_width, image_height) in enumerate(_iter_with_prefetch(images)):
+                if idx % 5 == 0:
+                    # 暂停/取消由接口改库，这里周期性刷新感知（计数均由局部变量推导，刷新不丢进度）
+                    db.session.refresh(task)
+                    if task.status == 'CANCELLED':
+                        task_cancelled = True
+                    elif task.status == 'PAUSED':
+                        task_paused = True
+                    if task_paused or task_cancelled:
+                        break
                 image = images[idx]
                 if not temp_path:
                     failed_count += 1
@@ -1887,11 +1913,29 @@ def execute_auto_label_task(app, task_id):
                         if os.path.exists(temp_path):
                             os.unlink(temp_path)
 
-                task.processed_images = idx + 1
-                task.success_count = success_count
-                task.failed_count = failed_count
+                task.processed_images = base_processed + idx + 1
+                task.success_count = base_success + success_count
+                task.failed_count = base_failed + failed_count
                 if (idx + 1) % _AUTO_LABEL_PROGRESS_COMMIT_INTERVAL == 0 or idx + 1 == len(images):
                     db.session.commit()
+
+            if task_cancelled or task_paused:
+                if task.phase == 'BOOTSTRAP':
+                    _pipeline_log(
+                        task,
+                        f'任务已{"取消" if task_cancelled else "暂停"}：已处理 {task.processed_images}/{task.total_images} 张'
+                        + ('' if task_cancelled else '，点击「继续」断点恢复'),
+                    )
+                if task_cancelled:
+                    task.completed_at = beijing_now()
+                db.session.commit()
+                return
+
+            if task.phase == 'BOOTSTRAP':
+                _pipeline_log(
+                    task,
+                    f'{engine_name}冷启动标注完成：有检出 {sam_hit_count} 张，空结果 {sam_empty_count} 张，失败 {failed_count} 张',
+                )
 
             task.status = 'COMPLETED'
             task.completed_at = beijing_now()
@@ -1904,11 +1948,12 @@ def execute_auto_label_task(app, task_id):
                         cfg = json.loads(task.pipeline_config)
                     except Exception:
                         cfg = {}
-                cfg['sam_hit_count'] = sam_hit_count
-                cfg['sam_empty_count'] = sam_empty_count
+                # 累计计数：断点恢复后保留此前轮次的命中/空结果统计
+                cfg['sam_hit_count'] = int(cfg.get('sam_hit_count') or 0) + sam_hit_count
+                cfg['sam_empty_count'] = int(cfg.get('sam_empty_count') or 0) + sam_empty_count
                 if label_mode == 'llm':
-                    cfg['llm_hit_count'] = sam_hit_count
-                    cfg['llm_empty_count'] = sam_empty_count
+                    cfg['llm_hit_count'] = cfg['sam_hit_count']
+                    cfg['llm_empty_count'] = cfg['sam_empty_count']
                 task.pipeline_config = json.dumps(cfg, ensure_ascii=False)
                 db.session.flush()
                 quality = assess_sam_bootstrap_quality(task, 0.3)
@@ -1917,6 +1962,12 @@ def execute_auto_label_task(app, task_id):
                 cfg['awaiting_sam_review'] = not quality['sam_quality_passed']
                 cfg['bootstrap_quality'] = quality
                 task.pipeline_config = json.dumps(cfg, ensure_ascii=False)
+                if task.phase == 'BOOTSTRAP':
+                    _pipeline_log(
+                        task,
+                        f'识别率 {quality["recognition_rate_pct"]}%（阈值 {quality["min_hit_rate_pct"]}%），'
+                        + ('达标，请抽检后确认进入小模型训练' if quality['sam_quality_passed'] else '偏低，请调整后重试或改用 YOLO 自动标注'),
+                    )
             db.session.commit()
 
             logger.info(
