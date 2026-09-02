@@ -262,6 +262,7 @@ import {
   getSamBootstrapStatus,
   resetSamBootstrapAnnotations,
   completeSamBootstrapReview,
+  trainBootstrapSmallModel,
 } from '@/api/device/auto-label';
 import type { SamBootstrapStatus } from '@/api/device/auto-label';
 import { useMessage } from '@/hooks/web/useMessage';
@@ -611,7 +612,8 @@ async function handleSubmitReview(): Promise<void> {
   reviewLoading.value = true;
   try {
     await completeSamBootstrapReview(props.datasetId, { review_passed: true });
-    createMessage.success('抽检已通过');
+    await trainBootstrapSmallModel(props.datasetId);
+    createMessage.success('抽检已通过，YOLO 小模型训练已启动');
     await loadBootstrapStatus();
   } catch (e: any) {
     createMessage.error(e?.response?.data?.msg || e?.message || '提交失败');
