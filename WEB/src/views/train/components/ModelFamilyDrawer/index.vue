@@ -3,7 +3,7 @@
     v-bind="$attrs"
     @register="register"
     :title="drawerTitle"
-    width="1400"
+    width="1000"
     placement="right"
     :showFooter="true"
     :showCancelBtn="false"
@@ -22,11 +22,12 @@
           <div class="family-header__main">
             <span class="family-header__name">{{ familyInfo.family_name || recordName }}</span>
             <Tag color="blue">{{ familyInfo.total ?? 0 }} 个版本</Tag>
-            <Tag v-if="effectiveVersion" color="success">当前生效 v{{ effectiveVersion }}</Tag>
+            <Tag v-if="effectiveVersion" color="success">
+              生效 {{ formatModelVersionDisplay(effectiveVersion) }}
+            </Tag>
           </div>
           <p class="family-header__desc">
-            同一模型的多版本归并为一个模型家族，对外只体现一个模型：默认使用生效版本（发布新版本时自动切换为最新版本），
-            也可激活任意历史版本回退。激活不影响其它版本的权重文件。
+            同一模型的多个版本统一归为一个家族，对外默认使用生效版本；发布新版本后自动生效，也可随时手动切换回历史版本。
           </p>
         </div>
 
@@ -39,8 +40,8 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.dataIndex === 'version'">
-              <span class="version-text">v{{ record.version || '1.0.0' }}</span>
-              <Tag v-if="record.is_effective" color="success" class="version-tag">当前生效</Tag>
+              <span class="version-text">{{ formatModelVersionDisplay(record.version || '1.0.0') }}</span>
+              <Tag v-if="record.is_effective" color="success" class="version-tag">生效</Tag>
               <Tag v-else-if="record.is_latest" color="blue" class="version-tag">最新</Tag>
             </template>
             <template v-else-if="column.dataIndex === 'map50'">
@@ -61,20 +62,40 @@
               {{ formatDateTime(record.created_at) }}
             </template>
             <template v-else-if="column.dataIndex === 'action'">
-              <Space :size="8">
-                <Popconfirm
-                  v-if="!record.is_effective"
-                  :title="`激活后对外默认使用 v${record.version || '1.0.0'}，是否继续？`"
-                  @confirm="handleActivate(record)"
-                >
-                  <Button size="small" type="primary" ghost :loading="activatingId === record.id">
-                    激活此版本
-                  </Button>
-                </Popconfirm>
-                <Tag v-else color="success">生效中</Tag>
-                <Button size="small" @click="emit('view', record)">查看详情</Button>
-              </Space>
+              <Popconfirm
+                v-if="!record.is_effective"
+                :title="`确认将 ${formatModelVersionDisplay(record.version || '1.0.0')} 设为对外生效版本？`"
+                @confirm="handleActivate(record)"
+              >
+                <Button size="small" type="primary" ghost :loading="activatingId === record.id">
+                  设为生效
+                </Button>
+              </Popconfirm>
             </template>
+          </template>
+
+          <template #expandedRowRender="{ record }">
+            <div class="version-detail">
+              <div class="version-detail__cover">
+                <img :src="versionCover(record)" alt="模型封面" @error="onCoverError" />
+              </div>
+              <div class="version-detail__content">
+                <div v-if="versionDesc(record)" class="version-detail__row">
+                  <span class="version-detail__label">模型描述</span>
+                  <span class="version-detail__text">{{ versionDesc(record) }}</span>
+                </div>
+                <div class="version-detail__row">
+                  <span class="version-detail__label">模型文件</span>
+                  <span class="version-detail__text">{{ versionFile(record) }}</span>
+                </div>
+                <div v-if="versionClasses(record).length" class="version-detail__row">
+                  <span class="version-detail__label">检测类别</span>
+                  <div class="version-detail__classes">
+                    <Tag v-for="name in versionClasses(record)" :key="name">{{ name }}</Tag>
+                  </div>
+                </div>
+              </div>
+            </div>
           </template>
         </Table>
       </div>
@@ -85,9 +106,12 @@
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
-import { Button, Popconfirm, Space, Spin, Table, Tag } from 'ant-design-vue';
+import { Button, Popconfirm, Spin, Table, Tag } from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { activateModelFamilyVersion, getModelFamily } from '@/api/device/model';
+import { formatModelVersionDisplay } from '../../utils/modelVersionUtils';
+import { resolveModelImageDisplayUrl } from '@/utils/alertMinioImage';
+import DEFAULT_MODEL_IMAGE from '@/assets/images/video/ai-task.png';
 
 defineOptions({ name: 'ModelFamilyDrawer' });
 
@@ -95,6 +119,13 @@ interface FamilyVersion {
   id: number;
   name: string;
   version?: string;
+  description?: string;
+  image_url?: string;
+  imageUrl?: string;
+  model_path?: string;
+  onnx_model_path?: string;
+  class_names?: string[];
+  classNames?: string[];
   is_effective?: boolean;
   is_latest?: boolean;
   map50?: number | null;
@@ -105,7 +136,6 @@ interface FamilyVersion {
 }
 
 const emit = defineEmits<{
-  (e: 'view', record: any): void;
   (e: 'changed'): void;
 }>();
 
@@ -129,13 +159,13 @@ const effectiveVersion = computed(
 );
 
 const versionColumns = [
-  { title: '版本', dataIndex: 'version', width: 170 },
-  { title: 'mAP50', dataIndex: 'map50', width: 90 },
-  { title: '训练样本数', dataIndex: 'annotated_count', width: 100 },
-  { title: '来源', dataIndex: 'model_origin', width: 100 },
+  { title: '版本', dataIndex: 'version', width: 150 },
+  { title: 'mAP50', dataIndex: 'map50', width: 80 },
+  { title: '训练样本数', dataIndex: 'annotated_count', width: 90 },
+  { title: '来源', dataIndex: 'model_origin', width: 96 },
   { title: '部署状态', dataIndex: 'status', width: 90 },
-  { title: '发布时间', dataIndex: 'created_at', width: 150 },
-  { title: '操作', dataIndex: 'action', width: 190 },
+  { title: '发布时间', dataIndex: 'created_at', width: 140 },
+  { title: '操作', dataIndex: 'action', width: 110 },
 ];
 
 const [register, { closeDrawer }] = useDrawerInner(async (data: { record?: any }) => {
@@ -166,11 +196,11 @@ async function handleActivate(record: any): Promise<void> {
   activatingId.value = record.id;
   try {
     const res: any = await activateModelFamilyVersion(record.id);
-    createMessage.success(res?.msg || `已激活 v${record.version || '1.0.0'}`);
+    createMessage.success(res?.msg || `已将 ${formatModelVersionDisplay(record.version || '1.0.0')} 设为生效版本`);
     await loadFamily();
     emit('changed');
   } catch (error: any) {
-    createMessage.error(error?.response?.data?.msg || error?.message || '激活失败');
+    createMessage.error(error?.response?.data?.msg || error?.message || '设置生效版本失败');
   } finally {
     activatingId.value = null;
   }
@@ -188,7 +218,12 @@ function formatMap50(value?: number | null): string {
 function formatDateTime(dateString?: string): string {
   if (!dateString) return '--';
   const date = new Date(dateString);
-  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  if (Number.isNaN(date.getTime())) return '--';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
 }
 
 function statusLabel(status?: number): string {
@@ -206,6 +241,37 @@ function originMeta(origin?: string): { label: string; color: string } {
   };
   return map[origin || 'upload'] ?? map.upload;
 }
+
+/** 展开区：版本描述（完整展示，不做截断） */
+function versionDesc(record: any): string {
+  return (record.description || '').trim();
+}
+
+/** 展开区：模型文件名（取 MinIO 路径最后一段） */
+function versionFile(record: any): string {
+  const path = String(record.model_path || record.onnx_model_path || '').split('?')[0];
+  const name = path ? path.split('/').pop() : '';
+  return name || '--';
+}
+
+/** 展开区：检测类别列表 */
+function versionClasses(record: any): string[] {
+  const names = record.classNames || record.class_names || [];
+  return Array.isArray(names) ? names : [];
+}
+
+/** 展开区：版本封面图 */
+function versionCover(record: any): string {
+  const url = record.imageUrl || record.image_url;
+  return url ? resolveModelImageDisplayUrl(url) : DEFAULT_MODEL_IMAGE;
+}
+
+function onCoverError(e: Event): void {
+  const img = e.target as HTMLImageElement;
+  if (img && img.src !== DEFAULT_MODEL_IMAGE) {
+    img.src = DEFAULT_MODEL_IMAGE;
+  }
+}
 </script>
 
 <style lang="less" scoped>
@@ -214,26 +280,26 @@ function originMeta(origin?: string): { label: string; color: string } {
 }
 
 .family-header {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 
   &__main {
     display: flex;
-    align-items: center;
-    gap: 8px;
     flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
   }
 
   &__name {
     font-size: 16px;
     font-weight: 600;
-    color: rgba(0, 0, 0, 0.88);
+    color: rgb(0 0 0 / 88%);
   }
 
   &__desc {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     font-size: 12px;
-    color: rgba(0, 0, 0, 0.45);
     line-height: 1.6;
+    color: rgb(0 0 0 / 45%);
   }
 }
 
@@ -245,9 +311,80 @@ function originMeta(origin?: string): { label: string; color: string } {
   margin-left: 6px;
 }
 
+.version-detail {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 10px 16px 10px 44px;
+  margin: 4px 0 12px;
+  background: #fafafa;
+  border-radius: 6px;
+
+  &__cover {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 76px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 4px;
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__row {
+    display: flex;
+    align-items: flex-start;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  &__label {
+    flex-shrink: 0;
+    width: 64px;
+    color: rgb(0 0 0 / 45%);
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+    color: rgb(0 0 0 / 88%);
+    word-break: break-all;
+  }
+
+  &__classes {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+    max-height: 60px;
+    overflow-y: auto;
+
+    :deep(.ant-tag) {
+      margin-right: 0;
+    }
+  }
+}
+
 .footer-buttons {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
+  justify-content: flex-end;
 }
 </style>

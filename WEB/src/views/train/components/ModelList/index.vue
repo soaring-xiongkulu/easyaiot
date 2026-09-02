@@ -62,7 +62,7 @@
                 icon: 'material-symbols:delete-outline-rounded',
                 popConfirm: {
                   placement: 'topRight',
-                  title: '是否确认删除？',
+                  title: `删除后不可恢复，确认删除模型「${record.name}」？`,
                   confirm: handleDelete.bind(null, record),
                 },
               }
@@ -93,7 +93,7 @@
       </ModelCardList>
     </div>
     <ModelModal @register="registerAddModel" @success="handleSuccess"/>
-    <ModelFamilyDrawer @register="registerFamilyDrawer" @view="handleFamilyVersionView" @changed="handleSuccess"/>
+    <ModelFamilyDrawer @register="registerFamilyDrawer" @changed="handleSuccess"/>
   </div>
 </template>
 
@@ -116,12 +116,6 @@ const [registerFamilyDrawer, { openDrawer: openFamilyDrawerModal }] = useDrawer(
 
 function openFamilyDrawer(record) {
   openFamilyDrawerModal(true, { record });
-}
-
-/** 版本管理抽屉里点「查看详情」：用该版本记录打开模型详情抽屉 */
-function handleFamilyVersionView(record) {
-  if (!record?.id) return;
-  openAddModal(true, { isEdit: false, isView: true, record });
 }
 
 defineOptions({ name: 'ModelList' })
@@ -313,18 +307,18 @@ const handleDownload = async (record) => {
 
 <style lang="less" scoped>
 .model-list-container {
-  height: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
 .model-list-card-wrap {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .model-name-link {
