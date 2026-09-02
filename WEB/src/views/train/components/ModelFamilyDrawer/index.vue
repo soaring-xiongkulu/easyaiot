@@ -3,7 +3,7 @@
     v-bind="$attrs"
     @register="register"
     :title="drawerTitle"
-    width="1000"
+    width="min(94vw, 1600px)"
     placement="right"
     :showFooter="true"
     :showCancelBtn="false"
