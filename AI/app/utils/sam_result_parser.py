@@ -51,6 +51,7 @@ def to_annotations(
                     'type': 'polygon',
                     'auto': True,
                     'color': '#722ed1',
+                    'source': 'sam3',
                 })
             except Exception as e:
                 logger.warning('解析 SAM mask 失败: %s', e)
@@ -82,6 +83,7 @@ def to_annotations(
                 'type': 'rectangle',
                 'auto': True,
                 'color': '#722ed1',
+                'source': 'sam3',
             })
         except Exception as e:
             logger.warning('解析 SAM prediction 失败: %s', e)

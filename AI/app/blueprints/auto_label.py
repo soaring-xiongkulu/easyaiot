@@ -1882,18 +1882,37 @@ def execute_auto_label_task(app, task_id):
                             annotations=json.dumps(annotations, ensure_ascii=False),
                             status='SUCCESS',
                         ))
-                        update_response = requests.put(
-                            f"{java_backend_url}/admin-api/dataset/image/update",
-                            json={
-                                'id': image_id,
-                                'datasetId': task.dataset_id,
-                                'annotations': json.dumps(annotations, ensure_ascii=False),
-                                'completed': 1 if annotations else 0,
-                            },
-                            timeout=10,
-                        )
-                        if update_response.status_code != 200:
-                            logger.warning(f"更新图片标注失败: {image_id}")
+                        # 写回保护:图片已有 LLM/SAM 来源标注时,YOLO 低置信度结果不覆盖
+                        skip_writeback = False
+                        if label_mode == 'yolo':
+                            raw_anns = image.get('annotations') or []
+                            if isinstance(raw_anns, str):
+                                try:
+                                    raw_anns = json.loads(raw_anns)
+                                except Exception:
+                                    raw_anns = []
+                            protected = any(
+                                isinstance(a, dict) and a.get('source') in ('llm-harness', 'sam3')
+                                for a in raw_anns
+                            )
+                            if protected:
+                                logger.info(
+                                    f'跳过写回(图片已有 LLM/SAM 受保护标注): task_id={task_id}, image_id={image_id}'
+                                )
+                                skip_writeback = True
+                        if not skip_writeback:
+                            update_response = requests.put(
+                                f"{java_backend_url}/admin-api/dataset/image/update",
+                                json={
+                                    'id': image_id,
+                                    'datasetId': task.dataset_id,
+                                    'annotations': json.dumps(annotations, ensure_ascii=False),
+                                    'completed': 1 if annotations else 0,
+                                },
+                                timeout=10,
+                            )
+                            if update_response.status_code != 200:
+                                logger.warning(f"更新图片标注失败: {image_id}")
                         success_count += 1
                         if label_mode in ('sam', 'llm'):
                             if annotations:
