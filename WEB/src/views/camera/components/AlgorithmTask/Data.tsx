@@ -148,7 +148,7 @@ export function getBasicColumns(): BasicColumn[] {
       ),
     },
     {
-      width: 200,
+      width: 240,
       title: '操作',
       dataIndex: 'action',
       fixed: 'right',
@@ -205,4 +205,3 @@ export function getFormConfig(): Partial<FormProps> {
     ]
   }
 }
-

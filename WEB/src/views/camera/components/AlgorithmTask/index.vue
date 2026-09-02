@@ -120,6 +120,14 @@
                     >
                       <Icon icon="ant-design:code-outlined" :size="15" color="#3B82F6" />
                     </div>
+                    <div
+                      class="btn llm-queue-btn"
+                      :class="{ disabled: !hasLlmPostProcess(item) }"
+                      @click="hasLlmPostProcess(item) && handleOpenLlmQueue(item)"
+                      :title="hasLlmPostProcess(item) ? '查看大模型研判队列' : '未启用大模型后处理，暂无研判队列'"
+                    >
+                      <Icon icon="ant-design:robot-outlined" :size="16" :color="hasLlmPostProcess(item) ? '#6554d9' : '#b7bdc8'" />
+                    </div>
                     <div class="btn" @click="handleManageServices(item)" title="心跳信息">
                       <Icon icon="ant-design:heart-outlined" :size="15" color="#3B82F6" />
                     </div>
@@ -199,6 +207,9 @@
 
     <!-- 服务管理抽屉 -->
     <ServiceManageDrawer @register="registerServiceDrawer" @success="handleSuccess" />
+
+    <!-- 大模型后处理运行结果：与任务配置分离的独立入口 -->
+    <LlmJudgeQueueDrawer @register="registerLlmQueueDrawer" />
     
     <!-- 抓拍空间抽屉 -->
     <SnapSpaceDrawer @register="registerSnapSpaceDrawer" />
@@ -251,6 +262,7 @@ import {
 import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
 import ServiceManageDrawer from './ServiceManageDrawer.vue';
+import LlmJudgeQueueDrawer from './LlmJudgeQueueDrawer.vue';
 import SnapSpaceDrawer from './SnapSpaceDrawer.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import CameraStreamSelectModal from '../CameraStreamSelectModal/index.vue';
@@ -292,6 +304,7 @@ const setTaskPending = (id: number, pending: boolean) => {
 const [registerModal, { openDrawer }] = useDrawer();
 const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
 const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
+const [registerLlmQueueDrawer, { openDrawer: openLlmQueueDrawer }] = useDrawer();
 const [registerSnapSpaceDrawer, { openDrawer: openSnapSpaceDrawer }] = useDrawer();
 const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
 
@@ -365,6 +378,16 @@ const hasCameras = (record: AlgorithmTask) => {
          (record.device_names && record.device_names.length > 0);
 };
 
+const hasLlmPostProcess = (record: AlgorithmTask) => record.llm_post_process_enabled === true || Number(record.llm_post_process_enabled) === 1;
+
+const handleOpenLlmQueue = (record: AlgorithmTask) => {
+  if (!hasLlmPostProcess(record)) {
+    createMessage.info('该任务未启用大模型后处理');
+    return;
+  }
+  openLlmQueueDrawer(true, { taskId: record.id, taskName: record.task_name });
+};
+
 // 复制摄像头名称
 const handleCopyDeviceNames = (item: AlgorithmTask) => {
   if (!item.device_names || item.device_names.length === 0) {
@@ -405,6 +428,12 @@ const getTableActions = (record: AlgorithmTask) => {
       icon: 'ant-design:code-outlined',
       tooltip: record.post_process_enabled ? '编辑业务脚本' : '编辑业务脚本（需先在任务配置中开启）',
       onClick: () => handleOpenPostProcess(record),
+    },
+    {
+      icon: 'ant-design:robot-outlined',
+      tooltip: hasLlmPostProcess(record) ? '大模型研判队列' : '未启用大模型后处理，暂无研判队列',
+      disabled: !hasLlmPostProcess(record),
+      onClick: () => handleOpenLlmQueue(record),
     },
     {
       icon: 'ant-design:folder-outlined',

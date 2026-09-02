@@ -55,41 +55,6 @@
           message="规则按优先级匹配告警：检测对象/事件类别留空表示匹配全部，多规则命中时仅最高优先级规则生效；开启「二次判断」后，大模型确认事件成立才发送通知。"
         />
 
-        <!-- 研判价值指标：抽检覆盖率 + 结论分布 + 执行质量 -->
-        <div class="llj-stats">
-          <div class="llj-stat">
-            <div class="llj-stat__value">{{ stats.actual_sample_rate_percent ?? 0 }}%</div>
-            <div class="llj-stat__label">
-              实际抽检率
-              <a-tooltip title="已进入大模型队列的告警占任务告警总数比例；配置 10% 抽检时长期趋近 10%">
-                <InfoCircleOutlined class="llj-stat__tip" />
-              </a-tooltip>
-            </div>
-            <div class="llj-stat__sub">已抽 {{ stats.sampled ?? 0 }} / 告警 {{ stats.total_alerts ?? 0 }}</div>
-          </div>
-          <div class="llj-stat llj-stat--ok">
-            <div class="llj-stat__value">{{ stats.confirmed ?? 0 }}</div>
-            <div class="llj-stat__label">确认成立</div>
-            <div class="llj-stat__sub">驳回 {{ stats.rejected ?? 0 }} · 失败 {{ stats.failed ?? 0 }}</div>
-          </div>
-          <div class="llj-stat">
-            <div class="llj-stat__value">{{ stats.pending ?? 0 }}</div>
-            <div class="llj-stat__label">排队中</div>
-            <div class="llj-stat__sub">队列状态实时可见</div>
-          </div>
-          <div class="llj-stat">
-            <div class="llj-stat__value">{{ stats.avg_duration_ms ?? 0 }}ms</div>
-            <div class="llj-stat__label">平均研判耗时</div>
-            <div class="llj-stat__sub">
-              配置抽检
-              <span v-if="stats.configured_sample_rates?.length">
-                {{ stats.configured_sample_rates.join(' / ') }}%
-              </span>
-              <span v-else>-</span>
-            </div>
-          </div>
-        </div>
-
         <div class="llj-list">
           <AAlert
             v-if="loadError"
@@ -168,32 +133,6 @@
           />
         </div>
 
-        <div class="llj-results">
-          <div class="llj-results__head">
-            <div>
-              <div class="llj-results__title">最近研判</div>
-              <div class="llj-results__sub">确认告警是否进入大模型队列并完成回写</div>
-            </div>
-            <Button size="small" :loading="resultsLoading" :disabled="!taskId" @click="loadResults">刷新</Button>
-          </div>
-          <AAlert v-if="resultsError" type="error" show-icon message="研判记录加载失败" :description="resultsError" />
-          <div v-else-if="results.length" class="llj-result-list">
-            <div v-for="item in results" :key="item.id" class="llj-result-row">
-              <a-tag :color="resultStatusColor(item.status)">{{ resultStatusLabel(item.status) }}</a-tag>
-              <div class="llj-result-row__body">
-                <div class="llj-result-row__main">
-                  <span class="llj-result-row__verdict">{{ resultVerdict(item) }}</span>
-                  <span>告警 #{{ item.alert_id }}</span>
-                  <span>{{ item.judge_mode === 'video' ? '视频' : '图片' }}</span>
-                  <span v-if="item.duration_ms != null">{{ item.duration_ms }}ms</span>
-                </div>
-                <div class="llj-result-row__reason">{{ item.reason || item.error_msg || '等待模型返回…' }}</div>
-              </div>
-              <span class="llj-result-row__time">{{ formatResultTime(item.created_at) }}</span>
-            </div>
-          </div>
-          <AEmpty v-else :image="false" description="暂无研判记录；告警命中启用规则后会出现在这里" />
-        </div>
       </div>
     </Spin>
 
@@ -353,12 +292,8 @@ import {
   createLlmJudgeRule,
   updateLlmJudgeRule,
   deleteLlmJudgeRule,
-  listLlmJudgeResults,
-  getLlmJudgeStats,
   type LlmJudgeRule,
   type LlmJudgeRulePayload,
-  type LlmJudgeResult,
-  type LlmJudgeResultStatus,
   type LlmJudgeMode,
   type LlmFailPolicy,
 } from '@/api/device/algorithm_task';
@@ -376,7 +311,7 @@ const [register, { closeDrawer }] = useDrawerInner(async (data) => {
   taskName.value = data?.taskName || '';
   disabled.value = data?.disabled === true;
   if (taskId.value) {
-    await Promise.all([loadRules(), loadExperts(), loadModels(), loadResults(), loadStats()]);
+    await Promise.all([loadRules(), loadExperts(), loadModels()]);
   }
 });
 
@@ -389,10 +324,6 @@ const loadError = ref('');
 const rules = ref<LlmJudgeRule[]>([]);
 const experts = ref<RagExpert[]>([]);
 const models = ref<LLMModel[]>([]);
-const results = ref<LlmJudgeResult[]>([]);
-const resultsLoading = ref(false);
-const resultsError = ref('');
-const stats = ref<Record<string, any>>({});
 
 const enabledCount = computed(() => rules.value.filter((r) => r.enabled).length);
 const totalCount = computed(() => rules.value.length);
@@ -461,51 +392,7 @@ async function loadRules() {
 
 async function reload() {
   if (!taskId.value) return;
-  await Promise.all([loadRules(), loadExperts(), loadModels(), loadResults(), loadStats()]);
-}
-
-async function loadStats() {
-  if (!taskId.value) return;
-  try {
-    const res: any = await getLlmJudgeStats(taskId.value);
-    const data = res?.data || res || {};
-    stats.value = data && typeof data === 'object' ? data : {};
-  } catch {
-    stats.value = {};
-  }
-}
-
-async function loadResults() {
-  if (!taskId.value) return;
-  resultsLoading.value = true;
-  resultsError.value = '';
-  try {
-    const res: any = await listLlmJudgeResults(taskId.value, { page: 1, pageSize: 10 });
-    const data = res?.data || res || {};
-    results.value = Array.isArray(data.items) ? data.items : [];
-  } catch (error: any) {
-    results.value = [];
-    resultsError.value = formatApiErrorMessage(error, '加载研判记录失败');
-  } finally {
-    resultsLoading.value = false;
-  }
-}
-
-function resultStatusLabel(status: LlmJudgeResultStatus) {
-  return ({ pending: '排队中', success: '已完成', error: '失败', dlt: '死信' } as const)[status] || status;
-}
-function resultStatusColor(status: LlmJudgeResultStatus) {
-  return ({ pending: 'processing', success: 'success', error: 'error', dlt: 'warning' } as const)[status] || 'default';
-}
-function resultVerdict(item: LlmJudgeResult) {
-  if (item.status !== 'success') return '待研判';
-  const confidence = item.confidence == null ? '' : ` · ${Math.round(item.confidence * 100)}%`;
-  return `${item.confirm === true ? '确认成立' : item.confirm === false ? '判定误报' : '结论不明'}${confidence}`;
-}
-function formatResultTime(value?: string) {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  await Promise.all([loadRules(), loadExperts(), loadModels()]);
 }
 
 async function loadExperts() {
@@ -689,63 +576,6 @@ async function handleDelete(record: LlmJudgeRule) {
   margin-bottom: 0;
 }
 
-.llj-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  width: 100%;
-
-  @media (max-width: 900px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.llj-stat {
-  padding: 12px 14px;
-  border: 1px solid #e8ecf2;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #f7faff, #eef3fb);
-  min-width: 0;
-
-  &--ok {
-    background: linear-gradient(180deg, #f6ffed, #ecfbe0);
-    border-color: #c8e6b0;
-
-    .llj-stat__value {
-      color: #389e0d;
-    }
-  }
-
-  &__value {
-    font-size: 22px;
-    font-weight: 700;
-    color: #1677ff;
-    line-height: 1.2;
-  }
-
-  &__label {
-    margin-top: 2px;
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.65);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  &__tip {
-    color: rgba(0, 0, 0, 0.3);
-    cursor: help;
-  }
-
-  &__sub {
-    margin-top: 2px;
-    font-size: 11px;
-    color: rgba(0, 0, 0, 0.4);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
 
 .llj-list {
   display: flex;
@@ -821,42 +651,6 @@ async function handleDelete(record: LlmJudgeRule) {
   margin-top: 60px;
 }
 
-.llj-results {
-  padding: 16px;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  background: #fafcff;
-
-  &__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  &__title { font-size: 14px; font-weight: 600; }
-  &__sub { margin-top: 2px; font-size: 12px; color: rgba(0, 0, 0, 0.45); }
-}
-
-.llj-result-list { display: flex; flex-direction: column; gap: 8px; }
-
-.llj-result-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 12px;
-  border: 1px solid #edf0f5;
-  border-radius: 8px;
-  background: #fff;
-
-  :deep(.ant-tag) { margin: 0; flex-shrink: 0; }
-  &__body { min-width: 0; flex: 1; }
-  &__main { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: rgba(0, 0, 0, 0.55); }
-  &__verdict { color: rgba(0, 0, 0, 0.88); font-weight: 600; }
-  &__reason { margin-top: 4px; color: rgba(0, 0, 0, 0.65); line-height: 1.5; word-break: break-word; }
-  &__time { flex-shrink: 0; font-size: 12px; color: rgba(0, 0, 0, 0.35); }
-}
 
 .llj-footer {
   display: flex;
