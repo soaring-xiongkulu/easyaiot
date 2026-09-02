@@ -106,24 +106,6 @@ All green? You’re done—easier than you feared. Go grab that coffee early.
 EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. Through core capabilities such as algorithm task management, real-time stream analysis, and model service cluster inference, the platform achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
 
-### 🏷️ LLM Smart Labeling: Describe the Business Scene, Train a Field-Specific Small Model
-
-<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-Conventional auto-labeling usually accepts only class words such as “person,” “vehicle,” or “helmet.” It can locate generic objects, but cannot precisely express what a customer actually cares about on site. EasyAIoT adds an independent <strong>LLM Smart Labeling</strong> workflow built on the existing <strong>HARNESS model foundation</strong>. Users describe a real business scene in natural language—for example, “label people who enter the construction area without correctly wearing a helmet, and exclude compliant workers.” The LLM understands objects, actions, relationships, conditions, and exclusions before producing structured annotations. After users review the bootstrap results, the platform automatically trains, publishes, binds, and applies a YOLO small model, turning one scene description into a dedicated capability that can run continuously and efficiently in production.
-</p>
-
-<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
-  <li><strong>Natural language matches real requirements better than class labels</strong>: It can describe where an object is, what it is doing, its relationships, required conditions, and explicit exclusions—not merely what category it belongs to</li>
-  <li><strong>Better cold starts for customized datasets</strong>: No mature detector or large manually labeled dataset is required up front; users describe the scene, review the first candidate annotations, and immediately feed field knowledge into training</li>
-  <li><strong>LLM understanding with small-model runtime efficiency</strong>: The LLM handles complex semantics on a small bootstrap set, while the reviewed results teach a small model that supports fast, economical, and edge-friendly production inference</li>
-  <li><strong>Models fit the customer's actual site</strong>: Training targets come from the user's language, images, and review decisions instead of broad classes from generic datasets, aligning the resulting detector with the project's real acceptance criteria</li>
-  <li><strong>A full learning loop, not a one-off AI call</strong>: Scene description → LLM candidate annotations → human review → small-model training → automatic publishing and dataset binding → batch relabeling, with traceable model versions and origins</li>
-</ul>
-
-<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
-<strong>How it differs from SAM3 Smart Labeling:</strong> SAM3 uses concise visual prompts and excels at locating or segmenting “things that look like this target.” LLM Smart Labeling accepts a complete business description and determines “which target, under which conditions, is the one the user actually wants labeled.” The two workflows have separate entries and tasks but share the review, training, and small-model relabeling pipeline. Use SAM3 for fast generic-object extraction; use LLM Smart Labeling when the scene depends on actions, relationships, conditions, exceptions, or domain semantics.
-</p>
-
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -181,6 +163,24 @@ In homes, retail stores, and light-security deployments, many devices already in
   <li><strong>Lifecycle sync</strong>: Deleting a device cleans up go2rtc streams; works with device tree, map pins, and algorithm tasks</li>
   <li><strong>Docker all-in-one</strong>: <code>bash RTC/install_linux.sh start</code> runs go2rtc + management API; host network for P2P LAN</li>
 </ul>
+
+### 🏷️ LLM Smart Labeling: Describe the Business Scene, Train a Field-Specific Small Model
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+Conventional auto-labeling usually accepts only class words such as “person,” “vehicle,” or “helmet.” It can locate generic objects, but cannot precisely express what a customer actually cares about on site. EasyAIoT adds an independent <strong>LLM Smart Labeling</strong> workflow built on the existing <strong>HARNESS model foundation</strong>. Users describe a real business scene in natural language—for example, “label people who enter the construction area without correctly wearing a helmet, and exclude compliant workers.” The LLM understands objects, actions, relationships, conditions, and exclusions before producing structured annotations. After users review the bootstrap results, the platform automatically trains, publishes, binds, and applies a YOLO small model, turning one scene description into a dedicated capability that can run continuously and efficiently in production.
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>Natural language matches real requirements better than class labels</strong>: It can describe where an object is, what it is doing, its relationships, required conditions, and explicit exclusions—not merely what category it belongs to</li>
+  <li><strong>Better cold starts for customized datasets</strong>: No mature detector or large manually labeled dataset is required up front; users describe the scene, review the first candidate annotations, and immediately feed field knowledge into training</li>
+  <li><strong>LLM understanding with small-model runtime efficiency</strong>: The LLM handles complex semantics on a small bootstrap set, while the reviewed results teach a small model that supports fast, economical, and edge-friendly production inference</li>
+  <li><strong>Models fit the customer's actual site</strong>: Training targets come from the user's language, images, and review decisions instead of broad classes from generic datasets, aligning the resulting detector with the project's real acceptance criteria</li>
+  <li><strong>A full learning loop, not a one-off AI call</strong>: Scene description → LLM candidate annotations → human review → small-model training → automatic publishing and dataset binding → batch relabeling, with traceable model versions and origins</li>
+</ul>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+<strong>How it differs from SAM3 Smart Labeling:</strong> SAM3 uses concise visual prompts and excels at locating or segmenting “things that look like this target.” LLM Smart Labeling accepts a complete business description and determines “which target, under which conditions, is the one the user actually wants labeled.” The two workflows have separate entries and tasks but share the review, training, and small-model relabeling pipeline. Use SAM3 for fast generic-object extraction; use LLM Smart Labeling when the scene depends on actions, relationships, conditions, exceptions, or domain semantics.
+</p>
 
 ### 🔌 EDGE: C# Edge Collection Runtime
 
