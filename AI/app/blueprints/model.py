@@ -22,7 +22,7 @@ from app.utils.model_class_utils import (
     extract_class_names_from_model,
     parse_class_names_json,
 )
-from db_models import db, Model, InferenceTask
+from db_models import db, Model, InferenceTask, AutoLabelModelHistory
 from sqlalchemy.exc import IntegrityError
 
 model_bp = Blueprint('model', __name__)
@@ -57,6 +57,53 @@ def _serialize_model_provenance(model: Model) -> dict:
         'model_origin': getattr(model, 'model_origin', None) or 'upload',
         'origin_ref': getattr(model, 'origin_ref', None),
     }
+
+
+def _version_sort_key(version_str) -> tuple:
+    """语义版本排序键（'1.2.10' -> (1, 2, 10)），非法段按 0 处理。"""
+    try:
+        parts = str(version_str or '').strip().lstrip('vV').split('.')
+        return tuple(int(p) for p in parts[:3])
+    except (TypeError, ValueError):
+        return (0, 0, 0)
+
+
+def _model_family_key(model: Model) -> str:
+    key = (getattr(model, 'family_key', None) or '').strip().lower()
+    return key or (model.name or '').strip().lower()
+
+
+def _resolve_family_effective(members: list) -> Model:
+    """家族对外生效版本：优先 is_family_active，否则取最高版本号。"""
+    if not members:
+        raise ValueError('模型家族为空')
+    active = [m for m in members if getattr(m, 'is_family_active', None)]
+    pool = active or members
+    return max(pool, key=lambda m: (_version_sort_key(m.version), m.id))
+
+
+def _family_members_map(models: list) -> dict:
+    """一次查询把给定模型所属家族的全部成员按 family_key 分组。"""
+    keys = {_model_family_key(m) for m in models}
+    if not keys:
+        return {}
+    members = Model.query.filter(Model.family_key.in_(keys)).all()
+    grouped: dict = {}
+    for m in members:
+        grouped.setdefault(_model_family_key(m), []).append(m)
+    return grouped
+
+
+def _attach_family_fields(item: dict, model: Model, families: dict) -> dict:
+    members = families.get(_model_family_key(model)) or [model]
+    effective = _resolve_family_effective(members)
+    item['family_key'] = _model_family_key(model)
+    item['is_family_active'] = bool(getattr(model, 'is_family_active', None))
+    item['is_family_effective'] = model.id == effective.id
+    item['family_size'] = len(members)
+    item['family_effective_id'] = effective.id
+    item['family_effective_version'] = effective.version
+    return item
 
 
 def _serialize_model_item(model: Model) -> dict:
@@ -146,25 +193,134 @@ def models():
                 )
             )
 
-        pagination = query.order_by(Model.created_at.desc()).paginate(
-            page=page_no,
-            per_page=page_size,
-            error_out=False
-        )
+        family_grouped = request.args.get('family_grouped', '').strip().lower() in ('1', 'true', 'yes', 'on')
 
-        model_list = [_serialize_model_item(p) for p in pagination.items]
+        if family_grouped:
+            # 家族归并模式：同族多版本只对外展示生效版本（默认最高版本），分页在 Python 侧完成
+            matched = query.order_by(Model.created_at.desc()).all()
+            families: dict = {}
+            for m in matched:
+                families.setdefault(_model_family_key(m), []).append(m)
+            representatives = [_resolve_family_effective(members) for members in families.values()]
+            representatives.sort(
+                key=lambda m: (m.created_at or datetime.min, m.id), reverse=True
+            )
+            total = len(representatives)
+            start = (page_no - 1) * page_size
+            page_items = representatives[start:start + page_size]
+            families_full = _family_members_map(page_items)
+            model_list = [
+                _attach_family_fields(_serialize_model_item(m), m, families_full)
+                for m in page_items
+            ]
+        else:
+            pagination = query.order_by(Model.created_at.desc()).paginate(
+                page=page_no,
+                per_page=page_size,
+                error_out=False
+            )
+
+            model_list = [_serialize_model_item(p) for p in pagination.items]
+            families_full = _family_members_map(list(pagination.items))
+            model_list = [
+                _attach_family_fields(item, m, families_full)
+                for item, m in zip(model_list, pagination.items)
+            ]
+            total = pagination.total
 
         return jsonify({
             'code': 0,
             'msg': 'success',
             'data': model_list,
-            'total': pagination.total
+            'total': total
         })
 
     except ValueError:
         return jsonify({'code': 400, 'msg': '参数类型错误：pageNo和pageSize需为整数'}), 400
     except Exception as e:
         logger.error(f'分页查询失败: {str(e)}')
+        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
+
+
+@model_bp.route('/<int:model_id>/family', methods=['GET'])
+def model_family(model_id):
+    """模型家族版本列表：同族全部版本 + 训练指标，供版本管理抽屉使用。"""
+    try:
+        model = Model.query.get(model_id)
+        if not model:
+            return jsonify({'code': 404, 'msg': f'模型ID {model_id} 不存在'}), 404
+
+        family_key = _model_family_key(model)
+        members = Model.query.filter(Model.family_key == family_key).all()
+        effective = _resolve_family_effective(members)
+        latest_key = max(_version_sort_key(m.version) for m in members)
+        members.sort(
+            key=lambda m: (_version_sort_key(m.version), m.created_at or datetime.min, m.id),
+            reverse=True,
+        )
+
+        history_map = {}
+        try:
+            histories = AutoLabelModelHistory.query.filter(
+                AutoLabelModelHistory.model_id.in_([m.id for m in members])
+            ).all()
+            history_map = {h.model_id: h for h in histories}
+        except Exception as e:
+            logger.warning(f'查询模型训练历史失败: {e}')
+
+        versions = []
+        for m in members:
+            history = history_map.get(m.id)
+            versions.append({
+                **_serialize_model_item(m),
+                'is_family_active': bool(getattr(m, 'is_family_active', None)),
+                'is_effective': m.id == effective.id,
+                'is_latest': _version_sort_key(m.version) == latest_key,
+                'map50': getattr(history, 'map50', None) if history else None,
+                'annotated_count': getattr(history, 'annotated_count', None) if history else None,
+                'history_version_no': getattr(history, 'version_no', None) if history else None,
+                'train_task_id': getattr(history, 'train_task_id', None) if history else None,
+            })
+
+        return jsonify({
+            'code': 0,
+            'msg': 'success',
+            'data': {
+                'family_key': family_key,
+                'family_name': model.name,
+                'effective_id': effective.id,
+                'total': len(members),
+                'versions': versions,
+            }
+        })
+
+    except Exception as e:
+        logger.error(f'查询模型家族失败: {str(e)}')
+        return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
+
+
+@model_bp.route('/<int:model_id>/family/activate', methods=['POST'])
+def activate_model_family_version(model_id):
+    """激活家族内指定版本：对外（推理/算法任务/接力标注）默认使用该版本。"""
+    try:
+        model = Model.query.get(model_id)
+        if not model:
+            return jsonify({'code': 404, 'msg': f'模型ID {model_id} 不存在'}), 404
+
+        family_key = _model_family_key(model)
+        Model.query.filter(Model.family_key == family_key).update({'is_family_active': False})
+        model.is_family_active = True
+        db.session.commit()
+
+        return jsonify({
+            'code': 0,
+            'msg': f'已激活 {model.name} v{model.version or "1.0.0"}',
+            'data': {'id': model.id, 'family_key': family_key}
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'激活模型版本失败: {str(e)}')
         return jsonify({'code': 500, 'msg': '服务器内部错误'}), 500
 
 
@@ -472,6 +628,7 @@ def upload_custom_model():
                     selected_class_names=dump_class_names_json(selected_class_names_list),
                 )
                 _apply_model_provenance(model, 'upload')
+                model.family_key = (name or '').strip().lower()
                 db.session.add(model)
                 db.session.commit()
 
@@ -553,6 +710,7 @@ def create_model():
             version=version,
             status=status
         )
+        model.family_key = (name or '').strip().lower()
         _apply_model_class_fields(model, data)
         origin = (data.get('model_origin') or data.get('modelOrigin') or 'upload').strip() or 'upload'
         origin_ref = data.get('origin_ref') or data.get('originRef')

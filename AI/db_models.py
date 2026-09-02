@@ -21,7 +21,8 @@ def beijing_now():
 
 class Model(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    # 注意：同族多版本会以同名多行存储（如 auto-label-ds5 1.0.0/1.1.0），name 不能加唯一约束
+    name = db.Column(db.String(100), nullable=False, index=True)
     description = db.Column(db.Text)
     model_path = db.Column(db.String(500), nullable=True)
     image_url = db.Column(db.String(500))
@@ -44,6 +45,10 @@ class Model(db.Model):
     model_origin = db.Column(db.String(32), default='upload', nullable=True)
     # 来源引用，如 dataset:15 / train_task:88
     origin_ref = db.Column(db.String(128), nullable=True)
+    # 模型家族键：同族多版本共享（通常为名称小写，如 auto-label-ds5），对外表现为一个逻辑模型
+    family_key = db.Column(db.String(120), nullable=True, index=True)
+    # 家族内当前对外生效的版本；为空时按最高版本号兜底
+    is_family_active = db.Column(db.Boolean(), nullable=True)
 
     export_records = db.relationship('ExportRecord', back_populates='model', cascade='all, delete-orphan')
 
@@ -1106,6 +1111,75 @@ def backfill_model_origin(engine):
         log.info('已尝试回填历史 model_origin')
     except Exception as e:
         log.warning('backfill_model_origin: %s', e)
+
+
+def _model_version_sort_key(version_str):
+    """语义版本排序键（'1.2.10' -> (1,2,10)），非法段按 0 处理。"""
+    try:
+        parts = str(version_str or '').strip().lstrip('vV').split('.')
+        return tuple(int(p) for p in parts[:3])
+    except (TypeError, ValueError):
+        return (0, 0, 0)
+
+
+def ensure_model_family_columns(engine):
+    """老库 model 表无 family_key / is_family_active 列时补列，并回填家族分组。
+
+    回填规则：family_key = lower(trim(name))；每个家族内若无生效版本，
+    将最高版本的行标记为 is_family_active（对外默认使用最高版本）。
+    """
+    import logging
+    from sqlalchemy import inspect, text
+
+    log = logging.getLogger(__name__)
+    try:
+        inspector = inspect(engine)
+        if 'model' not in inspector.get_table_names():
+            return
+        col_names = {c['name'] for c in inspector.get_columns('model')}
+        with engine.begin() as conn:
+            if 'family_key' not in col_names:
+                conn.execute(text('ALTER TABLE model ADD COLUMN family_key VARCHAR(120)'))
+                conn.execute(text('CREATE INDEX ix_model_family_key ON model (family_key)'))
+                log.info('已为 model 表添加 family_key 列')
+            if 'is_family_active' not in col_names:
+                conn.execute(text('ALTER TABLE model ADD COLUMN is_family_active BOOLEAN'))
+                log.info('已为 model 表添加 is_family_active 列')
+
+        from db_models import Model
+        with engine.begin() as conn:
+            conn.execute(text(
+                "UPDATE model SET family_key = LOWER(TRIM(name)) "
+                "WHERE family_key IS NULL OR family_key = ''"
+            ))
+
+        models = Model.query.all()
+        families: dict = {}
+        for m in models:
+            key = (m.family_key or '').strip().lower() or str(m.name or '').strip().lower()
+            m.family_key = key
+            families.setdefault(key, []).append(m)
+
+        changed = 0
+        for members in families.values():
+            if any(m.is_family_active for m in members):
+                continue
+            active = max(
+                members,
+                key=lambda m: (_model_version_sort_key(m.version), m.created_at or datetime.min, m.id),
+            )
+            active.is_family_active = True
+            changed += 1
+        if changed:
+            db.session.commit()
+            log.info('已为 %s 个模型家族回填生效版本', changed)
+        log.info('模型家族分组回填完成，共 %s 个家族', len(families))
+    except Exception as e:
+        log.warning('ensure_model_family_columns: %s', e)
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
 
 
 def ensure_model_table_status_column(engine):

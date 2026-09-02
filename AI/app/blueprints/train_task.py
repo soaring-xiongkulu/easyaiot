@@ -666,6 +666,21 @@ def _apply_train_model_provenance(
     model.origin_ref = ref
 
 
+def _normalize_family_key(name: str) -> str:
+    """家族键 = 模型名小写（同族多版本共用，如 auto-label-ds5）。"""
+    return (name or '').strip().lower()
+
+
+def _mark_family_active(model: Model) -> None:
+    """将发布的版本设为家族对外生效版本（新版本发布即取代旧的手动激活）。"""
+    key = _normalize_family_key(model.family_key or model.name)
+    model.family_key = key
+    model.is_family_active = True
+    Model.query.filter(Model.family_key == key, Model.id != model.id).update(
+        {'is_family_active': False}
+    )
+
+
 def publish_train_task_to_model(
     task: TrainTask,
     *,
@@ -751,6 +766,7 @@ def publish_train_task_to_model(
         db.session.add(model)
 
     db.session.flush()
+    _mark_family_active(model)
     _set_published_model_id(task, model.id, publish_version)
     db.session.commit()
     return model.id

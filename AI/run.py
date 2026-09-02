@@ -313,6 +313,7 @@ def create_app():
                 ensure_model_table_status_column,
                 ensure_model_origin_columns,
                 ensure_model_class_columns,
+                ensure_model_family_columns,
                 ensure_train_task_name_column,
                 ensure_train_task_dataset_columns,
                 ensure_train_task_cluster_columns,
@@ -328,6 +329,7 @@ def create_app():
             ensure_model_table_status_column(db.engine)
             ensure_model_origin_columns(db.engine)
             ensure_model_class_columns(db.engine)
+            ensure_model_family_columns(db.engine)
             ensure_train_task_name_column(db.engine)
             ensure_train_task_dataset_columns(db.engine)
             ensure_train_task_cluster_columns(db.engine)
