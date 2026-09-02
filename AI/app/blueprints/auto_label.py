@@ -207,6 +207,17 @@ def start_auto_label(dataset_id):
         label_mode = (data.get('label_mode') or 'yolo').lower()
         confidence_threshold = float(data.get('confidence_threshold', 0.5 if label_mode == 'yolo' else 0.45))
 
+        if label_mode == 'yolo':
+            # 防低质/未训练模型批量覆盖:置信度下限与仅未标注图片
+            min_yolo_conf = float(os.getenv('AUTO_LABEL_MIN_YOLO_CONF', '0.5'))
+            if confidence_threshold < min_yolo_conf:
+                confidence_threshold = min_yolo_conf
+            sample_selection = data.get('sample_selection') or 'all'
+            if sample_selection not in ('unlabeled_only', 'unlabeled_first'):
+                sample_selection = 'unlabeled_only'
+        else:
+            sample_selection = data.get('sample_selection')
+
         model_id = None
         legacy_service_id = data.get('model_service_id')
         text_prompts = data.get('text_prompts') or []
@@ -1728,6 +1739,12 @@ def execute_auto_label_task(app, task_id):
                     raise Exception('任务未关联有效模型')
                 inference_service = InferenceService(model_id)
                 inference_service.get_model()
+                # 防低质/未训练模型批量覆盖:置信度下限 + 仅处理未标注图片
+                min_yolo_conf = float(os.getenv('AUTO_LABEL_MIN_YOLO_CONF', '0.5'))
+                if (task.confidence_threshold or 0) < min_yolo_conf:
+                    task.confidence_threshold = min_yolo_conf
+                if task.bootstrap_selection not in ('unlabeled_only', 'unlabeled_first'):
+                    task.bootstrap_selection = 'unlabeled_only'
 
             task.status = 'PROCESSING'
             task.started_at = beijing_now()
