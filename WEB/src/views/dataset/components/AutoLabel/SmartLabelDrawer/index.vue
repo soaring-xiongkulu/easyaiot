@@ -10,12 +10,12 @@
     :showCancelBtn="false"
     :maskClosable="false"
     destroy-on-close
-    root-class-name="sam-auto-label-drawer"
+    root-class-name="smart-label-drawer"
   >
     <template #title>
       <div class="detail-drawer-header">
         <div class="detail-drawer-header__icon">
-          <Icon icon="ant-design:deployment-unit-outlined" :size="18" />
+          <Icon :icon="isLlm ? 'ant-design:thunderbolt-outlined' : 'ant-design:deployment-unit-outlined'" :size="18" />
         </div>
         <div class="detail-drawer-header__line">
           <span class="detail-drawer-header__title">{{ COPY.drawerTitle }}</span>
@@ -89,10 +89,39 @@
             <div class="setup-content-card">
               <div class="step-panel-head">
                 <h3 class="step-panel-title">{{ currentStepCopy.title }}</h3>
+                <p class="step-panel-desc">{{ currentStepCopy.description }}</p>
               </div>
 
               <div v-show="activeConfigStepKey === 'basic'" class="step-panel-body">
                 <Form
+                  v-if="isLlm"
+                  :label-col="SETUP_FORM_LABEL_COL"
+                  :wrapper-col="SETUP_FORM_WRAPPER_COL"
+                  class="setup-resource-form"
+                >
+                  <FormItem :label="COPY.form.scene" required>
+                    <Input.TextArea
+                      v-model:value="form.scene_description"
+                      :rows="5"
+                      :maxlength="1200"
+                      show-count
+                      :placeholder="COPY.form.scenePlaceholder"
+                    />
+                    <p class="form-hint">{{ COPY.form.sceneHint }}</p>
+                  </FormItem>
+                  <FormItem :label="COPY.form.labels">
+                    <Select
+                      v-model:value="form.output_labels"
+                      mode="tags"
+                      :options="labelOptions"
+                      :placeholder="COPY.form.labelsPlaceholder"
+                      style="width: 100%"
+                    />
+                    <p class="form-hint">{{ COPY.form.labelsHint }}</p>
+                  </FormItem>
+                </Form>
+                <Form
+                  v-else
                   :label-col="SETUP_FORM_LABEL_COL"
                   :wrapper-col="SETUP_FORM_WRAPPER_COL"
                   class="setup-resource-form"
@@ -106,7 +135,6 @@
                     />
                     <p class="form-hint">{{ COPY.form.classesHint }}</p>
                   </FormItem>
-
                   <FormItem :label="COPY.form.annotation">
                     <RadioButtonGroup
                       v-model:value="form.annotation_type"
@@ -127,6 +155,7 @@
                       <span class="field-value">{{ form.bootstrap_limit }} 张</span>
                       <Slider v-model:value="form.bootstrap_limit" :min="50" :max="2000" :step="50" />
                     </div>
+                    <p class="form-hint">{{ batchLimitHint }}</p>
                   </FormItem>
                   <FormItem :label="COPY.form.batchSelection">
                     <Select v-model:value="form.bootstrap_selection" style="width: 100%">
@@ -134,6 +163,56 @@
                       <SelectOption value="unlabeled_only">仅未标注</SelectOption>
                       <SelectOption value="random">随机抽样</SelectOption>
                     </Select>
+                  </FormItem>
+                  <FormItem :label="COPY.form.confidence">
+                    <div class="field-control">
+                      <span class="field-value">{{ form.confidence_threshold.toFixed(2) }}</span>
+                      <Slider
+                        v-model:value="form.confidence_threshold"
+                        :min="0.1"
+                        :max="0.9"
+                        :step="0.05"
+                      />
+                    </div>
+                    <p class="form-hint">{{ COPY.form.confidenceHint }}</p>
+                  </FormItem>
+                </Form>
+              </div>
+
+              <div v-show="activeConfigStepKey === 'relay'" class="step-panel-body">
+                <Form
+                  :label-col="SETUP_FORM_LABEL_COL"
+                  :wrapper-col="SETUP_FORM_WRAPPER_COL"
+                  class="setup-resource-form"
+                >
+                  <FormItem :label="COPY.form.autoTrain" required>
+                    <Switch v-model:checked="form.auto_train" />
+                    <p class="form-hint">{{ COPY.form.autoTrainHint }}</p>
+                  </FormItem>
+                  <template v-if="form.auto_train">
+                    <FormItem :label="COPY.form.trainEpochs">
+                      <InputNumber v-model:value="form.train_epochs" :min="10" :max="300" :step="10" />
+                      <span class="count-unit">epochs</span>
+                    </FormItem>
+                    <FormItem :label="COPY.form.useGpu">
+                      <Switch v-model:checked="form.use_gpu" />
+                    </FormItem>
+                  </template>
+                  <FormItem :label="COPY.form.autoRelay">
+                    <Switch v-model:checked="form.auto_relay" :disabled="!form.auto_train" />
+                    <p class="form-hint">{{ COPY.form.autoRelayHint }}</p>
+                  </FormItem>
+                  <FormItem v-if="form.auto_relay" :label="COPY.form.relayConfidence">
+                    <div class="field-control">
+                      <span class="field-value">{{ form.relay_confidence.toFixed(2) }}</span>
+                      <Slider
+                        v-model:value="form.relay_confidence"
+                        :min="0.5"
+                        :max="0.95"
+                        :step="0.05"
+                      />
+                    </div>
+                    <p class="form-hint">{{ COPY.form.relayConfidenceHint }}</p>
                   </FormItem>
                 </Form>
               </div>
@@ -191,18 +270,68 @@
                   </Space>
                   <Space v-else-if="bootstrapStatus && !bootstrapStatus.review_passed" class="sam-quality-actions">
                     <Button size="small" type="primary" :loading="reviewLoading" @click="handleSubmitReview">
-                      抽检通过，继续训练
+                      确认抽检通过
                     </Button>
                   </Space>
                 </template>
               </Alert>
+
+              <section v-if="bootstrapStatus" class="monitor-section">
+                <div class="monitor-section__head">
+                  <span class="monitor-section__title">{{ COPY.monitor.relayTitle }}</span>
+                  <Tag v-if="relayStateTag" :color="relayStateTag.color">{{ relayStateTag.text }}</Tag>
+                </div>
+                <div class="relay-card">
+                  <template v-if="trainingInProgress">
+                    <p class="relay-text">
+                      YOLO 小模型训练进行中（第 {{ trainRound }} 轮），训练完成后{{
+                        form.auto_relay ? '将自动接力标注剩余未标注图片' : '可在下方手动启动接力标注'
+                      }}。
+                    </p>
+                  </template>
+                  <template v-else-if="boundModel">
+                    <div class="relay-model-row">
+                      <Icon icon="ant-design:rocket-outlined" class="relay-model-icon" />
+                      <div class="relay-model-info">
+                        <p class="relay-model-name">
+                          {{ boundModel.name }}<span v-if="boundModel.version"> · v{{ boundModel.version }}</span>
+                        </p>
+                        <p class="relay-model-desc">数据集已绑定该小模型。接力标注只处理剩余未标注图片，已有的冷启动标注不会被覆盖。</p>
+                      </div>
+                      <Space :size="8" class="relay-model-actions">
+                        <Button
+                          size="small"
+                          :loading="retrainStarting"
+                          :disabled="taskRunning || trainingInProgress"
+                          @click="handleRetrainWithAccumulated"
+                        >
+                          {{ COPY.monitor.retrainButton }}
+                        </Button>
+                        <Button
+                          size="small"
+                          type="primary"
+                          :loading="relayStarting"
+                          :disabled="taskRunning"
+                          @click="handleStartRelay"
+                        >
+                          启动接力标注
+                        </Button>
+                      </Space>
+                    </div>
+                    <p class="form-hint relay-retrain-hint">{{ COPY.monitor.retrainHint }}</p>
+                  </template>
+                  <template v-else>
+                    <p class="relay-text">{{ COPY.monitor.relayEmpty }}</p>
+                  </template>
+                </div>
+              </section>
 
               <Alert
                 v-if="taskStatus === 'COMPLETED' && !bootstrapQualityAlert"
                 type="success"
                 show-icon
                 class="monitor-alert"
-                message="SAM 冷启动标注已完成"
+                :message="COPY.monitor.completed"
               />
               <Alert v-if="taskStatus === 'PAUSED'" type="warning" show-icon class="monitor-alert" :message="COPY.monitor.paused" />
               <Alert v-if="taskStatus === 'CANCELLED'" type="error" show-icon class="monitor-alert" :message="COPY.monitor.cancelled" />
@@ -231,17 +360,17 @@
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   Alert,
-  Checkbox,
-  CheckboxGroup,
   Empty,
   Form,
   FormItem,
+  Input,
   InputNumber,
   Progress,
   Select,
   Slider,
   Space,
   Steps,
+  Switch,
   Tabs,
   Tag,
 } from 'ant-design-vue';
@@ -254,6 +383,8 @@ import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { Icon } from '@/components/Icon';
 import {
   startSamBootstrap,
+  startLlmBootstrap,
+  startAutoLabel,
   getAutoLabelTask,
   listAutoLabelTasks,
   pauseAutoLabelTask,
@@ -263,18 +394,35 @@ import {
   resetSamBootstrapAnnotations,
   completeSamBootstrapReview,
   trainBootstrapSmallModel,
+  updateAutoLabelModel,
 } from '@/api/device/auto-label';
 import type { SamBootstrapStatus } from '@/api/device/auto-label';
 import { useMessage } from '@/hooks/web/useMessage';
+import { RadioButtonGroup } from '@/components/Form';
 import { SETUP_FORM_LABEL_COL, SETUP_FORM_WRAPPER_COL } from '@/views/node/utils/constants';
 
 const SelectOption = Select.Option;
 
-defineOptions({ name: 'SamAutoLabelDrawer' });
+defineOptions({ name: 'SmartLabelDrawer' });
 
-const props = defineProps<{
-  datasetId: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    datasetId: number;
+    /** 标注引擎：sam3 = SAM3 开放词汇冷启动；llm = HARNESS 视觉大模型自然语言冷启动 */
+    engine?: 'sam3' | 'llm';
+    /** 可选：数据集标签库（大模型输出标签候选） */
+    datasetLabels?: { name: string; shortcut?: string; color?: string }[];
+    /** 可选：用于展示未标注规模提示 */
+    totalImages?: number;
+    annotatedCount?: number;
+  }>(),
+  {
+    engine: 'sam3',
+    datasetLabels: () => [],
+    totalImages: undefined,
+    annotatedCount: undefined,
+  },
+);
 
 const emit = defineEmits<{
   success: [payload: { taskId: number }];
@@ -286,49 +434,152 @@ const { createMessage } = useMessage();
 
 const drawerWidth = 'calc(100vw - 200px)';
 
-/** 界面文案 */
-const COPY = {
-  drawerTitle: '智能标注',
-  drawerDesc: 'SAM 冷启动标注，对数据集中已有图片批量生成初始标注',
-  tabs: { config: '参数配置', monitor: '运行监控' },
+const isLlm = computed(() => props.engine === 'llm');
+
+interface SmartLabelCopy {
+  drawerTitle: string;
+  drawerDesc: string;
+  tabs: { config: string; monitor: string };
   footer: {
-    close: '关闭',
-    minimize: '收起',
-    prev: '上一步',
-    next: '下一步',
-    start: '启动标注',
-    pause: '暂停',
-    resume: '继续',
-    cancel: '取消任务',
-    cancelConfirm: '确认取消？已标注数据保留。',
-  },
+    close: string;
+    minimize: string;
+    prev: string;
+    next: string;
+    start: string;
+    pause: string;
+    resume: string;
+    cancel: string;
+    cancelConfirm: string;
+  };
   steps: {
-    basic: { title: '基础配置', desc: '类别与格式' },
-    batch: { title: '批量参数', desc: '规模与选图' },
-  },
+    basic: { title: string; desc: string };
+    batch: { title: string; desc: string };
+    relay: { title: string; desc: string };
+  };
   form: {
-    classes: '检测类别',
-    classesHint: '英文类别名，须与后续 YOLO 训练 class 一致。',
-    classesPlaceholder: '例如 helmet, vest, person',
-    annotation: '标注格式',
-    batchLimit: '首批规模',
-    batchSelection: '选图规则',
-  },
+    scene: string;
+    scenePlaceholder: string;
+    sceneHint: string;
+    labels: string;
+    labelsPlaceholder: string;
+    labelsHint: string;
+    classes: string;
+    classesHint: string;
+    classesPlaceholder: string;
+    annotation: string;
+    batchLimit: string;
+    batchSelection: string;
+    confidence: string;
+    confidenceHint: string;
+    autoTrain: string;
+    autoTrainHint: string;
+    trainEpochs: string;
+    useGpu: string;
+    autoRelay: string;
+    autoRelayHint: string;
+    relayConfidence: string;
+    relayConfidenceHint: string;
+  };
   monitor: {
-    empty: '暂无任务记录，完成参数配置后点击「启动标注」。',
-    progress: '执行进度',
-    metrics: '运行指标',
-    logs: '运行日志',
-    paused: '任务已暂停，点击「继续」恢复。',
-    cancelled: '任务已取消。',
-    failed: '任务执行失败',
-    samQualityLowTitle: 'SAM 识别率偏低，建议改用手动或 YOLO 自动标注',
-    samQualityLowDesc:
-      '当前行业数据可能不适合 SAM3 零样本识别。请恢复冷启动自动标注到初始状态，改用手动标注或使用已训练的 YOLO 模型进行自动标注。',
-    samQualityOkTitle: 'SAM 冷启动识别率正常',
-    samQualityOkDesc: '请随机抽查 10–20 张修正明显错误后确认通过，再进入训练。',
-  },
-} as const;
+    empty: string;
+    progress: string;
+    metrics: string;
+    logs: string;
+    paused: string;
+    cancelled: string;
+    failed: string;
+    completed: string;
+    relayTitle: string;
+    relayEmpty: string;
+    retrainButton: string;
+    retrainHint: string;
+    samQualityLowTitle: string;
+    samQualityLowDesc: string;
+    samQualityOkTitle: string;
+    samQualityOkDesc: string;
+  };
+}
+
+/** 界面文案（按引擎区分；两套引擎共用全部字段，仅取值不同） */
+const COPY = computed<SmartLabelCopy>(() => {
+  const llm = isLlm.value;
+  return {
+    drawerTitle: llm ? '大模型智能标注' : 'SAM3 智能标注',
+    drawerDesc: llm
+      ? '大模型冷启动标注，用自然语言描述真实场景，对数据集中已有图片批量生成初始标注'
+      : 'SAM3 冷启动标注，对数据集中已有图片批量生成初始标注',
+    tabs: { config: '参数配置', monitor: '运行监控' },
+    footer: {
+      close: '关闭',
+      minimize: '收起',
+      prev: '上一步',
+      next: '下一步',
+      start: llm ? '启动大模型标注' : '启动标注',
+      pause: '暂停',
+      resume: '继续',
+      cancel: '取消任务',
+      cancelConfirm: '确认取消？已标注数据保留。',
+    },
+    steps: {
+      basic: llm
+        ? { title: '场景配置', desc: '自然语言定义标注目标' }
+        : { title: '基础配置', desc: '类别与格式' },
+      batch: { title: '批量参数', desc: '规模与选图' },
+      relay: { title: '接力与训练', desc: '小模型量产闭环' },
+    },
+    form: {
+      scene: '场景标注要求',
+      scenePlaceholder: llm
+        ? '例如：标注化工车间内未正确佩戴安全帽的作业人员；只标正在作业区域内的人，排除办公室、海报和屏幕中的人物。标签名统一为“未戴安全帽人员”。'
+        : '',
+      sceneHint: '建议写清“标什么、在什么场景、满足什么状态、排除什么”，自然语言越充分，结果越贴合现场。',
+      labels: '输出标签（可选）',
+      labelsPlaceholder: '输入期望标签名后回车；留空则由大模型从描述中归纳',
+      labelsHint: '标签名与小模型训练类别一致，后续接力标注与手动标注共用同一套标签。',
+      classes: '检测类别',
+      classesHint: '英文类别名，须与后续 YOLO 训练 class 一致。',
+      classesPlaceholder: '例如 helmet, vest, person',
+      annotation: '标注格式',
+      batchLimit: '首批规模',
+      batchSelection: '选图规则',
+      confidence: '置信度阈值',
+      confidenceHint: llm
+        ? '低于该置信度的大模型结果将被丢弃，过高易漏、过低易错，建议 0.3 起步。'
+        : '过滤低置信度检出，过高会漏检、过低会误检。',
+      autoTrain: '自动训练小模型',
+      autoTrainHint: '冷启动抽检通过后，自动把已标注数据导出为 YOLO 训练集并开始训练。',
+      trainEpochs: '训练轮数',
+      useGpu: '使用 GPU 训练',
+      autoRelay: '训练完成后自动接力标注',
+      autoRelayHint: '小模型训练完成后，自动标注数据集剩余未标注图片；已有冷启动标注受保护不被覆盖。',
+      relayConfidence: '接力置信度',
+      relayConfidenceHint: '小模型接力标注的置信度下限（不低于 0.5，防止低质结果污染数据集）。',
+    },
+    monitor: {
+      empty: '暂无任务记录，完成参数配置后点击「启动」。',
+      progress: '执行进度',
+      metrics: '运行指标',
+      logs: '运行日志',
+      paused: '任务已暂停，点击「继续」断点恢复。',
+      cancelled: '任务已取消，已标注部分保留。',
+      failed: '任务执行失败',
+      completed: llm ? '大模型冷启动标注已完成' : 'SAM3 冷启动标注已完成',
+      relayTitle: '小模型接力标注',
+      relayEmpty: '完成冷启动抽检并训练 YOLO 小模型后，即可用小模型高速接力标注剩余图片，成本远低于大模型/SAM3。',
+      retrainButton: '用沉淀数据再训一轮',
+      retrainHint:
+        '人工修正与接力标注沉淀后，以当前绑定小模型为基座再训练新版本；新版本发布后自动成为对外生效版本，旧版本保留可回退。',
+      samQualityLowTitle: llm
+        ? '大模型冷启动识别率偏低，建议调整场景描述后重试'
+        : 'SAM3 识别率偏低，建议改用手动或 YOLO 自动标注',
+      samQualityLowDesc: llm
+        ? '当前数据与场景描述匹配度不足。请恢复冷启动标注到初始状态，调整自然语言描述后重试，或改用手动标注 / YOLO 自动标注。'
+        : '当前行业数据可能不适合 SAM3 零样本识别。请恢复冷启动标注到初始状态，改用手动标注或使用已训练的 YOLO 模型进行自动标注。',
+      samQualityOkTitle: llm ? '大模型冷启动识别率正常' : 'SAM3 冷启动识别率正常',
+      samQualityOkDesc: '请随机抽查 10–20 张并修正明显错误，确认通过后进入小模型训练。',
+    },
+  };
+});
 
 const annotationTypeOptions = [
   { label: '检测框', value: 'rectangle' },
@@ -345,19 +596,51 @@ const taskStatus = ref('');
 const bootstrapStatus = ref<SamBootstrapStatus | null>(null);
 const resetLoading = ref(false);
 const reviewLoading = ref(false);
+const relayStarting = ref(false);
+const retrainStarting = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let statusTimer: ReturnType<typeof setInterval> | null = null;
 
 const form = reactive({
+  // SAM3 引擎
   text_prompts: [] as string[],
+  annotation_type: 'rectangle' as 'rectangle' | 'polygon',
+  // 大模型引擎
+  scene_description: '',
+  output_labels: [] as string[],
+  // 共用批量参数
   bootstrap_limit: 200,
   bootstrap_selection: 'unlabeled_first' as 'unlabeled_first' | 'unlabeled_only' | 'random',
-  annotation_type: 'rectangle' as 'rectangle' | 'polygon',
   confidence_threshold: 0.45,
+  // 接力与训练
+  auto_train: true,
+  train_epochs: 50,
+  use_gpu: true,
+  auto_relay: true,
+  relay_confidence: 0.5,
 });
 
-const canStart = computed(() => form.text_prompts.length > 0 && !starting.value);
+const labelOptions = computed(() =>
+  (props.datasetLabels || []).map((label) => ({ label: label.name, value: label.name })),
+);
 
-type ConfigStepKey = 'basic' | 'batch';
+const unlabeledCount = computed(() => {
+  if (props.totalImages === undefined || props.annotatedCount === undefined) return null;
+  return Math.max(0, props.totalImages - props.annotatedCount);
+});
+
+const batchLimitHint = computed(() =>
+  unlabeledCount.value === null
+    ? '首批规模越大，小模型越早可用；建议先跑 100–300 张抽检。'
+    : `当前未标注约 ${unlabeledCount.value} 张。首批规模越大，小模型越早可用；建议先跑 100–300 张抽检。`,
+);
+
+const canStart = computed(() => {
+  if (starting.value) return false;
+  return isLlm.value ? form.scene_description.trim().length >= 8 : form.text_prompts.length > 0;
+});
+
+type ConfigStepKey = 'basic' | 'batch' | 'relay';
 
 interface ConfigStepDef {
   key: ConfigStepKey;
@@ -366,12 +649,13 @@ interface ConfigStepDef {
 }
 
 const configSteps = computed<ConfigStepDef[]>(() => [
-  { key: 'basic', title: COPY.steps.basic.title, description: COPY.steps.basic.desc },
-  { key: 'batch', title: COPY.steps.batch.title, description: COPY.steps.batch.desc },
+  { key: 'basic', title: COPY.value.steps.basic.title, description: COPY.value.steps.basic.desc },
+  { key: 'batch', title: COPY.value.steps.batch.title, description: COPY.value.steps.batch.desc },
+  { key: 'relay', title: COPY.value.steps.relay.title, description: COPY.value.steps.relay.desc },
 ]);
 
 const currentStepCopy = computed(
-  () => configSteps.value[configStep.value] ?? COPY.steps.basic,
+  () => configSteps.value[configStep.value] ?? configSteps.value[0],
 );
 
 const activeConfigStepKey = computed(
@@ -395,7 +679,7 @@ const configStepItems = computed(() =>
 );
 
 const canProceedConfigStep = computed(() => {
-  if (activeConfigStepKey.value === 'basic') return form.text_prompts.length > 0;
+  if (activeConfigStepKey.value === 'basic') return canStart.value;
   return true;
 });
 
@@ -420,10 +704,25 @@ const pipelineLogs = computed(() => {
   return Array.isArray(logs) ? logs : [];
 });
 
+const boundModel = computed(() => bootstrapStatus.value?.bound_model || null);
+const trainingInProgress = computed(() => {
+  const ts = bootstrapStatus.value?.train_state;
+  return !!ts && (ts.pending_train || ts.pipeline_phase === 'TRAINING');
+});
+const trainRound = computed(() => bootstrapStatus.value?.train_state?.train_round ?? 1);
+
+const relayStateTag = computed<{ color: string; text: string } | null>(() => {
+  if (trainingInProgress.value) return { color: 'processing', text: '小模型训练中' };
+  if (boundModel.value) return { color: 'success', text: '小模型就绪' };
+  return null;
+});
+
 const monitorDescData = computed(() => ({
+  total_images: activeTask.value?.total_images ?? form.bootstrap_limit,
   labeled_count: activeTask.value?.success_count ?? 0,
   failed_count: activeTask.value?.failed_count ?? 0,
-  total_images: activeTask.value?.total_images ?? form.bootstrap_limit,
+  hit_count: bootstrapStatus.value?.sam_hit_count ?? '-',
+  empty_count: bootstrapStatus.value?.sam_empty_count ?? '-',
   status: statusLabel.value,
 }));
 
@@ -431,6 +730,8 @@ const monitorDescSchema = computed<DescItem[]>(() => [
   { field: 'total_images', label: '计划规模' },
   { field: 'labeled_count', label: '标注完成' },
   { field: 'failed_count', label: '失败张数' },
+  { field: 'hit_count', label: '有检出' },
+  { field: 'empty_count', label: '空结果' },
   { field: 'status', label: '任务状态' },
 ]);
 
@@ -466,16 +767,16 @@ const bootstrapQualityAlert = computed(() => {
   if (status.review_recommended || status.awaiting_sam_review) {
     return {
       type: 'warning' as const,
-      title: COPY.monitor.samQualityLowTitle,
-      desc: COPY.monitor.samQualityLowDesc,
+      title: COPY.value.monitor.samQualityLowTitle,
+      desc: COPY.value.monitor.samQualityLowDesc,
       showActions: true,
     };
   }
   if (status.sam_quality_passed && !status.review_passed) {
     return {
       type: 'info' as const,
-      title: COPY.monitor.samQualityOkTitle,
-      desc: COPY.monitor.samQualityOkDesc,
+      title: COPY.value.monitor.samQualityOkTitle,
+      desc: COPY.value.monitor.samQualityOkDesc,
       showActions: false,
     };
   }
@@ -511,7 +812,11 @@ function handleConfigStepChange(idx: number): void {
 const [register, { closeDrawer }] = useDrawerInner(async () => {
   activeTab.value = 'config';
   configStep.value = 0;
+  form.confidence_threshold = isLlm.value ? 0.3 : 0.45;
+  stopStatusPolling();
   await resumeActiveTask();
+  await loadBootstrapStatus();
+  if (shouldPollStatus()) startStatusPolling();
 });
 
 function formatLogTime(iso?: string): string {
@@ -521,6 +826,13 @@ function formatLogTime(iso?: string): string {
   } catch {
     return iso;
   }
+}
+
+function adoptTask(id: number, status = 'PENDING'): void {
+  taskId.value = id;
+  taskStatus.value = status;
+  activeTab.value = 'monitor';
+  startPolling();
 }
 
 async function resumeActiveTask(): Promise<void> {
@@ -551,25 +863,31 @@ async function startTask(): Promise<void> {
   if (!canStart.value || starting.value) return;
   starting.value = true;
   try {
-    const res = await startSamBootstrap(props.datasetId, {
-      text_prompts: form.text_prompts,
+    const payload = {
       bootstrap_limit: form.bootstrap_limit,
       bootstrap_selection: form.bootstrap_selection,
-      annotation_type: form.annotation_type,
       confidence_threshold: form.confidence_threshold,
-      return_masks: form.annotation_type === 'polygon',
-    });
+    };
+    const res = isLlm.value
+      ? await startLlmBootstrap(props.datasetId, {
+          scene_description: form.scene_description.trim(),
+          output_labels: form.output_labels,
+          ...payload,
+        })
+      : await startSamBootstrap(props.datasetId, {
+          text_prompts: form.text_prompts,
+          annotation_type: form.annotation_type,
+          return_masks: form.annotation_type === 'polygon',
+          ...payload,
+        });
     const id = res?.task_id ?? res?.data?.task_id;
     if (!id) {
       createMessage.error('启动失败：未返回任务 ID');
       return;
     }
-    taskId.value = id;
-    taskStatus.value = 'PENDING';
-    activeTab.value = 'monitor';
-    createMessage.success('SAM 标注任务已启动');
+    createMessage.success(isLlm.value ? '大模型冷启动标注任务已启动' : 'SAM3 冷启动标注任务已启动');
     emit('success', { taskId: id });
-    startPolling();
+    adoptTask(id);
   } catch (e: any) {
     const msg = e?.response?.data?.msg || e?.message || '启动失败';
     if (String(msg).includes('已有进行中')) {
@@ -592,6 +910,29 @@ async function loadBootstrapStatus(): Promise<void> {
   }
 }
 
+/** 抽检/训练推进期间持续刷新冷启动状态 */
+function shouldPollStatus(): boolean {
+  const s = bootstrapStatus.value;
+  if (!s) return false;
+  if (s.awaiting_sam_review) return true;
+  if (s.bootstrap_done && s.sam_quality_passed && !s.review_passed) return true;
+  const ts = s.train_state;
+  return !!ts && (ts.pending_train || ts.pipeline_phase === 'TRAINING');
+}
+
+function startStatusPolling(): void {
+  if (statusTimer) return;
+  statusTimer = setInterval(async () => {
+    await loadBootstrapStatus();
+    if (!shouldPollStatus()) stopStatusPolling();
+  }, 8000);
+}
+
+function stopStatusPolling(): void {
+  if (statusTimer) clearInterval(statusTimer);
+  statusTimer = null;
+}
+
 async function handleResetBootstrap(): Promise<void> {
   resetLoading.value = true;
   try {
@@ -612,13 +953,80 @@ async function handleSubmitReview(): Promise<void> {
   reviewLoading.value = true;
   try {
     await completeSamBootstrapReview(props.datasetId, { review_passed: true });
-    await trainBootstrapSmallModel(props.datasetId);
-    createMessage.success('抽检已通过，YOLO 小模型训练已启动');
+    if (form.auto_train) {
+      await trainBootstrapSmallModel(props.datasetId, {
+        auto_relay: form.auto_relay,
+        relay_confidence: form.relay_confidence,
+        train_epochs: form.train_epochs,
+        use_gpu: form.use_gpu,
+      });
+      createMessage.success(
+        form.auto_relay
+          ? '抽检已通过，小模型训练已启动；训练完成后将自动接力标注剩余图片'
+          : '抽检已通过，小模型训练已启动',
+      );
+    } else {
+      createMessage.success('抽检已通过。未开启自动训练，可直接用已有小模型接力或稍后手动训练');
+    }
     await loadBootstrapStatus();
+    startStatusPolling();
   } catch (e: any) {
     createMessage.error(e?.response?.data?.msg || e?.message || '提交失败');
   } finally {
     reviewLoading.value = false;
+  }
+}
+
+/** 用数据集已沉淀的标注（人工修正 + 接力结果）对当前绑定小模型再训练一轮新版本 */
+async function handleRetrainWithAccumulated(): Promise<void> {
+  const model = boundModel.value;
+  if (!model?.id) return;
+  retrainStarting.value = true;
+  try {
+    await updateAutoLabelModel(props.datasetId, { base_model_id: model.id });
+    createMessage.success(
+      model.version
+        ? `已提交再训练：基于 v${model.version} 用数据集沉淀标注再训练一轮，完成后自动发布新版本`
+        : '已提交再训练：用数据集沉淀标注再训练一轮，完成后自动发布新版本',
+    );
+    await loadBootstrapStatus();
+    startStatusPolling();
+  } catch (e: any) {
+    createMessage.error(e?.response?.data?.msg || e?.message || '再训练提交失败');
+  } finally {
+    retrainStarting.value = false;
+  }
+}
+
+async function handleStartRelay(): Promise<void> {
+  const modelId = boundModel.value?.id;
+  if (!modelId) return;
+  relayStarting.value = true;
+  try {
+    const res = await startAutoLabel(props.datasetId, {
+      label_mode: 'yolo',
+      model_id: modelId,
+      confidence_threshold: bootstrapStatus.value?.relay_confidence ?? form.relay_confidence,
+      sample_selection: 'unlabeled_only',
+    });
+    const id = res?.task_id ?? res?.data?.task_id;
+    if (!id) {
+      createMessage.error('接力标注启动失败：未返回任务 ID');
+      return;
+    }
+    createMessage.success('小模型接力标注已启动');
+    emit('success', { taskId: id });
+    adoptTask(id);
+  } catch (e: any) {
+    const msg = e?.response?.data?.msg || e?.message || '接力标注启动失败';
+    if (String(msg).includes('已有进行中')) {
+      createMessage.warning(msg);
+      await resumeActiveTask();
+    } else {
+      createMessage.error(msg);
+    }
+  } finally {
+    relayStarting.value = false;
   }
 }
 
@@ -644,12 +1052,13 @@ function startPolling(): void {
         || task?.pipeline_config?.awaiting_sam_review;
       if (bootstrapDone || task?.pipeline_config?.awaiting_sam_review) {
         await loadBootstrapStatus();
+        if (shouldPollStatus()) startStatusPolling();
       }
       if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(taskStatus.value)) {
         if (pollTimer) clearInterval(pollTimer);
         pollTimer = null;
         if (taskStatus.value === 'COMPLETED') {
-          createMessage.success('智能标注任务已完成');
+          createMessage.success(isLlm.value ? '大模型冷启动标注完成' : '智能标注任务已完成');
           emit('success', { taskId: taskId.value });
         }
       }
@@ -670,7 +1079,7 @@ async function handlePause(): Promise<void> {
   try {
     await pauseAutoLabelTask(props.datasetId, taskId.value);
     taskStatus.value = 'PAUSED';
-    createMessage.success('任务已暂停');
+    createMessage.success('任务已暂停，可点击「继续」断点恢复');
   } catch (e: any) {
     createMessage.error(e?.message || '暂停失败');
   }
@@ -694,6 +1103,7 @@ async function handleCancel(): Promise<void> {
     await cancelAutoLabelTask(props.datasetId, taskId.value);
     taskStatus.value = 'CANCELLED';
     if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
     createMessage.success('任务已取消');
   } catch (e: any) {
     createMessage.error(e?.message || '取消失败');
@@ -702,6 +1112,7 @@ async function handleCancel(): Promise<void> {
 
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer);
+  stopStatusPolling();
 });
 </script>
 
@@ -856,6 +1267,13 @@ onUnmounted(() => {
   line-height: 1.4;
 }
 
+.step-panel-desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  line-height: 1.4;
+}
+
 .step-panel-body {
   padding: @setup-section-body-padding;
 }
@@ -873,69 +1291,17 @@ onUnmounted(() => {
   line-height: 1.4;
 }
 
-.checkbox-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.list-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.65);
-}
-
-.list-panel-scroll {
-  max-height: 240px;
-}
-
-.list-panel {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #f0f0f0;
-  border-radius: 6px;
-  background: #fafafa;
-  overflow: hidden;
-}
-
-.list-panel-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
-  margin: 0;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.list-panel-row__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.list-panel-row__title {
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.88);
-  line-height: 1.4;
-}
-
-.list-panel-row__sub {
+.form-hint {
+  margin: 6px 0 0;
   font-size: 12px;
   color: rgba(0, 0, 0, 0.45);
-  word-break: break-all;
-  line-height: 1.4;
+  line-height: 1.5;
+}
+
+.count-unit {
+  margin-left: 8px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 13px;
 }
 
 .footer-buttons {
@@ -1003,18 +1369,8 @@ onUnmounted(() => {
   line-height: 1.4;
 }
 
-.monitor-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .setup-desc {
   .setup-desc();
-}
-
-.pipeline-steps {
-  margin-bottom: 20px;
 }
 
 .monitor-alert {
@@ -1031,12 +1387,61 @@ onUnmounted(() => {
   margin-top: 12px;
 }
 
-.log-editor {
-  height: 280px;
+.relay-card {
+  padding: 14px 16px;
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  border-radius: @setup-panel-radius;
+  background: #fafbff;
 }
 
-.text-muted {
-  color: rgba(0, 0, 0, 0.35);
+.relay-text {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.6;
+}
+
+.relay-model-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.relay-model-icon {
+  flex-shrink: 0;
+  font-size: 22px;
+  color: @node-primary;
+}
+
+.relay-model-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.relay-model-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.relay-model-desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  line-height: 1.5;
+}
+
+.relay-model-actions {
+  flex-shrink: 0;
+}
+
+.relay-retrain-hint {
+  margin: 8px 0 0;
+}
+
+.log-editor {
+  height: 280px;
 }
 
 .setup-resource-form {
@@ -1047,7 +1452,7 @@ onUnmounted(() => {
 </style>
 
 <style lang="less">
-.sam-auto-label-drawer {
+.smart-label-drawer {
   .ant-drawer-header {
     padding: 10px 20px;
     min-height: auto;

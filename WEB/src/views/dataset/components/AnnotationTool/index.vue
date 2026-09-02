@@ -83,7 +83,7 @@
           class="action-btn llm-smart-label-btn"
           :disabled="batchTaskRunning || totalImages === 0"
           title="用自然语言描述真实业务场景，由当前启用的大模型精准批量标注"
-          @click="openLlmSmartLabelModal"
+          @click="openLlmSmartLabelDrawer"
         >
           <Icon icon="ant-design:thunderbolt-outlined"/>
           大模型智能标注
@@ -93,7 +93,7 @@
           class="action-btn sam-bootstrap-btn"
           :disabled="batchTaskRunning"
           title="SAM3 万物识别冷启动批量标注，对数据集中已有图片生成初始标注"
-          @click="openSamAutoLabelDrawer"
+          @click="openSam3SmartDrawer"
         >
           <Icon icon="ant-design:experiment-outlined"/>
           SAM3 智能标注
@@ -493,19 +493,23 @@
       :get-container="getModalContainer"
       @success="onBatchAiSuccess"
     />
-    <LlmSmartLabelModal
-      ref="llmSmartLabelModalRef"
+    <SmartLabelDrawer
+      engine="sam3"
+      @register="registerSamSmartDrawer"
       :dataset-id="datasetId"
-      :images="images"
-      :dataset-labels="labels"
-      :get-container="getModalContainer"
-      @success="onLlmSmartLabelSuccess"
-    />
-    <SamAutoLabelDrawer
-      @register="registerSamDrawer"
-      :dataset-id="datasetId"
+      :total-images="totalImages"
+      :annotated-count="completedCount"
       @success="onBatchAiSuccess"
-      @open-frame-tasks="openManageDrawer('frame')"
+      @open-auto-label="openAiBatchModal"
+    />
+    <SmartLabelDrawer
+      engine="llm"
+      @register="registerLlmSmartDrawer"
+      :dataset-id="datasetId"
+      :dataset-labels="labels"
+      :total-images="totalImages"
+      :annotated-count="completedCount"
+      @success="onBatchAiSuccess"
       @open-auto-label="openAiBatchModal"
     />
     <UnattendedLabelDrawer
@@ -578,8 +582,7 @@ import { getAutoLabelTask } from '@/api/device/auto-label';
 import { getSamModelStatus } from '@/api/device/sam';
 import { useDrawer } from '@/components/Drawer';
 import AILabelModal from '@/views/dataset/components/AutoLabel/AILabelModal/index.vue';
-import LlmSmartLabelModal from '@/views/dataset/components/AutoLabel/LlmSmartLabelModal/index.vue';
-import SamAutoLabelDrawer from '@/views/dataset/components/AutoLabel/SamAutoLabelDrawer/index.vue';
+import SmartLabelDrawer from '@/views/dataset/components/AutoLabel/SmartLabelDrawer/index.vue';
 import UnattendedLabelDrawer from '@/views/dataset/components/AutoLabel/UnattendedLabelDrawer/index.vue';
 import ImportDatasetModal from '@/views/dataset/components/AutoLabel/ImportDatasetModal/index.vue';
 import ExportDatasetModal from '@/views/dataset/components/AutoLabel/ExportDatasetModal/index.vue';
@@ -643,9 +646,9 @@ async function refreshSyncCheck() {
   }
 }
 const aiLabelModalRef = ref<InstanceType<typeof AILabelModal> | null>(null);
-const llmSmartLabelModalRef = ref<InstanceType<typeof LlmSmartLabelModal> | null>(null);
 const unattendedDrawerRef = ref<InstanceType<typeof UnattendedLabelDrawer> | null>(null);
-const [registerSamDrawer, { openDrawer: openSamDrawer }] = useDrawer();
+const [registerSamSmartDrawer, { openDrawer: openSamSmartDrawer }] = useDrawer();
+const [registerLlmSmartDrawer, { openDrawer: openLlmSmartDrawer }] = useDrawer();
 const [registerUnattendedDrawer, { openDrawer: openUnattendedDrawer }] = useDrawer();
 const samModelChecked = ref(false);
 const samModelReady = ref(false);
@@ -2229,15 +2232,8 @@ function openAiBatchModal(): void {
   aiLabelModalRef.value?.openModal();
 }
 
-function openLlmSmartLabelModal(): void {
-  llmSmartLabelModalRef.value?.openModal();
-}
-
-async function onLlmSmartLabelSuccess(): Promise<void> {
-  listChunkPage.value = 1;
-  await fetchImages(1);
-  await syncTagsAfterImport();
-  await refreshSyncCheck();
+function openLlmSmartLabelDrawer(): void {
+  openLlmSmartDrawer(true);
 }
 
 async function refreshSamModelStatus(): Promise<boolean> {
@@ -2252,7 +2248,7 @@ async function refreshSamModelStatus(): Promise<boolean> {
   return samModelReady.value;
 }
 
-async function openSamAutoLabelDrawer(): Promise<void> {
+async function openSam3SmartDrawer(): Promise<void> {
   const ready = await refreshSamModelStatus();
   if (!ready) {
     router.push({
@@ -2264,7 +2260,7 @@ async function openSamAutoLabelDrawer(): Promise<void> {
     });
     return;
   }
-  openSamDrawer(true);
+  openSamSmartDrawer(true);
 }
 
 function openUnattendedLabelDrawer(): void {
@@ -2646,7 +2642,7 @@ onMounted(() => {
       const nextQuery = { ...route.query };
       delete nextQuery.openSam;
       router.replace({ query: nextQuery });
-      openSamDrawer(true);
+      openSamSmartDrawer(true);
     }
   });
 });
