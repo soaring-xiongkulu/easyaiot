@@ -289,7 +289,8 @@ function formatModelLabel(model: ModelOption): string {
 async function loadModelList() {
   try {
     modelLoading.value = true;
-    const response = await getAutoLabelModelList({ pageNo: 1, pageSize: 200 });
+    // family_grouped：同一模型的多版本只展示对外生效版本（默认最高版本），选择器不再出现一堆同名模型
+    const response = await getAutoLabelModelList({ pageNo: 1, pageSize: 200, family_grouped: 1 });
 
     let rawList: Record<string, unknown>[] = [];
     if (Array.isArray(response)) {

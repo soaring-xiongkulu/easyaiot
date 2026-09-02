@@ -10,6 +10,14 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'name'">
           <a class="model-name-link" @click="handleView(record)">{{ record.name }}</a>
+          <Tag
+            v-if="(record.family_size ?? 1) > 1"
+            color="blue"
+            class="family-size-tag"
+            @click.stop="openFamilyDrawer(record)"
+          >
+            {{ record.family_size }} 个版本
+          </Tag>
         </template>
         <template v-if="column.dataIndex === 'action'">
           <TableAction
@@ -21,6 +29,14 @@
                   placement: 'top',
                 },
                 onClick: handleView.bind(null, record),
+              },
+              {
+                icon: 'ant-design:apartment-outlined',
+                tooltip: {
+                  title: '版本管理',
+                  placement: 'top',
+                },
+                onClick: openFamilyDrawer.bind(null, record),
               },
               {
                 tooltip: {
@@ -64,6 +80,7 @@
         @view="handleView"
         @edit="handleEdit"
         @download="handleDownload"
+        @family="openFamilyDrawer"
       >
       <template #header>
         <Button type="primary" @click="openAddModal(true, { isEdit: false, isView: false })">
@@ -76,6 +93,7 @@
       </ModelCardList>
     </div>
     <ModelModal @register="registerAddModel" @success="handleSuccess"/>
+    <ModelFamilyDrawer @register="registerFamilyDrawer" @view="handleFamilyVersionView" @changed="handleSuccess"/>
   </div>
 </template>
 
@@ -85,20 +103,35 @@ import { BasicTable, TableAction, useTable } from '@/components/Table';
 import { useMessage } from '@/hooks/web/useMessage';
 import { getBasicColumns, getFormConfig } from "./data";
 import ModelModal from "../ModelModal/index.vue";
+import ModelFamilyDrawer from "../ModelFamilyDrawer/index.vue";
 import { useDrawer } from '@/components/Drawer';
 import { deleteModel, getModelPage } from "@/api/device/model";
 import ModelCardList from "../ModelCardList/index.vue";
 import { Button } from '@/components/Button'
+import { Tag } from 'ant-design-vue';
 const { createMessage } = useMessage();
 
 const [registerAddModel, { openDrawer: openAddModal }] = useDrawer();
+const [registerFamilyDrawer, { openDrawer: openFamilyDrawerModal }] = useDrawer();
+
+function openFamilyDrawer(record) {
+  openFamilyDrawerModal(true, { record });
+}
+
+/** 版本管理抽屉里点「查看详情」：用该版本记录打开模型详情抽屉 */
+function handleFamilyVersionView(record) {
+  if (!record?.id) return;
+  openAddModal(true, { isEdit: false, isView: true, record });
+}
+
 defineOptions({ name: 'ModelList' })
 
 const state = reactive({
   isTableMode: false,
 });
 
-const params = {};
+// 默认按模型家族归并：同族多版本只展示生效版本（默认最高版本），点「版本管理」可查看/激活全部版本
+const params = { family_grouped: 1 };
 let cardListReload: (opts?: { resetPage?: boolean }) => void = () => {};
 
 function getMethod(m: any) {
@@ -164,6 +197,7 @@ const [registerTable, { reload, getForm }] = useTable({
   showTableSetting: false,
   pagination: true,
   formConfig: getFormConfig(),
+  searchInfo: { family_grouped: 1 },
   fetchSetting: {
     listField: 'data',
     totalField: 'total',
@@ -300,5 +334,10 @@ const handleDownload = async (record) => {
   &:hover {
     color: #4d8afb;
   }
+}
+
+.family-size-tag {
+  margin-left: 6px;
+  cursor: pointer;
 }
 </style>

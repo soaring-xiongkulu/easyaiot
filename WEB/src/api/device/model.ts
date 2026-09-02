@@ -47,6 +47,17 @@ export const getModelDetail = (modelId) => {
   return commonApi('get', `${Api.Model}/${modelId}`);
 };
 
+// ================= 模型家族（版本管理）接口 =================
+/** 同族全部版本 + 训练指标（mAP50/样本数），供版本管理抽屉使用 */
+export const getModelFamily = (modelId: number) => {
+  return commonApi('get', `${Api.Model}/${modelId}/family`);
+};
+
+/** 激活家族内指定版本：对外（推理/算法任务/接力标注）默认使用该版本 */
+export const activateModelFamilyVersion = (modelId: number) => {
+  return commonApi('post', `${Api.Model}/${modelId}/family/activate`);
+};
+
 export const getModelClasses = (modelId) => {
   return commonApi('get', `${Api.Model}/${modelId}/classes`);
 };

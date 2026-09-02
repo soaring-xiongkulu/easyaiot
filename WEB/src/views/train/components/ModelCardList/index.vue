@@ -47,6 +47,11 @@
                           <EditOutlined />
                         </button>
                       </Tooltip>
+                      <Tooltip title="版本管理">
+                        <button class="overlay-btn" @click="handleFamily(item)">
+                          <BranchesOutlined />
+                        </button>
+                      </Tooltip>
                       <Tooltip title="下载模型">
                         <button class="overlay-btn" @click="handleDownload(item)">
                           <DownloadOutlined />
@@ -79,6 +84,11 @@
                   <p class="model-card-tags" :title="getTagsText(item)">
                     {{ getTagsText(item) }}
                   </p>
+                  <div v-if="(item.family_size ?? 1) > 1" class="model-card-family">
+                    <Tag color="blue" class="model-card-family-tag" @click.stop="handleFamily(item)">
+                      {{ item.family_size }} 个版本 · 生效 v{{ item.family_effective_version || item.version }}
+                    </Tag>
+                  </div>
                 </div>
               </div>
             </ListItem>
@@ -91,11 +101,11 @@
 
 <script lang="ts" setup>
 import {onMounted, reactive, ref} from 'vue';
-import {List, Popconfirm, Spin, Tooltip} from 'ant-design-vue';
+import {List, Popconfirm, Spin, Tag, Tooltip} from 'ant-design-vue';
 import {BasicForm, useForm} from '@/components/Form';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
-import {DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined} from '@ant-design/icons-vue';
+import {BranchesOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined} from '@ant-design/icons-vue';
 import {getFormConfig} from './Data';
 import DEFAULT_MODEL_IMAGE from '@/assets/images/video/ai-task.png';
 import { formatModelVersionDisplay } from '../../utils/modelVersionUtils';
@@ -110,7 +120,7 @@ const props = defineProps({
   api: propTypes.func,
 });
 
-const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'train', 'download']);
+const emit = defineEmits(['getMethod', 'delete', 'edit', 'view', 'train', 'download', 'family']);
 
 const data = ref([]);
 const hoverId = ref<number | null>(null);
@@ -238,6 +248,10 @@ function handleDelete(record: object) {
 
 function handleView(record: object) {
   emit('view', record);
+}
+
+function handleFamily(item: any): void {
+  emit('family', item);
 }
 
 function handleEdit(record: object) {
@@ -488,5 +502,13 @@ function handleDownload(record: object) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.model-card-family {
+  margin-top: 4px;
+}
+
+.model-card-family-tag {
+  cursor: pointer;
 }
 </style>
