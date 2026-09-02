@@ -31,6 +31,15 @@
                       @error="onImageError"
                     />
                   </div>
+                  <button
+                    v-if="(item.family_size ?? 1) > 1"
+                    type="button"
+                    class="model-card-version-ribbon"
+                    title="该模型含多个版本，点击进入版本管理"
+                    @click.stop="handleFamily(item)"
+                  >
+                    {{ getFamilySummaryText(item) }}
+                  </button>
                   <div
                     v-show="hoverId === item.id"
                     class="model-card-overlay"
@@ -57,7 +66,10 @@
                           <DownloadOutlined />
                         </button>
                       </Tooltip>
-                      <Popconfirm title="是否确认删除？" @confirm="handleDelete(item)">
+                      <Popconfirm
+                        :title="`删除后不可恢复，确认删除模型「${item.name}」？`"
+                        @confirm="handleDelete(item)"
+                      >
                         <Tooltip title="删除">
                           <button class="overlay-btn overlay-btn--danger">
                             <DeleteOutlined />
@@ -81,14 +93,12 @@
                   <h3 class="model-card-title" :title="item.name" @click="handleView(item)">
                     {{ item.name }}
                   </h3>
-                  <p class="model-card-tags" :title="getTagsText(item)">
-                    {{ getTagsText(item) }}
+                  <p v-if="modelDescription(item)" class="model-card-desc" :title="modelDescription(item)">
+                    {{ modelDescription(item) }}
                   </p>
-                  <div v-if="(item.family_size ?? 1) > 1" class="model-card-family">
-                    <Tag color="blue" class="model-card-family-tag" @click.stop="handleFamily(item)">
-                      {{ item.family_size }} 个版本 · 生效 v{{ item.family_effective_version || item.version }}
-                    </Tag>
-                  </div>
+                  <p class="model-card-meta" :title="getMetaText(item)">
+                    {{ getMetaText(item) }}
+                  </p>
                 </div>
               </div>
             </ListItem>
@@ -101,7 +111,7 @@
 
 <script lang="ts" setup>
 import {onMounted, reactive, ref} from 'vue';
-import {List, Popconfirm, Spin, Tag, Tooltip} from 'ant-design-vue';
+import {List, Popconfirm, Spin, Tooltip} from 'ant-design-vue';
 import {BasicForm, useForm} from '@/components/Form';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
@@ -183,7 +193,7 @@ const paginationProp = ref({
   pageSize,
   current: page,
   total,
-  showTotal: (total: number) => `总 ${total} 条`,
+  showTotal: (total: number) => `共 ${total} 条`,
   onChange: pageChange,
   onShowSizeChange: pageSizeChange,
 });
@@ -225,21 +235,26 @@ function getFormatText(item: any): string {
   return '';
 }
 
-function getTagsText(item: any): string {
+/** 描述整行展示（CSS 省略），不再按字符硬截断 */
+function modelDescription(item: any): string {
+  return (item.description || '').trim();
+}
+
+/** 元信息行：框架 · 版本 */
+function getMetaText(item: any): string {
   const parts: string[] = [];
   const format = getFormatText(item);
   if (format) parts.push(format);
   if (item.version) parts.push(formatModelVersionDisplay(item.version));
-  if (item.description) {
-    const desc = item.description.trim();
-    if (desc.length <= 18) {
-      parts.push(desc);
-    } else {
-      parts.push(desc.slice(0, 18) + '…');
-    }
-  }
   if (!parts.length) parts.push(`ID: ${item.id}`);
-  return parts.join('  |  ');
+  return parts.join(' · ');
+}
+
+/** 封面右上角版本角标：N 个版本 · 生效 vX */
+function getFamilySummaryText(item: any): string {
+  const size = item.family_size ?? 1;
+  const version = formatModelVersionDisplay(item.family_effective_version || item.version);
+  return `${size} 个版本 · 生效 ${version}`;
 }
 
 function handleDelete(record: object) {
@@ -265,33 +280,32 @@ function handleDownload(record: object) {
 
 <style lang="less" scoped>
 .model-card-list-wrapper {
-  background: #fff;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  background: #fff;
 }
 
 .search-bar {
+  flex-shrink: 0;
   padding: 16px 16px 0;
   margin-bottom: 10px;
   background: #fff;
-  flex-shrink: 0;
 }
 
 .list-panel {
-  background: #fff;
-  padding: 0 8px 16px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 0 8px 16px;
+  overflow: hidden auto;
+  background: #fff;
 
   :deep(.ant-list-header) {
-    border: 0;
     padding: 8px 12px 16px;
     background: transparent;
+    border: 0;
   }
 
   :deep(.ant-list) {
@@ -309,18 +323,18 @@ function handleDownload(record: object) {
   }
 
   :deep(.ant-list-item) {
-    margin-bottom: 0;
-    padding: 0 !important;
-    border: none;
+    display: flex;
     width: 100%;
     height: 100%;
-    display: flex;
+    padding: 0 !important;
+    margin-bottom: 0;
+    border: none;
   }
 
   :deep(.ant-spin-nested-loading),
   :deep(.ant-spin-container) {
-    background: transparent;
     height: auto !important;
+    background: transparent;
   }
 
   :deep(.ant-list-pagination) {
@@ -354,7 +368,7 @@ function handleDownload(record: object) {
 }
 
 @cover-height: 200px;
-@body-height: 96px;
+@body-height: 104px;
 @card-height: @cover-height + @body-height;
 
 .model-card {
@@ -363,24 +377,24 @@ function handleDownload(record: object) {
   flex-direction: column;
   width: 100%;
   height: @card-height;
+  overflow: hidden;
+  cursor: default;
   background: #fff;
   border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(24, 24, 24, 0.1);
-  overflow: hidden;
+  box-shadow: 0 1px 4px rgb(24 24 24 / 10%);
   transition: box-shadow 0.25s ease, transform 0.25s ease;
-  cursor: default;
 
   &:hover {
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 3px 12px rgb(0 0 0 / 12%);
     transform: translateY(-1px);
   }
 }
 
 .model-card-cover {
   position: relative;
+  flex-shrink: 0;
   width: 100%;
   height: @cover-height;
-  flex-shrink: 0;
   overflow: hidden;
   cursor: pointer;
   background: #fafafa;
@@ -389,39 +403,67 @@ function handleDownload(record: object) {
 .model-card-cover-inner {
   position: absolute;
   inset: 0;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 4px;
-  box-sizing: border-box;
 }
 
 .model-card-image {
-  max-width: 100%;
-  max-height: 100%;
+  display: block;
   width: auto;
+  max-width: 100%;
   height: auto;
+  max-height: 100%;
   object-fit: contain;
   object-position: center;
-  display: block;
 }
 
 .model-card-overlay {
   position: absolute;
   inset: 0;
   z-index: 3;
-  border-radius: 6px 6px 0 0;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  background: rgb(0 0 0 / 45%);
+  border-radius: 6px 6px 0 0;
+}
+
+.model-card-version-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100% - 4px);
+  padding: 4px 10px 4px 12px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #fff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #266cfb;
+  border: none;
+  border-radius: 0 6px 0 8px;
+  box-shadow: 0 1px 3px rgb(38 108 251 / 35%);
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #1e5ae0;
+  }
 }
 
 .overlay-actions {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
   justify-content: center;
   padding: 0 8px;
 }
@@ -432,12 +474,12 @@ function handleDownload(record: object) {
   justify-content: center;
   width: 34px;
   height: 34px;
+  font-size: 16px;
+  color: #266cfb;
+  cursor: pointer;
+  background: rgb(255 255 255 / 92%);
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  color: #266cfb;
-  font-size: 16px;
-  cursor: pointer;
   transition: background 0.2s, color 0.2s, transform 0.2s;
 
   &:hover {
@@ -466,25 +508,25 @@ function handleDownload(record: object) {
   svg {
     width: 40px;
     height: 40px;
-    filter: drop-shadow(0 2px 6px rgba(38, 108, 251, 0.2));
+    filter: drop-shadow(0 2px 6px rgb(38 108 251 / 20%));
   }
 }
 
 .model-card-body {
+  box-sizing: border-box;
   flex-shrink: 0;
   height: @body-height;
-  padding: 24px 16px 14px;
-  box-sizing: border-box;
+  padding: 14px 16px 12px;
   overflow: hidden;
 }
 
 .model-card-title {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+  overflow: hidden;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.45;
   color: #181818;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
@@ -494,21 +536,23 @@ function handleDownload(record: object) {
   }
 }
 
-.model-card-tags {
-  margin: 0;
+.model-card-desc {
+  margin: 0 0 2px;
+  overflow: hidden;
   font-size: 13px;
   line-height: 1.5;
-  color: #999;
-  overflow: hidden;
+  color: rgb(0 0 0 / 65%);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.model-card-family {
-  margin-top: 4px;
-}
-
-.model-card-family-tag {
-  cursor: pointer;
+.model-card-meta {
+  margin: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgb(0 0 0 / 45%);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
