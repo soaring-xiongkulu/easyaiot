@@ -889,7 +889,9 @@ CREATE TABLE public.model (
     class_names text,
     selected_class_names text,
     model_origin character varying(32) DEFAULT 'upload'::character varying,
-    origin_ref character varying(128)
+    origin_ref character varying(128),
+    family_key character varying(120),
+    is_family_active boolean
 );
 
 
@@ -1110,6 +1112,171 @@ CREATE SEQUENCE public.plate_train_task_id_seq
 --
 
 ALTER SEQUENCE public.plate_train_task_id_seq OWNED BY public.plate_train_task.id;
+
+
+--
+-- Name: rag_expert; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rag_expert (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    category character varying(50) NOT NULL,
+    system_prompt text NOT NULL,
+    welcome_message text,
+    is_enabled boolean DEFAULT true NOT NULL,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+
+--
+-- Name: rag_expert_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.rag_expert_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: rag_expert_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.rag_expert_id_seq OWNED BY public.rag_expert.id;
+
+
+--
+-- Name: rag_expert_knowledge_set; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rag_expert_knowledge_set (
+    expert_id integer NOT NULL,
+    knowledge_set_id integer NOT NULL
+);
+
+
+--
+-- Name: rag_knowledge_document; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rag_knowledge_document (
+    id integer NOT NULL,
+    name character varying(255) NOT NULL,
+    content_type character varying(80),
+    char_count integer DEFAULT 0,
+    status character varying(20) DEFAULT 'parsed'::character varying NOT NULL,
+    source_type character varying(20) DEFAULT 'upload'::character varying NOT NULL,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+
+--
+-- Name: rag_knowledge_document_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.rag_knowledge_document_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: rag_knowledge_document_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.rag_knowledge_document_id_seq OWNED BY public.rag_knowledge_document.id;
+
+
+--
+-- Name: rag_knowledge_segment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rag_knowledge_segment (
+    id integer NOT NULL,
+    document_id integer NOT NULL,
+    segment_index integer NOT NULL,
+    title character varying(255),
+    content text NOT NULL,
+    search_terms text DEFAULT '' NOT NULL,
+    tags json,
+    is_enabled boolean DEFAULT true NOT NULL,
+    milvus_id character varying(64),
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+
+--
+-- Name: rag_knowledge_segment_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.rag_knowledge_segment_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: rag_knowledge_segment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.rag_knowledge_segment_id_seq OWNED BY public.rag_knowledge_segment.id;
+
+
+--
+-- Name: rag_knowledge_set; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rag_knowledge_set (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    category character varying(50) NOT NULL,
+    description text,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+
+--
+-- Name: rag_knowledge_set_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.rag_knowledge_set_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: rag_knowledge_set_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.rag_knowledge_set_id_seq OWNED BY public.rag_knowledge_set.id;
+
+
+--
+-- Name: rag_knowledge_set_segment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rag_knowledge_set_segment (
+    knowledge_set_id integer NOT NULL,
+    segment_id integer NOT NULL
+);
 
 
 --
@@ -1389,6 +1556,34 @@ ALTER TABLE ONLY public.plate_inference_task ALTER COLUMN id SET DEFAULT nextval
 --
 
 ALTER TABLE ONLY public.plate_train_task ALTER COLUMN id SET DEFAULT nextval('public.plate_train_task_id_seq'::regclass);
+
+
+--
+-- Name: rag_expert id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_expert ALTER COLUMN id SET DEFAULT nextval('public.rag_expert_id_seq'::regclass);
+
+
+--
+-- Name: rag_knowledge_document id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_document ALTER COLUMN id SET DEFAULT nextval('public.rag_knowledge_document_id_seq'::regclass);
+
+
+--
+-- Name: rag_knowledge_segment id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_segment ALTER COLUMN id SET DEFAULT nextval('public.rag_knowledge_segment_id_seq'::regclass);
+
+
+--
+-- Name: rag_knowledge_set id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_set ALTER COLUMN id SET DEFAULT nextval('public.rag_knowledge_set_id_seq'::regclass);
 
 
 --
@@ -1755,6 +1950,34 @@ SELECT pg_catalog.setval('public.plate_train_task_id_seq', 1, false);
 
 
 --
+-- Name: rag_expert_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.rag_expert_id_seq', 1, false);
+
+
+--
+-- Name: rag_knowledge_document_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.rag_knowledge_document_id_seq', 1, false);
+
+
+--
+-- Name: rag_knowledge_segment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.rag_knowledge_segment_id_seq', 1, false);
+
+
+--
+-- Name: rag_knowledge_set_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.rag_knowledge_set_id_seq', 1, false);
+
+
+--
 -- Name: sam_inference_result_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -1904,6 +2127,54 @@ ALTER TABLE ONLY public.plate_train_task
 
 
 --
+-- Name: rag_expert rag_expert_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_expert
+    ADD CONSTRAINT rag_expert_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rag_expert_knowledge_set rag_expert_knowledge_set_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_expert_knowledge_set
+    ADD CONSTRAINT rag_expert_knowledge_set_pkey PRIMARY KEY (expert_id, knowledge_set_id);
+
+
+--
+-- Name: rag_knowledge_document rag_knowledge_document_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_document
+    ADD CONSTRAINT rag_knowledge_document_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rag_knowledge_segment rag_knowledge_segment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_segment
+    ADD CONSTRAINT rag_knowledge_segment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rag_knowledge_set rag_knowledge_set_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_set
+    ADD CONSTRAINT rag_knowledge_set_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rag_knowledge_set_segment rag_knowledge_set_segment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_set_segment
+    ADD CONSTRAINT rag_knowledge_set_segment_pkey PRIMARY KEY (knowledge_set_id, segment_id);
+
+
+--
 -- Name: sam_inference_result sam_inference_result_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1950,6 +2221,13 @@ CREATE INDEX ix_auto_label_model_history_dataset_id ON public.auto_label_model_h
 
 
 --
+-- Name: ix_model_family_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_model_family_key ON public.model USING btree (family_key);
+
+
+--
 -- Name: ix_plate_algorithm_version_version; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1961,6 +2239,34 @@ CREATE UNIQUE INDEX ix_plate_algorithm_version_version ON public.plate_algorithm
 --
 
 CREATE UNIQUE INDEX ix_plate_dataset_name ON public.plate_dataset USING btree (name);
+
+
+--
+-- Name: ix_rag_expert_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rag_expert_category ON public.rag_expert USING btree (category);
+
+
+--
+-- Name: ix_rag_knowledge_segment_document_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rag_knowledge_segment_document_id ON public.rag_knowledge_segment USING btree (document_id);
+
+
+--
+-- Name: ix_rag_knowledge_segment_milvus_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ix_rag_knowledge_segment_milvus_id ON public.rag_knowledge_segment USING btree (milvus_id);
+
+
+--
+-- Name: ix_rag_knowledge_set_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_rag_knowledge_set_category ON public.rag_knowledge_set USING btree (category);
 
 
 --
@@ -2033,6 +2339,46 @@ ALTER TABLE ONLY public.plate_inference_task
 
 ALTER TABLE ONLY public.plate_train_task
     ADD CONSTRAINT plate_train_task_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.plate_algorithm_version(id);
+
+
+--
+-- Name: rag_expert_knowledge_set rag_expert_knowledge_set_expert_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_expert_knowledge_set
+    ADD CONSTRAINT rag_expert_knowledge_set_expert_id_fkey FOREIGN KEY (expert_id) REFERENCES public.rag_expert(id) ON DELETE CASCADE;
+
+
+--
+-- Name: rag_expert_knowledge_set rag_expert_knowledge_set_knowledge_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_expert_knowledge_set
+    ADD CONSTRAINT rag_expert_knowledge_set_knowledge_set_id_fkey FOREIGN KEY (knowledge_set_id) REFERENCES public.rag_knowledge_set(id) ON DELETE CASCADE;
+
+
+--
+-- Name: rag_knowledge_segment rag_knowledge_segment_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_segment
+    ADD CONSTRAINT rag_knowledge_segment_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.rag_knowledge_document(id);
+
+
+--
+-- Name: rag_knowledge_set_segment rag_knowledge_set_segment_knowledge_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_set_segment
+    ADD CONSTRAINT rag_knowledge_set_segment_knowledge_set_id_fkey FOREIGN KEY (knowledge_set_id) REFERENCES public.rag_knowledge_set(id) ON DELETE CASCADE;
+
+
+--
+-- Name: rag_knowledge_set_segment rag_knowledge_set_segment_segment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rag_knowledge_set_segment
+    ADD CONSTRAINT rag_knowledge_set_segment_segment_id_fkey FOREIGN KEY (segment_id) REFERENCES public.rag_knowledge_segment(id) ON DELETE CASCADE;
 
 
 --
