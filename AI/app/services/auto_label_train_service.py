@@ -85,7 +85,7 @@ def export_annotated_yolo_zip(
 
 def split_dataset_usage(dataset_id: int, train_ratio: float, val_ratio: float, test_ratio: float) -> None:
     requests.post(
-        f'{_java_base()}/admin-api/dataset/{dataset_id}/annotation/split',
+        f'{_java_base()}/admin-api/dataset/{dataset_id}/split',
         json={'trainRatio': train_ratio, 'valRatio': val_ratio, 'testRatio': test_ratio},
         timeout=120,
     ).raise_for_status()
@@ -161,6 +161,8 @@ def wait_train_task(
     while time.time() < deadline:
         if cancelled_check and cancelled_check():
             return None
+        # 训练执行器可能在独立进程中更新任务；清理 identity map，避免一直读到启动时缓存状态。
+        db.session.expire_all()
         task = TrainTask.query.get(train_task_id)
         if not task:
             return None
@@ -171,6 +173,7 @@ def wait_train_task(
         if task.status not in ACTIVE_TRAIN_STATUSES and task.status != 'completed':
             return task
         time.sleep(POLL_INTERVAL_SEC)
+    db.session.expire_all()
     return TrainTask.query.get(train_task_id)
 
 
