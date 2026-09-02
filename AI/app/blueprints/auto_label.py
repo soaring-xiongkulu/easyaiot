@@ -20,7 +20,7 @@ import requests
 from flask import Blueprint, request, jsonify, Response
 from sqlalchemy import text
 
-from db_models import db, AutoLabelTask, AutoLabelResult, AIService, Model, beijing_now
+from db_models import db, AutoLabelTask, AutoLabelResult, AIService, Model, TrainTask, beijing_now
 from app.services.inference_service import InferenceService
 from app.services.minio_service import ModelService
 from app.services.sam_service import get_sam_service
@@ -314,6 +314,68 @@ def start_bootstrap_auto_label(dataset_id):
         })
     except Exception as e:
         logger.error(f"启动 SAM 冷启动任务失败: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'code': 500, 'msg': f'启动失败: {str(e)}'}), 500
+
+
+@auto_label_bp.route('/dataset/<int:dataset_id>/auto-label/llm-bootstrap/start', methods=['POST'])
+def start_llm_bootstrap_auto_label(dataset_id):
+    """自然语言场景驱动的大模型冷启动批量标注。"""
+    try:
+        active = _find_active_task(dataset_id)
+        if active:
+            return _active_task_conflict_response(active)
+
+        data = request.json or {}
+        scene_description = str(data.get('scene_description') or '').strip()
+        if len(scene_description) < 8:
+            return jsonify({'code': 400, 'msg': '请提供完整的自然语言场景描述（至少 8 个字符）'}), 400
+        output_labels = [str(item).strip() for item in (data.get('output_labels') or []) if str(item).strip()]
+
+        from db_models import LLMModel
+        active_llm = LLMModel.query.filter_by(is_active=True).order_by(LLMModel.id).first()
+        if not active_llm:
+            return jsonify({'code': 503, 'msg': '未启用大模型，请先在大模型管理中启用视觉模型'}), 503
+
+        bootstrap_limit = max(1, min(2000, int(data.get('bootstrap_limit', 200))))
+        bootstrap_selection = data.get('bootstrap_selection', 'unlabeled_first')
+        confidence_threshold = max(0.0, min(1.0, float(data.get('confidence_threshold', 0.3))))
+        task = AutoLabelTask(
+            dataset_id=dataset_id,
+            confidence_threshold=confidence_threshold,
+            label_mode='llm',
+            text_prompts=json.dumps(output_labels, ensure_ascii=False),
+            annotation_type='rectangle',
+            phase='BOOTSTRAP',
+            bootstrap_limit=bootstrap_limit,
+            bootstrap_selection=bootstrap_selection,
+            return_masks=False,
+            status='PENDING',
+            pipeline_config=json.dumps({
+                'bootstrap_engine': 'llm',
+                'llm_model_id': active_llm.id,
+                'llm_model_name': active_llm.model_name,
+                'scene_description': scene_description,
+                'output_labels': output_labels,
+                'llm_hit_count': 0,
+                'llm_empty_count': 0,
+                'logs': [{'time': beijing_now().isoformat(), 'message': '大模型自然语言冷启动任务已创建'}],
+            }, ensure_ascii=False),
+        )
+        db.session.add(task)
+        db.session.commit()
+
+        from flask import current_app
+        app = current_app._get_current_object()
+        thread = threading.Thread(target=execute_auto_label_task, args=(app, task.id), daemon=True)
+        thread.start()
+        return jsonify({
+            'code': 0,
+            'msg': '大模型自然语言冷启动任务已启动',
+            'data': {'task_id': task.id, 'bootstrap_limit': bootstrap_limit, 'llm_model_id': active_llm.id},
+        })
+    except Exception as e:
+        logger.error('启动大模型冷启动任务失败: %s', e, exc_info=True)
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'启动失败: {str(e)}'}), 500
 
@@ -662,6 +724,7 @@ def bootstrap_status(dataset_id):
                 'bootstrap_done': bootstrap_done,
                 'ready_for_train': ready_for_train,
                 'awaiting_sam_review': bool(parse_pipeline_state(task).get('awaiting_sam_review')),
+                'bootstrap_engine': parse_pipeline_state(task).get('bootstrap_engine') or 'sam3',
                 **quality,
             },
         })
@@ -697,7 +760,8 @@ def bootstrap_complete_review(dataset_id):
             return jsonify({
                 'code': 400,
                 'msg': (
-                    f'SAM 识别率 {quality["recognition_rate_pct"]}% 低于阈值 '
+                    f'{"大模型" if task.label_mode == "llm" else "SAM3"} 冷启动识别率 '
+                    f'{quality["recognition_rate_pct"]}% 低于阈值 '
                     f'{quality["min_hit_rate_pct"]}%，请先恢复冷启动标注或改用手动/YOLO 自动标注'
                 ),
                 'data': quality,
@@ -716,6 +780,56 @@ def bootstrap_complete_review(dataset_id):
         })
     except Exception as e:
         db.session.rollback()
+        return jsonify({'code': 500, 'msg': str(e)}), 500
+
+
+@auto_label_bp.route('/dataset/<int:dataset_id>/auto-label/bootstrap/train', methods=['POST'])
+def bootstrap_train_small_model(dataset_id):
+    """冷启动抽检通过后，复用自动训练流水线生成并绑定 YOLO 小模型。"""
+    try:
+        data = request.json or {}
+        task = AutoLabelTask.query.filter_by(
+            dataset_id=dataset_id, phase='BOOTSTRAP', status='COMPLETED', review_passed=True,
+        ).order_by(AutoLabelTask.created_at.desc()).first()
+        if not task:
+            return jsonify({'code': 409, 'msg': '请先完成冷启动任务并确认抽检通过'}), 409
+
+        from app.services.auto_label_strategy import merge_strategy, parse_pipeline_state
+        state = parse_pipeline_state(task)
+        if state.get('pending_train'):
+            train_task_id = state.get('train_task_id')
+            train_task = TrainTask.query.get(int(train_task_id)) if train_task_id else None
+            if train_task and train_task.status in ('completed', 'error', 'failed', 'stopped'):
+                state['pending_train'] = False
+                state['pipeline_phase'] = 'bootstrap_sam'
+                task.pipeline_config = json.dumps(state, ensure_ascii=False)
+                db.session.commit()
+            else:
+                return jsonify({'code': 409, 'msg': '小模型训练已在进行中'}), 409
+        strategy = merge_strategy(state.get('strategy'))
+        strategy.update({
+            'auto_train_yolo': True,
+            'train_epochs': max(1, min(300, int(data.get('train_epochs', strategy['train_epochs'])))),
+            'train_batch_size': max(1, min(128, int(data.get('train_batch_size', strategy['train_batch_size'])))),
+            'train_imgsz': max(320, min(1280, int(data.get('train_imgsz', strategy['train_imgsz'])))),
+            'use_gpu': bool(data.get('use_gpu', strategy['use_gpu'])),
+        })
+        state['strategy'] = strategy
+        state['bootstrap_engine'] = state.get('bootstrap_engine') or task.label_mode
+        task.pipeline_config = json.dumps(state, ensure_ascii=False)
+        db.session.commit()
+
+        from flask import current_app
+        from app.services.auto_label_orchestrator import _trigger_auto_train
+        _trigger_auto_train(task, current_app._get_current_object())
+        return jsonify({
+            'code': 0,
+            'msg': '小模型训练已启动',
+            'data': {'task_id': task.id, 'train_epochs': strategy['train_epochs']},
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error('启动冷启动小模型训练失败: %s', e, exc_info=True)
         return jsonify({'code': 500, 'msg': str(e)}), 500
 
 
@@ -753,7 +867,10 @@ def bootstrap_reset_annotations(dataset_id):
 
         task.review_passed = False
         state = parse_pipeline_state(task)
-        for key in ('sam_hit_count', 'sam_empty_count', 'sam_labeled', 'total_labeled', 'sam_quality'):
+        for key in (
+            'sam_hit_count', 'sam_empty_count', 'sam_labeled', 'total_labeled', 'sam_quality',
+            'llm_hit_count', 'llm_empty_count', 'bootstrap_quality',
+        ):
             state.pop(key, None)
         state['awaiting_sam_review'] = False
         state['sam_quality_passed'] = None
@@ -1579,7 +1696,7 @@ def execute_pipeline_task(app, task_id: int):
 
 
 def execute_auto_label_task(app, task_id):
-    """执行自动化标注任务：YOLO 直连 InferenceService 或 SAM 进程内推理。"""
+    """执行自动化标注任务：YOLO、SAM3 或 HARNESS 视觉大模型。"""
     task = None
     with app.app_context():
         try:
@@ -1598,6 +1715,10 @@ def execute_auto_label_task(app, task_id):
                 text_prompts = _parse_text_prompts(task)
                 if not text_prompts:
                     raise Exception('SAM 任务缺少 text_prompts')
+            elif label_mode == 'llm':
+                cfg = _parse_pipeline_config(task)
+                if not str(cfg.get('scene_description') or '').strip():
+                    raise Exception('大模型冷启动任务缺少自然语言场景描述')
             else:
                 model_id = task.model_id
                 if not model_id and task.model_service_id:
@@ -1617,7 +1738,7 @@ def execute_auto_label_task(app, task_id):
 
             images = _fetch_all_dataset_images(java_backend_url, task.dataset_id)
 
-            if task.phase == 'BOOTSTRAP' or (task.bootstrap_limit and label_mode == 'sam' and task.phase != 'PIPELINE'):
+            if task.phase == 'BOOTSTRAP' or (task.bootstrap_limit and label_mode in ('sam', 'llm') and task.phase != 'PIPELINE'):
                 images = _select_bootstrap_images(images, task)
             elif task.bootstrap_selection == 'unlabeled_only':
                 images = [img for img in images if not img.get('completed')]
@@ -1632,7 +1753,7 @@ def execute_auto_label_task(app, task_id):
                 if task.phase == 'BOOTSTRAP':
                     raise RuntimeError(
                         '数据集中暂无待标注图片。请先通过「添加 → 视频流抽帧任务」配置摄像头采集，'
-                        '或导入图片后再启动 SAM 标注。'
+                        '或导入图片后再启动冷启动标注。'
                     )
                 logger.info(f'数据集 {task.dataset_id} 无待处理图片，任务直接完成')
                 task.status = 'COMPLETED'
@@ -1693,6 +1814,17 @@ def execute_auto_label_task(app, task_id):
                                 sam_result, image_width, image_height,
                                 annotation_type=annotation_type,
                             )
+                        elif label_mode == 'llm':
+                            from app.services.llm_label_service import label_image_with_llm
+                            cfg = _parse_pipeline_config(task)
+                            annotations, llm_model_id = label_image_with_llm(
+                                temp_path,
+                                str(cfg.get('scene_description') or ''),
+                                cfg.get('output_labels') or _parse_text_prompts(task),
+                                task.confidence_threshold or 0.0,
+                            )
+                            cfg['llm_model_id'] = llm_model_id
+                            task.pipeline_config = json.dumps(cfg, ensure_ascii=False)
                         else:
                             detections = inference_service.detect_image_file(temp_path, {
                                 'conf_thres': task.confidence_threshold,
@@ -1720,7 +1852,7 @@ def execute_auto_label_task(app, task_id):
                         if update_response.status_code != 200:
                             logger.warning(f"更新图片标注失败: {image_id}")
                         success_count += 1
-                        if label_mode == 'sam':
+                        if label_mode in ('sam', 'llm'):
                             if annotations:
                                 sam_hit_count += 1
                             else:
@@ -1746,7 +1878,7 @@ def execute_auto_label_task(app, task_id):
 
             task.status = 'COMPLETED'
             task.completed_at = beijing_now()
-            if label_mode == 'sam' and (sam_hit_count + sam_empty_count) > 0:
+            if label_mode in ('sam', 'llm') and (sam_hit_count + sam_empty_count) > 0:
                 from app.services.sam_bootstrap_quality import assess_sam_bootstrap_quality
 
                 cfg = {}
@@ -1757,12 +1889,16 @@ def execute_auto_label_task(app, task_id):
                         cfg = {}
                 cfg['sam_hit_count'] = sam_hit_count
                 cfg['sam_empty_count'] = sam_empty_count
+                if label_mode == 'llm':
+                    cfg['llm_hit_count'] = sam_hit_count
+                    cfg['llm_empty_count'] = sam_empty_count
                 task.pipeline_config = json.dumps(cfg, ensure_ascii=False)
                 db.session.flush()
                 quality = assess_sam_bootstrap_quality(task, 0.3)
                 cfg['sam_quality'] = quality
                 cfg['sam_quality_passed'] = quality['sam_quality_passed']
                 cfg['awaiting_sam_review'] = not quality['sam_quality_passed']
+                cfg['bootstrap_quality'] = quality
                 task.pipeline_config = json.dumps(cfg, ensure_ascii=False)
             db.session.commit()
 
@@ -1884,6 +2020,5 @@ def _parse_inference_result(result, image_width, image_height):
             
     except Exception as e:
         logger.error(f"解析推理结果失败: {str(e)}", exc_info=True)
-    
+
     return annotations
-    
