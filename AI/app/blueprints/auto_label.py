@@ -276,7 +276,7 @@ def start_auto_label(dataset_id):
 
 @auto_label_bp.route('/dataset/<int:dataset_id>/auto-label/bootstrap/start', methods=['POST'])
 def start_bootstrap_auto_label(dataset_id):
-    """SAM 冷启动批量标注（首批 N 张）"""
+    """SAM3 冷启动批量标注（首批 N 张）"""
     try:
         active = _find_active_task(dataset_id)
         if active:
@@ -320,11 +320,11 @@ def start_bootstrap_auto_label(dataset_id):
 
         return jsonify({
             'code': 0,
-            'msg': 'SAM 冷启动标注任务已启动',
+            'msg': 'SAM3 冷启动标注任务已启动',
             'data': {'task_id': task.id, 'bootstrap_limit': bootstrap_limit},
         })
     except Exception as e:
-        logger.error(f"启动 SAM 冷启动任务失败: {str(e)}", exc_info=True)
+        logger.error(f"启动 SAM3 冷启动任务失败: {str(e)}", exc_info=True)
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'启动失败: {str(e)}'}), 500
 
@@ -723,6 +723,17 @@ def bootstrap_status(dataset_id):
             and quality['sam_quality_passed']
             and bool(task.review_passed)
         )
+        state = parse_pipeline_state(task)
+        bound_model = None
+        try:
+            from app.services.auto_label_model_service import get_dataset_bound_model_id
+            bound_model_id = get_dataset_bound_model_id(dataset_id)
+            if bound_model_id:
+                m = Model.query.get(bound_model_id)
+                if m:
+                    bound_model = {'id': m.id, 'name': m.name, 'version': m.version}
+        except Exception as e:
+            logger.debug('查询数据集绑定小模型失败: %s', e)
         return jsonify({
             'code': 0,
             'msg': '获取成功',
@@ -738,8 +749,17 @@ def bootstrap_status(dataset_id):
                 'review_passed': bool(task.review_passed),
                 'bootstrap_done': bootstrap_done,
                 'ready_for_train': ready_for_train,
-                'awaiting_sam_review': bool(parse_pipeline_state(task).get('awaiting_sam_review')),
-                'bootstrap_engine': parse_pipeline_state(task).get('bootstrap_engine') or 'sam3',
+                'awaiting_sam_review': bool(state.get('awaiting_sam_review')),
+                'bootstrap_engine': state.get('bootstrap_engine') or 'sam3',
+                'train_state': {
+                    'pipeline_phase': state.get('pipeline_phase'),
+                    'pending_train': bool(state.get('pending_train')),
+                    'train_task_id': state.get('train_task_id'),
+                    'train_round': state.get('train_round'),
+                },
+                'bound_model': bound_model,
+                'relay_enabled': bool(state.get('auto_relay_enabled')),
+                'relay_confidence': state.get('relay_confidence'),
                 **quality,
             },
         })
@@ -831,6 +851,14 @@ def bootstrap_train_small_model(dataset_id):
         })
         state['strategy'] = strategy
         state['bootstrap_engine'] = state.get('bootstrap_engine') or task.label_mode
+        # 小模型接力：训练成功后自动用新模型标注剩余未标注图片
+        state['auto_relay_enabled'] = bool(data.get('auto_relay', True))
+        min_relay_conf = float(os.getenv('AUTO_LABEL_MIN_YOLO_CONF', '0.5'))
+        try:
+            relay_conf = float(data.get('relay_confidence', 0.5))
+        except (TypeError, ValueError):
+            relay_conf = 0.5
+        state['relay_confidence'] = max(min_relay_conf, min(0.95, relay_conf))
         task.pipeline_config = json.dumps(state, ensure_ascii=False)
         db.session.commit()
 

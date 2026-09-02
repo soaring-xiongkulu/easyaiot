@@ -303,8 +303,9 @@ def _trigger_auto_train(task: AutoLabelTask, app) -> None:
                 })
                 t.model_id = model_id
                 _log(t, f'第 {round_no} 轮训练完成，已切换至 YOLO 量产（model_id={model_id}）')
+                _maybe_start_relay(t, model_id, app)
             else:
-                _log(t, f'第 {round_no} 轮训练未产出可用模型，保持 SAM 冷启动/补充模式')
+                _log(t, f'第 {round_no} 轮训练未产出可用模型，保持 SAM3 冷启动/补充模式')
                 _save_pipeline_state(t, {
                     'pipeline_phase': PHASE_BOOTSTRAP_SAM,
                     'pending_train': False,
@@ -312,6 +313,52 @@ def _trigger_auto_train(task: AutoLabelTask, app) -> None:
             db.session.commit()
 
     threading.Thread(target=_run, daemon=True).start()
+
+
+def _maybe_start_relay(task: AutoLabelTask, model_id: int, app) -> None:
+    """小模型接力：抽检通过且训练成功后，自动用新模型标注数据集剩余未标注图片。"""
+    try:
+        state = parse_pipeline_state(task)
+        if not state.get('auto_relay_enabled') or not bool(task.review_passed):
+            return
+        active = AutoLabelTask.query.filter_by(dataset_id=task.dataset_id).filter(
+            AutoLabelTask.status.in_(['PENDING', 'PROCESSING'])
+        ).first()
+        if active:
+            _log(task, f'检测到进行中的任务 #{active.id}，本次不自动接力，可在智能标注抽屉手动启动')
+            return
+        try:
+            relay_conf = float(state.get('relay_confidence') or 0.5)
+        except (TypeError, ValueError):
+            relay_conf = 0.5
+        min_conf = float(os.getenv('AUTO_LABEL_MIN_YOLO_CONF', '0.5'))
+        relay_conf = max(min_conf, min(0.95, relay_conf))
+        relay = AutoLabelTask(
+            dataset_id=task.dataset_id,
+            model_id=int(model_id),
+            confidence_threshold=relay_conf,
+            label_mode='yolo',
+            annotation_type='rectangle',
+            phase='PRODUCTION',
+            bootstrap_selection='unlabeled_only',
+            status='PENDING',
+            pipeline_config=json.dumps({
+                'relay_from_task': task.id,
+                'logs': [{
+                    'time': datetime.now().isoformat(timespec='seconds'),
+                    'message': f'小模型接力标注（源自冷启动任务 #{task.id}，仅处理未标注图片）',
+                }],
+            }, ensure_ascii=False),
+        )
+        db.session.add(relay)
+        db.session.commit()
+        _log(task, f'小模型接力标注已启动（任务 #{relay.id}）：剩余未标注图片由 model_id={model_id} 自动打标')
+
+        # 延迟导入避免循环依赖（blueprint 模块顶层 import 了本模块）
+        from app.blueprints.auto_label import execute_auto_label_task
+        threading.Thread(target=execute_auto_label_task, args=(app, relay.id), daemon=True).start()
+    except Exception as e:
+        logger.error('启动小模型接力标注失败: %s', e, exc_info=True)
 
 
 def on_label_batch_complete(task: AutoLabelTask, app) -> None:
@@ -336,7 +383,7 @@ def on_label_batch_complete(task: AutoLabelTask, app) -> None:
             _save_pipeline_state(task, {'awaiting_sam_review': True})
             _log(
                 task,
-                f'SAM 冷启动识别率 {quality["recognition_rate_pct"]}% 低于阈值 '
+                f'SAM3 冷启动识别率 {quality["recognition_rate_pct"]}% 低于阈值 '
                 f'{quality["min_hit_rate_pct"]}%，建议恢复初始标注并改用手动标注或 YOLO 自动标注',
             )
             db.session.commit()
@@ -347,7 +394,7 @@ def on_label_batch_complete(task: AutoLabelTask, app) -> None:
             'pipeline_phase': next_phase,
             'awaiting_sam_review': False,
         })
-        _log(task, f'SAM 冷启动完成（{counters["total_labeled"]} 张，识别率 {quality["recognition_rate_pct"]}%），进入阶段：{next_phase}')
+        _log(task, f'SAM3 冷启动完成（{counters["total_labeled"]} 张，识别率 {quality["recognition_rate_pct"]}%），进入阶段：{next_phase}')
         db.session.commit()
         if next_phase == PHASE_TRAINING:
             _trigger_auto_train(task, app)
