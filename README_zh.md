@@ -42,7 +42,7 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测与 SAM 零样本自动标注、人脸/车牌识别、<strong>POST 定制研判</strong>（检出之后按现场规则过滤、复合判断再告警，改规则不必重训模型）、联邦算力集群调度、<strong>SENTINEL 集群节点哨兵</strong>（按业务摸清节点就绪与可调度能力，缺件可自助补齐，任务按真能力下发），以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>POST 定制研判服务</strong>，把检测结果锻造成可贴现场的业务事件，误报少、规则可配、上线可先试跑；配套 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、四档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置；并新增 <strong>ANDROID / IOS / HARMONYOS 三端壳打包工程</strong>，把这一移动体验以 APK / IPA / HAP 安装包形态覆盖到主流手机系统，一套前端、一键出包、版本统一管理。
+平台由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TRANSFORM、PANEL、IDEA、HARNESS、SITE</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测、<strong>基于 HARNESS 的大模型智能标注</strong>与 SAM3 开放词汇智能标注、人脸/车牌识别、<strong>POST 定制研判</strong>（检出之后按现场规则过滤、复合判断再告警，改规则不必重训模型）、联邦算力集群调度、<strong>SENTINEL 集群节点哨兵</strong>（按业务摸清节点就绪与可调度能力，缺件可自助补齐，任务按真能力下发），以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>POST 定制研判服务</strong>，把检测结果锻造成可贴现场的业务事件，误报少、规则可配、上线可先试跑；配套 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、四档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置；并新增 <strong>ANDROID / IOS / HARMONYOS 三端壳打包工程</strong>，把这一移动体验以 APK / IPA / HAP 安装包形态覆盖到主流手机系统，一套前端、一键出包、版本统一管理。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -104,6 +104,24 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。平台通过算法任务管理、实时流分析、模型服务集群推理等核心能力，实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
+</p>
+
+### 🏷️ 大模型智能标注：用业务语言定义场景，把现场知识训练成专属小模型
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+传统自动标注通常只能输入「人、车、安全帽」等类别词，能够找到通用物体，却很难准确表达客户真正关心的现场规则。EasyAIoT 新增独立的<strong>大模型智能标注</strong>窗口，基于现有 <strong>HARNESS 大模型底座</strong>，允许用户直接用完整自然语言描述真实业务场景，例如「标注进入施工区域但没有正确佩戴安全帽的人员，正常佩戴者不要标注」。大模型先理解对象、动作、关系、条件和排除项，再生成结构化标注；用户审核首批结果后，平台自动衔接 YOLO 小模型训练、发布、绑定与批量回标，将一次场景描述沉淀成可在现场持续高速运行的专属识别能力。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>自然语言比标签更接近真实需求</strong>：标签只能说「是什么」，完整描述还能表达「在哪里、正在做什么、与谁有什么关系、满足什么条件、哪些情况必须排除」，减少通用类别与实际业务目标之间的语义偏差</li>
+  <li><strong>更适合定制化数据冷启动</strong>：无需先准备成熟模型或大量人工样本，用户先描述场景，大模型即可生成第一批候选标注；审核修正后直接进入训练，让行业知识从第一张图片起就进入数据集</li>
+  <li><strong>用大模型的理解力换取小模型的现场效率</strong>：大模型负责少量样本的复杂语义理解，小模型学习审核后的结果并承担后续高频推理，兼顾场景准确性、推理速度、部署成本和边缘运行能力</li>
+  <li><strong>训练结果更贴合客户现场</strong>：训练目标来自用户自己的语言、图片和审核结果，而不是只依赖通用数据集中的宽泛类别，因此得到的小模型更接近项目的真实判定口径</li>
+  <li><strong>完整闭环而非一次性 AI 调用</strong>：场景描述 → 大模型候选标注 → 人工审核 → 小模型训练 → 自动发布与数据集绑定 → 小模型批量回标，模型版本和来源全程可追溯</li>
+</ul>
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+<strong>与 SAM3 智能标注的区别：</strong>SAM3 使用较短的视觉目标提示词，擅长回答「图里哪些像这个目标」并完成定位或分割；大模型智能标注接收完整业务场景描述，重点回答「什么条件下的哪个目标才是用户真正想标的」。两者入口和任务独立，但都可复用审核、训练与小模型回标流水线：通用目标快速提取优先使用 SAM3，涉及动作、关系、条件、例外和行业语义的定制场景优先使用大模型智能标注。
 </p>
 
 ### 🎛️ PANEL：一体机到场当天可装可验，值守不必等开发远程

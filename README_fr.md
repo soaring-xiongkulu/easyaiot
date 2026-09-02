@@ -106,6 +106,17 @@ Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendr
 EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégration cloud-bord-périphérique, se concentrant sur l'intégration profonde de l'IA et de l'IoT. Grâce à des capacités fondamentales telles que la gestion des tâches algorithmiques, l'analyse de flux en temps réel et le raisonnement en cluster de services de modèles, la plateforme réalise une boucle fermée complète allant de la connexion des appareils à la collecte de données, l'analyse par IA et la prise de décision intelligente, atteignant véritablement l'interconnexion et le contrôle intelligent de toutes choses.
 </p>
 
+### 🏷️ Annotation intelligente par LLM : décrire le métier, entraîner un petit modèle dédié
+
+L'annotation classique se limite souvent à « personne », « véhicule » ou « casque » et exprime mal les règles réelles du terrain. EasyAIoT ajoute un flux indépendant fondé sur <strong>HARNESS</strong> : l'utilisateur décrit la scène en langage naturel ; le LLM comprend objets, actions, relations, conditions et exclusions, puis produit des annotations structurées. Après validation humaine, la plateforme enchaîne automatiquement entraînement, publication, liaison et réannotation par un petit modèle YOLO.
+
+- <strong>Plus fidèle qu'une étiquette</strong> : le langage naturel décrit lieu, action, relation, condition et exception.
+- <strong>Démarrage à froid sur mesure</strong> : aucun détecteur mature ni grand corpus annoté n'est requis avant le premier apprentissage.
+- <strong>Compréhension et efficacité</strong> : le LLM traite la sémantique complexe ; le petit modèle assure ensuite une inférence rapide, économique et compatible edge.
+- <strong>Boucle traçable</strong> : description → candidats LLM → validation → entraînement → publication et liaison → réannotation en masse.
+
+<strong>Différence avec SAM3 :</strong> SAM3 localise ou segmente les objets correspondant à une courte invite visuelle. Le LLM détermine, à partir d'une description métier complète, quelle cible doit être annotée et sous quelles conditions. SAM3 convient aux objets génériques ; le LLM aux actions, relations, conditions, exceptions et à la sémantique métier.
+
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
