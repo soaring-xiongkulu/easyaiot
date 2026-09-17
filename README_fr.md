@@ -960,7 +960,7 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 
 ## 🎬 Vidéo de démonstration
 
-- Bilibili : https://www.bilibili.com/video/BV1d3846yEQz/?vd_source=5d3350c0182a2cf35c2739f3d16c1161
+- Bilibili : https://www.bilibili.com/video/BV1s9eu6oEGZ/?vd_source=2f810014df44025e0bcef187560a91c4
 
 ## ⚙️ Dépôts du projet
 
