@@ -1827,6 +1827,8 @@ def execute_auto_label_task(app, task_id):
             failed_count = 0
             sam_hit_count = 0
             sam_empty_count = 0
+            # 视觉大模型单张耗时较长，逐张提交才能让前端实时看到进度，避免长时间停在 0%。
+            progress_commit_interval = 1 if label_mode == 'llm' else _AUTO_LABEL_PROGRESS_COMMIT_INTERVAL
             task_paused = False
             task_cancelled = False
             prefetch_workers = int(os.getenv('AUTO_LABEL_PREFETCH_WORKERS', '2'))
@@ -1963,7 +1965,7 @@ def execute_auto_label_task(app, task_id):
                 task.processed_images = base_processed + idx + 1
                 task.success_count = base_success + success_count
                 task.failed_count = base_failed + failed_count
-                if (idx + 1) % _AUTO_LABEL_PROGRESS_COMMIT_INTERVAL == 0 or idx + 1 == len(images):
+                if (idx + 1) % progress_commit_interval == 0 or idx + 1 == len(images):
                     db.session.commit()
 
             if task_cancelled or task_paused:
