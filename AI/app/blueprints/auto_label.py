@@ -1965,6 +1965,17 @@ def execute_auto_label_task(app, task_id):
                 task.processed_images = base_processed + idx + 1
                 task.success_count = base_success + success_count
                 task.failed_count = base_failed + failed_count
+                should_report_progress = (
+                    label_mode == 'llm'
+                    or (idx + 1) % progress_commit_interval == 0
+                    or idx + 1 == len(images)
+                )
+                if task.phase == 'BOOTSTRAP' and should_report_progress:
+                    _pipeline_log(
+                        task,
+                        f'{engine_name}标注进度：已处理 {task.processed_images}/{task.total_images} 张，'
+                        f'有检出 {sam_hit_count} 张，空结果 {sam_empty_count} 张，失败 {task.failed_count} 张',
+                    )
                 if (idx + 1) % progress_commit_interval == 0 or idx + 1 == len(images):
                     db.session.commit()
 
