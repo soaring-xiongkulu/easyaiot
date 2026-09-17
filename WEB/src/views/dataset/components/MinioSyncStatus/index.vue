@@ -61,12 +61,22 @@
       >
         创建训练任务
       </Button>
+      <button
+        v-if="terminal"
+        type="button"
+        class="status-close"
+        aria-label="关闭同步提示"
+        title="关闭"
+        @click="dismiss"
+      >
+        <Icon icon="ant-design:close-outlined"/>
+      </button>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import {computed, onUnmounted, ref, watch} from 'vue';
 import {Button} from '@/components/Button';
 import {Icon} from '@/components/Icon';
 import type {DatasetSyncCheckResult, DatasetSyncStage} from '@/api/device/dataset';
@@ -97,9 +107,46 @@ const stageLabels: Record<DatasetSyncStage, string> = {
   FAILED: '同步失败',
 };
 
-const visible = computed(() => props.status.syncStatus !== 'IDLE' || !!props.connectionError);
 const active = computed(() => ['QUEUED', 'RUNNING'].includes(props.status.syncStatus));
+const terminal = computed(() => ['SUCCEEDED', 'FAILED'].includes(props.status.syncStatus));
+const dismissed = ref(false);
+let autoDismissTimer: ReturnType<typeof setTimeout> | null = null;
+
+const statusIdentity = computed(() => [
+  props.status.syncStatus,
+  props.status.syncSubmittedAt || '',
+  props.status.syncFinishedAt || '',
+].join(':'));
+
+const dismissStorageKey = computed(() => `dataset:minio-sync:dismissed:${statusIdentity.value}`);
+const visible = computed(() =>
+  !dismissed.value && (props.status.syncStatus !== 'IDLE' || !!props.connectionError),
+);
 const progress = computed(() => Math.max(0, Math.min(100, props.status.syncProgress || 0)));
+
+function clearAutoDismissTimer(): void {
+  if (autoDismissTimer) clearTimeout(autoDismissTimer);
+  autoDismissTimer = null;
+}
+
+function dismiss(): void {
+  dismissed.value = true;
+  clearAutoDismissTimer();
+  if (terminal.value) {
+    localStorage.setItem(dismissStorageKey.value, '1');
+  }
+}
+
+watch(statusIdentity, () => {
+  clearAutoDismissTimer();
+  dismissed.value = terminal.value
+    && localStorage.getItem(dismissStorageKey.value) === '1';
+  if (props.status.syncStatus === 'SUCCEEDED' && !dismissed.value) {
+    autoDismissTimer = setTimeout(dismiss, 10000);
+  }
+}, {immediate: true});
+
+onUnmounted(clearAutoDismissTimer);
 
 const statusIcon = computed(() => {
   if (props.connectionError && props.status.syncStatus === 'IDLE') return 'ant-design:disconnect-outlined';
@@ -299,6 +346,24 @@ function formatTime(value: string): string {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.status-close {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  color: #8c8c8c;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: #262626;
+    background: rgba(0, 0, 0, 0.06);
+  }
 }
 
 @keyframes sync-spin {
