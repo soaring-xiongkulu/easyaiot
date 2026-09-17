@@ -17,14 +17,21 @@
           第 <strong>{{ globalImageIndex + 1 }}</strong>/{{ totalImages }} 张
           <span class="progress-percent">· {{ progressPercent }}%</span>
         </span>
-        <span v-if="batchTaskRunning" class="batch-task-hint">
+        <button
+          v-if="batchTaskRunning"
+          type="button"
+          class="batch-task-hint"
+          title="打开当前智能标注任务"
+          @click="openCurrentBatchTask"
+        >
           <Icon icon="ant-design:loading-outlined" spin/>
-          AI 标注中
+          {{ currentBatchTaskLabel }}
           <template v-if="batchTaskProgress.total > 0">
             {{ batchTaskProgress.processed }}/{{ batchTaskProgress.total }}
             <span v-if="batchTaskProgress.failed > 0" class="batch-failed">（失败 {{ batchTaskProgress.failed }}）</span>
           </template>
-        </span>
+          <span class="batch-task-link">查看任务</span>
+        </button>
       </div>
 
       <div class="toolbar-center tool-group">
@@ -596,7 +603,7 @@ const ANNOTATION_STROKE_WIDTH = 2;
 const ANNOTATION_SELECTED_STROKE_WIDTH = 2.5;
 /** 标注框填充透明度（高度透明） */
 const ANNOTATION_FILL_ALPHA = 0.1;
-import { getAutoLabelTask } from '@/api/device/auto-label';
+import { getAutoLabelTask, listAutoLabelTasks } from '@/api/device/auto-label';
 import { getSamModelStatus } from '@/api/device/sam';
 import { useDrawer } from '@/components/Drawer';
 import AILabelModal from '@/views/dataset/components/AutoLabel/AILabelModal/index.vue';
@@ -713,12 +720,18 @@ const listScrollTop = ref(0);
 const saving = ref(false);
 
 const batchTaskRunning = ref(false);
+const currentBatchTaskMode = ref<'llm' | 'sam' | 'yolo'>('yolo');
 const batchTaskProgress = reactive({
   total: 0,
   processed: 0,
   success: 0,
   failed: 0,
 });
+const currentBatchTaskLabel = computed(() => ({
+  llm: '大模型标注中',
+  sam: 'SAM3 标注中',
+  yolo: 'AI 标注中',
+}[currentBatchTaskMode.value]));
 let batchTaskPollTimer: ReturnType<typeof setInterval> | null = null;
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalImages.value / LIST_CHUNK_SIZE)));
@@ -2319,6 +2332,16 @@ function openLlmSmartLabelDrawer(): void {
   openLlmSmartDrawer(true);
 }
 
+function openCurrentBatchTask(): void {
+  if (currentBatchTaskMode.value === 'llm') {
+    openLlmSmartDrawer(true);
+  } else if (currentBatchTaskMode.value === 'sam') {
+    openSamSmartDrawer(true);
+  } else {
+    openAiBatchModal();
+  }
+}
+
 async function refreshSamModelStatus(): Promise<boolean> {
   try {
     const res = await getSamModelStatus();
@@ -2665,7 +2688,10 @@ async function pollBatchTask(taskId: number): Promise<void> {
       const res = await getAutoLabelTask(datasetId.value, taskId);
       batchTaskPollFailCount = 0;
       const task = (res?.data ?? res) as Record<string, unknown>;
+      const labelMode = String(task.label_mode || 'yolo');
+      currentBatchTaskMode.value = labelMode === 'llm' ? 'llm' : labelMode === 'sam' ? 'sam' : 'yolo';
       applyBatchTaskProgress(task);
+      await fetchCompletedCount();
       const status = task?.status as string | undefined;
       if (status === 'COMPLETED') {
         stopBatchTaskPoll();
@@ -2696,6 +2722,23 @@ async function pollBatchTask(taskId: number): Promise<void> {
   batchTaskPollTimer = setInterval(check, 2500);
 }
 
+async function resumeRunningBatchTask(): Promise<void> {
+  try {
+    const res = await listAutoLabelTasks(datasetId.value, {page: 1, page_size: 10});
+    const data = res?.data ?? res;
+    const running = (data?.list ?? []).find(
+      (task: Record<string, unknown>) =>
+        ['PENDING', 'PROCESSING', 'PAUSED'].includes(String(task.status || ''))
+        && task.phase !== 'PIPELINE',
+    );
+    if (running?.id) {
+      await pollBatchTask(Number(running.id));
+    }
+  } catch {
+    // 当前任务入口恢复失败不影响正常标注操作。
+  }
+}
+
 function onBatchAiSuccess(payload: { taskId?: number }): void {
   if (payload?.taskId) {
     pollBatchTask(payload.taskId);
@@ -2715,6 +2758,7 @@ onMounted(() => {
 
   fetchLabels();
   fetchImages(1);
+  resumeRunningBatchTask();
   refreshSyncCheck().then((status) => {
     if (status?.syncing) {
       monitorMinioSync(false);
@@ -2796,12 +2840,26 @@ onUnmounted(() => {
     }
 
     .batch-task-hint {
+      border: 0;
+      background: #fff7e6;
+      border-radius: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
       font-size: 12px;
       color: @warning-color;
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
       gap: 4px;
+
+      &:hover {
+        background: #ffe7ba;
+      }
+
+      .batch-task-link {
+        margin-left: 2px;
+        color: @primary-color;
+      }
 
       .batch-failed {
         color: @error-color;

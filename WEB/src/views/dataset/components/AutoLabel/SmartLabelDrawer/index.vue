@@ -842,8 +842,10 @@ async function resumeActiveTask(): Promise<void> {
     const data = res?.data ?? res;
     const list = data?.list ?? [];
     const running = list.find(
-      (t: { status?: string; phase?: string }) =>
-        ['PENDING', 'PROCESSING', 'PAUSED'].includes(t.status || '') && t.phase !== 'PIPELINE',
+      (t: { status?: string; phase?: string; label_mode?: string }) =>
+        ['PENDING', 'PROCESSING', 'PAUSED'].includes(t.status || '')
+        && t.phase !== 'PIPELINE'
+        && t.label_mode === (isLlm.value ? 'llm' : 'sam'),
     );
     if (running) {
       taskId.value = running.id;
