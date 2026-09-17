@@ -68,7 +68,9 @@ services:
       - RAG_EMBEDDING_BASE_URL=${RAG_EMBEDDING_BASE_URL:-}
       - RAG_EMBEDDING_API_KEY=${RAG_EMBEDDING_API_KEY:-}
       - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL:-}
-      - RAG_EMBEDDING_PROVIDER=${RAG_EMBEDDING_PROVIDER:-openai-compatible}
+      # 未配置外部 Embedding 时由 auto 回退到 local-hash，保证首次部署可直接上传知识文档；
+      # 配置 RAG_EMBEDDING_BASE_URL + MODEL 后自动切换为 OpenAI 兼容语义向量。
+      - RAG_EMBEDDING_PROVIDER=${RAG_EMBEDDING_PROVIDER:-auto}
       - RAG_EMBEDDING_DIMENSIONS=1024
       - MILVUS_URI=${MILVUS_URI:-http://localhost:19530}
       - RAG_MILVUS_COLLECTION=${RAG_MILVUS_COLLECTION:-rag_knowledge_chunks}
