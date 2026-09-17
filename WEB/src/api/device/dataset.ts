@@ -165,6 +165,10 @@ export const deleteDatasetImages = (ids) => {
   return commonApi('delete', `${Api.DatasetImage}/batchDelete/${ids}`);
 };
 
+export const clearDatasetImageAnnotations = (ids: number[]) => {
+  return commonApi('put', `${Api.DatasetImage}/batchClearAnnotations/${ids}`);
+};
+
 export const getDatasetImage = (params) => {
   return commonApi('get', Api.DatasetImage + '/get', {params});
 };

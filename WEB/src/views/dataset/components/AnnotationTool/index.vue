@@ -234,20 +234,25 @@
               <Button
                 class="image-panel-toolbar-btn"
                 size="small"
-                type="default"
-                :disabled="displayImages.length === 0 || allSelectableImagesSelected"
-                @click="selectAllImagesInChunk"
+                :type="allSelectableImagesSelected ? 'primary' : 'default'"
+                :disabled="displayImages.length === 0"
+                :preIcon="allSelectableImagesSelected ? 'ant-design:check-square-filled' : 'ant-design:border-outlined'"
+                title="再次点击可取消全选"
+                @click="toggleAllImagesInChunk"
               >
                 全选
               </Button>
               <Button
-                class="image-panel-toolbar-btn"
+                class="image-panel-toolbar-btn image-panel-toolbar-btn--danger batch-clear-annotations-btn"
                 size="small"
                 type="default"
+                danger
                 :disabled="selectedImageCount === 0"
-                @click="clearImageSelection"
+                preIcon="ant-design:clear-outlined"
+                title="清空所选图片的标注，保留原图"
+                @click="confirmBatchClearSelected"
               >
-                全不选
+                清除标注
               </Button>
               <Button
                 class="image-panel-toolbar-btn image-panel-toolbar-btn--danger"
@@ -256,6 +261,7 @@
                 danger
                 :disabled="selectedImageCount === 0"
                 preIcon="ant-design:delete-outlined"
+                title="永久删除所选图片及其标注"
                 @click="confirmBatchDeleteSelected"
               >
                 删除
@@ -321,16 +327,18 @@
               }"
               @click="onImageListItemClick(img)"
             >
-              <Checkbox
-                v-if="batchSelectMode"
-                :checked="isImageSelected(img.id)"
-                class="image-select-checkbox"
-                @click.stop
-                @change="(e) => toggleImageSelection(img.id, e.target.checked)"
-              />
-              <span v-else class="image-index">{{ index + 1 }}</span>
+              <span class="image-leading">
+                <Checkbox
+                  v-if="batchSelectMode"
+                  :checked="isImageSelected(img.id)"
+                  class="image-select-checkbox"
+                  @click.stop
+                  @change="(e) => toggleImageSelection(img.id, e.target.checked)"
+                />
+                <span v-else class="image-index">{{ index + 1 }}</span>
+              </span>
               <span class="image-name" :title="img.name">{{ img.name }}</span>
-              <span v-if="!batchSelectMode" class="image-status-badge" :class="getImageStatusClass(img)">
+              <span class="image-status-badge" :class="getImageStatusClass(img)">
                 {{ getImageStatusText(img) }}
               </span>
             </li>
@@ -390,6 +398,15 @@
           <button
             type="button"
             class="nav-btn nav-btn-danger"
+            :disabled="annotations.length === 0"
+            title="清空当前图片全部标注 (Ctrl+Shift+Delete)"
+            @click="confirmClearCurrentAnnotations"
+          >
+            <Icon icon="ant-design:clear-outlined"/>
+          </button>
+          <button
+            type="button"
+            class="nav-btn nav-btn-danger"
             title="删除当前图片 (Shift+Delete)"
             @click="confirmDeleteCurrentImage"
           >
@@ -419,7 +436,7 @@
         <div class="status-indicator">
           <div class="status-header">
             <div class="completion-status" :class="{ completed: currentImage.completed === 1 }">
-              {{ currentImage.completed === 1 ? '✅ 已完成标注' : '⏳ 标注中' }}
+              {{ currentImage.completed === 1 ? '✅ 已完成标注' : (annotations.length === 0 ? '⏳ 待标注' : '⏳ 标注中') }}
             </div>
             <div v-if="currentImage.completed === 1" class="modification-info">
               <div>修改次数: {{ currentImage.modificationCount || 0 }}</div>
@@ -554,6 +571,7 @@ import {useRoute, useRouter} from "vue-router";
 import {useModal} from '@/components/Modal';
 import {
   checkSyncCondition,
+  clearDatasetImageAnnotations,
   deleteDatasetImage,
   deleteDatasetImages,
   type DatasetAnnotationImportResult,
@@ -659,7 +677,9 @@ const exportModalRef = ref<InstanceType<typeof ExportDatasetModal> | null>(null)
 const annotations = ref<Annotation[]>([]);
 const selectedAnnotationId = ref<number | null>(null);
 const annotationCount = computed<number>(() => annotations.value.length);
-const statusText = computed<string>(() => `已标注 ${annotationCount.value} 个对象`);
+const statusText = computed<string>(() => annotationCount.value > 0
+  ? `已标注 ${annotationCount.value} 个对象`
+  : '暂无标注');
 const isSaved = ref(true);
 
 /** 左侧列表每个分块展示的条数（与后端 PageParam.PAGE_SIZE_MAX 一致） */
@@ -875,6 +895,7 @@ const onListChunkPageChange = async (page: number) => {
 const shortcutHints = ref<{ key: string, text: string }[]>([
   {key: 'Del', text: '删除标注'},
   {key: 'Shift+Del', text: '删图片'},
+  {key: 'Ctrl+Shift+Del', text: '清空标注'},
   {key: 'Ctrl+S', text: '保存'},
   {key: 'Ctrl+Shift+S', text: '保存并下一张'},
   {key: 'Space', text: '下一张'},
@@ -1173,7 +1194,11 @@ const clearImageSelection = (): void => {
   selectedImageIds.value = new Set();
 };
 
-const selectAllImagesInChunk = (): void => {
+const toggleAllImagesInChunk = (): void => {
+  if (allSelectableImagesSelected.value) {
+    clearImageSelection();
+    return;
+  }
   selectedImageIds.value = new Set(selectableImageIds.value);
   if (displayImages.value.length > MAX_BATCH_SELECTION) {
     createMessage.info(`已按单次限制选中前 ${MAX_BATCH_SELECTION} 张图片`);
@@ -1306,6 +1331,69 @@ const confirmBatchDeleteSelected = (): void => {
     okText: '删除',
     okType: 'danger',
     onOk: () => deleteImagesByIds(ids),
+  });
+};
+
+const clearAnnotationsByIds = async (ids: number[]): Promise<void> => {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0 || listLoading.value) return;
+  if (uniqueIds.length > MAX_BATCH_SELECTION) {
+    createMessage.warning(`单次最多清除 ${MAX_BATCH_SELECTION} 张图片的标注`);
+    return;
+  }
+
+  try {
+    listLoading.value = true;
+    const currentId = currentImage.value.id;
+    const currentCleared = uniqueIds.includes(currentId);
+    await clearDatasetImageAnnotations(uniqueIds);
+    clearImageSelection();
+    batchSelectMode.value = false;
+    await fetchImages(listChunkPage.value);
+    if (currentCleared) {
+      const refreshedIndex = images.value.findIndex((image) => image.id === currentId);
+      if (refreshedIndex >= 0) {
+        currentImageIndex.value = refreshedIndex;
+        annotations.value = [];
+        imageAnnotations.value[currentId] = [];
+        selectedAnnotationId.value = null;
+        isSaved.value = true;
+        draw();
+      }
+    }
+    await refreshSyncCheck();
+    createMessage.success(uniqueIds.length === 1
+      ? '标注已清空，图片已恢复为待标注'
+      : `已清空 ${uniqueIds.length} 张图片的标注`);
+  } catch (error) {
+    createMessage.error('清除标注失败:' + error);
+  } finally {
+    listLoading.value = false;
+  }
+};
+
+const confirmClearCurrentAnnotations = (): void => {
+  if (!currentImage.value.id || annotations.value.length === 0) return;
+  createConfirm({
+    iconType: 'warning',
+    title: '清空当前图片的全部标注？',
+    content: '图片原文件会保留，全部标注将被清除，状态恢复为“待标注”。',
+    okText: '清空标注',
+    okType: 'danger',
+    onOk: () => clearAnnotationsByIds([currentImage.value.id]),
+  });
+};
+
+const confirmBatchClearSelected = (): void => {
+  const ids = [...selectedImageIds.value];
+  if (ids.length === 0) return;
+  createConfirm({
+    iconType: 'warning',
+    title: `清空 ${ids.length} 张图片的全部标注？`,
+    content: '图片原文件会保留，所选图片的全部标注将被清除，状态恢复为“待标注”。',
+    okText: '批量清空',
+    okType: 'danger',
+    onOk: () => clearAnnotationsByIds(ids),
   });
 };
 
@@ -1561,16 +1649,11 @@ type SaveOptions = {
 const saveCurrentAnnotations = async (options?: SaveOptions): Promise<boolean> => {
   if (saving.value) return false;
 
-  if (annotations.value.length === 0) {
-    createMessage.warning('请至少标注一个对象');
-    return false;
-  }
-
   saving.value = true;
 
   try {
     const updatedStatus = {
-      completed: 1 as 0 | 1,
+      completed: (annotations.value.length > 0 ? 1 : 0) as 0 | 1,
       modificationCount: currentImage.value.modificationCount + 1,
       lastModified: new Date(),
     };
@@ -1601,7 +1684,9 @@ const saveCurrentAnnotations = async (options?: SaveOptions): Promise<boolean> =
     }
 
     if (!options?.quiet) {
-      createMessage.success('标注保存成功');
+      createMessage.success(annotations.value.length > 0
+        ? '标注保存成功'
+        : '标注已清空，图片已恢复为待标注');
     }
     isSaved.value = true;
     await fetchCompletedCount();
@@ -1622,11 +1707,6 @@ const saveCurrentAnnotations = async (options?: SaveOptions): Promise<boolean> =
 /** 保存并跳到下一张待标注（已保存且已完成时仅跳转） */
 const saveAndJumpToNextPending = async (): Promise<void> => {
   if (saving.value || totalImages.value === 0) return;
-
-  if (annotations.value.length === 0) {
-    createMessage.warning('请至少标注一个对象');
-    return;
-  }
 
   const alreadySaved = isSaved.value && currentImage.value.completed === 1;
   if (alreadySaved) {
@@ -2208,7 +2288,10 @@ const handleKeyDown = (e: KeyboardEvent): void => {
       prevImage();
       break;
     case 'Delete':
-      if (e.shiftKey && totalImages.value > 0) {
+      if (e.ctrlKey && e.shiftKey && annotations.value.length > 0) {
+        e.preventDefault();
+        confirmClearCurrentAnnotations();
+      } else if (e.shiftKey && totalImages.value > 0) {
         e.preventDefault();
         confirmDeleteCurrentImage();
       } else if (selectedAnnotationId.value !== null) {
@@ -2992,17 +3075,21 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       width: 100%;
-      gap: 8px;
+      gap: 6px;
 
       .ant-btn {
         flex: 1;
         height: 28px !important;
-        min-width: 56px;
-        padding: 0 12px !important;
-        font-size: 13px !important;
+        min-width: 0;
+        padding: 0 6px !important;
+        font-size: 12px !important;
         font-weight: 500 !important;
         line-height: 1 !important;
         box-shadow: none !important;
+      }
+
+      .batch-clear-annotations-btn {
+        flex: 1.35;
       }
     }
 
@@ -3194,6 +3281,14 @@ onUnmounted(() => {
         border-color: rgba(247, 37, 133, 0.35);
       }
 
+      .image-leading {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 28px;
+        width: 28px;
+      }
+
       .image-select-checkbox {
         flex-shrink: 0;
 
@@ -3204,9 +3299,8 @@ onUnmounted(() => {
       }
 
       .image-index {
-        flex-shrink: 0;
-        width: 28px;
-        text-align: right;
+        width: 100%;
+        text-align: center;
         color: #8c9ab0;
         font-size: 12px;
         font-variant-numeric: tabular-nums;
