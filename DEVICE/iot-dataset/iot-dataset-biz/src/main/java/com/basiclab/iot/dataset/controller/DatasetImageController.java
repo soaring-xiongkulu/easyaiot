@@ -95,6 +95,14 @@ public class DatasetImageController {
         return success(true);
     }
 
+    @PutMapping("/batchClearAnnotations/{ids}")
+    @Operation(summary = "批量清除图片标注并恢复为待标注")
+    @Parameter(name = "ids", description = "图片ID列表", required = true)
+    public CommonResult<Boolean> clearDatasetImageAnnotations(@PathVariable("ids") List<Long> ids) {
+        datasetImageService.clearDatasetImageAnnotations(ids);
+        return success(true);
+    }
+
 
     @GetMapping("/get")
     @Operation(summary = "获得图片数据集")

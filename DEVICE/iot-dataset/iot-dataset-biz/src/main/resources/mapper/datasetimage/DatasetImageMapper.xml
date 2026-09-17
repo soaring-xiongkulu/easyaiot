@@ -54,6 +54,19 @@
         WHERE dataset_id = #{datasetId}
     </update>
 
+    <update id="clearAnnotations">
+        UPDATE dataset_image
+        SET annotations = '[]',
+            completed = 0,
+            modification_count = COALESCE(modification_count, 0) + 1,
+            last_modified = CURRENT_TIMESTAMP,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id IN
+        <foreach collection="imageIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
     <sql id="importIndexColumns">
         id, dataset_id, name, path, modification_count, is_train, is_validation, is_test
     </sql>

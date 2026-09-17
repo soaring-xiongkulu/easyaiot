@@ -185,6 +185,18 @@ public class DatasetImageServiceImpl implements DatasetImageService {
         datasetImageMapper.deleteBatchIds(uniqueIds);
     }
 
+    @Override
+    public void clearDatasetImageAnnotations(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        List<Long> uniqueIds = new ArrayList<>(new LinkedHashSet<>(ids));
+        if (uniqueIds.size() > MAX_BATCH_DELETE_SIZE) {
+            throw exception(DATASET_IMAGE_BATCH_DELETE_LIMIT_EXCEEDED);
+        }
+        datasetImageMapper.clearAnnotations(uniqueIds);
+    }
+
     private void deleteMinioFiles(List<Long> ids) {
         List<DatasetImageDO> images = datasetImageMapper.selectBatchIds(ids);
         for (DatasetImageDO image : images) {

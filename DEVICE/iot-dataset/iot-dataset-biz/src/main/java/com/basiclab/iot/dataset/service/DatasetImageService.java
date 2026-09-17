@@ -53,6 +53,9 @@ public interface DatasetImageService {
      */
     void deleteDatasetImages(List<Long> ids);
 
+    /** 批量清除图片标注，并恢复为待标注状态。 */
+    void clearDatasetImageAnnotations(List<Long> ids);
+
     /**
      * 获得图片数据集
      *

@@ -74,6 +74,9 @@ public interface DatasetImageMapper extends BaseMapperX<DatasetImageDO> {
      */
     void resetUsageByDatasetId(@Param("datasetId") Long datasetId);
 
+    /** 批量清空标注并恢复为待标注状态。 */
+    void clearAnnotations(@Param("imageIds") List<Long> imageIds);
+
     /**
      * 查询导入覆盖所需的轻量索引，避免把大体积 annotations 字段全部载入 JVM。
      */
