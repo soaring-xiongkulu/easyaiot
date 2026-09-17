@@ -506,8 +506,8 @@ const COPY = computed<SmartLabelCopy>(() => {
   return {
     drawerTitle: llm ? '大模型智能标注' : 'SAM3 智能标注',
     drawerDesc: llm
-      ? '大模型冷启动标注，用自然语言描述真实场景，对数据集中已有图片批量生成初始标注'
-      : 'SAM3 冷启动标注，对数据集中已有图片批量生成初始标注',
+      ? '用自然语言描述场景，批量生成初始标注'
+      : '批量生成数据集初始标注',
     tabs: { config: '参数配置', monitor: '运行监控' },
     footer: {
       close: '关闭',
@@ -525,7 +525,7 @@ const COPY = computed<SmartLabelCopy>(() => {
         ? { title: '场景配置', desc: '自然语言定义标注目标' }
         : { title: '基础配置', desc: '类别与格式' },
       batch: { title: '批量参数', desc: '规模与选图' },
-      relay: { title: '接力与训练', desc: '小模型量产闭环' },
+      relay: { title: '训练与接力', desc: '小模型自动接力' },
     },
     form: {
       scene: '场景标注要求',
@@ -550,8 +550,8 @@ const COPY = computed<SmartLabelCopy>(() => {
       autoTrainHint: '冷启动抽检通过后，自动把已标注数据导出为 YOLO 训练集并开始训练。',
       trainEpochs: '训练轮数',
       useGpu: '使用 GPU 训练',
-      autoRelay: '训练完成后自动接力标注',
-      autoRelayHint: '小模型训练完成后，自动标注数据集剩余未标注图片；已有冷启动标注受保护不被覆盖。',
+      autoRelay: '训练后自动接力',
+      autoRelayHint: '训练完成后自动标注剩余图片，已有标注不会被覆盖。',
       relayConfidence: '接力置信度',
       relayConfidenceHint: '小模型接力标注的置信度下限（不低于 0.5，防止低质结果污染数据集）。',
     },
