@@ -327,28 +327,32 @@ def ensure_rules(cur, task_ids: dict, experts: dict, model_id: int | None) -> di
              agent_id=video_expert, model_id=model_id,
              judge_mode='video', video_pre_seconds=5, video_post_seconds=10, video_max_seconds=30,
              secondary_judge=True, fail_policy='reject',
-             prompt_override=None, require_json=True, min_interval_sec=0, priority=10, enabled=True),
+             prompt_override=None, require_json=True, sample_rate_percent=100,
+             min_interval_sec=0, priority=10, enabled=True),
         # 实时任务：区域入侵 -> 图片研判，仅回写（后置增强）
         dict(task_id=rt_task, rule_name='区域入侵-图片回写增强',
              match_objects=None, match_events=json.dumps(['intrusion'], ensure_ascii=False),
              agent_id=image_expert, model_id=model_id,
              judge_mode='image', video_pre_seconds=5, video_post_seconds=10, video_max_seconds=30,
              secondary_judge=False, fail_policy='skip',
-             prompt_override=None, require_json=True, min_interval_sec=0, priority=5, enabled=True),
+             prompt_override=None, require_json=True, sample_rate_percent=100,
+             min_interval_sec=0, priority=5, enabled=True),
         # 实时任务：兜底（全部事件）-> 图片研判，节流 60 秒
         dict(task_id=rt_task, rule_name='兜底-全对象图片研判',
              match_objects=None, match_events=None,
              agent_id=image_expert, model_id=None,
              judge_mode='image', video_pre_seconds=5, video_post_seconds=10, video_max_seconds=30,
              secondary_judge=False, fail_policy='skip',
-             prompt_override=None, require_json=True, min_interval_sec=60, priority=1, enabled=True),
+             prompt_override=None, require_json=True, sample_rate_percent=100,
+             min_interval_sec=60, priority=1, enabled=True),
         # 抓拍任务：图片门控（确认才发通知，失败放行）
         dict(task_id=snap_task, rule_name='抓拍-图片门控',
              match_objects=None, match_events=None,
              agent_id=video_expert, model_id=model_id,
              judge_mode='image', video_pre_seconds=5, video_post_seconds=10, video_max_seconds=30,
              secondary_judge=True, fail_policy='confirm',
-             prompt_override=None, require_json=True, min_interval_sec=0, priority=5, enabled=True),
+             prompt_override=None, require_json=True, sample_rate_percent=100,
+             min_interval_sec=0, priority=5, enabled=True),
     ]
     result = {}
     for r in rules:
