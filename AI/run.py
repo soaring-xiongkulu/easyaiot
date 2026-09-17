@@ -339,7 +339,7 @@ def create_app():
             ensure_auto_label_task_cluster_columns(db.engine)
             ensure_auto_label_subtask_table(db.engine)
             ensure_auto_label_model_history_table(db.engine)
-            # 大模型预置模板数据播种（仅空表时执行，幂等；占位密钥 sk-placeholder-* 填入真实密钥后启用）
+            # 大模型预置模板数据播种（逐条补齐、不覆盖已有配置；占位密钥 sk-placeholder-* 填入真实密钥后启用）
             from app.services.llm_template_seed import ensure_llm_template_seed
             seed_result = ensure_llm_template_seed()
             if seed_result.get('inserted'):

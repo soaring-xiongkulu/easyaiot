@@ -3,7 +3,7 @@
 
 - 这些是真实可用的厂商模板数据（端点/模型/参数已按各厂商最佳实践预置），只差填入真实 API 密钥；
 - 密钥统一为占位符（sk-placeholder-*，非真实 key），激活/测试接口会拦截并引导用户填入真实密钥；
-- 仅当 llm_config 表完全为空时播种，绝不混入已有真实数据；
+- 逐条补齐缺失的预置模板，不覆盖任何已有真实数据；
 - 预置识别不落库（零迁移）：以 api_key 前缀 sk-placeholder- 派生 is_preset 标记，填入真实密钥后自动消失。
 """
 import logging
@@ -87,14 +87,15 @@ LLM_PRESET_MODELS = [
 
 
 def ensure_llm_template_seed() -> dict:
-    """llm_config 表为空时播种预置模板数据（幂等，重复启动不重复插入）。"""
+    """逐条补齐预置模板数据（幂等，重复启动不重复插入）。
+
+    用户已经创建的模型不应阻止其他预置模板初始化；如果用户已有与预置项
+    同名的配置，则保留现有配置并跳过该项。
+    """
     from db_models import LLMModel, db
 
     result = {'inserted': 0, 'skipped': 0}
     try:
-        if LLMModel.query.first() is not None:
-            result['skipped'] = len(LLM_PRESET_MODELS)
-            return result  # 已有真实数据，绝不混入预置数据
         for item in LLM_PRESET_MODELS:
             if LLMModel.query.filter_by(name=item['name']).first() is not None:
                 result['skipped'] += 1
