@@ -9,5 +9,5 @@ AI Module is an integrated platform for AI model train, deployment, management, 
 - **Model Deployment**: Supports deploying models as RESTful API services
 - **Service Management**: Provides model service start, stop, status query and other functions
 - **Log Tracking**: Complete train process log recording and querying
-- **MinIO Integration**: Supports reading datasets and model files from MinIO storage
+- **RustFS Integration**: Supports reading datasets and model files from RustFS storage
 - **Nacos Integration**: Supports service registration and discovery

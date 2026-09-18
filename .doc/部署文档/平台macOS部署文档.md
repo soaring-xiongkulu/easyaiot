@@ -195,7 +195,7 @@ After install, open:
 | WEB | https://localhost:8888 |
 | Gateway | http://localhost:48080 |
 | Nacos | http://localhost:8848/nacos |
-| MinIO | http://localhost:9001 |
+| RustFS | http://localhost:9001 |
 | FUXA (full) | http://localhost:1881 |
 | PANEL (if enabled) | http://localhost:9200 |
 

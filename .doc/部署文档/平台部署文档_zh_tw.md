@@ -25,7 +25,7 @@ EasyAIoT 採用 **Docker 容器化 + 統一安裝腳本** 部署，平台由基�
 
 | 模組 | 目錄 | 說明 |
 |------|------|------|
-| 基礎服務 | `.scripts/docker` | Nacos、PostgreSQL、Redis、Kafka、MinIO 等 |
+| 基礎服務 | `.scripts/docker` | Nacos、PostgreSQL、Redis、Kafka、RustFS 等 |
 | DEVICE | `DEVICE/` | 裝置管理與 API 閘道（Java / Spring Cloud） |
 | AI | `AI/` | 模型訓練、推理（Python） |
 | VIDEO | `VIDEO/` | 視訊串流處理、告警、錄影（Python）；算法任務默認可拉起 RUNTIME |
@@ -369,7 +369,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | WEB 管理平台 | https://\<伺服器IP\>:8888 |
 | API Gateway | http://\<伺服器IP\>:48080 |
 | Nacos | http://\<伺服器IP\>:8848/nacos |
-| MinIO Console | http://\<伺服器IP\>:9001 |
+| RustFS Console | http://\<伺服器IP\>:9001 |
 | AI | http://\<伺服器IP\>:5000 |
 | VIDEO | http://\<伺服器IP\>:6000 |
 | APP H5（full） | http://\<伺服器IP\>:9010 |
@@ -379,7 +379,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | 8888 | WEB |
 | 48080 | Gateway |
 | 8848 | Nacos |
-| 9000/9001 | MinIO |
+| 9000/9001 | RustFS |
 | 5000 | AI |
 | 6000 | VIDEO |
 | 9010 | APP（full） |

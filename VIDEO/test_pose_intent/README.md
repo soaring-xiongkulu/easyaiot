@@ -102,7 +102,7 @@ curl -X POST http://127.0.0.1:48080/admin-api/video/scenario-pose/libraries/1/en
 |------|------|
 | `EASYAIOT_ENABLE_POST_PROCESS_WORKER=1` | 启动姿态 Worker |
 | `POSE_MODEL_PATH` | 自定义 YOLO Pose 模型路径 |
-| `SCENARIO_POSE_IMAGE_BUCKET` | MinIO 桶名（默认 scenario-pose-library） |
+| `SCENARIO_POSE_IMAGE_BUCKET` | RustFS 桶名（默认 scenario-pose-library） |
 | `IOT_SINK_HOST` / `IOT_SINK_PORT` | 后处理入队地址 |
 
 ## 相关文件

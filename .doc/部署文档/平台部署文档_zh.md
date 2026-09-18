@@ -25,7 +25,7 @@ EasyAIoT 采用 **Docker 容器化 + 统一安装脚本** 部署，平台由基�
 
 | 模块 | 目录 | 说明 |
 |------|------|------|
-| 基础服务 | `.scripts/docker` | Nacos、PostgreSQL、Redis、Kafka、MinIO 等 |
+| 基础服务 | `.scripts/docker` | Nacos、PostgreSQL、Redis、Kafka、RustFS 等 |
 | DEVICE | `DEVICE/` | 设备管理与 API 网关（Java / Spring Cloud） |
 | AI | `AI/` | 模型训练、推理（Python） |
 | VIDEO | `VIDEO/` | 视频流处理、告警、录像（Python）；算法任务默认可拉起 RUNTIME |
@@ -232,7 +232,7 @@ sudo .scripts/docker/install_linux_centos.sh --no-firewall install
 sudo .scripts/docker/install_linux_centos.sh --no-upgrade-docker install
 ```
 
-单独中间件（CentOS 7.9）：`.scripts/docker/start_postgresql_centos7.sh`、`start_minio_centos7.sh`、`start_nodered_centos7.sh`、`start_fuxa_centos7.sh`。
+单独中间件（CentOS 7.9）：`.scripts/docker/start_postgresql_centos7.sh`、`start_rustfs_centos7.sh`、`start_nodered_centos7.sh`、`start_fuxa_centos7.sh`。
 
 ### CentOS / RHEL 系 · ARM 说明
 
@@ -530,7 +530,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | WEB 管理平台 | https://\<服务器IP\>:8888 |
 | API Gateway | http://\<服务器IP\>:48080 |
 | Nacos | http://\<服务器IP\>:8848/nacos |
-| MinIO Console | http://\<服务器IP\>:9001 |
+| RustFS Console | http://\<服务器IP\>:9001 |
 | AI | http://\<服务器IP\>:5000 |
 | VIDEO | http://\<服务器IP\>:6000 |
 | APP H5（full） | http://\<服务器IP\>:9010 |
@@ -540,7 +540,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | 8888 | WEB |
 | 48080 | Gateway |
 | 8848 | Nacos |
-| 9000/9001 | MinIO |
+| 9000/9001 | RustFS |
 | 5000 | AI |
 | 6000 | VIDEO |
 | 9010 | APP（full） |

@@ -778,7 +778,7 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VIS
     <li><strong>원클릭 배포</strong>: WEB 「업무 런타임 배포」 또는 설치 스크립트 일괄 배포; 센터 VIDEO 설치 시 로컬 실행기 자동 마운트</li>
     <li><strong>이벤트면 MQTT</strong>: 경보/스냅샷/후처리는 EMQX 알고리즘 버스로 전송, <strong>iot-sink</strong>가 저장·아카이브·알림 enrichment</li>
     <li><strong>관리면 HTTP 하트비트</strong>: 태스크 생존은 VIDEO로 보고, 기동/중지와 태스크 테이블은 VIDEO가 관리</li>
-    <li><strong>NFS 미디어 루트</strong>: 경보 이미지·SRS 녹화는 <strong>NFS 공유 미디어 루트</strong>에 기록(<code>EASYAIOT_MEDIA_ROOT</code>, 기본 <code>/mnt/easyaiot-media</code>; sudo 없으면 <code>$HOME/easyaiot/media</code>로 fallback); MQTT는 경로만 전달, <strong>iot-sink</strong>가 디스크를 읽어 MinIO에 아카이브</li>
+    <li><strong>NFS 미디어 루트</strong>: 경보 이미지·SRS 녹화는 <strong>NFS 공유 미디어 루트</strong>에 기록(<code>EASYAIOT_MEDIA_ROOT</code>, 기본 <code>/mnt/easyaiot-media</code>; sudo 없으면 <code>$HOME/easyaiot/media</code>로 fallback); MQTT는 경로만 전달, <strong>iot-sink</strong>가 디스크를 읽어 RustFS에 아카이브</li>
   </ul>
 </td>
 </tr>

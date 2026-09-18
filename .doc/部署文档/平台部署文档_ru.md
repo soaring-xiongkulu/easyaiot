@@ -23,7 +23,7 @@ EasyAIoT развёртывается с помощью **Docker-контейн�
 
 | Модуль | Каталог | Описание |
 |--------|-----------|-------------|
-| Базовые сервисы | `.scripts/docker` | Nacos, PostgreSQL, Redis, Kafka, MinIO и др. |
+| Базовые сервисы | `.scripts/docker` | Nacos, PostgreSQL, Redis, Kafka, RustFS и др. |
 | DEVICE | `DEVICE/` | Управление устройствами и API-шлюз (Java / Spring Cloud) |
 | AI | `AI/` | Обучение и инференс моделей (Python) |
 | VIDEO | `VIDEO/` | Видеопоток, оповещения, запись (Python) |
@@ -342,7 +342,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | Консоль WEB | https://\<server-ip\>:8888 |
 | API Gateway | http://\<server-ip\>:48080 |
 | Nacos | http://\<server-ip\>:8848/nacos |
-| Консоль MinIO | http://\<server-ip\>:9001 |
+| Консоль RustFS | http://\<server-ip\>:9001 |
 | AI | http://\<server-ip\>:5000 |
 | VIDEO | http://\<server-ip\>:6000 |
 | APP H5 (full) | http://\<server-ip\>:9010 |
@@ -352,7 +352,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | 8888 | WEB |
 | 48080 | Gateway |
 | 8848 | Nacos |
-| 9000/9001 | MinIO |
+| 9000/9001 | RustFS |
 | 5000 | AI |
 | 6000 | VIDEO |
 | 9010 | APP (full) |

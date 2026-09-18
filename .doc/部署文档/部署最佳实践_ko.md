@@ -138,7 +138,7 @@ cd .scripts/docker
 ./analyze_disk_usage.sh --top 20
 ```
 
-주요 디렉터리: MinIO `record-space` / `alert-images`, 로컬 `playbacks`, 알림 이미지 스테이징.
+주요 디렉터리: RustFS `record-space` / `alert-images`, 로컬 `playbacks`, 알림 이미지 스테이징.
 
 ### 자동화 참고 사항
 
@@ -215,7 +215,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 **mini**
 
 - 비즈니스: `iot-system`, `iot-gateway`, `iot-sink`, `iot-infra`, VIDEO, AI, WEB
-- 미들웨어: Nacos, PostgreSQL, Redis, Kafka, MinIO, SRS, EMQX
+- 미들웨어: Nacos, PostgreSQL, Redis, Kafka, RustFS, SRS, EMQX
 - 미시작: `iot-device`, `iot-dataset`, `iot-node`, `iot-visualize`, `iot-file`, `iot-message`, `iot-gb28181`, `iot-tdengine`, Milvus, ZLMediaKit, Node-RED, FUXA, TDengine, APP / VISUALIZE / TRANSFORM 등
 - 이벤트 평면: standard/full과 동일 — MQTT → Gateway → iot-sink
 - 미디어: 설치 시 NFS 미디어 스택 자동 준비 (`EASYAIOT_MEDIA_ROOT`)
@@ -290,7 +290,7 @@ df -h / && docker system df
 | 6379 | Redis | 캐시 |
 | 8848 | Nacos | 레지스트리/설정 |
 | 8888 | WEB | 관리 UI |
-| 9000/9001 | MinIO | 객체 스토리지 |
+| 9000/9001 | RustFS | 객체 스토리지 |
 | 9010 | APP | full만 |
 | 9092 | Kafka | 메시지 큐 |
 | 19530 | Milvus | 벡터 DB |
@@ -346,7 +346,7 @@ cd .scripts/docker && ./install_middleware_linux.sh install
 | PostgreSQL | 5432 | 기본 DB (6개 데이터베이스) |
 | Redis | 6379 | 캐시 |
 | Kafka | 9092 | 메시지 큐 |
-| MinIO | 9000/9001 | 객체 스토리지 |
+| RustFS | 9000/9001 | 객체 스토리지 |
 | Milvus | 19530/9091 | 벡터 DB |
 | SRS | 1935 | 스트리밍 |
 | EMQX | 1883 | MQTT (full/standard) |
@@ -523,7 +523,7 @@ SQL은 `.scripts/tdengine/tdengine_super_tables.sql`에 있으며, full 프로�
 | Nacos | nacos | nacos | :8848/nacos |
 | PostgreSQL | postgres | iot45722414822 | — |
 | Redis | — | basiclab@iot975248395 | — |
-| MinIO | minioadmin | basiclab@iot975248395 | :9001 |
+| RustFS | minioadmin | basiclab@iot975248395 | :9001 |
 | EMQX | admin | basiclab@iot6874125784 | :18083 |
 | Milvus | — | — | :9091 |
 
@@ -648,7 +648,7 @@ sudo .scripts/docker/install_linux.sh clean   # ⚠️ 컨테이너, 이미지, 
 ├───────────┴───────────┴───────────┴───────────┴─────────────────┤
 │  AI (:5000)              │  VIDEO (:6000)    │  APP H5 (:9010) │
 ├──────────────────────────┴───────────────────┴─────────────────┤
-│  Nacos │ PostgreSQL │ Redis │ Kafka │ MinIO │ TDengine          │
+│  Nacos │ PostgreSQL │ Redis │ Kafka │ RustFS │ TDengine          │
 │  Milvus │ SRS │ EMQX │ ZLMediaKit │ Node-RED                     │
 └─────────────────────────────────────────────────────────────────┘
 ```

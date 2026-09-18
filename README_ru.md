@@ -780,7 +780,7 @@ EasyAIoT включает основные модули WEB, APP, DEVICE, EDGE, 
     <li><strong>Раздача в один клик</strong>: WEB «раздача бизнес-runtime» или скрипты установки пакетом; установка VIDEO на центре автоматически монтирует локальный исполнитель</li>
     <li><strong>Событийная плоскость MQTT</strong>: Оповещения/снимки/пост-обработка через шину algo EMQX; <strong>iot-sink</strong> сохраняет, архивирует и обогащает уведомления</li>
     <li><strong>Управляющая плоскость HTTP heartbeat</strong>: Живучесть задач сообщается в VIDEO; старт/стоп и таблица задач управляются VIDEO</li>
-    <li><strong>Корень медиа NFS</strong>: Изображения оповещений и DVR SRS пишутся в <strong>общий NFS media root</strong> (<code>EASYAIOT_MEDIA_ROOT</code>, по умолчанию <code>/mnt/easyaiot-media</code>; без sudo — <code>$HOME/easyaiot/media</code>); MQTT несёт только пути; <strong>iot-sink</strong> читает диск и архивирует в MinIO</li>
+    <li><strong>Корень медиа NFS</strong>: Изображения оповещений и DVR SRS пишутся в <strong>общий NFS media root</strong> (<code>EASYAIOT_MEDIA_ROOT</code>, по умолчанию <code>/mnt/easyaiot-media</code>; без sudo — <code>$HOME/easyaiot/media</code>); MQTT несёт только пути; <strong>iot-sink</strong> читает диск и архивирует в RustFS</li>
   </ul>
 </td>
 </tr>

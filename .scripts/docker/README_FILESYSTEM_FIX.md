@@ -68,12 +68,12 @@ sudo mkdir -p \
   taos_data/data taos_data/log \
   redis_data/data redis_data/logs \
   mq_data/data \
-  minio_data/data minio_data/config \
+  rustfs_data \
   srs_data/conf srs_data/data \
   nodered_data/data
 
 # 设置权限
-sudo chmod -R 777 db_data taos_data redis_data mq_data minio_data srs_data nodered_data standalone-logs
+sudo chmod -R 777 db_data taos_data redis_data mq_data rustfs_data srs_data nodered_data standalone-logs
 ```
 
 #### 步骤 5: 验证修复

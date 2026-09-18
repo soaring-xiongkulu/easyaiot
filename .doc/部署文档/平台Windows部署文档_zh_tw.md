@@ -188,7 +188,7 @@ EasyAIoT 是一個物聯網+AI視頻分析平台，支持攝像頭接入、視�
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                          中間件層                                │
-│  PostgreSQL | Redis | Nacos | MinIO | Kafka | TDengine | SRS   │
+│  PostgreSQL | Redis | Nacos | RustFS | Kafka | TDengine | SRS   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -281,7 +281,7 @@ F:\EASYLOT\easyaiot-V4.0.0\
 F:\EASYLOT\PostgreSQL16\
 F:\EASYLOT\Redis\
 F:\EASYLOT\nacos\     ####要開啟鑒權   自行百度
-F:\EASYLOT\minio\  #####項目裡邊有數據庫或者說minio的密碼  所有密碼都要和項目的配套一至  如minion  賬號：minionminion 密碼iot**
+F:\EASYLOT\rustfs\  #####項目裡邊有數據庫或者說rustfs的密碼  所有密碼都要和項目的配套一至  如minion  賬號：minionminion 密碼iot**
 F:\EASYLOT\kafka\   ###自行下載
 F:\EASYLOT\TDengine\  ####自行下載
 ```
@@ -367,10 +367,10 @@ http://localhost:8848/nacos
 3. 創建命名空間，ID 設置為 `local`
 
 
-### 3.4 MinIO
+### 3.4 RustFS 1.0.0
 
 #### 安裝信息
-- 版本：最新版
+- 版本：1.0.0
 - API端口：9000
 - 控制台端口：9001
 - 用戶名：minioadmin
@@ -378,8 +378,12 @@ http://localhost:8848/nacos
 
 #### 啟動命令
 ```powershell
-cd F:\EASYLOT\minio
-.\minio.exe server data --console-address ":9001"
+cd F:\EASYLOT\rustfs
+$env:RUSTFS_ACCESS_KEY="minioadmin"
+$env:RUSTFS_SECRET_KEY="basiclab@iot975248395"
+$env:RUSTFS_ADDRESS="0.0.0.0:9000"
+$env:RUSTFS_CONSOLE_ADDRESS="0.0.0.0:9001"
+.\rustfs.exe data
 ```
 
 #### 訪問地址
@@ -512,7 +516,7 @@ docker rm srs-server
 
 **必須按以下順序啟動：**
 
-1. 中間件（PostgreSQL → Redis → Nacos → MinIO → Kafka → TDengine → SRS）
+1. 中間件（PostgreSQL → Redis → Nacos → RustFS → Kafka → TDengine → SRS）
 2. DEVICE 微服務（Java）
 3. VIDEO 服務（Python）
 4. AI 服務（Python）
@@ -570,7 +574,7 @@ NACOS_NAMESPACE=local
 NACOS_USERNAME=nacos
 NACOS_PASSWORD=basiclab@iot78475418754
 
-# MinIO
+# RustFS
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=basiclab@iot975248395
@@ -952,8 +956,8 @@ npm run dev
 | PostgreSQL | 5432 | TCP | 數據庫 |
 | Redis | 6379 | TCP | 緩存 |
 | Nacos | 8848 | HTTP | 服務註冊中心 |
-| MinIO API | 9000 | HTTP | 對象存儲 API |
-| MinIO Console | 9001 | HTTP | 對象存儲控制台 |
+| RustFS API | 9000 | HTTP | 對象存儲 API |
+| RustFS Console | 9001 | HTTP | 對象存儲控制台 |
 | Kafka | 9092 | TCP | 消息隊列 |
 | Zookeeper | 2181 | TCP | Kafka 依賴 |
 | TDengine | 6030 | TCP | 時序數據庫原生連接 |
@@ -974,7 +978,7 @@ npm run dev
 | PostgreSQL | postgres | iot45722414822 |
 | Redis | - | basiclab@iot975248395 |
 | Nacos | nacos | basiclab@iot78475418754 |
-| MinIO | minioadmin | basiclab@iot975248395 |
+| RustFS | minioadmin | basiclab@iot975248395 |
 | TDengine | root | taosdata |
 | WEB 前端 | admin | admin123 |
 | 測試攝像頭 | admin | sr336699 |

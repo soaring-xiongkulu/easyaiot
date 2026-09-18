@@ -806,7 +806,7 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, SENTINEL, VIDE
     <li><strong>One-Click Distribute</strong>: WEB “workload distribute” or install scripts batch-deploy; center VIDEO install auto-mounts the local executor</li>
     <li><strong>Event plane MQTT</strong>: Alerts/snapshots/post-process via EMQX algo bus; <strong>iot-sink</strong> persists, archives, and enriches notifications</li>
     <li><strong>Management plane HTTP heartbeat</strong>: Task liveness reports to VIDEO; start/stop and task table managed by VIDEO</li>
-    <li><strong>NFS media root</strong>: Alert images and SRS DVR unified to <strong>NFS shared media root</strong> (<code>EASYAIOT_MEDIA_ROOT</code>, default <code>/mnt/easyaiot-media</code>; falls back to <code>$HOME/easyaiot/media</code> without sudo); MQTT carries paths only; <strong>iot-sink</strong> reads disk and archives to MinIO</li>
+    <li><strong>NFS media root</strong>: Alert images and SRS DVR unified to <strong>NFS shared media root</strong> (<code>EASYAIOT_MEDIA_ROOT</code>, default <code>/mnt/easyaiot-media</code>; falls back to <code>$HOME/easyaiot/media</code> without sudo); MQTT carries paths only; <strong>iot-sink</strong> reads disk and archives to RustFS</li>
   </ul>
 </td>
 </tr>

@@ -174,7 +174,7 @@ bash .scripts/docker/install_mac.sh install
 | WEB | https://localhost:8888 |
 | Gateway | http://localhost:48080 |
 | Nacos | http://localhost:8848/nacos |
-| MinIO | http://localhost:9001 |
+| RustFS | http://localhost:9001 |
 | FUXA (full) | http://localhost:1881 |
 | PANEL (활성화 시) | http://localhost:9200 |
 

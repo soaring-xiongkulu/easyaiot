@@ -16,7 +16,7 @@
 2. **准备模型**：训练完成或上传模型，确认 **model_id** 对应记录 **有权重文件**（PT/ONNX 等）
 3. **批量标注**：标注工具顶栏 →「AI 标注」→ **选择模型（model_id）** → 开启
 4. **查看进度**：顶栏与进度条显示 `已处理/总数`
-5. **验收修正**：抽查误检 → 划分用途 → 同步 Minio → 导出/训练
+5. **验收修正**：抽查误检 → 划分用途 → 同步 RustFS → 导出/训练
 
 > **不需要** 为自动标注单独「模型部署 → 启动推理服务」。对外 API 推理、VIDEO 算法任务仍使用 deploy。
 
@@ -61,7 +61,7 @@
 JAVA_BACKEND_URL=http://iot-gateway:48080
 
 # 可选：自动标注性能
-AUTO_LABEL_PREFETCH_WORKERS=2              # MinIO 下载预取并行度
+AUTO_LABEL_PREFETCH_WORKERS=2              # RustFS 下载预取并行度
 AUTO_LABEL_PROGRESS_COMMIT_INTERVAL=10     # 进度落库间隔（张）
 ```
 

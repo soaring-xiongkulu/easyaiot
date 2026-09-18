@@ -23,7 +23,7 @@ EasyAIoT는 **Docker 컨테이너와 통합 설치 스크립트**를 통해 배�
 
 | 모듈 | 디렉터리 | 설명 |
 |------|------|------|
-| 기본 서비스 | `.scripts/docker` | Nacos, PostgreSQL, Redis, Kafka, MinIO 등 |
+| 기본 서비스 | `.scripts/docker` | Nacos, PostgreSQL, Redis, Kafka, RustFS 등 |
 | DEVICE | `DEVICE/` | 장치 관리 및 API 게이트웨이 (Java / Spring Cloud) |
 | AI | `AI/` | 모델 학습 및 추론 (Python) |
 | VIDEO | `VIDEO/` | 비디오 스트리밍, 알림, 녹화 (Python) |
@@ -342,7 +342,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | WEB 콘솔 | https://\<server-ip\>:8888 |
 | API Gateway | http://\<server-ip\>:48080 |
 | Nacos | http://\<server-ip\>:8848/nacos |
-| MinIO Console | http://\<server-ip\>:9001 |
+| RustFS Console | http://\<server-ip\>:9001 |
 | AI | http://\<server-ip\>:5000 |
 | VIDEO | http://\<server-ip\>:6000 |
 | APP H5 (full) | http://\<server-ip\>:9010 |
@@ -352,7 +352,7 @@ VIDEO_BASE_URL=http://192.168.1.10:6000 ./RUNTIME/install_linux.sh atomic
 | 8888 | WEB |
 | 48080 | Gateway |
 | 8848 | Nacos |
-| 9000/9001 | MinIO |
+| 9000/9001 | RustFS |
 | 5000 | AI |
 | 6000 | VIDEO |
 | 9010 | APP (full) |

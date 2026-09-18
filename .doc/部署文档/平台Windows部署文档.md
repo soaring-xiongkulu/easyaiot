@@ -188,7 +188,7 @@ EasyAIoT is an Internet of Things + AI video analytics platform, supporting feat
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Middleware Layer                         │
-│  PostgreSQL | Redis | Nacos | MinIO | Kafka | TDengine | SRS   │
+│  PostgreSQL | Redis | Nacos | RustFS | Kafka | TDengine | SRS   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -281,7 +281,7 @@ Middleware installation paths:
 F:\EASYLOT\PostgreSQL16\
 F:\EASYLOT\Redis\
 F:\EASYLOT\nacos\     #### Enable authentication    Search online for instructions
-F:\EASYLOT\minio\  ##### The project has database or MinIO passwords. All passwords must match those in the project configuration. E.g., MinIO username: minioadmin, password: iot**
+F:\EASYLOT\rustfs\  ##### The project has database or RustFS passwords. All passwords must match those in the project configuration. E.g., RustFS username: minioadmin, password: iot**
 F:\EASYLOT\kafka\   ### Download yourself
 F:\EASYLOT\TDengine\  #### Download yourself
 ```
@@ -367,7 +367,7 @@ http://localhost:8848/nacos
 3. Create a namespace, set ID to `local`
 
 
-### 3.4 MinIO
+### 3.4 RustFS 1.0.0
 
 #### Installation Info
 - Version: Latest
@@ -378,8 +378,12 @@ http://localhost:8848/nacos
 
 #### Startup Commands
 ```powershell
-cd F:\EASYLOT\minio
-.\minio.exe server data --console-address ":9001"
+cd F:\EASYLOT\rustfs
+$env:RUSTFS_ACCESS_KEY="minioadmin"
+$env:RUSTFS_SECRET_KEY="basiclab@iot975248395"
+$env:RUSTFS_ADDRESS="0.0.0.0:9000"
+$env:RUSTFS_CONSOLE_ADDRESS="0.0.0.0:9001"
+.\rustfs.exe data
 ```
 
 #### Access Address
@@ -512,7 +516,7 @@ docker rm srs-server
 
 **Must start in the following order:**
 
-1. Middleware (PostgreSQL → Redis → Nacos → MinIO → Kafka → TDengine → SRS)
+1. Middleware (PostgreSQL → Redis → Nacos → RustFS → Kafka → TDengine → SRS)
 2. DEVICE Microservices (Java)
 3. VIDEO Service (Python)
 4. AI Service (Python)
@@ -570,7 +574,7 @@ NACOS_NAMESPACE=local
 NACOS_USERNAME=nacos
 NACOS_PASSWORD=basiclab@iot78475418754
 
-# MinIO
+# RustFS
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=basiclab@iot975248395
@@ -953,8 +957,8 @@ npm run dev
 | PostgreSQL | 5432 | TCP | Database |
 | Redis | 6379 | TCP | Cache |
 | Nacos | 8848 | HTTP | Service Registry |
-| MinIO API | 9000 | HTTP | Object Storage API |
-| MinIO Console | 9001 | HTTP | Object Storage Console |
+| RustFS API | 9000 | HTTP | Object Storage API |
+| RustFS Console | 9001 | HTTP | Object Storage Console |
 | Kafka | 9092 | TCP | Message Queue |
 | Zookeeper | 2181 | TCP | Kafka Dependency |
 | TDengine | 6030 | TCP | Time-series DB Native Connection |
@@ -975,7 +979,7 @@ npm run dev
 | PostgreSQL | postgres | iot45722414822 |
 | Redis | - | basiclab@iot975248395 |
 | Nacos | nacos | basiclab@iot78475418754 |
-| MinIO | minioadmin | basiclab@iot975248395 |
+| RustFS | minioadmin | basiclab@iot975248395 |
 | TDengine | root | taosdata |
 | WEB Frontend | admin | admin123 |
 | Test Camera | admin | sr336699 |

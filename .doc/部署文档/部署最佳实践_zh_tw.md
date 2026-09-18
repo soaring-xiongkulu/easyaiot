@@ -137,7 +137,7 @@ cd .scripts/docker
 ./analyze_disk_usage.sh --top 20
 ```
 
-重點目錄：MinIO `record-space` / `alert-images`、本地 `playbacks`、告警圖中轉目錄。
+重點目錄：RustFS `record-space` / `alert-images`、本地 `playbacks`、告警圖中轉目錄。
 
 ### 自動化注意事項
 
@@ -219,7 +219,7 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 **mini**
 
 - 業務：`iot-system`、`iot-gateway`、`iot-sink`、`iot-infra`、VIDEO、AI、WEB
-- 中介軟體：Nacos、PostgreSQL、Redis、Kafka、MinIO、SRS、EMQX
+- 中介軟體：Nacos、PostgreSQL、Redis、Kafka、RustFS、SRS、EMQX
 - 不啟動：`iot-device`、`iot-dataset`、`iot-node`、`iot-visualize`、`iot-file`、`iot-message`、`iot-gb28181`、`iot-tdengine`、Milvus、ZLMediaKit、Node-RED、FUXA、TDengine、APP / VISUALIZE / TRANSFORM 等全量模組
 - 事件面：與 standard/full 一致 — MQTT → Gateway → iot-sink 落庫與歸檔
 - 媒體：安裝時自動準備 NFS 媒體棧（`EASYAIOT_MEDIA_ROOT`）
@@ -250,8 +250,8 @@ sudo .scripts/docker/install_linux.sh         # 1 部署 → 1 安裝 → 7 驗�
 | 標準路徑 | `/mnt/easyaiot-media`（`alert_images/`、`playbacks/` 等） |
 | 無 sudo | 自動 fallback 至 `$HOME/easyaiot/media` |
 | 容器內 | 固定掛載 `/mnt/easyaiot-media` |
-| 錄影歸檔 | SRS `on_dvr` → iot-sink → MinIO → playback URL |
-| 告警 | RUNTIME/VIDEO → MQTT → iot-sink 讀 NFS 同路徑 → MinIO → DB |
+| 錄影歸檔 | SRS `on_dvr` → iot-sink → RustFS → playback URL |
+| 告警 | RUNTIME/VIDEO → MQTT → iot-sink 讀 NFS 同路徑 → RustFS → DB |
 
 一鍵安裝會呼叫 `.scripts/media-cluster/nfs/ensure_nfs_media_stack.sh`；鏈路驗收：
 
@@ -313,7 +313,7 @@ df -h / && docker system df
 | 6379 | Redis | 快取 |
 | 8848 | Nacos | 註冊/配置 |
 | 8888 | WEB | 管理介面 |
-| 9000/9001 | MinIO | 物件儲存 |
+| 9000/9001 | RustFS | 物件儲存 |
 | 9010 | APP | 僅 full |
 | 9092 | Kafka | 訊息佇列 |
 | 19530 | Milvus | 向量庫 |
@@ -369,7 +369,7 @@ cd .scripts/docker && ./install_middleware_linux.sh install
 | PostgreSQL | 5432 | 主資料庫（6 庫） |
 | Redis | 6379 | 快取 |
 | Kafka | 9092 | 訊息佇列 |
-| MinIO | 9000/9001 | 物件儲存 |
+| RustFS | 9000/9001 | 物件儲存 |
 | Milvus | 19530/9091 | 向量庫 |
 | SRS | 1935 | 串流媒體 |
 | EMQX | 1883 | MQTT（full/standard） |
@@ -555,7 +555,7 @@ SQL 位於 `.scripts/tdengine/tdengine_super_tables.sql`，full 規格自動初�
 | Nacos | nacos | nacos | :8848/nacos |
 | PostgreSQL | postgres | iot45722414822 | — |
 | Redis | — | basiclab@iot975248395 | — |
-| MinIO | minioadmin | basiclab@iot975248395 | :9001 |
+| RustFS | minioadmin | basiclab@iot975248395 | :9001 |
 | EMQX | admin | basiclab@iot6874125784 | :18083 |
 | Milvus | — | — | :9091 |
 
@@ -680,7 +680,7 @@ sudo .scripts/docker/install_linux.sh clean   # ⚠️ 刪容器、映像、資�
 ├───────────┴───────────┴───────────┴───────────┴─────────────────┤
 │  AI (:5000)              │  VIDEO (:6000)    │  APP H5 (:9010) │
 ├──────────────────────────┴───────────────────┴─────────────────┤
-│  Nacos │ PostgreSQL │ Redis │ Kafka │ MinIO │ TDengine          │
+│  Nacos │ PostgreSQL │ Redis │ Kafka │ RustFS │ TDengine          │
 │  Milvus │ SRS │ EMQX │ ZLMediaKit │ Node-RED                     │
 └─────────────────────────────────────────────────────────────────┘
 ```

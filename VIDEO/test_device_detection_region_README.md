@@ -137,7 +137,7 @@ BASE_URL = "http://localhost:5000"  # 修改为实际的VIDEO服务地址
 
 3. **用户点击"抓拍图片"**
    - 前端：调用 `captureDeviceSnapshot(device_id)`
-   - 后端：从RTSP/RTMP流抓取一帧，上传到MinIO
+   - 后端：从RTSP/RTMP流抓取一帧，上传到RustFS
    - 返回：`{image_id, image_url, width, height}`
    - 前端：加载图片到画布
 
@@ -169,7 +169,7 @@ BASE_URL = "http://localhost:5000"  # 修改为实际的VIDEO服务地址
    - 前端绘制时需要进行坐标转换
 
 2. **图片处理**
-   - 截图会保存到MinIO
+   - 截图会保存到RustFS
    - 图片信息会记录到 `Image` 表
    - 区域关联到 `image_id`
 
@@ -203,7 +203,7 @@ BASE_URL = "http://localhost:5000"  # 修改为实际的VIDEO服务地址
 ℹ️  请求: POST http://localhost:5000/video/device-detection/device/device_001/snapshot
 ✅ 抓拍成功
   - Image ID: 123
-  - Image URL: http://minio:9000/bucket/image.jpg
+  - Image URL: http://RustFS:9000/bucket/image.jpg
   - 尺寸: 1920x1080
 
 ...

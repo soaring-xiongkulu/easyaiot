@@ -23,7 +23,7 @@ EasyAIoT est déployé via **des conteneurs Docker et un script d'installation u
 
 | Module | Répertoire | Description |
 |--------|-----------|-------------|
-| Services de base | `.scripts/docker` | Nacos, PostgreSQL, Redis, Kafka, MinIO, etc. |
+| Services de base | `.scripts/docker` | Nacos, PostgreSQL, Redis, Kafka, RustFS, etc. |
 | DEVICE | `DEVICE/` | Gestion des appareils et passerelle API (Java / Spring Cloud) |
 | AI | `AI/` | Entraînement et inférence de modèles (Python) |
 | VIDEO | `VIDEO/` | Streaming vidéo, alertes, enregistrement (Python) |
@@ -343,7 +343,7 @@ Une fois `verify` réussi :
 | Console WEB | https://\<server-ip\>:8888 |
 | Passerelle API | http://\<server-ip\>:48080 |
 | Nacos | http://\<server-ip\>:8848/nacos |
-| Console MinIO | http://\<server-ip\>:9001 |
+| Console RustFS | http://\<server-ip\>:9001 |
 | AI | http://\<server-ip\>:5000 |
 | VIDEO | http://\<server-ip\>:6000 |
 | APP H5 (full) | http://\<server-ip\>:9010 |
@@ -353,7 +353,7 @@ Une fois `verify` réussi :
 | 8888 | WEB |
 | 48080 | Gateway |
 | 8848 | Nacos |
-| 9000/9001 | MinIO |
+| 9000/9001 | RustFS |
 | 5000 | AI |
 | 6000 | VIDEO |
 | 9010 | APP (full) |

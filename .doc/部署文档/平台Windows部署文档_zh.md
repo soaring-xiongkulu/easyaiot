@@ -188,7 +188,7 @@ EasyAIoT 是一个物联网+AI视频分析平台，支持摄像头接入、视�
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                          中间件层                                │
-│  PostgreSQL | Redis | Nacos | MinIO | Kafka | TDengine | SRS   │
+│  PostgreSQL | Redis | Nacos | RustFS | Kafka | TDengine | SRS   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -282,7 +282,7 @@ F:\EASYLOT\easyaiot-V4.0.0\
 F:\EASYLOT\PostgreSQL16\
 F:\EASYLOT\Redis\
 F:\EASYLOT\nacos\     ####要开启鉴权   自行百度
-F:\EASYLOT\minio\  #####项目里边有数据库或者说minio的密码  所有密码都要和项目的配套一至  如minion  账号：minionminion 密码iot**
+F:\EASYLOT\rustfs\  #####项目里边有数据库或者说rustfs的密码  所有密码都要和项目的配套一至  如minion  账号：minionminion 密码iot**
 F:\EASYLOT\kafka\   ###自行下载
 F:\EASYLOT\TDengine\  ####自行下载
 ```
@@ -372,10 +372,10 @@ http://localhost:8848/nacos
 
 ---
 
-### 3.4 MinIO
+### 3.4 RustFS 1.0.0
 
 #### 安装信息
-- 版本：最新版
+- 版本：1.0.0
 - API端口：9000
 - 控制台端口：9001
 - 用户名：minioadmin
@@ -383,8 +383,12 @@ http://localhost:8848/nacos
 
 #### 启动命令
 ```powershell
-cd F:\EASYLOT\minio
-.\minio.exe server data --console-address ":9001"
+cd F:\EASYLOT\rustfs
+$env:RUSTFS_ACCESS_KEY="minioadmin"
+$env:RUSTFS_SECRET_KEY="basiclab@iot975248395"
+$env:RUSTFS_ADDRESS="0.0.0.0:9000"
+$env:RUSTFS_CONSOLE_ADDRESS="0.0.0.0:9001"
+.\rustfs.exe data
 ```
 
 #### 访问地址
@@ -521,7 +525,7 @@ docker rm srs-server
 
 **必须按以下顺序启动：**
 
-1. 中间件（PostgreSQL → Redis → Nacos → MinIO → Kafka → TDengine → SRS）
+1. 中间件（PostgreSQL → Redis → Nacos → RustFS → Kafka → TDengine → SRS）
 2. DEVICE 微服务（Java）
 3. VIDEO 服务（Python）
 4. AI 服务（Python）
@@ -581,7 +585,7 @@ NACOS_NAMESPACE=local
 NACOS_USERNAME=nacos
 NACOS_PASSWORD=basiclab@iot78475418754
 
-# MinIO
+# RustFS
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=basiclab@iot975248395
@@ -977,8 +981,8 @@ npm run dev
 | PostgreSQL | 5432 | TCP | 数据库 |
 | Redis | 6379 | TCP | 缓存 |
 | Nacos | 8848 | HTTP | 服务注册中心 |
-| MinIO API | 9000 | HTTP | 对象存储 API |
-| MinIO Console | 9001 | HTTP | 对象存储控制台 |
+| RustFS API | 9000 | HTTP | 对象存储 API |
+| RustFS Console | 9001 | HTTP | 对象存储控制台 |
 | Kafka | 9092 | TCP | 消息队列 |
 | Zookeeper | 2181 | TCP | Kafka 依赖 |
 | TDengine | 6030 | TCP | 时序数据库原生连接 |
@@ -999,7 +1003,7 @@ npm run dev
 | PostgreSQL | postgres | iot45722414822 |
 | Redis | - | basiclab@iot975248395 |
 | Nacos | nacos | basiclab@iot78475418754 |
-| MinIO | minioadmin | basiclab@iot975248395 |
+| RustFS | minioadmin | basiclab@iot975248395 |
 | TDengine | root | taosdata |
 | WEB 前端 | admin | admin123 |
 | 测试摄像头 | admin | sr336699 |

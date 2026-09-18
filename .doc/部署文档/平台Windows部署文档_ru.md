@@ -167,7 +167,7 @@ EasyAIoT — это платформа для анализа видео с ис�
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                          中间件层                                │
-│  PostgreSQL | Redis | Nacos | MinIO | Kafka | TDengine | SRS   │
+│  PostgreSQL | Redis | Nacos | RustFS | Kafka | TDengine | SRS   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -260,7 +260,7 @@ F:\EASYLOT\easyaiot-V4.0.0\
 F:\EASYLOT\PostgreSQL16\
 F:\EASYLOT\Redis\
 F:\EASYLOT\nacos\     ####要开启鉴权   自行百度
-F:\EASYLOT\minio\  #####项目里边有数据库或者说minio的密码  所有密码都要和项目的配套一至  如minion  账号：minionminion 密码iot**
+F:\EASYLOT\rustfs\  #####项目里边有数据库或者说rustfs的密码  所有密码都要和项目的配套一至  如minion  账号：minionminion 密码iot**
 F:\EASYLOT\kafka\   ###自行下载
 F:\EASYLOT\TDengine\  ####自行下载
 ```
@@ -346,7 +346,7 @@ http://localhost:8848/nacos
 3. Создайте пространство имен, установите ID как `local`
 
 
-### 3.4 MinIO
+### 3.4 RustFS 1.0.0
 
 #### Информация об установке
 - Версия: Последняя версия
@@ -357,8 +357,12 @@ http://localhost:8848/nacos
 
 #### Команда запуска
 ```powershell
-cd F:\EASYLOT\minio
-.\minio.exe server data --console-address ":9001"
+cd F:\EASYLOT\rustfs
+$env:RUSTFS_ACCESS_KEY="minioadmin"
+$env:RUSTFS_SECRET_KEY="basiclab@iot975248395"
+$env:RUSTFS_ADDRESS="0.0.0.0:9000"
+$env:RUSTFS_CONSOLE_ADDRESS="0.0.0.0:9001"
+.\rustfs.exe data
 ```
 
 #### Адреса доступа
@@ -491,7 +495,7 @@ docker rm srs-server
 
 **Необходимо запускать в следующем порядке:**
 
-1. Промежуточное ПО (PostgreSQL → Redis → Nacos → MinIO → Kafka → TDengine → SRS)
+1. Промежуточное ПО (PostgreSQL → Redis → Nacos → RustFS → Kafka → TDengine → SRS)
 2. Микросервисы DEVICE (Java)
 3. Сервис VIDEO (Python)
 4. Сервис AI (Python)
@@ -549,7 +553,7 @@ NACOS_NAMESPACE=local
 NACOS_USERNAME=nacos
 NACOS_PASSWORD=basiclab@iot78475418754
 
-# MinIO
+# RustFS
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=basiclab@iot975248395
@@ -931,8 +935,8 @@ npm run dev
 | PostgreSQL | 5432 | TCP | База данных |
 | Redis | 6379 | TCP | Кэш |
 | Nacos | 8848 | HTTP | Центр регистрации сервисов |
-| MinIO API | 9000 | HTTP | API объектного хранилища |
-| MinIO Console | 9001 | HTTP | Консоль объектного хранилища |
+| RustFS API | 9000 | HTTP | API объектного хранилища |
+| RustFS Console | 9001 | HTTP | Консоль объектного хранилища |
 | Kafka | 9092 | TCP | Очередь сообщений |
 | Zookeeper | 2181 | TCP | Зависимость Kafka |
 | TDengine | 6030 | TCP | Нативное подключение к базе данных временных рядов |
@@ -953,7 +957,7 @@ npm run dev
 | PostgreSQL | postgres | iot45722414822 |
 | Redis | - | basiclab@iot975248395 |
 | Nacos | nacos | basiclab@iot78475418754 |
-| MinIO | minioadmin | basiclab@iot975248395 |
+| RustFS | minioadmin | basiclab@iot975248395 |
 | TDengine | root | taosdata |
 | Фронтенд WEB | admin | admin123 |
 | Тестовая камера | admin | sr336699 |

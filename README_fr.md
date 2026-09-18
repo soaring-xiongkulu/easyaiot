@@ -778,7 +778,7 @@ EasyAIoT comprend notamment WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RU
     <li><strong>Distribution en un clic</strong> : WEB « distribution de runtime métier » ou scripts d’install en lot ; l’install VIDEO du centre monte automatiquement l’exécuteur local</li>
     <li><strong>Plan d’événements MQTT</strong> : Alertes/captures/post-traitement via le bus algo EMQX ; <strong>iot-sink</strong> persiste, archive et enrichit les notifications</li>
     <li><strong>Plan de gestion heartbeat HTTP</strong> : La vivacité des tâches remonte à VIDEO ; démarrage/arrêt et table des tâches gérés par VIDEO</li>
-    <li><strong>Racine média NFS</strong> : Images d’alerte et DVR SRS unifiés vers la <strong>racine média NFS partagée</strong> (<code>EASYAIOT_MEDIA_ROOT</code>, défaut <code>/mnt/easyaiot-media</code> ; repli sur <code>$HOME/easyaiot/media</code> sans sudo) ; MQTT ne transporte que les chemins ; <strong>iot-sink</strong> lit le disque et archive vers MinIO</li>
+    <li><strong>Racine média NFS</strong> : Images d’alerte et DVR SRS unifiés vers la <strong>racine média NFS partagée</strong> (<code>EASYAIOT_MEDIA_ROOT</code>, défaut <code>/mnt/easyaiot-media</code> ; repli sur <code>$HOME/easyaiot/media</code> sans sudo) ; MQTT ne transporte que les chemins ; <strong>iot-sink</strong> lit le disque et archive vers RustFS</li>
   </ul>
 </td>
 </tr>

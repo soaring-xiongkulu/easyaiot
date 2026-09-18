@@ -167,7 +167,7 @@ EasyAIoT는 IoT + AI 비디오 분석 플랫폼으로, 카메라 연결, 비디�
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                          中间件层                                │
-│  PostgreSQL | Redis | Nacos | MinIO | Kafka | TDengine | SRS   │
+│  PostgreSQL | Redis | Nacos | RustFS | Kafka | TDengine | SRS   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -260,7 +260,7 @@ F:\EASYLOT\easyaiot-V4.0.0\
 F:\EASYLOT\PostgreSQL16\
 F:\EASYLOT\Redis\
 F:\EASYLOT\nacos\     ####要开启鉴权   自行百度
-F:\EASYLOT\minio\  #####项目里边有数据库或者说minio的密码  所有密码都要和项目的配套一至  如minion  账号：minionminion 密码iot**
+F:\EASYLOT\rustfs\  #####项目里边有数据库或者说rustfs的密码  所有密码都要和项目的配套一至  如minion  账号：minionminion 密码iot**
 F:\EASYLOT\kafka\   ###自行下载
 F:\EASYLOT\TDengine\  ####自行下载
 ```
@@ -346,7 +346,7 @@ http://localhost:8848/nacos
 3. 네임스페이스를 생성하고 ID를 `local`로 설정
 
 
-### 3.4 MinIO
+### 3.4 RustFS 1.0.0
 
 #### 설치 정보
 - 버전: 최신 버전
@@ -357,8 +357,12 @@ http://localhost:8848/nacos
 
 #### 시작 명령
 ```powershell
-cd F:\EASYLOT\minio
-.\minio.exe server data --console-address ":9001"
+cd F:\EASYLOT\rustfs
+$env:RUSTFS_ACCESS_KEY="minioadmin"
+$env:RUSTFS_SECRET_KEY="basiclab@iot975248395"
+$env:RUSTFS_ADDRESS="0.0.0.0:9000"
+$env:RUSTFS_CONSOLE_ADDRESS="0.0.0.0:9001"
+.\rustfs.exe data
 ```
 
 #### 액세스 주소
@@ -491,7 +495,7 @@ docker rm srs-server
 
 **다음 순서로 시작해야 합니다:**
 
-1. 미들웨어 (PostgreSQL → Redis → Nacos → MinIO → Kafka → TDengine → SRS)
+1. 미들웨어 (PostgreSQL → Redis → Nacos → RustFS → Kafka → TDengine → SRS)
 2. DEVICE 마이크로서비스 (Java)
 3. VIDEO 서비스 (Python)
 4. AI 서비스 (Python)
@@ -549,7 +553,7 @@ NACOS_NAMESPACE=local
 NACOS_USERNAME=nacos
 NACOS_PASSWORD=basiclab@iot78475418754
 
-# MinIO
+# RustFS
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=basiclab@iot975248395
@@ -931,8 +935,8 @@ npm run dev
 | PostgreSQL | 5432 | TCP | 데이터베이스 |
 | Redis | 6379 | TCP | 캐시 |
 | Nacos | 8848 | HTTP | 서비스 등록 센터 |
-| MinIO API | 9000 | HTTP | 객체 스토리지 API |
-| MinIO Console | 9001 | HTTP | 객체 스토리지 콘솔 |
+| RustFS API | 9000 | HTTP | 객체 스토리지 API |
+| RustFS Console | 9001 | HTTP | 객체 스토리지 콘솔 |
 | Kafka | 9092 | TCP | 메시지 큐 |
 | Zookeeper | 2181 | TCP | Kafka 종속성 |
 | TDengine | 6030 | TCP | 시계열 데이터베이스 네이티브 연결 |
@@ -953,7 +957,7 @@ npm run dev
 | PostgreSQL | postgres | iot45722414822 |
 | Redis | - | basiclab@iot975248395 |
 | Nacos | nacos | basiclab@iot78475418754 |
-| MinIO | minioadmin | basiclab@iot975248395 |
+| RustFS | minioadmin | basiclab@iot975248395 |
 | TDengine | root | taosdata |
 | WEB 프론트엔드 | admin | admin123 |
 | 테스트 카메라 | admin | sr336699 |

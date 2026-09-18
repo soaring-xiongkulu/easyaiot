@@ -138,7 +138,7 @@ cd .scripts/docker
 ./analyze_disk_usage.sh --top 20
 ```
 
-Ключевые каталоги: MinIO `record-space` / `alert-images`, локальный `playbacks`, промежуточное хранение изображений оповещений.
+Ключевые каталоги: RustFS `record-space` / `alert-images`, локальный `playbacks`, промежуточное хранение изображений оповещений.
 
 ### Примечания по автоматизации
 
@@ -215,7 +215,7 @@ sudo .scripts/docker/install_linux.sh         # 1 Deploy → 1 Install → 7 Ver
 **mini**
 
 - Бизнес: `iot-system`, `iot-gateway`, `iot-sink`, `iot-infra`, VIDEO, AI, WEB
-- Middleware: Nacos, PostgreSQL, Redis, Kafka, MinIO, SRS, EMQX
+- Middleware: Nacos, PostgreSQL, Redis, Kafka, RustFS, SRS, EMQX
 - Не запускаются: `iot-device`, `iot-dataset`, `iot-node`, `iot-visualize`, `iot-file`, `iot-message`, `iot-gb28181`, `iot-tdengine`, Milvus, ZLMediaKit, Node-RED, FUXA, TDengine, APP / VISUALIZE / TRANSFORM и др.
 - Событийный контур: как standard/full — MQTT → Gateway → iot-sink
 - Медиа: NFS-стек готовится при установке (`EASYAIOT_MEDIA_ROOT`)
@@ -290,7 +290,7 @@ df -h / && docker system df
 | 6379 | Redis | Кэш |
 | 8848 | Nacos | Реестр/конфигурация |
 | 8888 | WEB | Панель управления |
-| 9000/9001 | MinIO | Объектное хранилище |
+| 9000/9001 | RustFS | Объектное хранилище |
 | 9010 | APP | только full |
 | 9092 | Kafka | Очередь сообщений |
 | 19530 | Milvus | Векторная БД |
@@ -346,7 +346,7 @@ cd .scripts/docker && ./install_middleware_linux.sh install
 | PostgreSQL | 5432 | Основная БД (6 баз) |
 | Redis | 6379 | Кэш |
 | Kafka | 9092 | Очередь сообщений |
-| MinIO | 9000/9001 | Объектное хранилище |
+| RustFS | 9000/9001 | Объектное хранилище |
 | Milvus | 19530/9091 | Векторная БД |
 | SRS | 1935 | Стриминг |
 | EMQX | 1883 | MQTT (full/standard) |
@@ -523,7 +523,7 @@ SQL в `.scripts/tdengine/tdengine_super_tables.sql`; автоматическа
 | Nacos | nacos | nacos | :8848/nacos |
 | PostgreSQL | postgres | iot45722414822 | — |
 | Redis | — | basiclab@iot975248395 | — |
-| MinIO | minioadmin | basiclab@iot975248395 | :9001 |
+| RustFS | minioadmin | basiclab@iot975248395 | :9001 |
 | EMQX | admin | basiclab@iot6874125784 | :18083 |
 | Milvus | — | — | :9091 |
 
@@ -648,7 +648,7 @@ sudo .scripts/docker/install_linux.sh clean   # ⚠️ Удаляет конте
 ├───────────┴───────────┴───────────┴───────────┴─────────────────┤
 │  AI (:5000)              │  VIDEO (:6000)    │  APP H5 (:9010) │
 ├──────────────────────────┴───────────────────┴─────────────────┤
-│  Nacos │ PostgreSQL │ Redis │ Kafka │ MinIO │ TDengine          │
+│  Nacos │ PostgreSQL │ Redis │ Kafka │ RustFS │ TDengine          │
 │  Milvus │ SRS │ EMQX │ ZLMediaKit │ Node-RED                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
