@@ -154,7 +154,9 @@ public class MinioSysFileServiceImpl implements ISysFileService {
                     .build();
             minioClient.putObject(args);
             log.info("文件上传成功: bucket={}, fileName={}", bucketName, fileName);
-            return minioConfig.getDownloadUrl() + "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
+            // Keep downloads behind the platform proxy. A storage console URL is
+            // vendor-specific and RustFS does not expose MinIO's console routes.
+            return "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + fileName;
         } catch (ErrorResponseException e) {
             String errorMsg = e.getMessage();
             if (errorMsg != null && errorMsg.contains("Access Key Id")) {
@@ -285,7 +287,7 @@ public class MinioSysFileServiceImpl implements ISysFileService {
                 }
                 Map<String, Object> resultMap = new HashMap<>();
 //                String url = getUrl(bucketName, i.objectName());
-                String url = minioConfig.getDownloadUrl() + "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + i.objectName();
+                String url = "/api/v1/buckets/" + minioConfig.getBucketName() + "/objects/download?prefix=" + i.objectName();
                 resultMap.put("objectName", i.objectName());
                 resultMap.put("url", url);
                 resultMap.put("lastModified", i.lastModified());

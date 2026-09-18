@@ -17,7 +17,7 @@ def check_minio_config():
     print("=" * 60)
     
     # 读取配置
-    minio_endpoint = os.getenv('MINIO_ENDPOINT', 'MinIO:9000')
+    minio_endpoint = os.getenv('MINIO_ENDPOINT', 'RustFS:9000')
     access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
     secret_key = os.getenv('MINIO_SECRET_KEY', 'basiclab@iot975248395')
     secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'

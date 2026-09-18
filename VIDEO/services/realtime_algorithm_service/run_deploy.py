@@ -1476,10 +1476,9 @@ def _build_absolute_url(maybe_path_or_url: str) -> Optional[str]:
     if maybe_path_or_url.startswith('http://') or maybe_path_or_url.startswith('https://'):
         return maybe_path_or_url
     if maybe_path_or_url.startswith('/'):
-        # 优先 MinIO Console（9001），其次 AI 代理（与 AI_SERVICE_URL 拼接），再网关
+        # 产品控制台 URL 不是稳定的下载 API；统一走 AI 或 Gateway 代理。
         base = (
             os.getenv('MODEL_DOWNLOAD_BASE_URL')
-            or os.getenv('MINIO_CONSOLE_URL')
             or os.getenv('AI_SERVICE_URL')
             or os.getenv('GATEWAY_URL')
             or 'http://localhost:5000'
@@ -1505,7 +1504,7 @@ def _download_model_from_minio_direct(bucket_name: str, object_key: str, local_p
     跨容器时算法任务会收到 code=0 但本机文件不存在/为空）。
     需配置与 AI 模块一致的 MINIO_ENDPOINT / MINIO_ACCESS_KEY / MINIO_SECRET_KEY / MINIO_SECURE。
     """
-    endpoint = _normalize_minio_endpoint(os.getenv('MINIO_ENDPOINT', '').strip())
+    endpoint = _normalize_minio_endpoint((os.getenv('S3_ENDPOINT') or os.getenv('MINIO_ENDPOINT', '')).strip())
     if not endpoint:
         return False
     try:
@@ -1514,9 +1513,9 @@ def _download_model_from_minio_direct(bucket_name: str, object_key: str, local_p
     except ImportError:
         logger.warning('未安装 minio 包，跳过直连 MinIO 下载')
         return False
-    access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-    secret_key = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
-    secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
+    access_key = os.getenv('S3_ACCESS_KEY') or os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+    secret_key = os.getenv('S3_SECRET_KEY') or os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+    secure = (os.getenv('S3_SECURE') or os.getenv('MINIO_SECURE', 'false')).lower() == 'true'
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     tmp_path = f"{local_path}.minio.tmp"
     try:

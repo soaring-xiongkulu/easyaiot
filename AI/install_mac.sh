@@ -226,7 +226,7 @@ create_env_file() {
             sed -i '' 's|^NACOS_SERVER=.*|NACOS_SERVER=Nacos:8848|' .env.docker
             
             # 更新MinIO配置（使用中间件服务名称，注意：服务名是MinIO）
-            sed -i '' 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env.docker
+            sed -i '' 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=RustFS:9000|' .env.docker
             sed -i '' 's|^MINIO_SECRET_KEY=.*|MINIO_SECRET_KEY=basiclab@iot975248395|' .env.docker
             
             # 更新Nacos密码
@@ -259,8 +259,8 @@ create_env_file() {
         
         # 检查并更新MinIO配置（如果还是localhost或旧的服务名）
         if grep -q "MINIO_ENDPOINT=.*localhost" .env.docker || grep -q "MINIO_ENDPOINT=.*minio-server" .env.docker; then
-            sed -i '' 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=MinIO:9000|' .env.docker
-            print_info "已更新MinIO连接为 MinIO:9000"
+            sed -i '' 's|^MINIO_ENDPOINT=.*|MINIO_ENDPOINT=RustFS:9000|' .env.docker
+            print_info "已更新MinIO连接为 RustFS:9000"
         fi
         
         # 检查并更新Nacos命名空间（如果设置为local或其他非空值，则重置为空，使用默认命名空间）

@@ -481,7 +481,6 @@ def _build_absolute_url(maybe_path_or_url: str) -> Optional[str]:
     if maybe_path_or_url.startswith('/'):
         base = (
             os.getenv('MODEL_DOWNLOAD_BASE_URL')
-            or os.getenv('MINIO_CONSOLE_URL')
             or os.getenv('AI_SERVICE_URL')
             or os.getenv('GATEWAY_URL')
             or 'http://localhost:5000'
@@ -503,16 +502,16 @@ def _normalize_minio_endpoint(raw: str) -> str:
 
 def _get_minio_client():
     """算法子进程内创建 MinIO 客户端（与 download 逻辑共用环境变量）。"""
-    endpoint = _normalize_minio_endpoint(os.getenv('MINIO_ENDPOINT', '').strip())
+    endpoint = _normalize_minio_endpoint((os.getenv('S3_ENDPOINT') or os.getenv('MINIO_ENDPOINT', '')).strip())
     if not endpoint:
         return None
     try:
         from minio import Minio
     except ImportError:
         return None
-    access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-    secret_key = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
-    secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
+    access_key = os.getenv('S3_ACCESS_KEY') or os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+    secret_key = os.getenv('S3_SECRET_KEY') or os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+    secure = (os.getenv('S3_SECURE') or os.getenv('MINIO_SECURE', 'false')).lower() == 'true'
     return Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
 
 
@@ -796,7 +795,7 @@ def _download_model_from_minio_direct(bucket_name: str, object_key: str, local_p
     跨容器时算法任务会收到 code=0 但本机文件不存在/为空）。
     需配置与 AI 模块一致的 MINIO_ENDPOINT / MINIO_ACCESS_KEY / MINIO_SECRET_KEY / MINIO_SECURE。
     """
-    endpoint = _normalize_minio_endpoint(os.getenv('MINIO_ENDPOINT', '').strip())
+    endpoint = _normalize_minio_endpoint((os.getenv('S3_ENDPOINT') or os.getenv('MINIO_ENDPOINT', '')).strip())
     if not endpoint:
         return False
     try:
@@ -805,9 +804,9 @@ def _download_model_from_minio_direct(bucket_name: str, object_key: str, local_p
     except ImportError:
         logger.warning('未安装 minio 包，跳过直连 MinIO 下载')
         return False
-    access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-    secret_key = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
-    secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
+    access_key = os.getenv('S3_ACCESS_KEY') or os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
+    secret_key = os.getenv('S3_SECRET_KEY') or os.getenv('MINIO_SECRET_KEY', 'minioadmin')
+    secure = (os.getenv('S3_SECURE') or os.getenv('MINIO_SECURE', 'false')).lower() == 'true'
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     tmp_path = f"{local_path}.minio.tmp"
     try:

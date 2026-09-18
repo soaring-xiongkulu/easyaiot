@@ -178,7 +178,7 @@ def download_from_minio(bucket_name: str, object_key: str, destination_path: str
     except ImportError as e:
         return False, f'minio 库不可用: {e}'
 
-    endpoint = os.getenv('MINIO_ENDPOINT', 'MinIO:9000')
+    endpoint = os.getenv('MINIO_ENDPOINT', 'RustFS:9000')
     access_key = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
     secret_key = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
     secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
