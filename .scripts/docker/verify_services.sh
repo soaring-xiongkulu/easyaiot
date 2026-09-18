@@ -218,12 +218,12 @@ else
     print_info "Kafka 未启用（当前部署形态），跳过验证"
 fi
 
-# MinIO
-if middleware_service_enabled "MinIO"; then
-    verify_service "MinIO" "minio-server" "9000,9001" \
-        "curl -f http://127.0.0.1:9000/minio/health/live > /dev/null 2>&1"
+# RustFS
+if middleware_service_enabled "RustFS"; then
+    verify_service "RustFS" "rustfs-server" "9000,9001" \
+        "curl -f http://127.0.0.1:9000/health/ready > /dev/null 2>&1"
 else
-    print_info "MinIO 未启用（当前部署形态），跳过验证"
+    print_info "RustFS 未启用（当前部署形态），跳过验证"
 fi
 
 # Milvus

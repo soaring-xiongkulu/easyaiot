@@ -92,7 +92,7 @@ _print_analyze_header() {
     echo "  1) 多模块日志合并分析"
     echo "     说明：基础服务/DEVICE 按 docker-compose 拆分为独立容器，各约 500 行"
     echo "  2) 项目磁盘占用分析"
-    echo "     说明：MinIO 录像、告警图、本地 playbacks 等关键目录占用"
+    echo "     说明：RustFS 录像、告警图、本地 playbacks 等关键目录占用"
     echo "  3) 服务状态与健康验证"
     echo "     说明：先看运行状态，再自动做健康检查"
     echo "  4) Docker 与环境检查"

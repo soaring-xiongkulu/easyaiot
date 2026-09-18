@@ -79,7 +79,7 @@ print_section() {
 
 MIDDLEWARE_CONTAINERS=(
     nacos-server postgres-server postgres-init redis-server kafka-server
-    minio-server milvus-server srs-server nodered-server fuxa-server emqx-server
+    rustfs-server milvus-server srs-server nodered-server fuxa-server emqx-server
     zlmediakit-server tdengine-server tdengine-init
 )
 DEVICE_CONTAINERS=(

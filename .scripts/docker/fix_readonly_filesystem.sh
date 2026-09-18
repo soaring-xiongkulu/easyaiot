@@ -155,8 +155,8 @@ create_required_directories() {
         "${SCRIPT_DIR}/redis_data/data"
         "${SCRIPT_DIR}/redis_data/logs"
         "${SCRIPT_DIR}/mq_data/data"
-        "${SCRIPT_DIR}/minio_data/data"
-        "${SCRIPT_DIR}/minio_data/config"
+        "${SCRIPT_DIR}/rustfs_data/data"
+        "${SCRIPT_DIR}/rustfs_data/logs"
         "${SCRIPT_DIR}/srs_data/conf"
         "${SCRIPT_DIR}/srs_data/data"
         "${SCRIPT_DIR}/nodered_data/data"
@@ -367,4 +367,3 @@ main() {
 
 # 运行主函数
 main "$@"
-

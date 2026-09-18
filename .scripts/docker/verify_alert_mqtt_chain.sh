@@ -10,7 +10,7 @@
 # 用法：
 #   ./verify_alert_mqtt_chain.sh              # 共享盘探测 + 全量 E2E
 #   ./verify_alert_mqtt_chain.sh --mount-only # 仅共享盘/挂载
-#   ./verify_alert_mqtt_chain.sh --skip-media # E2E 不测 MinIO 归档
+#   ./verify_alert_mqtt_chain.sh --skip-media # E2E 不测 RustFS 归档
 #   ./verify_alert_mqtt_chain.sh --contract-only
 #
 # 也可经统一入口：

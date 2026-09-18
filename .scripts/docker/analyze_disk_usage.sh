@@ -31,12 +31,12 @@ TOP_N=10
 MEDIA_TOP_N=10
 REPORT_FILE=""
 
-MINIO_DATA_DIR="${SCRIPT_DIR}/minio_data/data"
+MINIO_DATA_DIR="${SCRIPT_DIR}/rustfs_data/data"
 MINIO_RECORD_SPACE_DIR="${MINIO_DATA_DIR}/record-space"
 MINIO_ALERT_IMAGES_DIR="${MINIO_DATA_DIR}/alert-images"
 LOCAL_ALERT_IMAGES_DIR="${PROJECT_ROOT}/VIDEO/alert_images"
 
-# SRS 本地录像目录候选（SRS 录制 → 上传 MinIO record-space → 默认删除本地；积压时与 MinIO 双重占用）
+# SRS 本地录像目录候选（SRS 录制 → 上传 RustFS record-space → 默认删除本地；积压时与 RustFS 双重占用）
 LOCAL_PLAYBACK_CANDIDATES=(
     "${MEDIA_RECORD_DIR:-}|MEDIA_RECORD_DIR（本地录像根目录）"
     "${SRS_RECORD_DIR:-}|SRS_RECORD_DIR（本地录像根目录）"
@@ -48,7 +48,7 @@ LOCAL_PLAYBACK_CANDIDATES=(
     "/data/playbacks|容器 /data/playbacks 常见宿主机映射"
 )
 
-# 本地告警图片中转（上传 MinIO alert-images 前落盘，与 VIDEO/iot-sink 卷挂载一致）
+# 本地告警图片中转（上传 RustFS alert-images 前落盘，与 VIDEO/iot-sink 卷挂载一致）
 LOCAL_ALERT_IMAGE_CANDIDATES=(
     "${ALERT_IMAGES_DIR:-}|ALERT_IMAGES_DIR 环境变量"
     "${EASYAIOT_MEDIA_ROOT:-/mnt/easyaiot-media}/alert_images|NFS alert_images"
@@ -311,9 +311,9 @@ list_playback_subdirs() {
 }
 
 collect_local_playbacks_report() {
-    echo "【3】本地 SRS 录像目录 (playbacks — MinIO 上传前缓冲/回放读取)"
-    print_info "流程：SRS 录制 → 本地 playbacks → 上传 MinIO record-space → 默认删除本地（PLAYBACK_DELETE_AFTER_UPLOAD）"
-    print_info "若上传积压/失败，本地会与 MinIO 形成双重占用；查看回放时 mini 形态直接读本目录"
+    echo "【3】本地 SRS 录像目录 (playbacks — RustFS 上传前缓冲/回放读取)"
+    print_info "流程：SRS 录制 → 本地 playbacks → 上传 RustFS record-space → 默认删除本地（PLAYBACK_DELETE_AFTER_UPLOAD）"
+    print_info "若上传积压/失败，本地会与 RustFS 形成双重占用；查看回放时 mini 形态直接读本目录"
     echo ""
     printf "  %-36s %8s   %s\n" "目录说明" "占用" "路径"
     echo "  ------------------------------------------------------------------------------"
@@ -344,8 +344,8 @@ collect_local_playbacks_report() {
 }
 
 collect_local_alert_images_report() {
-    echo "【4】本地告警图片中转目录 (上传 MinIO alert-images 前)"
-    print_info "算法/iot-sink 先将告警图写入本地，再异步上传 MinIO；未及时清理时会与【2】双重占用"
+    echo "【4】本地告警图片中转目录 (上传 RustFS alert-images 前)"
+    print_info "算法/iot-sink 先将告警图写入本地，再异步上传 RustFS；未及时清理时会与【2】双重占用"
     echo ""
     printf "  %-36s %8s   %s\n" "目录说明" "占用" "路径"
     echo "  ------------------------------------------------------------------------------"
@@ -377,11 +377,11 @@ collect_alert_record_summary() {
         if is_edge_deploy_profile; then
             print_info "edge 形态：本地存储闭环；告警图/录像均在【3】【4】本地目录，不经对象存储"
         else
-            print_info "mini 形态：告警录像主要在【3】本地 playbacks，不一定写入 MinIO"
+            print_info "mini 形态：告警录像主要在【3】本地 playbacks，不一定写入 RustFS"
         fi
     else
-        print_info "${EASYAIOT_DEPLOY_PROFILE} 形态：告警录像元数据 record_path 指向 MinIO record-space（见【1】）"
-        print_info "在线回放走 MinIO 下载 API；本地【3】为 SRS 录制/upload 缓冲，不应长期堆积"
+        print_info "${EASYAIOT_DEPLOY_PROFILE} 形态：告警录像元数据 record_path 指向 RustFS record-space（见【1】）"
+        print_info "在线回放走 RustFS 下载 API；本地【3】为 SRS 录制/upload 缓冲，不应长期堆积"
     fi
     echo ""
     print_info "排查提示:"
@@ -390,9 +390,9 @@ collect_alert_record_summary() {
         echo "  - 本地告警图膨胀 → 见【4】清理 alert_images"
         echo "  - 告警无录像 → 查【3】playbacks/live 对应 device 是否有 .flv"
     else
-        echo "  - MinIO 录像膨胀 → 清理【1】record-space 过期日期目录"
+        echo "  - RustFS 录像膨胀 → 清理【1】record-space 过期日期目录"
         echo "  - 本地 playbacks 膨胀 → 检查 DVR 上传是否失败；确认 PLAYBACK_DELETE_AFTER_UPLOAD=true"
-        echo "  - 告警图片膨胀 → 清理【2】MinIO alert-images 与【4】本地 alert_images"
+        echo "  - 告警图片膨胀 → 清理【2】RustFS alert-images 与【4】本地 alert_images"
         echo "  - 告警无录像 → 查【1】对应 device_id 时间点是否有 .flv，或【3】live 目录是否有残留"
     fi
 }
@@ -401,22 +401,22 @@ collect_media_storage_report() {
     print_section "录像与告警媒体占用（重点分析）"
     ensure_deploy_profile
     if is_local_storage_deploy_profile; then
-        print_info "当前为 ${EASYAIOT_DEPLOY_PROFILE} 形态（本地存储热路径）；MinIO【1】【2】通常未部署，请优先看【3】【4】"
+        print_info "当前为 ${EASYAIOT_DEPLOY_PROFILE} 形态（本地存储热路径）；RustFS【1】【2】通常未部署，请优先看【3】【4】"
     else
-        print_info "以下目录通常是磁盘占用的主要来源（MinIO 归档 + 本地上传/回放缓冲），请优先关注。"
+        print_info "以下目录通常是磁盘占用的主要来源（RustFS 归档 + 本地上传/回放缓冲），请优先关注。"
     fi
     echo ""
 
-    # --- MinIO 监控录像 ---
-    echo "【1】MinIO 监控录像 (record-space bucket)"
+    # --- RustFS 监控录像 ---
+    echo "【1】RustFS 监控录像 (record-space bucket)"
     if is_local_storage_deploy_profile; then
-        print_info "edge/mini 通常不部署 MinIO；若目录仍存在，可能是历史 full/mini 残留数据"
+        print_info "edge/mini 通常不部署 RustFS；若目录仍存在，可能是历史 full/mini 残留数据"
     fi
-    print_path_row_abs "总占用" "$MINIO_RECORD_SPACE_DIR" ".scripts/docker/minio_data/data/record-space"
+    print_path_row_abs "总占用" "$MINIO_RECORD_SPACE_DIR" ".scripts/docker/rustfs_data/data/record-space"
     if [ -d "$MINIO_RECORD_SPACE_DIR" ]; then
         local file_count
         file_count="$(count_files_under "$MINIO_RECORD_SPACE_DIR" 8)"
-        print_info "录像文件数(估算): ${file_count}  |  MinIO 桶名: record-space"
+        print_info "录像文件数(估算): ${file_count}  |  RustFS 桶名: record-space"
         echo ""
         echo "  按设备目录 Top ${MEDIA_TOP_N}（device_id）:"
         list_record_space_devices "$MINIO_RECORD_SPACE_DIR" "$MEDIA_TOP_N"
@@ -424,22 +424,22 @@ collect_media_storage_report() {
         echo "  按日期 Top ${MEDIA_TOP_N}（YYYY/MM/DD，跨设备汇总）:"
         list_record_space_by_date "$MINIO_RECORD_SPACE_DIR" "$MEDIA_TOP_N"
     else
-        print_warn "目录不存在，可能尚未产生 MinIO 录像或未部署 MinIO"
+        print_warn "目录不存在，可能尚未产生 RustFS 录像或未部署 RustFS"
     fi
     echo ""
 
-    # --- MinIO 告警图片 ---
-    echo "【2】MinIO 告警图片 (alert-images bucket)"
-    print_path_row_abs "总占用" "$MINIO_ALERT_IMAGES_DIR" ".scripts/docker/minio_data/data/alert-images"
+    # --- RustFS 告警图片 ---
+    echo "【2】RustFS 告警图片 (alert-images bucket)"
+    print_path_row_abs "总占用" "$MINIO_ALERT_IMAGES_DIR" ".scripts/docker/rustfs_data/data/alert-images"
     if [ -d "$MINIO_ALERT_IMAGES_DIR" ]; then
         local img_count
         img_count="$(count_files_under "$MINIO_ALERT_IMAGES_DIR" 6)"
-        print_info "图片文件数(估算): ${img_count}  |  MinIO 桶名: alert-images"
+        print_info "图片文件数(估算): ${img_count}  |  RustFS 桶名: alert-images"
         echo ""
         echo "  按日期 Top ${MEDIA_TOP_N}（YYYY/MM/DD）:"
         list_alert_images_by_date "$MINIO_ALERT_IMAGES_DIR" "$MEDIA_TOP_N"
     else
-        print_warn "目录不存在，可能尚未产生告警图片或未部署 MinIO"
+        print_warn "目录不存在，可能尚未产生告警图片或未部署 RustFS"
     fi
     echo ""
 
@@ -459,9 +459,9 @@ collect_key_paths_report() {
     print_path_row "TDengine 数据" ".scripts/docker/taos_data"
     print_path_row "Redis 数据" ".scripts/docker/redis_data"
     print_path_row "Kafka 数据" ".scripts/docker/mq_data"
-    print_path_row "MinIO 对象存储(合计)" ".scripts/docker/minio_data"
-    print_path_row "  └ MinIO 监控录像" ".scripts/docker/minio_data/data/record-space"
-    print_path_row "  └ MinIO 告警图片" ".scripts/docker/minio_data/data/alert-images"
+    print_path_row "RustFS 对象存储(合计)" ".scripts/docker/rustfs_data"
+    print_path_row "  └ RustFS 监控录像" ".scripts/docker/rustfs_data/data/record-space"
+    print_path_row "  └ RustFS 告警图片" ".scripts/docker/rustfs_data/data/alert-images"
     print_path_row "  └ 本地告警图(上传前)" "VIDEO/alert_images"
     print_path_row "Milvus 向量库" ".scripts/docker/milvus_data"
     print_path_row "SRS 配置/数据" ".scripts/docker/srs_data"
@@ -489,7 +489,7 @@ collect_filesystem_report() {
     if [ "$pct" -ge 95 ] 2>/dev/null; then
         print_err "磁盘使用率 >= 95%，极可能导致服务启动失败或数据库异常！"
     elif [ "$pct" -ge 90 ] 2>/dev/null; then
-        print_warn "磁盘使用率 >= 90%，建议尽快清理 MinIO 录像、Docker 镜像或旧日志。"
+        print_warn "磁盘使用率 >= 90%，建议尽快清理 RustFS 录像、Docker 镜像或旧日志。"
     else
         print_ok "项目分区空间尚有余量（使用率 ${pct}%）。"
     fi
@@ -561,9 +561,9 @@ collect_profile_hint() {
         echo "  3) Docker 镜像/构建缓存过大 → cleanup_docker_space.sh"
         echo "  4) 中间件日志膨胀 → standalone-logs 与 logs 目录"
     else
-        echo "  1) MinIO 监控录像(record-space)过大 → 见【1】按设备/日期清理"
-        echo "  2) 本地 playbacks 过大 → 见【3】检查 live/ai 子目录；确认 DVR 上传 MinIO 正常"
-        echo "  3) MinIO 告警图片(alert-images)过大 → 见【2】按日期清理"
+        echo "  1) RustFS 监控录像(record-space)过大 → 见【1】按设备/日期清理"
+        echo "  2) 本地 playbacks 过大 → 见【3】检查 live/ai 子目录；确认 DVR 上传 RustFS 正常"
+        echo "  3) RustFS 告警图片(alert-images)过大 → 见【2】按日期清理"
         echo "  4) 本地 alert_images 过大 → 见【4】清理 VIDEO/alert_images 中已上传残留"
         echo "  5) 告警录像缺失 → full/standard 查【1】；mini 查【3】playbacks/live"
         echo "  6) Docker 镜像/容器过多 → cleanup_docker_space.sh 或 install_linux.sh clean（先备份）"

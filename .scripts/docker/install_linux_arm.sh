@@ -1554,7 +1554,7 @@ verify_all() {
             echo -e "  AI 助手 (HARNESS):      http://localhost:3080"
         fi
         echo -e "  基础服务 (Nacos):     http://localhost:8848/nacos"
-        echo -e "  基础服务 (MinIO):     http://localhost:9000 (API), http://localhost:9001 (Console)"
+        echo -e "  基础服务 (RustFS):     http://localhost:9000 (API), http://localhost:9001 (Console)"
         echo -e "  基础服务 (Milvus):    http://localhost:9091 (Health), localhost:19530 (gRPC)"
         echo -e "  Device服务 (Gateway):  http://localhost:48080"
         echo -e "  AI服务:                http://localhost:5000"

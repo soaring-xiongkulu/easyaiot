@@ -22,7 +22,7 @@
 #   update     - 更新镜像并重启所有服务（交互可选拉取/本地重建）
 #   verify     - 验证所有服务是否启动成功
 #   verify-alert - 告警事件面验收（共享盘挂载 + MQTT→iot-sink→入库）
-#   verify-dvr   - DVR/NFS 链路验收（NFS 写盘 → sink → MinIO）
+#   verify-dvr   - DVR/NFS 链路验收（NFS 写盘 → sink → RustFS）
 #   nfs|verify-nfs|ceph|verify-ceph - 节点 NFS 共享媒体：list|status|probe|verify（告警图+录像目录）
 #   check      - 检查 Docker 和 Docker Compose 安装状态
 #   profile    - 显示当前部署形态与服务范围
@@ -1236,7 +1236,7 @@ wait_for_container_ready() {
     return 1
 }
 
-# Nacos / MinIO：宿主机端口映射滞后时，容器内探测或 Docker healthy 亦算就绪
+# Nacos / RustFS：宿主机端口映射滞后时，容器内探测或 Docker healthy 亦算就绪
 _check_nacos_ready() {
     curl -sf --connect-timeout 2 --max-time 5 "http://127.0.0.1:8848/nacos/actuator/health" >/dev/null 2>&1 && return 0
     docker exec nacos-server curl -sf --connect-timeout 2 --max-time 5 \
@@ -1245,10 +1245,10 @@ _check_nacos_ready() {
 }
 
 _check_minio_ready() {
-    curl -sf --connect-timeout 2 --max-time 5 "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1 && return 0
-    docker exec minio-server curl -sf --connect-timeout 2 --max-time 5 \
-        "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1 && return 0
-    [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minio-server 2>/dev/null || echo none)" = "healthy" ]
+    curl -sf --connect-timeout 2 --max-time 5 "http://127.0.0.1:9000/health/ready" >/dev/null 2>&1 && return 0
+    docker exec rustfs-server curl -sf --connect-timeout 2 --max-time 5 \
+        "http://127.0.0.1:9000/health/ready" >/dev/null 2>&1 && return 0
+    [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' rustfs-server 2>/dev/null || echo none)" = "healthy" ]
 }
 
 # 仅当容器在运行时才等待（容器未启动直接跳过）
@@ -1353,15 +1353,15 @@ wait_for_base_services() {
         print_warning "Redis 容器不存在，业务服务将无法连接 Redis"
     fi
 
-    if container_exists minio-server; then
-        if container_running minio-server; then
-            wait_for_container_ready "MinIO" 60 2 _check_minio_ready || true
+    if container_exists rustfs-server; then
+        if container_running rustfs-server; then
+            wait_for_container_ready "RustFS" 60 2 _check_minio_ready || true
         else
-            print_error "MinIO 容器已创建但未运行！WEB 服务 nginx 将无法解析 'MinIO' 主机名"
-            print_info "请检查: docker logs minio-server"
+            print_error "RustFS 容器已创建但未运行！WEB 服务 nginx 将无法解析 'RustFS' 主机名"
+            print_info "请检查: docker logs rustfs-server"
         fi
     else
-        print_warning "MinIO 容器不存在，WEB 服务对 /api/v1/buckets 代理将不可用"
+        print_warning "RustFS 容器不存在，WEB 服务对 /api/v1/buckets 代理将不可用"
     fi
 
     # 关键基础服务缺失时给出明确警告（不中断，让用户看到后续错误的完整上下文）
@@ -2023,7 +2023,7 @@ verify_all() {
             echo -e "  AI 助手 (HARNESS):      http://localhost:3080"
         fi
         echo -e "  基础服务 (Nacos):     http://localhost:8848/nacos"
-        echo -e "  基础服务 (MinIO):     http://localhost:9000 (API), http://localhost:9001 (Console)"
+        echo -e "  基础服务 (RustFS):     http://localhost:9000 (API), http://localhost:9001 (Console)"
         echo -e "  基础服务 (Milvus):    http://localhost:9091 (Health), localhost:19530 (gRPC)"
         echo -e "  Device服务 (Gateway):  http://localhost:48080"
         echo -e "  AI服务:                http://localhost:5000"
@@ -2098,7 +2098,7 @@ verify_dvr_nfs_chain() {
     if [ ! -x "$script" ]; then
         chmod +x "$script" 2>/dev/null || true
     fi
-    print_section "DVR/NFS 链路验收（NFS 写盘 → sink → MinIO）"
+    print_section "DVR/NFS 链路验收（NFS 写盘 → sink → RustFS）"
     bash "$script" "$@"
 }
 
@@ -2212,7 +2212,7 @@ show_help() {
     echo "  update          - 更新镜像并重启所有服务（交互可选拉取/本地重建）"
     echo "  verify          - 验证所有服务是否启动成功（含告警/DVR 事件面验收）"
     echo "  verify-alert    - 告警事件面验收（控制面共享盘 + MQTT→iot-sink→入库）"
-    echo "  verify-dvr      - DVR/NFS 链路验收（NFS → sink Hook → MinIO → playback）"
+    echo "  verify-dvr      - DVR/NFS 链路验收（NFS → sink Hook → RustFS → playback）"
     echo "  nfs|verify-nfs  - 节点 NFS 共享媒体管理与验收（兼容旧命令名 ceph|verify-ceph）"
     echo "      nfs list | status [id|host|all] | probe [id|host|all] | verify [--mount-only]"
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"

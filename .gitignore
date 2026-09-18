@@ -133,6 +133,7 @@ RUNTIME/.test-*/
 .scripts/docker/milvus_config/
 .scripts/docker/milvus_data/
 .scripts/docker/minio_data/
+.scripts/docker/rustfs_data/
 .scripts/docker/mq_data/
 .scripts/docker/nodered_data/
 .scripts/docker/redis_data/

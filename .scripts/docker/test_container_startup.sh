@@ -243,7 +243,7 @@ test_service_startup() {
             TDengine) container_name="tdengine-server" ;;
             Redis) container_name="redis-server" ;;
             Kafka) container_name="kafka-server" ;;
-            MinIO) container_name="minio-server" ;;
+            RustFS) container_name="rustfs-server" ;;
             SRS) container_name="srs-server" ;;
             NodeRED) container_name="nodered-server" ;;
             EMQX) container_name="emqx-server" ;;

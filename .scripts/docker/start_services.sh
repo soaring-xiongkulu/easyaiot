@@ -232,7 +232,7 @@ wait_for_services() {
         middleware_service_enabled "Nacos" && services+=("nacos-server")
         middleware_service_enabled "TDengine" && services+=("tdengine-server")
         middleware_service_enabled "Kafka" && services+=("kafka-server")
-        middleware_service_enabled "MinIO" && services+=("minio-server")
+        middleware_service_enabled "RustFS" && services+=("rustfs-server")
         middleware_service_enabled "NodeRED" && services+=("nodered-server")
         middleware_service_enabled "FUXA" && services+=("fuxa-server")
         middleware_service_enabled "EMQX" && [ "${EASYAIOT_ENABLE_EMQX:-0}" = "1" ] && services+=("emqx-server")
@@ -338,7 +338,7 @@ main() {
     echo ""
     print_info "访问地址："
     echo "  Nacos:     http://localhost:8848/nacos (用户名/密码: nacos/nacos)"
-    echo "  MinIO:     http://localhost:9001 (用户名/密码: minioadmin/basiclab@iot975248395)"
+    echo "  RustFS:     http://localhost:9001 (用户名/密码: minioadmin/basiclab@iot975248395)"
     if middleware_service_enabled "NodeRED"; then
         echo "  NodeRED:   http://localhost:1880"
     fi

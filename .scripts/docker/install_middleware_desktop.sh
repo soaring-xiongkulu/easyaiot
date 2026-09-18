@@ -50,7 +50,7 @@ ensure_env_var() {
   echo "${key}=${value}" >> "${ENV_FILE}"
 }
 
-SERVICES=(Nacos PostgresSQL TDengine Redis Kafka MinIO SRS NodeRED FUXA EMQX)
+SERVICES=(Nacos PostgresSQL TDengine Redis Kafka RustFS SRS NodeRED FUXA EMQX)
 MINIO_BUCKETS=(
   "dataset" "datasets" "export-bucket" "inference-inputs" "inference-results" "models" "snap-space" "alert-images"
   "plate-models" "plate-train-results" "plate-train-logs" "plate-inference-results"
@@ -63,7 +63,7 @@ service_port() {
     TDengine) echo 6030 ;;
     Redis) echo 6379 ;;
     Kafka) echo 9092 ;;
-    MinIO) echo 9000 ;;
+    RustFS) echo 9000 ;;
     SRS) echo 1935 ;;
     NodeRED) echo 1880 ;;
     FUXA) echo 1881 ;;
@@ -75,7 +75,7 @@ service_port() {
 service_health() {
   case "$1" in
     Nacos) echo "/nacos/actuator/health" ;;
-    MinIO) echo "/minio/health/live" ;;
+    RustFS) echo "/health/ready" ;;
     SRS) echo "/api/v1/versions" ;;
     NodeRED) echo "/" ;;
     FUXA) echo "/" ;;
@@ -200,7 +200,7 @@ ensure_dirs() {
     "data/uploads" "data/datasets" "data/models" "data/inference_results"
     "static/models" "temp_uploads" "model"
     "standalone-logs" "db_data" "redis_data" "taos_data" "mq_data"
-    "minio_data" "srs_data" "nodered_data"
+    "rustfs_data" "srs_data" "nodered_data"
     "fuxa_data/appdata" "fuxa_data/db" "fuxa_data/logs" "fuxa_data/images"
   )
   for d in "${dirs[@]}"; do mkdir -p "${SCRIPT_DIR}/${d}"; done
@@ -236,8 +236,11 @@ ensure_env() {
   ensure_env_var "NACOS_SERVER" "Nacos:8848"
   ensure_env_var "NACOS_NAMESPACE" ""
   ensure_env_var "NACOS_PASSWORD" "basiclab@iot78475418754"
-  ensure_env_var "MINIO_ENDPOINT" "MinIO:9000"
+  ensure_env_var "MINIO_ENDPOINT" "RustFS:9000"
   ensure_env_var "MINIO_SECRET_KEY" "basiclab@iot975248395"
+  ensure_env_var "RUSTFS_ACCESS_KEY" "minioadmin"
+  ensure_env_var "RUSTFS_SECRET_KEY" "basiclab@iot975248395"
+  ensure_env_var "S3_REGION" "us-east-1"
   ensure_env_var "REDIS_PASSWORD" "basiclab@iot975248395"
   ensure_env_var "EMQX_DASHBOARD_PASSWORD" "basiclab@iot6874125784"
   # 与本机架构对齐，避免 compose 默认 NACOS_PLATFORM=linux/amd64 在 Apple Silicon 上走 QEMU
@@ -499,9 +502,9 @@ wait_for_health() {
 }
 
 ensure_minio_buckets() {
-  info "初始化 MinIO 存储桶..."
-  if ! wait_for_health 9000 "/minio/health/live"; then
-    warn "MinIO 未就绪，跳过存储桶初始化"
+  info "初始化 RustFS 存储桶..."
+  if ! wait_for_health 9000 "/health/ready"; then
+    warn "RustFS 未就绪，跳过存储桶初始化"
     return 1
   fi
 
@@ -515,8 +518,8 @@ ensure_minio_buckets() {
   mc_config_dir=$(mktemp -d)
   if ! docker run --rm --network "${NETWORK_NAME}" \
     -v "${mc_config_dir}:/root/.mc" \
-    minio/mc alias set local "http://MinIO:9000" "${access_key}" "${secret_key}" >/dev/null 2>&1; then
-    warn "MinIO mc alias 设置失败，跳过存储桶初始化"
+    minio/mc alias set local "http://RustFS:9000" "${access_key}" "${secret_key}" >/dev/null 2>&1; then
+    warn "RustFS mc alias 设置失败，跳过存储桶初始化"
     rm -rf "$mc_config_dir"
     return 1
   fi
@@ -615,7 +618,7 @@ update_nacos_password() {
 }
 
 post_start_hooks() {
-  ensure_minio_buckets || warn "部分 MinIO 存储桶初始化失败，请稍后重试"
+  ensure_minio_buckets || warn "部分 RustFS 存储桶初始化失败，请稍后重试"
   update_nacos_password || warn "自动修改 Nacos 密码失败，请稍后手动确认"
   sleep 3
   bash "${SCRIPT_DIR}/set_permanent_token.sh" >/dev/null 2>&1 || true

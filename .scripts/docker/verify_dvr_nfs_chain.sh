@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# DVR 链路验收（NFS 写盘 → iot-sink Hook → MinIO → playback/record_path）
+# DVR 链路验收（NFS 写盘 → iot-sink Hook → RustFS → playback/record_path）
 # ============================================
 # 契约：
 #   - NFS 为唯一媒体根（basiclab.media.mount-root / ALERT_IMAGES 同根）

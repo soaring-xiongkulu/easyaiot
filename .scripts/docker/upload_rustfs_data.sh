@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # ============================================
-# MinIO 数据上传脚本
+# RustFS 数据上传脚本
 # ============================================
 # 使用方法：
-#   ./upload_minio_data.sh
+#   ./upload_rustfs_data.sh
 #
 # 功能：
-#   1. 等待 MinIO 服务就绪
+#   1. 等待 RustFS 服务就绪
 #   2. 创建必要的存储桶
-#   3. 上传本地数据到 MinIO
+#   3. 上传本地数据到 RustFS
 #
 # 选项：
 #   --non-interactive  跳过控制台登录确认提示（供自动化脚本调用）
@@ -34,18 +34,19 @@ cd "$SCRIPT_DIR"
 # 日志文件配置
 LOG_DIR="${SCRIPT_DIR}/logs"
 mkdir -p "$LOG_DIR"
-LOG_FILE="${LOG_DIR}/upload_minio_data_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="${LOG_DIR}/upload_rustfs_data_$(date +%Y%m%d_%H%M%S).log"
 
 NON_INTERACTIVE=false
 PREFER_MC=false
 FORCE_MC=false
 FORCE_PYTHON=false
 
-MINIO_ENDPOINT="127.0.0.1:9000"
-MINIO_ACCESS_KEY="minioadmin"
-MINIO_SECRET_KEY="basiclab@iot975248395"
+MINIO_ENDPOINT="${S3_ENDPOINT:-${RUSTFS_ENDPOINT:-${MINIO_ENDPOINT:-127.0.0.1:9000}}}"
+MINIO_ACCESS_KEY="${S3_ACCESS_KEY:-${RUSTFS_ACCESS_KEY:-${MINIO_ACCESS_KEY:-minioadmin}}}"
+MINIO_SECRET_KEY="${S3_SECRET_KEY:-${RUSTFS_SECRET_KEY:-${MINIO_SECRET_KEY:-basiclab@iot975248395}}}"
 MINIO_MC_NETWORK="host"
 MC_IMAGE="minio/mc:latest"
+export MINIO_ENDPOINT MINIO_ACCESS_KEY MINIO_SECRET_KEY
 
 BUCKET_LIST=(
     "dataset" "datasets" "export-bucket" "inference-inputs"
@@ -55,7 +56,7 @@ BUCKET_LIST=(
 
 # 初始化日志文件
 echo "=========================================" >> "$LOG_FILE"
-echo "MinIO 数据上传脚本日志" >> "$LOG_FILE"
+echo "RustFS 数据上传脚本日志" >> "$LOG_FILE"
 echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
 echo "=========================================" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
@@ -155,7 +156,7 @@ should_use_mc_upload() {
 
 # CentOS7: minio>=7.2 依赖 argon2-cffi 需编译，易缺 libffi/Python.h
 install_minio_python_deps_centos7() {
-    print_section "CentOS7 安装 MinIO Python SDK 依赖"
+    print_section "CentOS7 安装 RustFS Python SDK 依赖"
 
     if [ "$EUID" -eq 0 ]; then
         yum install -y gcc python3-devel libffi-devel openssl-devel 2>/dev/null || \
@@ -184,7 +185,7 @@ install_minio_python_deps_centos7() {
     set -e
 
     if [ "$pip_rc" -eq 0 ] && python3 -c "import minio" 2>/dev/null; then
-        print_success "MinIO Python SDK 安装成功"
+        print_success "RustFS Python SDK 安装成功"
         return 0
     fi
     return 1
@@ -228,7 +229,7 @@ ensure_mc_image() {
 }
 
 # 在容器内执行 mc（minio/mc 镜像无 shell，需挂载配置目录复用 alias）
-# 宿主机 9000 不通时走 easyaiot-network + minio-server:9000（与 resolve_minio_endpoint 一致）
+# 宿主机 9000 不通时走 easyaiot-network + rustfs-server:9000（与 resolve_minio_endpoint 一致）
 mc_docker_run() {
     local mc_config_dir="$1"
     shift
@@ -291,19 +292,19 @@ init_minio_with_mc() {
     return 1
 }
 
-# 解析可用的 MinIO API 地址：优先宿主机发布端口，否则走 compose 网络（供 mc 容器访问）
+# 解析可用的 RustFS API 地址：优先宿主机发布端口，否则走 compose 网络（供 mc 容器访问）
 resolve_minio_endpoint() {
     if curl -sf --connect-timeout 2 --max-time 5 \
-        "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1; then
+        "http://127.0.0.1:9000/health/ready" >/dev/null 2>&1; then
         MINIO_ENDPOINT="127.0.0.1:9000"
         MINIO_MC_NETWORK="host"
         return 0
     fi
-    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'minio-server'; then
-        if docker exec minio-server curl -sf --connect-timeout 2 --max-time 5 \
-            "http://127.0.0.1:9000/minio/health/live" >/dev/null 2>&1 \
-            || [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minio-server 2>/dev/null)" = "healthy" ]; then
-            MINIO_ENDPOINT="minio-server:9000"
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'rustfs-server'; then
+        if docker exec rustfs-server curl -sf --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:9000/health/ready" >/dev/null 2>&1 \
+            || [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' rustfs-server 2>/dev/null)" = "healthy" ]; then
+            MINIO_ENDPOINT="rustfs-server:9000"
             MINIO_MC_NETWORK="easyaiot-network"
             return 0
         fi
@@ -311,7 +312,7 @@ resolve_minio_endpoint() {
     return 1
 }
 
-# 等待 MinIO 服务就绪（宿主机端口 / 容器内 / Docker healthy 任一即可）
+# 等待 RustFS 服务就绪（宿主机端口 / 容器内 / Docker healthy 任一即可）
 _minio_is_ready() {
     resolve_minio_endpoint
 }
@@ -320,27 +321,27 @@ wait_for_minio() {
     local max_attempts="${MINIO_READY_MAX_ATTEMPTS:-90}"
     local attempt=0
 
-    print_info "等待 MinIO 服务就绪..."
+    print_info "等待 RustFS 服务就绪..."
     while [ $attempt -lt $max_attempts ]; do
         if _minio_is_ready; then
-            print_success "MinIO 服务已就绪（${MINIO_ENDPOINT}，mc 网络: ${MINIO_MC_NETWORK:-host}）"
+            print_success "RustFS 服务已就绪（${MINIO_ENDPOINT}，mc 网络: ${MINIO_MC_NETWORK:-host}）"
             return 0
         fi
         attempt=$((attempt + 1))
         if [ $((attempt % 10)) -eq 0 ]; then
             local st health
-            st=$(docker inspect -f '{{.State.Status}}' minio-server 2>/dev/null || echo missing)
-            health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minio-server 2>/dev/null || echo unknown)
-            print_info "等待 MinIO 就绪... (${attempt}/${max_attempts})，容器: ${st}，健康: ${health}"
+            st=$(docker inspect -f '{{.State.Status}}' rustfs-server 2>/dev/null || echo missing)
+            health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' rustfs-server 2>/dev/null || echo unknown)
+            print_info "等待 RustFS 就绪... (${attempt}/${max_attempts})，容器: ${st}，健康: ${health}"
         fi
         sleep 2
     done
 
-    print_error "MinIO 服务未就绪"
+    print_error "RustFS 服务未就绪"
     return 1
 }
 
-# 初始化 MinIO 的 Python 脚本（临时文件）
+# 初始化 RustFS 的 Python 脚本（临时文件）
 create_minio_init_script() {
     local script_file=$(mktemp)
     cat > "$script_file" << 'PYTHON_SCRIPT'
@@ -352,10 +353,10 @@ from minio.error import S3Error
 import mimetypes
 
 def init_minio_buckets_and_upload():
-    # MinIO 配置
-    minio_endpoint = "localhost:9000"
-    minio_access_key = "minioadmin"
-    minio_secret_key = "basiclab@iot975248395"
+    # RustFS 配置
+    minio_endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+    minio_access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+    minio_secret_key = os.getenv("MINIO_SECRET_KEY", "basiclab@iot975248395")
     minio_secure = False
     
     # 存储桶列表
@@ -375,7 +376,7 @@ def init_minio_buckets_and_upload():
                     upload_tasks.append((bucket_name, dir_path, prefix))
     
     try:
-        # 创建 MinIO 客户端
+        # 创建 RustFS 客户端
         client = Minio(
             minio_endpoint,
             access_key=minio_access_key,
@@ -517,20 +518,20 @@ PYTHON_SCRIPT
     echo "$script_file"
 }
 
-# 初始化 MinIO 存储桶和数据
+# 初始化 RustFS 存储桶和数据
 init_minio_with_python() {
     local python_script=$(create_minio_init_script)
     local output_file=$(mktemp)
     
     # 检查 Python 和 minio 库
     if ! command -v python3 &> /dev/null; then
-        print_error "Python3 未安装，无法初始化 MinIO"
+        print_error "Python3 未安装，无法初始化 RustFS"
         rm -f "$python_script" "$output_file"
         return 1
     fi
     
     if ! ensure_minio_python_sdk; then
-        print_error "无法安装 MinIO Python SDK"
+        print_error "无法安装 RustFS Python SDK"
         rm -f "$python_script" "$output_file"
         return 1
     fi
@@ -613,7 +614,7 @@ init_minio_with_python() {
             print_warning "跳过上传: $reason"
         elif [[ $line == INIT_ERROR:* ]]; then
             local error="${line#INIT_ERROR:}"
-            print_error "MinIO 初始化失败: $error"
+            print_error "RustFS 初始化失败: $error"
         fi
     done < "$output_file"
     
@@ -633,17 +634,17 @@ init_minio_with_python() {
     fi
 }
 
-# 初始化 MinIO 存储桶和数据
+# 初始化 RustFS 存储桶和数据
 init_minio() {
-    print_section "初始化 MinIO 存储桶和数据"
+    print_section "初始化 RustFS 存储桶和数据"
     
-    # 等待 MinIO 就绪
+    # 等待 RustFS 就绪
     if ! wait_for_minio; then
-        print_error "MinIO 未就绪，无法初始化存储桶"
+        print_error "RustFS 未就绪，无法初始化存储桶"
         return 1
     fi
     
-    # MinIO 数据源目录
+    # RustFS 数据源目录
     local minio_base_dir="${SCRIPT_DIR}/../minio"
     
     # 定义存储桶和目录映射关系
@@ -709,7 +710,7 @@ init_minio() {
 
     if [ ${#upload_args[@]} -gt 0 ]; then
         if run_upload "${upload_args[@]}"; then
-            print_success "MinIO 初始化完成！"
+            print_success "RustFS 初始化完成！"
             init_result=0
         elif [ "$upload_method" = "python" ]; then
             print_warning "Python 上传失败，改用 Docker mc ..."
@@ -721,7 +722,7 @@ init_minio() {
     else
         print_warning "没有可用的数据集目录，仅创建存储桶"
         if run_upload; then
-            print_success "MinIO 存储桶创建完成！"
+            print_success "RustFS 存储桶创建完成！"
             init_result=0
         elif [ "$upload_method" = "python" ]; then
             upload_method="mc"
@@ -731,12 +732,12 @@ init_minio() {
         fi
     fi
     
-    # 如果初始化成功，提示用户登录 MinIO 管理平台
+    # 如果初始化成功，提示用户登录 RustFS 管理平台
     if [ $init_result -eq 0 ]; then
         echo ""
-        print_section "MinIO 管理平台登录提示"
+        print_section "RustFS 管理平台登录提示"
         echo ""
-        print_warning "重要提示：为了确保图像数据能够正常显示，请登录一次 MinIO 管理平台"
+        print_warning "重要提示：为了确保图像数据能够正常显示，请登录一次 RustFS 管理平台"
         print_info "  访问地址: http://localhost:9001"
         print_info "  用户名: minioadmin"
         print_info "  密码: basiclab@iot975248395"
@@ -748,15 +749,15 @@ init_minio() {
             print_info "非交互模式：请稍后访问 http://localhost:9001 登录一次控制台（图像显示需要）"
         fi
         while [ "$NON_INTERACTIVE" != true ]; do
-            echo -ne "${YELLOW}[提示]${NC} 是否已经登录过 MinIO 管理平台？(y/N): "
+            echo -ne "${YELLOW}[提示]${NC} 是否已经登录过 RustFS 管理平台？(y/N): "
             read -r response
             case "$response" in
                 [yY][eE][sS]|[yY])
-                    print_success "确认已登录 MinIO 管理平台，继续执行..."
+                    print_success "确认已登录 RustFS 管理平台，继续执行..."
                     break
                     ;;
                 [nN][oO]|[nN]|"")
-                    print_warning "建议稍后登录 MinIO 管理平台以确保图像数据正常显示"
+                    print_warning "建议稍后登录 RustFS 管理平台以确保图像数据正常显示"
                     print_info "您可以稍后访问: http://localhost:9001"
                     break
                     ;;
@@ -773,15 +774,15 @@ init_minio() {
 # 主函数
 main() {
     parse_args "$@"
-    print_section "开始 MinIO 数据上传"
+    print_section "开始 RustFS 数据上传"
 
     if init_minio; then
-        print_success "MinIO 数据上传完成！"
+        print_success "RustFS 数据上传完成！"
         echo ""
         print_info "日志文件已保存到: $LOG_FILE"
         return 0
     else
-        print_error "MinIO 数据上传失败"
+        print_error "RustFS 数据上传失败"
         echo ""
         print_info "日志文件已保存到: $LOG_FILE"
         return 1

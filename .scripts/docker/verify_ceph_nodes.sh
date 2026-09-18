@@ -423,7 +423,7 @@ cmd_verify() {
         return $?
     fi
 
-    # 业务：告警图片 MQTT→sink→入库（含 MinIO）
+    # 业务：告警图片 MQTT→sink→入库（含 RustFS）
     if [ -f "${PROJECT_ROOT}/VIDEO/tools/verify_alert_ingest_e2e.py" ]; then
         print_section "业务打通：告警图片 MQTT→iot-sink→入库"
         if (echo >/dev/tcp/127.0.0.1/48092) >/dev/null 2>&1 \

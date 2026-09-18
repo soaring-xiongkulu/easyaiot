@@ -1709,7 +1709,7 @@ print_access_urls() {
   echo -e "  Web 控制台:              https://localhost:8888"
   echo -e "  API 网关:                http://localhost:48080"
   echo -e "  Nacos:                   http://localhost:8848/nacos"
-  echo -e "  MinIO:                   http://localhost:9001"
+  echo -e "  RustFS:                   http://localhost:9001"
   if module_enabled_for_deploy_profile APP; then
     echo -e "  App H5:                  http://localhost:9010"
   fi

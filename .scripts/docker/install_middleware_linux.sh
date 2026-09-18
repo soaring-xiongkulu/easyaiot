@@ -96,7 +96,7 @@ MIDDLEWARE_SERVICES=(
     "PostgresSQL"
     "Redis"
     "Kafka"
-    "MinIO"
+    "RustFS"
     "Milvus"
     "SRS"
     "NodeRED"
@@ -127,7 +127,7 @@ MIDDLEWARE_PORTS["PostgresSQL"]="5432"
 MIDDLEWARE_PORTS["TDengine"]="6030"
 MIDDLEWARE_PORTS["Redis"]="6379"
 MIDDLEWARE_PORTS["Kafka"]="9092"
-MIDDLEWARE_PORTS["MinIO"]="9000"
+MIDDLEWARE_PORTS["RustFS"]="9000"
 MIDDLEWARE_PORTS["Milvus"]="9091"
 MIDDLEWARE_PORTS["SRS"]="1935"
 MIDDLEWARE_PORTS["NodeRED"]="1880"
@@ -142,7 +142,7 @@ MIDDLEWARE_HEALTH_ENDPOINTS["PostgresSQL"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["TDengine"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["Redis"]=""
 MIDDLEWARE_HEALTH_ENDPOINTS["Kafka"]=""
-MIDDLEWARE_HEALTH_ENDPOINTS["MinIO"]="/minio/health/live"
+MIDDLEWARE_HEALTH_ENDPOINTS["RustFS"]="/health/ready"
 MIDDLEWARE_HEALTH_ENDPOINTS["Milvus"]="/healthz"
 MIDDLEWARE_HEALTH_ENDPOINTS["SRS"]="/api/v1/versions"
 MIDDLEWARE_HEALTH_ENDPOINTS["NodeRED"]="/"
@@ -2152,8 +2152,8 @@ create_all_storage_directories() {
         "${SCRIPT_DIR}/redis_data/data:999:999:777"   # Redis 数据
         "${SCRIPT_DIR}/redis_data/logs:999:999:777"    # Redis 日志
         "${SCRIPT_DIR}/mq_data/data:1000:1000:777"    # Kafka 数据（uid=1000, gid=1000）
-        "${SCRIPT_DIR}/minio_data/data:::"             # MinIO 数据（使用默认权限）
-        "${SCRIPT_DIR}/minio_data/config:::"           # MinIO 配置（使用默认权限）
+        "${SCRIPT_DIR}/rustfs_data/data:::"             # RustFS 数据（使用默认权限）
+        "${SCRIPT_DIR}/rustfs_data/logs:10001:10001:755" # RustFS 日志
         "${SCRIPT_DIR}/milvus_data:::"                 # Milvus 数据（使用默认权限）
         "${SCRIPT_DIR}/milvus_config:::"               # Milvus 嵌入式 etcd 配置
         "${SCRIPT_DIR}/srs_data/conf:::"               # SRS 配置（使用默认权限）
@@ -2242,7 +2242,7 @@ create_all_storage_directories() {
         "${SCRIPT_DIR}/taos_data"
         "${SCRIPT_DIR}/redis_data"
         "${SCRIPT_DIR}/mq_data"
-        "${SCRIPT_DIR}/minio_data"
+        "${SCRIPT_DIR}/rustfs_data"
         "${SCRIPT_DIR}/milvus_data"
         "${SCRIPT_DIR}/milvus_config"
         "${SCRIPT_DIR}/srs_data"
@@ -4108,21 +4108,21 @@ execute_sql_script() {
 }
 
 
-# 初始化 MinIO 存储桶和数据（统一走 Docker mc，不依赖宿主机 Python/minio 包）
+# 初始化 RustFS 存储桶和数据（统一走 Docker mc，不依赖宿主机 Python/minio 包）
 init_minio() {
-    if ! middleware_service_enabled "MinIO"; then
-        print_info "MinIO 未启用（当前部署形态: ${EASYAIOT_DEPLOY_PROFILE:-full}），跳过 MinIO 初始化"
+    if ! middleware_service_enabled "RustFS"; then
+        print_info "RustFS 未启用（当前部署形态: ${EASYAIOT_DEPLOY_PROFILE:-full}），跳过 RustFS 初始化"
         return 0
     fi
 
-    print_section "初始化 MinIO 存储桶和数据"
+    print_section "初始化 RustFS 存储桶和数据"
 
     local init_result=0
-    if bash "${SCRIPT_DIR}/upload_minio_data.sh" --non-interactive --force-mc; then
-        print_success "MinIO 初始化完成（Docker mc）！"
+    if bash "${SCRIPT_DIR}/upload_rustfs_data.sh" --non-interactive --force-mc; then
+        print_success "RustFS 初始化完成（Docker mc）！"
         init_result=0
     else
-        print_warning "MinIO 初始化可能存在问题（Docker mc）"
+        print_warning "RustFS 初始化可能存在问题（Docker mc）"
         init_result=1
     fi
 
@@ -4361,7 +4361,7 @@ compose_up_middleware() {
     if [ ${#skip_services[@]} -gt 0 ]; then
         print_warning "以下中间件因镜像缺失等原因暂不启动：$(_format_service_list "${skip_services[@]}")"
         # compose up 指定服务列表不会停掉未列出但仍在 compose 中定义的旧容器；
-        # 从 full/standard 切到 mini 时需主动停掉 Nacos/Kafka/MinIO 等残留。
+        # 从 full/standard 切到 mini 时需主动停掉 Nacos/Kafka/RustFS 等残留。
         local -a lingering_skips=()
         local skip_svc
         for skip_svc in "${skip_services[@]}"; do
@@ -4481,7 +4481,7 @@ _repair_created_middleware_containers() {
     local _created _n _status _svc _rc=0 _up_log _up_rc _retry _delay
     local -a _mw_names=(
         nacos-server postgres-server postgres-init redis-server kafka-server
-        minio-server milvus-server srs-server nodered-server fuxa-server
+        rustfs-server milvus-server srs-server nodered-server fuxa-server
         emqx-server zlmediakit-server tdengine-server tdengine-init
     )
     _created=$(docker ps -a --filter "status=created" --format '{{.Names}}' 2>/dev/null || true)
@@ -4771,7 +4771,7 @@ extract_ports_from_compose() {
             "Kafka")
                 ports=("9092" "9093")
                 ;;
-            "MinIO")
+            "RustFS")
                 ports=("9000" "9001")
                 ;;
             "SRS")
@@ -4820,7 +4820,7 @@ check_and_clean_ports() {
             "TDengine") container_name="tdengine-server" ;;
             "Redis") container_name="redis-server" ;;
             "Kafka") container_name="kafka-server" ;;
-            "MinIO") container_name="minio-server" ;;
+            "RustFS") container_name="rustfs-server" ;;
             "SRS") container_name="srs-server" ;;
             "NodeRED") container_name="nodered-server" ;;
             "FUXA") container_name="fuxa-server" ;;
@@ -5408,7 +5408,7 @@ check_and_clean_ports() {
                                     "PostgresSQL") container_name="postgres-server" ;;
                                     "Nacos") container_name="nacos-server" ;;
                                     "Kafka") container_name="kafka-server" ;;
-                                    "MinIO") container_name="minio-server" ;;
+                                    "RustFS") container_name="rustfs-server" ;;
                                     "SRS") container_name="srs-server" ;;
                                     "NodeRED") container_name="nodered-server" ;;
                                     "FUXA") container_name="fuxa-server" ;;
@@ -5530,7 +5530,7 @@ cleanup_stale_containers() {
                 "TDengine") container_names+=("tdengine-server") ;;
                 "Redis") container_names+=("redis-server") ;;
                 "Kafka") container_names+=("kafka-server") ;;
-                "MinIO") container_names+=("minio-server") ;;
+                "RustFS") container_names+=("rustfs-server") ;;
                 "Milvus") container_names+=("milvus-server") ;;
                 "SRS") container_names+=("srs-server") ;;
                 "NodeRED") container_names+=("nodered-server") ;;
@@ -5542,7 +5542,7 @@ cleanup_stale_containers() {
     done
     
     # 检查是否有停止的容器需要清理
-    local stale_containers=$(docker ps -a --filter "status=exited" --format "{{.Names}}" 2>/dev/null | grep -E "(nacos-server|postgres-server|tdengine-server|redis-server|kafka-server|minio-server|milvus-server|srs-server|nodered-server|fuxa-server|emqx-server|zlmediakit-server)" || echo "")
+    local stale_containers=$(docker ps -a --filter "status=exited" --format "{{.Names}}" 2>/dev/null | grep -E "(nacos-server|postgres-server|tdengine-server|redis-server|kafka-server|rustfs-server|milvus-server|srs-server|nodered-server|fuxa-server|emqx-server|zlmediakit-server)" || echo "")
     
     if [ -n "$stale_containers" ]; then
         print_info "发现残留的停止容器，正在清理..."
@@ -5829,7 +5829,7 @@ install_middleware() {
             "TDengine") container_name="tdengine-server" ;;
             "Redis") container_name="redis-server" ;;
             "Kafka") container_name="kafka-server" ;;
-            "MinIO") container_name="minio-server" ;;
+            "RustFS") container_name="rustfs-server" ;;
             "SRS") container_name="srs-server" ;;
             "NodeRED") container_name="nodered-server" ;;
             "FUXA") container_name="fuxa-server" ;;
@@ -5870,7 +5870,7 @@ install_middleware() {
         _repair_created_middleware_containers || true
     fi
 
-    # Nacos 启动失败自愈 + 账号初始化（非致命：不中断后续 PostgreSQL/MinIO 等步骤）
+    # Nacos 启动失败自愈 + 账号初始化（非致命：不中断后续 PostgreSQL/RustFS 等步骤）
     if middleware_service_enabled Nacos; then
         print_section "配置 Nacos 注册中心"
         fix_nacos_startup_failure
@@ -5898,7 +5898,7 @@ install_middleware() {
     echo ""
 
     # 以下均为 post-install 初始配置：任意失败不中断整体流程（set -e 下 return 1 会杀死脚本）。
-    # 若此时 PostgreSQL/MinIO 仍未就绪，由外层 install_linux.sh 的 wait_for_base_services + _repair_created_containers 兜底修复后，
+    # 若此时 PostgreSQL/RustFS 仍未就绪，由外层 install_linux.sh 的 wait_for_base_services + _repair_created_containers 兜底修复后，
     # 下次重启时会通过 restart/start 流程再次执行这些初始化。
 
     # ★ 先等待关键基础服务就绪（PostgreSQL），再执行需要数据库连通的 post-install 步骤
@@ -5945,7 +5945,7 @@ install_middleware() {
     fi
 
     echo ""
-    init_minio || print_warning "MinIO 初始化跳过"
+    init_minio || print_warning "RustFS 初始化跳过"
 
     # 初始化/扩容 IoT Kafka 主题（64 分区：告警、人脸匹配、车牌匹配）
     echo ""
@@ -6356,7 +6356,7 @@ clean_middleware() {
             "taos_data"                 # TDengine 数据和日志
             "redis_data"                # Redis 数据和日志
             "mq_data"                   # Kafka 数据
-            "minio_data"                # MinIO 数据和配置
+            "rustfs_data"                # RustFS 数据和配置
             "milvus_data"               # Milvus 数据
             "milvus_config"             # Milvus 嵌入式 etcd 配置
             "srs_data"                  # SRS 配置、数据和回放

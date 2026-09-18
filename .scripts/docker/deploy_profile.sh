@@ -106,8 +106,8 @@ middleware_skipped_services() {
     local -a skips=()
     case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
         edge)
-            # 仅保留 PostgreSQL / Redis / SRS；无 DEVICE → 无 Nacos/MinIO/EMQX/Kafka
-            skips+=(Milvus ZLMediaKit NodeRED FUXA TDengine TDengine-init Kafka MinIO Nacos)
+            # 仅保留 PostgreSQL / Redis / SRS；无 DEVICE → 无 Nacos/RustFS/EMQX/Kafka
+            skips+=(Milvus ZLMediaKit NodeRED FUXA TDengine TDengine-init Kafka RustFS RustFS-init Nacos)
             ;;
         mini)
             skips+=(Milvus ZLMediaKit NodeRED FUXA TDengine TDengine-init)
@@ -160,7 +160,7 @@ is_edge_deploy_profile() {
     [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "edge" ]
 }
 
-# 本地存储热路径（告警图/录像不经 MinIO）：mini 与 edge
+# 本地存储热路径（告警图/录像不经 RustFS）：mini 与 edge
 is_local_storage_deploy_profile() {
     case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
         mini|edge) return 0 ;;
@@ -762,8 +762,8 @@ record_web_deploy_profile_built() {
 }
 
 # 按部署形态同步 VIDEO/AI .env.docker
-# mini/standard/full：告警/DVR 经 Gateway→iot-sink（可含 MinIO）
-# edge：零 DEVICE；本地落库 + 本地 DVR；不写 sink/MinIO
+# mini/standard/full：告警/DVR 经 Gateway→iot-sink（可含 RustFS）
+# edge：零 DEVICE；本地落库 + 本地 DVR；不写 sink/RustFS
 _apply_python_sink_media_env() {
     local env_file="$1"
     local compose_env="${2:-}"
@@ -837,7 +837,7 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" MINIO_ENABLED false
                 # edge 不部署 POST：Infer 走直发 / 本地落盘路径
                 _set_env_docker_kv "$env_file" POST_ENABLED false
-                # 模型管理走本机 VIDEO（无 AI / 无 MinIO）
+                # 模型管理走本机 VIDEO（无 AI / 无 RustFS）
                 _set_env_docker_kv "$env_file" AI_SERVICE_URL "http://127.0.0.1:6000/video"
                 # 容器内媒体卷路径；权重落盘到 local-storage，种子只读挂载 /model-seed-data
                 _set_env_docker_kv "$env_file" LOCAL_STORAGE_ROOT "/mnt/easyaiot-media/local-storage"
@@ -845,7 +845,7 @@ apply_python_service_deploy_env() {
                 # edge 无 EMQX：RUNTIME HTTP → VIDEO /video/alert/hook 直连落库
                 _set_env_docker_kv "$env_file" ALGO_BUS_TRANSPORT http
                 _set_env_docker_kv "$env_file" ALERT_HOOK_URL "http://127.0.0.1:6000/video/alert/hook"
-                # 本地 DVR：勿在「上传后删本地」（edge 无 MinIO）；录像守护扫容器内目录
+                # 本地 DVR：勿在「上传后删本地」（edge 无 RustFS）；录像守护扫容器内目录
                 _set_env_docker_kv "$env_file" PLAYBACK_DELETE_AFTER_UPLOAD false
                 _set_env_docker_kv "$env_file" PLAYBACK_MAX_AGE_HOURS 24
                 _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 0
@@ -906,7 +906,7 @@ apply_mini_python_service_env() {
     apply_python_service_deploy_env "$@"
 }
 
-# mini 形态：安装阶段将 MinIO 磁盘历史对象同步到宿主机 /data/local-storage
+# mini 形态：安装阶段将 RustFS 磁盘历史对象同步到宿主机 /data/local-storage
 migrate_mini_minio_data_to_local_storage() {
     is_mini_deploy_profile || return 0
     is_edge_deploy_profile && return 0
@@ -922,7 +922,7 @@ migrate_mini_minio_data_to_local_storage() {
     if [ ! -d "$ai_dir" ]; then
         return 0
     fi
-    echo "mini 形态：同步 MinIO 种子数据到 /data/local-storage ..."
+    echo "mini 形态：同步 RustFS 种子数据到 /data/local-storage ..."
     if (
         cd "$ai_dir" && \
         EASYAIOT_DEPLOY_PROFILE=mini \
@@ -934,9 +934,9 @@ copied, skipped = migrate_seed_data_to_local_storage(buckets=['models'], skip_ex
 print(f'copied={copied} skipped={skipped}')
 "
     ); then
-        echo "mini 形态：MinIO 历史数据同步完成"
+        echo "mini 形态：RustFS 历史数据同步完成"
     else
-        echo "警告: mini MinIO 历史数据同步失败，AI 启动时会再次尝试"
+        echo "警告: mini RustFS 历史数据同步失败，AI 启动时会再次尝试"
     fi
 }
 
