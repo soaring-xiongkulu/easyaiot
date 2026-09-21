@@ -1,0 +1,4 @@
+# Go source and module files must use LF (Go tooling expects Unix line endings)
+go.mod text eol=lf
+go.sum text eol=lf
+*.go text eol=lf

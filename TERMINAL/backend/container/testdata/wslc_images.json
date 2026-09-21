@@ -1,0 +1,16 @@
+[
+  {
+    "CreatedAt": 1787571600,
+    "Id": "a1b2c3d4e5f6",
+    "Repository": "nginx",
+    "Tag": "latest",
+    "Size": 187000000
+  },
+  {
+    "CreatedAt": 1786013500,
+    "Id": "f6e5d4c3b2a1",
+    "Repository": "redis",
+    "Tag": "7",
+    "Size": 52000000
+  }
+]

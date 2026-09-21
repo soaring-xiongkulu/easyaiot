@@ -1,0 +1,36 @@
+[
+  {
+    "CreatedAt": 1787571632,
+    "Id": "0c137eb750f22634cece938a4179a54bbdc40c2032fd7c3c5ec9ccb6670489d4",
+    "Image": "nginx:latest",
+    "Name": "test",
+    "Ports": [],
+    "State": 2,
+    "StateChangedAt": 1787571634
+  },
+  {
+    "CreatedAt": 1787301591,
+    "Id": "4ad471401180ee1b003cfca1812d8229994e3ac6582cb141460f4eb8a3633d17",
+    "Image": "web-app:1.0",
+    "Name": "web-app",
+    "Ports": [
+      {
+        "BindingAddress": "127.0.0.1",
+        "ContainerPort": 8888,
+        "HostPort": 18888,
+        "Protocol": 6
+      }
+    ],
+    "State": 2,
+    "StateChangedAt": 1787301594
+  },
+  {
+    "CreatedAt": 1786013514,
+    "Id": "49a9097cff1f0d97142c059b60e08df9f56fa99a5907628927a0a14ef1a0bd82",
+    "Image": "redis:7",
+    "Name": "redis",
+    "Ports": [],
+    "State": 3,
+    "StateChangedAt": 1786066350
+  }
+]
