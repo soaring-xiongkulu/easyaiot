@@ -970,7 +970,7 @@ EasyAIoT — это проект с открытым исходным кодом
 
 ## 🎬 Демонстрационное видео
 
-- Bilibili: https://www.bilibili.com/video/BV1s9eu6oEGZ/?vd_source=2f810014df44025e0bcef187560a91c4
+- Bilibili: https://www.bilibili.com/video/BV1XChi6qEK5/?vd_source=2f810014df44025e0bcef187560a91c4
 
 ## ⚙️ Адреса проекта
 

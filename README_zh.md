@@ -1045,7 +1045,7 @@ EasyAIoT是一个开源学习项目，与商业行为无关。用户在使用该
 
 ## 🎬 演示视频
 
-- Bilibili：https://www.bilibili.com/video/BV1s9eu6oEGZ/?vd_source=2f810014df44025e0bcef187560a91c4
+- Bilibili：https://www.bilibili.com/video/BV1XChi6qEK5/?vd_source=2f810014df44025e0bcef187560a91c4
 
 ## ⚙️ 项目地址
 
