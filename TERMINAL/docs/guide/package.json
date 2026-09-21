@@ -1,0 +1,15 @@
+{
+  "name": "terminal-guide",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "vitepress": "^1.6.3"
+  }
+}

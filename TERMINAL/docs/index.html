@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://uniterm.net/">
+<link rel="icon" type="image/png" href="/imgs/appicon.png">
+<link rel="apple-touch-icon" href="/imgs/appicon.png">
+<title>Terminal - Lightweight All-in-One Terminal Emulator with Built-in AI Agent</title>
+<meta name="description" content="Terminal: a lightweight all-in-one terminal with a built-in AI Agent. 30+ protocols — SSH, Telnet, Mosh, RDP, VNC, SFTP, Serial, database, Kubernetes. | 轻量级一站式终端软件，内置 AI Agent，支持 SSH、RDP、VNC、SFTP、数据库、Kubernetes 等 30 余种协议。">
+<meta name="keywords" content="Terminal,terminal emulator,AI Agent,AI terminal,SSH client,cross-platform terminal,lightweight terminal,Claude Code,remote desktop,serial terminal,SFTP,Kubernetes,Docker,container management,all-in-one,终端软件,AI终端,SSH客户端,跨平台,远程桌面,串口终端,Kubernetes,Docker,容器管理,轻量级,一站式,一体化">
+<meta name="baidu-site-verification" content="codeva-xKnncJaXe8">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Terminal - Lightweight All-in-One Cross-Platform Terminal Emulator with Built-in AI Agent">
+<meta property="og:description" content="Terminal: a lightweight all-in-one terminal with a built-in AI Agent. 30+ protocols — SSH, Telnet, Mosh, RDP, VNC, SFTP, Serial, database, Kubernetes. | 轻量级一站式终端软件，内置 AI Agent，支持 SSH、RDP、VNC、SFTP、数据库、Kubernetes 等 30 余种协议。">
+<meta property="og:image" content="https://uniterm.net/imgs/appicon.png">
+<meta property="og:url" content="https://uniterm.net/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Terminal">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Terminal - Lightweight All-in-One Cross-Platform Terminal Emulator">
+<meta name="twitter:description" content="Terminal: a lightweight all-in-one terminal with a built-in AI Agent. | 轻量级一站式终端软件，内置 AI Agent。">
+<meta name="twitter:image" content="https://uniterm.net/imgs/appicon.png">
+
+<!-- Schema.org JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Terminal",
+  "description": "Terminal: a lightweight all-in-one terminal with a built-in AI Agent. 30+ protocols — SSH, Telnet, Mosh, RDP, VNC, SFTP, Serial, database, Kubernetes. | 轻量级一站式终端软件，内置 AI Agent，支持 SSH、RDP、VNC、SFTP、数据库、Kubernetes 等 30 余种协议。",
+  "applicationCategory": "Terminal",
+  "operatingSystem": "Windows, macOS, Linux",
+  "url": "https://uniterm.net/",
+  "sameAs": "https://github.com/ys-ll/uniterm",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "license": "https://www.apache.org/licenses/LICENSE-2.0"
+}
+</script>
+<style>
+:root {
+  --bg: #0a0e13;
+  --bg-card: #131921;
+  --text: #c9d1d9;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-glow: rgba(88, 166, 255, 0.25);
+  --accent-hover: #79c0ff;
+  --border: #30363d;
+  --overlay: rgba(255, 255, 255, 0.03);
+  --logo-bg: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  --logo-border: rgba(255, 255, 255, 0.08);
+  --shadow: rgba(0, 0, 0, 0.3);
+  --radius: 8px;
+  --max-width: 960px;
+}
+
+html[data-theme="light"] {
+  --bg: #f6f8fa;
+  --bg-card: #ffffff;
+  --text: #1f2328;
+  --text-muted: #59636e;
+  --accent: #0969da;
+  --accent-glow: rgba(9, 105, 218, 0.15);
+  --accent-hover: #0860ca;
+  --border: #d0d7de;
+  --overlay: rgba(9, 105, 218, 0.05);
+  --logo-bg: linear-gradient(135deg, rgba(9,105,218,0.06), rgba(9,105,218,0.02));
+  --logo-border: rgba(9, 105, 218, 0.14);
+  --shadow: rgba(31, 35, 40, 0.12);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  position: relative;
+}
+
+/* Subtle noise grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none;
+}
+html[data-theme="light"] body::before { opacity: 0.18; }
+
+/* ── Lang toggle ── */
+.lang-bar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px;
+  backdrop-filter: blur(8px);
+}
+.lang-btn {
+  padding: 4px 14px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all .2s;
+}
+.lang-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all .2s;
+}
+.theme-btn:hover { color: var(--text); background: var(--overlay); }
+.theme-btn svg { width: 15px; height: 15px; }
+.theme-btn .icon-moon { display: none; }
+html[data-theme="light"] .theme-btn .icon-sun { display: none; }
+html[data-theme="light"] .theme-btn .icon-moon { display: inline; }
+.bar-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 3px 2px;
+  background: var(--border);
+}
+
+.content-zh, .content-en { display: none; }
+html[lang="zh-CN"] .content-zh, html[lang="en"] .content-en { display: initial; }
+html[lang="zh-CN"] .content-inline-zh, html[lang="en"] .content-inline-en { display: inline; }
+.content-inline-zh, .content-inline-en { display: none; }
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 100px 24px 80px;
+  position: relative;
+}
+
+/* Radial glow behind the logo */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center,
+    rgba(88, 166, 255, 0.12) 0%,
+    rgba(88, 166, 255, 0.06) 30%,
+    rgba(88, 166, 255, 0.02) 60%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Logo container — lighter backdrop so dark logo edges are visible */
+.logo-wrap {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  border-radius: 32px;
+  background: var(--logo-bg);
+  border: 1px solid var(--logo-border);
+  box-shadow:
+    0 0 80px var(--accent-glow),
+    0 0 40px rgba(88, 166, 255, 0.12),
+    0 0 120px rgba(88, 166, 255, 0.06);
+  margin-bottom: 28px;
+  transition: box-shadow 0.3s ease;
+}
+.logo-wrap:hover {
+  box-shadow:
+    0 0 100px rgba(88, 166, 255, 0.35),
+    0 0 50px rgba(88, 166, 255, 0.18),
+    0 0 140px rgba(88, 166, 255, 0.08);
+}
+.logo-wrap img {
+  width: 112px;
+  height: 112px;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 12px rgba(88, 166, 255, 0.3));
+}
+
+.hero h1 {
+  font-size: 52px;
+  font-weight: 800;
+  margin-bottom: 14px;
+  letter-spacing: -1.5px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero .subtitle {
+  font-size: 18px;
+  color: var(--text-muted);
+  margin-bottom: 36px;
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero .btns {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .25s;
+  border: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(88, 166, 255, 0.3);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 6px 28px rgba(88, 166, 255, 0.4);
+  transform: translateY(-1px);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover {
+  border-color: var(--text-muted);
+  background: var(--overlay);
+}
+
+/* ── Sections ── */
+.section {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+.section-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 48px;
+  position: relative;
+}
+
+/* Subtle divider under section titles */
+.section-title::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: var(--accent);
+  margin: 16px auto 0;
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+/* ── Feature groups ── */
+.feature-group {
+  margin-bottom: 56px;
+}
+.feature-group:last-child {
+  margin-bottom: 0;
+}
+.feature-group-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.feature-group-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  color: var(--accent);
+}
+.feature-group-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.feature-group-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.feature-group-desc {
+  font-size: 15px;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* ── Features grid ── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+.feature-card:hover {
+  border-color: rgba(88, 166, 255, 0.3);
+  box-shadow: 0 8px 30px var(--shadow);
+  transform: translateY(-2px);
+}
+.feature-card .icon {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 12px;
+  color: var(--accent);
+}
+.feature-card .icon svg {
+  width: 100%;
+  height: 100%;
+}
+.feature-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.feature-card p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ── Screenshots Carousel ── */
+.screenshots-carousel {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-card);
+  box-shadow: 0 4px 24px var(--shadow);
+}
+.screenshots-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.screenshots-track::-webkit-scrollbar { display: none; }
+.screenshots-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+.screenshots-slide img {
+  width: 100%;
+  display: block;
+}
+html[data-theme="dark"] .img-light { display: none; }
+html[data-theme="light"] .img-dark { display: none; }
+.screenshot-caption {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+.screenshots-nav {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.screenshots-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  padding: 0;
+}
+.screenshots-dot.active {
+  background: var(--accent);
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* ── Arrow buttons ── */
+.screenshots-arrow {
+  position: absolute;
+  top: calc(50% - 18px);
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+.screenshots-carousel:hover .screenshots-arrow {
+  opacity: 1;
+}
+.screenshots-arrow:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.screenshots-arrow-left  { left: 12px; }
+.screenshots-arrow-right { right: 12px; }
+.screenshots-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Installation ── */
+.install-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.install-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+.install-card:hover {
+  border-color: rgba(88, 166, 255, 0.3);
+  box-shadow: 0 8px 30px var(--shadow);
+  transform: translateY(-2px);
+}
+.install-card .os-icon {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 12px;
+  color: var(--text);
+}
+.install-card .os-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.install-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.install-card .format {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.install-card .btn { padding: 10px 24px; font-size: 14px; }
+
+/* ── Footer ── */
+.footer {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 32px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-right: 16px;
+}
+.footer a:hover { color: var(--text); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .features-grid,
+  .install-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero h1 { font-size: 36px; }
+  .hero { padding: 80px 24px 60px; }
+  .feature-group { margin-bottom: 40px; }
+  .logo-wrap {
+    width: 140px;
+    height: 140px;
+    border-radius: 28px;
+  }
+  .logo-wrap img {
+    width: 96px;
+    height: 96px;
+  }
+  .hero::before {
+    width: 240px;
+    height: 240px;
+    top: 60px;
+  }
+}
+</style>
+<script>
+/* Apply saved/system theme before paint to avoid a flash */
+(function() {
+  var t;
+  try { t = localStorage.getItem('terminal-theme'); } catch(e) {}
+  if (!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?c199b0d963bc266f256b10c20d2045bb";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</head>
+<body>
+
+<!-- Language toggle -->
+<div class="lang-bar">
+  <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  </button>
+  <span class="bar-divider"></span>
+  <button class="lang-btn active" onclick="setLang('zh-CN')">中文</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+</div>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="logo-wrap">
+    <img src="imgs/appicon.webp" alt="Terminal" />
+  </div>
+  <h1>Terminal</h1>
+  <p class="subtitle">
+    <span class="content-inline-zh">一款轻量级一站式终端软件，支持 SSH、RDP、VNC、SFTP、数据库、Kubernetes 等 30 余种协议<br>内置可自主执行的 AI Agent，规划并执行多轮 Shell 命令</span>
+    <span class="content-inline-en">A lightweight all-in-one terminal with 30+ protocols — SSH, RDP, SFTP, databases, Kubernetes and more<br>With a built-in autonomous AI Agent that plans and runs multi-turn shell commands</span>
+  </p>
+  <div class="btns">
+    <a href="#install" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span class="content-inline-zh">下载安装</span>
+      <span class="content-inline-en">Download</span>
+    </a>
+    <a href="/guide/zh/introduction" id="guide-btn" class="btn btn-outline">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span class="content-zh">用户手册</span>
+      <span class="content-en">User Guide</span>
+    </a>
+    <a href="https://github.com/ys-ll/uniterm" target="_blank" class="btn btn-outline">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.604-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0z"/></svg>
+      GitHub
+    </a>
+    <a href="https://gitee.com/ys-l/uniterm" target="_blank" class="btn btn-outline">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .593.266.592.593v1.482a.594.594 0 0 1-.593.592H9.777c-.982 0-1.778.796-1.778 1.778v5.63c0 .327.266.592.593.592h5.63c.982 0 1.778-.796 1.778-1.778v-.296a.593.593 0 0 0-.592-.593h-4.15a.592.592 0 0 1-.592-.592v-1.482a.593.593 0 0 1 .593-.592h6.815c.327 0 .593.265.593.592v3.408a4 4 0 0 1-4 4H5.926a.593.593 0 0 1-.593-.593V9.778a4.444 4.444 0 0 1 4.445-4.444h8.296z"/></svg>
+      Gitee
+    </a>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="section">
+  <h2 class="section-title"><span class="content-zh">功能特性</span><span class="content-en">Features</span></h2>
+
+  <!-- Full-Featured Terminal -->
+  <div class="feature-group">
+    <div class="feature-group-head">
+      <div class="feature-group-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><polyline points="6 9 10 13 14 9"/><line x1="10" y1="13" x2="10" y2="21"/></svg></div>
+      <h3 class="feature-group-title">
+        <span class="content-zh">全功能终端</span>
+        <span class="content-en">Full-Featured Terminal</span>
+      </h3>
+      <p class="feature-group-desc">
+        <span class="content-zh">远程终端、本地 & 串口终端、文件传输、远程桌面、数据库、容器 —— 覆盖全部远程访问场景。</span>
+        <span class="content-en">Remote terminal, local & serial terminal, file transfer, remote desktop, database, and containers — covering all remote access needs.</span>
+      </p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg></div>
+        <h4><span class="content-zh">远程终端</span><span class="content-en">Remote Terminal</span></h4>
+        <p><span class="content-zh">SSH / Telnet / Mosh / Raw TCP，密码/私钥认证；含 SSH 隧道端口转发，以及服务器性能、进程、端口实时监控</span><span class="content-en">SSH / Telnet / Mosh / Raw TCP with password/key auth; includes SSH tunnel port forwarding, plus real-time server performance, process, and port monitoring</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="10" rx="2"/><path d="M2 18h20v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z"/></svg></div>
+        <h4><span class="content-zh">本地 &amp; 串口终端</span><span class="content-en">Local &amp; Serial Terminal</span></h4>
+        <p><span class="content-zh">PowerShell / CMD / Git Bash / WSL，以及串口连接（波特率等参数、本地回显）</span><span class="content-en">PowerShell / CMD / Git Bash / WSL, plus serial connections with configurable baud rate and local echo</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div>
+        <h4><span class="content-zh">文件传输</span><span class="content-en">File Transfer</span></h4>
+        <p><span class="content-zh">SFTP / SCP / FTP / FTPS / SMB / WebDAV / S3 / Zmodem，双栏浏览、鼠标拖拽上传下载，SSH 内 `rz`/`sz`</span><span class="content-en">SFTP / SCP / FTP / FTPS / SMB / WebDAV / S3 / Zmodem, dual-pane browse, drag-and-drop transfer, `rz`/`sz` in SSH</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+        <h4><span class="content-zh">远程桌面</span><span class="content-en">Remote Desktop</span></h4>
+        <p><span class="content-zh">RDP（Windows 远程桌面）、VNC（Linux 远程控制）、SPICE（KVM/QEMU 虚拟机）、X11（X Window 图形界面转发）</span><span class="content-en">RDP (Windows Remote Desktop), VNC (Linux remote control), SPICE (KVM/QEMU VMs), X11 (X Window forwarding)</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+        <h4><span class="content-zh">数据库客户端</span><span class="content-en">Database Client</span></h4>
+        <p><span class="content-zh">MySQL / PostgreSQL / Oracle / SQL Server / rqlite / Redis / MongoDB / Elasticsearch，AI 自然语言生成查询与数据行编辑</span><span class="content-en">MySQL / PostgreSQL / Oracle / SQL Server / rqlite / Redis / MongoDB / Elasticsearch — AI natural language query generation &amp; inline row editing</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+        <h4><span class="content-zh">容器</span><span class="content-en">Containers</span></h4>
+        <p><span class="content-zh">Kubernetes / Docker / Podman / nerdctl (containerd) / WSLC，集群资源与容器镜像管理、Pod 日志与 exec 终端、CPU/内存指标</span><span class="content-en">Kubernetes / Docker / Podman / nerdctl (containerd) / WSLC — cluster resources and container/image management, Pod logs and exec terminals, CPU/memory metrics</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Assistant -->
+  <div class="feature-group">
+    <div class="feature-group-head">
+      <div class="feature-group-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M8 6a8 8 0 0110.5 3.5"/><path d="M16 18a8 8 0 01-10.5-3.5"/></svg></div>
+      <h3 class="feature-group-title">
+        <span class="content-zh">AI 助理</span>
+        <span class="content-en">AI Assistant</span>
+      </h3>
+      <p class="feature-group-desc">
+        <span class="content-zh">自主执行的 AI Agent，独立规划并执行多轮 Shell 命令，直接在终端中完成复杂任务。</span>
+        <span class="content-en">Autonomous AI Agent that independently plans and executes multi-turn shell commands directly in your terminal.</span>
+      </p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg></div>
+        <h4><span class="content-zh">自主多轮执行</span><span class="content-en">Autonomous Multi-Turn</span></h4>
+        <p><span class="content-zh">AI Agent 自主规划、执行、观察并迭代，无需人工干预即可完成复杂任务</span><span class="content-en">Plans, executes, observes, and iterates across multi-turn commands without manual intervention</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+        <h4><span class="content-zh">大模型集成</span><span class="content-en">LLM Integration</span></h4>
+        <p><span class="content-zh">侧边栏对话，兼容 Anthropic / OpenAI 协议，支持 Claude、GPT 及其他兼容模型</span><span class="content-en">Sidebar chat with Anthropic/OpenAI-compatible API, supporting Claude, GPT and other compliant models</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h4><span class="content-zh">灵活执行模式</span><span class="content-en">Flexible Execution Modes</span></h4>
+        <p><span class="content-zh">免确认、仅高危确认、写操作确认、全部确认四种模式，自主权由你掌控</span><span class="content-en">Bypass, confirm dangerous only, confirm write, or confirm all — you control how much oversight the AI gets</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+        <h4><span class="content-zh">对话持久化</span><span class="content-en">Persistent Conversations</span></h4>
+        <p><span class="content-zh">聊天记录按会话保存，重新打开应用后历史对话仍然保留</span><span class="content-en">Chat history saved per session — conversations survive app restarts</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+        <h4><span class="content-zh">终端智能协作</span><span class="content-en">Terminal Integration</span></h4>
+        <p><span class="content-zh">AI 命令直接在终端标签执行，可固定或跟随激活终端；输入时按历史与 AI 能力实时补全</span><span class="content-en">AI runs in the terminal tab — pin or follow the active one; real-time completion from history and AI while you type</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/></svg></div>
+        <h4><span class="content-zh">技能与命令</span><span class="content-en">Skills &amp; Commands</span></h4>
+        <p><span class="content-zh">可复用的 Skill 工作流与 Prompt 命令模板，AI 也可自行沉淀新技能</span><span class="content-en">Reusable skill workflows and prompt-template commands; the AI can also save new skills itself</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customization -->
+  <div class="feature-group">
+    <div class="feature-group-head">
+      <div class="feature-group-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+      <h3 class="feature-group-title">
+        <span class="content-zh">个性化能力</span>
+        <span class="content-en">Personalization</span>
+      </h3>
+      <p class="feature-group-desc">
+        <span class="content-zh">连接管理、自由分屏、云端同步、主题定制 —— 你的终端由你掌控。</span>
+        <span class="content-en">Connection management, split panes, cloud sync, themes — your terminal, your way.</span>
+      </p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+        <h4><span class="content-zh">连接管理器</span><span class="content-en">Connection Manager</span></h4>
+        <p><span class="content-zh">快速搜索、新建连接、分组排序、批量操作</span><span class="content-en">Quick search, new connection, grouping, sorting, batch ops</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/></svg></div>
+        <h4><span class="content-zh">自由分屏</span><span class="content-en">Split Panes</span></h4>
+        <p><span class="content-zh">将终端标签拖到内容区即可自由分屏，任意组合成工作区</span><span class="content-en">Drag terminal tabs into the content area to split freely and combine into a workspace</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 116.71-9h1.79a4.5 4.5 0 110 9z"/></svg></div>
+        <h4><span class="content-zh">云端配置同步</span><span class="content-en">Cloud Sync</span></h4>
+        <p><span class="content-zh">去中心化私有仓库加密自动同步，多设备无缝接续，无惧丢失泄露</span><span class="content-en">Encrypted auto-sync via your own decentralized repo — seamless across devices</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M10 14h4M18 14h.01"/></svg></div>
+        <h4><span class="content-zh">自定义快捷键</span><span class="content-en">Custom Keybindings</span></h4>
+        <p><span class="content-zh">自由绑定各项操作的快捷键，实现全键盘操作</span><span class="content-en">Freely bind shortcuts for every action for full keyboard-driven operation</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div>
+        <h4><span class="content-zh">主题</span><span class="content-en">Themes</span></h4>
+        <p><span class="content-zh">28 款终端主题、3 款界面主题（暗色 / 深蓝 / 浅色）、自定义背景图片</span><span class="content-en">28 terminal themes plus 3 UI themes (Dark / Deep Blue / Light) and a customizable background image</span></p>
+      </div>
+      <div class="feature-card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="4" ry="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div>
+        <h4><span class="content-zh">国际化</span><span class="content-en">Internationalization</span></h4>
+        <p><span class="content-zh">简中、繁中、英、日、韩、德、西、法、俄 9 种语言界面</span><span class="content-en">9-language UI: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, German, Spanish, French, Russian</span></p>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══ SCREENSHOTS ═══ -->
+<section class="section">
+  <h2 class="section-title"><span class="content-zh">界面截图</span><span class="content-en">Screenshots</span></h2>
+
+  <div class="screenshots-carousel">
+    <button class="screenshots-arrow screenshots-arrow-left" aria-label="Previous">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="screenshots-arrow screenshots-arrow-right" aria-label="Next">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+
+    <div class="screenshots-track">
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/start_tab.webp" alt="Start page with connection cards" />
+        <img class="img-light" loading="eager" src="imgs/start_tab_light.webp" alt="Start page with connection cards" />
+        <div class="screenshot-caption">
+          <span class="content-zh">开始页 —— 连接卡片快速访问</span>
+          <span class="content-en">Start Tab — Connection cards for quick access</span>
+        </div>
+      </div>
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/new_connection.webp" alt="New connection dialog" />
+        <img class="img-light" loading="eager" src="imgs/new_connection_light.webp" alt="New connection dialog" />
+        <div class="screenshot-caption">
+          <span class="content-zh">新建连接 —— 支持 30+ 协议</span>
+          <span class="content-en">New Connection — 30+ protocols supported</span>
+        </div>
+      </div>
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/ai_assistant.webp" alt="SSH terminal with AI assistant" />
+        <img class="img-light" loading="eager" src="imgs/ai_assistant_light.webp" alt="SSH terminal with AI assistant" />
+        <div class="screenshot-caption">
+          <span class="content-zh">SSH 终端 + AI 助理侧边栏</span>
+          <span class="content-en">SSH Terminal + AI Assistant Sidebar</span>
+        </div>
+      </div>
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/workspace.webp" alt="Workspace with multiple panels" />
+        <img class="img-light" loading="eager" src="imgs/workspace_light.webp" alt="Workspace with multiple panels" />
+        <div class="screenshot-caption">
+          <span class="content-zh">工作区 —— 多面板自由分屏</span>
+          <span class="content-en">Workspace — Multi-panel split panes</span>
+        </div>
+      </div>
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/sftp.webp" alt="SFTP dual-pane file transfer" />
+        <img class="img-light" loading="eager" src="imgs/sftp_light.webp" alt="SFTP dual-pane file transfer" />
+        <div class="screenshot-caption">
+          <span class="content-zh">文件传输双栏管理</span>
+          <span class="content-en">File Transfer Dual-Pane Manager</span>
+        </div>
+      </div>
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/database.webp" alt="Database browser" />
+        <img class="img-light" loading="eager" src="imgs/database_light.webp" alt="Database browser" />
+        <div class="screenshot-caption">
+          <span class="content-zh">数据库浏览器</span>
+          <span class="content-en">Database Browser</span>
+        </div>
+      </div>
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/kubernetes.webp" alt="Kubernetes cluster management" />
+        <img class="img-light" loading="eager" src="imgs/kubernetes_light.webp" alt="Kubernetes cluster management" />
+        <div class="screenshot-caption">
+          <span class="content-zh">Kubernetes 集群管理</span>
+          <span class="content-en">Kubernetes Cluster Management</span>
+        </div>
+      </div>
+      <div class="screenshots-slide">
+        <img class="img-dark" loading="eager" src="imgs/background_image.webp" alt="Terminal background image" />
+        <img class="img-light" loading="eager" src="imgs/background_image.webp" alt="Terminal background image" />
+        <div class="screenshot-caption">
+          <span class="content-zh">终端背景图片自定义</span>
+          <span class="content-en">Custom Terminal Background Image</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screenshots-nav">
+      <button class="screenshots-dot active" data-index="0"></button>
+      <button class="screenshots-dot" data-index="1"></button>
+      <button class="screenshots-dot" data-index="2"></button>
+      <button class="screenshots-dot" data-index="3"></button>
+      <button class="screenshots-dot" data-index="4"></button>
+      <button class="screenshots-dot" data-index="5"></button>
+      <button class="screenshots-dot" data-index="6"></button>
+      <button class="screenshots-dot" data-index="7"></button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ INSTALLATION ═══ -->
+<section class="section" id="install">
+  <h2 class="section-title"><span class="content-zh">下载安装</span><span class="content-en">Download</span></h2>
+  <div class="install-grid">
+
+    <div class="install-card">
+      <div class="os-icon"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg></div>
+      <h3>Windows</h3>
+      <div class="format"><span class="content-inline-zh">EXE 安装版 / ZIP 便携版<br>amd64 / arm64</span><span class="content-inline-en">EXE Installer / ZIP Portable<br>amd64 / arm64</span></div>
+      <a href="https://github.com/ys-ll/uniterm/releases/latest" target="_blank" class="btn btn-primary release-link">
+        <span class="content-inline-zh">下载</span><span class="content-inline-en">Download</span>
+      </a>
+    </div>
+
+    <div class="install-card">
+      <div class="os-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></div>
+      <h3>macOS</h3>
+      <div class="format"><span class="content-inline-zh">DMG 安装包<br>Apple Silicon / Intel</span><span class="content-inline-en">DMG Installer<br>Apple Silicon / Intel</span></div>
+      <a href="https://github.com/ys-ll/uniterm/releases/latest" target="_blank" class="btn btn-primary release-link">
+        <span class="content-inline-zh">下载</span><span class="content-inline-en">Download</span>
+      </a>
+    </div>
+
+    <div class="install-card">
+      <div class="os-icon"><svg viewBox="0 0 485 485"><circle cx="242.5" cy="242.5" r="242.5" fill="#fff"/><path fill="#000" d="M139.157 383.053c16.613 1.984 35.279 12.746 50.9 14.646 15.705 1.983 20.565-10.695 20.565-10.695s17.673-3.951 36.253-4.406c18.598-.521 36.203 3.868 36.203 3.868s3.414 7.819 9.787 11.233c6.373 3.48 20.094 3.951 28.888-5.314 8.811-9.332 32.319-21.087 45.519-28.435 13.284-7.365 10.846-18.597 2.506-22.011-8.34-3.413-15.167-8.794-14.646-19.119.454-10.24-7.365-17.067-7.365-17.067s6.844-22.532.471-41.197c-6.373-18.58-27.392-48.461-43.551-70.926-16.159-22.532-2.439-48.545-17.151-81.789-14.714-33.294-52.867-31.326-73.432-17.135-20.565 14.192-14.26 49.386-13.268 66.084.992 16.613.454 28.501-1.446 32.773-1.9 4.338-15.167 20.094-23.978 33.294-8.794 13.267-15.168 40.659-21.608 51.959-6.306 11.233-1.9 21.473-1.9 21.473s-4.405 1.513-7.886 8.879c-3.414 7.281-10.241 10.761-22.533 13.133-12.208 2.505-12.208 10.375-9.265 19.186 2.959 8.794 0 13.721-3.414 24.954-3.431 11.266 13.653 14.679 30.333 16.647zm172.692-51.237c8.727 3.817 21.271-1.497 25.088-5.314 3.801-3.8 6.491-9.45 6.491-9.45s3.817 1.9 3.43 7.936c-.404 6.121 2.623 14.848 8.34 17.875 5.717 3.01 14.444 7.213 9.921 11.417-4.608 4.204-30.099 14.461-37.716 22.465-7.55 7.953-17.471 14.461-23.508 12.544-6.103-1.9-11.434-10.24-8.81-22.448 2.707-12.157 4.994-25.492 4.607-33.109-.403-7.617-1.9-17.874 0-19.388 1.9-1.497 4.927-.774 4.927-.774s-2.757 7.263 5.988 11.062l.242.084zm-56.633-205.783c8.407 0 15.184 8.34 15.184 18.597 0 7.281-3.414 13.587-8.408 16.614-1.261-.521-2.573-1.11-4.019-1.716 3.027-1.496 5.128-5.313 5.128-9.719 0-5.767-3.547-10.509-8.004-10.509-4.338 0-7.954 4.741-7.954 10.509 0 2.103.522 4.204 1.379 5.852-2.623-1.06-4.994-1.967-6.894-2.69-.992-2.506-1.581-5.331-1.581-8.34.001-10.258 6.76-18.598 15.169-18.598zm-20.818 32.05c4.137.723 15.503 5.65 19.708 7.163 4.204 1.446 8.861 4.136 8.407 6.827-.521 2.774-2.69 2.774-8.407 6.255-5.65 3.414-17.992 11.031-21.944 11.552-3.935.521-6.171-1.699-10.376-4.406-4.204-2.758-12.089-9.198-10.106-12.611 0 0 6.171-4.725 8.862-7.146 2.691-2.471 9.652-8.373 13.856-7.599v-.035zm-18.127-29.09c6.625 0 12.023 7.886 12.023 17.605 0 1.766-.202 3.413-.521 5.061-1.648.521-3.295 1.379-4.877 2.758-.773.656-1.497 1.244-2.152 1.9 1.042-1.967 1.446-4.792.975-7.752-.908-5.246-4.456-9.13-7.937-8.609-3.498.589-5.583 5.398-4.742 10.712.925 5.381 4.405 9.264 7.953 8.676.202-.067.387-.134.589-.202-1.698 1.648-3.279 3.094-4.927 4.271-4.792-2.237-8.34-8.929-8.34-16.815-.001-7.819 5.312-15.605 11.956-15.605zm-36.909 127.223c6.827-10.761 11.232-34.286 18.059-42.105 6.895-7.802 12.208-24.432 9.787-31.78 0 0 14.713 17.605 24.954 14.713 10.257-2.96 33.311-20.094 36.724-17.151 3.414 2.959 32.773 67.529 35.732 88.094 2.96 20.548-1.967 36.254-1.967 36.254s-11.232-2.96-12.679 3.867c-1.446 6.894-1.446 31.865-1.446 31.865s-15.184 21.019-38.692 24.499c-23.508 3.414-35.279.925-35.279.925l-13.2-15.117s10.258-1.513 8.811-11.821c-1.446-10.24-31.344-24.433-36.725-37.179-5.364-12.712-.975-34.252 5.936-44.474l-.015.01zm-58.13 77.114c1.177-5.044 16.411-5.044 22.263-8.592 5.852-3.548 7.028-13.738 11.754-16.428 4.657-2.758 13.267 7.029 16.815 12.543 3.481 5.381 16.816 28.906 22.264 34.757 5.515 5.902 10.577 13.721 8.996 20.75-1.496 7.028-9.786 12.157-9.786 12.157-7.415 2.287-28.098-6.642-37.497-10.577-9.399-3.951-33.311-5.129-36.388-8.609-3.161-3.548 1.513-11.367 2.757-18.783 1.227-7.432-2.253-12.09-1.06-17.151l-.118-.067z"/></svg></div>
+      <h3>Linux</h3>
+      <div class="format"><span class="content-inline-zh">TAR.GZ / DEB / RPM<br>amd64 / arm64</span><span class="content-inline-en">TAR.GZ / DEB / RPM<br>amd64 / arm64</span></div>
+      <a href="https://github.com/ys-ll/uniterm/releases/latest" target="_blank" class="btn btn-primary release-link">
+        <span class="content-inline-zh">下载</span><span class="content-inline-en">Download</span>
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div>
+    <a href="https://github.com/ys-ll/uniterm" target="_blank">GitHub</a>
+    <a href="https://gitee.com/ys-l/uniterm" target="_blank">Gitee</a>
+    <span>Apache 2.0</span>
+  </div>
+  <div>&copy; 2026 Terminal</div>
+</footer>
+
+<script>
+function setLang(lang) {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('.lang-btn').forEach(function(b) {
+    b.classList.toggle('active', b.textContent.trim() === (lang === 'zh-CN' ? '中文' : 'EN'));
+  });
+  document.title = lang === 'zh-CN'
+    ? 'Terminal - 轻量级一站式终端软件，内置 AI Agent'
+    : 'Terminal - Lightweight All-in-One Terminal Emulator with Built-in AI Agent';
+  var releaseUrl = lang === 'zh-CN'
+    ? 'https://gitee.com/ys-l/uniterm/releases/latest'
+    : 'https://github.com/ys-ll/uniterm/releases/latest';
+  document.querySelectorAll('.release-link').forEach(function(a) {
+    a.href = releaseUrl;
+  });
+  var guideBtn = document.getElementById('guide-btn');
+  if (guideBtn) {
+    guideBtn.href = lang === 'zh-CN' ? '/guide/zh/introduction' : '/guide/en/introduction';
+  }
+  try { localStorage.setItem('terminal-lang', lang); } catch(e) {}
+}
+(function() {
+  var saved = 'zh-CN';
+  try { saved = localStorage.getItem('terminal-lang') || saved; } catch(e) {}
+  setLang(saved);
+})();
+
+/* ── Theme toggle ── */
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  try { localStorage.setItem('terminal-theme', theme); } catch(e) {}
+}
+function toggleTheme() {
+  var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  setTheme(cur === 'light' ? 'dark' : 'light');
+}
+
+/* ── Screenshot carousel ── */
+(function() {
+  var track = document.querySelector('.screenshots-track');
+  var slides = track.querySelectorAll('.screenshots-slide');
+  var dots = document.querySelectorAll('.screenshots-dot');
+  var prevBtn = document.querySelector('.screenshots-arrow-left');
+  var nextBtn = document.querySelector('.screenshots-arrow-right');
+  var current = 0;
+  var timer;
+
+  function goTo(index) {
+    if (index < 0) index = slides.length - 1;
+    if (index >= slides.length) index = 0;
+    current = index;
+    track.scrollTo({ left: track.offsetWidth * index, behavior: 'smooth' });
+    dots.forEach(function(d, i) { d.classList.toggle('active', i === index); });
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  function startAuto() { timer = setInterval(next, 4000); }
+  function resetAuto() { clearInterval(timer); startAuto(); }
+
+  prevBtn.addEventListener('click', function() { prev(); resetAuto(); });
+  nextBtn.addEventListener('click', function() { next(); resetAuto(); });
+
+  dots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      goTo(parseInt(this.getAttribute('data-index')));
+      resetAuto();
+    });
+  });
+
+  // Update active dot on manual scroll
+  track.addEventListener('scroll', function() {
+    var idx = Math.round(track.scrollLeft / track.offsetWidth);
+    if (idx !== current) {
+      current = idx;
+      dots.forEach(function(d, i) { d.classList.toggle('active', i === idx); });
+    }
+  });
+
+  // Pause on hover
+  track.addEventListener('mouseenter', function() { clearInterval(timer); });
+  track.addEventListener('mouseleave', startAuto);
+
+  startAuto();
+})();
+</script>
+
+</body>
+</html>
