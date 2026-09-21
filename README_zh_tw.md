@@ -1009,6 +1009,10 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 | ![預覽](.image/banner/banner1188.png) | ![組件](.image/banner/banner1189.png) | ![數據源](.image/banner/banner1190.png) |
 | ![發佈](.image/banner/banner1191.png) | ![運行](.image/banner/banner1192.png) | ![模板](.image/banner/banner1193.png) |
 | ![資產](.image/banner/banner1194.png) | ![大屏](.image/banner/banner1195.png) | ![展示](.image/banner/banner1196.png) |
+| ![數位孪生](.image/banner/banner1258.png) | ![爆炸視圖](.image/banner/banner1259.png) | ![樓層視圖](.image/banner/banner1260.png) |
+| ![數位孪生](.image/banner/banner1261.png) | ![爆炸視圖](.image/banner/banner1262.png) | ![樓層視圖](.image/banner/banner1263.png) |
+| ![數位孪生](.image/banner/banner1264.png) | ![爆炸視圖](.image/banner/banner1265.png) | ![樓層視圖](.image/banner/banner1266.png) |
+| ![數位孪生](.image/banner/banner1267.png) | ![爆炸視圖](.image/banner/banner1268.png) | ![樓層視圖](.image/banner/banner1269.png) |
 
 #### 📹 視頻監控
 

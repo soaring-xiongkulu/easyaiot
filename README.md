@@ -1033,6 +1033,10 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 | ![Preview](.image/banner/banner1188.png) | ![Components](.image/banner/banner1189.png) | ![Data Source](.image/banner/banner1190.png) |
 | ![Publish](.image/banner/banner1191.png) | ![Runtime](.image/banner/banner1192.png) | ![Template](.image/banner/banner1193.png) |
 | ![Assets](.image/banner/banner1194.png) | ![Big Screen](.image/banner/banner1195.png) | ![Display](.image/banner/banner1196.png) |
+| ![Digital Twin](.image/banner/banner1258.png) | ![Exploded View](.image/banner/banner1259.png) | ![Floor View](.image/banner/banner1260.png) |
+| ![Digital Twin](.image/banner/banner1261.png) | ![Exploded View](.image/banner/banner1262.png) | ![Floor View](.image/banner/banner1263.png) |
+| ![Digital Twin](.image/banner/banner1264.png) | ![Exploded View](.image/banner/banner1265.png) | ![Floor View](.image/banner/banner1266.png) |
+| ![Digital Twin](.image/banner/banner1267.png) | ![Exploded View](.image/banner/banner1268.png) | ![Floor View](.image/banner/banner1269.png) |
 
 #### 📹 Video Surveillance
 

@@ -999,6 +999,10 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 | ![미리보기](.image/banner/banner1188.png) | ![컴포넌트](.image/banner/banner1189.png) | ![데이터소스](.image/banner/banner1190.png) |
 | ![배포](.image/banner/banner1191.png) | ![실행](.image/banner/banner1192.png) | ![템플릿](.image/banner/banner1193.png) |
 | ![자산](.image/banner/banner1194.png) | ![대형화면](.image/banner/banner1195.png) | ![전시](.image/banner/banner1196.png) |
+| ![디지털 트윈](.image/banner/banner1258.png) | ![전개 뷰](.image/banner/banner1259.png) | ![층 뷰](.image/banner/banner1260.png) |
+| ![디지털 트윈](.image/banner/banner1261.png) | ![전개 뷰](.image/banner/banner1262.png) | ![층 뷰](.image/banner/banner1263.png) |
+| ![디지털 트윈](.image/banner/banner1264.png) | ![전개 뷰](.image/banner/banner1265.png) | ![층 뷰](.image/banner/banner1266.png) |
+| ![디지털 트윈](.image/banner/banner1267.png) | ![전개 뷰](.image/banner/banner1268.png) | ![층 뷰](.image/banner/banner1269.png) |
 
 #### 📹 영상 모니터링
 

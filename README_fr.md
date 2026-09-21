@@ -999,6 +999,10 @@ Pour la livraison, la veille opérationnelle et les opérations métier : organi
 | ![Aperçu](.image/banner/banner1188.png) | ![Composants](.image/banner/banner1189.png) | ![Source de données](.image/banner/banner1190.png) |
 | ![Publication](.image/banner/banner1191.png) | ![Exécution](.image/banner/banner1192.png) | ![Modèle](.image/banner/banner1193.png) |
 | ![Actifs](.image/banner/banner1194.png) | ![Grand écran](.image/banner/banner1195.png) | ![Affichage](.image/banner/banner1196.png) |
+| ![Jumeau numérique](.image/banner/banner1258.png) | ![Vue éclatée](.image/banner/banner1259.png) | ![Vue d'étage](.image/banner/banner1260.png) |
+| ![Jumeau numérique](.image/banner/banner1261.png) | ![Vue éclatée](.image/banner/banner1262.png) | ![Vue d'étage](.image/banner/banner1263.png) |
+| ![Jumeau numérique](.image/banner/banner1264.png) | ![Vue éclatée](.image/banner/banner1265.png) | ![Vue d'étage](.image/banner/banner1266.png) |
+| ![Jumeau numérique](.image/banner/banner1267.png) | ![Vue éclatée](.image/banner/banner1268.png) | ![Vue d'étage](.image/banner/banner1269.png) |
 
 #### 📹 Vidéosurveillance
 

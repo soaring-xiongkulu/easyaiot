@@ -1000,6 +1000,10 @@ EasyAIoT — это проект с открытым исходным кодом
 | ![Просмотр](.image/banner/banner1188.png) | ![Компоненты](.image/banner/banner1189.png) | ![Источник данных](.image/banner/banner1190.png) |
 | ![Публикация](.image/banner/banner1191.png) | ![Выполнение](.image/banner/banner1192.png) | ![Шаблон](.image/banner/banner1193.png) |
 | ![Активы](.image/banner/banner1194.png) | ![Большой экран](.image/banner/banner1195.png) | ![Отображение](.image/banner/banner1196.png) |
+| ![Цифровой двойник](.image/banner/banner1258.png) | ![Разнесённый вид](.image/banner/banner1259.png) | ![Вид этажа](.image/banner/banner1260.png) |
+| ![Цифровой двойник](.image/banner/banner1261.png) | ![Разнесённый вид](.image/banner/banner1262.png) | ![Вид этажа](.image/banner/banner1263.png) |
+| ![Цифровой двойник](.image/banner/banner1264.png) | ![Разнесённый вид](.image/banner/banner1265.png) | ![Вид этажа](.image/banner/banner1266.png) |
+| ![Цифровой двойник](.image/banner/banner1267.png) | ![Разнесённый вид](.image/banner/banner1268.png) | ![Вид этажа](.image/banner/banner1269.png) |
 
 #### 📹 Видеонаблюдение
 
