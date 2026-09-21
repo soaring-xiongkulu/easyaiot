@@ -68,6 +68,7 @@ MODULES=(
   "WEB"
   "APP"
   "VISUALIZE"
+  "TWIN"
   "TRANSFORM"
   "PANEL"
 )
@@ -119,6 +120,7 @@ module_name() {
     "WEB") echo "Web前端服务" ;;
     "APP") echo "App移动端H5" ;;
     "VISUALIZE") echo "可视化编辑器" ;;
+    "TWIN") echo "数字孪生引擎" ;;
     "TRANSFORM") echo "数据转发" ;;
     "PANEL") echo "运维控制台" ;;
     *) echo "$1" ;;
@@ -138,6 +140,7 @@ module_port() {
     "WEB") echo "8888" ;;
     "APP") echo "9010" ;;
     "VISUALIZE") echo "8002" ;;
+    "TWIN") echo "8003" ;;
     "TRANSFORM") echo "48096" ;;
     "PANEL") echo "9200" ;;
     *) echo "" ;;
@@ -157,6 +160,7 @@ module_health() {
     "WEB") echo "/health" ;;
     "APP") echo "/health" ;;
     "VISUALIZE") echo "/health" ;;
+    "TWIN") echo "/health" ;;
     "TRANSFORM") echo "/actuator/health" ;;
     "PANEL") echo "/health" ;;
     *) echo "" ;;
@@ -1189,7 +1193,7 @@ execute_module_command() {
 
   if [ ! -d "$PROJECT_ROOT/$module" ]; then
     case "$module" in
-      TRANSFORM|PANEL|APP|VISUALIZE)
+      TRANSFORM|PANEL|APP|VISUALIZE|TWIN)
         print_info "未检测到 ${module} 目录，跳过"
         return 0
         ;;
@@ -1263,7 +1267,7 @@ execute_module_command() {
 
   local defer_agent_sync=0
   case "$module" in
-    DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
+    DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM) defer_agent_sync=1 ;;
   esac
   if [ "$defer_agent_sync" -eq 1 ]; then
     export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1
@@ -1715,6 +1719,9 @@ print_access_urls() {
   fi
   if module_enabled_for_deploy_profile VISUALIZE; then
     echo -e "  可视化编辑器:            http://localhost:8002"
+  fi
+  if module_enabled_for_deploy_profile TWIN; then
+    echo -e "  数字孪生引擎:            http://localhost:8003"
   fi
   if module_enabled_for_deploy_profile TRANSFORM; then
     echo -e "  系统对接 (TRANSFORM):    http://localhost:48096"

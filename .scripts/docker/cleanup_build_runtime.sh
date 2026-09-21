@@ -207,6 +207,7 @@ build_cache_subdir_for() {
         WEB)       echo "web" ;;
         APP)       echo "app" ;;
         VISUALIZE) echo "visualize" ;;
+        TWIN)      echo "twin" ;;
         *)         echo "" ;;
     esac
 }
@@ -218,7 +219,7 @@ runtime_container_pattern_for() {
         HARNESS)  echo "^(easyaiot-harness|harness)" ;;
         IDEA)     echo "^(easyaiot-idea-portal|easyaiot-idea-workspace|idea-portal|idea-workspace)" ;;
         PANEL)    echo "^(easyaiot-panel|panel)" ;;
-        AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM)
+        AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM)
             echo "^(${1,,}-service)" ;;
         *)        echo "" ;;
     esac

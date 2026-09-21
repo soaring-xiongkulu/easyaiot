@@ -15,7 +15,7 @@
 #   status     - 查看所有服务状态
 #   logs       - 查看服务日志
 #   build           - 重新构建所有镜像（各模块本地构建）
-#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
+#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
 #   clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件；指定模块时仅清理该模块镜像与其构建缓存）
@@ -234,6 +234,7 @@ MODULES=(
     "WEB"              # Web前端服务
     "APP"              # App移动端H5（仅 full 全量形态）
     "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
+    "TWIN"             # 数字孪生引擎（仅 full / 含可视化形态）
     "TRANSFORM"        # 系统对接（仅 full 全量形态）
     "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
@@ -259,6 +260,7 @@ MODULE_NAMES["WEB"]="Web前端服务"
 MODULE_NAMES["HARNESS"]="HARNESS AI助手"
 MODULE_NAMES["APP"]="App移动端H5"
 MODULE_NAMES["VISUALIZE"]="可视化编辑器"
+MODULE_NAMES["TWIN"]="数字孪生引擎"
 MODULE_NAMES["TRANSFORM"]="数据转发"
 MODULE_NAMES["PANEL"]="运维控制台"
 
@@ -275,6 +277,7 @@ MODULE_PORTS["WEB"]="8888"
 MODULE_PORTS["HARNESS"]="3080"
 MODULE_PORTS["APP"]="9010"
 MODULE_PORTS["VISUALIZE"]="8002"
+MODULE_PORTS["TWIN"]="8003"
 MODULE_PORTS["TRANSFORM"]="48096"
 MODULE_PORTS["PANEL"]="9200"
 
@@ -291,6 +294,7 @@ MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
 MODULE_HEALTH_ENDPOINTS["HARNESS"]="/"
 MODULE_HEALTH_ENDPOINTS["APP"]="/health"
 MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
+MODULE_HEALTH_ENDPOINTS["TWIN"]="/health"
 MODULE_HEALTH_ENDPOINTS["TRANSFORM"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["PANEL"]="/health"
 
@@ -963,7 +967,7 @@ execute_module_command() {
 
     local defer_agent_sync=0
     case "$module" in
-        DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
+        DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM) defer_agent_sync=1 ;;
     esac
     if [ "$defer_agent_sync" -eq 1 ]; then
         export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1
@@ -1813,7 +1817,7 @@ clean_all() {
 
 # 清理 build-runtime 构建产物：先停止服务，再调用 cleanup_build_runtime.sh
 # 用法: clean-build-runtime [模块] [选项...]
-#   模块为可选的 build-runtime 模块名（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL），
+#   模块为可选的 build-runtime 模块名（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL），
 #   指定后仅停止该模块服务、仅清理该模块镜像与该模块 .build-cache；其余选项原样透传给 cleanup_build_runtime.sh。
 clean_build_runtime() {
     shift
@@ -2036,6 +2040,9 @@ verify_all() {
         fi
         if module_enabled_for_deploy_profile VISUALIZE; then
             echo -e "  可视化编辑器:           http://localhost:8002"
+        fi
+        if module_enabled_for_deploy_profile TWIN; then
+            echo -e "  数字孪生引擎:           http://localhost:8003"
         fi
         if module_enabled_for_deploy_profile TRANSFORM; then
             echo -e "  系统对接 (TRANSFORM):   http://localhost:48096"

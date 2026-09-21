@@ -182,7 +182,7 @@ is_full_deploy_profile() {
 }
 
 # 按部署形态判断业务模块是否启用
-#   APP / VISUALIZE / TRANSFORM — 仅 full 全量形态
+#   APP / VISUALIZE / TWIN / TRANSFORM — 仅 full 全量形态
 #   POST — 仅 standard / full（mini / edge 不部署定制后处理）
 #   PANEL — 源码/Docker 部署默认启用；安装包（deb/桌面端）本身即为 PANEL，
 #           由 systemd/二进制托管，部署时不应再拉 Docker PANEL（EASYAIOT_ENABLE_PANEL=0）。
@@ -191,7 +191,7 @@ is_full_deploy_profile() {
 #   HARNESS — DeepSeek Harness AI Agent，mini/standard/full 均启用（EASYAIOT_ENABLE_HARNESS=0 关闭）
 module_enabled_for_deploy_profile() {
     case "$1" in
-        APP|VISUALIZE|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
+        APP|VISUALIZE|TWIN|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
         POST)
             case "${EASYAIOT_DEPLOY_PROFILE:-full}" in
                 standard|full) return 0 ;;

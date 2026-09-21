@@ -98,6 +98,7 @@ MODULES=(
     "WEB"              # Web前端服务
     "APP"              # App移动端H5（仅 full 全量形态）
     "VISUALIZE"        # 可视化编辑器（仅 full 全量形态）
+    "TWIN"             # 数字孪生引擎（仅 full / 含可视化形态）
     "TRANSFORM"        # 系统对接（仅 full 全量形态）
     "PANEL"            # 运维控制台：源码/Docker 可装；安装包本身即为 PANEL，部署默认跳过
 )
@@ -123,6 +124,7 @@ MODULE_NAMES["VIDEO"]="Video服务"
 MODULE_NAMES["WEB"]="Web前端服务"
 MODULE_NAMES["APP"]="App移动端H5"
 MODULE_NAMES["VISUALIZE"]="可视化编辑器"
+MODULE_NAMES["TWIN"]="数字孪生引擎"
 MODULE_NAMES["TRANSFORM"]="数据转发"
 MODULE_NAMES["PANEL"]="运维控制台"
 
@@ -139,6 +141,7 @@ MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
 MODULE_PORTS["APP"]="9010"
 MODULE_PORTS["VISUALIZE"]="8002"
+MODULE_PORTS["TWIN"]="8003"
 MODULE_PORTS["TRANSFORM"]="48096"
 MODULE_PORTS["PANEL"]="9200"
 
@@ -155,6 +158,7 @@ MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
 MODULE_HEALTH_ENDPOINTS["APP"]="/health"
 MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
+MODULE_HEALTH_ENDPOINTS["TWIN"]="/health"
 MODULE_HEALTH_ENDPOINTS["TRANSFORM"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["PANEL"]="/health"
 
@@ -839,7 +843,7 @@ execute_module_command() {
 
     local defer_agent_sync=0
     case "$module" in
-        DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM) defer_agent_sync=1 ;;
+        DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM) defer_agent_sync=1 ;;
     esac
     if [ "$defer_agent_sync" -eq 1 ]; then
         export EASYAIOT_DEFER_PLATFORM_AGENT_SYNC=1
@@ -1567,6 +1571,9 @@ verify_all() {
         fi
         if module_enabled_for_deploy_profile VISUALIZE; then
             echo -e "  可视化编辑器:           http://localhost:8002"
+        fi
+        if module_enabled_for_deploy_profile TWIN; then
+            echo -e "  数字孪生引擎:           http://localhost:8003"
         fi
         if module_enabled_for_deploy_profile TRANSFORM; then
             echo -e "  系统对接 (TRANSFORM):   http://localhost:48096"

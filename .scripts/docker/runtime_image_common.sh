@@ -58,11 +58,12 @@ SITE_MODULE_MAPPING="aiot-site|site-service|SITE"
 FULL_ONLY_MODULES=(
     "aiot-app|app-service|APP"
     "aiot-visualize-web|visualize-service|VISUALIZE"
+    "aiot-twin|easyaiot-twin|TWIN"
     "aiot-transform|transform-service|TRANSFORM"
 )
 
 PROFILE_DEPENDENT_REMOTES=(aiot-web)
-FULL_ONLY_REMOTES=(aiot-app aiot-visualize-web aiot-transform)
+FULL_ONLY_REMOTES=(aiot-app aiot-visualize-web aiot-twin aiot-transform)
 ALL_DEPLOY_PROFILES=(edge mini standard full)
 ALL_RUNTIME_ARCHS=(amd64 arm64)
 
@@ -110,8 +111,8 @@ runtime_is_single_arch_build() {
     [ -n "$a" ] && [ "$a" != "all" ]
 }
 
-# build-runtime 可选单模块（IDEA/PANEL 全形态；POST 仅 standard/full 部署；APP/VISUALIZE/TRANSFORM 仅 full）
-ALL_RUNTIME_BUILD_MODULES=(HARNESS IDEA DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+# build-runtime 可选单模块（IDEA/PANEL 全形态；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full）
+ALL_RUNTIME_BUILD_MODULES=(HARNESS IDEA DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
 
 runtime_build_module_help() {
     local out="all" m
@@ -154,6 +155,7 @@ runtime_normalize_build_module() {
         web|aiot-web) echo "WEB" ;;
         app|aiot-app) echo "APP" ;;
         visualize|aiot-visualize-web|goview) echo "VISUALIZE" ;;
+        twin|aiot-twin|easyaiot-twin|digital-twin) echo "TWIN" ;;
         transform|aiot-transform) echo "TRANSFORM" ;;
         panel|aiot-panel|easyaiot/panel) echo "PANEL" ;;
         *) echo "INVALID" ;;
@@ -191,10 +193,10 @@ runtime_apply_build_module_arg() {
     return 0
 }
 
-# 单模块 APP / VISUALIZE / TRANSFORM 与部署形态兼容性校验（均仅 full）
+# 单模块 APP / VISUALIZE / TWIN / TRANSFORM 与部署形态兼容性校验（均仅 full）
 runtime_validate_build_module_profile() {
     case "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" in
-        APP|VISUALIZE|TRANSFORM) ;;
+        APP|VISUALIZE|TWIN|TRANSFORM) ;;
         *) return 0 ;;
     esac
     if [ "${EASYAIOT_RUNTIME_BUILD_ALL_PROFILES:-0}" = "1" ]; then
@@ -592,6 +594,7 @@ runtime_build_module_desc() {
         WEB)       echo "Web 前端（按部署形态）" ;;
         APP)       echo "App 移动端 H5（仅 full 形态）" ;;
         VISUALIZE) echo "可视化编辑器（仅 full 形态）" ;;
+        TWIN) echo "数字孪生引擎（仅 full / 含可视化形态）" ;;
         TRANSFORM) echo "系统对接 Runtime（仅 full 形态）" ;;
         PANEL)     echo "独立运维控制台（全形态）" ;;
         *)         echo "" ;;
@@ -665,6 +668,7 @@ runtime_interactive_select_build_module() {
             WEB)    echo "  ${idx}) WEB       — Web 前端（按上方所选部署形态）" ;;
             APP)    echo "  ${idx}) APP       — App 移动端 H5（仅 full 形态）" ;;
             VISUALIZE) echo "  ${idx}) VISUALIZE — 可视化编辑器（仅 full 形态）" ;;
+            TWIN) echo "  ${idx}) TWIN      — 数字孪生引擎（仅 full / 含可视化形态）" ;;
             TRANSFORM) echo "  ${idx}) TRANSFORM — 系统对接 Runtime（仅 full 形态）" ;;
             PANEL)  echo "  ${idx}) PANEL     — 独立运维控制台（全形态）" ;;
         esac

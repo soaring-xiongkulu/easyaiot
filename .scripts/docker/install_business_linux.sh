@@ -3,7 +3,7 @@
 # ============================================
 # EasyAIoT 业务系统统一管理脚本
 # ============================================
-# 管理模块: IDEA、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TRANSFORM 仅 full；PANEL 全形态）
+# 管理模块: IDEA、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TWIN、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full；PANEL 全形态）
 # 各模块实际逻辑委托给对应目录下的 install_linux.sh
 #
 # 用法:
@@ -115,7 +115,7 @@ ensure_industrial_demo_after_business_stack() {
 }
 
 # 业务模块（按依赖顺序：HARNESS 先于 IDEA -> 网关/微服务 -> AI/RTC/POST/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(HARNESS IDEA DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TRANSFORM PANEL)
+ALL_MODULES=(HARNESS IDEA DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
 
 declare -A MODULE_NAMES=(
     [IDEA]="IDEA 在线 IDE"
@@ -128,6 +128,7 @@ declare -A MODULE_NAMES=(
     [WEB]="Web 前端"
     [APP]="App 移动端 H5"
     [VISUALIZE]="可视化编辑器"
+    [TWIN]="数字孪生引擎"
     [TRANSFORM]="数据转发"
     [PANEL]="运维控制台"
 )
@@ -143,6 +144,7 @@ declare -A MODULE_PORTS=(
     [WEB]="8888"
     [APP]="9010"
     [VISUALIZE]="8002"
+    [TWIN]="8003"
     [TRANSFORM]="48096"
     [PANEL]="9200"
 )
@@ -158,6 +160,7 @@ declare -A MODULE_HEALTH_ENDPOINTS=(
     [WEB]="/health"
     [APP]="/health"
     [VISUALIZE]="/health"
+    [TWIN]="/health"
     [TRANSFORM]="/actuator/health"
     [PANEL]="/health"
 )
@@ -699,7 +702,7 @@ usage() {
     cat <<EOF
 EasyAIoT 业务系统统一管理脚本
 
-管理模块: HARNESS、IDEA、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TRANSFORM 仅 full）
+管理模块: HARNESS、IDEA、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TWIN、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full）
 
 用法:
   $0 <命令> [选项] [模块...]
@@ -730,7 +733,7 @@ EasyAIoT 业务系统统一管理脚本
   --stop-on-error        某模块失败后立即中止（恢复旧行为）
 
 模块:
-  未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> DEVICE -> AI -> RTC -> POST -> VIDEO -> WEB -> APP -> VISUALIZE -> TRANSFORM -> PANEL
+  未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> DEVICE -> AI -> RTC -> POST -> VIDEO -> WEB -> APP -> VISUALIZE -> TWIN -> TRANSFORM -> PANEL
   stop / clean / clean-all 时自动逆序执行
   默认某模块失败后继续其余模块；可用环境/行为保持兼容，--continue-on-error 仍可用
 
