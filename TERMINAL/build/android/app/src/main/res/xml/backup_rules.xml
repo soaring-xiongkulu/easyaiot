@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full-backup rules (API < 31): never back up the encrypted prefs file —
+     its Keystore master key is non-exportable, so a restored copy is
+     undecryptable and would break secure storage on the new device. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="wails_secure.xml" />
+</full-backup-content>

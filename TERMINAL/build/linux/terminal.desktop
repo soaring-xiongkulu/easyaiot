@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=终端
+Comment=Lightweight All-in-One Terminal Emulator
+Exec=/usr/bin/terminal
+Icon=terminal
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;
+StartupWMClass=terminal

@@ -1,0 +1,84 @@
+version: '3'
+
+vars:
+  APP_NAME: "Terminal"
+  BIN_DIR: "bin"
+  PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "npm"}}'
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  # Target OS for build/package/run. Defaults to the host OS, and is overridden
+  # by `wails3 build GOOS=...` (or the GOOS env var) for cross-compilation. The
+  # tasks below dispatch to the matching platform Taskfile via this variable.
+  GOOS: '{{.GOOS | default OS}}'
+  # Release version injected into each platform binary via -ldflags
+  # "-X main.Version=...". Empty for dev builds (main.Version stays "dev").
+  VERSION: '{{.VERSION | default ""}}'
+  # Target architecture, forwarded to per-platform build tasks
+  # (e.g. `wails3 build ARCH=arm64` cross-compiles windows/arm64).
+  ARCH: '{{.ARCH | default ""}}'
+  # Extra Go build tags appended to the production build, e.g. gtk3 for the
+  # legacy WebKit2GTK 4.1 Linux stack.
+  EXTRA_TAGS: '{{.EXTRA_TAGS | default ""}}'
+
+includes:
+  common: ./build/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+  darwin: ./build/darwin/Taskfile.yml
+  android: ./build/android/Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application
+    cmds:
+      - task: "{{.GOOS}}:build"
+        vars:
+          VERSION: '{{.VERSION}}'
+          ARCH: '{{.ARCH}}'
+          EXTRA_TAGS: '{{.EXTRA_TAGS}}'
+
+  package:
+    summary: Packages a production build of the application
+    cmds:
+      - task: "{{.GOOS}}:package"
+        vars:
+          VERSION: '{{.VERSION}}'
+
+  run:
+    summary: Runs the application
+    cmds:
+      - task: "{{.GOOS}}:run"
+
+  dev:
+    summary: Runs the application in development mode
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  android:compile:check:
+    summary: Cross-compiles all Go packages for android (no SDK needed; CGO off)
+    cmds:
+      - GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build -tags android,debug $(go list ./... | grep -v '/build/android')
+
+  setup:docker:
+    summary: Builds Docker image for cross-compilation (~800MB download)
+    cmds:
+      - task: common:setup:docker
+
+  build:server:
+    summary: Builds the application in server mode (no GUI, HTTP server only)
+    cmds:
+      - task: common:build:server
+
+  run:server:
+    summary: Runs the application in server mode
+    cmds:
+      - task: common:run:server
+
+  build:docker:
+    summary: Builds a Docker image for server mode deployment
+    cmds:
+      - task: common:build:docker
+
+  run:docker:
+    summary: Builds and runs the Docker image
+    cmds:
+      - task: common:run:docker
