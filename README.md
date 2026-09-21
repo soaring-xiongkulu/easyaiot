@@ -1015,7 +1015,7 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 
 ## 🎬 Demo Video
 
-- Bilibili: https://www.bilibili.com/video/BV1s9eu6oEGZ/?vd_source=2f810014df44025e0bcef187560a91c4
+- Bilibili: https://www.bilibili.com/video/BV1XChi6qEK5/?vd_source=2f810014df44025e0bcef187560a91c4
 
 ## ⚙️ Project Repositories
 

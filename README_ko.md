@@ -981,7 +981,7 @@ EasyAIoT는 오픈소스 학습 프로젝트이며 상업적 행위와 무관합
 
 ## 🎬 데모 영상
 
-- Bilibili: https://www.bilibili.com/video/BV1s9eu6oEGZ/?vd_source=2f810014df44025e0bcef187560a91c4
+- Bilibili: https://www.bilibili.com/video/BV1XChi6qEK5/?vd_source=2f810014df44025e0bcef187560a91c4
 
 ## ⚙️ 프로젝트 주소
 
