@@ -18,7 +18,7 @@
           type="default"
           @click="handleOpenEditor"
         >
-          {{ isScadaProject(state.projectType) ? '打开组态编辑器' : '打开编辑器' }}
+          {{ isTwinProject(state.projectType) ? '打开数字孪生' : isScadaProject(state.projectType) ? '打开组态编辑器' : '打开编辑器' }}
         </Button>
         <Button
           v-if="state.isView && state.recordId && isDemoScada"
@@ -65,8 +65,10 @@ import {
 } from '@/api/device/visualize'
 import {
   VISUALIZE_PROJECT_TYPE_OPTIONS,
+  getProjectTypeLabel,
   isFuxaDemoProject,
   isScadaProject,
+  isTwinProject,
   openVisualizeEditor,
 } from '@/utils/visualizeEditor'
 import { Button } from '@/components/Button'
@@ -90,7 +92,7 @@ const state = reactive({
 })
 
 const getTitle = computed(() => {
-  const typeLabel = isScadaProject(state.projectType) ? '组态' : '大屏'
+  const typeLabel = getProjectTypeLabel(state.projectType)
   if (state.isEdit) return `编辑${typeLabel}项目`
   if (state.isView) return `查看${typeLabel}项目`
   return '新增项目'
@@ -151,12 +153,12 @@ const [registerForm, { setFieldsValue, validate, resetFields, setProps, updateSc
     },
     {
       field: 'editorRef',
-      label: 'FUXA 引用',
+      label: '运行时引用',
       component: 'Input',
       colProps: { span: 12 },
-      ifShow: () => isScadaProject(state.projectType),
+      ifShow: () => isScadaProject(state.projectType) || isTwinProject(state.projectType),
       componentProps: {
-        placeholder: '建议填 FUXA 画面名（与 Views 一致），或 /editor、/home',
+        placeholder: '组态填 FUXA 画面名；数字孪生填 industrial / campus / port / energy',
         maxlength: 256,
       },
     },
@@ -225,7 +227,7 @@ function ensureScadaEditorRefDefault(projectType?: string) {
 function syncEditorRefSchema() {
   updateSchema({
     field: 'editorRef',
-    ifShow: () => isScadaProject(state.projectType),
+    ifShow: () => isScadaProject(state.projectType) || isTwinProject(state.projectType),
   })
 }
 

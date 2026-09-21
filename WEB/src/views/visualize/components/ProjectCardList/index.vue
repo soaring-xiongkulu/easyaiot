@@ -22,7 +22,7 @@
             <ListItem class="project-list-item">
               <div
                 class="project-card"
-                :class="isScadaProject(item.projectType) ? 'project-card--scada' : 'project-card--dashboard'"
+                :class="isTwinProject(item.projectType) ? 'project-card--twin' : isScadaProject(item.projectType) ? 'project-card--scada' : 'project-card--dashboard'"
                 @mouseenter="hoverId = item.id"
                 @mouseleave="onCardMouseLeave(item.id)"
               >
@@ -37,12 +37,12 @@
                     />
                     <div v-else class="cover-placeholder">
                       <span class="cover-placeholder-label">{{
-                        isScadaProject(item.projectType) ? 'FUXA' : 'VISUALIZE'
+                        isTwinProject(item.projectType) ? 'TWIN' : isScadaProject(item.projectType) ? 'FUXA' : 'VISUALIZE'
                       }}</span>
                     </div>
                   </div>
-                  <span class="project-type-ribbon" :class="isScadaProject(item.projectType) ? 'is-scada' : 'is-dashboard'">
-                    {{ isScadaProject(item.projectType) ? '组态' : '大屏' }}
+                  <span v-if="!isTwinProject(item.projectType)" class="project-type-ribbon" :class="isScadaProject(item.projectType) ? 'is-scada' : 'is-dashboard'">
+                    {{ getProjectTypeLabel(item.projectType) }}
                   </span>
                   <div
                     v-show="isOverlayVisible(item.id)"
@@ -102,7 +102,7 @@
                   <p class="project-card-meta">
                     <span
                       class="project-type-dot"
-                      :class="isScadaProject(item.projectType) ? 'is-scada' : 'is-dashboard'"
+                      :class="isTwinProject(item.projectType) ? 'is-twin' : isScadaProject(item.projectType) ? 'is-scada' : 'is-dashboard'"
                     ></span>
                     {{ getMetaText(item) }}
                   </p>
@@ -133,7 +133,7 @@ import {
 import { BasicForm, useForm } from '@/components/Form'
 import { propTypes } from '@/utils/propTypes'
 import { isFunction } from '@/utils/is'
-import { getProjectTypeLabel, isFuxaDemoProject, isScadaProject } from '@/utils/visualizeEditor'
+import { getProjectTypeLabel, isFuxaDemoProject, isScadaProject, isTwinProject } from '@/utils/visualizeEditor'
 
 defineOptions({ name: 'VisualizeProjectCardList' })
 
@@ -190,6 +190,7 @@ const [registerForm, { validate }] = useForm({
         options: [
           { label: '大屏', value: 'dashboard' },
           { label: '组态', value: 'scada' },
+          { label: '数字孪生', value: 'twin' },
         ],
       },
     },
@@ -393,6 +394,7 @@ function prefetchCover(item: any) {
 @cover-height: 148px;
 @type-dashboard: #266cfb;
 @type-scada: #1a8f5c;
+@type-twin: #7357d9;
 
 .project-card {
   position: relative;
@@ -501,6 +503,10 @@ function prefetchCover(item: any) {
   &.is-scada {
     background: @type-scada;
   }
+
+  &.is-twin {
+    background: @type-twin;
+  }
 }
 
 .project-card-overlay {
@@ -599,6 +605,10 @@ function prefetchCover(item: any) {
 
   &.is-scada {
     background: @type-scada;
+  }
+
+  &.is-twin {
+    background: @type-twin;
   }
 }
 

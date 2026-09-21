@@ -18,7 +18,7 @@ public class VisualizeProjectSaveReqVO {
     @Size(max = 128, message = "项目名称不能超过128个字符")
     private String projectName;
 
-    @Schema(description = "项目类型：dashboard 大屏，scada 组态（FUXA）", example = "dashboard")
+    @Schema(description = "项目类型：dashboard 大屏，scada 组态（FUXA），twin 数字孪生", example = "dashboard")
     @Size(max = 32, message = "项目类型不能超过32个字符")
     private String projectType;
 

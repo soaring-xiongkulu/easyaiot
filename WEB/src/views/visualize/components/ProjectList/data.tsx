@@ -71,6 +71,7 @@ export function getFormConfig(): Partial<FormProps> {
           options: [
             { label: '大屏', value: 'dashboard' },
             { label: '组态', value: 'scada' },
+            { label: '数字孪生', value: 'twin' },
           ],
         },
       },

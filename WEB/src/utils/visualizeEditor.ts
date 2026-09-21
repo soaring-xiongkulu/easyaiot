@@ -1,20 +1,33 @@
 import { getAccessToken, getRefreshToken, getTenantId } from '@/utils/auth'
 import { getFuxaOpenUrl } from '@/api/device/visualize'
 
-/** 项目类型：大屏 / 组态（FUXA） */
-export type VisualizeProjectType = 'dashboard' | 'scada'
+/** 项目类型：大屏 / 组态（FUXA）/ 数字孪生 */
+export type VisualizeProjectType = 'dashboard' | 'scada' | 'twin'
 
 export const VISUALIZE_PROJECT_TYPE_OPTIONS = [
   { label: '大屏', value: 'dashboard' as VisualizeProjectType },
   { label: '组态（FUXA）', value: 'scada' as VisualizeProjectType },
+  { label: '数字孪生', value: 'twin' as VisualizeProjectType },
 ]
 
 export function isScadaProject(projectType?: string | null): boolean {
   return projectType === 'scada'
 }
 
+export function isTwinProject(projectType?: string | null): boolean {
+  return projectType === 'twin'
+}
+
 export function getProjectTypeLabel(projectType?: string | null): string {
-  return isScadaProject(projectType) ? '组态' : '大屏'
+  if (isScadaProject(projectType)) return '组态'
+  if (isTwinProject(projectType)) return '数字孪生'
+  return '大屏'
+}
+
+export function getTwinBaseUrl(): string {
+  const raw = ((import.meta.env.VITE_GLOB_TWIN_URL as string) || 'http://localhost:5173').trim()
+  if (raw.startsWith('/') && typeof window !== 'undefined') return `${window.location.origin}${raw}`.replace(/\/$/, '')
+  return raw.replace(/\/$/, '')
 }
 
 /** 内置 FUXA 演示项目 ID（与 visualize_demo_seed.sql 一致） */
@@ -130,6 +143,11 @@ export function openVisualizeEditor(
   mode: 'edit' | 'preview' = 'edit',
   options?: OpenVisualizeEditorOptions,
 ) {
+  if (isTwinProject(options?.projectType)) {
+    const project = (options?.editorRef || 'industrial').replace(/^\?project=/, '')
+    window.open(`${getTwinBaseUrl()}/?project=${encodeURIComponent(project)}&mode=${mode}`, '_blank')
+    return
+  }
   if (isScadaProject(options?.projectType)) {
     let openMode = mode
     // 演示组态只读：即便点「打开编辑器」也只进运行态，避免改删工艺图

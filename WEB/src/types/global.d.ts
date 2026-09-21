@@ -97,6 +97,8 @@ declare global {
     VITE_UPLOAD_MAX_CONCURRENCY?: string
     /** VISUALIZE 大屏编辑器基址 */
     VITE_GLOB_VISUALIZE_URL?: string
+    /** 数字孪生运行时基址 */
+    VITE_GLOB_TWIN_URL?: string
     /** FUXA 组态编辑器基址 */
     VITE_GLOB_FUXA_URL?: string
     /** EasyAIoT PANEL 运维控制台（留空则使用当前访问域名 + 9200 端口） */

@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SEED_SQL="${ROOT_DIR}/.scripts/go-view/patches/visualize_demo_seed.sql"
 TYPE_PATCH_SQL="${ROOT_DIR}/.scripts/go-view/patches/visualize_project_type.sql"
+TWIN_SEED_SQL="${ROOT_DIR}/.scripts/go-view/patches/visualize_twin_seed.sql"
 DB_NAME="iot-visualize20"
 PG_USER="${POSTGRES_USER:-postgres}"
 PG_PASSWORD="${POSTGRES_PASSWORD:-iot45722414822}"
@@ -38,6 +39,7 @@ run_via_docker() {
     run_sql_docker "${TYPE_PATCH_SQL}"
   fi
   run_sql_docker "${SEED_SQL}"
+  run_sql_docker "${TWIN_SEED_SQL}"
 }
 
 run_via_psql() {
@@ -46,6 +48,7 @@ run_via_psql() {
     run_sql_psql "${TYPE_PATCH_SQL}"
   fi
   run_sql_psql "${SEED_SQL}"
+  run_sql_psql "${TWIN_SEED_SQL}"
 }
 
 if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "${CONTAINER}"; then
@@ -63,6 +66,7 @@ fi
 echo "[OK] 演示数据导入完成。"
 echo "     大屏×4：智慧工厂综合态势 / 智慧园区运行监测 / 设备运维健康看板 / 能源能耗分析大屏"
 echo "     组态×4：水厂工艺总貌 / 产线运行看板 / 厂区管网组态 / 配电室电力监视"
+echo "     数字孪生×4：工业园区 / 智慧校园 / 智慧港口 / 零碳能源基地"
 echo "     封面：/resource/visualize-demo/dash-*-cover.svg 、 scada-*-cover.svg"
 echo "     重新生成大屏：python3 .scripts/go-view/gen_visualize_dashboard_demo.py"
 echo "     若 FUXA 画面尚未导入：bash .scripts/fuxa/seed_fuxa_demo.sh"

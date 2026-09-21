@@ -125,6 +125,10 @@ public class VisualizeDeployServiceImpl implements VisualizeDeployService {
      * 大屏：VISUALIZE 预览 hash 路径；组态：FUXA 运行态路径（相对 FUXA 基址）
      */
     private String buildAccessPath(VisualizeProjectDO project, String deployCode) {
+        if (VisualizeProjectTypeEnum.isTwin(project.getProjectType())) {
+            String ref = StringUtils.hasText(project.getEditorRef()) ? project.getEditorRef().trim() : "industrial";
+            return "/?project=" + ref + "&deployCode=" + deployCode;
+        }
         if (VisualizeProjectTypeEnum.isScada(project.getProjectType())) {
             String ref = project.getEditorRef();
             if (StringUtils.hasText(ref)) {

@@ -69,8 +69,9 @@ public class VisualizeProjectServiceImpl implements VisualizeProjectService {
     @Override
     public void saveContent(VisualizeProjectSaveContentReqVO reqVO) {
         VisualizeProjectDO existing = validateExists(reqVO.getId());
-        if (VisualizeProjectTypeEnum.isScada(existing.getProjectType())) {
-            // 组态内容由 FUXA 自身持久化，后台仅登记元数据
+        if (VisualizeProjectTypeEnum.isScada(existing.getProjectType())
+                || VisualizeProjectTypeEnum.isTwin(existing.getProjectType())) {
+            // 组态与数字孪生内容由各自运行时持久化，后台仅登记元数据
             return;
         }
         VisualizeProjectDO updateObj = new VisualizeProjectDO();
