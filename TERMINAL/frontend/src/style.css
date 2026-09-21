@@ -1,0 +1,1126 @@
+:root {
+  /* Core palette - professional dark, slight blue undertone (kept from before) */
+  --bg-base: #14171d;
+  --bg-elevated: #191c24;
+  --bg-surface: #1f222b;
+  --bg-overlay: #252933;
+  --bg-hover: #313643;
+  --bg-active: #3b4252;
+
+  /* Text */
+  --text-primary: #e6e8ed;
+  --text-secondary: #9ea3ae;
+  --text-muted: #949aa5;
+  --text-disabled: #6b7280;
+
+  /* Accent - electric cyan */
+  --accent: #22d3ee;
+  --accent-glow: rgba(34, 211, 238, 0.15);
+  --accent-subtle: rgba(34, 211, 238, 0.08);
+
+  /* Info - secondary link/informational blue, distinct from --accent */
+  --info: #4c9df0;
+  --info-subtle: rgba(76, 157, 240, 0.1);
+
+  /* Text/icon color to place on top of a solid --accent fill */
+  --on-accent: #ffffff;
+
+  /* Chart series palette - for multi-series data viz (e.g. system monitor
+     CPU/memory/disk/network) where each series needs a distinct, stable hue
+     independent of the semantic success/warning/error colors. */
+  --chart-1: #4ade80;
+  --chart-2: #60a5fa;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-4-alt: #c4b5fd;
+
+  /* Semantic */
+  --success: #34d399;
+  --success-dim: #059669;
+  --success-subtle: rgba(52, 211, 153, 0.06);
+  --success-glow: rgba(52, 211, 153, 0.15);
+  --warning: #f59e0b;
+  --warning-subtle: rgba(245, 158, 11, 0.1);
+  --warning-tab: rgba(245, 158, 11, 0.18);
+  --warning-tab-hover: rgba(245, 158, 11, 0.26);
+  --warning-tab-active: rgba(245, 158, 11, 0.24);
+  --error: #f87171;
+  --error-subtle: rgba(248, 113, 113, 0.06);
+  --error-glow: rgba(248, 113, 113, 0.15);
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.14);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 0.125rem rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+
+  /* Scrim - dim-out mask for loading/drop overlays. Dark themes use a
+     translucent black; light theme overrides to translucent white so the
+     dark text/spinner on top stays legible. */
+  --scrim: rgba(0, 0, 0, 0.35);
+
+  /* Fonts */
+  --font-ui: -apple-system, 'Microsoft YaHei', 'PingFang SC', 'Noto Sans CJK SC', 'WenQuanYi Micro Hei', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', monospace;
+
+  /* Spacing */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+
+  /* Element Plus theme overrides */
+  /* Primary color family - align Element Plus internals (el-select focus ring,
+     el-input focus border, el-input-tag focus ring, etc.) with our --accent so
+     they follow the active theme instead of falling back to EP's default #409eff.
+     Kept in :root only; the value resolves against whatever --accent the
+     currently-applied [data-theme] defines. */
+  --el-color-primary: var(--accent);
+  --el-input-focus-border-color: var(--accent);
+  --el-bg-color: #14171d;
+  --el-bg-color-page: #14171d;
+  --el-fill-color-blank: #1f222b;
+  --el-fill-color: #191c24;
+  --el-fill-color-light: #252933;
+  --el-fill-color-lighter: #313643;
+  --el-text-color-primary: #e6e8ed;
+  --el-text-color-regular: #9ea3ae;
+  --el-text-color-secondary: #737984;
+  --el-text-color-placeholder: #6b7280;
+  --el-border-color: rgba(255, 255, 255, 0.14);
+  --el-border-color-light: rgba(255, 255, 255, 0.1);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.08);
+  /* Loading mask: uniform dark overlay matching the project's .loading-overlay convention (no white flash on refresh) */
+  --el-mask-color: var(--scrim);
+
+  /* Element Plus sizing */
+  --el-input-height: 1.75rem;
+  --el-component-size: 1.75rem;
+
+  /* Element Plus font sizes: rem-based so EP text (tables, dialogs, etc.)
+     follows the UI font size setting applied to the rem root. Baseline is
+     1rem = 16px; EP ships these as fixed px which never scales. */
+  --el-font-size-extra-small: 0.75rem;
+  --el-font-size-small: 0.8125rem;
+  --el-font-size-base: 0.875rem;
+  --el-font-size-medium: 0.875rem;
+  --el-font-size-large: 1.125rem;
+  --el-font-size-extra-large: 1.25rem;
+}
+
+/* Deep blue - oceanic dark */
+[data-theme="deep-blue"] {
+  --bg-base: #0b111e;
+  --bg-elevated: #101729;
+  --bg-surface: #161d33;
+  --bg-overlay: #1c253d;
+  --bg-hover: #232d48;
+  --bg-active: #2b3653;
+
+  --text-primary: #e2e8f4;
+  --text-secondary: #94a3b8;
+  --text-muted: #8e97a8;
+  --text-disabled: #64708a;
+
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.18);
+  --accent-subtle: rgba(56, 189, 248, 0.08);
+
+  --info: #5eb3f5;
+  --info-subtle: rgba(94, 179, 245, 0.1);
+  --on-accent: #ffffff;
+
+  --chart-1: #4ade80;
+  --chart-2: #60a5fa;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-4-alt: #c4b5fd;
+
+  --success: #34d399;
+  --success-dim: #059669;
+  --success-subtle: rgba(52, 211, 153, 0.06);
+  --success-glow: rgba(52, 211, 153, 0.15);
+  --warning: #f59e0b;
+  --warning-subtle: rgba(245, 158, 11, 0.1);
+  --warning-tab: rgba(245, 158, 11, 0.18);
+  --warning-tab-hover: rgba(245, 158, 11, 0.26);
+  --warning-tab-active: rgba(245, 158, 11, 0.24);
+  --error: #f87171;
+  --error-subtle: rgba(248, 113, 113, 0.06);
+  --error-glow: rgba(248, 113, 113, 0.15);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.14);
+
+  --shadow-sm: 0 1px 0.125rem rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.6);
+
+  --el-bg-color: #0b111e;
+  --el-bg-color-page: #0b111e;
+  --el-fill-color-blank: #161d33;
+  --el-fill-color: #101729;
+  --el-fill-color-light: #1c253d;
+  --el-fill-color-lighter: #232d48;
+  --el-text-color-primary: #e2e8f4;
+  --el-text-color-regular: #94a3b8;
+  --el-text-color-secondary: #6b7590;
+  --el-text-color-placeholder: #64708a;
+  --el-border-color: rgba(255, 255, 255, 0.14);
+  --el-border-color-light: rgba(255, 255, 255, 0.1);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.08);
+
+  --el-input-height: 1.75rem;
+  --el-component-size: 1.75rem;
+}
+
+[data-theme="light"] {
+  /* Core palette - clean neutral grays */
+  --bg-base: #ffffff;
+  --bg-elevated: #f5f5f5;
+  --bg-surface: #ebebeb;
+  --bg-overlay: #e0e0e0;
+  --bg-hover: #d5d5d5;
+  --bg-active: #c8c8c8;
+
+  /* Text - standard dark grays */
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a5a5a;
+  --text-muted: #6e6e6e;
+  --text-disabled: #909090;
+
+  /* Accent - Windows-style blue */
+  --accent: #0078d4;
+  --accent-glow: rgba(0, 120, 212, 0.22);
+  --accent-subtle: rgba(0, 120, 212, 0.08);
+
+  --info: #006ab1;
+  --info-subtle: rgba(0, 106, 177, 0.08);
+  --on-accent: #ffffff;
+
+  /* Chart series palette - darker/more saturated than the dark theme's for
+     sufficient contrast against a white background */
+  --chart-1: #16a34a;
+  --chart-2: #2563eb;
+  --chart-3: #d97706;
+  --chart-4: #7c3aed;
+  --chart-4-alt: #a78bfa;
+
+  /* Semantic */
+  --success: #107c41;
+  --success-dim: #0b5e30;
+  --success-subtle: rgba(16, 124, 65, 0.06);
+  --success-glow: rgba(16, 124, 65, 0.15);
+  --warning: #e07b00;
+  --warning-subtle: rgba(224, 123, 0, 0.08);
+  --warning-tab: rgba(224, 123, 0, 0.16);
+  --warning-tab-hover: rgba(224, 123, 0, 0.24);
+  --warning-tab-active: rgba(224, 123, 0, 0.22);
+  --error: #d13438;
+  --error-subtle: rgba(209, 52, 56, 0.06);
+  --error-glow: rgba(209, 52, 56, 0.15);
+
+  /* Borders - cool light grays */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-hover: rgba(0, 0, 0, 0.12);
+
+  /* Scrim - translucent white so dark loading text stays legible */
+  --scrim: rgba(255, 255, 255, 0.6);
+
+  /* Shadows - cleaner, deeper */
+  --shadow-sm: 0 1px 0.1875rem rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 0.25rem 0.875rem rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 0.5rem 1.75rem rgba(0, 0, 0, 0.1);
+
+  /* Element Plus light theme overrides */
+  --el-bg-color: #ffffff;
+  --el-bg-color-page: #ffffff;
+  --el-fill-color-blank: #ffffff;
+  --el-fill-color: #f5f5f5;
+  --el-fill-color-light: #ebebeb;
+  --el-fill-color-lighter: #e0e0e0;
+  --el-text-color-primary: #1a1a1a;
+  --el-text-color-regular: #5a5a5a;
+  --el-text-color-secondary: #8a8a8a;
+  --el-text-color-placeholder: #909090;
+  --el-border-color: rgba(0, 0, 0, 0.12);
+  --el-border-color-light: rgba(0, 0, 0, 0.08);
+  --el-border-color-lighter: rgba(0, 0, 0, 0.06);
+
+  --el-input-height: 1.75rem;
+  --el-component-size: 1.75rem;
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.22);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Root rem baseline. All UI lengths are rem-based with 1rem = 16px (the
+   browser UA default; 16 = 2^4, so every integer px value converts to an
+   exact decimal). index.html tags <html class="mac"> on macOS, where the
+   design baseline (12px body text) is scaled to 14px for a roomier feel
+   close to native density: 16 x 14/12 = 18.6667px. */
+html {
+  font-size: 16px;
+}
+html.mac {
+  font-size: 18.6667px;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+
+body {
+  box-sizing: border-box;
+  font-family: var(--font-ui);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Subtle vertical gradient instead of a flat fill so large empty areas don't
+   read as a single dead slab. Always lighter at the top: the dark themes lift
+   the top off --bg-base, while light's --bg-base is already white so it dims
+   the bottom instead. The :not() arm covers the first paint before
+   applyTheme() sets data-theme. */
+html:not([data-theme]) body,
+[data-theme="dark"] body {
+  background: linear-gradient(180deg, #1b1f27 0%, var(--bg-base) 100%);
+}
+
+[data-theme="deep-blue"] body {
+  background: linear-gradient(180deg, #101728 0%, var(--bg-base) 100%);
+}
+
+[data-theme="light"] body {
+  background: linear-gradient(180deg, var(--bg-base) 0%, #f2f2f2 100%);
+}
+
+/* Noise texture overlay for atmosphere */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 8rem;
+}
+
+[data-theme="light"] body::before {
+  opacity: 0.006;
+}
+
+/* Scrollbar - minimal */
+::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 0.625rem;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Element Plus 的 el-scrollbar（el-table / el-select 下拉等内部都在用）自绘
+   div 滚动条，默认鼠标不在区域内就把滑块淡出——SFTP 文件列表里表现为
+   "得先把鼠标移进窗口才能找到滚动条"。统一成和上面原生滚动条一致的行为：
+   常显、同样 0.5rem 粗细、同样的滑块颜色（issue #925）。
+   隐藏走的是 thumb 上的 v-show（内联 display:none）+ fade 过渡类，所以
+   这里必须 !important 压住 display，opacity 同理要盖过淡出类的 0。 */
+.el-scrollbar__bar {
+  display: block !important;
+  opacity: 1;
+}
+.el-scrollbar__bar.is-vertical {
+  width: 0.5rem;
+}
+.el-scrollbar__bar.is-horizontal {
+  height: 0.5rem;
+}
+.el-scrollbar__thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 0.625rem;
+  /* EP 自带 0.3/0.5 的滑块透明度，会让颜色比原生滚动条淡一截；透明度已
+     含在 --scrollbar-thumb 的 rgba 里，这里强制不透明。 */
+  opacity: 1;
+  /* EP 自带 pointer 光标和 0.3s 的颜色渐变过渡，原生滚动条都是默认光标、
+     悬停即变色，这里一并抹平（issue #925 反馈）。 */
+  cursor: default;
+  transition: none;
+}
+.el-scrollbar__thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+  opacity: 1;
+}
+
+/* xterm.js v6 滚动条：不再是原生滚动条，而是 VS Code 那套自绘 div
+   (.xterm-scrollable-element > .scrollbar.vertical > .slider)。所以
+   ::-webkit-scrollbar 规则对终端无效，轨道和滑块都要在这里重建。
+   滑块宽度/left 是 JS 写的行内样式，颜色是 xterm 注入的 <style>，
+   App.vue 里 has-bg 的通配透明规则还带 !important，所以这里也得 !important。
+   不改 .scrollbar 容器自身的 0.875rem 宽度：FitAddon 也按 0.875rem 预留水平空间，
+   点击轨道翻页的热区也是它，改窄会留下 0.375rem 死区。 */
+
+/* 轨道保持透明。轨道现在贴容器右缘，但顶/底仍被 .xterm 的 0.25rem padding 挤在
+   内侧，一旦上色就会把那圈 padding 显成边线。对比度全交给滑块承担。 */
+.xterm .xterm-scrollable-element > .scrollbar.vertical {
+  background: transparent !important;
+}
+/* 滑块颜色跟着「终端」背景明暗走，而不是应用主题：浅色终端配深滑块、
+   深色终端配浅滑块，这样在任意应用/终端主题组合下都看得见。
+   --terminal-scrollbar-thumb 由 applyTerminalBgVar() 写在终端根元素上，
+   取不到时回退到应用主题的 --scrollbar-thumb。 */
+.xterm .xterm-scrollable-element > .scrollbar.vertical > .slider {
+  width: 0.5rem !important;
+  left: 0.1875rem !important;
+  border-radius: 0.625rem;
+  background: var(--terminal-scrollbar-thumb, var(--scrollbar-thumb)) !important;
+}
+.xterm .xterm-scrollable-element > .scrollbar.vertical > .slider:hover,
+.xterm .xterm-scrollable-element > .scrollbar.vertical > .slider.active {
+  background: var(--terminal-scrollbar-thumb-hover, var(--scrollbar-thumb-hover)) !important;
+}
+/* v6 默认悬停才显示、离开后淡出；v5 的原生滚动条只要可滚动就常显。
+   `invisible fade` 精确对应「可滚动但未悬停」，不可滚动时只有 `invisible`
+   无 `fade`，所以不会留下一条空轨道。 */
+.xterm .xterm-scrollable-element > .scrollbar.vertical.invisible.fade {
+  opacity: 1;
+}
+
+/* Element Plus dark theme overrides */
+.el-dialog {
+  background: var(--bg-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.el-dialog__header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.375rem 0.75rem;
+}
+.el-dialog__headerbtn {
+  top: 0.375rem;
+}
+.el-dialog__title,
+.el-dialog__headerbtn .el-dialog__close {
+  color: var(--text-primary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  line-height: 1;
+}
+.el-dialog__body {
+  color: var(--text-primary);
+  padding: 0.5rem 0.75rem;
+}
+.el-dialog__footer {
+  padding: 0.375rem 0.75rem;
+}
+
+/* Message box (ElMessageBox.confirm/prompt) — mirror .el-dialog so k8s
+   delete/scale/restart/drain confirms match the app's rounded dialogs. */
+.el-message-box {
+  background: var(--bg-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.el-message-box__header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.625rem 0.875rem;
+}
+.el-message-box__title {
+  color: var(--text-primary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+}
+.el-message-box__headerbtn .el-message-box__close {
+  color: var(--text-primary) !important;
+}
+.el-message-box__content {
+  color: var(--text-primary);
+  padding: 0.875rem;
+}
+.el-message-box__btns {
+  padding: 0.375rem 0.875rem 0.75rem;
+}
+
+.el-form-item {
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 0.625rem !important;
+  overflow: visible !important;
+}
+.el-form-item__label {
+  height: auto !important;
+  line-height: 1.3 !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+  padding-bottom: 0.125rem !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+.el-form-item__content {
+  overflow: visible !important;
+}
+
+.el-input__inner,
+.el-textarea__inner {
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+}
+/* ============================================================
+   Unified control sizing — all input/button/select controls = 1.75rem
+   ============================================================ */
+
+/* --- input wrapper base --- */
+.el-input__wrapper,
+.el-select .el-input__wrapper,
+.el-input-number .el-input__wrapper {
+  box-sizing: border-box !important;
+  background-color: var(--bg-base) !important;
+}
+
+.el-button {
+  height: 1.75rem !important;
+  padding: 0.25rem 0.875rem !important;
+  box-sizing: border-box !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+/* ============================================================
+   Unified button system
+   Replaces the ~25 one-off "*-btn" classes that had grown across
+   components (action-icon-btn, toggle-btn, qc-action-btn, ...).
+   Compose from a single .btn base + modifiers, all theme-aware.
+   New/refactored buttons should use these instead of ad-hoc CSS.
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+.btn:disabled,
+.btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Neutral/default - subtle bordered surface, for secondary actions */
+.btn-default {
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+.btn-default:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+/* Primary - the one accent-filled action per view */
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0.75rem var(--accent-glow);
+}
+
+/* Ghost - no border/fill until hover; the common case for toolbar/inline actions
+   (covers what most one-off "action-icon-btn"/"toggle-btn" classes were doing) */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.btn-ghost.is-active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+/* Ghost variant that turns red on hover instead of neutral - the common
+   pattern for a delete/remove icon sitting among other row-level actions */
+.btn-ghost.danger:hover:not(:disabled) {
+  background: var(--error-subtle);
+  color: var(--error);
+}
+
+/* Danger - destructive actions (delete/disconnect/etc.) */
+.btn-danger {
+  background: transparent;
+  color: var(--error);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--error-subtle);
+  color: var(--error);
+}
+
+/* Icon-only - square, no label; pair with an 14-1rem icon child */
+.btn-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  flex: none;
+}
+
+/* Compact sizing for dense toolbars */
+.btn-sm {
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+}
+.btn-sm.btn-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+}
+
+/* Ghost hover-tint modifiers for a row of mixed-purpose icon actions
+   (e.g. run/paste/copy sitting next to a plain delete) */
+.btn-ghost.run:hover:not(:disabled) { color: var(--success); }
+.btn-ghost.paste:hover:not(:disabled) { color: var(--accent); }
+
+.el-radio-button__inner {
+  height: 1.75rem !important;
+  padding: 0.25rem 0.75rem !important;
+  box-sizing: border-box !important;
+  line-height: 1.25rem !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+  background: var(--bg-base) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+
+.el-switch {
+  height: 1.75rem !important;
+}
+
+.el-checkbox {
+  height: 1.75rem !important;
+  line-height: 1.75rem !important;
+}
+
+.el-radio {
+  height: 1.75rem !important;
+  line-height: 1.75rem !important;
+}
+
+.el-tag {
+  height: 1.5rem !important;
+  line-height: 1.375rem !important;
+}
+
+/* --- input inner text & placeholder --- */
+.el-input__inner,
+.el-textarea__inner {
+  color: var(--text-primary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+}
+
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.el-select .el-input__inner {
+  font-size: 0.75rem !important;
+}
+.el-select__placeholder,
+.el-select__input,
+.el-select__selected-item {
+  font-size: 0.75rem !important;
+  font-family: var(--font-ui);
+}
+
+/* --- label text --- */
+.el-checkbox__label,
+.el-switch__label,
+.el-radio__label,
+.el-form-item__label {
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+}
+
+/* --- input-number --- */
+.el-input-number .el-input__inner {
+  text-align: left;
+}
+.el-input-number .el-input-number__decrease,
+.el-input-number .el-input-number__increase {
+  width: 1.5rem !important;
+}
+
+/* --- input focus / hover --- */
+.el-input__wrapper,
+.el-textarea__inner {
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 0 0 1px var(--border-subtle) inset !important;
+  transition: box-shadow 0.15s ease;
+}
+.el-input__wrapper:hover,
+.el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--border-hover) inset !important;
+}
+.el-input__wrapper.is-focus,
+.el-input-number .el-input__wrapper.is-focus,
+.el-select .el-input.is-focus .el-input__wrapper,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 0.1875rem var(--accent-glow) !important;
+}
+
+/* --- tags --- */
+.el-tag {
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+}
+
+.el-select-dropdown {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.el-select-dropdown__item {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  line-height: 1;
+  background: transparent !important;
+  transition: none !important;
+}
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  transition: none !important;
+}
+.el-select-dropdown__item.selected {
+  color: var(--accent) !important;
+  background: var(--accent-subtle) !important;
+}
+
+/* Autocomplete suggestions - cover all Element Plus v2.x selectors */
+.el-autocomplete-suggestion,
+.el-autocomplete-suggestion__wrap,
+.el-autocomplete-suggestion__list {
+  overflow: hidden;
+  font-size: 0.75rem !important;
+  background: var(--bg-surface) !important;
+}
+.el-autocomplete-suggestion__item,
+.el-autocomplete-suggestion__list .el-autocomplete-suggestion__item {
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
+  padding: 0.375rem 0.75rem !important;
+  color: var(--text-secondary) !important;
+}
+.el-autocomplete-suggestion__item:hover,
+.el-autocomplete-suggestion__item.highlighted {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+.el-autocomplete__popper,
+.el-autocomplete-suggestion {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Tree Select ── */
+.el-tree-select__popper {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.el-tree-select__popper .el-select-dropdown__item {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem !important;
+}
+.el-tree-select__popper .el-select-dropdown__item.hover,
+.el-tree-select__popper .el-select-dropdown__item:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+.el-tree-select__popper .el-select-dropdown__item.selected,
+.el-tree-select__popper .el-select-dropdown__item.is-selected {
+  color: var(--accent) !important;
+  background: var(--accent-subtle) !important;
+}
+.el-tree-select__popper .el-tree {
+  background: transparent !important;
+}
+.el-tree-select__popper .el-tree-node__content:hover {
+  background: var(--bg-hover) !important;
+}
+.el-tree-select__popper .el-tree-node.is-current > .el-tree-node__content {
+  background: var(--accent-subtle) !important;
+}
+.el-tree-select__popper .el-tree-node__label {
+  color: var(--text-secondary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+}
+.el-tree-select__popper .el-tree-node__expand-icon {
+  color: var(--text-disabled) !important;
+}
+.el-tree-select__popper .el-tree-node__expand-icon.is-leaf {
+  color: transparent !important;
+}
+
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: -1px 0 0 0 var(--accent) !important;
+}
+
+.el-button--primary {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.el-button--primary:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0.75rem var(--accent-glow);
+}
+
+.el-dropdown-menu {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.el-dropdown-menu__item {
+  color: var(--text-secondary) !important;
+  font-family: var(--font-ui);
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
+  padding: 0.375rem 1rem !important;
+  background: transparent !important;
+  transition: none !important;
+}
+.el-dropdown-menu__item:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  transition: none !important;
+}
+
+.el-table {
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-primary);
+  --el-table-header-bg-color: var(--bg-elevated);
+  --el-table-tr-bg-color: var(--bg-base);
+  --el-table-bg-color: var(--bg-base);
+  --el-table-border-color: var(--border-subtle);
+  --el-table-row-hover-bg-color: var(--bg-hover);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+}
+.el-table__body,
+.el-table__footer,
+.el-table__header {
+  color: var(--text-primary);
+}
+.el-table th.el-table__cell {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+/* Keep header labels and sort carets on one line in narrow columns; the
+   .cell's own overflow hidden + ellipsis truncates the label instead. */
+.el-table th.el-table__cell .cell {
+  white-space: nowrap;
+}
+.el-table td.el-table__cell {
+  color: var(--text-primary);
+}
+.el-table .el-table__empty-text {
+  color: var(--text-muted);
+}
+.el-table__expand-icon {
+  color: var(--text-secondary);
+}
+.el-table__expand-icon:hover {
+  color: var(--text-primary);
+}
+
+/* Remove white border/outline from dropdown popper wrappers */
+.el-popper {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.el-popper.is-pure,
+.el-popper.el-dropdown__popper {
+  overflow: visible !important;
+  max-height: none !important;
+}
+.el-dropdown__popper .el-scrollbar {
+  overflow: visible !important;
+  max-height: none !important;
+}
+.el-dropdown__popper .el-scrollbar__wrap,
+.el-dropdown__popper .el-scrollbar__view {
+  overflow: visible !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+.el-dropdown__popper .el-scrollbar__wrap--hidden-default {
+  overflow: visible !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+/* Tooltip needs visible background */
+.el-popper.is-dark,
+.el-popper.is-light {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-md) !important;
+  backdrop-filter: blur(0.5rem);
+}
+.el-popper__arrow {
+  display: none !important;
+}
+
+/* Tooltips are visual-only: let mouse events pass through to underlying
+   elements. Dark effect = tooltips; light poppers stay interactive. */
+.el-popper.is-dark {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Tab transitions */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.tab-fade-enter-from,
+.tab-fade-leave-to {
+  opacity: 0;
+}
+
+/* Tab drag: activate drop zones only during drag (body class set via direct DOM) */
+body.drag-active .zone {
+  pointer-events: all;
+}
+
+/* Hide terminal content during panel resize to avoid character-by-character reflow */
+.terminal-tab.resizing {
+  visibility: hidden !important;
+}
+
+/* Force xterm root to fill its container so FitAddon/clientWidth measure correctly */
+.xterm {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+}
+
+/* URL links always underlined */
+.xterm-link {
+  text-decoration: underline !important;
+  cursor: pointer !important;
+}
+
+/* Allow text selection in Element Plus message toasts and message boxes */
+.el-message,
+.el-message__content,
+.el-message-box__message {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Global guard for any contenteditable host: macOS WebKit inherits
+   -webkit-user-select: none from <body>, which breaks mouse caret placement
+   and editing in contenteditable regions (native inputs/textareas are already
+   exempt via the UA stylesheet). This keeps rich-text inputs (e.g. the AI
+   sidebar composer) clickable/editable without re-enabling selection on
+   non-editable chrome. */
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Copyable message (msg.copyable): opt out of the frameless-window drag region
+   so mouse-down selects text instead of dragging the window on macOS. */
+.msg-copyable,
+.msg-copyable .el-message__content {
+  --wails-draggable: no-drag;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Link hover tooltip */
+.xterm-link-tooltip {
+  position: absolute;
+  z-index: 100;
+  background: var(--bg-overlay);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* --- Theme select group labels --- */
+.theme-select-popper .el-select-group__title {
+  font-size: 0.625rem;
+  line-height: 1.2;
+  color: var(--text-disabled);
+  text-align: center;
+  padding: 0.125rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.theme-select-popper .el-select-group__title::before,
+.theme-select-popper .el-select-group__title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* --- Encryption-mode select options (two-line: title + hint) ---
+   The popper is teleported to body, so these live in global CSS. */
+.mode-select-popper .el-select-dropdown__item {
+  height: auto;
+  line-height: normal;
+  padding: 0.5rem 0.75rem;
+  white-space: normal;
+}
+.mode-select-popper .mode-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.mode-select-popper .mode-option-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.mode-select-popper .mode-option-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+/* ============================================================
+   Autocomplete suggestion dropdown
+   Target every possible selector so the item font matches
+   the rest of the UI (0.75rem). The popper is teleported to body
+   so scoped styles cannot reach it.
+   ============================================================ */
+/* Container */
+.el-autocomplete-suggestion,
+.el-autocomplete__popper,
+.el-popper.is-pure:has(.el-autocomplete-suggestion) {
+  font-size: 0.75rem !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+/* Force every child to 0.75rem */
+.el-autocomplete-suggestion *,
+.el-autocomplete-suggestion__wrap,
+.el-autocomplete-suggestion__list,
+.el-autocomplete-suggestion__item {
+  font-size: 0.75rem !important;
+}
+/* Ensure scrollbar wrap handles mouse wheel */
+.el-autocomplete-suggestion__wrap {
+  overflow: auto !important;
+  overflow-y: auto !important;
+  max-height: 17.5rem;
+}
+/* Specific item styling */
+.el-autocomplete-suggestion__item {
+  font-family: var(--font-ui) !important;
+  line-height: 1.4 !important;
+  padding: 0.3125rem 0.75rem !important;
+  color: var(--text-secondary) !important;
+  height: auto !important;
+  min-height: unset !important;
+}
+.el-autocomplete-suggestion__item:hover,
+.el-autocomplete-suggestion__item.highlighted,
+.el-autocomplete-suggestion__item.is-hovered,
+.el-autocomplete-suggestion li:hover,
+.el-autocomplete-suggestion li.is-hovered {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+/* Cover the case where autocomplete reuses select-dropdown */
+.el-autocomplete-suggestion .el-select-dropdown__item {
+  font-size: 0.75rem !important;
+}

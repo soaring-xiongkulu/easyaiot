@@ -1,0 +1,15 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Terminal",
+  "outputfilename": "Terminal",
+  "frontend": {
+    "dir": "./frontend",
+    "install": "npm install",
+    "build": "npm run build",
+    "dev": "npm run dev"
+  },
+  "author": {
+    "name": "Terminal",
+    "email": "terminal@example.com"
+  }
+}
