@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.pnpm-store/
+.vite/
+coverage/
+logs/
+.env.local
+.env.*.local
+blender/*.blend
+blender/*.blend1
+blender/*.blend2
+blender/*.glb
+blender/*.gltf
+blender/*.bin
+blender/render/
+blender/renders/
+blender/__pycache__/

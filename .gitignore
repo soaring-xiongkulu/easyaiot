@@ -175,6 +175,26 @@ TRANSFORM/.env.docker
 TRANSFORM/.idea/
 venv
 **/.venv
+
+# TWIN 数字孪生前端：依赖、构建产物与本地 Blender 导出文件
+# 源码、Docker 配置、锁文件和 blender/*.py 脚本仍需提交
+/TWIN/node_modules/
+/TWIN/dist/
+/TWIN/.pnpm-store/
+/TWIN/.vite/
+/TWIN/coverage/
+/TWIN/logs/
+/TWIN/.env.local
+/TWIN/.env.*.local
+/TWIN/blender/__pycache__/
+/TWIN/blender/*.blend
+/TWIN/blender/*.blend1
+/TWIN/blender/*.blend2
+/TWIN/blender/*.glb
+/TWIN/blender/*.gltf
+/TWIN/blender/*.bin
+/TWIN/blender/render/
+/TWIN/blender/renders/
 # VIDEO 运行日志与告警截图（任务运行时生成）
 VIDEO/logs/
 # VIDEO 临时上传文件（运行时生成，不随仓库分发）

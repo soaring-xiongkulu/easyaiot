@@ -1,0 +1,15 @@
+services:
+  twin-service:
+    build: .
+    image: easyaiot-twin:latest
+    container_name: twin-service
+    ports:
+      - "${TWIN_PORT:-8003}:80"
+    restart: unless-stopped
+    networks:
+      - easyaiot-network
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

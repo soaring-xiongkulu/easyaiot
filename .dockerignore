@@ -22,6 +22,17 @@ node_modules
 dist
 dist-prebuilt*
 
+# TWIN 本地三维建模与渲染产物（TWIN 镜像仅需要 Web 源码）
+TWIN/blender/__pycache__/
+TWIN/blender/*.blend
+TWIN/blender/*.blend1
+TWIN/blender/*.blend2
+TWIN/blender/*.glb
+TWIN/blender/*.gltf
+TWIN/blender/*.bin
+TWIN/blender/render/
+TWIN/blender/renders/
+
 # 日志文件
 *.log
 logs/

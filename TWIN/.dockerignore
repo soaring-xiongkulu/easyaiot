@@ -1,0 +1,12 @@
+node_modules
+dist
+blender/__pycache__
+blender/*.blend
+blender/*.blend1
+blender/*.blend2
+blender/*.glb
+blender/*.gltf
+blender/*.bin
+blender/render
+blender/renders
+.git
