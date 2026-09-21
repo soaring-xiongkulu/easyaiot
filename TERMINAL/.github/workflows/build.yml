@@ -1,0 +1,393 @@
+name: Build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      preview:
+        description: 'Create a snapshot release (fixed tag, prerelease, rolling)'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            slug: windows
+          - os: ubuntu-24.04
+            slug: linux-amd64
+          - os: ubuntu-24.04-arm
+            slug: linux-arm64
+          # Kylin/RHEL webkit40+glibc2.28 builds: use workflow build-linux-webkit40.yml
+          # (Ubuntu runners link glibc 2.34 and will not run on Kylin V10.)
+          - os: macos-latest
+            slug: darwin
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Free disk space (macOS)
+        if: matrix.slug == 'darwin'
+        run: |
+          # Keep CommandLineTools — cgo/clang needs it. Only drop the big,
+          # unneeded Xcode app + CoreSimulator.
+          sudo rm -rf /Library/Developer/CoreSimulator
+          sudo rm -rf /Applications/Xcode_*.app
+          rm -rf "$HOME/.npm" "$HOME/.cache" 2>/dev/null || true
+          df -h /
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install dependencies (Windows)
+        if: matrix.slug == 'windows'
+        shell: bash
+        run: |
+          choco install nsis -y
+          NSIS_BIN="/c/Program Files (x86)/NSIS/Bin"
+          export PATH="$NSIS_BIN:$PATH"
+          if [ ! -f "$NSIS_BIN/makensis.exe" ]; then echo "ERROR: makensis.exe not found at $NSIS_BIN"; exit 1; fi
+          echo "makensis: $NSIS_BIN/makensis.exe"
+
+          UPX_VER="5.2.0"
+          curl -sSfL -o /tmp/upx.zip "https://github.com/upx/upx/releases/download/v${UPX_VER}/upx-${UPX_VER}-win64.zip"
+          sha256sum /tmp/upx.zip
+          unzip -o /tmp/upx.zip -d /tmp/upx > /dev/null
+          mv -f /tmp/upx/upx-*/upx.exe "$NSIS_BIN/upx.exe"
+          upx --version
+
+      - name: Install dependencies (Linux)
+        if: startsWith(matrix.slug, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev upx pkg-config
+
+      - name: Install Wails CLI (wails3)
+        shell: bash
+        run: |
+          # On Linux, wails3 defaults to the WebKitGTK 6.0 (GTK4) pkg-config
+          # stack, which ubuntu-24.04 does not ship. Build the CLI (and later the
+          # app) with the legacy -tags gtk3 contract (WebKit2GTK 4.1).
+          TAGS=""
+          if [[ "${{ matrix.slug }}" == linux* ]]; then TAGS="-tags gtk3"; fi
+          go install $TAGS github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12
+
+      - name: Set version
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "VERSION=dev-${SHORT}" >> $GITHUB_ENV
+          fi
+
+      # Regenerate the gitignored build assets (build/windows/info.json +
+      # manifest, darwin Info.plist, linux nfpm.yaml) from build/config.yml.
+      # A fresh checkout has only icon.ico/uniterm.desktop committed, and
+      # generate:syso + app-bundle/nfpm all need these.
+      - name: Update build assets
+        shell: bash
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          wails3 task common:update:build-assets
+
+      ## ---- Build: wails3 compiles the binary; packaging happens below ----
+
+      - name: Build (Windows)
+        if: matrix.slug == 'windows'
+        shell: bash
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          wails3 build VERSION="$VERSION"                 # bin/Terminal.exe (amd64)
+          mv bin/Terminal.exe bin/Terminal-amd64.exe
+          wails3 build VERSION="$VERSION" ARCH=arm64      # bin/Terminal.exe (arm64)
+          mv bin/Terminal.exe bin/Terminal-arm64.exe
+          echo "AMD64|ARM64 built:"; ls -la bin/
+
+      - name: Build (Linux)
+        if: startsWith(matrix.slug, 'linux')
+        shell: bash
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          # Native CGO build on the matching-arch runner → bin/Terminal.
+          # gtk3 = legacy WebKit2GTK 4.1 stack (the only one ubuntu-24.04 provides).
+          pkg-config --modversion webkit2gtk-4.1
+          wails3 build GOOS=linux VERSION="$VERSION" EXTRA_TAGS=gtk3
+          chmod +x bin/Terminal
+          echo "Linux binary:"; ls -la bin/Terminal
+
+      - name: Build (macOS)
+        if: matrix.slug == 'darwin'
+        shell: bash
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          # Universal binary (arm64 + amd64 via lipo); then a per-arch .app
+          # bundle from Info.plist. Each single-arch .app is what gets packaged
+          # into its own dmg below (matches the v1.8.0 single-arch dmgs).
+          wails3 task darwin:build:universal VERSION="$VERSION"
+          for arch in amd64 arm64; do
+            cp "bin/Terminal-$arch" bin/Terminal
+            wails3 task darwin:create:app:bundle
+            mv bin/Terminal.app "bin/Terminal-$arch.app"
+          done
+          ls -la bin/Terminal-amd64.app/Contents/MacOS bin/Terminal-arm64.app/Contents/MacOS
+
+          # Self-update payloads: bare app-bundle binary per arch, matching
+          # what the in-app updater downloads, verifies and ad-hoc re-signs.
+          # -j junk-paths so the zip root holds just the "Terminal" executable.
+          for arch in amd64 arm64; do
+            zip -q -j "uniterm-darwin-${arch}-${VERSION}.zip" \
+              "bin/Terminal-${arch}.app/Contents/MacOS/Terminal"
+          done
+          ls -la uniterm-darwin-*.zip
+
+      - name: Package (macOS)
+        if: matrix.slug == 'darwin'
+        run: |
+          # One dmg per arch. Stage under GITHUB_WORKSPACE (the large "/"
+          # volume) rather than /tmp: the hosted runner's /tmp is a small,
+          # separate volume and hdiutil regularly ran out of space there for a
+          # large .app. Fall back to a zipped .app when hdiutil still fails.
+          for arch in amd64 arm64; do
+            APP="bin/Terminal-$arch.app"
+            chmod +x "$APP/Contents/MacOS/Terminal"
+
+            STAGE="${{ github.workspace }}/dmg_staging_${arch}"
+            mkdir -p "$STAGE"
+            cp -R "$APP" "$STAGE/Terminal.app"
+            ln -s /Applications "$STAGE/Applications"
+            if hdiutil create -volname Terminal -srcfolder "$STAGE" -ov -format UDZO "uniterm-darwin-${arch}-${VERSION}.dmg"; then
+              echo "dmg created ($arch)"
+            else
+              # Same filename as the bare-binary zip above — the fallback
+              # overwrites it with a full .app, which is both manually
+              # installable and a valid in-app update payload (the updater
+              # picks the executable out of the bundle by name).
+              echo "hdiutil dmg failed ($arch) — shipping zipped .app instead"
+              rm -f "uniterm-darwin-${arch}-${VERSION}.zip"
+              ditto -c -k --sequesterRsrc --keepParent "$APP" "uniterm-darwin-${arch}-${VERSION}.zip"
+            fi
+            rm -rf "$STAGE"
+          done
+
+      ## ---- Package (kept per-platform; v2 NSIS installer feeds the v3 binaries) ----
+
+      - name: Download VcXsrv (Windows)
+        if: startsWith(matrix.slug, 'windows')
+        shell: pwsh
+        env:
+          VCXSRV_VERSION: v1.0.0
+        run: |
+          $VCXSRV_DIR = Join-Path $env:GITHUB_WORKSPACE 'build\windows\installer\plugins\vcxsrv'
+          New-Item -ItemType Directory -Force -Path $VCXSRV_DIR | Out-Null
+          $zip = Join-Path $env:TEMP 'vcxsrv.zip'
+          Invoke-WebRequest -Uri "https://github.com/ys-ll/uniterm-vcxsrv/releases/download/$env:VCXSRV_VERSION/vcxsrv.zip" -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $VCXSRV_DIR -Force
+          Get-ChildItem $VCXSRV_DIR
+
+      - name: Package (Windows, v2 NSIS installer)
+        if: startsWith(matrix.slug, 'windows')
+        shell: pwsh
+        run: |
+          $env:Path = "C:\Program Files (x86)\NSIS\Bin;$env:Path"
+          $VERSION = "${{ env.VERSION }}"
+          $ROOT = $env:GITHUB_WORKSPACE
+          $AMD64_BIN = Join-Path $ROOT 'bin\Terminal-amd64.exe'
+          $ARM64_BIN = Join-Path $ROOT 'bin\Terminal-arm64.exe'
+          $NSI = Join-Path $ROOT 'build\windows\installer\project.nsi'
+
+          # compress amd64 with upx; arm64 is left uncompressed because
+          # UPX 5.2.0 can't pack the PE section structure that Wails'
+          # WebView2Loader produces for windows/arm64
+          upx --best --lzma $AMD64_BIN
+
+          $VCXSRV_DIR = Join-Path $ROOT 'build\windows\installer\plugins\vcxsrv'
+
+          # project.nsi's OutFile is ..\..\bin\... installers into build\bin,
+          # which v3 never creates (it outputs to bin/). Ensure it exists.
+          New-Item -ItemType Directory -Force -Path (Join-Path $ROOT 'build\bin') | Out-Null
+
+          & makensis "-DVERSION=$VERSION" "-DARG_WAILS_AMD64_BINARY=$AMD64_BIN" "-DVCXSRV_DIR=$VCXSRV_DIR" $NSI
+          & makensis "-DVERSION=$VERSION" "-DARG_WAILS_ARM64_BINARY=$ARM64_BIN" "-DVCXSRV_DIR=$VCXSRV_DIR" $NSI
+
+          foreach ($arch in @('amd64', 'arm64')) {
+            $srcExe = Join-Path $ROOT "bin\Terminal-$arch.exe"
+            $srcInstaller = Join-Path $ROOT "build\bin\Terminal-$arch-installer.exe"
+
+            # portable zip
+            New-Item -ItemType Directory -Force -Path dist_tmp | Out-Null
+            Copy-Item $srcExe "dist_tmp\Terminal.exe"
+            Copy-Item -Recurse $VCXSRV_DIR "dist_tmp\plugins\vcxsrv"
+            Compress-Archive -Path dist_tmp\* -DestinationPath "uniterm-windows-$arch-portable-$VERSION.zip" -Force
+            Remove-Item -Recurse -Force dist_tmp
+
+            # rename NSIS installer
+            Move-Item $srcInstaller "uniterm-windows-$arch-installer-$VERSION.exe"
+          }
+
+      - name: Package (Linux, nfpm)
+        if: startsWith(matrix.slug, 'linux')
+        run: |
+          ARCH=${{ matrix.slug == 'linux-amd64' && 'amd64' || 'arm64' }}
+          NFPM_ARCH=${{ matrix.slug == 'linux-amd64' && 'x86_64' || 'arm64' }}
+          upx --best --lzma bin/Terminal
+
+          cd bin
+          tar czf ../uniterm-linux-${ARCH}-${VERSION}.tar.gz Terminal
+          cd ..
+
+          NFPM_VER="2.46.3"
+          curl -sSfL -o /tmp/nfpm.tar.gz \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VER}/nfpm_${NFPM_VER}_Linux_${NFPM_ARCH}.tar.gz"
+          tar xf /tmp/nfpm.tar.gz -C /usr/local/bin nfpm
+          chmod +x /usr/local/bin/nfpm
+
+          cat > nfpm.yaml << EOF
+          name: uniterm
+          arch: ${ARCH}
+          platform: linux
+          version: ${VERSION}
+          maintainer: Terminal <Terminal@uniterm.net>
+          description: Lightweight all-in-one terminal emulator with built-in AI Agent
+          homepage: https://uniterm.net
+          license: Proprietary
+          depends:
+            - libgtk-3-0
+            - libwebkit2gtk-4.1-0
+          overrides:
+            rpm:
+              depends:
+                - gtk3
+                - webkit2gtk4.1
+          contents:
+            - src: bin/Terminal
+              dst: /usr/bin/terminal
+            - src: build/linux/Terminal.desktop
+              dst: /usr/share/applications/uniterm.desktop
+            - src: build/linux/icons/hicolor
+              dst: /usr/share/icons/hicolor
+          EOF
+
+          nfpm package --config nfpm.yaml --packager deb \
+            --target "uniterm-linux-${ARCH}-${VERSION}.deb"
+          nfpm package --config nfpm.yaml --packager rpm \
+            --target "uniterm-linux-${ARCH}-${VERSION}.rpm"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Terminal-${{ matrix.slug }}
+          path: |
+            uniterm-*.zip
+            uniterm-*.tar.gz
+            uniterm-*.exe
+            uniterm-*.dmg
+            uniterm-*.deb
+            uniterm-*.rpm
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.preview == true)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Collect release files
+        run: |
+          find artifacts -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.exe' -o -name '*.dmg' -o -name '*.deb' -o -name '*.rpm' \) -exec mv {} . \;
+          ls -la uniterm-*
+          # checksums.txt powers the in-app updater's SHA256 verification.
+          # sync-gitee.yml mirrors it to Gitee together with the assets.
+          sha256sum uniterm-* > checksums.txt
+          cat checksums.txt
+
+      - name: Determine release mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "PRERELEASE=true" >> $GITHUB_ENV
+          fi
+
+      - name: Extract changelog
+        run: |
+          if [ "$PRERELEASE" = "true" ]; then
+            SHA="${{ github.sha }}"
+            SHORT=$(echo "$SHA" | cut -c1-7)
+            NOW=$(date -u +"%Y-%m-%d %H:%M UTC")
+            RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            cat > release_body.md <<EOF
+          ## ⚠️ Preview Release / 预览版本
+
+          This is a **preview/prerelease** build, **not an official release**. Do not distribute.
+          本次为**预览构建，非正式发布版本**，请勿对外分发。
+
+          - Commit: \`${SHORT}\`
+          - Branch: \`${{ github.ref_name }}\`
+          - Built: ${NOW}
+          - Run: ${RUN_URL}
+          EOF
+          else
+            sed -n "/^## ${{ github.ref_name }}$/,/^## v/p" CHANGELOG.md | sed '$d' > release_body.md
+          fi
+
+      - name: Detect prerelease
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          if echo "${{ github.ref_name }}" | grep -qiE '\-(rc|beta|alpha|pre|dev)'; then
+            echo "PRERELEASE=true" >> $GITHUB_ENV
+          else
+            echo "PRERELEASE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Update snapshot tag
+        if: github.event_name == 'workflow_dispatch' && inputs.preview == true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f main-snapshot
+          git push -f origin main-snapshot
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && 'main-snapshot' || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && 'Main Snapshot' || github.ref_name }}
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+          body_path: release_body.md
+          files: |
+            uniterm-*.zip
+            uniterm-*.tar.gz
+            uniterm-*.exe
+            uniterm-*.dmg
+            uniterm-*.deb
+            uniterm-*.rpm
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

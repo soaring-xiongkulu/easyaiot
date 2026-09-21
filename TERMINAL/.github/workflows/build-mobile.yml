@@ -1,0 +1,84 @@
+name: build-mobile
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  android:
+    name: Android APK (arm64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v4
+
+      - name: Install SDK components
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;26.3.11579264"
+
+      # Build the wails3 CLI with the legacy -tags gtk3 contract: its default
+      # WebKitGTK 6.0 (GTK4) stack is not available on ubuntu-24.04. The CLI
+      # only orchestrates the gradle/NDK android build, so the desktop tag
+      # choice does not affect the APK.
+      - name: Install GTK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
+
+      - name: Install wails3 CLI
+        run: |
+          go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.16
+          # setup-go does not add GOPATH/bin to PATH; wails3 (and the
+          # overlay:gen / generate bindings calls inside the task) live there.
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Set version
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "VERSION=dev-${SHORT}" >> $GITHUB_ENV
+          fi
+
+      # main.go embeds all:frontend/dist; neither dist nor the generated
+      # bindings are committed, so build the frontend first (this also
+      # covers the embed needed by android:package below).
+      - name: Build frontend (embed assets)
+        run: wails3 task common:build:frontend
+
+      - name: Android compile check (no SDK needed)
+        run: wails3 task android:compile:check
+
+      - name: Build release APK (debug-signed)
+        # arm64 covers virtually all real devices; amd64 is only useful for
+        # local emulator builds, so CI always packages arm64.
+        run: wails3 task android:package
+
+      # iOS note: building an .app for real devices needs Apple codesigning
+      # identities/secrets; add a macos-latest job here once signing is set up.
+
+      # Match the desktop convention: terminal-<os>-<arch>-<version>.apk
+      - name: Rename artifact
+        run: cp bin/Terminal.apk "bin/uniterm-android-arm64-${VERSION}.apk"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: uniterm-android-arm64
+          path: bin/uniterm-android-*.apk
+          if-no-files-found: error

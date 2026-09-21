@@ -1,0 +1,171 @@
+name: Build Linux WebKit40 (Kylin/RHEL)
+
+# Standalone package for Kylin V10 / RHEL 8 / openEuler:
+# - Built in Rocky Linux 8 → glibc 2.28
+# - Links webkit2gtk-4.0 (package webkit2gtk3) WITHOUT -tags webkit2_40
+#   (that tag forces runtime WebKit >= 2.40, which old Kylin repos often lack)
+# - wails3 builds natively here; no webkit version tag is passed, so the
+#   linker picks whatever webkit2gtk-4.0 pkg-config provides (4.0 ABI).
+# Manual only — does not run the full multi-platform Build matrix.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_release:
+        description: 'Attach artifacts to a draft GitHub Release'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:8
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf -y install epel-release
+          dnf -y install \
+            gcc gcc-c++ make pkgconfig which curl ca-certificates tar gzip unzip xz \
+            gtk3-devel webkit2gtk3-devel \
+            git binutils
+          # UPX (optional compression) — linux release is .tar.xz
+          UPX_VER="4.2.4"
+          curl -sSfL -o /tmp/upx.tar.xz \
+            "https://github.com/upx/upx/releases/download/v${UPX_VER}/upx-${UPX_VER}-amd64_linux.tar.xz"
+          tar -xJf /tmp/upx.tar.xz -C /tmp
+          install -m 755 /tmp/upx-*/upx /usr/local/bin/upx
+          upx --version
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install Wails CLI (wails3)
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12
+
+      - name: Set version
+        shell: bash
+        run: |
+          SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "VERSION=dev-${SHORT}" >> $GITHUB_ENV
+
+      # Regenerate gitignored build assets (linux nfpm.yaml etc.) from build/config.yml
+      - name: Update build assets
+        shell: bash
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          wails3 task common:update:build-assets
+
+      - name: Build (wails3, native, webkit 4.0)
+        shell: bash
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          # IMPORTANT: no webkit version tag is passed. That tag means "require
+          # WebKit *version* >= 2.40 at runtime", which Kylin V10's older
+          # webkit2gtk3 cannot satisfy. wails3 links whatever webkit2gtk-4.0 the
+          # pkg-config for webkit2gtk3-devel provides.
+          pkg-config --modversion webkit2gtk-4.0 || true
+          wails3 build GOOS=linux VERSION="$VERSION"   # native CGO build on rocky8
+          # Sanity: binary must not require glibc newer than 2.28
+          if command -v objdump >/dev/null && [ -f bin/Terminal ]; then
+            echo "GLIBC symbols required by binary:"
+            objdump -T bin/Terminal 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -5 || true
+          fi
+
+      - name: Package
+        run: |
+          ARCH=amd64
+          NFPM_ARCH=x86_64
+          PKG_SUFFIX="${ARCH}-webkit40"
+
+          upx --best --lzma bin/Terminal
+
+          cd bin
+          chmod +x Terminal
+          tar czf ../../uniterm-linux-${PKG_SUFFIX}-${VERSION}.tar.gz Terminal
+          cd ..
+
+          NFPM_VER="2.46.3"
+          curl -sSfL -o /tmp/nfpm.tar.gz \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VER}/nfpm_${NFPM_VER}_Linux_${NFPM_ARCH}.tar.gz"
+          tar xf /tmp/nfpm.tar.gz -C /usr/local/bin nfpm
+          chmod +x /usr/local/bin/nfpm
+
+          cat > nfpm.yaml << EOF
+          name: uniterm
+          arch: ${ARCH}
+          platform: linux
+          version: ${VERSION}
+          maintainer: Terminal <Terminal@uniterm.net>
+          description: Lightweight all-in-one terminal emulator (WebKit 4.0 / glibc 2.28 / Kylin)
+          homepage: https://uniterm.net
+          license: Proprietary
+          depends:
+            - libgtk-3-0
+            - libwebkit2gtk-4.0-37
+          overrides:
+            rpm:
+              depends:
+                - gtk3
+                - webkit2gtk3
+          contents:
+            - src: bin/Terminal
+              dst: /usr/bin/terminal
+            - src: build/linux/Terminal.desktop
+              dst: /usr/share/applications/uniterm.desktop
+            - src: build/linux/icons/hicolor
+              dst: /usr/share/icons/hicolor
+          EOF
+
+          nfpm package --config nfpm.yaml --packager deb \
+            --target "uniterm-linux-${PKG_SUFFIX}-${VERSION}.deb"
+          nfpm package --config nfpm.yaml --packager rpm \
+            --target "uniterm-linux-${PKG_SUFFIX}-${VERSION}.rpm"
+          ls -la uniterm-linux-${PKG_SUFFIX}-*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Terminal-linux-amd64-webkit40
+          path: |
+            uniterm-linux-amd64-webkit40-*.tar.gz
+            uniterm-linux-amd64-webkit40-*.deb
+            uniterm-linux-amd64-webkit40-*.rpm
+
+      - name: Create draft release
+        if: inputs.upload_release == true
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: webkit40-${{ env.VERSION }}
+          name: WebKit40 / Kylin ${{ env.VERSION }}
+          draft: true
+          prerelease: true
+          body: |
+            Preview build for **Kylin V10 / RHEL 8 / openEuler** (WebKit2GTK 4.0 + **glibc 2.28**).
+
+            ```bash
+            sudo yum install -y gtk3 webkit2gtk3
+            sudo rpm -Uvh uniterm-linux-amd64-webkit40-*.rpm
+            uniterm
+            ```
+          files: |
+            uniterm-linux-amd64-webkit40-*.tar.gz
+            uniterm-linux-amd64-webkit40-*.deb
+            uniterm-linux-amd64-webkit40-*.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

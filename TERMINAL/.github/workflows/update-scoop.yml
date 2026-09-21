@@ -1,0 +1,50 @@
+name: Update Scoop Bucket
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.4.1)'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scoop bucket repo
+        uses: actions/checkout@v7
+        with:
+          repository: ys-ll/scoop-uniterm
+          token: ${{ secrets.PAT }}
+
+      - name: Get version
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Download portable zip and compute hash
+        run: |
+          URL="https://github.com/ys-ll/uniterm/releases/download/$TAG/uniterm-windows-amd64-portable-$TAG.zip"
+          curl -sLo /tmp/uniterm.zip "$URL"
+          SHA256=$(sha256sum /tmp/uniterm.zip | cut -d' ' -f1)
+          echo "SHA256=$SHA256" >> $GITHUB_ENV
+
+      - name: Update manifest
+        run: |
+          jq --arg v "$VERSION" \
+             --arg h "sha256:$SHA256" \
+             --arg url "https://github.com/ys-ll/uniterm/releases/download/$TAG/uniterm-windows-amd64-portable-$TAG.zip" \
+             '.version = $v | .architecture."64bit".url = $url | .architecture."64bit".hash = $h' \
+             bucket/uniterm.json > tmp.json && mv tmp.json bucket/uniterm.json
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add bucket/uniterm.json
+          git commit -m "Update to $TAG" || true
+          git push

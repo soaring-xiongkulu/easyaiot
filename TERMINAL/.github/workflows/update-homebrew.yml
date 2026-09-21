@@ -1,0 +1,50 @@
+name: Update Homebrew Cask
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.4.1)'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew tap repo
+        uses: actions/checkout@v7
+        with:
+          repository: ys-ll/homebrew-uniterm
+          token: ${{ secrets.PAT }}
+
+      - name: Get version
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Download macOS DMGs and compute hashes
+        run: |
+          for ARCH in amd64 arm64; do
+            URL="https://github.com/ys-ll/uniterm/releases/download/$TAG/uniterm-darwin-${ARCH}-$TAG.dmg"
+            curl -sLo "/tmp/terminal-${ARCH}.dmg" "$URL"
+            SHA256=$(sha256sum "/tmp/terminal-${ARCH}.dmg" | cut -d' ' -f1)
+            echo "SHA256_${ARCH}=$SHA256" >> $GITHUB_ENV
+          done
+
+      - name: Update formula
+        run: |
+          sed -i "s/version \".*\"/version \"$VERSION\"/" Casks/uniterm.rb
+          sed -i "/sha256/ s/intel: \".*\"/intel: \"$SHA256_amd64\"/" Casks/uniterm.rb
+          sed -i "/sha256/ s/arm: \".*\"/arm: \"$SHA256_arm64\"/" Casks/uniterm.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add Casks/uniterm.rb
+          git commit -m "Update to $TAG" || true
+          git push
