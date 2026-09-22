@@ -886,7 +886,6 @@ EasyAIoT включает основные модули WEB, APP, DEVICE, EDGE, 
     <li><strong>Универсальный терминал (終端 / Terminal)</strong>: интегрирован и переименован из опенсорсного <code>uniTerm</code>; удалённый терминал SSH / Telnet / Mosh, локальный и последовательный терминалы, аутентификация по паролю / ключу и проброс портов через SSH-туннель</li>
     <li><strong>Многопротокольная удалённая эксплуатация</strong>: передача файлов SFTP / SCP / FTP / SMB / WebDAV / S3 (двухпанельный обзор и <code>rz</code>/<code>sz</code>), удалённый рабочий стол RDP / VNC / SPICE / X11, клиенты СУБД MySQL / PostgreSQL / Oracle / SQL Server / Redis / MongoDB</li>
     <li><strong>Контейнеры и мониторинг</strong>: доступ к контейнерам Kubernetes / Docker / Podman / nerdctl и мониторинг в реальном времени CPU / памяти / дисков / сети / процессов</li>
-    <li><strong>Встроенный ИИ-агент</strong>: самостоятельно планирует и выполняет многораундовые shell-команды; боковой чат с LLM, совместимыми с Anthropic / OpenAI, умное автодополнение команд и сохранение сессий</li>
     <li><strong>Кроссплатформенная поставка</strong>: сборка на Wails v3 (Go + Vue 3); артефакты для Windows / macOS / Linux, а также работа в режиме чистого HTTP-<code>server</code></li>
   </ul>
 </td>

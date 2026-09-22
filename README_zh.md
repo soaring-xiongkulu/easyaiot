@@ -960,7 +960,6 @@ EasyAIoT 由 WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME�
     <li><strong>一站式终端（终端 / Terminal）</strong>：基于开源 <code>uniTerm</code> 集成改名，覆盖 SSH / Telnet / Mosh 远程终端、本地与串口终端，密码 / 密钥认证，并支持 SSH 隧道端口转发</li>
     <li><strong>多协议远程运维</strong>：SFTP / SCP / FTP / SMB / WebDAV / S3 文件传输（双栏浏览与 <code>rz</code>/<code>sz</code>），RDP / VNC / SPICE / X11 远程桌面，MySQL / PostgreSQL / Oracle / SQL Server / Redis / MongoDB 等数据库客户端</li>
     <li><strong>容器与监控</strong>：Kubernetes / Docker / Podman / nerdctl 容器接入，服务器 CPU / 内存 / 磁盘 / 网络 / 进程实时监控</li>
-    <li><strong>内置 AI Agent</strong>：可自主规划并多轮执行 Shell 命令，侧边栏对话接入 Anthropic / OpenAI 兼容大模型，命令智能补全与会话持久化</li>
     <li><strong>跨平台桌面交付</strong>：Wails v3（Go + Vue 3）构建，产物覆盖 Windows / macOS / Linux，亦可 <code>server</code> 模式纯 HTTP 服务运行</li>
   </ul>
 </td>

@@ -915,7 +915,6 @@ EasyAIoT comprises core modules including WEB, APP, DEVICE, EDGE, SENTINEL, VIDE
     <li><strong>All-in-one terminal (终端 / Terminal)</strong>: integrated and renamed from the open-source <code>uniTerm</code>; SSH / Telnet / Mosh remote terminal plus local and serial terminals, password / key auth, and SSH tunnel port forwarding</li>
     <li><strong>Multi-protocol remote ops</strong>: SFTP / SCP / FTP / SMB / WebDAV / S3 file transfer (dual-pane browsing and <code>rz</code>/<code>sz</code>), RDP / VNC / SPICE / X11 remote desktop, and database clients for MySQL / PostgreSQL / Oracle / SQL Server / Redis / MongoDB</li>
     <li><strong>Containers &amp; monitoring</strong>: Kubernetes / Docker / Podman / nerdctl container access and real-time server CPU / memory / disk / network / process monitoring</li>
-    <li><strong>Built-in AI Agent</strong>: autonomously plans and runs multi-turn shell commands; sidebar chat with Anthropic / OpenAI-compatible LLMs, smart command completion, and persistent conversations</li>
     <li><strong>Cross-platform desktop delivery</strong>: built with Wails v3 (Go + Vue 3); artifacts cover Windows / macOS / Linux, and it can also run headless as a pure HTTP <code>server</code></li>
   </ul>
 </td>

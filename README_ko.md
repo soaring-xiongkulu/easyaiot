@@ -884,7 +884,6 @@ EasyAIoT는 WEB, APP, DEVICE, EDGE, SENTINEL, VIDEO, RTC, AI, RUNTIME, POST, VIS
     <li><strong>올인원 터미널(終端 / Terminal)</strong>: 오픈소스 <code>uniTerm</code>을 통합·개명. SSH / Telnet / Mosh 원격 터미널과 로컬·시리얼 터미널, 비밀번호 / 키 인증, SSH 터널 포트 포워딩 지원</li>
     <li><strong>다중 프로토콜 원격 운영</strong>: SFTP / SCP / FTP / SMB / WebDAV / S3 파일 전송(투 페인 탐색과 <code>rz</code>/<code>sz</code>), RDP / VNC / SPICE / X11 원격 데스크톱, MySQL / PostgreSQL / Oracle / SQL Server / Redis / MongoDB 등 데이터베이스 클라이언트</li>
     <li><strong>컨테이너 · 모니터링</strong>: Kubernetes / Docker / Podman / nerdctl 컨테이너 접속, 서버 CPU / 메모리 / 디스크 / 네트워크 / 프로세스 실시간 모니터링</li>
-    <li><strong>내장 AI 에이전트</strong>: 멀티턴 셸 명령을 자율 계획·실행. 사이드바 대화로 Anthropic / OpenAI 호환 LLM 연동, 스마트 명령 완성과 세션 영속화</li>
     <li><strong>크로스플랫폼 데스크톱 납품</strong>: Wails v3(Go + Vue 3) 기반. Windows / macOS / Linux 산출물 제공, <code>server</code> 모드 순수 HTTP 서버 실행도 가능</li>
   </ul>
 </td>
