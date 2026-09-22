@@ -360,6 +360,9 @@
     </div>
 
     <!-- Process Detail Panel (inside monitor-tab) -->
+    <!-- 两个抽屉 Teleport 到 .app-container（main-content 的兄弟节点）：
+         遮罩要盖住左侧栏/顶栏在内的整个应用，而不是只盖工作区 -->
+    <Teleport to=".app-container">
     <div class="detail-drawer-backdrop" :class="{ open: detailDrawerVisible }" @click="detailDrawerVisible = false"></div>
     <div class="detail-drawer" :class="{ open: detailDrawerVisible }">
       <div class="detail-drawer-header">
@@ -453,6 +456,7 @@
       </div>
       <div v-else class="process-detail-empty">{{ t('monitor.noProcessSelected') }}</div>
     </div>
+    </Teleport>
 
     <!-- Kill Confirmation Dialog -->
     <el-dialog append-to-body v-model="killDialogVisible" :title="killType === 'kill' ? t('monitor.forceKill') : t('monitor.kill')" width="22.5rem" align-center>
@@ -474,6 +478,7 @@
 
     <!-- Service Detail Drawer (slides out like the process detail drawer);
          two tabs: properties detail / k8s-style journal logs -->
+    <Teleport to=".app-container">
     <div class="detail-drawer-backdrop" :class="{ open: serviceDetailVisible }" @click="serviceDetailVisible = false"></div>
     <div class="detail-drawer" :class="{ open: serviceDetailVisible }" :style="serviceDetailVisible ? { width: svcDrawerWidth + 'px' } : undefined">
       <div class="svc-resizer" @mousedown="onServiceResizeStart"></div>
@@ -525,6 +530,7 @@
         </div>
       </div>
     </div>
+    </Teleport>
 
     <!-- Service action menu (shared, mounted once; opens next to the row button) -->
     <Menu ref="serviceMenuRef" v-model:visible="serviceMenuVisible">
@@ -674,8 +680,12 @@ const loadingServiceLogs = ref(false)
 const logViewerRef = ref<HTMLElement | null>(null)
 
 // Drawer width (draggable via the left-edge resizer, same as the k8s drawer;
-// not persisted across sessions).
-const svcDrawerWidth = ref(420)
+// not persisted across sessions). The logs tab widens to ~80% of the viewport
+// (log lines are long); a width the user dragged larger is kept.
+const svcDrawerWidth = ref(480)
+function logsTargetWidth() {
+  return Math.min(window.innerWidth - 120, Math.max(720, Math.round(window.innerWidth * 0.8)))
+}
 let svcResizeStartX = 0
 let svcResizeStartW = 0
 
@@ -1288,6 +1298,7 @@ async function onServiceRowClick(row: any) {
 
 function onServiceLogsTab() {
   svcDrawerTab.value = 'logs'
+  if (svcDrawerWidth.value < logsTargetWidth()) svcDrawerWidth.value = logsTargetWidth()
   // Always re-fetch on tab entry so the view is fresh; journalctl is cheap.
   fetchServiceLogs()
 }
@@ -2017,7 +2028,7 @@ watch(activeTab, (tab) => {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 26.25rem;
+  width: 30rem;
   background: var(--bg-elevated);
   border-left: 1px solid var(--border-subtle);
   transform: translateX(100%);

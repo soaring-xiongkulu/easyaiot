@@ -1,4 +1,7 @@
 <template>
+  <!-- Teleport 到 .app-container（main-content 的兄弟节点）：遮罩要盖住
+       左侧栏/顶栏在内的整个应用，而不是只盖工作区 -->
+  <Teleport to=".app-container">
   <div class="detail-drawer-backdrop" :class="{ open: !!mode }" @click.self="$emit('close')"></div>
   <div class="detail-drawer" :class="{ open: !!mode }" :style="mode ? { width: drawerWidth + 'px' } : undefined" @click.stop>
     <div class="drawer-resizer" @mousedown="onResizeStart"></div>
@@ -58,6 +61,7 @@
       <MenuItem @click="onCopyMenu">{{ t('container.copy') }}</MenuItem>
     </Menu>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -100,10 +104,14 @@ async function onCopyMenu() {
   copyMenuVisible.value = false
 }
 
-// Drawer width (draggable). Logs mode widens; not persisted.
-const drawerWidth = ref(420)
+// Drawer width (draggable). Logs mode widens to ~80% of the viewport (log
+// lines are long); a width the user dragged larger is kept. Not persisted.
+const drawerWidth = ref(480)
+function logsTargetWidth() {
+  return Math.min(window.innerWidth - 120, Math.max(720, Math.round(window.innerWidth * 0.8)))
+}
 watch(() => props.mode, (m) => {
-  if (m === 'logs' && drawerWidth.value < 640) drawerWidth.value = 640
+  if (m === 'logs' && drawerWidth.value < logsTargetWidth()) drawerWidth.value = logsTargetWidth()
 })
 let resizeStartX = 0
 let resizeStartW = 0
@@ -271,7 +279,7 @@ onBeforeUnmount(stopLogs)
   top: 0;
   right: 0;
   bottom: 0;
-  width: 26.25rem;
+  width: 30rem;
   background: var(--bg-elevated);
   border-left: 1px solid var(--border-subtle);
   transform: translateX(100%);

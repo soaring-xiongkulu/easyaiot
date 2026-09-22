@@ -2075,7 +2075,11 @@ body > .conn-context-menu {
 }
 /* 划出面板（K8sDetailDrawer / MonitorTabContent 等）：背景图模式下同样被透明规则抹掉背景，
    加毛玻璃保证内容在背景图上清晰。 */
-.app-container.has-bg .main-content :deep(.detail-drawer) {
+/* 划出面板（ContainerDetailDrawer / K8sDetailDrawer / MonitorTabContent）：
+   Teleport 到 .app-container 下、不在 .main-content 内，上面的通配透明规则
+   管不到它，这里单独恢复毛玻璃观感（背景透明 + 模糊）。 */
+.app-container.has-bg :deep(.detail-drawer) {
+  background-color: transparent !important;
   backdrop-filter: blur(0.5rem);
 }
 /* 拖拽/等待遮罩：全局透明规则会抹掉底色，这里给几处遮罩恢复颜色，
