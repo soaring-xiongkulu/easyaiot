@@ -9,7 +9,6 @@
     <div
       v-if="showHeader"
       class="panel-header"
-      :class="{ 'ai-locked': isAILocked }"
       @dblclick.stop
       @contextmenu="onHeaderContextMenu"
     >
@@ -55,14 +54,6 @@
         >
           <Radio :size="'0.875rem'" />
         </button>
-        <button
-          class="panel-ai-lock"
-          :class="{ locked: isAILocked }"
-          @click.stop="emit('toggleAiLock', panel.id)"
-          :title="isAILocked ? t('terminal.aiLockedToPanel') : t('terminal.lockAIToPanel')"
-        >
-          <Sparkles :size="'0.875rem'" />
-        </button>
         <div class="panel-more-wrapper">
           <button
             class="panel-more"
@@ -78,9 +69,6 @@
             </MenuItem>
             <MenuItem @click="forceReconnect(); moreMenuVisible = false">{{ t('tab.reconnect') }}</MenuItem>
             <MenuItem v-if="serverHost" @click="copyHostAddress">{{ t('tab.copyHostAddress') }}</MenuItem>
-            <MenuItem :shortcut="menuShortcut('lockAI')" @click="toggleAiLockFromMenu">
-              {{ isAILocked ? t('terminal.aiLocked') : t('terminal.lockAI') }}
-            </MenuItem>
             <MenuItem @click="renamePanel">{{ t('tab.rename') }}</MenuItem>
             <MenuItem v-if="panel.config?.id" @click="locateConnection">{{ t('tab.locate') }}</MenuItem>
             <MenuItem
@@ -133,7 +121,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, nextTick, onMounted, onUnmounted, inject } from 'vue'
-import { Radio, Sparkles, MoreHorizontal, X, SquareTerminal, Laptop, LaptopMinimal, Cable, Terminal, Zap, Maximize2, Minimize2 } from '@lucide/vue'
+import { Radio, MoreHorizontal, X, SquareTerminal, Laptop, LaptopMinimal, Cable, Terminal, Zap, Maximize2, Minimize2 } from '@lucide/vue'
 import BaseTerminal from './BaseTerminal.vue'
 import Menu from './Menu.vue'
 import MenuItem from './MenuItem.vue'
@@ -186,7 +174,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: [panelId: string]
   dragstart: [e: DragEvent]
-  toggleAiLock: [panelId: string]
   duplicate: [panelId: string]
   rename: [panelId: string, newName: string]
   connectSftp: [panelId: string]
@@ -239,10 +226,6 @@ function menuShortcut(action: ShortcutAction): string {
 }
 
 const showCredentialDialog = inject<(title: string, subtitle: string, fields: ('user' | 'password')[], initialUser?: string, initialPassword?: string) => Promise<CredentialResult | null>>('showCredentialDialog', () => Promise.resolve(null))
-
-const isAILocked = computed(() =>
-  tabStore.isPanelAILocked(props.panel.id)
-)
 
 const panelBroadcastActive = computed(() =>
   tabStore.isPanelBroadcasting(props.panel.id)
@@ -305,11 +288,6 @@ const serverHost = computed(() => props.panel.config?.host || '')
 const isPanelBroadcastTarget = computed(() =>
   tabStore.isPanelBroadcasting(props.panel.id)
 )
-
-function toggleAiLockFromMenu() {
-  emit('toggleAiLock', props.panel.id)
-  moreMenuVisible.value = false
-}
 
 // Equivalent to Ctrl+click on the header broadcast button: toggle THIS panel
 // (not the whole workspace) as a broadcast target.
@@ -649,16 +627,6 @@ watch(() => props.panel.outputLog, (val) => {
   background: var(--bg-elevated);
   border-bottom-color: var(--accent);
 }
-/* Match the AI-locked tab treatment (issue #909): a warning-tinted header
-   instead of an edge marker. The border is left alone so the active panel's
-   accent underline stays the sole "which panel is focused" signal. */
-.panel-header.ai-locked {
-  background: var(--warning-tab);
-}
-.panel-active .panel-header.ai-locked {
-  background: var(--warning-tab-active);
-  border-bottom-color: var(--accent);
-}
 .panel-title {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -747,26 +715,6 @@ watch(() => props.panel.outputLog, (val) => {
 .broadcast-icon {
   display: inline-block;
   line-height: 1;
-}
-.panel-ai-lock {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.1875rem;
-  display: inline-flex;
-  align-items: center;
-}
-.ai-lock-icon {
-  display: block;
-}
-.panel-ai-lock:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-.panel-ai-lock.locked {
-  color: var(--warning);
 }
 .panel-duplicate {
   background: none;

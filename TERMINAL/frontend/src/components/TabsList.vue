@@ -15,7 +15,6 @@
         @activate="setActiveTab"
         @close="(id: string) => $emit('close-tab', id)"
         @close-batch="(ids: string[]) => $emit('close-tab-batch', ids)"
-        @toggle-ai-lock="(panelId: string) => $emit('toggle-ai-lock', panelId)"
         @dragstart="(e: DragEvent, tabId: string) => $emit('tab-dragstart', e, tabId)"
         @dragover.prevent="(e: DragEvent) => onTabDragOver(e, index)"
         @dragleave="onTabDragLeave"
@@ -135,7 +134,6 @@ onUnmounted(() => {
 defineEmits<{
   'close-tab': [id: string]
   'close-tab-batch': [ids: string[]]
-  'toggle-ai-lock': [panelId: string]
   'tab-dragstart': [e: DragEvent, tabId: string]
 }>()
 

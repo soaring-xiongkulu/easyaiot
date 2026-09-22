@@ -1,7 +1,7 @@
 <template>
   <div
     class="tab-item"
-    :class="{ active: isActive, 'ai-locked': isAILocked }"
+    :class="{ active: isActive }"
     :data-tab-id="tab.id"
     @click="$emit('activate', tab.id)"
     @mouseenter="hovered = true"
@@ -83,9 +83,6 @@
       </MenuItem>
       <MenuItem v-if="canReconnect" @click="onReconnect">{{ t('tab.reconnect') }}</MenuItem>
       <MenuItem v-if="hasServerHost" @click="copyHostAddress">{{ t('tab.copyHostAddress') }}</MenuItem>
-      <MenuItem v-if="tab.type === 'terminal'" :shortcut="menuShortcut('lockAI')" @click="toggleAiLock">
-        {{ isAILocked ? t('terminal.aiLocked') : t('terminal.lockAI') }}
-      </MenuItem>
       <MenuItem v-if="tab.type !== 'start' && tab.type !== 'settings'" @click="startEdit">{{ t('tab.rename') }}</MenuItem>
       <MenuItem v-if="hasLocatableConnection" @click="locateHost">{{ t('tab.locate') }}</MenuItem>
       <MenuItem v-if="tab.type !== 'start' && tab.type !== 'settings'" @click="toggleLock">
@@ -173,7 +170,6 @@ const emit = defineEmits<{
   activate: [id: string]
   close: [id: string]
   closeBatch: [ids: string[]]
-  toggleAiLock: [panelId: string]
 }>()
 
 const tabStore = useTabStore()
@@ -240,15 +236,6 @@ const tabIcon = computed(() => {
   }
   // Everything else (connection tabs + UI tab kinds) resolves from the registry.
   return connectionTypeIconOfKind(t.type)
-})
-
-const isAILocked = computed(() => {
-  if (props.tab.type === 'workspace') {
-    if (tabStore.aiLockedPanelIds.size === 0) return false
-    return props.tab.panelIds.some(id => tabStore.isPanelAILocked(id))
-  }
-  if (props.tab.type !== 'terminal') return false
-  return tabStore.isPanelAILocked(props.tab.panelId)
 })
 
 // Whether the tab can be a broadcast target / driver. ssh/local/wsl terminal
@@ -499,13 +486,6 @@ function toggleBroadcastTarget() {
   closeContextMenu()
 }
 
-function toggleAiLock() {
-  if (props.tab.type === 'terminal') {
-    emit('toggleAiLock', props.tab.panelId)
-  }
-  closeContextMenu()
-}
-
 function closeTab() {
   emit('close', props.tab.id)
   closeContextMenu()
@@ -708,21 +688,6 @@ onMounted(async () => {
 }
 .tab-item.active {
   background: var(--bg-hover);
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-/* AI-locked tabs carry a warning-tinted background, not an edge marker, so the
-   state reads at a glance (issue #909). The border is left alone: the accent
-   ring stays the sole "which tab is selected" signal. */
-.tab-item.ai-locked {
-  background: var(--warning-tab);
-  color: var(--text-primary);
-}
-.tab-item.ai-locked:hover {
-  background: var(--warning-tab-hover);
-}
-.tab-item.active.ai-locked {
-  background: var(--warning-tab-active);
   color: var(--text-primary);
   box-shadow: inset 0 0 0 1px var(--accent);
 }

@@ -21,7 +21,6 @@
           :progress="tabStore.getTabProgress(tab.id)"
           @activate="setActiveTab"
           @close="closeTab"
-          @toggle-ai-lock="onToggleAiLock"
           @dragstart="onTabDragStart($event, tab.id)"
           @dragover.prevent="onTabDragOver($event, index)"
           @dragleave="onTabDragLeave"
@@ -170,14 +169,6 @@ async function closeTab(id: string) {
 
   const panelIds = tabStore.closeTab(id)
   panelIds.forEach(pid => panelStore.removePanel(pid))
-}
-
-function onToggleAiLock(panelId: string) {
-  if (tabStore.isPanelAILocked(panelId)) {
-    tabStore.removeAILockedPanel(panelId)
-  } else {
-    tabStore.addAILockedPanel(panelId)
-  }
 }
 
 function onTabDragStart(_e: DragEvent, _tabId: string) {

@@ -23,7 +23,6 @@
       :maximized-panel-id="tab.maximizedPanelId || null"
       :tab-id="tab.id"
       @close-panel="closePanel"
-      @toggle-ai-lock="onToggleAiLock"
       @duplicate="onDuplicatePanel"
       @rename="onRenamePanel"
       @panel-drag-start="onPanelDragStart"
@@ -83,14 +82,6 @@ async function closePanel(panelId: string) {
   tabStore.removePanelFromWorkspaceTab(props.tab.id, panelId)
   if (panel) {
     panelStore.removePanel(panel.id)
-  }
-}
-
-function onToggleAiLock(panelId: string) {
-  if (tabStore.isPanelAILocked(panelId)) {
-    tabStore.removeAILockedPanel(panelId)
-  } else {
-    tabStore.addAILockedPanel(panelId)
   }
 }
 

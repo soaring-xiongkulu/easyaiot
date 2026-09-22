@@ -12,7 +12,6 @@
       :show-header="false"
       :is-active="true"
       @close="handleClose"
-      @toggle-ai-lock="onToggleAiLock"
     />
     <div v-else class="no-panel">Panel not found</div>
 
@@ -53,14 +52,6 @@ const panel = computed(() => panelStore.getPanel(props.tab.panelId))
 
 function handleClose(_panelId: string) {
   emit('close', props.tab.id)
-}
-
-function onToggleAiLock(panelId: string) {
-  if (tabStore.isPanelAILocked(panelId)) {
-    tabStore.removeAILockedPanel(panelId)
-  } else {
-    tabStore.addAILockedPanel(panelId)
-  }
 }
 
 function onDragOver(e: DragEvent) {

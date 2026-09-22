@@ -22,7 +22,6 @@
         :key="`${panel.id}-${tabId}`"
         @close="handleClosePanel(panel.id)"
         @dragstart="onPanelDragStart($event, panel.id)"
-        @toggle-ai-lock="$emit('toggleAiLock', $event)"
         @duplicate="$emit('duplicate', $event)"
         @rename="(id, name) => $emit('rename', id, name)"
       />
@@ -49,7 +48,6 @@
         :maximized-panel-id="maximizedPanelId"
         :tab-id="tabId"
         @close-panel="(id) => $emit('closePanel', id)"
-        @toggle-ai-lock="(id) => $emit('toggleAiLock', id)"
         @duplicate="(id) => $emit('duplicate', id)"
         @rename="(id, name) => $emit('rename', id, name)"
         @panel-drag-start="(e, id) => $emit('panelDragStart', e, id)"
@@ -84,7 +82,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   closePanel: [panelId: string]
-  toggleAiLock: [panelId: string]
   duplicate: [panelId: string]
   rename: [panelId: string, newName: string]
   panelDragStart: [e: DragEvent, panelId: string]

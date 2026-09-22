@@ -7,7 +7,6 @@
       :maximized-panel-id="maximizedPanelId"
       :tab-id="tabId"
       @close-panel="$emit('closePanel', $event)"
-      @toggle-ai-lock="$emit('toggleAiLock', $event)"
       @duplicate="$emit('duplicate', $event)"
       @rename="(id, name) => $emit('rename', id, name)"
       @panel-drag-start="(e, id) => $emit('panelDragStart', e, id)"
@@ -31,7 +30,6 @@ defineProps<{
 
 defineEmits<{
   closePanel: [panelId: string]
-  toggleAiLock: [panelId: string]
   duplicate: [panelId: string]
   rename: [panelId: string, newName: string]
   panelDragStart: [e: DragEvent, panelId: string]
