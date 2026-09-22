@@ -65,7 +65,6 @@ func TestChangePassword_RewritesSaltAndReencryptsFiles(t *testing.T) {
 	srcDir := t.TempDir()
 	seed := map[string]string{
 		"connections.json":   `{"connections":[{"id":"c1","name":"n"}]}`,
-		"ai.json":            `{"maxTurns":20}`,
 		"quickCommands.json": `[{"name":"q1","cmd":"ls"}]`,
 		"identities.json":    `{"identities":[{"id":"i1","name":"prod"}]}`,
 		"proxies.json":       `{"proxies":[{"id":"p1","name":"vpn"}]}`,

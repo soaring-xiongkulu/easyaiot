@@ -52,8 +52,6 @@ func EncryptConfigFiles(srcDir, destDir string, key []byte, kc *Keychain, ps Pas
 		switch name {
 		case "connections.json":
 			err = encryptConnectionsFile(src, dest, key, kc, ps)
-		case "ai.json":
-			err = encryptAIConfigFile(src, dest, key, kc, ps)
 		case "identities.json":
 			err = encryptIdentitiesFile(src, dest, key, ps)
 		case "proxies.json":
@@ -111,49 +109,6 @@ func encryptConnectionsFile(src, dest string, key []byte, kc *Keychain, ps Passw
 			}
 		}
 		data, _ = json.MarshalIndent(wrapper, "", "  ")
-	}
-
-	encoded, err := encryptBytes(data, key)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(dest, []byte(encoded), 0600)
-}
-
-// encryptAIConfigFile normalizes model apiKeys before encrypting ai.json:
-// keychain-backed keys (empty apiKey field) are pulled in via kc and
-// enc:v1:-prefixed keys are normalized to plaintext through ps, so only
-// the sync key protects the file at rest in the repo.
-func encryptAIConfigFile(src, dest string, key []byte, kc *Keychain, ps PasswordStore) error {
-	data, err := readJSONFile(src)
-	if err != nil {
-		return err
-	}
-
-	if kc != nil || ps != nil {
-		var obj map[string]interface{}
-		if err := json.Unmarshal(data, &obj); err == nil {
-			if models, ok := obj["models"].([]interface{}); ok {
-				for _, m := range models {
-					if mm, ok := m.(map[string]interface{}); ok {
-						ak, _ := mm["apiKey"].(string)
-						if ak == "" {
-							// Legacy: apiKey stored in keychain, not in JSON.
-							if id, ok := mm["id"].(string); ok && kc != nil {
-								if kcAk, err := kc.GetModelAPIKey(id); err == nil && kcAk != "" {
-									mm["apiKey"] = kcAk
-								}
-							}
-						} else if isEncryptedField(ak) && ps != nil {
-							if pt, err := ps.Decrypt(ak); err == nil {
-								mm["apiKey"] = pt
-							}
-						}
-					}
-				}
-			}
-			data, _ = json.MarshalIndent(obj, "", "  ")
-		}
 	}
 
 	encoded, err := encryptBytes(data, key)
@@ -248,8 +203,6 @@ func DecryptConfigFiles(srcDir, destDir string, key []byte, ps PasswordStore) er
 		switch name {
 		case "connections.json":
 			err = decryptConnectionsFile(src, dest, key, ps)
-		case "ai.json":
-			err = decryptAIConfigFile(src, dest, key, ps)
 		case "identities.json":
 			err = decryptIdentitiesFile(src, dest, key, ps)
 		case "proxies.json":
@@ -308,42 +261,6 @@ func decryptConnectionsFile(src, dest string, key []byte, ps PasswordStore) erro
 			}
 		}
 		plaintext, _ = json.MarshalIndent(wrapper, "", "  ")
-	}
-
-	return os.WriteFile(dest, plaintext, 0600)
-}
-
-func decryptAIConfigFile(src, dest string, key []byte, ps PasswordStore) error {
-	data, err := os.ReadFile(src)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return os.WriteFile(dest, []byte("{}"), 0600)
-		}
-		return err
-	}
-
-	plaintext, err := decryptBytes(string(data), key)
-	if err != nil {
-		return fmt.Errorf("decrypt ai config: %w", err)
-	}
-
-	if ps != nil {
-		var obj map[string]interface{}
-		if err := json.Unmarshal(plaintext, &obj); err == nil {
-			if models, ok := obj["models"].([]interface{}); ok {
-				for _, m := range models {
-					if mm, ok := m.(map[string]interface{}); ok {
-						if ak, ok := mm["apiKey"].(string); ok && ak != "" && !isEncryptedField(ak) {
-							// Re-encrypt plaintext under the local credential key.
-							if enc, err := ps.Encrypt(ak); err == nil {
-								mm["apiKey"] = enc
-							}
-						}
-					}
-				}
-			}
-			plaintext, _ = json.MarshalIndent(obj, "", "  ")
-		}
 	}
 
 	return os.WriteFile(dest, plaintext, 0600)

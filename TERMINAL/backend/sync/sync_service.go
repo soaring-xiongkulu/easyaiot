@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
+	"easyaiot/terminal/backend/utils"
 	"github.com/go-git/go-git/v5/plumbing"
 	ggittransport "github.com/go-git/go-git/v5/plumbing/transport"
-	"easyaiot/terminal/backend/utils"
 )
 
 var ErrWrongSyncPassword = errors.New("WRONG_SYNC_PASSWORD")
@@ -25,7 +25,7 @@ type SyncService struct {
 	// independent of the migratable data directory.
 	configDir string
 	// dataDir is the resolved config data directory whose config files
-	// (connections.json, ai.json, …) are encrypted to / decrypted
+	// (connections.json, …) are encrypted to / decrypted
 	// from the sync repo.
 	dataDir     string
 	repoPath    string
@@ -739,10 +739,8 @@ func getConfigModTime(dir string) time.Time {
 // Counts every synced JSON — not only connections — so a user with settings
 // / quick-commands but no connections is not treated as "empty" and silently
 // overwritten on first sync (SYNC-P0-1). Uses syncedFiles rather than every
-// persisted JSON: ai-sessions.json / skills.json are local-only and never
-// synced, so their presence must not block a first-sync add-and-pull
-// (their files are not touched by decrypt either). favorites.json is an
-// array file: only a non-empty array counts as data.
+// persisted JSON. favorites.json is an array file: only a non-empty array
+// counts as data.
 func isConfigDirEmpty(dir string) bool {
 	for _, name := range syncedFiles {
 		v, err := readJSONValue(filepath.Join(dir, name))
@@ -861,23 +859,6 @@ func backfillFromKeychain(obj map[string]interface{}, kc *Keychain) {
 					if id, ok := cm["id"].(string); ok {
 						if kcPw, err := kc.GetPassword(id); err == nil && kcPw != "" {
 							cm["password"] = kcPw
-						}
-					}
-				}
-			}
-		}
-	}
-	// Backfill model apiKeys from keychain (settings.json: ai.models[].apiKey)
-	if ai, ok := obj["ai"].(map[string]interface{}); ok {
-		if models, ok := ai["models"].([]interface{}); ok {
-			for _, m := range models {
-				if mm, ok := m.(map[string]interface{}); ok {
-					ak, _ := mm["apiKey"].(string)
-					if ak == "" {
-						if id, ok := mm["id"].(string); ok {
-							if kcAk, err := kc.GetModelAPIKey(id); err == nil && kcAk != "" {
-								mm["apiKey"] = kcAk
-							}
 						}
 					}
 				}

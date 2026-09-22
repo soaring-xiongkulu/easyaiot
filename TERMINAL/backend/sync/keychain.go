@@ -62,25 +62,6 @@ func (k *Keychain) SetGitToken(token string) error {
 	}
 	return k.Set("git-token", token)
 }
-func (k *Keychain) GetModelAPIKey(modelID string) (string, error) {
-	apiKey, err := k.Get("ai-model/" + modelID)
-	if err != nil {
-		return "", nil
-	}
-	return apiKey, nil
-}
-
-func (k *Keychain) SetModelAPIKey(modelID, apiKey string) error {
-	if apiKey == "" {
-		return k.Delete("ai-model/" + modelID)
-	}
-	return k.Set("ai-model/"+modelID, apiKey)
-}
-
-func (k *Keychain) DeleteModelAPIKey(modelID string) error {
-	return k.Delete("ai-model/" + modelID)
-}
-
 func (k *Keychain) GetPassword(connID string) (string, error) {
 	password, err := k.Get("conn/" + connID)
 	if err != nil {
