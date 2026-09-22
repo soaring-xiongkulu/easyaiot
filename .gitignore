@@ -312,5 +312,10 @@ HARMONYOS/.cxx/
 # 前端构建产物：由 make-hap 脚本从 APP/dist/build/h5 同步而来，不入库
 HARMONYOS/entry/src/main/resources/rawfile/www/
 
+# ── TERMINAL 终端模块 ──
+# `go build .` 直接产出的单体二进制（数十 MB，含调试信息），大文件不入库；
+# 正式构建走 wails3 管线（产物在 TERMINAL/bin/，由 TERMINAL/.gitignore 忽略）
+TERMINAL/terminal
+
 # macOS 系统文件
 **/.DS_Store
