@@ -7,9 +7,10 @@ ARG GO_VERSION=1.25
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go2rtc-build
 ARG TARGETOS
 ARG TARGETARCH
-ARG GOPROXY=https://goproxy.cn,direct
 
-ENV GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 GOPROXY=${GOPROXY}
+# GOPROXY 固定走华为云国内代理（proxy.golang.org 国内不可达，goproxy.cn 与平台其余 Go 模块不一致）
+ENV GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 \
+    GOPROXY=https://repo.huaweicloud.com/repository/goproxy/,direct
 
 WORKDIR /build
 RUN apk add --no-cache git
