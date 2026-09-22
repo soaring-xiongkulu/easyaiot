@@ -28,6 +28,10 @@
           <span class="assistant-picker__icon"><RobotOutlined /></span>
           <span><strong>EasyAIoT 智能助手</strong><small>平台功能、配置与故障排查</small></span>
         </button>
+        <button type="button" @click="chooseTerminalAssistant">
+          <span class="assistant-picker__icon terminal"><CloudServerOutlined /></span>
+          <span><strong>TERMINAL 终端助手</strong><small>SSH / RDP / VNC / K8s 多协议运维终端</small></span>
+        </button>
         <button type="button" @click="chooseIdeaAssistant">
           <span class="assistant-picker__icon idea"><CodeOutlined /></span>
           <span><strong>IDEA 智能助手</strong><small>进入在线 IDE 开发与编程助手</small></span>
@@ -150,15 +154,16 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'v
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowRightOutlined, ArrowUpOutlined, BulbOutlined, CheckOutlined, CloseOutlined, CodeOutlined,
-  CopyOutlined, EnvironmentOutlined, ExpandOutlined, MessageOutlined, PlusOutlined, RedoOutlined,
-  RobotOutlined, RocketOutlined, SafetyCertificateOutlined, StopOutlined, ThunderboltOutlined,
-  ToolOutlined, WarningOutlined,
+  CloudServerOutlined, CopyOutlined, EnvironmentOutlined, ExpandOutlined, MessageOutlined, PlusOutlined,
+  RedoOutlined, RobotOutlined, RocketOutlined, SafetyCertificateOutlined, StopOutlined,
+  ThunderboltOutlined, ToolOutlined, WarningOutlined,
 } from '@ant-design/icons-vue'
 import { getLLMList, type LLMChatMessage, type LLMModel } from '@/api/device/llm'
 import { getAccessToken } from '@/utils/auth'
 import { openHarnessPortal } from '@/utils/harness'
 import { useRootSetting } from '@/hooks/setting/useRootSetting'
 import { escapeHtml, isUnbalancedFence, renderMarkdown } from './utils/markdown'
+import { openTerminalStandalone } from '@/utils/terminal'
 
 defineOptions({ name: 'PlatformAssistant' })
 
@@ -214,8 +219,13 @@ const fabStyle = computed(() => ({ left: `${fabPos.x}px`, top: `${fabPos.y}px` }
 const pickerStyle = computed(() => {
   const width = 300
   const x = Math.min(Math.max(12, fabPos.x + FAB_SIZE - width), window.innerWidth - width - 12)
-  const openAbove = fabPos.y > 260
-  return { left: `${x}px`, top: `${openAbove ? fabPos.y - 218 : fabPos.y + FAB_SIZE + 10}px` }
+  // bottom 锚定：弹框底边始终贴住图标上方 10px，与图标视觉相连（不再按
+  // 估算高度折算 top，避免实际高度小于估算时中间隔出一段空隙）。
+  const spaceBelow = window.innerHeight - fabPos.y - FAB_SIZE
+  if (spaceBelow >= 360) {
+    return { left: `${x}px`, top: `${fabPos.y + FAB_SIZE + 10}px` }
+  }
+  return { left: `${x}px`, bottom: `${window.innerHeight - fabPos.y + 10}px` }
 })
 const panelStyle = computed(() => typeof window !== 'undefined' && window.innerWidth <= 600
   ? {}
@@ -339,6 +349,12 @@ function choosePlatformAssistant() {
 function chooseIdeaAssistant() {
   assistantMenu.value = false
   openHarnessPortal()
+}
+
+function chooseTerminalAssistant() {
+  assistantMenu.value = false
+  // 不再内嵌：终端需要整屏操作空间，直接开新标签页（用户手势触发，不会被弹窗拦截）
+  openTerminalStandalone()
 }
 
 function beginFabDrag(clientX: number, clientY: number) {
@@ -797,6 +813,7 @@ onBeforeUnmount(() => {
   font-size: 16px;
 }
 .assistant-picker__icon.idea { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.assistant-picker__icon.terminal { background: linear-gradient(135deg, #22b8d4, #0891b2); }
 .assistant-picker__hide {
   width: 100%;
   margin-top: 4px;

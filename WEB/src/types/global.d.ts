@@ -109,6 +109,8 @@ declare global {
     VITE_IDEA_TOKEN?: string
     /** EasyAIoT HARNESS AI 助手（留空则使用当前访问域名 + 3080 端口） */
     VITE_HARNESS_URL?: string
+    /** EasyAIoT TERMINAL 多协议终端（留空则使用当前访问域名 + 9245 端口） */
+    VITE_TERMINAL_URL?: string
     VITE_HARNESS_APP_NAME?: string
     /** HARNESS LLM 统一网关模式：harness（默认，网关优先+直连回退）| direct（始终直连 AI 模块） */
     VITE_LLM_GATEWAY_MODE?: string
