@@ -6,7 +6,6 @@ import { writeClipboard } from './useClipboardWrite'
 export interface UseTerminalMenuOptions {
   getSelection: () => string
   onPaste: (text: string) => Promise<void> | void
-  onAskAI?: (text: string) => void
   /** Position + open the actual menu. The host wires this to its <Menu>
    *  instance (openAt), so the composable stays decoupled from the component
    *  and its viewport clamping lives in Menu. */
@@ -22,7 +21,6 @@ export interface UseTerminalMenuReturn {
   copySelection: () => void
   copyAndPaste: () => Promise<void>
   pasteFromClipboard: () => Promise<void>
-  askAI: () => void
 }
 
 export function useTerminalMenu(options: UseTerminalMenuOptions): UseTerminalMenuReturn {
@@ -83,14 +81,6 @@ export function useTerminalMenu(options: UseTerminalMenuOptions): UseTerminalMen
     closeMenu()
   }
 
-  function askAI() {
-    const text = options.getSelection()
-    if (text && options.onAskAI) {
-      options.onAskAI(text)
-    }
-    closeMenu()
-  }
-
   async function pasteFromClipboard() {
     try {
       // Wails clipboard, not navigator.clipboard.readText() — the latter pops
@@ -114,6 +104,5 @@ export function useTerminalMenu(options: UseTerminalMenuOptions): UseTerminalMen
     copySelection,
     copyAndPaste,
     pasteFromClipboard,
-    askAI,
   }
 }

@@ -68,9 +68,6 @@
       <MenuItem :shortcut="menuShortcut('paste')" @click="menu.pasteFromClipboard">
         {{ t('terminal.paste') }}
       </MenuItem>
-      <MenuItem :class="{ disabled: !menu.hasSelection.value }" @click="menu.askAI">
-        {{ t('terminal.askAI') }}
-      </MenuItem>
 
       <!-- ② 会话文本操作 -->
       <MenuDivider />
@@ -2234,9 +2231,6 @@ const menu = useTerminalMenu({
     }
     // Restore focus after paste so the cursor stays active in the terminal
     focus()
-  },
-  onAskAI: (text) => {
-    window.dispatchEvent(new CustomEvent('ai:ask', { detail: text }))
   },
 })
 
