@@ -10,12 +10,14 @@
 // different — it must wait for the real xterm size before SessionStart — so it
 // stays in App.vue and is handed in per call via `connectTerminal`.
 import { CreateSession, RecordRecentConnection } from '../../bindings/easyaiot/terminal/app'
+import { Browser } from '@wailsio/runtime'
 import { useConnectionStore } from '../stores/connectionStore'
 import { usePanelStore } from '../stores/panelStore'
 import { useTabStore } from '../stores/tabStore'
 import { useSessionStore } from '../stores/sessionStore'
 import { fileTransferProto } from '../utils/fileTransferUtils'
 import { parseWslFromShell } from '../utils/shellLabel'
+import { normalizeWebUrl } from '../utils/quickConnect'
 import { t } from '../i18n'
 import { msg } from '../services/message'
 import type { ConnectionConfig, MemberConnectResult } from '../types/session'
@@ -32,6 +34,16 @@ let deps: LauncherDeps | null = null
 export function configureLauncher(d: LauncherDeps) {
   deps = d
 }
+
+// Web deployment (wails `-tags server` serving this UI over plain HTTP):
+// Browser.OpenURL routes through the backend runtime, which runs headless in
+// the container and has no browser to open URLs with. The injected runtime
+// flags carry server:true only in that form, so route URL entries through a
+// regular new browser tab there instead. The implementation lives in
+// utils/platform alongside the other environment probes; re-exported here for
+// the launcher's callers.
+export { isWebDeployment } from '../utils/platform'
+import { isWebDeployment } from '../utils/platform'
 
 export interface LaunchOptions {
   // Save to the connection list + recent history (default true). "Connect
@@ -60,6 +72,31 @@ export function persistConnection(config: ConnectionConfig, wasEdit = false) {
 }
 
 export async function launchConnection(config: ConnectionConfig, opts: LaunchOptions = {}) {
+  // Web-app entries (type 'url') have no in-app session: connecting hands the
+  // URL to the system browser — no panel, no tab. Middleware dashboard presets
+  // (Nacos/EMQX/Node-RED/…) ride this path. Validated before persisting so a
+  // malformed entry never lands in the connection list.
+  if (config.type === 'url') {
+    const url = normalizeWebUrl(config.host)
+    if (!url) {
+      msg.error(t('conn.hostRequired'))
+      return
+    }
+    const persist = opts.persist ?? true
+    if (persist) {
+      persistConnection(config, opts.wasEdit ?? false)
+    } else if (!config.id) {
+      config.id = `conn-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    }
+    RecordRecentConnection(config.id)
+    if (isWebDeployment()) {
+      window.open(url, '_blank', 'noopener')
+    } else {
+      Browser.OpenURL(url)
+    }
+    return
+  }
+
   const persist = opts.persist ?? true
   if (persist) {
     persistConnection(config, opts.wasEdit ?? false)

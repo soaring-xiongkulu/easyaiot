@@ -1656,5 +1656,7 @@
   "workspace.openCancelled": "キャンセルされました — {count} 個のメンバー未接続",
   "workspace.createCancelled": "作成をキャンセル — 接続済みメンバーは保持されます",
   "workspace.createSkippedHosts": "{count} 個の選択された接続タイプはワークスペースに追加できません",
-  "workspace.dropHint": "接続をここにドラッグしてワークスペースに追加"
+  "workspace.dropHint": "接続をここにドラッグしてワークスペースに追加",
+  "conn.typeWebApp": "Web アプリ",
+  "sidebar.connectUrl": "URL を開く"
 }

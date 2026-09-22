@@ -86,6 +86,9 @@ export const CONNECTION_TYPES: ConnectionTypeInfo[] = [
   { type: 'container', containerRuntime: 'podman', label: 'Podman', icon: Boxes, category: 'container', connectMenuKey: 'sidebar.connectContainer' },
   { type: 'container', containerRuntime: 'nerdctl', label: 'nerdctl', icon: Boxes, category: 'container', connectMenuKey: 'sidebar.connectContainer' },
   { type: 'container', containerRuntime: 'wslc', label: 'WSLC', icon: Boxes, category: 'container', windowsOnly: true, connectMenuKey: 'sidebar.connectContainer' },
+  // Web app: a URL entry with no in-app session — connecting hands the URL
+  // to the system browser (middleware dashboards, consoles, web UIs).
+  { type: 'url', label: 'Web App', labelKey: 'conn.typeWebApp', icon: Globe, category: 'other', connectMenuKey: 'sidebar.connectUrl' },
   // Registry-only: monitor connections are opened from the SSH context menu,
   // not created in the form, and carry no default port.
   { type: 'monitor', label: 'Monitor', icon: Activity, category: 'other', connectMenuKey: 'sidebar.connectMonitor', formHidden: true },

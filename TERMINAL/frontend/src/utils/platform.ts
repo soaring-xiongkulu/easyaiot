@@ -18,3 +18,21 @@ export function detectPlatformSync(): UiPlatform {
 export function isMobilePlatform(p: UiPlatform = detectPlatformSync()): boolean {
   return p === 'android' || p === 'ios'
 }
+
+// Server/web deployment (wails3 `-tags server`): the UI is served to a plain
+// browser over HTTP — no OS window, no system keychain (D-Bus secret service
+// is absent in the container), no native dialogs.
+//
+// Detection: the desktop asset server injects its runtime (which populates
+// `window._wails.flags`) into <head> before the app bundle executes; the
+// server build injects only the custom.js event bridge, which never creates
+// flags. So "flags missing" IS the server-mode signal, and flags.server is
+// the explicit belt-and-braces form for future wails versions.
+export function isWebDeployment(): boolean {
+  try {
+    const flags = (window as any)._wails?.flags
+    return !flags || flags.server === true
+  } catch {
+    return false
+  }
+}

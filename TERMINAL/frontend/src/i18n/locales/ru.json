@@ -1656,5 +1656,7 @@
   "workspace.openCancelled": "Отменено — не открыто участников: {count}",
   "workspace.createCancelled": "Создание отменено — подключённые участники сохранены",
   "workspace.createSkippedHosts": "Выбранные типы подключений ({count}) не могут присоединиться к рабочей области",
-  "workspace.dropHint": "Перетащите подключения сюда, чтобы добавить их в рабочую область"
+  "workspace.dropHint": "Перетащите подключения сюда, чтобы добавить их в рабочую область",
+  "conn.typeWebApp": "Веб-приложение",
+  "sidebar.connectUrl": "Открыть URL"
 }

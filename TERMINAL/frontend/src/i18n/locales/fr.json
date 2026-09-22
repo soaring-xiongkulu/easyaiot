@@ -1656,5 +1656,7 @@
   "workspace.openCancelled": "Annulé — {count} membre(s) non ouvert(s)",
   "workspace.createCancelled": "Création annulée — les membres connectés ont été conservés",
   "workspace.createSkippedHosts": "{count} type(s) de connexion sélectionnés ne peuvent pas rejoindre l'espace",
-  "workspace.dropHint": "Glissez des connexions ici pour les ajouter à l'espace"
+  "workspace.dropHint": "Glissez des connexions ici pour les ajouter à l'espace",
+  "conn.typeWebApp": "App web",
+  "sidebar.connectUrl": "Ouvrir l'URL"
 }

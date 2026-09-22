@@ -168,7 +168,7 @@ import AppHeader from './components/AppHeader.vue'
 import Sidebar from './components/Sidebar.vue'
 import TerminalTabContent from './components/TerminalTabContent.vue'
 import MobileKeyBar from './components/MobileKeyBar.vue'
-import { isMobilePlatform } from './utils/platform'
+import { isMobilePlatform, isWebDeployment } from './utils/platform'
 import { startAndroidKeepAlive, stopAndroidKeepAlive } from './utils/androidKeepAlive'
 import { writeClipboard } from './composables/useClipboardWrite'
 import SettingsTabContent from './components/SettingsTabContent.vue'
@@ -395,17 +395,21 @@ function onDataDirDone(restart: boolean) {
       .then(() => RelaunchApp()).catch(() => {})
     return
   }
-  // Backend just initialized the stores for the newly selected data dir. Reload
-  // so the frontend reflects existing connections/settings/quick-commands/tunnels.
-  // When credentials are still locked the loads come back empty and onUnlockDone
-  // re-loads after unlock.
+  reloadStoresAfterDataDir()
+  resolveCredentialDialog()
+}
+
+// Backend just initialized the stores for the (newly selected) data dir. Reload
+// so the frontend reflects existing connections/settings/quick-commands/tunnels.
+// When credentials are still locked the loads come back empty and onUnlockDone
+// re-loads after unlock.
+function reloadStoresAfterDataDir() {
   connectionStore.load()
   settingsStore.reload()
   useQuickCommandStore().load()
   useSkillStore().reload()
   useCommandStore().reload()
   tunnelStore.load()
-  resolveCredentialDialog()
 }
 function onEncryptDone() { connectionStore.load() }
 function onUnlockDone() {
@@ -434,6 +438,20 @@ async function checkCredentials() {
     return
   }
   if (credStore.firstRun || credStore.dataDirInfo.firstRun) {
+    // Web deployment: the container layout fixes where config lives, so the
+    // storage-location picker is pointless friction there — take the default
+    // silently and continue into the credential flow.
+    if (isWebDeployment()) {
+      try {
+        await credStore.selectDataDir('default', '', false)
+      } catch {
+        dataDirVisible.value = true
+        return
+      }
+      reloadStoresAfterDataDir()
+      resolveCredentialDialog()
+      return
+    }
     dataDirVisible.value = true
     return
   }

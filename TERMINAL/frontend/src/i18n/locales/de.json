@@ -1656,5 +1656,7 @@
   "workspace.openCancelled": "Abgebrochen — {count} Mitglied(er) nicht geöffnet",
   "workspace.createCancelled": "Erstellung abgebrochen — verbundene Mitglieder blieben erhalten",
   "workspace.createSkippedHosts": "{count} ausgewählte Verbindungstypen können nicht beitreten",
-  "workspace.dropHint": "Verbindungen hierher ziehen, um sie hinzuzufügen"
+  "workspace.dropHint": "Verbindungen hierher ziehen, um sie hinzuzufügen",
+  "conn.typeWebApp": "Web-App",
+  "sidebar.connectUrl": "URL öffnen"
 }

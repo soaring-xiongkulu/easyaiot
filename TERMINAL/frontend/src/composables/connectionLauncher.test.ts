@@ -4,9 +4,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
-const { createSessionMock, recordRecentMock } = vi.hoisted(() => ({
+const { createSessionMock, recordRecentMock, openUrlMock } = vi.hoisted(() => ({
   createSessionMock: vi.fn(),
   recordRecentMock: vi.fn(),
+  openUrlMock: vi.fn(),
 }))
 
 vi.mock('../../bindings/easyaiot/terminal/app', () => ({
@@ -17,6 +18,11 @@ vi.mock('../../bindings/easyaiot/terminal/app', () => ({
   DisableSessionOutputLog: vi.fn(async () => {}),
   RegisterSessionForPanel: vi.fn(async () => {}),
   UnregisterSession: vi.fn(async () => {}),
+}))
+
+vi.mock('@wailsio/runtime', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  Browser: { OpenURL: openUrlMock },
 }))
 
 vi.mock('../services/message', () => ({
@@ -39,6 +45,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   createSessionMock.mockReset().mockImplementation(async (type: string) => ({ id: `sid-${type}` }))
   recordRecentMock.mockReset()
+  openUrlMock.mockReset()
   ensureCredentials.mockClear()
   configureLauncher({ ensureCredentials, closeStartAndReposition: () => () => {} })
 })
@@ -123,6 +130,44 @@ describe('launchConnection routing', () => {
     await launchConnection(baseConfig('ssh'), { connectTerminal })
     expect(connectTerminal).toHaveBeenCalledTimes(1)
     expect(createSessionMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('launchConnection url entries (web dashboards)', () => {
+  it('opens the system browser without a session, panel or tab', async () => {
+    const conns = useConnectionStore()
+    const cfg = { ...baseConfig('url'), host: 'http://localhost:8848/nacos', port: 0 }
+    await launchConnection(cfg)
+
+    expect(conns.connections).toHaveLength(1)
+    expect(recordRecentMock).toHaveBeenCalledWith(cfg.id)
+    expect(openUrlMock).toHaveBeenCalledWith('http://localhost:8848/nacos')
+    expect(createSessionMock).not.toHaveBeenCalled()
+  })
+
+  it('defaults the http:// scheme for bare hosts', async () => {
+    await launchConnection(baseConfig('url'), { persist: false })
+    expect(openUrlMock).toHaveBeenCalledWith('http://h')
+  })
+
+  it('rejects an empty URL with a toast and no persistence', async () => {
+    const conns = useConnectionStore()
+    await launchConnection({ ...baseConfig('url'), host: '   ' })
+    expect(openUrlMock).not.toHaveBeenCalled()
+    expect(msg.error).toHaveBeenCalled()
+    expect(conns.connections).toHaveLength(0)
+  })
+
+  it('opens a new browser tab instead of the backend browser in web deployment', async () => {
+    const openMock = vi.fn()
+    vi.stubGlobal('window', { open: openMock, _wails: { flags: { server: true } } })
+    try {
+      await launchConnection(baseConfig('url'))
+      expect(openMock).toHaveBeenCalledWith('http://h', '_blank', 'noopener')
+      expect(openUrlMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 

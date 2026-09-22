@@ -1656,5 +1656,7 @@
   "workspace.openCancelled": "已取消，{count} 個成員未開啟",
   "workspace.createCancelled": "已取消建立，已連線的成員保留",
   "workspace.createSkippedHosts": "{count} 個所選連線類型不支援加入工作區",
-  "workspace.dropHint": "將連線拖動到此處加入工作區"
+  "workspace.dropHint": "將連線拖動到此處加入工作區",
+  "conn.typeWebApp": "Web 應用",
+  "sidebar.connectUrl": "開啟網頁"
 }

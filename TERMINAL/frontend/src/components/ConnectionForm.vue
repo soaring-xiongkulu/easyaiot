@@ -65,10 +65,10 @@
                 <el-input v-model="form.redisMasterName" placeholder="mymaster" />
               </el-form-item>
             </template>
-            <el-form-item :label="form.type === 's3' ? 'Endpoint' : form.type === 'webdav' ? 'URL' : t('conn.host')" required v-if="form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'k8s' && form.type !== 'container' && !isRedisSentinel">
+            <el-form-item :label="form.type === 's3' ? 'Endpoint' : (form.type === 'webdav' || form.type === 'url') ? 'URL' : t('conn.host')" required v-if="form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'k8s' && form.type !== 'container' && !isRedisSentinel">
               <div class="host-port-row">
-                <el-input ref="hostInputRef" v-model="form.host" class="host-input" :placeholder="form.type === 's3' ? 'e.g. https://s3.amazonaws.com' : form.type === 'webdav' ? 'https://dav.example.com/dav/' : t('conn.hostPlaceholder')" />
-                <template v-if="form.type !== 's3' && form.type !== 'webdav'">
+                <el-input ref="hostInputRef" v-model="form.host" class="host-input" :placeholder="form.type === 's3' ? 'e.g. https://s3.amazonaws.com' : (form.type === 'webdav' || form.type === 'url') ? 'https://dav.example.com/dav/' : t('conn.hostPlaceholder')" />
+                <template v-if="form.type !== 's3' && form.type !== 'webdav' && form.type !== 'url'">
                   <span class="host-port-sep">:</span>
                   <el-input-number v-model="form.port" :min="0" :max="65535" class="port-input" />
                 </template>
@@ -85,7 +85,7 @@
                 <el-radio-button v-if="isElasticsearch" value="apikey">{{ t('conn.esAuthApiKey') }}</el-radio-button>
               </el-radio-group>
             </el-form-item>
-            <el-form-item v-if="form.authType !== 'identity' && form.type !== 'vnc' && form.type !== 'spice' && !(form.type === 'database' && form.dbType === 'rqlite') && form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'tcp' && form.type !== 'k8s' && form.type !== 'container' && !isEsApiKey" :label="form.type === 's3' ? 'Access Key' : t('conn.user')">
+            <el-form-item v-if="form.authType !== 'identity' && form.type !== 'vnc' && form.type !== 'spice' && form.type !== 'url' && !(form.type === 'database' && form.dbType === 'rqlite') && form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'tcp' && form.type !== 'k8s' && form.type !== 'container' && !isEsApiKey" :label="form.type === 's3' ? 'Access Key' : t('conn.user')">
               <el-input v-model="form.user" :placeholder="form.type === 's3' ? 'Access Key ID' : t('conn.userPlaceholder')" />
             </el-form-item>
             <el-form-item v-if="form.type === 'rdp' && isWindows && form.authType !== 'identity'" :label="t('conn.rdpDomain')">
@@ -112,7 +112,7 @@
                 </el-select>
               </el-form-item>
             </template>
-            <el-form-item v-if="form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'tcp' && form.type !== 'k8s' && form.type !== 'container' && form.authType !== 'identity' && ((form.authType === 'password' && form.type !== 'rdp') || (form.type === 'rdp' && !form.rdpEnableNLA) || form.type === 'vnc' || form.type === 'spice' || form.type === 'database' || form.type === 'telnet' || form.type === 'ftp' || form.type === 'smb' || form.type === 'webdav' || form.type === 's3') && !(form.type === 'database' && form.dbType === 'rqlite')" :label="form.type === 's3' ? 'Secret Key' : (isEsApiKey ? t('conn.esApiKey') : t('conn.password'))">
+            <el-form-item v-if="form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'tcp' && form.type !== 'k8s' && form.type !== 'container' && form.type !== 'url' && form.authType !== 'identity' && ((form.authType === 'password' && form.type !== 'rdp') || (form.type === 'rdp' && !form.rdpEnableNLA) || form.type === 'vnc' || form.type === 'spice' || form.type === 'database' || form.type === 'telnet' || form.type === 'ftp' || form.type === 'smb' || form.type === 'webdav' || form.type === 's3') && !(form.type === 'database' && form.dbType === 'rqlite')" :label="form.type === 's3' ? 'Secret Key' : (isEsApiKey ? t('conn.esApiKey') : t('conn.password'))">
               <el-input v-model="form.password" type="password" show-password :key="passwordInputKey" :placeholder="form.type === 's3' ? 'Secret Access Key' : (isEsApiKey ? t('conn.esApiKeyPlaceholder') : '')" />
             </el-form-item>
             <el-form-item v-if="form.authType === 'kerberos'" :label="t('conn.kerberos')">
@@ -720,6 +720,7 @@ import IdentityEditDialog from './IdentityEditDialog.vue'
 import ProxyEditDialog from './ProxyEditDialog.vue'
 import { isSqlDbType } from '../utils/quickConnect'
 import { CATEGORY_META, CATEGORY_ORDER, CONNECTION_TYPES, connectionTypeFormLabel, connectionTypeInfo, defaultPortFor } from '../utils/connectionTypes'
+import type { ConnectionCategory } from '../utils/connectionTypes'
 import { getShellLabel as getShellLabelBase } from '../utils/shellLabel'
 import { backendErrorText } from '../utils/backendError'
 import type { Identity } from '../types/identity'
@@ -767,7 +768,8 @@ interface SubTypeInfo {
 }
 
 // Category sidebar and subtype cards derive from the connectionTypes registry.
-const categories = computed(() => CATEGORY_ORDER.map(key => ({
+// 'other' (web-app URL entries) trails the main categories.
+const categories = computed(() => ([...CATEGORY_ORDER, 'other'] as ConnectionCategory[]).map(key => ({
   key,
   label: t(CATEGORY_META[key].labelKey),
   icon: CATEGORY_META[key].icon,
@@ -775,11 +777,11 @@ const categories = computed(() => CATEGORY_ORDER.map(key => ({
 
 const allSubTypes = computed((): Record<string, SubTypeInfo[]> => {
   const groups: Record<string, SubTypeInfo[]> = {}
-  for (const cat of CATEGORY_ORDER) groups[cat] = []
+  for (const cat of [...CATEGORY_ORDER, 'other'] as ConnectionCategory[]) groups[cat] = []
   for (const info of CONNECTION_TYPES) {
     if (info.formHidden) continue
     if (info.windowsOnly && !isWindows.value) continue
-    groups[info.category].push({
+    groups[info.category]?.push({
       type: info.type,
       dbType: info.dbType,
       containerRuntime: info.containerRuntime,

@@ -12,7 +12,7 @@
     <el-form label-width="7.5rem" class="encrypt-form" @submit.prevent="onConfirm">
       <el-form-item :label="t('config.encryption')">
         <el-select v-model="mode" popper-class="mode-select-popper" style="width: 100%">
-          <el-option :label="t('encrypt.keychain')" value="keychain">
+          <el-option v-if="!webDeploy" :label="t('encrypt.keychain')" value="keychain">
             <div class="mode-option">
               <div class="mode-option-title">{{ t('encrypt.keychain') }}</div>
               <div class="mode-option-desc">{{ t('config.switchKeychainHint') }}</div>
@@ -46,14 +46,18 @@
 import { ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { useCredentialStore } from '../stores/credentialStore'
-import { isMobilePlatform } from '../utils/platform'
+import { isMobilePlatform, isWebDeployment } from '../utils/platform'
 
 const props = defineProps<{ visible: boolean; existingSecrets: number }>()
 const emit = defineEmits<{ (e: 'update:visible', v: boolean): void; (e: 'done'): void }>()
 
 const { t } = useI18n()
 const cred = useCredentialStore()
-const mode = ref<'keychain' | 'master-password'>('keychain')
+// Web deployment (container/server): there is no D-Bus secret service, so the
+// keychain mode can only end in the "dbus-launch not found" error — hide it
+// and default to master-password.
+const webDeploy = isWebDeployment()
+const mode = ref<'keychain' | 'master-password'>(webDeploy ? 'master-password' : 'keychain')
 const pw = ref('')
 const pw2 = ref('')
 const submitting = ref(false)
@@ -81,7 +85,7 @@ async function autoKeychainSetup() {
 // Reset on every open so a previously-entered password isn't shown again.
 watch(() => props.visible, (v) => {
   if (v) {
-    mode.value = 'keychain'
+    mode.value = webDeploy ? 'master-password' : 'keychain'
     pw.value = ''
     pw2.value = ''
     errorMsg.value = ''

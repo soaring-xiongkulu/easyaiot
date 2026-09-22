@@ -116,10 +116,9 @@ import { useSessionStore } from '../stores/sessionStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { formatKeyBinding } from '../composables/useKeyboardShortcuts'
 import { useLocalStateStore } from '../stores/localStateStore'
-import { useUpdateCheck } from '../composables/useUpdateCheck'
 import { LANGUAGE_OPTIONS } from '../types/settings'
 import type { AppSettings, ShortcutAction } from '../types/settings'
-import { detectPlatformSync, isMobilePlatform } from '../utils/platform'
+import { detectPlatformSync, isMobilePlatform, isWebDeployment } from '../utils/platform'
 import WindowControls from './WindowControls.vue'
 import TabsList from './TabsList.vue'
 import ImportDialog from './ImportDialog.vue'
@@ -244,10 +243,11 @@ const isMaximised = ref(false)
 
 // The app draws its own window controls on every platform — but not when the
 // user opted into the OS native title bar at startup, which already provides
-// them, and never on mobile (no OS window to minimise/maximise/close). On
+// them, and never on mobile (no OS window to minimise/maximise/close). A web
+// deployment is a browser tab, not an OS window, so hide them there too. On
 // macOS they render as traffic lights on the left (see template).
 const showWindowControls = computed(
-  () => !systemTitleBarAtStartup && !isMobilePlatform(platform.value)
+  () => !systemTitleBarAtStartup && !isMobilePlatform(platform.value) && !isWebDeployment()
 )
 
 async function updateMaximisedState() {

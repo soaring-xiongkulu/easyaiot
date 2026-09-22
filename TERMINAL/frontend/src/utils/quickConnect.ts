@@ -98,12 +98,20 @@ function getDefaultPort(type: string, dbType?: string): number | undefined {
   return defaultPortFor(type, dbType)
 }
 
+// Normalize a user-entered web URL: trim and default the http:// scheme.
+// Returns '' when nothing usable remains.
+export function normalizeWebUrl(raw: string): string {
+  const s = raw.trim()
+  if (!s) return ''
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(s) ? s : `http://${s}`
+}
+
 export function formatConnSubtitle(config: ConnectionConfig, getShellLabel?: (path: string) => string): string {
-  let typeLabel = config.type
+  let typeLabel: string = config.type
   if (config.type === 'database') typeLabel = config.dbType || config.type
   else if (config.type === 'container') typeLabel = config.containerRuntime || config.type
   let detail: string
-  if (config.type === 's3') {
+  if (config.type === 's3' || config.type === 'url') {
     detail = config.host
   } else if (config.type === 'local') {
     detail = getShellLabel ? getShellLabel(config.shellPath || '') : 'Local'

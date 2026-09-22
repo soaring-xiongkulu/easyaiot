@@ -17,7 +17,7 @@ export interface ConnectionConfig {
   id: string
   name: string
   remark?: string
-  type: 'ssh' | 'telnet' | 'mosh' | 'rdp' | 'vnc' | 'spice' | 'database' | 'redis' | 'mongodb' | 'elasticsearch' | 'local' | 'wsl' | 'wsl-file' | 'sftp' | 'scp' | 'monitor' | 'ftp' | 'serial' | 'smb' | 'webdav' | 's3' | 'tcp' | 'k8s' | 'container' | 'x11-desktop' | 'workspace'
+  type: 'ssh' | 'telnet' | 'mosh' | 'rdp' | 'vnc' | 'spice' | 'database' | 'redis' | 'mongodb' | 'elasticsearch' | 'local' | 'wsl' | 'wsl-file' | 'sftp' | 'scp' | 'monitor' | 'ftp' | 'serial' | 'smb' | 'webdav' | 's3' | 'tcp' | 'k8s' | 'container' | 'x11-desktop' | 'workspace' | 'url'
   host: string
   port: number
   user: string
