@@ -11,7 +11,7 @@ vi.mock('../../bindings/easyaiot/terminal/app', () => ({
   SaveIdentities: vi.fn(async () => {}),
 }))
 
-import { formatConnSubtitle, parseQuickConnect } from './quickConnect'
+import { browserReachableUrl, formatConnSubtitle, parseQuickConnect } from './quickConnect'
 import { useIdentityStore } from '../stores/identityStore'
 import type { ConnectionConfig } from '../types/session'
 
@@ -83,5 +83,20 @@ describe('parseQuickConnect protocols', () => {
   it('falls back to ssh for a bare host', () => {
     const cfg = parseQuickConnect('h') as any
     expect(cfg.type).toBe('ssh')
+  })
+})
+
+describe('browserReachableUrl', () => {
+  it('rewrites host.docker.internal to the app hostname, keeping port and path', () => {
+    expect(browserReachableUrl('http://host.docker.internal:8848/nacos', 'localhost')).toBe('http://localhost:8848/nacos')
+    expect(browserReachableUrl('http://host.docker.internal:9001', '192.168.8.20')).toBe('http://192.168.8.20:9001/')
+  })
+
+  it('leaves other hosts untouched', () => {
+    expect(browserReachableUrl('http://middleware.example.com:8848/nacos', 'localhost')).toBe('http://middleware.example.com:8848/nacos')
+  })
+
+  it('returns the input unchanged without an app hostname', () => {
+    expect(browserReachableUrl('http://host.docker.internal:9001', '')).toBe('http://host.docker.internal:9001')
   })
 })

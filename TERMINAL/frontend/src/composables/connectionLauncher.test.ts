@@ -160,11 +160,24 @@ describe('launchConnection url entries (web dashboards)', () => {
 
   it('opens a new browser tab instead of the backend browser in web deployment', async () => {
     const openMock = vi.fn()
-    vi.stubGlobal('window', { open: openMock, _wails: { flags: { server: true } } })
+    vi.stubGlobal('window', { open: openMock, location: { hostname: 'localhost' }, _wails: { flags: { server: true } } })
     try {
       await launchConnection(baseConfig('url'))
       expect(openMock).toHaveBeenCalledWith('http://h', '_blank', 'noopener')
       expect(openUrlMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('rewrites host.docker.internal to the host the browser reaches the app on', async () => {
+    // Seeded dashboard presets carry the Docker-internal name, which only
+    // resolves inside the container — the browser needs the published host.
+    const openMock = vi.fn()
+    vi.stubGlobal('window', { open: openMock, location: { hostname: '192.168.8.20' }, _wails: { flags: { server: true } } })
+    try {
+      await launchConnection({ ...baseConfig('url'), host: 'http://host.docker.internal:9001' })
+      expect(openMock).toHaveBeenCalledWith('http://192.168.8.20:9001/', '_blank', 'noopener')
     } finally {
       vi.unstubAllGlobals()
     }

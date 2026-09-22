@@ -106,6 +106,26 @@ export function normalizeWebUrl(raw: string): string {
   return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(s) ? s : `http://${s}`
 }
 
+// Dashboard URLs are seeded with host.docker.internal — the name the
+// in-container backend uses to reach the host's middleware. The browser sits
+// outside that container, where the name doesn't resolve (Linux hosts never
+// register it), so rewrite it to the hostname the browser reaches this app on:
+// the middleware ports are published on that same host, so they resolve there
+// for local and remote browsers alike.
+export function browserReachableUrl(raw: string, appHostname: string): string {
+  if (!appHostname) return raw
+  try {
+    const u = new URL(raw)
+    if (u.hostname === 'host.docker.internal') {
+      u.hostname = appHostname
+      return u.toString()
+    }
+  } catch {
+    // Unparseable URL — hand it back untouched.
+  }
+  return raw
+}
+
 export function formatConnSubtitle(config: ConnectionConfig, getShellLabel?: (path: string) => string): string {
   let typeLabel: string = config.type
   if (config.type === 'database') typeLabel = config.dbType || config.type

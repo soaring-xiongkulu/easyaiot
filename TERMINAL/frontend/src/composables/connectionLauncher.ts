@@ -17,7 +17,7 @@ import { useTabStore } from '../stores/tabStore'
 import { useSessionStore } from '../stores/sessionStore'
 import { fileTransferProto } from '../utils/fileTransferUtils'
 import { parseWslFromShell } from '../utils/shellLabel'
-import { normalizeWebUrl } from '../utils/quickConnect'
+import { browserReachableUrl, normalizeWebUrl } from '../utils/quickConnect'
 import { t } from '../i18n'
 import { msg } from '../services/message'
 import type { ConnectionConfig, MemberConnectResult } from '../types/session'
@@ -90,7 +90,7 @@ export async function launchConnection(config: ConnectionConfig, opts: LaunchOpt
     }
     RecordRecentConnection(config.id)
     if (isWebDeployment()) {
-      window.open(url, '_blank', 'noopener')
+      window.open(browserReachableUrl(url, window.location?.hostname || ''), '_blank', 'noopener')
     } else {
       Browser.OpenURL(url)
     }
