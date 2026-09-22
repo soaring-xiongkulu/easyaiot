@@ -41,6 +41,53 @@ func (transientKeychain) Get(string) (string, error)  { return "", errors.New("k
 func (transientKeychain) Set(string, string) error    { return nil }
 func (transientKeychain) Delete(string) error         { return nil }
 
+// brokenKeychain rejects every write, simulating headless systems without a
+// Secret Service (server / docker deployment): go-keyring fails with
+// "dbus-launch: executable file not found".
+type brokenKeychain struct{}
+
+func (brokenKeychain) Get(string) (string, error) { return "", ErrKeychainNotFound }
+func (brokenKeychain) Set(string, string) error   { return errors.New("dbus-launch: executable file not found") }
+func (brokenKeychain) Delete(string) error        { return errors.New("dbus-launch: executable file not found") }
+
+// Master-password setup must survive a broken keychain: the keychain entry is
+// only an auto-unlock cache, and headless (docker) deployments otherwise
+// cannot initialize credentials at all.
+func TestSetupMasterPasswordWithoutSecretService(t *testing.T) {
+	s := New(t.TempDir(), brokenKeychain{})
+	if err := s.Setup(ModeMasterPassword, "headless-pw"); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	st := s.Status()
+	if st.Mode != ModeMasterPassword || !st.Unlocked || st.NeedsSetup {
+		t.Fatalf("status = %+v", st)
+	}
+	enc, err := s.Encrypt("pw")
+	if err != nil {
+		t.Fatalf("Encrypt: %v", err)
+	}
+	if got, err := s.Decrypt(enc); err != nil || got != "pw" {
+		t.Fatalf("roundtrip = %q, %v", got, err)
+	}
+	// Manual unlock keeps working too (cache write swallowed).
+	s.set(ModeMasterPassword, s.salt, nil)
+	if err := s.Unlock("headless-pw"); err != nil {
+		t.Fatalf("Unlock: %v", err)
+	}
+	if !s.Unlocked() {
+		t.Fatal("unlock did not restore the key")
+	}
+}
+
+// Keychain mode must keep hard-failing on a broken keychain: there the
+// keychain is the key source, so setup without it would orphan secrets.
+func TestSetupKeychainModeFailsWithoutSecretService(t *testing.T) {
+	s := New(t.TempDir(), brokenKeychain{})
+	if err := s.Setup(ModeKeychain, ""); err == nil {
+		t.Fatal("Setup(keychain) should fail when the keychain rejects writes")
+	}
+}
+
 func TestSetupKeychainMode(t *testing.T) {
 	dir := t.TempDir()
 	kc := newFakeKeychain()

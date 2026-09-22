@@ -156,10 +156,10 @@ func (s *Store) Unlock(masterPassword string) error {
 		return errors.New("not in master-password mode")
 	}
 	key := unitsync.DeriveKey(masterPassword, salt)
-	// Cache the derived key for future auto-unlock.
-	if err := s.keychain.Set("master-key/"+s.DirHash(), hex.EncodeToString(key)); err != nil {
-		return err
-	}
+	// Cache the derived key for future auto-unlock. Cache-only: a headless
+	// system without a Secret Service cannot write it, and the unlock itself
+	// must still succeed.
+	_ = s.keychain.Set("master-key/"+s.DirHash(), hex.EncodeToString(key))
 	s.set(mode, salt, key)
 	return nil
 }
@@ -208,9 +208,14 @@ func (s *Store) Rekey(mode string, salt, key []byte) error {
 	if mode == ModeMasterPassword {
 		entry = "master-key/" + s.DirHash()
 	}
-	if err := s.keychain.Set(entry, hex.EncodeToString(key)); err != nil {
+	if err := s.keychain.Set(entry, hex.EncodeToString(key)); err != nil && mode == ModeKeychain {
 		return err
 	}
+	// In master-password mode the keychain entry is only an auto-unlock
+	// cache: on headless systems without a Secret Service (server / docker
+	// deployment) writing it fails, and setup must still succeed — unlocking
+	// is simply manual after a restart. Keychain mode hard-fails above: there
+	// the keychain IS the key source, so a broken one means the key is lost.
 	if err := WriteMeta(s.dataDir, &Meta{Mode: mode, Salt: salt}); err != nil {
 		return err
 	}
