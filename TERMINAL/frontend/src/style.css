@@ -365,36 +365,24 @@ body::before {
   background: transparent;
 }
 
-/* Element Plus 的 el-scrollbar（el-table / el-select 下拉等内部都在用）自绘
-   div 滚动条，默认鼠标不在区域内就把滑块淡出——SFTP 文件列表里表现为
-   "得先把鼠标移进窗口才能找到滚动条"。统一成和上面原生滚动条一致的行为：
-   常显、同样 0.5rem 粗细、同样的滑块颜色（issue #925）。
-   隐藏走的是 thumb 上的 v-show（内联 display:none）+ fade 过渡类，所以
-   这里必须 !important 压住 display，opacity 同理要盖过淡出类的 0。 */
-.el-scrollbar__bar {
-  display: block !important;
-  opacity: 1;
+/* Element Plus 的 el-scrollbar（el-table / el-select 下拉等内部都在用）有两层
+   滚动条：自绘的 div 条（.el-scrollbar__bar，绝对定位悬浮在内容上）和被它
+   隐藏的原生条（.el-scrollbar__wrap--hidden-default 上 scrollbar-width:none /
+   ::-webkit-scrollbar display:none）。#925 曾把自绘条改成常显，但悬浮条无论
+   何时都会盖住内容——表格最右列文字、横向滚动区最后一行都被滑块压住，所有
+   用到 el-scrollbar 的界面无一幸免。
+   这里反其道行之：恢复原生滚动条（占布局空间、永不遮挡内容，外观沿用上面
+   的全局 0.5rem 主题样式，观感与 #925 一致），隐藏自绘条。 */
+.el-scrollbar .el-scrollbar__wrap--hidden-default {
+  scrollbar-width: thin;
 }
-.el-scrollbar__bar.is-vertical {
+.el-scrollbar .el-scrollbar__wrap--hidden-default::-webkit-scrollbar {
+  display: block;
   width: 0.5rem;
-}
-.el-scrollbar__bar.is-horizontal {
   height: 0.5rem;
 }
-.el-scrollbar__thumb {
-  background-color: var(--scrollbar-thumb);
-  border-radius: 0.625rem;
-  /* EP 自带 0.3/0.5 的滑块透明度，会让颜色比原生滚动条淡一截；透明度已
-     含在 --scrollbar-thumb 的 rgba 里，这里强制不透明。 */
-  opacity: 1;
-  /* EP 自带 pointer 光标和 0.3s 的颜色渐变过渡，原生滚动条都是默认光标、
-     悬停即变色，这里一并抹平（issue #925 反馈）。 */
-  cursor: default;
-  transition: none;
-}
-.el-scrollbar__thumb:hover {
-  background-color: var(--scrollbar-thumb-hover);
-  opacity: 1;
+.el-scrollbar__bar {
+  display: none !important;
 }
 
 /* xterm.js v6 滚动条：不再是原生滚动条，而是 VS Code 那套自绘 div
