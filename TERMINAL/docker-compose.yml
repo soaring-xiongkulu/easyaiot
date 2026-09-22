@@ -24,6 +24,11 @@ services:
       # （5432/3306/6379/9000/1883/8848/18083/…），可用 EASYAIOT_<服务>_HOST
       # 或 EASYAIOT_MIDDLEWARE_HOST 覆盖单个/全部中间件地址。
       EASYAIOT_MIDDLEWARE_HOST: ${EASYAIOT_MIDDLEWARE_HOST:-host.docker.internal}
+      # 凭证保险库的主密码（master-password 模式）。设置后无头容器每次重启
+      # 自动解锁，不再弹「解锁凭证」对话框；只解锁已存在的保险库，首次运行
+      # 的初始化仍需在 UI 完成。注意：主密码出现在 compose 环境里，对
+      # docker inspect 可见，请自行权衡；不设置则维持手动解锁。
+      TERMINAL_MASTER_PASSWORD: ${TERMINAL_MASTER_PASSWORD:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

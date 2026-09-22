@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"easyaiot/terminal/backend/credentials"
 )
 
 // TestApp_StartupError_CapturesSingleError verifies that a single error
@@ -171,4 +173,88 @@ func TestErrorBodyCap_F305(t *testing.T) {
 	if len(bodySmall) != len(small) {
 		t.Errorf("small body got %d bytes, want %d", len(bodySmall), len(small))
 	}
+}
+
+// lockedKeychain simulates the headless Docker deployment: there is no
+// Secret Service, so every keychain operation fails and the derived-key
+// cache never yields a key — unlocking is only possible from the master
+// password.
+type lockedKeychain struct{}
+
+func (lockedKeychain) Get(string) (string, error) { return "", errors.New("no keychain") }
+func (lockedKeychain) Set(string, string) error   { return errors.New("no keychain") }
+func (lockedKeychain) Delete(string) error        { return errors.New("no keychain") }
+
+// TestAutoUnlockCredentialsFromEnv covers the headless (Docker) startup path
+// that unlocks a master-password vault from TERMINAL_MASTER_PASSWORD: unset
+// leaves the vault locked behind the normal dialog, the right password
+// unlocks it, and a wrong password must not be able to read secrets (it
+// derives an unusable key, same as typing a wrong password in the dialog).
+func TestAutoUnlockCredentialsFromEnv(t *testing.T) {
+	dir := t.TempDir()
+	setup := credentials.New(dir, lockedKeychain{})
+	if err := setup.Setup(credentials.ModeMasterPassword, "right-password"); err != nil {
+		t.Fatalf("setup vault: %v", err)
+	}
+	secret, err := setup.Encrypt("s3cret")
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+
+	newLockedApp := func() *App {
+		// A fresh store over the same data dir simulates a container
+		// restart: meta is on disk, the in-memory key is gone, and the
+		// keychain cannot hand one back. AutoUnlock mirrors the startup
+		// ordering (initCredentials → autoUnlockCredentialsFromEnv): it
+		// loads mode+salt from meta but cannot recover the key.
+		a := NewApp("")
+		cred := credentials.New(dir, lockedKeychain{})
+		if err := cred.AutoUnlock(); err != nil {
+			t.Fatalf("auto unlock: %v", err)
+		}
+		a.credentialStore = cred
+		return a
+	}
+
+	t.Run("unset env stays locked", func(t *testing.T) {
+		a := newLockedApp()
+		t.Setenv("TERMINAL_MASTER_PASSWORD", "")
+		a.autoUnlockCredentialsFromEnv()
+		if a.credentialStore.Unlocked() {
+			t.Fatal("vault unlocked without TERMINAL_MASTER_PASSWORD")
+		}
+	})
+
+	t.Run("correct password unlocks and decrypts", func(t *testing.T) {
+		a := newLockedApp()
+		t.Setenv("TERMINAL_MASTER_PASSWORD", "right-password")
+		a.autoUnlockCredentialsFromEnv()
+		if !a.credentialStore.Unlocked() {
+			t.Fatal("vault still locked with correct TERMINAL_MASTER_PASSWORD")
+		}
+		got, err := a.credentialStore.Decrypt(secret)
+		if err != nil || got != "s3cret" {
+			t.Fatalf("Decrypt after env unlock = %q, %v", got, err)
+		}
+	})
+
+	t.Run("wrong password cannot read secrets", func(t *testing.T) {
+		a := newLockedApp()
+		t.Setenv("TERMINAL_MASTER_PASSWORD", "wrong-password")
+		a.autoUnlockCredentialsFromEnv()
+		if got, err := a.credentialStore.Decrypt(secret); err == nil && got == "s3cret" {
+			t.Fatal("wrong TERMINAL_MASTER_PASSWORD decrypted the secret")
+		}
+	})
+
+	t.Run("first-run setup vault is not auto-created", func(t *testing.T) {
+		empty := t.TempDir()
+		a := NewApp("")
+		a.credentialStore = credentials.New(empty, lockedKeychain{})
+		t.Setenv("TERMINAL_MASTER_PASSWORD", "right-password")
+		a.autoUnlockCredentialsFromEnv()
+		if st := a.credentialStore.Status(); !st.NeedsSetup {
+			t.Fatalf("status = %+v, want NeedsSetup", st)
+		}
+	})
 }

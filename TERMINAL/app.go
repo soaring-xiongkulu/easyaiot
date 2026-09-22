@@ -316,6 +316,11 @@ func (a *App) initStores(dataDir string, upgrade bool) {
 	// connection + settings stores).
 	a.initCredentials(dataDir, upgrade)
 
+	// Headless deployments can unlock a master-password vault from the
+	// environment; must run before ensureMiddlewarePresets so preset seeding
+	// sees an unlocked vault.
+	a.autoUnlockCredentialsFromEnv()
+
 	// Built-in EasyAIoT middleware quick-access presets (first run / roster
 	// upgrades). After initCredentials so password fields can be encrypted.
 	a.ensureMiddlewarePresets()
@@ -1991,6 +1996,33 @@ func (a *App) UnlockCredentials(masterPassword string) error {
 	}
 	a.ensureMiddlewarePresets()
 	return nil
+}
+
+// autoUnlockCredentialsFromEnv unlocks a master-password vault from the
+// TERMINAL_MASTER_PASSWORD environment variable. Headless deployments (the
+// Docker server image) have no keychain, so the vault locks on every restart
+// and the UI sits behind the unlock dialog until the operator re-enters the
+// password; deployments that accept keeping the master password in the
+// compose environment set the variable to skip that. Only an existing
+// master-password vault is unlocked — first-run setup and keychain mode keep
+// their normal paths. The value itself is never logged.
+func (a *App) autoUnlockCredentialsFromEnv() {
+	pw := os.Getenv("TERMINAL_MASTER_PASSWORD")
+	if pw == "" || a.credentialStore == nil {
+		return
+	}
+	st := a.credentialStore.Status()
+	if st.Unlocked || st.NeedsSetup || st.Mode != credentials.ModeMasterPassword {
+		return
+	}
+	if err := a.credentialStore.Unlock(pw); err != nil {
+		log.Writef("env auto-unlock failed: %v", err)
+		return
+	}
+	log.Writef("env auto-unlock: vault unlocked via TERMINAL_MASTER_PASSWORD")
+	// Same post-unlock path as the UnlockCredentials binding: retry the
+	// preset seeding that startup skipped while the vault was locked.
+	a.ensureMiddlewarePresets()
 }
 
 func (a *App) SwitchCredentialMode(targetMode, masterPassword string) error {
