@@ -155,13 +155,19 @@ func (p *postgresProvider) GetCapabilities() DBCapabilities {
 
 // ── Schema discovery ──
 
-// GetDatabases returns only the currently connected database. A PostgreSQL
-// connection is bound to a single database and cannot query tables across
-// databases, so exposing the whole cluster would let users open other
-// databases and see "no tables". To browse a different database, open a new
-// connection with that database name.
+// GetDatabases returns every connectable, non-template database in the
+// cluster. The session layer opens a per-database pool on demand (see
+// DatabaseSession.DBFor — a PG connection cannot switch databases, so each
+// database gets its own pool), letting one connection browse the whole
+// cluster like MySQL. Databases the role may not touch surface a connect
+// error when expanded, which is the honest signal.
 func (p *postgresProvider) GetDatabases(db *sql.DB) ([]string, error) {
-	results, err := queryStrings(db, "SELECT current_database() AS datname")
+	results, err := queryStrings(db, `
+		SELECT datname
+		FROM pg_database
+		WHERE datistemplate = false
+		  AND datallowconn
+		ORDER BY datname`)
 	if err != nil {
 		return nil, err
 	}

@@ -238,17 +238,8 @@ async function loadTree() {
   loading.value = true
   try {
     const dbs = await GetDatabases(props.sessionId)
-    // Auto-expand the connection's default db only when it's actually a real
-    // entry in the list. For databases where the configured "dbName" is not a
-    // browsable namespace (e.g. Oracle's service name), it won't match and we
-    // just list the available schemas collapsed.
     let autoOpen = ''
-    if (props.defaultDbName && dbs.includes(props.defaultDbName)) {
-      const tables = await GetTables(props.sessionId, props.defaultDbName)
-      databases.value = [{ name: props.defaultDbName, tables, loaded: true }]
-      expandedDbs.value = new Set([props.defaultDbName])
-      autoOpen = props.defaultDbName
-    } else if (dbs.length === 1) {
+    if (dbs.length === 1) {
       // Single schema/db (e.g. Oracle showing only the current schema) — expand it.
       const only = dbs[0]
       const tables = await GetTables(props.sessionId, only)
@@ -256,8 +247,21 @@ async function loadTree() {
       expandedDbs.value = new Set([only])
       autoOpen = only
     } else {
+      // One connection, many databases: list them all. The connection's
+      // default db (if it is a real entry — service-name-style configs are
+      // not) still auto-expands and opens so the landing view is unchanged.
       databases.value = dbs.map((db: string) => ({ name: db, tables: [], loaded: false }))
       expandedDbs.value = new Set()
+      if (props.defaultDbName && dbs.includes(props.defaultDbName)) {
+        const tables = await GetTables(props.sessionId, props.defaultDbName)
+        const entry = databases.value.find(d => d.name === props.defaultDbName)
+        if (entry) {
+          entry.tables = tables
+          entry.loaded = true
+        }
+        expandedDbs.value = new Set([props.defaultDbName])
+        autoOpen = props.defaultDbName
+      }
     }
     if (autoOpen) {
       selectedDb.value = autoOpen

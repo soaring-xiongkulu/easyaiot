@@ -8,6 +8,7 @@ import (
 	"easyaiot/terminal/backend/log"
 	"easyaiot/terminal/backend/session"
 )
+
 // ── Database methods ──
 
 func (a *App) dbSession(sessionID string) (*session.DatabaseSession, error) {
@@ -53,7 +54,11 @@ func (a *App) GetTables(sessionID string, dbName string) ([]database.TableInfo, 
 	if err != nil {
 		return nil, err
 	}
-	tables, err := p.GetTables(ds.DB(), dbName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return nil, err
+	}
+	tables, err := p.GetTables(db, dbName)
 	if err != nil {
 		log.Writef("[GetTables] failed: %v", err)
 		return nil, err
@@ -69,7 +74,11 @@ func (a *App) GetTableSchema(sessionID string, dbName string, tableName string) 
 	if err != nil {
 		return nil, err
 	}
-	return p.GetTableSchema(ds.DB(), dbName, tableName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return nil, err
+	}
+	return p.GetTableSchema(db, dbName, tableName)
 }
 
 func (a *App) CreateDatabase(sessionID string, dbName string) error {
@@ -77,6 +86,8 @@ func (a *App) CreateDatabase(sessionID string, dbName string) error {
 	if err != nil {
 		return err
 	}
+	// Main pool on purpose: CREATE/DROP DATABASE must not run on a pool
+	// bound to the database being dropped (PG refuses on the open target).
 	return p.CreateDatabase(ds.DB(), dbName)
 }
 
@@ -93,7 +104,11 @@ func (a *App) CreateTable(sessionID string, dbName string, tableName string) err
 	if err != nil {
 		return err
 	}
-	return p.CreateTable(ds.DB(), dbName, tableName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.CreateTable(db, dbName, tableName)
 }
 
 func (a *App) DropTable(sessionID string, dbName string, tableName string) error {
@@ -101,7 +116,11 @@ func (a *App) DropTable(sessionID string, dbName string, tableName string) error
 	if err != nil {
 		return err
 	}
-	return p.DropTable(ds.DB(), dbName, tableName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.DropTable(db, dbName, tableName)
 }
 
 func (a *App) DropView(sessionID string, dbName string, viewName string) error {
@@ -109,7 +128,11 @@ func (a *App) DropView(sessionID string, dbName string, viewName string) error {
 	if err != nil {
 		return err
 	}
-	return p.DropView(ds.DB(), dbName, viewName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.DropView(db, dbName, viewName)
 }
 
 func (a *App) TruncateTable(sessionID string, dbName string, tableName string) error {
@@ -117,7 +140,11 @@ func (a *App) TruncateTable(sessionID string, dbName string, tableName string) e
 	if err != nil {
 		return err
 	}
-	return p.TruncateTable(ds.DB(), dbName, tableName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.TruncateTable(db, dbName, tableName)
 }
 
 func (a *App) ExecuteQuery(sessionID string, dbName string, sql string) (*database.QueryResult, error) {
@@ -125,7 +152,11 @@ func (a *App) ExecuteQuery(sessionID string, dbName string, sql string) (*databa
 	if err != nil {
 		return nil, err
 	}
-	return database.ExecuteQuery(p, ds.DB(), dbName, sql)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return nil, err
+	}
+	return database.ExecuteQuery(p, db, dbName, sql)
 }
 
 func (a *App) ExecuteStatement(sessionID string, dbName string, sql string) (*database.ExecResult, error) {
@@ -133,7 +164,11 @@ func (a *App) ExecuteStatement(sessionID string, dbName string, sql string) (*da
 	if err != nil {
 		return nil, err
 	}
-	return database.ExecuteStatement(p, ds.DB(), dbName, sql)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return nil, err
+	}
+	return database.ExecuteStatement(p, db, dbName, sql)
 }
 
 func (a *App) DBDefaultTableQuery(sessionID string, dbName string, tableName string, limit int, offset int) (string, error) {
@@ -163,7 +198,11 @@ func (a *App) ExecuteSQLScript(sessionID string, dbName string, script string) (
 	if err != nil {
 		return nil, err
 	}
-	return database.ExecuteScript(p, ds.DB(), dbName, script)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return nil, err
+	}
+	return database.ExecuteScript(p, db, dbName, script)
 }
 
 func (a *App) DumpTable(sessionID string, dbName string, tableName string, withStructure bool, withData bool) (string, error) {
@@ -171,7 +210,11 @@ func (a *App) DumpTable(sessionID string, dbName string, tableName string, withS
 	if err != nil {
 		return "", err
 	}
-	return p.DumpTable(ds.DB(), dbName, tableName, database.DumpOptions{Structure: withStructure, Data: withData})
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return "", err
+	}
+	return p.DumpTable(db, dbName, tableName, database.DumpOptions{Structure: withStructure, Data: withData})
 }
 
 func (a *App) CopyTable(sessionID string, dbName string, tableName string, newTableName string) error {
@@ -179,7 +222,11 @@ func (a *App) CopyTable(sessionID string, dbName string, tableName string, newTa
 	if err != nil {
 		return err
 	}
-	return p.CopyTable(ds.DB(), dbName, tableName, newTableName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.CopyTable(db, dbName, tableName, newTableName)
 }
 
 func (a *App) DBInsertRow(sessionID string, dbName string, tableName string, values map[string]any) error {
@@ -187,7 +234,11 @@ func (a *App) DBInsertRow(sessionID string, dbName string, tableName string, val
 	if err != nil {
 		return err
 	}
-	return p.InsertRow(ds.DB(), dbName, tableName, values)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.InsertRow(db, dbName, tableName, values)
 }
 
 func (a *App) DBUpdateRow(sessionID string, dbName string, tableName string, set map[string]any, where map[string]any) error {
@@ -195,7 +246,11 @@ func (a *App) DBUpdateRow(sessionID string, dbName string, tableName string, set
 	if err != nil {
 		return err
 	}
-	return p.UpdateRow(ds.DB(), dbName, tableName, set, where)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.UpdateRow(db, dbName, tableName, set, where)
 }
 
 func (a *App) DBDeleteRow(sessionID string, dbName string, tableName string, where map[string]any) error {
@@ -203,7 +258,11 @@ func (a *App) DBDeleteRow(sessionID string, dbName string, tableName string, whe
 	if err != nil {
 		return err
 	}
-	return p.DeleteRow(ds.DB(), dbName, tableName, where)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.DeleteRow(db, dbName, tableName, where)
 }
 
 func (a *App) AddColumn(sessionID string, dbName string, tableName string, col database.ColumnDef) error {
@@ -211,7 +270,11 @@ func (a *App) AddColumn(sessionID string, dbName string, tableName string, col d
 	if err != nil {
 		return err
 	}
-	return p.AddColumn(ds.DB(), dbName, tableName, col)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.AddColumn(db, dbName, tableName, col)
 }
 
 func (a *App) ModifyColumn(sessionID string, dbName string, tableName string, col database.ColumnDef) error {
@@ -219,7 +282,11 @@ func (a *App) ModifyColumn(sessionID string, dbName string, tableName string, co
 	if err != nil {
 		return err
 	}
-	return p.ModifyColumn(ds.DB(), dbName, tableName, col)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.ModifyColumn(db, dbName, tableName, col)
 }
 
 func (a *App) DropColumn(sessionID string, dbName string, tableName string, colName string) error {
@@ -227,7 +294,11 @@ func (a *App) DropColumn(sessionID string, dbName string, tableName string, colN
 	if err != nil {
 		return err
 	}
-	return p.DropColumn(ds.DB(), dbName, tableName, colName)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.DropColumn(db, dbName, tableName, colName)
 }
 
 func (a *App) AddIndex(sessionID string, dbName string, tableName string, idx database.IndexDef) error {
@@ -235,7 +306,11 @@ func (a *App) AddIndex(sessionID string, dbName string, tableName string, idx da
 	if err != nil {
 		return err
 	}
-	return p.AddIndex(ds.DB(), dbName, tableName, idx)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.AddIndex(db, dbName, tableName, idx)
 }
 
 func (a *App) DropIndexOp(sessionID string, dbName string, tableName string, idxName string, isPrimary bool, autoIncCols []string) error {
@@ -243,7 +318,11 @@ func (a *App) DropIndexOp(sessionID string, dbName string, tableName string, idx
 	if err != nil {
 		return err
 	}
-	return p.DropIndex(ds.DB(), dbName, tableName, idxName, isPrimary, autoIncCols)
+	db, err := ds.DBFor(dbName)
+	if err != nil {
+		return err
+	}
+	return p.DropIndex(db, dbName, tableName, idxName, isPrimary, autoIncCols)
 }
 
 func (a *App) GetDBCapabilities(sessionID string) (database.DBCapabilities, error) {
