@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { SaveTerminalHistory, LoadTerminalHistory } from '../../bindings/easyaiot/terminal/app'
-import { chat } from '../services/llm'
 import { useQuickCommandStore } from '../stores/quickCommandStore'
 import { useI18n } from '../i18n'
 
@@ -18,7 +17,7 @@ export interface HistoryEntry {
 }
 
 export interface SuggestionItem {
-  type: 'history' | 'quick-command' | 'ai-preview' | 'ai-result'
+  type: 'history' | 'quick-command'
   label: string
   value: string
   icon?: string
@@ -89,7 +88,6 @@ export function useSuggestions() {
   function shouldSkipCommand(command: string): boolean {
     const trimmed = command.trim()
     if (!trimmed) return true
-    if (trimmed.includes('__AI_DONE_')) return true
     if (trimmed.length > MAX_COMMAND_LENGTH) return true
     if (trimmed.length <= 1) return true
     // Shell comments (e.g. "# apt update")
@@ -300,56 +298,7 @@ export function useSuggestions() {
     return matches.slice(0, 10)
   }
 
-  async function generateAISuggestion(currentInput: string): Promise<void> {
-    if (!currentInput.trim() || state.value.loading) return
-
-    // Replace ai-preview with thinking state
-    const items = state.value.items.filter(item => item.type !== 'ai-preview')
-    items.push({
-      type: 'ai-preview',
-      label: 'Thinking...',
-      value: '',
-      description: 'AI',
-    })
-    state.value.items = items
-    state.value.loading = true
-
-    try {
-      let aiResult = ''
-      await chat({
-        system: '你是终端命令助手。用户正在 SSH 终端中输入命令。请根据当前输入上下文，补全或改写为一个完整、正确的命令。只返回命令本身，不要添加解释、不要添加 markdown 代码块。',
-        messages: [{ role: 'user', content: `当前输入: ${currentInput}` }],
-        onChunk: (chunk: string) => {
-          aiResult += chunk
-        },
-      })
-      const cleaned = aiResult.trim().replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '')
-      if (cleaned) {
-        const finalItems = state.value.items.filter(item => item.type !== 'ai-preview')
-        finalItems.push({
-          type: 'ai-result',
-          label: cleaned,
-          value: cleaned,
-          description: 'AI',
-        })
-        state.value.items = finalItems
-        state.value.selectedIndex = finalItems.length - 1
-      }
-    } catch {
-      const finalItems = state.value.items.filter(item => item.type !== 'ai-preview')
-      finalItems.push({
-        type: 'ai-result',
-        label: t('terminal.aiTranscribeFailed'),
-        value: '',
-        description: 'AI',
-      })
-      state.value.items = finalItems
-    } finally {
-      state.value.loading = false
-    }
-  }
-
-  async function updateSuggestions(token: string, aiTranscriptionEnabled?: boolean) {
+  function updateSuggestions(token: string) {
     if (debounceTimer) {
       clearTimeout(debounceTimer)
     }
@@ -358,19 +307,11 @@ export function useSuggestions() {
       state.value.items = []
       return
     }
-    debounceTimer = setTimeout(async () => {
-      if (state.value.loading || !token) return
+    debounceTimer = setTimeout(() => {
+      if (!token) return
       const historyItems = getHistorySuggestions(token)
       const quickCommandItems = getQuickCommandSuggestions(token)
       const items: SuggestionItem[] = [...quickCommandItems, ...historyItems]
-      if (aiTranscriptionEnabled !== false) {
-        items.push({
-          type: 'ai-preview',
-          label: t('terminal.aiTranscribing'),
-          value: '',
-          description: 'AI',
-        })
-      }
       state.value.items = items
       state.value.selectedIndex = -1
       state.value.visible = items.length > 0
@@ -443,7 +384,6 @@ export function useSuggestions() {
     removeHistoryCommandById,
     removeHistoryCommandsById,
     updateSuggestions,
-    generateAISuggestion,
     selectNext,
     selectPrev,
     getSelectedItem,

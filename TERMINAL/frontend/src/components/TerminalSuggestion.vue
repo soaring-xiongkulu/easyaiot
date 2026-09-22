@@ -40,29 +40,12 @@
         <button class="delete-btn" :class="{ visible: item.type === 'history' }" @click.stop="onRemove(item.id)"><Trash2 :size="'0.75rem'" /></button>
       </div>
     </div>
-    <!-- AI section (fixed at bottom) -->
-    <div
-      v-if="aiItemWithIndex"
-      class="suggestion-item ai-fixed"
-      :class="{
-        selected: aiItemWithIndex.index === selectedIndex,
-        'ai-result': aiItemWithIndex.item.type === 'ai-result',
-        'ai-preview': aiItemWithIndex.item.type === 'ai-preview'
-      }"
-      @click="onSelect(aiItemWithIndex.index)"
-      @mouseenter="onHover(aiItemWithIndex.index)"
-    >
-      <span class="suggestion-desc">
-        <el-icon><Sparkles :size="'0.75rem'" /></el-icon>
-      </span>
-      <span class="suggestion-label">{{ aiItemWithIndex.item.label }}</span>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { Trash2, Clock, Zap, Sparkles } from '@lucide/vue'
+import { Trash2, Clock, Zap } from '@lucide/vue'
 import type { SuggestionItem } from '../composables/useSuggestions'
 
 const props = defineProps<{
@@ -169,19 +152,9 @@ watch(() => props.items, () => {
 const historyItemsWithIndex = computed(() => {
   const result: { item: SuggestionItem; index: number }[] = []
   props.items.forEach((item, index) => {
-    if (item.type !== 'ai-preview' && item.type !== 'ai-result') {
-      result.push({ item, index })
-    }
+    result.push({ item, index })
   })
   return result
-})
-
-const aiItemWithIndex = computed(() => {
-  const index = props.items.findIndex(item => item.type === 'ai-preview' || item.type === 'ai-result')
-  if (index >= 0) {
-    return { item: props.items[index], index }
-  }
-  return null
 })
 
 function setItemRef(el: HTMLElement | null, index: number) {
@@ -200,11 +173,10 @@ watch(() => props.items, () => {
 }, { deep: true })
 
 // Scroll selected history item into view when navigating with arrow keys.
-// AI items are fixed at the bottom and should not scroll.
 watch(() => props.selectedIndex, (newIndex) => {
   nextTick(() => {
     const item = props.items[newIndex]
-    if (!item || item.type === 'ai-preview' || item.type === 'ai-result') return
+    if (!item) return
     const el = itemRefs.value[newIndex]
     if (el) {
       el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
@@ -267,21 +239,6 @@ function onRemove(id: string) {
 .suggestion-item.selected {
   background: var(--bg-hover);
   color: var(--text-primary);
-}
-
-.suggestion-item.ai-result {
-  border-left: 0.1875rem solid var(--success);
-}
-
-.suggestion-item.ai-preview {
-  color: var(--accent);
-}
-
-.ai-fixed {
-  flex-shrink: 0;
-  border-top: 1px solid var(--border-subtle);
-  padding-top: 0.5rem;
-  background: var(--bg-surface);
 }
 
 .suggestion-icon {

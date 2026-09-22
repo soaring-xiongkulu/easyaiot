@@ -624,15 +624,9 @@ function getSelection(): string {
 async function applySuggestion(item: ReturnType<typeof suggestions.getSelectedItem>) {
   if (!item || !terminal || !terminalInput) return
 
-  if (item.type === 'ai-preview') {
-    // Step 1: Generate AI suggestion
-    await suggestions.generateAISuggestion(terminalInput.lineBuffer.value)
-    return
-  }
-
   const sid = props.sessionId
 
-  if (item.type === 'ai-result' || item.type === 'history' || item.type === 'quick-command') {
+  if (item.type === 'history' || item.type === 'quick-command') {
     // Replace entire line with Ctrl+U. Using backspaces only works when the
     // replacement is exactly the currentToken; for multi-token input (e.g.
     // "git che" → "git checkout") backspaces leave the earlier text behind.
@@ -1324,7 +1318,7 @@ onMounted(() => {
           const isPrintable = data.length === 1 && data >= ' '
           if (!wasVisible && !isPrintable) return
           if (terminalInput.isAtLineEnd() && terminalInput.currentToken.value && !terminalInput.isPasswordMode()) {
-            suggestions.updateSuggestions(terminalInput.currentToken.value, settingsStore.settings.terminal.aiTranscription)
+            suggestions.updateSuggestions(terminalInput.currentToken.value)
           } else {
             suggestions.close()
           }
