@@ -10,7 +10,8 @@ import (
 // after every credential setup/unlock: seeding writes password fields, which
 // the connection store can only encrypt with the vault key — while the vault
 // is locked the save fails and the seed marker stays unwritten, so the next
-// call retries. Idempotent: already-present preset IDs are never touched.
+// call retries. Idempotent: already-present preset IDs are never touched
+// except by a version-bump roster refresh.
 func (a *App) ensureMiddlewarePresets() {
 	if a.dataDir == "" || a.connectionStore == nil {
 		return
@@ -21,7 +22,18 @@ func (a *App) ensureMiddlewarePresets() {
 			lang = s.Language
 		}
 	}
-	if err := store.EnsureMiddlewarePresets(a.dataDir, a.connectionStore, lang); err != nil {
+	changed, err := store.EnsureMiddlewarePresets(a.dataDir, a.connectionStore, lang)
+	if err != nil {
 		log.Writef("middleware presets: %v", err)
+		return
+	}
+	// Seeding writes behind the frontend's back (startup / credential unlock).
+	// Push the refreshed roster so the UI's in-memory copy — which may predate
+	// the seeded passwords — cannot stale-write empty credentials back over
+	// the just-healed presets on its next full-list save.
+	if changed {
+		if data, err := a.connectionStore.Load(); err == nil {
+			a.emit("store:connections:changed", data)
+		}
 	}
 }

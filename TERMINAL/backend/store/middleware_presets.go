@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"easyaiot/terminal/backend/session"
@@ -24,9 +25,14 @@ import (
 
 const (
 	// MiddlewarePresetsVersion bumps when the built-in roster changes: the
-	// next start re-adds any preset whose deterministic ID is still missing
-	// (user edits are never overwritten — only absent IDs are restored).
-	MiddlewarePresetsVersion = 1
+	// next start re-authors every preset connection (deterministic ID =
+	// seeded by us) from the current roster — hosts, remarks and credentials
+	// — and re-adds deleted ones. This is how roster fixes reach deployments
+	// that seeded an earlier roster (v1 seeded before presets carried
+	// passwords, leaving entries that could never authenticate). Only absent
+	// IDs are restored between bumps, so day-to-day user edits to a preset
+	// survive. User-created connections are never touched by either path.
+	MiddlewarePresetsVersion = 3
 
 	// marker file recording the highest seeded version, so a user who deleted
 	// the group is not re-seeded on every start.
@@ -48,23 +54,33 @@ type middlewarePresetMarkerData struct {
 // Best-effort by callers: when the credential vault is locked the password
 // fields cannot be encrypted yet, Save fails, and seeding retries on the next
 // unlock/start. Returns nil when the marker already matches the version.
-func EnsureMiddlewarePresets(dataDir string, cs *ConnectionStore, uiLang string) error {
+// The bool reports whether the store was modified (seeds added or an older
+// marker triggered a roster refresh), so callers can push the change to
+// listeners whose in-memory copy would otherwise stale-write over it.
+func EnsureMiddlewarePresets(dataDir string, cs *ConnectionStore, uiLang string) (bool, error) {
 	if cs == nil {
-		return nil
+		return false, nil
 	}
 	markerPath := filepath.Join(dataDir, middlewarePresetsMarker)
+	refresh := false
 	if b, err := os.ReadFile(markerPath); err == nil {
 		var m middlewarePresetMarkerData
-		if json.Unmarshal(b, &m) == nil && m.Version >= MiddlewarePresetsVersion {
-			return nil
+		if json.Unmarshal(b, &m) == nil {
+			if m.Version >= MiddlewarePresetsVersion {
+				return false, nil
+			}
+			// Marker from an earlier roster version: refresh existing preset
+			// entries below instead of only backfilling absent ones.
+			refresh = true
 		}
 	}
 
 	data, err := cs.Load()
 	if err != nil {
-		return fmt.Errorf("load connections: %w", err)
+		return false, fmt.Errorf("load connections: %w", err)
 	}
 
+	changed := false
 	groupExists := false
 	for _, g := range data.Groups {
 		if g.ID == MiddlewarePresetGroupID {
@@ -77,29 +93,42 @@ func EnsureMiddlewarePresets(dataDir string, cs *ConnectionStore, uiLang string)
 			ID:   MiddlewarePresetGroupID,
 			Name: middlewareGroupName(uiLang),
 		})
+		changed = true
 	}
 
-	existing := make(map[string]bool, len(data.Connections))
-	for _, c := range data.Connections {
-		existing[c.ID] = true
+	// ID → index into data.Connections. Refresh mutates through the index
+	// rather than a captured pointer: the appends below can reallocate the
+	// backing array and leave pointers pointing at the old copy.
+	existing := make(map[string]int, len(data.Connections))
+	for i, c := range data.Connections {
+		existing[c.ID] = i
 	}
+	gid := MiddlewarePresetGroupID
 	for _, p := range MiddlewarePresets() {
-		if existing[p.ID] {
+		p.GroupId = &gid
+		if idx, ok := existing[p.ID]; ok {
+			// Present: touch it only on a version-bump refresh. Between bumps
+			// the entry may carry user edits and is left alone.
+			if refresh && !reflect.DeepEqual(data.Connections[idx], p) {
+				data.Connections[idx] = p
+				changed = true
+			}
 			continue
 		}
-		gid := MiddlewarePresetGroupID
-		p.GroupId = &gid
 		data.Connections = append(data.Connections, p)
+		changed = true
 	}
 
-	if err := cs.Save(data); err != nil {
-		return fmt.Errorf("save seeded presets: %w", err)
+	if changed {
+		if err := cs.Save(data); err != nil {
+			return false, fmt.Errorf("save seeded presets: %w", err)
+		}
 	}
 	b, err := json.Marshal(middlewarePresetMarkerData{Version: MiddlewarePresetsVersion})
 	if err != nil {
-		return err
+		return changed, err
 	}
-	return atomicWriteFile(markerPath, b, 0644)
+	return changed, atomicWriteFile(markerPath, b, 0644)
 }
 
 // middlewareGroupName localizes the preset group name; unknown languages fall
@@ -177,7 +206,7 @@ func preset(id, name, remark, typ, host string, port int, mutate func(*session.C
 func MiddlewarePresets() []session.ConnectionConfig {
 	return []session.ConnectionConfig{
 		// ── In-app interactive clients ──
-		preset("postgres", "PostgreSQL", "EasyAIoT 主业务库（默认连接 iot-device20）· 其余库: iot-node20 / iot-visualize20 / iot-flow20 / iot-message20 / iot-gb2818120 / iot-ai20 / iot-video20 / iot-transform20 / ruoyi-vue-pro20",
+		preset("postgres", "PostgreSQL", "EasyAIoT 主业务 PostgreSQL · 一条连接浏览全部库（iot-device20 / iot-node20 / iot-visualize20 / iot-flow20 / iot-message20 / iot-gb2818120 / iot-ai20 / iot-video20 / iot-transform20 / ruoyi-vue-pro20），默认打开 iot-device20",
 			"database", middlewareHost("POSTGRES"), 5432, func(c *session.ConnectionConfig) {
 				c.User = "postgres"
 				c.Password = "iot45722414822"

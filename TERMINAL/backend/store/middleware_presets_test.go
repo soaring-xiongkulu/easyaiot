@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,8 +21,12 @@ func newTestConnectionStore(t *testing.T) (*ConnectionStore, string) {
 func TestEnsureMiddlewarePresetsSeedsGroupAndConnections(t *testing.T) {
 	cs, dir := newTestConnectionStore(t)
 
-	if err := EnsureMiddlewarePresets(dir, cs, "zh-CN"); err != nil {
+	changed, err := EnsureMiddlewarePresets(dir, cs, "zh-CN")
+	if err != nil {
 		t.Fatalf("EnsureMiddlewarePresets: %v", err)
+	}
+	if !changed {
+		t.Fatal("fresh seed reported no change")
 	}
 
 	data, err := cs.Load()
@@ -66,8 +71,8 @@ func TestEnsureMiddlewarePresetsSeedsGroupAndConnections(t *testing.T) {
 	if err := os.Remove(filepath.Join(dir, "connections.json")); err != nil {
 		t.Fatalf("remove store: %v", err)
 	}
-	if err := EnsureMiddlewarePresets(dir, cs, "zh-CN"); err != nil {
-		t.Fatalf("second Ensure: %v", err)
+	if changed, err := EnsureMiddlewarePresets(dir, cs, "zh-CN"); err != nil || changed {
+		t.Fatalf("second Ensure: changed=%v err=%v — marker not honored", changed, err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "connections.json")); !os.IsNotExist(err) {
 		t.Error("connections.json resurrected after deletion — marker not honored")
@@ -91,7 +96,7 @@ func TestEnsureMiddlewarePresetsPreservesUserEdits(t *testing.T) {
 		t.Fatalf("Save: %v", err)
 	}
 
-	if err := EnsureMiddlewarePresets(dir, cs, ""); err != nil {
+	if _, err := EnsureMiddlewarePresets(dir, cs, ""); err != nil {
 		t.Fatalf("EnsureMiddlewarePresets: %v", err)
 	}
 	data, _ := cs.Load()
@@ -106,6 +111,82 @@ func TestEnsureMiddlewarePresetsPreservesUserEdits(t *testing.T) {
 		if g.ID == MiddlewarePresetGroupID && g.Name != "renamed" {
 			t.Errorf("user-renamed group overwritten: %q", g.Name)
 		}
+	}
+}
+
+// A marker older than MiddlewarePresetsVersion means the deployment seeded an
+// earlier roster: existing preset entries must be re-authored from the current
+// roster (credentials included) while user-created connections stay untouched.
+// Regression for deployments that seeded before presets carried passwords and
+// were then stuck with connections that could never authenticate.
+func TestEnsureMiddlewarePresetsRefreshesStaleRosterOnVersionBump(t *testing.T) {
+	if MiddlewarePresetsVersion <= 1 {
+		t.Fatal("test requires MiddlewarePresetsVersion bumped past the password-less v1 roster")
+	}
+	cs, dir := newTestConnectionStore(t)
+
+	gid := MiddlewarePresetGroupID
+	stale := session.ConnectionConfig{
+		ID: MiddlewarePresetIDPrefix + "rustfs-s3", Name: "RustFS (S3)", Type: "s3",
+		Host: "http://host.docker.internal:9000", Port: 9000, AuthType: "password",
+		User: "minioadmin", GroupId: &gid, // v1-era entry: no password, no region
+	}
+	own := session.ConnectionConfig{
+		ID: "user-own-host", Name: "My server", Type: "database",
+		Host: "10.0.0.9", Port: 5432, AuthType: "password",
+		User: "admin", Password: "keepme", GroupId: &gid,
+	}
+	if err := cs.Save(session.ConnectionStoreData{
+		Groups:      []session.ConnectionGroup{{ID: MiddlewarePresetGroupID, Name: "EasyAIoT Middleware"}},
+		Connections: []session.ConnectionConfig{stale, own},
+	}); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, middlewarePresetsMarker), []byte(`{"version":1}`), 0644); err != nil {
+		t.Fatalf("write stale marker: %v", err)
+	}
+
+	changed, err := EnsureMiddlewarePresets(dir, cs, "")
+	if err != nil {
+		t.Fatalf("EnsureMiddlewarePresets: %v", err)
+	}
+	if !changed {
+		t.Fatal("version-bump refresh reported no change")
+	}
+
+	data, err := cs.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	byID := map[string]session.ConnectionConfig{}
+	for _, c := range data.Connections {
+		byID[c.ID] = c
+	}
+	healed, ok := byID[stale.ID]
+	if !ok {
+		t.Fatal("stale preset dropped by refresh")
+	}
+	if healed.Password == "" {
+		t.Error("stale preset still has no password after roster refresh")
+	}
+	if healed.S3Region != "us-east-1" {
+		t.Errorf("refreshed preset s3Region = %q, want roster value", healed.S3Region)
+	}
+	if got, ok := byID[own.ID]; !ok {
+		t.Error("user-created connection dropped")
+	} else if got.Password == "" || got.Host != "10.0.0.9" {
+		t.Errorf("user-created connection altered by refresh: %+v", got)
+	}
+
+	// The marker is rewritten to the current version, so the next start is a
+	// no-op again (user edits between bumps stay sticky).
+	b, err := os.ReadFile(filepath.Join(dir, middlewarePresetsMarker))
+	if err != nil {
+		t.Fatalf("read marker: %v", err)
+	}
+	var m middlewarePresetMarkerData
+	if err := json.Unmarshal(b, &m); err != nil || m.Version != MiddlewarePresetsVersion {
+		t.Errorf("marker version = %d (%v), want %d", m.Version, err, MiddlewarePresetsVersion)
 	}
 }
 
