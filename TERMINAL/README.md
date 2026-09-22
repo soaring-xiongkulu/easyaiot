@@ -121,14 +121,6 @@ Web 应用类预设支持整条 URL 覆盖：如 `EASYAIOT_NACOS_HOST=http://10.
 
 Docker 部署（`docker-compose.yml`）已默认注入 `EASYAIOT_MIDDLEWARE_HOST=host.docker.internal` 并配置 `host-gateway` 映射，容器内即可直达宿主机发布的各中间件端口。
 
-## 更新检查
-
-默认查询上游 GitHub / Gitee 的最新 release，但仅匹配 `terminal-<os>-<arch>-*` 命名的资源，上游 uniTerm 构建不会被自动安装。自建发布通道时可用环境变量覆盖 API 地址（需提供 GitHub 风格的 `/releases/latest` 接口）：
-
-```bash
-TERMINAL_UPDATE_API_BASE=https://your-mirror.example.com
-```
-
 ## 许可证
 
 Apache 2.0。

@@ -1,0 +1,38 @@
+# EasyAIoT TERMINAL — 多协议终端（Wails v3 server 模式）
+# 容器内固定监听 8080，宿主机默认 9245（与 WEB 助手 TERMINAL 终端助手入口一致）
+# 连接配置/数据持久化在 named volume（/config /data）
+
+services:
+  terminal:
+    image: ${TERMINAL_IMAGE:-easyaiot/terminal:latest}
+    build:
+      context: .
+      dockerfile: build/docker/Dockerfile.server
+    container_name: easyaiot-terminal
+    restart: unless-stopped
+    ports:
+      - "${TERMINAL_LISTEN_PORT:-9245}:8080"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      XDG_CONFIG_HOME: /config
+      XDG_DATA_HOME: /data
+      # wails server 默认监听 localhost（容器内不可达），必须显式放开
+      WAILS_SERVER_HOST: 0.0.0.0
+      # distroless 不带 PATH；容器探测/本地终端依赖在 PATH 里找到 sh 与 docker
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      # 中间件快捷配置的目标主机：容器内经 docker 宿主网关访问宿主机映射端口
+      # （5432/3306/6379/9000/1883/8848/18083/…），可用 EASYAIOT_<服务>_HOST
+      # 或 EASYAIOT_MIDDLEWARE_HOST 覆盖单个/全部中间件地址。
+      EASYAIOT_MIDDLEWARE_HOST: ${EASYAIOT_MIDDLEWARE_HOST:-host.docker.internal}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - terminal-config:/config
+      - terminal-data:/data
+      # 「Docker」快捷预设经 Docker SDK 直连 socket，容器形态下也能查看/操作
+      # 宿主机上的平台容器（Portainer 同款模式）
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  terminal-config:
+  terminal-data:
