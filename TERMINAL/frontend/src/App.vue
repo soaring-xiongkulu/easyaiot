@@ -3,12 +3,10 @@
   <div class="app-container" :class="{ 'has-bg': bgVisible }">
     <div v-if="bgVisible" class="app-bg" :style="bgStyle"></div>
     <AppHeader
-      @toggle-ai="aiStore.toggle"
       @toggle-sidebar="sidebarVisible = !sidebarVisible"
       @open-settings="openSettings"
       @close-tab="closeTab"
       @close-tab-batch="closeTabBatch"
-      @toggle-ai-lock="onToggleAiLock"
       @tab-dragstart="onTabDragStart"
     />
     <div class="main-content">
@@ -121,7 +119,6 @@
           </KeepAlive>
         </template>
       </div>
-      <AISidebar ref="aiSidebarRef" @open-settings="openSettings" />
     </div>
     <ConnectionForm v-model="showConnectionForm" :edit-config="editConfig" :default-group-id="pendingGroupId" @save="onSaveOnly" @connect="(c: ConnectionConfig, ko?: boolean) => { const wasEdit = !!editConfig?.id; editConfig = null; onConnect(c, ko, wasEdit) }" @connect-only="onConnectOnly" @cancel="editConfig = null" />
 
@@ -143,7 +140,6 @@
     </Menu>
 
     <SyncConflictDialog />
-    <UpdateDialog />
     <DataDirDialog v-model:visible="dataDirVisible" :first-run="credStore.firstRun || credStore.dataDirInfo.firstRun" @done="onDataDirDone" />
     <EncryptionModeDialog v-model:visible="encryptVisible" :existing-secrets="credStore.status.existingSecrets" @done="onEncryptDone" />
     <CredentialUnlockDialog v-model:visible="unlockVisible" @done="onUnlockDone" @reset="onReset" />
@@ -187,9 +183,7 @@ import K8sTabContent from './components/K8sTabContent.vue'
 import ContainerTabContent from './components/ContainerTabContent.vue'
 import StartTabContent from './components/StartTabContent.vue'
 import ConnectionForm from './components/ConnectionForm.vue'
-import AISidebar from './components/AISidebar.vue'
 import SyncConflictDialog from './components/SyncConflictDialog.vue'
-import UpdateDialog from './components/UpdateDialog.vue'
 import DataDirDialog from './components/DataDirDialog.vue'
 import EncryptionModeDialog from './components/EncryptionModeDialog.vue'
 import CredentialUnlockDialog from './components/CredentialUnlockDialog.vue'
@@ -203,11 +197,9 @@ import { useConnectionStore } from './stores/connectionStore'
 import { useTabStore } from './stores/tabStore'
 import { usePanelStore } from './stores/panelStore'
 import { useSessionStore } from './stores/sessionStore'
-import { useAIStore } from './stores/aiStore'
 import { useCompanionStore } from './stores/companionStore'
 import { useSettingsStore } from './stores/settingsStore'
 import { useQuickCommandStore } from './stores/quickCommandStore'
-import { useSkillStore } from './stores/skillStore'
 import { useCommandStore } from './stores/commandStore'
 import { useTunnelStore } from './stores/tunnelStore'
 import { useLocalStateStore } from './stores/localStateStore'
@@ -215,7 +207,6 @@ import { useContainerStore } from './stores/containerStore'
 import { useSyncStore } from './stores/syncStore'
 import { useCredentialStore } from './stores/credentialStore'
 import { disposeSessionStore } from './stores/sessionStore'
-import { useUpdateCheck } from './composables/useUpdateCheck'
 import { loadKeybindings, installGlobalListener, uninstallGlobalListener, matchDigitShortcut, isRebinding } from './composables/useKeyboardShortcuts'
 import { focusPanelTerminal, installTerminalFocusRestore } from './composables/useFocusTerminal'
 import { useDuplicateSession } from './composables/useDuplicateSession'
@@ -347,14 +338,12 @@ const keyBarSessionId = computed(() => {
   return panel.sessionId
 })
 const { duplicateSession } = useDuplicateSession()
-const aiStore = useAIStore()
 const companionStore = useCompanionStore()
 const settingsStore = useSettingsStore()
 const localStateStore = useLocalStateStore()
 const containerStore = useContainerStore()
 const syncStore = useSyncStore()
 const tunnelStore = useTunnelStore()
-const updateCheck = useUpdateCheck()
 let uninstallFocusRestore: (() => void) | null = null
 // Unsubscribers for module-level Wails EventsOn listeners (FE-03).
 let unsubRdpFullscreenExit: (() => void) | null = null
@@ -407,7 +396,6 @@ function reloadStoresAfterDataDir() {
   connectionStore.load()
   settingsStore.reload()
   useQuickCommandStore().load()
-  useSkillStore().reload()
   useCommandStore().reload()
   tunnelStore.load()
 }
@@ -595,7 +583,6 @@ function RDPShowForOverlay() {
 const showConnectionForm = ref(false)
 const sidebarVisible = ref(false)
 const sidebarRef = ref<any>(null)
-const aiSidebarRef = ref<any>(null)
 
 
 // Input context menu state
@@ -931,8 +918,6 @@ function onPlatformSystemShortcut(e: KeyboardEvent) {
 
 onMounted(async () => {
   connectionStore.load()
-  aiStore.init()
-  updateCheck.initAutoCheck()
 
   // Load local-only state (sidebar visibility, background image, etc.)
   await localStateStore.init()
@@ -1114,27 +1099,6 @@ const actionHandlers: Record<ShortcutAction, () => void> = {
     tabStore.toggleWorkspacePanelMaximize(tab.id)
     nextTick(() => focusPanelTerminal(panelId))
   },
-  lockAI: () => {
-    const t = tabStore.activeTab
-    if (!t) return
-    let panelId: string | null = null
-    if (t.type === 'workspace') {
-      panelId = t.activePanelId || t.panelIds[0] || null
-    } else if (t.type === 'terminal') {
-      panelId = t.panelId
-    }
-    if (panelId) onToggleAiLock(panelId)
-  },
-  focusAI: () => {
-    if (aiStore.visible) {
-      aiStore.visible = false
-      const pid = tabStore.getActivePanelId()
-      if (pid) nextTick(() => focusPanelTerminal(pid))
-    } else {
-      aiStore.visible = true
-      nextTick(() => aiSidebarRef.value?.focusInput())
-    }
-  },
   closePanel: () => {
     const t = tabStore.activeTab
     if (!t) return
@@ -1215,7 +1179,6 @@ function applyKeybindings() {
 onUnmounted(() => {
   uninstallGlobalListener()
   uninstallFocusRestore?.()
-  updateCheck.dispose()
   window.removeEventListener('input:contextmenu', onInputContextMenu)
   document.removeEventListener('wheel', onWheel, { capture: true })
   document.removeEventListener('keydown', onPlatformSystemShortcut, true)
@@ -1786,14 +1749,6 @@ function onChangeGroupParentFromStart(groupId: string) {
   sidebarRef.value?.openChangeGroupForGroup(groupId)
 }
 
-function onToggleAiLock(panelId: string) {
-  if (tabStore.isPanelAILocked(panelId)) {
-    tabStore.removeAILockedPanel(panelId)
-  } else {
-    tabStore.addAILockedPanel(panelId)
-  }
-}
-
 function onTabDragStart(_e: DragEvent, _tabId: string) {
   // Data is set in TabItem
 }
@@ -1936,10 +1891,6 @@ watch(sidebarVisible, async () => {
   localStateStore.update({ sidebarVisible: sidebarVisible.value })
 })
 
-watch(() => aiStore.visible, () => {
-  rdpResetTracking()
-})
-
 watch(() => settingsStore.settings.keyboard, () => {
   applyKeybindings()
 }, { deep: true })
@@ -1974,7 +1925,9 @@ watch(
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-base);
-  padding: 0.1875rem;
+  /* Extra right padding mirrors the sidebar-side gap so terminal panels
+     don't sit flush against the right screen edge (AI sidebar removed). */
+  padding: 0.1875rem 0.625rem 0.1875rem 0.1875rem;
 }
 
 .group-list {
@@ -2091,7 +2044,6 @@ body > .conn-context-menu {
 }
 /* 边栏毛玻璃 */
 .app-container.has-bg .main-content :deep(.sidebar),
-.app-container.has-bg .main-content :deep(.ai-sidebar),
 .app-container.has-bg .main-content :deep(.companion-sidebar) {
   backdrop-filter: blur(0.5rem);
 }

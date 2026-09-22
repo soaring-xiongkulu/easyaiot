@@ -358,8 +358,6 @@ function mergeSettings(loaded: AppSettings): AppSettings {
       activeModelId: loaded.ai?.activeModelId || DEFAULT_SETTINGS.ai.activeModelId
     },
     keyboard: normalizeKeyBindings(loaded.keyboard || {}),
-    autoCheckUpdate: loaded.autoCheckUpdate ?? DEFAULT_SETTINGS.autoCheckUpdate,
-    updateSource: loaded.updateSource ?? DEFAULT_SETTINGS.updateSource,
     closeTabPrompt: loaded.closeTabPrompt ?? DEFAULT_SETTINGS.closeTabPrompt,
     closeAppPrompt: loaded.closeAppPrompt ?? DEFAULT_SETTINGS.closeAppPrompt,
     sftpBookmarks: {

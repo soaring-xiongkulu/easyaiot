@@ -267,11 +267,6 @@ export interface AppSettings {
   terminal: TerminalSettings
   ai: AISettings
   keyboard: KeyboardSettings
-  autoCheckUpdate: boolean
-  // Update source for checks and downloads: "auto" picks by UI language with
-  // cross-source fallback; "github" forces the official source; "gitee"
-  // forces the domestic mirror.
-  updateSource: 'auto' | 'github' | 'gitee'
   closeTabPrompt: boolean
   closeAppPrompt: boolean
   sftpBookmarks: SFTPBookmarks
@@ -325,7 +320,10 @@ export const SIDEBAR_TAB_ORDER: { key: string; labelKey: string }[] = [
 export const DEFAULT_UI_FONT_SIZE = /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? 14 : 12
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  theme: 'dark',
+  // Bright-by-default: fresh installs start on the light theme to match the
+  // platform shell; dark / deep-blue / system remain selectable in settings.
+  // Keep main.go windowBackgroundColour's empty-theme fallback in sync.
+  theme: 'light',
   language: 'system',
   uiFontSize: DEFAULT_UI_FONT_SIZE,
   terminal: {
@@ -368,8 +366,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     activeModelId: 'model-default'
   },
   keyboard: { ...DEFAULT_KEYBOARD },
-  autoCheckUpdate: true,
-  updateSource: 'auto',
   closeTabPrompt: true,
   closeAppPrompt: true,
   sftpBookmarks: {
@@ -480,18 +476,4 @@ export const LANGUAGE_OPTIONS: { value: Locale; label: string; native: string }[
   { value: 'ru', label: 'Русский', native: 'Русский' },
 ]
 
-export interface UpdateAsset {
-  name: string
-  url: string
-  sha256: string
-  source: 'github' | 'gitee'
-}
 
-export interface UpdateInfo {
-  hasUpdate: boolean
-  current: string
-  latest: string
-  releaseUrl: string
-  changelog: string
-  assets: UpdateAsset[]
-}

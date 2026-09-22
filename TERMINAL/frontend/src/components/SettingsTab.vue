@@ -907,7 +907,7 @@
           <div class="about-appname">Terminal</div>
           <p class="about-desc">{{ t('settings.aboutDesc') }}</p>
           <div class="about-version">
-            {{ t('settings.version') }}: {{ updateCheck.updateInfo?.current || '...' }}
+            {{ t('settings.version') }}: {{ appVersion || '...' }}
           </div>
           <div class="about-links">
             <a href="#" class="about-link" @click.prevent="Browser.OpenURL('https://uniterm.net')">
@@ -926,36 +926,6 @@
               <svg class="about-link-icon" viewBox="0 0 24 24" width="0.875rem" height="0.875rem" fill="currentColor"><path d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .593.266.592.593v1.482a.594.594 0 0 1-.593.592H9.777c-.982 0-1.778.796-1.778 1.778v5.63c0 .327.266.592.593.592h5.63c.982 0 1.778-.796 1.778-1.778v-.296a.593.593 0 0 0-.592-.593h-4.15a.592.592 0 0 1-.592-.592v-1.482a.593.593 0 0 1 .593-.592h6.815c.327 0 .593.265.593.592v3.408a4 4 0 0 1-4 4H5.926a.593.593 0 0 1-.593-.593V9.778a4.444 4.444 0 0 1 4.445-4.444h8.296z"/></svg>
               Gitee
             </a>
-          </div>
-          <!-- In-app update download is desktop-only; mobile updates via APK -->
-          <div v-if="!isMobile" class="about-update-actions">
-            <el-button
-             
-              :loading="updateCheck.checking"
-              @click="handleCheckUpdate"
-            >
-              {{ updateCheck.checking ? t('settings.checking') : t('settings.checkUpdate') }}
-            </el-button>
-          </div>
-          <div v-if="!isMobile" class="about-auto-check">
-            <el-checkbox
-              v-model="updateCheck.autoCheck"
-            >
-              {{ t('settings.autoCheckUpdate') }}
-            </el-checkbox>
-          </div>
-          <div v-if="!isMobile" class="about-update-source">
-            <span class="about-update-source-label">{{ t('settings.updateSource') }}</span>
-            <el-select
-              v-model="updateCheck.source"
-              size="small"
-              class="about-update-source-select"
-              @change="(v: 'auto' | 'github' | 'gitee') => updateCheck.setSource(v)"
-            >
-              <el-option :label="t('settings.updateSourceAuto')" value="auto" />
-              <el-option :label="t('settings.updateSourceGithub')" value="github" />
-              <el-option :label="t('settings.updateSourceGitee')" value="gitee" />
-            </el-select>
           </div>
         </div>
       </div>
@@ -1345,11 +1315,10 @@
 import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, Globe, Keyboard, Plus, BookOpen, Wrench, FolderOpen, Key, Network, ArrowRightLeft, ChevronLeft, ChevronRight } from '@lucide/vue'
 import { msg } from '../services/message'
-import { FetchModels, ChatCompletion, GetPlatform, GetAllFonts, GetDefaultSessionLogDir, OpenDirectoryDialog, OpenFileDialogFiltered, SetBackgroundImage, ClearBackgroundImage, GetBackgroundImage, RelaunchApp, ListExternalEditors } from '../../bindings/easyaiot/terminal/app'
+import { FetchModels, ChatCompletion, GetPlatform, GetAppInfo, GetAllFonts, GetDefaultSessionLogDir, OpenDirectoryDialog, OpenFileDialogFiltered, SetBackgroundImage, ClearBackgroundImage, GetBackgroundImage, RelaunchApp, ListExternalEditors } from '../../bindings/easyaiot/terminal/app'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useSyncStore } from '../stores/syncStore'
 import { useLocalStateStore } from '../stores/localStateStore'
-import { useUpdateCheck } from '../composables/useUpdateCheck'
 import { useI18n, locale } from '../i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FONT_OPTIONS, FONT_WEIGHT_OPTIONS, LANGUAGE_OPTIONS, DEFAULT_KEYBOARD, DEFAULT_SETTINGS, SHORTCUT_LABELS, USER_AGENT_PRESETS, FOLLOW_APP_THEME, CURSOR_STYLES, TIMESTAMP_FORMATS, SIDEBAR_TAB_ORDER, SIDEBAR_TAB_DEFAULTS } from '../types/settings'
@@ -1384,7 +1353,6 @@ import { uiPx } from '../utils/uiScale'
 
 const settingsStore = useSettingsStore()
 const syncStore = useSyncStore()
-const updateCheck = useUpdateCheck()
 const localStateStore = useLocalStateStore()
 const { t } = useI18n()
 const { resolveTunnelCredentials } = useTunnelCredentials()
@@ -1393,6 +1361,7 @@ const { resolveTunnelCredentials } = useTunnelCredentials()
 // hidden there via `v-if="!isMobile"` / category filtering below.
 const isMobile = isMobilePlatform()
 const platform = ref('')
+const appVersion = ref('')
 const isMac = computed(() => platform.value === 'darwin')
 
 // Editors detected on this host (from the backend). The dropdown shows exactly
@@ -1543,10 +1512,6 @@ async function handleAutoSyncToggle() {
   }
 }
 
-async function handleCheckUpdate() {
-  await updateCheck.checkForUpdate(true)
-}
-
 syncStore.loadConfig()
 
 // ── Terminal fonts ──
@@ -1620,6 +1585,11 @@ onMounted(async () => {
     platform.value = await GetPlatform()
   } catch {
     platform.value = ''
+  }
+  try {
+    appVersion.value = (await GetAppInfo()).version
+  } catch {
+    appVersion.value = ''
   }
   // Populate the external-editor dropdown with editors actually installed on
   // this host; fall back to the curated presets if detection returns nothing.
@@ -2931,26 +2901,6 @@ async function onToggleSystemTitleBar(v: boolean) {
   width: 2rem;
   height: 2rem;
   padding: 0;
-}
-
-.about-update-actions {
-  margin-top: 1.25rem;
-}
-.about-auto-check {
-  margin-top: 0.75rem;
-  font-size: 0.8125rem;
-  font-family: var(--font-ui);
-}
-.about-update-source {
-  margin-top: 0.625rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  font-family: var(--font-ui);
-}
-.about-update-source-select {
-  width: 11.875rem;
 }
 
 .kb-key {

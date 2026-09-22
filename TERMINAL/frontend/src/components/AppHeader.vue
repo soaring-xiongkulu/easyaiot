@@ -25,15 +25,9 @@
       <TabsList
         @close-tab="(id: string) => emit('close-tab', id)"
         @close-tab-batch="(ids: string[]) => emit('close-tab-batch', ids)"
-        @toggle-ai-lock="(panelId: string) => emit('toggle-ai-lock', panelId)"
         @tab-dragstart="(e: DragEvent, tabId: string) => emit('tab-dragstart', e, tabId)"
       />
     </div>
-
-    <!-- AI button -->
-    <button class="header-btn" @click="emit('toggle-ai')" :title="t('header.ai') + shortcutSuffix('focusAI')">
-      <el-icon><Bot :size="'0.875rem'" /></el-icon>
-    </button>
 
     <!-- Settings button opens a dropdown menu with common settings items -->
     <div class="settings-wrap">
@@ -69,8 +63,7 @@
 
         <MenuDivider />
 
-        <!-- AI模型 / 密钥库 / 代理 -->
-        <MenuItem @click="openCategory('ai')">{{ t('settings.ai') }}</MenuItem>
+        <!-- 密钥库 / 代理 -->
         <MenuItem @click="openCategory('identities')">{{ t('settings.identities') }}</MenuItem>
         <MenuItem @click="openCategory('proxies')">{{ t('settings.proxies') }}</MenuItem>
         <MenuItem @click="openCategory('tunnels')">{{ t('settings.tunnels') }}</MenuItem>
@@ -83,11 +76,9 @@
 
         <MenuDivider />
 
-        <!-- 设置 / 关于 / 检查更新 -->
+        <!-- 设置 / 关于 -->
         <MenuItem :shortcut="menuShortcut('openSettings')" @click="openCategory('basic')">{{ t('settings.title') }}</MenuItem>
         <MenuItem @click="openCategory('about')">{{ t('settings.about') }}</MenuItem>
-        <!-- In-app update download is desktop-only -->
-        <MenuItem v-if="!isMobilePlatform(platform.value)" @click="checkUpdate">{{ t('settings.checkUpdate') }}</MenuItem>
       </Menu>
 
       <ImportDialog v-model:visible="showImportDialog" />
@@ -107,7 +98,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, h } from 'vue'
-import { Menu as MenuIcon, PanelLeft, Bot } from '@lucide/vue'
+import { Menu as MenuIcon, PanelLeft } from '@lucide/vue'
 import { ElMessageBox, ElCheckbox } from 'element-plus'
 import { useI18n } from '../i18n'
 import { useTabStore } from '../stores/tabStore'
@@ -143,7 +134,6 @@ const localStateStore = useLocalStateStore()
 const systemTitleBarAtStartup = localStateStore.state.systemTitleBar
 
 // ── Settings dropdown menu ──
-const updateCheck = useUpdateCheck()
 const showSettingsMenu = ref(false)
 const settingsBtnRef = ref<HTMLElement | null>(null)
 const settingsMenuRef = ref<InstanceType<typeof Menu> | null>(null)
@@ -192,16 +182,11 @@ function openCategory(category?: string) {
   closeSettingsMenu()
 }
 
-function checkUpdate() {
-  updateCheck.checkForUpdate(true)
-  closeSettingsMenu()
-}
-
 const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent)
 
-// " (Ctrl+Shift+K)" suffix for a shortcut action's tooltip, '' when unset.
+// " (Ctrl+Shift+H)" suffix for a shortcut action's tooltip, '' when unset.
 // Reactive via settingsStore, so tooltips update when the user rebinds keys.
-function shortcutSuffix(action: 'focusAI' | 'toggleSidebar'): string {
+function shortcutSuffix(action: 'toggleSidebar'): string {
   const b = settingsStore.settings.keyboard[action]
   if (!b) return ''
   const key = formatKeyBinding(b, isMac)
@@ -229,12 +214,10 @@ const hasActiveConnections = computed(() =>
 )
 
 const emit = defineEmits<{
-  'toggle-ai': []
   'toggle-sidebar': []
   'open-settings': [category?: string]
   'close-tab': [id: string]
   'close-tab-batch': [ids: string[]]
-  'toggle-ai-lock': [panelId: string]
   'tab-dragstart': [e: DragEvent, tabId: string]
 }>()
 

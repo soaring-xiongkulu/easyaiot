@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,48 +58,6 @@ func TestSettingsStore_LoadMissingFile(t *testing.T) {
 	}
 	if got.Theme == "" {
 		t.Errorf("expected defaults to populate, got zero-value settings")
-	}
-	if got.AutoCheckUpdate == nil || !*got.AutoCheckUpdate {
-		t.Errorf("AutoCheckUpdate: got %v, want true by default", got.AutoCheckUpdate)
-	}
-}
-
-func TestSettingsStore_PreservesExplicitAutoCheckUpdate(t *testing.T) {
-	for _, want := range []bool{false, true} {
-		t.Run(fmt.Sprint(want), func(t *testing.T) {
-			dir := t.TempDir()
-			s := &SettingsStore{configDir: dir}
-
-			settings := defaultSettings()
-			settings.AutoCheckUpdate = boolPtr(want)
-			if err := s.Save(settings); err != nil {
-				t.Fatalf("Save: %v", err)
-			}
-
-			got, err := s.Load()
-			if err != nil {
-				t.Fatalf("Load: %v", err)
-			}
-			if got.AutoCheckUpdate == nil || *got.AutoCheckUpdate != want {
-				t.Errorf("AutoCheckUpdate: got %v, want preserved %v", got.AutoCheckUpdate, want)
-			}
-		})
-	}
-}
-
-func TestSettingsStore_DefaultsMissingAutoCheckUpdateToTrue(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"theme":"dark"}`), 0600); err != nil {
-		t.Fatalf("seed settings: %v", err)
-	}
-	s := &SettingsStore{configDir: dir}
-
-	got, err := s.Load()
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	if got.AutoCheckUpdate == nil || !*got.AutoCheckUpdate {
-		t.Errorf("AutoCheckUpdate: got %v, want true for a missing field", got.AutoCheckUpdate)
 	}
 }
 

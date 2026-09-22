@@ -13,9 +13,8 @@ import (
 
 const settingsFileName = "settings.json"
 
-func boolPtr(b bool) *bool    { return &b }
-func intPtr(i int) *int       { return &i }
-func strPtr(s string) *string { return &s }
+func boolPtr(b bool) *bool { return &b }
+func intPtr(i int) *int    { return &i }
 
 type TerminalSettings struct {
 	Theme             string `json:"theme"`
@@ -149,19 +148,13 @@ type AppSettings struct {
 	// omitempty so settings.json written by older builds still loads; nil
 	// means "use the platform default" (14 on macOS, 12 elsewhere). Stored
 	// per device on purpose — settings.json is not synced.
-	UiFontSize      *int                  `json:"uiFontSize,omitempty"`
-	Terminal        TerminalSettings      `json:"terminal"`
-	AI              AISettings            `json:"ai"`
-	Keyboard        map[string]KeyBinding `json:"keyboard"`
-	AutoCheckUpdate *bool                 `json:"autoCheckUpdate"`
-	// UpdateSource selects where update checks and downloads come from:
-	// "auto" (default, picks by UI language with fallback), "github" or
-	// "gitee" (domestic mirror). Pointer + omitempty so settings.json written
-	// by older builds still load; nil means "auto".
-	UpdateSource   *string       `json:"updateSource,omitempty"`
-	CloseTabPrompt *bool         `json:"closeTabPrompt"`
-	CloseAppPrompt *bool         `json:"closeAppPrompt"`
-	SFTPBookmarks  SFTPBookmarks `json:"sftpBookmarks"`
+	UiFontSize     *int                  `json:"uiFontSize,omitempty"`
+	Terminal       TerminalSettings      `json:"terminal"`
+	AI             AISettings            `json:"ai"`
+	Keyboard       map[string]KeyBinding `json:"keyboard"`
+	CloseTabPrompt *bool                 `json:"closeTabPrompt"`
+	CloseAppPrompt *bool                 `json:"closeAppPrompt"`
+	SFTPBookmarks  SFTPBookmarks         `json:"sftpBookmarks"`
 	// SftpTransferPanelVisible remembers whether the SFTP transfer panel was
 	// last left visible. Pointer + omitempty so settings.json written by older
 	// builds (which lack this field) still load; nil means "use the frontend
@@ -284,16 +277,6 @@ func (s *SettingsStore) Load() (AppSettings, error) {
 			needsSave = true // legacy plaintext — re-save will encrypt
 		}
 	}
-	// Default autoCheckUpdate to true if not present
-	if settings.AutoCheckUpdate == nil {
-		settings.AutoCheckUpdate = boolPtr(true)
-		needsSave = true
-	}
-	// Default updateSource to "auto" if not present
-	if settings.UpdateSource == nil {
-		settings.UpdateSource = strPtr("auto")
-		needsSave = true
-	}
 	// Default maxTurns when missing (older settings.json files predating the
 	// multi-model AI block, or hand-edited files). Pointer + backfill so the
 	// stored copy always carries an explicit value.
@@ -325,23 +308,25 @@ func (s *SettingsStore) Load() (AppSettings, error) {
 func defaultSettings() AppSettings {
 	n := defaultUiFontSize()
 	return AppSettings{
-		Theme:      "dark",
+		// Bright-by-default, mirroring the frontend DEFAULT_SETTINGS
+		// (frontend/src/types/settings.ts): the two tables must stay in
+		// sync because these values are persisted to settings.json on
+		// first store init and the frontend then trusts the loaded file.
+		Theme:      "light",
 		Language:   "system",
 		UiFontSize: &n,
 		Terminal: TerminalSettings{
-			Theme:            "terminal-dark",
-			FontFamily:       "Consolas, \"Courier New\", monospace",
+			Theme:            "follow-app",
+			FontFamily:       "JetBrains Mono Variable",
 			FontSize:         14,
 			SelectionAction:  "none",
 			RightClickAction: "menu",
-			MaxHistoryLines:  5000,
+			MaxHistoryLines:  2500,
 		},
-		AI:              defaultAISettings(),
-		Keyboard:        defaultKeyboard(),
-		AutoCheckUpdate: boolPtr(true),
-		UpdateSource:    strPtr("auto"),
-		CloseTabPrompt:  boolPtr(true),
-		CloseAppPrompt:  boolPtr(true),
+		AI:             defaultAISettings(),
+		Keyboard:       defaultKeyboard(),
+		CloseTabPrompt: boolPtr(true),
+		CloseAppPrompt: boolPtr(true),
 		SFTPBookmarks: SFTPBookmarks{
 			LocalPaths:  []string{},
 			RemotePaths: []string{},

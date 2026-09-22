@@ -51,7 +51,7 @@ func main() {
 		return
 	}
 
-	// Single-instance relaunch: RelaunchApp/autotest set relaunchPending and
+	// Single-instance relaunch: RelaunchApp sets relaunchPending and
 	// quit; the successor is spawned after Run() returns, once the lock is
 	// released.
 
@@ -230,17 +230,15 @@ func main() {
 	}
 
 	window = w3app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:           "终端",
-		Width:           winW,
-		Height:          winH,
-		X:               savedX,
-		Y:               savedY,
-		InitialPosition: startPos,
-		StartState:      startState,
-		MinWidth:        700,
-		MinHeight:       450,
-		// Headless local update e2e runs must not flash a window.
-		Hidden:           os.Getenv("TERMINAL_UPDATE_AUTOTEST") == "1",
+		Title:            "终端",
+		Width:            winW,
+		Height:           winH,
+		X:                savedX,
+		Y:                savedY,
+		InitialPosition:  startPos,
+		StartState:       startState,
+		MinWidth:         700,
+		MinHeight:        450,
 		Frameless:        !systemTitleBar,
 		BackgroundColour: windowBackgroundColour(savedTheme),
 		EnableFileDrop:   true,
@@ -308,12 +306,6 @@ func main() {
 	// changed or disabled in Settings → Shortcuts.
 	applyGlobalShowHideHotkey(w3app, window, trayHotkeyBinding(&savedSettings))
 
-	// Local end-to-end update test hook — inert unless the env var is set
-	// (see autotest_update.go).
-	if os.Getenv("TERMINAL_UPDATE_AUTOTEST") == "1" {
-		go app.autotestUpdate()
-	}
-
 	// Show the window as soon as the page's DOM is committed (content starts
 	// rendering) instead of waiting for Wails' default, which defers Show until
 	// WebViewDidFinishNavigation — i.e. after the multi-MB bundle is parsed and
@@ -324,9 +316,7 @@ func main() {
 	// dark window instead of white. Finish-navigation still runs its own
 	// Show(), which is idempotent.
 	window.OnWindowEvent(events.Mac.WebViewDidCommitNavigation, func(*application.WindowEvent) {
-		if os.Getenv("TERMINAL_UPDATE_AUTOTEST") != "1" {
-			window.Show()
-		}
+		window.Show()
 	})
 
 	err := w3app.Run()
@@ -334,7 +324,7 @@ func main() {
 		log.Writef("Wails run error: %v", err)
 	}
 
-	// Quit-then-spawn relaunch (RelaunchApp / update autotest): the process
+	// Quit-then-spawn relaunch (RelaunchApp): the process
 	// is exiting and the single-instance lock is released, so the successor
 	// starts clean — it would otherwise be rejected as a "second instance".
 	if relaunchPending.Load() {

@@ -1882,7 +1882,6 @@ export namespace store {
 	    terminal: TerminalSettings;
 	    ai: AISettings;
 	    keyboard: Record<string, KeyBinding>;
-	    autoCheckUpdate?: boolean;
 	    closeTabPrompt?: boolean;
 	    closeAppPrompt?: boolean;
 	    sftpBookmarks: SFTPBookmarks;
@@ -1901,7 +1900,6 @@ export namespace store {
 	        this.terminal = this.convertValues(source["terminal"], TerminalSettings);
 	        this.ai = this.convertValues(source["ai"], AISettings);
 	        this.keyboard = this.convertValues(source["keyboard"], KeyBinding, true);
-	        this.autoCheckUpdate = source["autoCheckUpdate"];
 	        this.closeTabPrompt = source["closeTabPrompt"];
 	        this.closeAppPrompt = source["closeAppPrompt"];
 	        this.sftpBookmarks = this.convertValues(source["sftpBookmarks"], SFTPBookmarks);
@@ -2259,27 +2257,3 @@ export namespace sync {
 	}
 
 }
-
-export namespace update {
-	
-	export class UpdateInfo {
-	    hasUpdate: boolean;
-	    current: string;
-	    latest: string;
-	    releaseUrl: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new UpdateInfo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.hasUpdate = source["hasUpdate"];
-	        this.current = source["current"];
-	        this.latest = source["latest"];
-	        this.releaseUrl = source["releaseUrl"];
-	    }
-	}
-
-}
-
