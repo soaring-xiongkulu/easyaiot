@@ -109,10 +109,9 @@ describe('tabStore.dissolveWorkspace', () => {
     expect(store.activeTabId).toBe(created[0].id)
   })
 
-  it('clears broadcast participation but keeps AI lock', () => {
+  it('clears broadcast participation on dissolve', () => {
     const { store, ws, panelIds } = seedWorkspace(2)
     const [a, b] = panelIds
-    store.addAILockedPanel(a)
     store.toggleBroadcastPanel(a)
     store.toggleBroadcastPanel(b)
     expect([...store.getAllBroadcastPanelIds()].sort()).toEqual([a, b].sort())
@@ -120,7 +119,6 @@ describe('tabStore.dissolveWorkspace', () => {
     store.dissolveWorkspace(ws.id)
 
     expect(store.getAllBroadcastPanelIds()).toEqual([])
-    expect(store.isPanelAILocked(a)).toBe(true)
   })
 
   it('clears drag tracking when dissolving mid-drag', () => {

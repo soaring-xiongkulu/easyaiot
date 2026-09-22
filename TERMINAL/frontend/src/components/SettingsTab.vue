@@ -607,16 +607,6 @@
               <el-switch v-model="settingsStore.settings.terminal.smartCompletion" @change="settingsStore.save()" />
             </div>
           </div>
-
-          <div class="setting-card">
-            <div class="setting-info">
-              <div class="setting-title">{{ t('settings.aiTranscription') }}</div>
-              <div class="setting-desc">{{ t('settings.aiTranscriptionDesc') }}</div>
-            </div>
-            <div class="setting-control">
-              <el-switch :model-value="settingsStore.settings.terminal.aiTranscription ?? true" @update:model-value="(v: boolean) => { settingsStore.settings.terminal.aiTranscription = v; settingsStore.save() }" />
-            </div>
-          </div>
         </div>
 
         <h2 class="section-title">{{ t('settings.session') }}</h2>
@@ -724,11 +714,8 @@
         </div>
       </div>
 
-      <!-- Skills & Commands -->
-      <div v-if="settingsStore.activeCategory === 'skills'" class="settings-section">
-        <h2 class="section-title">{{ t('settings.skills') }}</h2>
-        <p class="section-desc">{{ t('settings.skillsDesc') }}</p>
-        <SkillsManager />
+      <!-- Commands -->
+      <div v-if="settingsStore.activeCategory === 'commands'" class="settings-section">
         <h2 class="section-title">{{ t('settings.commands') }}</h2>
         <p class="section-desc">{{ t('settings.commandsDesc') }}</p>
         <CommandsManager />
@@ -1099,154 +1086,7 @@
           </tbody>
         </table>
       </div>
-
-      <!-- AI助理设置 -->
-      <div v-if="settingsStore.activeCategory === 'ai'" class="settings-section">
-        <h2 class="section-title">{{ t('settings.ai') }}</h2>
-
-        <div class="settings-group">
-          <div class="setting-card">
-            <div class="setting-info">
-              <div class="setting-title">{{ t('settings.maxTurns') }}</div>
-              <div class="setting-desc">{{ t('settings.maxTurnsDesc') }}</div>
-            </div>
-            <div class="setting-control">
-              <el-input-number
-                v-model="settingsStore.settings.ai.maxTurns"
-                :min="0"
-                :max="100"
-                @change="settingsStore.save()"
-              />
-            </div>
-          </div>
-
-          <div class="setting-card">
-            <div class="setting-info">
-              <div class="setting-title">{{ t('settings.modelList') }}</div>
-              <div class="setting-desc">{{ t('settings.modelListDesc') }}</div>
-            </div>
-            <div class="setting-control">
-              <el-button @click="openNewModelForm"><Plus :size="'0.875rem'" /> {{ t('settings.addModel') }}</el-button>
-            </div>
-          </div>
-
-          <div
-            v-for="model in settingsStore.settings.ai.models"
-            :key="model.id"
-            class="model-card"
-            :class="{ active: model.id === settingsStore.settings.ai.activeModelId }"
-          >
-            <div class="model-main">
-              <el-radio
-                :model-value="settingsStore.settings.ai.activeModelId"
-                :value="model.id"
-                @change="settingsStore.setActiveModel(model.id)"
-              >
-                <span class="model-name">{{ model.name }}</span>
-              </el-radio>
-              <span class="model-detail">{{ model.model }} @ {{ model.baseURL }}</span>
-            </div>
-            <div class="model-actions">
-              <el-button link @click="editModel(model)">
-                <el-icon><Pencil :size="'0.875rem'" /></el-icon>
-              </el-button>
-              <el-button link type="danger" @click="removeModelConfirm(model)">
-                <el-icon><Trash2 :size="'0.875rem'" /></el-icon>
-              </el-button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-
-    <!-- Model Form Dialog -->
-    <el-dialog append-to-body v-model="showModelForm" :title="editingModel ? t('settings.editModel') : t('settings.newModel')" width="25rem">
-      <el-form label-width="5rem">
-        <el-form-item :label="t('settings.modelName')">
-          <el-input v-model="modelForm.name" />
-        </el-form-item>
-        <el-form-item :label="t('settings.modelProtocol')">
-          <el-select v-model="modelForm.protocol" style="width: 100%">
-            <el-option label="Anthropic Messages API" value="anthropic" />
-            <el-option label="OpenAI Chat Completions API" value="openai" />
-            <el-option label="OpenAI Responses API" value="responses" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('settings.modelBaseURL')">
-          <el-input v-model="modelForm.baseURL" :placeholder="modelForm.protocol === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1'" />
-        </el-form-item>
-        <el-form-item :label="t('settings.modelUserAgent')">
-          <el-select v-model="modelForm.userAgent" style="width: 100%" filterable allow-create>
-            <el-option
-              v-for="ua in USER_AGENT_PRESETS"
-              :key="ua.value"
-              :label="ua.label"
-              :value="ua.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('settings.modelApiKey')">
-          <el-input v-model="modelForm.apiKey" type="password" show-password />
-        </el-form-item>
-        <el-form-item :label="t('conn.proxy')">
-          <div class="inline-add-row">
-            <el-select v-model="modelForm.proxyId" clearable filterable style="flex: 1; min-width: 0" :placeholder="t('settings.modelProxyPlaceholder')">
-              <el-option :label="t('conn.proxySystemOption')" value="system" />
-              <el-option
-                v-for="p in proxyStore.proxies"
-                :key="p.id"
-                :label="`${p.name} (${p.kind} ${p.host}:${p.port})`"
-                :value="p.id"
-                :disabled="p.enabled === false"
-              />
-            </el-select>
-            <el-button class="inline-add-btn" :title="t('conn.newProxy')" @click="modelProxyDialogVisible = true">
-              <Plus :size="'0.875rem'" />
-            </el-button>
-          </div>
-        </el-form-item>
-        <el-form-item :label="t('settings.modelModel')">
-          <div class="model-fetch-row">
-            <el-select
-              v-model="modelForm.model"
-              class="model-autocomplete"
-              filterable
-              allow-create
-              default-first-option
-              :reserve-keyword="false"
-              :placeholder="t('settings.modelModelPlaceholder')"
-            >
-              <el-option
-                v-for="s in modelSelectOptions"
-                :key="s.value"
-                :label="s.label"
-                :value="s.value"
-              />
-            </el-select>
-            <el-button :loading="modelFetching" @click="fetchModelList">
-              {{ t('settings.fetchModels') }}
-            </el-button>
-          </div>
-        </el-form-item>
-        <el-form-item>
-          <el-button :loading="testingConnection" @click="testConnection">
-            {{ t('settings.testConnection') }}
-          </el-button>
-          <span v-if="testResult != null" :class="testResult ? 'test-ok' : 'test-fail'" style="margin-left: 0.5rem; font-size: 0.8125rem;">
-            {{ testResult ? t('settings.testSuccess') : t('settings.testFailed') }}
-          </span>
-          <span v-if="testError" style="margin-left: 0.5rem; font-size: 0.75rem; color: var(--error); word-break: break-all;">{{ testError }}</span>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showModelForm = false">{{ t('settings.cancel') }}</el-button>
-        <el-button type="primary" @click="saveModel">{{ t('settings.save') }}</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- Quick-create proxy from the model form's "+" button; must live outside
-         the per-category v-if sections so it renders on the AI tab too. -->
-    <ProxyEditDialog v-model:visible="modelProxyDialogVisible" :proxy="null" @saved="onModelProxySaved" />
 
     <!-- Sync dialogs -->
     <AddRepoDialog />
@@ -1312,22 +1152,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
-import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, Globe, Keyboard, Plus, BookOpen, Wrench, FolderOpen, Key, Network, ArrowRightLeft, ChevronLeft, ChevronRight } from '@lucide/vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { Settings, Monitor, Info, RefreshCw, Pencil, Globe, Keyboard, Plus, BookOpen, Wrench, FolderOpen, Key, Network, ArrowRightLeft, ChevronLeft, ChevronRight } from '@lucide/vue'
 import { msg } from '../services/message'
-import { FetchModels, ChatCompletion, GetPlatform, GetAppInfo, GetAllFonts, GetDefaultSessionLogDir, OpenDirectoryDialog, OpenFileDialogFiltered, SetBackgroundImage, ClearBackgroundImage, GetBackgroundImage, RelaunchApp, ListExternalEditors } from '../../bindings/easyaiot/terminal/app'
+import { GetPlatform, GetAppInfo, GetAllFonts, GetDefaultSessionLogDir, OpenDirectoryDialog, OpenFileDialogFiltered, SetBackgroundImage, ClearBackgroundImage, GetBackgroundImage, RelaunchApp, ListExternalEditors } from '../../bindings/easyaiot/terminal/app'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useSyncStore } from '../stores/syncStore'
 import { useLocalStateStore } from '../stores/localStateStore'
 import { useI18n, locale } from '../i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { FONT_OPTIONS, FONT_WEIGHT_OPTIONS, LANGUAGE_OPTIONS, DEFAULT_KEYBOARD, DEFAULT_SETTINGS, SHORTCUT_LABELS, USER_AGENT_PRESETS, FOLLOW_APP_THEME, CURSOR_STYLES, TIMESTAMP_FORMATS, SIDEBAR_TAB_ORDER, SIDEBAR_TAB_DEFAULTS } from '../types/settings'
+import { FONT_OPTIONS, FONT_WEIGHT_OPTIONS, LANGUAGE_OPTIONS, DEFAULT_KEYBOARD, DEFAULT_SETTINGS, SHORTCUT_LABELS, FOLLOW_APP_THEME, CURSOR_STYLES, TIMESTAMP_FORMATS, SIDEBAR_TAB_ORDER, SIDEBAR_TAB_DEFAULTS } from '../types/settings'
 import { formatFontFamily, normalizeFontFamilyValue } from '../utils/formatFontFamily'
 import { backendErrorText } from '../utils/backendError'
 import { getShellLabel as getShellLabelBase } from '../utils/shellLabel'
-import SkillsManager from './SkillsManager.vue'
 import CommandsManager from './CommandsManager.vue'
-import type { AIModelConfig, ShortcutAction, KeyBinding, KeyboardSettings } from '../types/settings'
+import type { ShortcutAction, KeyBinding, KeyboardSettings } from '../types/settings'
 import { useTerminalThemeOptions } from '../composables/useTerminalThemeOptions'
 import { uninstallGlobalListener, installGlobalListener, formatKeyBinding, digitModifierCollides, digitModifierFlagsEqual, TAB_DEFAULT_FLAGS, PANEL_DEFAULT_FLAGS, setRebinding } from '../composables/useKeyboardShortcuts'
 import AddRepoDialog from './AddRepoDialog.vue'
@@ -1680,7 +1519,7 @@ async function pickZmodemDownloadDir() {
 }
 
 watch(() => settingsStore.openCategory, (cat) => {
-  if (cat && (cat === 'basic' || cat === 'terminal' || cat === 'ai' || cat === 'sync' || cat === 'about' || (cat === 'keyboard' && !isMobile) || cat === 'identities' || cat === 'proxies' || cat === 'tunnels')) {
+  if (cat && (cat === 'basic' || cat === 'terminal' || cat === 'sync' || cat === 'about' || (cat === 'keyboard' && !isMobile) || cat === 'identities' || cat === 'proxies' || cat === 'tunnels')) {
     settingsStore.activeCategory = cat
     settingsStore.openCategory = null
   }
@@ -1704,12 +1543,12 @@ const shortcutCategories: { key: string; label: string; actions: ShortcutAction[
   {
     key: 'tabs',
     label: 'shortcut.catTabs',
-    actions: ['newConnection', 'nextTab', 'prevTab', 'navigatePrev', 'navigateNext', 'closePanel', 'duplicateSession', 'maximizePanel', 'lockAI'],
+    actions: ['newConnection', 'nextTab', 'prevTab', 'navigatePrev', 'navigateNext', 'closePanel', 'duplicateSession', 'maximizePanel'],
   },
   {
     key: 'sidebar',
     label: 'shortcut.catSidebar',
-    actions: ['toggleSidebar', 'openQuickCommands', 'focusAI', 'openSettings'],
+    actions: ['toggleSidebar', 'openQuickCommands', 'openSettings'],
   },
   {
     key: 'terminal',
@@ -2077,8 +1916,7 @@ const categories = computed(() => {
     // Keyboard shortcuts still WORK on mobile (physical keyboards), but the
     // rebinding UI is desktop-only and hidden from the category list there.
     ...(!isMobile ? [{ key: 'keyboard', label: t('shortcut.title'), icon: Keyboard }] : []),
-    { key: 'ai', label: t('settings.ai'), icon: MessageCircleMore },
-    { key: 'skills', label: t('settings.skillsAndCommands'), icon: Wrench },
+    { key: 'commands', label: t('settings.commands'), icon: Wrench },
     { key: 'identities', label: t('settings.identities'), icon: Key },
     { key: 'proxies', label: t('settings.proxies'), icon: Network },
     { key: 'tunnels', label: t('settings.tunnels'), icon: ArrowRightLeft },
@@ -2119,13 +1957,6 @@ function openProxyDialog(p?: Proxy) {
 }
 async function removeProxy(row: Proxy) {
   await proxyStore.remove(row.id)
-}
-
-// Quick-create proxy from the AI model form's "+" button (mirrors the
-// connection form): after saving, select the new proxy immediately.
-const modelProxyDialogVisible = ref(false)
-function onModelProxySaved(p: Proxy) {
-  modelForm.proxyId = p.id
 }
 
 // Enable toggle (issue #749): a disabled proxy is skipped on connect and the
@@ -2184,153 +2015,6 @@ async function toggleRun(row: Tunnel) {
     if (st.status === 'error') {
       msg.error(st.error || t('tunnels.startFailed'))
     }
-  }
-}
-
-const showModelForm = ref(false)
-const modelSuggestions = ref<Array<{ value: string; label: string }>>([])
-// Always surface the currently-set model as an option so el-select renders it
-// when editing an existing model (before any fetch) — el-select won't display a
-// bound value that has no matching option, and allow-create only creates
-// options for values typed during the session, not a pre-set v-model.
-const modelSelectOptions = computed(() => {
-  const opts = modelSuggestions.value.slice()
-  const cur = modelForm.model?.trim()
-  if (cur && !opts.some(o => o.value === cur)) {
-    opts.unshift({ value: cur, label: cur })
-  }
-  return opts
-})
-const modelFetching = ref(false)
-const testingConnection = ref(false)
-const testResult = ref<boolean | null>(null)
-const testError = ref('')
-const editingModel = ref<AIModelConfig | null>(null)
-const modelForm = reactive({
-  id: '',
-  name: '',
-  baseURL: '',
-  model: '',
-  apiKey: '',
-  protocol: 'anthropic' as 'anthropic' | 'openai' | 'responses',
-  userAgent: 'Terminal' as string,
-  proxyId: '' as string,
-})
-
-function openNewModelForm() {
-  editingModel.value = null
-  resetModelForm()
-  testResult.value = null
-  testError.value = ''
-  showModelForm.value = true
-}
-
-function editModel(model: AIModelConfig) {
-  editingModel.value = model
-  modelSuggestions.value = []
-  testResult.value = null
-  testError.value = ''
-  Object.assign(modelForm, { ...model })
-  showModelForm.value = true
-}
-
-async function removeModelConfirm(model: AIModelConfig) {
-  try {
-    await ElMessageBox.confirm(
-      t('settings.modelDeleteConfirm', { name: model.name }),
-      t('common.delete')
-    )
-    settingsStore.removeModel(model.id)
-  } catch {
-    // user cancelled
-  }
-}
-
-function saveModel() {
-  if (editingModel.value) {
-    settingsStore.updateModel(editingModel.value.id, { ...modelForm })
-  } else {
-    settingsStore.addModel({
-      id: `model-${Date.now()}`,
-      name: modelForm.name || 'Unnamed',
-      baseURL: modelForm.baseURL,
-      model: modelForm.model,
-      apiKey: modelForm.apiKey,
-      protocol: modelForm.protocol,
-      userAgent: modelForm.userAgent || undefined,
-      proxyId: modelForm.proxyId || undefined
-    })
-  }
-  showModelForm.value = false
-  editingModel.value = null
-  resetModelForm()
-}
-
-function resetModelForm() {
-  modelForm.id = ''
-  modelForm.name = ''
-  modelForm.baseURL = ''
-  modelForm.model = ''
-  modelForm.apiKey = ''
-  modelForm.protocol = 'anthropic'
-  modelForm.userAgent = 'Terminal'
-  modelForm.proxyId = ''
-  modelSuggestions.value = []
-}
-
-async function fetchModelList() {
-  if (!modelForm.apiKey || !modelForm.baseURL) {
-    msg.warning(t('settings.fetchModelsHint'))
-    return
-  }
-  modelFetching.value = true
-  modelSuggestions.value = []
-  try {
-    const models = await FetchModels(modelForm.apiKey, modelForm.baseURL, modelForm.protocol, modelForm.proxyId || '')
-    modelSuggestions.value = (models || []).map(m => ({
-      value: m.id,
-      label: m.display_name || m.id
-    }))
-    msg.success(t('settings.fetchModelsSuccess', { count: modelSuggestions.value.length }))
-  } catch (e: any) {
-    msg.error(t('settings.fetchModelsFailed'))
-  } finally {
-    modelFetching.value = false
-  }
-}
-
-async function testConnection() {
-  if (!modelForm.apiKey || !modelForm.baseURL || !modelForm.model) {
-    msg.warning(t('settings.testConnectionHint'))
-    return
-  }
-  testingConnection.value = true
-  testResult.value = null
-  testError.value = ''
-  try {
-    const testMsg = JSON.stringify({
-      model: modelForm.model,
-      max_tokens: 10,
-      system: 'Reply with exactly the word: ok',
-      messages: [{ role: 'user', content: 'Say ok' }]
-    })
-    await ChatCompletion(
-      modelForm.apiKey,
-      modelForm.baseURL,
-      modelForm.model,
-      testMsg,
-      modelForm.protocol,
-      modelForm.userAgent || '',
-      modelForm.proxyId || ''
-    )
-    testResult.value = true
-    msg.success(t('settings.testSuccess'))
-  } catch (e: any) {
-    testResult.value = false
-    testError.value = backendErrorText(e)
-    msg.error(t('settings.testFailed'))
-  } finally {
-    testingConnection.value = false
   }
 }
 
@@ -2614,54 +2298,6 @@ async function onToggleSystemTitleBar(v: boolean) {
 }
 
 /* Model cards */
-.model-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1.125rem;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  transition: all 0.12s ease;
-}
-
-.model-card:hover {
-  border-color: var(--border-hover);
-}
-
-.model-card.active {
-  border-color: var(--accent);
-  background: var(--accent-subtle);
-}
-
-.model-main {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.model-name {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.model-detail {
-  font-size: 0.6875rem;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  margin-left: 1.5rem;
-}
-
-.model-actions {
-  display: flex;
-  gap: 0.25rem;
-  flex-shrink: 0;
-}
-
 .about-content {
   text-align: left;
   padding: 1.25rem 0;
@@ -2878,29 +2514,6 @@ async function onToggleSystemTitleBar(v: boolean) {
   font-size: 0.75rem;
   color: var(--text-muted);
   flex: 1;
-}
-
-.model-fetch-row {
-  display: flex;
-  gap: 0.5rem;
-  width: 100%;
-}
-.model-autocomplete {
-  flex: 1;
-}
-
-/* ── Inline select + "+" rows (proxy quick-create, mirrors ConnectionForm) ── */
-.inline-add-row {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  width: 100%;
-}
-.inline-add-btn {
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
 }
 
 .kb-key {

@@ -1,17 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type { AppSettings, AIModelConfig, CustomTerminalTheme } from '../types/settings'
+import type { AppSettings, CustomTerminalTheme } from '../types/settings'
 import { DEFAULT_SETTINGS, normalizeKeyBindings } from '../types/settings'
 import { SaveSettings, LoadSettings, GetAvailableShells, SetDefaultSessionLogDir } from '../../bindings/easyaiot/terminal/app'
 import { Events } from '@wailsio/runtime'
 import { setLocale } from '../i18n'
-import { useAIConfigStore } from './aiConfigStore'
 
 // Module-level un-subscriber for the cross-window store:settings:changed listener.
 // Tracked at module scope so re-imports under HMR can detach the previous
 // listener before re-subscribing (FE-03).
 let unsubSettingsChanged: (() => void) | null = null
-let unsubAiChanged: (() => void) | null = null
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<AppSettings>({ ...DEFAULT_SETTINGS })
@@ -21,7 +19,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const theme = computed(() => settings.value.theme)
   const language = computed(() => settings.value.language)
   const terminal = computed(() => settings.value.terminal)
-  const ai = computed(() => settings.value.ai)
 
   // Tracks the OS color-scheme preference so `resolvedAppTheme` stays reactive
   // to live system changes while the app theme is set to 'system'.
@@ -35,42 +32,10 @@ export const useSettingsStore = defineStore('settings', () => {
     return 'dark'
   })
 
-  const activeModel = computed(() =>
-    settings.value.ai.models.find(m => m.id === settings.value.ai.activeModelId) || settings.value.ai.models[0]
-  )
-
   // Current active category in the settings page (persisted across tab switches)
   const activeCategory = ref('basic')
   // For navigating to a specific settings category from other components
   const openCategory = ref<string | null>(null)
-
-  // Tracks the last ai.json payload pushed from this store so unrelated
-  // settings saves don't rewrite the AI config file needlessly.
-  let lastSavedAiJson = ''
-
-  // Overlay the syncable AI slice (ai.json) onto the settings blob and
-  // validate the device-local activeModelId against the synced catalog.
-  function recomposeAi() {
-    const aiCfg = useAIConfigStore()
-    const models = aiCfg.models.length ? aiCfg.models : settings.value.ai.models
-    settings.value.ai = {
-      maxTurns: aiCfg.maxTurns,
-      models,
-      activeModelId: models.some(m => m.id === settings.value.ai.activeModelId)
-        ? settings.value.ai.activeModelId
-        : (models[0]?.id ?? DEFAULT_SETTINGS.ai.activeModelId)
-    }
-  }
-
-  function syncAiConfigFromSettings() {
-    const aiJson = JSON.stringify({ maxTurns: settings.value.ai.maxTurns, models: settings.value.ai.models })
-    if (aiJson === lastSavedAiJson) return
-    lastSavedAiJson = aiJson
-    const aiCfg = useAIConfigStore()
-    aiCfg.maxTurns = settings.value.ai.maxTurns
-    aiCfg.models = settings.value.ai.models
-    aiCfg.save()
-  }
 
   // Apply the UI font baseline to the rem root and cache it for the
   // pre-paint script in index.html (avoids a wrong-size flash on reload).
@@ -105,9 +70,6 @@ export const useSettingsStore = defineStore('settings', () => {
     } finally {
       loaded.value = true
     }
-    await useAIConfigStore().load()
-    recomposeAi()
-    lastSavedAiJson = JSON.stringify({ maxTurns: settings.value.ai.maxTurns, models: settings.value.ai.models })
     applyUiFontSize()
     try {
       availableShells.value = await GetAvailableShells()
@@ -123,9 +85,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   // Reload settings after the credential store is unlocked (e.g. after a
-  // data-dir migration in master-password mode). Model apiKeys can only be
-  // decrypted once the store is unlocked; re-running LoadSettings re-fetches
-  // them instead of leaving the initial load's empty fallback in place.
+  // data-dir migration in master-password mode).
   async function reload() {
     try {
       const loadedSettings = await LoadSettings()
@@ -136,8 +96,6 @@ export const useSettingsStore = defineStore('settings', () => {
     } catch {
       // use defaults
     }
-    await useAIConfigStore().load()
-    recomposeAi()
     applyUiFontSize()
     applyTheme()
     setLocale(settings.value.language)
@@ -146,8 +104,6 @@ export const useSettingsStore = defineStore('settings', () => {
   async function save() {
     try {
       await SaveSettings(settings.value)
-      // Mirror the syncable AI slice into ai.json (skipped when unchanged).
-      syncAiConfigFromSettings()
       // Keep the backend override in sync on every save. Cheap and
       // avoids the need for a dedicated watcher on this single field.
       SetDefaultSessionLogDir(settings.value.terminal.sessionLogDir || '').catch(() => {})
@@ -193,35 +149,6 @@ export const useSettingsStore = defineStore('settings', () => {
     save()
   }
 
-  function addModel(model: AIModelConfig) {
-    settings.value.ai.models.push(model)
-    save()
-  }
-
-  function updateModel(id: string, updates: Partial<AIModelConfig>) {
-    const idx = settings.value.ai.models.findIndex(m => m.id === id)
-    if (idx >= 0) {
-      settings.value.ai.models[idx] = { ...settings.value.ai.models[idx], ...updates }
-      save()
-    }
-  }
-
-  function removeModel(id: string) {
-    const idx = settings.value.ai.models.findIndex(m => m.id === id)
-    if (idx >= 0) {
-      settings.value.ai.models.splice(idx, 1)
-      if (settings.value.ai.activeModelId === id && settings.value.ai.models.length > 0) {
-        settings.value.ai.activeModelId = settings.value.ai.models[0].id
-      }
-      save()
-    }
-  }
-
-  function setActiveModel(id: string) {
-    settings.value.ai.activeModelId = id
-    save()
-  }
-
   const sftpBookmarks = computed(() => settings.value.sftpBookmarks)
 
   // Writable computed so components can toggle visibility directly; every
@@ -258,9 +185,6 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  // Auto-save when AI models change
-  watch(() => settings.value.ai, save, { deep: true })
-
   // Apply theme when it changes
   watch(() => settings.value.theme, applyTheme)
 
@@ -277,7 +201,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Listen for settings changes from sync
   unsubSettingsChanged?.()
-  unsubSettingsChanged =Events.On('store:settings:changed', (ev) => { const data: AppSettings = ev.data; 
+  unsubSettingsChanged =Events.On('store:settings:changed', (ev) => { const data: AppSettings = ev.data;
     if (data) {
       settings.value = mergeSettings(data)
       loaded.value = true
@@ -286,24 +210,9 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   })
 
-  // AI config changed via a sync pull — refresh the local composition.
-  unsubAiChanged?.()
-  unsubAiChanged = Events.On('store:ai:changed', (ev) => {
-    const data = ev.data as { maxTurns?: number; models?: AIModelConfig[] } | null
-    if (data) {
-      const aiCfg = useAIConfigStore()
-      aiCfg.maxTurns = data.maxTurns ?? DEFAULT_SETTINGS.ai.maxTurns
-      aiCfg.models = data.models?.length ? data.models : aiCfg.models
-      recomposeAi()
-      lastSavedAiJson = JSON.stringify({ maxTurns: settings.value.ai.maxTurns, models: settings.value.ai.models })
-    }
-  })
-
   function dispose() {
     unsubSettingsChanged?.()
     unsubSettingsChanged = null
-    unsubAiChanged?.()
-    unsubAiChanged = null
   }
 
   return {
@@ -314,8 +223,6 @@ export const useSettingsStore = defineStore('settings', () => {
     resolvedAppTheme,
     language,
     terminal,
-    ai,
-    activeModel,
     activeCategory,
     openCategory,
     init,
@@ -325,10 +232,6 @@ export const useSettingsStore = defineStore('settings', () => {
     updateTheme,
     updateLanguage,
     updateTerminal,
-    addModel,
-    updateModel,
-    removeModel,
-    setActiveModel,
     sftpBookmarks,
     sftpTransferPanelVisible,
     addSftpBookmark,
@@ -351,11 +254,6 @@ function mergeSettings(loaded: AppSettings): AppSettings {
       theme: (loaded.terminal?.theme as string) === 'dark' || (loaded.terminal?.theme as string) === 'light'
         ? DEFAULT_SETTINGS.terminal.theme
         : loaded.terminal?.theme || DEFAULT_SETTINGS.terminal.theme
-    },
-    ai: {
-      maxTurns: loaded.ai?.maxTurns ?? DEFAULT_SETTINGS.ai.maxTurns,
-      models: loaded.ai?.models?.length ? loaded.ai.models : DEFAULT_SETTINGS.ai.models,
-      activeModelId: loaded.ai?.activeModelId || DEFAULT_SETTINGS.ai.activeModelId
     },
     keyboard: normalizeKeyBindings(loaded.keyboard || {}),
     closeTabPrompt: loaded.closeTabPrompt ?? DEFAULT_SETTINGS.closeTabPrompt,

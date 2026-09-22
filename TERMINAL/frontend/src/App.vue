@@ -1983,8 +1983,7 @@ watch(
 .app-container.has-bg .main-content :deep(.el-message-box),
 .app-container.has-bg .main-content :deep(.el-select-dropdown),
 .app-container.has-bg .main-content :deep(.conn-context-menu),
-.app-container.has-bg .main-content :deep(.hash-dropdown),
-.app-container.has-bg .main-content :deep(.skill-dropdown) {
+.app-container.has-bg .main-content :deep(.hash-dropdown) {
   background-color: var(--bg-surface) !important;
 }
 /* CodeMirror 选区：覆盖 has-bg 通配透明，保证 SQL/语法编辑器选中可见 */

@@ -220,7 +220,6 @@ export interface Tab {
   type: 'ssh' | 'settings'
   groupId?: string
   config?: ConnectionConfig
-  aiLocked?: boolean
 }
 
 export interface SplitNode {

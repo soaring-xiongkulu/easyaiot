@@ -48,7 +48,7 @@ export interface CustomTerminalTheme {
 }
 
 // ⚠️ PERSISTENCE CONTRACT — every field added to this interface (and to
-// AppSettings / AISettings / AIModelConfig below) MUST get a matching field
+// AppSettings below) MUST get a matching field
 // in `backend/store/settings_store.go` (TerminalSettings / AppSettings / ...),
 // otherwise the value silently fails to persist: settings round-trip through
 // the Go struct on Save/Load, and Go drops unknown JSON keys. Add it with a
@@ -76,7 +76,6 @@ export interface TerminalSettings {
   ctrlWheelZoom?: boolean
   maxHistoryLines: number
   smartCompletion: boolean
-  aiTranscription: boolean
   highlightEnabled: boolean
   cursorBlink: boolean
   // Cursor shape when the terminal is focused, mapped straight onto xterm's
@@ -113,40 +112,10 @@ export interface TerminalSettings {
   timestampFormat: string
 }
 
-export interface AIModelConfig {
-  id: string
-  name: string
-  apiKey: string
-  baseURL: string
-  model: string
-  protocol: 'anthropic' | 'openai' | 'responses'
-  // See the persistence-contract note on TerminalSettings: this field MUST
-  // also exist in the Go AIModelConfig (backend/store/settings_store.go).
-  userAgent?: string
-  // Reference to a saved outbound proxy (proxies.json) for all traffic to
-  // this model's baseURL. Empty/undefined = direct connection.
-  proxyId?: string
-}
-
-export const USER_AGENT_PRESETS: { label: string; value: string }[] = [
-  { label: 'Terminal', value: 'Terminal' },
-  { label: 'Claude Code', value: 'claude-code/1.0' },
-  { label: 'Cursor', value: 'Cursor/1.0' },
-  { label: 'Cline', value: 'Cline/1.0' },
-  { label: 'OpenCode', value: 'opencode' },
-  { label: 'ChatGPT Desktop', value: 'ChatGPT-Desktop/1.0' },
-]
-
-export interface AISettings {
-  maxTurns: number
-  models: AIModelConfig[]
-  activeModelId: string
-}
-
 export type ShortcutAction =
   | 'nextTab' | 'prevTab'
   | 'newConnection' | 'toggleSidebar' | 'openQuickCommands'
-  | 'focusAI' | 'focusTerminal' | 'lockAI'
+  | 'focusTerminal'
   | 'maximizePanel'
   | 'closePanel'
   | 'navigatePrev' | 'navigateNext'
@@ -199,8 +168,6 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
   toggleSidebar: 'shortcut.toggleSidebar',
   openQuickCommands: 'shortcut.openQuickCommands',
   focusTerminal: 'shortcut.focusTerminal',
-  focusAI: 'shortcut.focusAI',
-  lockAI: 'shortcut.lockAI',
   duplicateSession: 'shortcut.duplicateSession',
   terminalSearch: 'shortcut.terminalSearch',
   openSettings: 'shortcut.openSettings',
@@ -219,12 +186,10 @@ export const DEFAULT_KEYBOARD: KeyboardSettings = {
   toggleSidebar: { ctrl: true, shift: true, alt: false, key: 'h' },
   openQuickCommands: { ctrl: true, shift: true, alt: false, key: 'm' },
   focusTerminal: { ctrl: true, shift: true, alt: false, key: 'j' },
-  focusAI: { ctrl: true, shift: true, alt: false, key: 'k' },
   closePanel: { ctrl: true, shift: true, alt: false, key: 'q' },
   maximizePanel: { ctrl: true, shift: true, alt: false, key: 'enter' },
   navigatePrev: { ctrl: false, shift: false, alt: true, key: 'arrowleft' },
   navigateNext: { ctrl: false, shift: false, alt: true, key: 'arrowright' },
-  lockAI: { ctrl: true, shift: true, alt: false, key: 'l' },
   duplicateSession: { ctrl: true, shift: true, alt: false, key: 'd' },
   terminalSearch: { ctrl: true, shift: true, alt: false, key: 'f' },
   openSettings: { ctrl: true, shift: false, alt: false, key: ',' },
@@ -265,7 +230,6 @@ export interface AppSettings {
   /** UI design baseline in px; the rem root derives from it (uiFontSize/12*16). */
   uiFontSize: number
   terminal: TerminalSettings
-  ai: AISettings
   keyboard: KeyboardSettings
   closeTabPrompt: boolean
   closeAppPrompt: boolean
@@ -337,7 +301,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     middleClickAction: 'paste',
     maxHistoryLines: 2500,
     smartCompletion: true,
-    aiTranscription: true,
     highlightEnabled: true,
     cursorBlink: true,
     ctrlWheelZoom: true,
@@ -350,20 +313,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showLineNumbers: false,
     showTimestamps: false,
     timestampFormat: 'HH:mm:ss'
-  },
-  ai: {
-    maxTurns: 20,
-    models: [
-      {
-        id: 'model-default',
-        name: 'Default',
-        apiKey: '',
-        baseURL: 'https://api.openai.com/v1',
-        model: 'gpt-4o',
-        protocol: 'anthropic' as const
-      }
-    ],
-    activeModelId: 'model-default'
   },
   keyboard: { ...DEFAULT_KEYBOARD },
   closeTabPrompt: true,

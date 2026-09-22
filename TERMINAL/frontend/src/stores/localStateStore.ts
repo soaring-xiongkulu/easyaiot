@@ -6,7 +6,6 @@ import { LoadLocalState, SaveLocalState } from '../../bindings/easyaiot/terminal
 // type is declared here and must stay in sync with backend/store).
 interface LocalState {
   sidebarVisible: boolean
-  aiSidebarVisible: boolean
   collapsedGroupIds: string[]
   collapsedQuickCommandGroupIds: string[]
   windowX: number
@@ -28,7 +27,6 @@ interface LocalState {
 
 const DEFAULT: LocalState = {
   sidebarVisible: true,
-  aiSidebarVisible: true,
   collapsedGroupIds: [],
   collapsedQuickCommandGroupIds: [],
   windowX: 0,

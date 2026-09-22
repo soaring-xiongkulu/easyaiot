@@ -15,7 +15,6 @@ const tabState = reactive<{
   // Id of the workspace panel currently being dragged — same rationale as
   // draggingTabId: dragover handlers need it to detect "over itself".
   draggingPanelId: string | null
-  aiLockedPanelIds: Set<string>
   broadcastPanelIds: Set<string>
   tabNotifications: Record<string, boolean>
   /** OSC 9;4 progress state per tab (null = no active progress). Fed by the
@@ -26,7 +25,6 @@ const tabState = reactive<{
   activeTabId: null,
   draggingTabId: null,
   draggingPanelId: null,
-  aiLockedPanelIds: new Set<string>(),
   broadcastPanelIds: new Set<string>(),
   tabNotifications: {},
   tabProgress: {}
@@ -54,11 +52,6 @@ export const useTabStore = defineStore('tab', () => {
   const activeTab = computed(() =>
     tabState.tabs.find(t => t.id === tabState.activeTabId) || null
   )
-  const aiLockedPanelId = computed(() => {
-    const ids = [...tabState.aiLockedPanelIds]
-    return ids.length > 0 ? ids[0] : null
-  })
-  const aiLockedPanelIds = computed(() => tabState.aiLockedPanelIds)
   const broadcastPanelIds = computed(() => tabState.broadcastPanelIds)
 
   // Panel-level: whether a specific panel is participating in broadcast.
@@ -258,7 +251,8 @@ export const useTabStore = defineStore('tab', () => {
       }
     }
 
-    // Clear AI lock if locked panel was in this tab
+    // Collect panel ids removed with this tab so callers can clean up
+    // per-panel state (e.g. broadcast participation).
     const removedPanelIds: string[] = (() => {
       if (removed.type === 'start') return []
       if (removed.type === 'workspace') return removed.panelIds
@@ -266,7 +260,6 @@ export const useTabStore = defineStore('tab', () => {
     })()
 
     for (const pid of removedPanelIds) {
-      tabState.aiLockedPanelIds.delete(pid)
       tabState.broadcastPanelIds.delete(pid)
     }
 
@@ -695,40 +688,6 @@ export const useTabStore = defineStore('tab', () => {
     if (t) t.locked = !t.locked
   }
 
-  // ── AI lock ──
-
-  function getAILockedPanels(): string[] {
-    return [...tabState.aiLockedPanelIds]
-  }
-
-  function isPanelAILocked(panelId: string): boolean {
-    return tabState.aiLockedPanelIds.has(panelId)
-  }
-
-  function addAILockedPanel(panelId: string) {
-    tabState.aiLockedPanelIds.add(panelId)
-  }
-
-  function removeAILockedPanel(panelId: string) {
-    tabState.aiLockedPanelIds.delete(panelId)
-  }
-
-  function clearAILockedPanels() {
-    tabState.aiLockedPanelIds.clear()
-  }
-
-  // Keep old setter for backward compat
-  function setAILockedPanel(panelId: string | null) {
-    tabState.aiLockedPanelIds.clear()
-    if (panelId) tabState.aiLockedPanelIds.add(panelId)
-  }
-
-  // Keep old getter for backward compat
-  function getAILockedPanel(): string | null {
-    const ids = [...tabState.aiLockedPanelIds]
-    return ids.length > 0 ? ids[0] : null
-  }
-
   // ── Layout helpers ──
 
   function collectPanelIds(node: LayoutNode): string[] {
@@ -843,8 +802,6 @@ export const useTabStore = defineStore('tab', () => {
     draggingTabId,
     draggingPanelId,
     activeTab,
-    aiLockedPanelId,
-    aiLockedPanelIds,
     createTerminalTab,
     createTerminalTabAt,
     replaceStartTab,
@@ -873,13 +830,6 @@ export const useTabStore = defineStore('tab', () => {
     setWorkspaceSavedId,
     buildGridLayout,
     movePanelInWorkspace,
-    setAILockedPanel,
-    getAILockedPanel,
-    getAILockedPanels,
-    isPanelAILocked,
-    addAILockedPanel,
-    removeAILockedPanel,
-    clearAILockedPanels,
     toggleTabLock,
     broadcastPanelIds,
     getAllBroadcastPanelIds,
