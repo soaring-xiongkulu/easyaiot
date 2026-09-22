@@ -14,16 +14,6 @@
     <div v-if="activeSubTab === 'query'" class="query-section">
       <div class="editor-top" :style="{ height: topHeight + 'px' }">
         <div class="editor-toolbar">
-          <input
-            v-model="nlInput"
-            class="nl-input"
-            :placeholder="t('mongodb.aiPlaceholder')"
-            @keydown.enter="generateFilter"
-          />
-          <button class="btn btn-default btn-sm" @click="generateFilter" :disabled="aiGenerating || !nlInput.trim()">
-            <Sparkles :size="'0.875rem'" :class="{ 'ai-pulse': aiGenerating }" />
-            {{ aiGenerating ? '...' : 'AI' }}
-          </button>
           <button class="btn btn-primary btn-sm" title="Ctrl+Enter" @click="onExecute">{{ t('mongodb.executeQuery') }}</button>
         </div>
         <div class="filter-editor-wrap">
@@ -201,11 +191,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { Pencil, Trash2, Sparkles, Plus } from '@lucide/vue'
+import { Pencil, Trash2, Plus } from '@lucide/vue'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from '../i18n'
 import { msg } from '../services/message'
-import { chat } from '../services/llm'
 import { uiPx } from '../utils/uiScale'
 import {
   MongoFind,
@@ -257,8 +246,6 @@ function onTopResizeEnd() {
 // ── Query state ──
 const activeSubTab = ref<'query' | 'indexes'>('query')
 const filterText = ref('{}')
-const nlInput = ref('')
-const aiGenerating = ref(false)
 const queryLimit = ref(100)
 const queryLoading = ref(false)
 const queryError = ref('')
@@ -320,42 +307,6 @@ const editingRow = ref<any>(null)
 function onExecute() {
   currentSkip.value = 0
   executeQuery()
-}
-
-async function generateFilter() {
-  const input = nlInput.value.trim()
-  if (!input || !props.dbName || !props.collectionName) return
-  aiGenerating.value = true
-  try {
-    let sample = ''
-    try {
-      const result = await MongoFind(props.sessionId, props.dbName, props.collectionName, '{}', 0, 1)
-      if (result.documents.length > 0) {
-        sample = result.documents[0]
-      }
-    } catch {}
-
-    const schemaContext = sample
-      ? `Collection "${props.collectionName}" in database "${props.dbName}". Sample document:\n${sample}`
-      : `Collection "${props.collectionName}" in database "${props.dbName}".`
-
-    let result = ''
-    await chat({
-      system: `You are a MongoDB query assistant. Convert natural language to MongoDB Extended JSON filter only. Output ONLY the JSON filter (no markdown, no explanation). Use operators like $eq, $gt, $gte, $lt, $lte, $in, $nin, $regex, $exists, $and, $or, $not, $elemMatch. Dates should use ISODate format. ObjectIds should use $oid format.`,
-      messages: [
-        { role: 'user', content: `Schema context:\n${schemaContext}\n\nQuery: ${input}` }
-      ],
-      onChunk: (chunk: string) => { result += chunk },
-    })
-    const cleaned = result.trim()
-      .replace(/^```[\w]*\n?/i, '')
-      .replace(/\n?```$/i, '')
-    JSON.parse(cleaned)
-    filterText.value = cleaned
-  } catch (e: any) {
-    msg.error(e?.message || String(e))
-  }
-  aiGenerating.value = false
 }
 
 async function executeQuery() {
@@ -525,7 +476,6 @@ onUnmounted(() => {
 // Switching collection re-runs the default query
 watch(() => [props.dbName, props.collectionName], () => {
   filterText.value = '{}'
-  nlInput.value = ''
   resultFilter.value = ''
   currentSkip.value = 0
   queryResult.value = null
@@ -571,12 +521,6 @@ watch(() => [props.dbName, props.collectionName], () => {
   border-bottom-color: var(--accent);
 }
 
-.ai-pulse { animation: fade-pulse 1.2s ease-in-out infinite; }
-@keyframes fade-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
 .query-section {
   flex: 1;
   display: flex;
@@ -597,19 +541,6 @@ watch(() => [props.dbName, props.collectionName], () => {
   padding-bottom: 0.5rem;
   flex-shrink: 0;
 }
-.nl-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  outline: none;
-}
-.nl-input:focus { border-color: var(--accent); }
 .filter-editor-wrap {
   flex: 1;
   min-height: 0;

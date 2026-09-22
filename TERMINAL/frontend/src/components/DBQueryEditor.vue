@@ -9,16 +9,6 @@
     </div>
     <div class="editor-top" :style="{ height: topHeight + 'px' }">
       <div class="editor-toolbar">
-        <input
-          v-model="nlInput"
-          class="nl-input"
-          :placeholder="t('mongodb.aiPlaceholder')"
-          @keydown.enter="generateSQL"
-        />
-        <button class="btn btn-default btn-sm" @click="generateSQL" :disabled="aiGenerating || !nlInput.trim()">
-          <Sparkles :size="'0.875rem'" :class="{ 'ai-pulse': aiGenerating }" />
-          {{ aiGenerating ? '...' : 'AI' }}
-        </button>
         <button class="btn btn-default btn-sm" @click="historyOpen = !historyOpen">
           <History :size="'0.875rem'" />
           {{ t('db.queryHistory') }}
@@ -199,16 +189,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, nextTick, onMounted } from 'vue'
-import { Sparkles, History, FolderOpen, Download, Plus } from '@lucide/vue'
+import { ref, shallowRef, computed, watch, onMounted } from 'vue'
+import { History, FolderOpen, Download, Plus } from '@lucide/vue'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from '../i18n'
 import SyntaxEditor from './SyntaxEditor.vue'
 import DBResultGrid from './DBResultGrid.vue'
 import Menu from './Menu.vue'
 import MenuItem from './MenuItem.vue'
-import { ExecuteQuery, ExecuteStatement, GetTables, GetTableSchema, DBDefaultTableQuery, DBInsertRow, DBUpdateRow, DBDeleteRow, ExecuteSQLScript, OpenFileDialogFiltered, ReadFileBase64, SaveFileDialogFiltered, WriteFileBase64 } from '../../bindings/easyaiot/terminal/app'
-import { chat } from '../services/llm'
+import { ExecuteQuery, ExecuteStatement, GetTableSchema, DBDefaultTableQuery, DBInsertRow, DBUpdateRow, DBDeleteRow, ExecuteSQLScript, OpenFileDialogFiltered, ReadFileBase64, SaveFileDialogFiltered, WriteFileBase64 } from '../../bindings/easyaiot/terminal/app'
 import { msg } from '../services/message'
 import { loadSqlHistory, pushSqlHistory } from '../composables/useDbSqlHistory'
 import type { QueryResult, ExecResult, ColumnInfo, HistoryEntry } from '../types/database'
@@ -234,8 +223,6 @@ const emit = defineEmits<{
 }>()
 
 const sql = ref('')
-const nlInput = ref('')
-const aiGenerating = ref(false)
 const queryResult = shallowRef<QueryResult | null>(null)
 const execResult = ref<ExecResult | null>(null)
 const error = ref('')
@@ -437,99 +424,6 @@ onMounted(async () => {
   await loadBrowseSql(0)
   if (props.autoRun) await onExecute()
 })
-
-async function generateSQL() {
-  const input = nlInput.value.trim()
-  if (!input) return
-  aiGenerating.value = true
-  error.value = ''
-  try {
-    const dbType = props.dbType || 'MySQL'
-    const dbName = props.dbName || 'unknown'
-
-    let tables: Array<{ name: string; type?: string }> = []
-    try {
-      tables = await GetTables(props.sessionId, dbName)
-    } catch { /* ignore */ }
-
-    // Pick relevant tables: current table, names mentioned in the prompt, else first 12.
-    const lower = input.toLowerCase()
-    const mentioned = tables.filter(t => lower.includes(t.name.toLowerCase())).map(t => t.name)
-    const preferred: string[] = []
-    if (props.tableName) preferred.push(props.tableName)
-    for (const n of mentioned) {
-      if (!preferred.includes(n)) preferred.push(n)
-    }
-    if (preferred.length === 0) {
-      preferred.push(...tables.slice(0, 12).map(t => t.name))
-    }
-
-    const schemas: Record<string, unknown> = {}
-    // Prefer already-loaded columns for the active table.
-    if (props.tableName && props.tableColumns?.length) {
-      schemas[props.tableName] = props.tableColumns.map(c => ({
-        name: c.name,
-        type: c.type,
-        nullable: c.nullable,
-        comment: c.comment || undefined,
-      }))
-    }
-    for (const name of preferred.slice(0, 12)) {
-      if (schemas[name]) continue
-      try {
-        const schema = await GetTableSchema(props.sessionId, dbName, name)
-        schemas[name] = schema.columns?.map(c => ({
-          name: c.name,
-          type: c.type,
-          nullable: c.nullable,
-          comment: c.comment || undefined,
-        })) || []
-      } catch {
-        schemas[name] = []
-      }
-    }
-
-    const tableList = tables.map(t => t.name).join(', ')
-    let result = ''
-    await chat({
-      system: `You are a SQL assistant for ${dbType}. Convert the user's natural language into ONE executable ${dbType} SQL statement.
-Rules:
-- Output ONLY raw SQL. No markdown fences, no explanation, no comments.
-- Use ${dbType}-specific syntax and identifier quoting.
-- For SELECT queries, always include LIMIT 100 (or dialect equivalent such as FETCH/TOP) unless the user asks otherwise.
-- Prefer the provided schema. If unsure about a column, pick the closest match from schema.`,
-      messages: [
-        {
-          role: 'user',
-          content: `Database: ${dbName}
-All tables: ${tableList || '(unknown)'}
-Schema JSON: ${JSON.stringify(schemas)}
-${props.tableName ? `Current table: ${props.tableName}\n` : ''}
-Request: ${input}`,
-        },
-      ],
-      onChunk: (chunk: string) => { result += chunk },
-    })
-
-    const cleaned = result.trim()
-      .replace(/^```[\w]*\n?/i, '')
-      .replace(/\n?```$/i, '')
-      .trim()
-    if (!cleaned) {
-      throw new Error(t('db.aiEmptyResult'))
-    }
-    sql.value = cleaned
-    browseMode.value = false
-    await nextTick()
-    editorRef.value?.focus?.()
-  } catch (e: any) {
-    const message = e?.message || String(e)
-    error.value = message
-    msg.error(message)
-  } finally {
-    aiGenerating.value = false
-  }
-}
 
 async function onExecute() {
   const selected = editorRef.value?.getSelectedOrAll?.() ?? sql.value
@@ -1057,25 +951,6 @@ function onEditRowCancel() {
   width: 100%;
   align-self: stretch;
   overflow: hidden;
-}
-.nl-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 0.8125rem;
-  outline: none;
-}
-.nl-input:focus { border-color: var(--accent); }
-.nl-input::placeholder { color: var(--text-muted); }
-.ai-pulse { animation: fade-pulse 1.2s ease-in-out infinite; }
-@keyframes fade-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
 }
 .history-panel {
   max-height: 8.75rem;
