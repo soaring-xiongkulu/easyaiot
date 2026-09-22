@@ -1325,7 +1325,7 @@ function showContextMenu(e: MouseEvent) {
 function copyContextText(text: unknown) {
   if (typeof text !== 'string' || !text) return
   navigator.clipboard.writeText(text).then(() => {
-    msg.success(t('ai.copied'))
+    msg.success(t('common.copied'))
   }).catch(() => {
     // fallback
     const ta = document.createElement('textarea')
@@ -1334,7 +1334,7 @@ function copyContextText(text: unknown) {
     ta.select()
     document.execCommand('copy')
     document.body.removeChild(ta)
-    msg.success(t('ai.copied'))
+    msg.success(t('common.copied'))
   })
   ctxMenuVisible.value = false
 }
