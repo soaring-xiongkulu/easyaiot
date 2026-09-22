@@ -24,6 +24,11 @@ type S3Session struct {
 	mu        sync.RWMutex
 	transfers map[string]*TransferTask
 	taskSeq   int64
+	// Direct-entry counts for the "files" column, keyed by pane path
+	// ("/bucket" or "/bucket/prefix"). S3 has no O(1) object count, so each
+	// count walks a delimited listing here; results cache until any write.
+	countMu    sync.Mutex
+	countCache map[string]int64
 }
 
 func NewS3Session(id string) *S3Session {
@@ -36,6 +41,7 @@ func NewS3Session(id string) *S3Session {
 		localFSOps: newLocalFSOps(),
 		cwd:        "/",
 		transfers:  make(map[string]*TransferTask),
+		countCache: make(map[string]int64),
 	}
 }
 
@@ -132,7 +138,6 @@ func (s *S3Session) ListRemote(dir string) (FileListResult, error) {
 				Name:    b.Name,
 				Size:    0,
 				ModTime: b.CreationDate.Format("2006-01-02T15:04:05Z"),
-				Mode:    "drwxr-xr-x",
 				IsDir:   true,
 			})
 		}
@@ -169,11 +174,8 @@ func (s *S3Session) ListRemote(dir string) (FileListResult, error) {
 			continue
 		}
 		files = append(files, FileItem{
-			Name:    name,
-			Size:    0,
-			ModTime: "",
-			Mode:    "drwxr-xr-x",
-			IsDir:   true,
+			Name:  name,
+			IsDir: true,
 		})
 	}
 
@@ -188,7 +190,6 @@ func (s *S3Session) ListRemote(dir string) (FileListResult, error) {
 			Name:    name,
 			Size:    obj.Size,
 			ModTime: obj.LastModified,
-			Mode:    "-rw-r--r--",
 			IsDir:   false,
 		})
 	}
@@ -274,14 +275,136 @@ func (s *S3Session) ChangeRemoteDir(dir string) (FileListResult, error) {
 }
 
 // Symlink is not supported: object storage has no links.
+// countEntryCeil bounds the EntryCount walk: past one full page we stop and
+// report limit+1, which the frontend renders as "1000+", instead of scanning
+// a huge prefix (potentially millions of keys) for a file-pane column.
+const countEntryCeil = 1000
+
+// EntryCount reports the number of entries directly under the given pane path
+// — files plus next-level folders, exactly what entering the folder lists —
+// for "/bucket" (bucket row) or "/bucket/prefix" (folder row). Results cache
+// until any write invalidates them. The bucket is taken from the path, so
+// bucket rows are countable while the pane itself sits at the bucket list.
+func (s *S3Session) EntryCount(dir string) (int64, error) {
+	if err := s.requireClient(); err != nil {
+		return 0, err
+	}
+
+	s.countMu.Lock()
+	if n, ok := s.countCache[dir]; ok {
+		s.countMu.Unlock()
+		return n, nil
+	}
+	s.countMu.Unlock()
+
+	target, err := s.resolveRemote(dir)
+	if err != nil {
+		return 0, err
+	}
+	p := strings.TrimPrefix(target, "/")
+	bucket, key := p, ""
+	if i := strings.Index(p, "/"); i >= 0 {
+		bucket, key = p[:i], p[i+1:]
+	}
+	if bucket == "" {
+		return 0, fmt.Errorf("bucket is required to count entries")
+	}
+	if key != "" && !strings.HasSuffix(key, "/") {
+		key += "/"
+	}
+
+	var count int64
+	token := ""
+	for {
+		resp, err := s.s3.List(simples3.ListInput{
+			Bucket:            bucket,
+			Prefix:            key,
+			Delimiter:         "/",
+			MaxKeys:           1000,
+			ContinuationToken: token,
+		})
+		if err != nil {
+			return 0, err
+		}
+		// Delimited listing: Objects are the direct files, CommonPrefixes the
+		// direct subfolders — both are entries the pane would show.
+		count += int64(len(resp.Objects) + len(resp.CommonPrefixes))
+		if !resp.IsTruncated || count > countEntryCeil {
+			break
+		}
+		token = resp.NextContinuationToken
+		if token == "" {
+			break
+		}
+	}
+	if count > countEntryCeil {
+		count = countEntryCeil + 1
+	}
+
+	s.countMu.Lock()
+	s.countCache[dir] = count
+	s.countMu.Unlock()
+	return count, nil
+}
+
+// invalidateCountCache drops cached entry counts. Called at the start of every
+// mutating operation; uploads that complete in the background may leave a
+// slightly stale count until the next mutation, which the pane's refresh
+// covers.
+func (s *S3Session) invalidateCountCache() {
+	s.countMu.Lock()
+	s.countCache = make(map[string]int64)
+	s.countMu.Unlock()
+}
+
 func (s *S3Session) Symlink(_, _ string) error {
 	return fmt.Errorf("symlink is not supported by S3")
+}
+
+// CreateBucket creates a new bucket, visible in the bucket-list root after a
+// refresh. Region defaults to the connection's region (server-side).
+func (s *S3Session) CreateBucket(name string) error {
+	if err := s.requireClient(); err != nil {
+		return err
+	}
+	s.invalidateCountCache()
+	name = strings.Trim(name, "/ ")
+	if name == "" {
+		return fmt.Errorf("bucket name is empty")
+	}
+	_, err := s.s3.CreateBucket(simples3.CreateBucketInput{Bucket: name})
+	return err
+}
+
+// DeleteBucket removes a bucket. The S3 server refuses non-empty buckets —
+// the error surfaces as-is so the frontend can show it. Deleting the bucket
+// the pane is currently inside resets the view back to the bucket list.
+func (s *S3Session) DeleteBucket(name string) error {
+	if err := s.requireClient(); err != nil {
+		return err
+	}
+	s.invalidateCountCache()
+	name = strings.Trim(name, "/ ")
+	if name == "" {
+		return fmt.Errorf("bucket name is empty")
+	}
+	if err := s.s3.DeleteBucket(simples3.DeleteBucketInput{Bucket: name}); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	if s.bucket == name {
+		s.bucket = ""
+		s.cwd = "/"
+	}
+	s.mu.Unlock()
+	return nil
 }
 
 func (s *S3Session) MakeDir(dir string) error {
 	if err := s.requireClient(); err != nil {
 		return err
 	}
+	s.invalidateCountCache()
 	p, err := s.resolveRemote(dir)
 	if err != nil {
 		return err
@@ -305,6 +428,7 @@ func (s *S3Session) Remove(p string, recursive bool) error {
 	if err := s.requireClient(); err != nil {
 		return err
 	}
+	s.invalidateCountCache()
 	target, err := s.resolveRemote(p)
 	if err != nil {
 		return err
@@ -394,6 +518,7 @@ func (s *S3Session) Rename(oldName, newName string) error {
 	if err := s.requireClient(); err != nil {
 		return err
 	}
+	s.invalidateCountCache()
 	old, err := s.resolveRemote(oldName)
 	if err != nil {
 		return err
@@ -487,6 +612,7 @@ func (s *S3Session) Copy(oldPath, newPath string) error {
 	if err := s.requireClient(); err != nil {
 		return err
 	}
+	s.invalidateCountCache()
 	old, err := s.resolveRemote(oldPath)
 	if err != nil {
 		return err
@@ -586,6 +712,7 @@ func (s *S3Session) PutContent(remotePath string, content []byte) error {
 	if err := s.requireClient(); err != nil {
 		return err
 	}
+	s.invalidateCountCache()
 	p, err := s.resolveRemote(remotePath)
 	if err != nil {
 		return err
@@ -651,6 +778,7 @@ func (s *S3Session) Put(localPath, remotePath string, recursive bool) (string, e
 	if err := s.requireClient(); err != nil {
 		return "", err
 	}
+	s.invalidateCountCache()
 	lp := localPath
 	if !filepath.IsAbs(lp) {
 		lp = filepath.Join(s.localCwd, lp)

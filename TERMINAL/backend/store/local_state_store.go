@@ -35,6 +35,10 @@ type LocalState struct {
 	// context menu (type/modTime/size/permission/owner/group). Local-only UI
 	// state, never synced; columns absent from the list stay visible.
 	SftpHiddenColumns []string `json:"sftpHiddenColumns,omitempty"`
+	// S3ShowLocalPane re-expands the local directory pane in S3 file-transfer
+	// tabs (hidden by default there — S3 browsing rarely needs it). Local-only
+	// preference, never synced.
+	S3ShowLocalPane bool `json:"s3ShowLocalPane,omitempty"`
 }
 
 type LocalStateStore struct {

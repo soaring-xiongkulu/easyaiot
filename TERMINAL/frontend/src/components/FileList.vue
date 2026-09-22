@@ -7,10 +7,21 @@
     @click="onListClick"
   >
     <div class="filter-bar">
+      <!-- Local-pane toggle (S3 remote pane): the local directory is hidden
+           by default and re-expanded from this icon. -->
+      <button
+        v-if="localPaneToggle && mode === 'remote'"
+        class="filter-icon-btn"
+        :class="{ active: localPaneVisible }"
+        @click="onToggleLocalPane"
+        :title="localPaneVisible ? t('s3.hideLocalPane') : t('s3.showLocalPane')"
+      >
+        <el-icon><PanelLeft :size="'0.875rem'" /></el-icon>
+      </button>
       <el-input
         v-model="filterText"
         :placeholder="t('sftp.filterByName')"
-       
+
         clearable
       />
       <!-- History navigation: toolbar buttons in the flat (dual-pane) layout,
@@ -46,10 +57,10 @@
       <!-- Create group: new file / directory / link. Flat keeps every action
            on the bar, so there is no more-menu in this layout. -->
       <span v-if="flatToolbar" class="toolbar-divider" />
-      <button v-if="flatToolbar" class="filter-icon-btn" @click="doNewFile" :title="t('sftp.newFile')">
+      <button v-if="flatToolbar && !atBucketRoot" class="filter-icon-btn" @click="doNewFile" :title="t('sftp.newFile')">
         <el-icon><FilePlus2 :size="'0.875rem'" /></el-icon>
       </button>
-      <button v-if="flatToolbar" class="filter-icon-btn" @click="doMkdir" :title="t('sftp.newDirectory')">
+      <button v-if="flatToolbar" class="filter-icon-btn" @click="atBucketRoot ? doCreateBucket() : doMkdir()" :title="atBucketRoot ? t('s3.createBucket') : t('sftp.newDirectory')">
         <el-icon><FolderPlus :size="'0.875rem'" /></el-icon>
       </button>
       <button v-if="flatToolbar && supportsSymlink" class="filter-icon-btn" @click="doSymlink" :title="t('sftp.newLink')">
@@ -105,6 +116,11 @@
               <span class="file-name" :class="{ selected: isSelected(row) }">{{ row.name }}</span>
             </div>
           </div>
+        </template>
+      </el-table-column>
+      <el-table-column v-if="columnVisible('fileCount')" :label="t('s3.fileCount')" :width="uiPx(90)" align="right" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span class="cell-secondary">{{ dirCountText(row) }}</span>
         </template>
       </el-table-column>
       <el-table-column v-if="columnVisible('type')" prop="type" :label="t('sftp.type')" :width="uiPx(70)" sortable="custom" show-overflow-tooltip>
@@ -172,9 +188,18 @@
           <MenuDivider />
           <MenuItem @click="doRename">{{ t('sftp.rename') }}</MenuItem>
           <MenuItem @click="doDelete">{{ t('sftp.delete') }}</MenuItem>
-          <MenuItem v-if="mode === 'remote'" @click="doChmod">{{ t('sftp.changePermission') }}</MenuItem>
+          <MenuItem v-if="mode === 'remote' && !isS3" @click="doChmod">{{ t('sftp.changePermission') }}</MenuItem>
         </template>
         <template v-else-if="menuType === 'dir'">
+          <template v-if="bucketCtxMenu">
+            <!-- S3 root: directory rows are buckets — bucket-level ops only. -->
+            <MenuItem @click="doCreateBucket">{{ t('s3.createBucket') }}</MenuItem>
+            <MenuDivider />
+            <MenuItem @click="doCopyPath">{{ t('sftp.copyPath') }}</MenuItem>
+            <MenuDivider />
+            <MenuItem @click="doDeleteBucket">{{ t('s3.deleteBucket') }}</MenuItem>
+          </template>
+          <template v-else>
           <MenuItem @click="doNewFile">{{ t('sftp.newFile') }}</MenuItem>
           <MenuItem @click="doMkdir">{{ t('sftp.newDirectory') }}</MenuItem>
           <MenuItem v-if="supportsSymlink" @click="doSymlink">{{ t('sftp.newLink') }}</MenuItem>
@@ -191,7 +216,8 @@
           <MenuDivider />
           <MenuItem @click="doRename">{{ t('sftp.rename') }}</MenuItem>
           <MenuItem @click="doDelete">{{ t('sftp.delete') }}</MenuItem>
-          <MenuItem v-if="mode === 'remote'" @click="doChmod">{{ t('sftp.changePermission') }}</MenuItem>
+          <MenuItem v-if="mode === 'remote' && !isS3" @click="doChmod">{{ t('sftp.changePermission') }}</MenuItem>
+          </template>
         </template>
         <template v-else-if="menuType === 'batch'">
           <MenuItem @click="doCopyToClipboard">{{ t('sftp.copy') }}</MenuItem>
@@ -206,16 +232,23 @@
           <MenuDivider />
           <MenuItem v-if="mode === 'remote'" class="disabled">{{ t('sftp.renameDisabled') }}</MenuItem>
           <MenuItem v-if="mode === 'local'" @click="doRename">{{ t('sftp.rename') }}</MenuItem>
-          <MenuItem @click="doDelete">{{ t('sftp.delete') }}</MenuItem>
-          <MenuItem v-if="mode === 'remote'" class="disabled">{{ t('sftp.chmodDisabled') }}</MenuItem>
+          <MenuItem v-if="bucketCtxMenu" @click="doDeleteBucket">{{ t('s3.deleteBucket') }}</MenuItem>
+          <MenuItem v-else @click="doDelete">{{ t('sftp.delete') }}</MenuItem>
+          <MenuItem v-if="mode === 'remote' && !isS3" class="disabled">{{ t('sftp.chmodDisabled') }}</MenuItem>
         </template>
         <template v-else-if="menuType === 'empty'">
+          <template v-if="atBucketRoot">
+            <!-- S3 root: nothing to create inside the bucket list itself. -->
+            <MenuItem @click="doCreateBucket">{{ t('s3.createBucket') }}</MenuItem>
+          </template>
+          <template v-else>
           <MenuItem @click="doNewFile">{{ t('sftp.newFile') }}</MenuItem>
           <MenuItem @click="doMkdir">{{ t('sftp.newDirectory') }}</MenuItem>
           <MenuItem v-if="supportsSymlink" @click="doSymlink">{{ t('sftp.newLink') }}</MenuItem>
           <MenuDivider />
           <MenuItem :class="{ disabled: !clipboardCount }" @click="clipboardCount && doPaste()">{{ t('sftp.paste') }}</MenuItem>
           <MenuItem @click="doSelectAll">{{ t('sftp.selectAll') }}</MenuItem>
+          </template>
         </template>
     </Menu>
 
@@ -231,8 +264,8 @@
         <MenuItem @click="emit('up')">{{ t('sftp.goUp') }}</MenuItem>
         <MenuDivider />
       </template>
-      <MenuItem v-if="!flatToolbar" @click="doNewFile">{{ t('sftp.newFile') }}</MenuItem>
-      <MenuItem v-if="!flatToolbar" @click="doMkdir">{{ t('sftp.newDirectory') }}</MenuItem>
+      <MenuItem v-if="!flatToolbar && !atBucketRoot" @click="doNewFile">{{ t('sftp.newFile') }}</MenuItem>
+      <MenuItem v-if="!flatToolbar" @click="atBucketRoot ? doCreateBucket() : doMkdir()">{{ atBucketRoot ? t('s3.createBucket') : t('sftp.newDirectory') }}</MenuItem>
       <MenuItem v-if="supportsSymlink" @click="doSymlink">{{ t('sftp.newLink') }}</MenuItem>
       <MenuDivider />
       <MenuItem class="iconic" :class="{ active: showHidden }" @click="toggleShowHidden">
@@ -245,7 +278,7 @@
          column is the identity of the list and always shown. -->
     <Menu ref="columnMenuRef" v-model:visible="columnMenuVisible">
       <MenuItem
-        v-for="col in optionalColumns"
+        v-for="col in pickerColumns"
         :key="col"
         :class="{ checkable: true, checked: columnVisible(col) }"
         @click="toggleColumn(col)"
@@ -256,7 +289,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { Folder, File, Link, RefreshCw, Eye, Upload, FilePlus2, FolderPlus, MoreHorizontal, ChevronLeft, ChevronRight, CornerLeftUp } from '@lucide/vue'
+import { Folder, File, Link, RefreshCw, Eye, Upload, FilePlus2, FolderPlus, MoreHorizontal, ChevronLeft, ChevronRight, CornerLeftUp, PanelLeft } from '@lucide/vue'
 import { useI18n } from '../i18n'
 import { msg } from '../services/message'
 import { joinPath } from '../composables/useFilePanel'
@@ -290,6 +323,18 @@ const props = defineProps<{
   showSendToOther?: boolean
   /** Show the "new link" (symbolic link) entry — only for backends with link semantics. */
   supportsSymlink?: boolean
+  /** Backend protocol of the remote pane ('s3', 'sftp', …). S3 has no POSIX
+   *  permissions/owners, so those columns and actions are hidden, and at the
+   *  bucket list ("/") directory rows ARE buckets with bucket-level ops. */
+  protocol?: string
+  /** S3 only: direct-entry counts per directory row, keyed by row name.
+   *  Absent = still counting ("…"), null = failed ("-"). */
+  dirFileCounts?: Record<string, number | null>
+  /** Show the local-pane toggle button (S3 remote pane: local directory is
+   *  hidden by default and re-expanded from here). */
+  localPaneToggle?: boolean
+  /** Current visibility state driving the toggle button's icon/title. */
+  localPaneVisible?: boolean
   /** Show the "copy path to terminal" context-menu entry — sidebar hosts only:
    *  the dual-pane tab has no terminal beside it to receive the path. */
   showCopyPathToTerminal?: boolean
@@ -315,6 +360,9 @@ const emit = defineEmits<{
   delete: [items: FileItem[]]
   refresh: []
   mkdir: []
+  createBucket: []
+  deleteBucket: [items: FileItem[]]
+  toggleLocalPane: []
   symlink: []
   chmod: [item: FileItem]
   upload: []
@@ -362,6 +410,11 @@ const tableRef = ref<any>(null)
 
 const sendToKey = computed(() => props.mode === 'local' ? 'sftp.sendToRemote' : 'sftp.sendToLocal')
 const flatToolbar = computed(() => props.toolbarLayout === 'flat')
+// S3 pane: no POSIX metadata, and "/" is the bucket list where the usual
+// new-folder/delete actions map to bucket create/delete instead.
+const isS3 = computed(() => props.mode === 'remote' && props.protocol === 's3')
+const atBucketRoot = computed(() => isS3.value && (!props.breadcrumbPath || props.breadcrumbPath === '/'))
+const bucketCtxMenu = computed(() => atBucketRoot.value && (menuType.value === 'dir' || menuType.value === 'batch'))
 
 // Footer stats for the current multi-selection. The '..' parent row is not a
 // real entry, so it never counts toward the item total or the size sum.
@@ -390,8 +443,8 @@ const itemCountText = computed(() => {
 // hidden set lives on the localState store so every FileList instance (both
 // panes of the dual-pane tab, the sidebar) shares one view and updates
 // together.
-type ColumnKey = 'type' | 'modTime' | 'size' | 'permission' | 'owner' | 'group'
-const optionalColumns: ColumnKey[] = ['type', 'modTime', 'size', 'permission', 'owner', 'group']
+type ColumnKey = 'type' | 'modTime' | 'size' | 'permission' | 'owner' | 'group' | 'fileCount'
+const optionalColumns: ColumnKey[] = ['type', 'modTime', 'size', 'permission', 'owner', 'group', 'fileCount']
 const columnLabelKeys: Record<ColumnKey, string> = {
   type: 'sftp.type',
   modTime: 'sftp.modified',
@@ -399,6 +452,7 @@ const columnLabelKeys: Record<ColumnKey, string> = {
   permission: 'sftp.permission',
   owner: 'sftp.owner',
   group: 'sftp.group',
+  fileCount: 's3.fileCount',
 }
 const hiddenColumns = computed<Set<ColumnKey>>(() =>
   new Set((localStateStore.state.sftpHiddenColumns || []) as ColumnKey[]))
@@ -410,8 +464,20 @@ function columnLabelKey(key: ColumnKey): string {
 }
 
 function columnVisible(key: ColumnKey): boolean {
+  // S3 objects have no POSIX permission/owner/group — the backend sends empty
+  // strings, so rendering these columns would only show rows of "-".
+  if (isS3.value && (key === 'permission' || key === 'owner' || key === 'group')) return false
+  // The entry-count column only makes sense for S3 directory rows.
+  if (key === 'fileCount') return isS3.value && !hiddenColumns.value.has(key)
   return !hiddenColumns.value.has(key)
 }
+
+// The header picker only offers columns the protocol actually has.
+const pickerColumns = computed<ColumnKey[]>(() =>
+  optionalColumns.filter(k => {
+    if (isS3.value) return k !== 'permission' && k !== 'owner' && k !== 'group'
+    return k !== 'fileCount'
+  }))
 
 function toggleColumn(key: ColumnKey) {
   const next = new Set(hiddenColumns.value)
@@ -797,6 +863,20 @@ function doEditExternal() { emit('editExternal', selectedItems.value[0]); ctxMen
 function doOpenWithSystem() { emit('openWithSystem', selectedItems.value[0]); ctxMenuVisible.value = false }
 function doNewFile() { emit('newFile'); ctxMenuVisible.value = false; moreMenuVisible.value = false }
 function doMkdir() { emit('mkdir'); ctxMenuVisible.value = false; moreMenuVisible.value = false }
+function doCreateBucket() { emit('createBucket'); ctxMenuVisible.value = false; moreMenuVisible.value = false }
+function doDeleteBucket() { emit('deleteBucket', [...selectedItems.value]); ctxMenuVisible.value = false }
+
+// S3 "files" column: entries directly under a directory row. Absent = count
+// still in flight, null = failed; backend caps at 1001 → "1000+".
+function dirCountText(row: FileItem): string {
+  if (!row.isDir || row.name === '..') return ''
+  const n = props.dirFileCounts?.[row.name]
+  if (n === undefined) return '…'
+  if (n === null) return '-'
+  return n > 1000 ? '1000+' : String(n)
+}
+
+function onToggleLocalPane() { emit('toggleLocalPane'); ctxMenuVisible.value = false }
 function doSymlink() { emit('symlink'); ctxMenuVisible.value = false; moreMenuVisible.value = false }
 function toggleShowHidden() { showHidden.value = !showHidden.value }
 // Clipboard actions take the current selection minus '..' (navigation, never

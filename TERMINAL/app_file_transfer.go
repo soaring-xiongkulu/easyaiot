@@ -118,6 +118,47 @@ func (a *App) SftpListRemote(sessionID, dir string) (session.FileListResult, err
 	return fs.ListRemote(dir)
 }
 
+// S3 bucket management — only meaningful on S3 sessions; the bucket-list
+// level of the S3 file pane offers create/delete in its context menu.
+
+func (a *App) S3CreateBucket(sessionID, bucket string) error {
+	s, ok := a.sessionManager.Get(sessionID)
+	if !ok {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+	s3s, ok := s.(*session.S3Session)
+	if !ok {
+		return fmt.Errorf("not an S3 session: %s", sessionID)
+	}
+	return s3s.CreateBucket(bucket)
+}
+
+func (a *App) S3DeleteBucket(sessionID, bucket string) error {
+	s, ok := a.sessionManager.Get(sessionID)
+	if !ok {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+	s3s, ok := s.(*session.S3Session)
+	if !ok {
+		return fmt.Errorf("not an S3 session: %s", sessionID)
+	}
+	return s3s.DeleteBucket(bucket)
+}
+
+// S3EntryCount reports the entries directly under the given pane path for the
+// "files" column (capped — see session.S3Session.EntryCount).
+func (a *App) S3EntryCount(sessionID, path string) (int64, error) {
+	s, ok := a.sessionManager.Get(sessionID)
+	if !ok {
+		return 0, fmt.Errorf("session not found: %s", sessionID)
+	}
+	s3s, ok := s.(*session.S3Session)
+	if !ok {
+		return 0, fmt.Errorf("not an S3 session: %s", sessionID)
+	}
+	return s3s.EntryCount(path)
+}
+
 func (a *App) SftpListLocal(sessionID, dir string) (session.FileListResult, error) {
 	fs, err := a.getSftp(sessionID)
 	if err != nil {

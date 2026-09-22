@@ -2,6 +2,7 @@
   <div class="sftp-tab-content">
     <div class="panes-area">
       <div
+        v-show="showLocalPane"
         class="local-pane"
         @dragover.prevent="onDragOver"
         @dragenter.prevent="onDragEnter('local')"
@@ -66,6 +67,11 @@
           mode="remote"
           breadcrumb-mode="remote"
           :breadcrumb-path="cwd"
+          :protocol="remoteProtocol"
+          :dir-file-counts="s3FileCounts"
+          :local-pane-toggle="isS3Panel"
+          :local-pane-visible="showLocalPane"
+          @toggle-local-pane="onToggleLocalPane"
           :breadcrumb-saved-paths="settingsStore.sftpBookmarks.remotePaths"
           :files="remoteFiles"
           :loading="loadingRemote"
@@ -84,6 +90,8 @@
           @delete="onDelete"
           @refresh="onRefreshRemote"
           @mkdir="onMkdir"
+          @create-bucket="onCreateBucket"
+          @delete-bucket="onDeleteBucket"
           @symlink="onSymlink"
           :supports-symlink="remoteSupportsSymlink"
           @chmod="(item: FileItem) => onChmod(item, 'remote')"
@@ -172,12 +180,14 @@ import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watc
 import { msg } from '../services/message'
 import { usePanelStore } from '../stores/panelStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useLocalStateStore } from '../stores/localStateStore'
 import { useI18n } from '../i18n'
 import {
   SftpListRemote, SftpListLocal, SftpListLocalDrives,
   SftpChangeRemoteDir, SftpChangeLocalDir,
   SftpOpenExternalEditor, OpenExternalEditorLocal, ListSessions,
   SftpOpenWithSystem, OpenWithSystemLocal,
+  S3CreateBucket, S3DeleteBucket, S3EntryCount,
 } from '../../bindings/easyaiot/terminal/app'
 
 import FileList from './FileList.vue'
@@ -205,6 +215,7 @@ const props = defineProps<{
 
 const panelStore = usePanelStore()
 const settingsStore = useSettingsStore()
+const localStateStore = useLocalStateStore()
 const transferTasks = panelStore.getTransferTasks(props.panelId)
 const transferHeight = ref(130)
 const { t } = useI18n()
@@ -212,6 +223,16 @@ bindExtEditUploadedToast()
 const panel = computed(() => panelStore.getPanel(props.panelId))
 // "New link" exists only for backends with link semantics (SFTP/SCP/WSL).
 const remoteSupportsSymlink = computed(() => supportsRemoteSymlink(panel.value?.config ?? undefined))
+// Drives the remote pane's protocol-aware UI: for S3 the FileList hides POSIX
+// columns and exposes bucket create/delete at the bucket list.
+const remoteProtocol = computed(() => panel.value?.config?.type ?? '')
+const isS3Panel = computed(() => remoteProtocol.value === 's3')
+// S3 browsing rarely needs the local directory, so the local pane starts
+// collapsed (persisted preference); other protocols keep it always visible.
+const showLocalPane = computed(() => !isS3Panel.value || !!localStateStore.state.s3ShowLocalPane)
+function onToggleLocalPane() {
+  localStateStore.update({ s3ShowLocalPane: !showLocalPane.value })
+}
 
 const localDrives = ref<string[]>([])
 const dragOverLocal = ref(false)
@@ -282,6 +303,31 @@ const {
   canBack: remoteCanBack, canForward: remoteCanForward,
   onBack: onRemoteBack, onForward: onRemoteForward, onUp: onRemoteUp,
 } = remoteListing
+
+// ── S3 "files" column ────────────────────────────────────────────────────────
+// Directory rows get their direct-entry count from the backend asynchronously
+// (one delimited listing per row, cached server-side), so the listing itself
+// stays fast. The generation counter discards results from a stale view after
+// navigating away or refreshing.
+const s3FileCounts = ref<Record<string, number | null>>({})
+let s3CountGen = 0
+watch([remoteFiles, cwd], ([files, dir]) => {
+  if (!isS3Panel.value) return
+  const gen = ++s3CountGen
+  const sid = panel.value?.sessionId
+  s3FileCounts.value = {}
+  if (!sid || !files) return
+  for (const f of files) {
+    if (!f.isDir || f.name === '..') continue
+    S3EntryCount(sid, joinPath(dir, f.name)).then((n: number) => {
+      if (gen !== s3CountGen) return
+      s3FileCounts.value = { ...s3FileCounts.value, [f.name]: n }
+    }).catch(() => {
+      if (gen !== s3CountGen) return
+      s3FileCounts.value = { ...s3FileCounts.value, [f.name]: null }
+    })
+  }
+})
 const {
   cwd: localCwd, files: localFiles, loading: loadingLocal,
   onRefresh: onRefreshLocal, onNavigate: onLocalNavigate, onCancelLoad: onCancelLoadLocal,
@@ -369,6 +415,53 @@ const {
   onEditFile: onLocalEditFile, onEditExternal: onLocalEditExternal, onOpenWithSystem: onLocalOpenWithSystem,
   onSaveBookmark: onLocalSaveBookmark, onRemoveBookmark: onLocalRemoveBookmark,
 } = localPanel
+
+// ── S3 bucket management ─────────────────────────────────────────────────────
+// At the bucket list ("/") the pane's create/delete actions are bucket-level:
+// FileList swaps "new folder" for CreateBucket and bucket-row delete for
+// DeleteBucket, and only emits these when protocol is 's3'.
+async function onCreateBucket() {
+  const sid = panel.value?.sessionId
+  if (!sid) return
+  const r = await fileDialogs.openGeneric({
+    title: t('s3.createBucket'),
+    placeholder: t('s3.bucketNamePlaceholder'),
+  })
+  if (!r.ok) return
+  const name = r.value?.trim()
+  if (!name) return
+  try {
+    await S3CreateBucket(sid, name)
+    msg.success(t('s3.createBucketOk', { name }))
+    onRefreshRemote('')
+  } catch (e: any) {
+    msg.error(`${t('s3.createBucket')}: ${e?.message || String(e)}`)
+  }
+}
+
+async function onDeleteBucket(items: FileItem[]) {
+  const sid = panel.value?.sessionId
+  if (!sid || !items.length) return
+  const names = items.map(i => i.name).filter(n => n && n !== '..')
+  if (!names.length) return
+  const r = await fileDialogs.openGeneric({
+    type: 'message',
+    title: t('s3.deleteBucket'),
+    message: t('s3.deleteBucketConfirm', { names: names.join(', ') }),
+  })
+  if (!r.ok) return
+  const failed: string[] = []
+  for (const name of names) {
+    try {
+      await S3DeleteBucket(sid, name)
+    } catch {
+      failed.push(name)
+    }
+  }
+  if (failed.length) msg.error(`${t('s3.deleteBucketFailed', { count: failed.length })}: ${failed.join(', ')}`)
+  else msg.success(t('s3.deleteBucketOk'))
+  onRefreshRemote('')
+}
 
 let unsubscribe: (() => void) | null = null
 let unsubscribeStatus: (() => void) | null = null

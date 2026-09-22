@@ -23,6 +23,9 @@ interface LocalState {
   // SFTP file-list columns the user hid via the header context menu. Columns
   // absent from the list stay visible.
   sftpHiddenColumns: string[]
+  // Re-expands the local directory pane in S3 file-transfer tabs (hidden by
+  // default there — S3 browsing rarely needs it).
+  s3ShowLocalPane: boolean
 }
 
 const DEFAULT: LocalState = {
@@ -42,6 +45,7 @@ const DEFAULT: LocalState = {
   systemTitleBar: false,
   externalEditor: '',
   sftpHiddenColumns: [],
+  s3ShowLocalPane: false,
 } as LocalState
 
 export const useLocalStateStore = defineStore('localState', () => {
