@@ -87,27 +87,32 @@ export function getXtermTheme(name: string, customThemes?: CustomTerminalTheme[]
     case 'terminal-dark':
       return base
     case 'terminal-light':
+      // Bright canvas (matches the light app chrome's #f6f8fb banding) with a
+      // GitHub-Light-inspired ANSI set: saturated enough to read on white,
+      // muted enough to stay professional. brightWhite stays darker than
+      // white on purpose — text asking for bright white must stay visible.
       return {
-        background: '#e8e8e8',
-        foreground: '#2c2c2c',
-        cursor: '#1976d2',
-        selectionBackground: 'rgba(25, 118, 210, 0.15)',
-        black: '#1e1e22',
-        red: '#d32f2f',
-        green: '#388e3c',
-        yellow: '#a06a00',
-        blue: '#1976d2',
-        magenta: '#7b1fa2',
-        cyan: '#00838f',
-        white: '#757575',
-        brightBlack: '#555555',
-        brightRed: '#c62828',
-        brightGreen: '#2e7d32',
-        brightYellow: '#9c6600',
-        brightBlue: '#1565c0',
-        brightMagenta: '#6a1b9a',
-        brightCyan: '#006064',
-        brightWhite: '#424242'
+        background: '#f9fafc',
+        foreground: '#24292f',
+        cursor: '#0e7490',
+        cursorAccent: '#ffffff',
+        selectionBackground: 'rgba(14, 116, 144, 0.16)',
+        black: '#24292f',
+        red: '#cf222e',
+        green: '#116329',
+        yellow: '#9a6700',
+        blue: '#0969da',
+        magenta: '#8250df',
+        cyan: '#0e7490',
+        white: '#6e7781',
+        brightBlack: '#57606a',
+        brightRed: '#a40e26',
+        brightGreen: '#1a7f37',
+        brightYellow: '#bf8700',
+        brightBlue: '#218bff',
+        brightMagenta: '#a475f9',
+        brightCyan: '#0898b8',
+        brightWhite: '#8c959f'
       }
     case 'solarized-dark':
       return {

@@ -15,11 +15,11 @@ import (
 	// F-201: register pprof handlers on the default mux.
 	_ "net/http/pprof"
 
-	"github.com/wailsapp/wails/v3/pkg/application"
-	"github.com/wailsapp/wails/v3/pkg/events"
 	"easyaiot/terminal/backend/log"
 	"easyaiot/terminal/backend/session"
 	"easyaiot/terminal/backend/store"
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 var Version = "dev"
@@ -32,12 +32,10 @@ var devBuild = Version == "dev"
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// appIconTrayPNG is a dedicated tray icon: just the cyan "U" glyph cropped
-// from the app icon, pre-scaled to 64px. At the tray's 16-24px sizes the full
-// app icon (dark rounded tile + small glyph) turns into an unreadable dark
-// blob, and GDI's own downscale of the 1024px icon is mushy — a high-contrast
-// glyph filling the canvas stays legible. Scaled at runtime to the exact
-// OS small-icon size on Windows (see trayIconPNG in app_windows.go).
+// appIconTrayPNG is a dedicated tray icon: the AIoT emblem from the app icon,
+// pre-scaled to 64px so the tray gets a clean downscale instead of GDI's mushy
+// resample of the 1024px icon. Scaled at runtime to the exact OS small-icon
+// size on Windows (see trayIconPNG in app_windows.go).
 //
 //go:embed build/appicon_tray.png
 var appIconTrayPNG []byte
@@ -381,12 +379,16 @@ func loadSavedSettings() store.AppSettings {
 // because it reports false before Run().
 func windowBackgroundColour(theme string) application.RGBA {
 	resolved := theme
-	if theme == "" || theme == "system" {
+	if theme == "system" {
 		if systemPrefersDark() {
 			resolved = "dark"
 		} else {
 			resolved = "light"
 		}
+	} else if theme == "" {
+		// Fresh install with no persisted settings: the frontend defaults to
+		// the light theme (DEFAULT_SETTINGS.theme in frontend/src/types/settings.ts).
+		resolved = "light"
 	}
 	switch resolved {
 	case "deep-blue":
@@ -448,12 +450,12 @@ func trayLabel(lang string, idx int) string {
 }
 
 const (
-	trayShow   = 0
-	trayHide   = 1
-	trayReset  = 2
-	traySet    = 3
-	trayAbout  = 4
-	trayQuit   = 5
+	trayShow  = 0
+	trayHide  = 1
+	trayReset = 2
+	traySet   = 3
+	trayAbout = 4
+	trayQuit  = 5
 )
 
 // setupTray creates the system tray icon and menu. lang is the persisted UI

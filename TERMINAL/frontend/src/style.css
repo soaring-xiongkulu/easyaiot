@@ -181,27 +181,30 @@
 }
 
 [data-theme="light"] {
-  /* Core palette - clean neutral grays */
+  /* Core palette - bright, cool blue-tinted whites (modern SaaS light).
+     Elevated < surface < overlay < hover < active keeps the dark themes'
+     layering semantics, inverted for light backgrounds. */
   --bg-base: #ffffff;
-  --bg-elevated: #f5f5f5;
-  --bg-surface: #ebebeb;
-  --bg-overlay: #e0e0e0;
-  --bg-hover: #d5d5d5;
-  --bg-active: #c8c8c8;
+  --bg-elevated: #f6f8fb;
+  --bg-surface: #eef2f7;
+  --bg-overlay: #e7edf4;
+  --bg-hover: #e2eaf2;
+  --bg-active: #d5e0ec;
 
-  /* Text - standard dark grays */
-  --text-primary: #1a1a1a;
-  --text-secondary: #5a5a5a;
-  --text-muted: #6e6e6e;
-  --text-disabled: #909090;
+  /* Text - blue-dark slate */
+  --text-primary: #182230;
+  --text-secondary: #5a6b7f;
+  --text-muted: #6c7d90;
+  --text-disabled: #98a7b8;
 
-  /* Accent - Windows-style blue */
-  --accent: #0078d4;
-  --accent-glow: rgba(0, 120, 212, 0.22);
-  --accent-subtle: rgba(0, 120, 212, 0.08);
+  /* Accent - brand cyan (matches the platform TERMINAL identity); AA
+     contrast both ways on white (5.3:1) so fills and text are safe */
+  --accent: #0e7490;
+  --accent-glow: rgba(14, 116, 144, 0.16);
+  --accent-subtle: rgba(14, 116, 144, 0.08);
 
-  --info: #006ab1;
-  --info-subtle: rgba(0, 106, 177, 0.08);
+  --info: #0369a1;
+  --info-subtle: rgba(3, 105, 161, 0.08);
   --on-accent: #ffffff;
 
   /* Chart series palette - darker/more saturated than the dark theme's for
@@ -213,52 +216,63 @@
   --chart-4-alt: #a78bfa;
 
   /* Semantic */
-  --success: #107c41;
-  --success-dim: #0b5e30;
-  --success-subtle: rgba(16, 124, 65, 0.06);
-  --success-glow: rgba(16, 124, 65, 0.15);
-  --warning: #e07b00;
-  --warning-subtle: rgba(224, 123, 0, 0.08);
-  --warning-tab: rgba(224, 123, 0, 0.16);
-  --warning-tab-hover: rgba(224, 123, 0, 0.24);
-  --warning-tab-active: rgba(224, 123, 0, 0.22);
-  --error: #d13438;
-  --error-subtle: rgba(209, 52, 56, 0.06);
-  --error-glow: rgba(209, 52, 56, 0.15);
+  --success: #15803d;
+  --success-dim: #166534;
+  --success-subtle: rgba(21, 128, 61, 0.06);
+  --success-glow: rgba(21, 128, 61, 0.15);
+  --warning: #b45309;
+  --warning-subtle: rgba(180, 83, 9, 0.08);
+  --warning-tab: rgba(180, 83, 9, 0.16);
+  --warning-tab-hover: rgba(180, 83, 9, 0.24);
+  --warning-tab-active: rgba(180, 83, 9, 0.22);
+  --error: #dc2626;
+  --error-subtle: rgba(220, 38, 38, 0.06);
+  --error-glow: rgba(220, 38, 38, 0.15);
 
-  /* Borders - cool light grays */
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-hover: rgba(0, 0, 0, 0.12);
+  /* Borders - cool blue-gray */
+  --border-subtle: rgba(23, 47, 76, 0.08);
+  --border-hover: rgba(23, 47, 76, 0.16);
 
   /* Scrim - translucent white so dark loading text stays legible */
   --scrim: rgba(255, 255, 255, 0.6);
 
-  /* Shadows - cleaner, deeper */
-  --shadow-sm: 0 1px 0.1875rem rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 0.25rem 0.875rem rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 0.5rem 1.75rem rgba(0, 0, 0, 0.1);
+  /* Shadows - cool blue-tinted, airy */
+  --shadow-sm: 0 1px 0.1875rem rgba(23, 47, 76, 0.06);
+  --shadow-md: 0 0.25rem 0.875rem rgba(23, 47, 76, 0.08);
+  --shadow-lg: 0 0.5rem 1.75rem rgba(23, 47, 76, 0.1);
 
   /* Element Plus light theme overrides */
   --el-bg-color: #ffffff;
-  --el-bg-color-page: #ffffff;
+  --el-bg-color-page: #f6f8fb;
   --el-fill-color-blank: #ffffff;
-  --el-fill-color: #f5f5f5;
-  --el-fill-color-light: #ebebeb;
-  --el-fill-color-lighter: #e0e0e0;
-  --el-text-color-primary: #1a1a1a;
-  --el-text-color-regular: #5a5a5a;
-  --el-text-color-secondary: #8a8a8a;
-  --el-text-color-placeholder: #909090;
-  --el-border-color: rgba(0, 0, 0, 0.12);
-  --el-border-color-light: rgba(0, 0, 0, 0.08);
-  --el-border-color-lighter: rgba(0, 0, 0, 0.06);
+  --el-fill-color: #f6f8fb;
+  --el-fill-color-light: #eef2f7;
+  --el-fill-color-lighter: #e7edf4;
+  --el-text-color-primary: #182230;
+  --el-text-color-regular: #5a6b7f;
+  --el-text-color-secondary: #8593a6;
+  --el-text-color-placeholder: #98a7b8;
+  --el-border-color: rgba(23, 47, 76, 0.14);
+  --el-border-color-light: rgba(23, 47, 76, 0.1);
+  --el-border-color-lighter: rgba(23, 47, 76, 0.07);
+
+  /* Cyan primary ramp: Element Plus bakes light-N/dark-N tints for tags,
+     alerts and disabled states as static colors, so they must be overridden
+     explicitly to follow the brand accent instead of EP's default blue. */
+  --el-color-primary: #0e7490;
+  --el-color-primary-dark-2: #0b5d73;
+  --el-color-primary-light-3: #569eb1;
+  --el-color-primary-light-5: #87bac8;
+  --el-color-primary-light-7: #b7d5de;
+  --el-color-primary-light-8: #cfe3e9;
+  --el-color-primary-light-9: #e7f1f4;
 
   --el-input-height: 1.75rem;
   --el-component-size: 1.75rem;
 
   /* Scrollbar */
-  --scrollbar-thumb: rgba(0, 0, 0, 0.22);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
+  --scrollbar-thumb: rgba(23, 47, 76, 0.22);
+  --scrollbar-thumb-hover: rgba(23, 47, 76, 0.36);
 }
 
 * {
@@ -299,18 +313,20 @@ body {
    read as a single dead slab. Always lighter at the top: the dark themes lift
    the top off --bg-base, while light's --bg-base is already white so it dims
    the bottom instead. The :not() arm covers the first paint before
-   applyTheme() sets data-theme. */
+   applyTheme() sets data-theme — it matches the light default
+   (DEFAULT_SETTINGS.theme in types/settings.ts, mirrored by main.go's
+   windowBackgroundColour empty-theme fallback). */
 html:not([data-theme]) body,
+[data-theme="light"] body {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+}
+
 [data-theme="dark"] body {
   background: linear-gradient(180deg, #1b1f27 0%, var(--bg-base) 100%);
 }
 
 [data-theme="deep-blue"] body {
   background: linear-gradient(180deg, #101728 0%, var(--bg-base) 100%);
-}
-
-[data-theme="light"] body {
-  background: linear-gradient(180deg, var(--bg-base) 0%, #f2f2f2 100%);
 }
 
 /* Noise texture overlay for atmosphere */
