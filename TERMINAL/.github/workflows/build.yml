@@ -354,7 +354,11 @@ jobs:
           - Run: ${RUN_URL}
           EOF
           else
-            sed -n "/^## ${{ github.ref_name }}$/,/^## v/p" CHANGELOG.md | sed '$d' > release_body.md
+            if [ -f CHANGELOG.md ]; then
+              sed -n "/^## ${{ github.ref_name }}$/,/^## v/p" CHANGELOG.md | sed '$d' > release_body.md
+            else
+              echo "See commit history for the change list." > release_body.md
+            fi
           fi
 
       - name: Detect prerelease
