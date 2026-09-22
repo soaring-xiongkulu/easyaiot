@@ -10,7 +10,6 @@ const localStateFileName = "local_state.json"
 
 type LocalState struct {
 	SidebarVisible    bool     `json:"sidebarVisible"`
-	AISidebarVisible  bool     `json:"aiSidebarVisible"`
 	CollapsedGroupIds []string `json:"collapsedGroupIds"`
 	// Collapsed quick-command group ids (plus "__ungrouped__"). Local-only
 	// UI state, never synced; groups absent from the list stay expanded.
@@ -61,7 +60,6 @@ func (s *LocalStateStore) Save(state LocalState) error {
 func defaultLocalState() LocalState {
 	return LocalState{
 		SidebarVisible:                true,
-		AISidebarVisible:              true,
 		CollapsedQuickCommandGroupIds: []string{},
 		BackgroundOpacity:             60,
 		BackgroundBlur:                3,

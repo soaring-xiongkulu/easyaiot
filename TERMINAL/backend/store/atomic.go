@@ -60,7 +60,7 @@ func quarantineCorrupt(path string) string {
 
 // copyFileWithoutSymlinks copies src to dst without following symlinks.
 // If src is itself a symlink, the copy is skipped (returns nil). Used by
-// SkillsStore to prevent symlink-following deletions.
+// stores to prevent symlink-following deletions.
 //
 // Fixes: STORE-02.
 func copyFileWithoutSymlinks(src, dst string) error {

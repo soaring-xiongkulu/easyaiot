@@ -7,14 +7,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
-
-	"easyaiot/terminal/backend/credentials"
 )
 
 const settingsFileName = "settings.json"
 
 func boolPtr(b bool) *bool { return &b }
-func intPtr(i int) *int    { return &i }
 
 type TerminalSettings struct {
 	Theme             string `json:"theme"`
@@ -25,7 +22,6 @@ type TerminalSettings struct {
 	MiddleClickAction string `json:"middleClickAction"`
 	MaxHistoryLines   int    `json:"maxHistoryLines"`
 	SmartCompletion   *bool  `json:"smartCompletion"`
-	AiTranscription   *bool  `json:"aiTranscription"`
 	HighlightEnabled  *bool  `json:"highlightEnabled"`
 	// CursorBlink controls xterm.js's cursor blink. Pointer + omitempty so
 	// settings.json written by older builds (which lack this field) still
@@ -111,27 +107,6 @@ type CustomTerminalTheme struct {
 	Colors TerminalThemeColors `json:"colors"`
 }
 
-type AIModelConfig struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	APIKey   string `json:"apiKey"`
-	BaseURL  string `json:"baseURL"`
-	Model    string `json:"model"`
-	Protocol string `json:"protocol"`
-	// UserAgent overrides the HTTP User-Agent for this model's API calls.
-	// Empty means the frontend/protocol default.
-	UserAgent string `json:"userAgent,omitempty"`
-	// ProxyId references a saved outbound proxy (proxies.json) used for all
-	// HTTP traffic to this model's BaseURL. Empty = direct connection.
-	ProxyID string `json:"proxyId,omitempty"`
-}
-
-type AISettings struct {
-	MaxTurns      *int            `json:"maxTurns"`
-	Models        []AIModelConfig `json:"models"`
-	ActiveModelID string          `json:"activeModelId"`
-}
-
 type KeyBinding struct {
 	Ctrl  bool   `json:"ctrl"`
 	Meta  bool   `json:"meta"`
@@ -150,7 +125,6 @@ type AppSettings struct {
 	// per device on purpose — settings.json is not synced.
 	UiFontSize     *int                  `json:"uiFontSize,omitempty"`
 	Terminal       TerminalSettings      `json:"terminal"`
-	AI             AISettings            `json:"ai"`
 	Keyboard       map[string]KeyBinding `json:"keyboard"`
 	CloseTabPrompt *bool                 `json:"closeTabPrompt"`
 	CloseAppPrompt *bool                 `json:"closeAppPrompt"`
@@ -178,9 +152,8 @@ type SFTPBookmarks struct {
 }
 
 type SettingsStore struct {
-	configDir     string
-	passwordStore PasswordStore
-	mu            sync.Mutex // serializes Save + Load migration writes (STORE-05/06).
+	configDir string
+	mu        sync.Mutex // serializes Save + Load migration writes (STORE-05/06).
 }
 
 func NewSettingsStore(configDir string) (*SettingsStore, error) {
@@ -188,10 +161,6 @@ func NewSettingsStore(configDir string) (*SettingsStore, error) {
 		return nil, err
 	}
 	return &SettingsStore{configDir: configDir}, nil
-}
-
-func (s *SettingsStore) SetPasswordStore(ps PasswordStore) {
-	s.passwordStore = ps
 }
 
 func (s *SettingsStore) filePath() string {
@@ -202,27 +171,6 @@ func (s *SettingsStore) Save(settings AppSettings) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Deep-copy models so we don't mutate the caller's backing array
-	models := make([]AIModelConfig, len(settings.AI.Models))
-	copy(models, settings.AI.Models)
-
-	// Encrypt model apiKeys in place before writing JSON.
-	for i := range models {
-		m := &models[i]
-		if m.APIKey == "" || credentials.IsEncrypted(m.APIKey) {
-			continue
-		}
-		if s.passwordStore == nil {
-			continue // no cipher — keep as-is (best effort; never leak is N/A for settings)
-		}
-		enc, err := s.passwordStore.Encrypt(m.APIKey)
-		if err != nil {
-			return err
-		}
-		m.APIKey = enc
-	}
-
-	settings.AI.Models = models
 	// Settings file is internal — no indent. Encoder streams into the buf
 	// so we skip the intermediate allocation of json.Marshal.
 	var buf bytes.Buffer
@@ -254,36 +202,7 @@ func (s *SettingsStore) Load() (AppSettings, error) {
 		return defaultSettings(), nil
 	}
 
-	// Snapshot passwordStore under the lock; everything below mutates only
-	// the local `settings` value, so the rest of Load runs lock-free.
-	s.mu.Lock()
-	ps := s.passwordStore
-	s.mu.Unlock()
-
-	// Decrypt model apiKeys; migrate legacy plaintext to encrypted on save.
 	needsSave := false
-	for i := range settings.AI.Models {
-		m := &settings.AI.Models[i]
-		if m.APIKey == "" || ps == nil {
-			continue
-		}
-		if credentials.IsEncrypted(m.APIKey) {
-			ak, err := ps.Decrypt(m.APIKey)
-			if err != nil {
-				return AppSettings{}, err
-			}
-			m.APIKey = ak
-		} else {
-			needsSave = true // legacy plaintext — re-save will encrypt
-		}
-	}
-	// Default maxTurns when missing (older settings.json files predating the
-	// multi-model AI block, or hand-edited files). Pointer + backfill so the
-	// stored copy always carries an explicit value.
-	if settings.AI.MaxTurns == nil {
-		settings.AI.MaxTurns = intPtr(defaultMaxTurns)
-		needsSave = true
-	}
 	if settings.UiFontSize == nil {
 		n := defaultUiFontSize()
 		settings.UiFontSize = &n
@@ -323,7 +242,6 @@ func defaultSettings() AppSettings {
 			RightClickAction: "menu",
 			MaxHistoryLines:  2500,
 		},
-		AI:             defaultAISettings(),
 		Keyboard:       defaultKeyboard(),
 		CloseTabPrompt: boolPtr(true),
 		CloseAppPrompt: boolPtr(true),
@@ -345,33 +263,6 @@ func defaultUiFontSize() int {
 	return 12
 }
 
-const defaultMaxTurns = 20
-
-// defaultAISettings is the seed AI block for a fresh settings.json. Shared
-// with AIConfigStore so the settings and ai.json defaults can never drift.
-func defaultAISettings() AISettings {
-	return AISettings{
-		MaxTurns: intPtr(defaultMaxTurns),
-		Models: []AIModelConfig{
-			{
-				ID:       "model-default",
-				Name:     "Default",
-				APIKey:   "",
-				BaseURL:  "https://api.openai.com/v1",
-				Model:    "gpt-4o",
-				Protocol: "anthropic",
-			},
-		},
-		ActiveModelID: "model-default",
-	}
-}
-
-// defaultAIConfig mirrors defaultAISettings for the standalone ai.json file.
-func defaultAIConfig() AIStoreData {
-	ai := defaultAISettings()
-	return AIStoreData{MaxTurns: ai.MaxTurns, Models: ai.Models}
-}
-
 func defaultKeyboard() map[string]KeyBinding {
 	return map[string]KeyBinding{
 		"nextTab":          {Ctrl: true, Shift: false, Alt: false, Key: "tab"},
@@ -379,8 +270,6 @@ func defaultKeyboard() map[string]KeyBinding {
 		"newConnection":    {Ctrl: true, Shift: true, Alt: false, Key: "n"},
 		"toggleSidebar":    {Ctrl: true, Shift: true, Alt: false, Key: "h"},
 		"focusTerminal":    {Ctrl: true, Shift: true, Alt: false, Key: "j"},
-		"focusAI":          {Ctrl: true, Shift: true, Alt: false, Key: "k"},
-		"lockAI":           {Ctrl: true, Shift: true, Alt: false, Key: "l"},
 		"duplicateSession": {Ctrl: true, Shift: true, Alt: false, Key: "d"},
 		"closePanel":       {Ctrl: true, Shift: true, Alt: false, Key: "q"},
 		"navigatePrev":     {Ctrl: false, Shift: false, Alt: true, Key: "arrowleft"},

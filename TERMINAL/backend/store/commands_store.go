@@ -25,7 +25,7 @@ const (
 	commandFileExt   = ".md"
 )
 
-// 复用 skills_store.go 同包私有符号：skillNameRe、parseFrontmatter、readCapped、nowRFC3339。
+// 复用 markdown_store.go 同包私有符号：skillNameRe、parseFrontmatter、readCapped、nowRFC3339。
 
 // CommandMeta 是一个 command 暴露给前端的完整视图（文件扫描 + 偏好合并后的结果）。
 type CommandMeta struct {

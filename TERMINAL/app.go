@@ -33,7 +33,36 @@ import (
 	stdsync "sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/mattn/go-ieproxy"
 )
+
+// cachedSystemProxy is the Proxy function for outbound HTTP. It resolves
+// the OS system proxy (Windows registry / macOS system config, including PAC
+// scripts) and falls back to the HTTP_PROXY/HTTPS_PROXY environment
+// variables — http.ProxyFromEnvironment alone misses users who enable
+// "system proxy" mode in tools like Clash, which never sets env vars.
+// ieproxy caches the system config on first read, so refresh it periodically
+// via ReloadConf to pick up toggles made while the app is running.
+// ReloadConf is not goroutine-safe, so all access is serialized here.
+const systemProxyRefreshInterval = 30 * time.Second
+
+var (
+	systemProxyMu      stdsync.Mutex
+	systemProxyFn      func(*http.Request) (*url.URL, error)
+	systemProxyRefresh time.Time
+)
+
+func cachedSystemProxy(req *http.Request) (*url.URL, error) {
+	systemProxyMu.Lock()
+	defer systemProxyMu.Unlock()
+	if systemProxyFn == nil || time.Since(systemProxyRefresh) >= systemProxyRefreshInterval {
+		ieproxy.ReloadConf()
+		systemProxyFn = ieproxy.GetProxyFunc()
+		systemProxyRefresh = time.Now()
+	}
+	return systemProxyFn(req)
+}
 
 type App struct {
 	ctx                  context.Context
@@ -43,14 +72,11 @@ type App struct {
 	k8sManager           *k8s.Manager
 	containerManager     *container.Manager
 	connectionStore      *store.ConnectionStore
-	aiSessionStore       *store.AISessionStore
 	settingsStore        *store.SettingsStore
-	aiConfigStore        *store.AIConfigStore
 	identityStore        *store.IdentityStore
 	proxyStore           *store.ProxyStore
 	localStateStore      *store.LocalStateStore
 	quickCommandsStore   *store.QuickCommandsStore
-	skillsStore          *store.SkillsStore
 	commandsStore        *store.CommandsStore
 	tunnelStore          *store.TunnelStore
 	terminalHistoryStore *store.TerminalHistoryStore
@@ -68,8 +94,7 @@ type App struct {
 	dataDir         string
 	credentialStore *credentials.Store
 	storesReady     bool
-	chatCancel      atomic.Pointer[context.CancelFunc] // F-308: active stream cancellation, per-call swap so overlap is safe
-	moveResizeCh    chan string                        // defer EventsEmit from WndProc
+	moveResizeCh    chan string // defer EventsEmit from WndProc
 	// F-043: foreground flag — true while the window is visible and the
 	// user is interacting; background goroutines (keepalive, output_log
 	// flush, k8s watches, auto-sync) should consult IsForeground before
@@ -83,13 +108,6 @@ type App struct {
 	// every save.
 	lastConnSnapshot   session.ConnectionStoreData
 	lastConnSnapshotMu stdsync.RWMutex
-
-	// F-208: single shared http.Client for chatCompletion* /
-	// FetchModels calls. Built lazily once on first use so tests that
-	// don't hit the LLM path don't pay for the transport; subsequent
-	// calls reuse the keep-alive pool and skip the TCP+TLS handshake.
-	httpClient     *http.Client
-	httpClientOnce stdsync.Once
 
 	// session objects and the log file spans all of them. sessionToPanel
 	// tracks the current session→panel binding so emitData can look up
@@ -242,14 +260,6 @@ func (a *App) initStores(dataDir string, upgrade bool) {
 		a.connectionStore = cs
 	}
 
-	ass, err := store.NewAISessionStore(dataDir)
-	if err != nil {
-		log.Writef("Failed to init AI session store: %v", err)
-		a.sendStartupErr(fmt.Errorf("ai session store: %w", err))
-	} else {
-		a.aiSessionStore = ass
-	}
-
 	ss, err := store.NewSettingsStore(dataDir)
 	if err != nil {
 		log.Writef("Failed to init settings store: %v", err)
@@ -263,14 +273,6 @@ func (a *App) initStores(dataDir string, upgrade bool) {
 			a.SetDefaultSessionLogDir(settings.Terminal.SessionLogDir)
 			a.setSessionLogFilename(settings.Terminal.SessionLogFilename)
 		}
-	}
-
-	acs, err := store.NewAIConfigStore(dataDir)
-	if err != nil {
-		log.Writef("Failed to init AI config store: %v", err)
-		a.sendStartupErr(fmt.Errorf("ai config store: %w", err))
-	} else {
-		a.aiConfigStore = acs
 	}
 
 	is, err := store.NewIdentityStore(dataDir)
@@ -291,7 +293,6 @@ func (a *App) initStores(dataDir string, upgrade bool) {
 
 	a.terminalHistoryStore = store.NewTerminalHistoryStore(dataDir)
 	a.quickCommandsStore = store.NewQuickCommandsStore(dataDir)
-	a.skillsStore = store.NewSkillsStore(dataDir)
 	a.commandsStore = store.NewCommandsStore(dataDir)
 	a.tunnelStore = store.NewTunnelStore(dataDir)
 	a.localStateStore = store.NewLocalStateStore(dataDir)
@@ -436,22 +437,6 @@ func (a *App) initCredentials(dataDir string, upgrade bool) {
 		// Fall back to the pre-enc:v1 keychain (conn/<id>) so passwords from
 		// the old scheme remain usable if the one-shot migration didn't run.
 		a.connectionStore.SetLegacyKeychain(sync.NewKeychain())
-	}
-	if a.settingsStore != nil {
-		a.settingsStore.SetPasswordStore(cred)
-	}
-	if a.aiConfigStore != nil {
-		a.aiConfigStore.SetPasswordStore(cred)
-		// One-shot settings->ai.json migration. Runs after the password store
-		// is wired so model apiKeys land encrypted; the settings.json copy is
-		// left intact so a rollback to a pre-split build still finds them.
-		if a.settingsStore != nil {
-			if settings, err := a.settingsStore.Load(); err == nil {
-				if err := a.aiConfigStore.MigrateFromSettingsIfNeeded(settings); err != nil {
-					log.Writef("ai.json migration failed: %v", err)
-				}
-			}
-		}
 	}
 	if a.identityStore != nil {
 		a.identityStore.SetPasswordStore(cred)
@@ -948,11 +933,11 @@ func (a *App) proxyResolver() (session.ProxyResolver, error) {
 
 // systemProxyFor resolves the OS system proxy for reaching host:port: the
 // registry/system config, PAC scripts, and the HTTP(S)_PROXY env fallback,
-// via the shared cached resolver (llmProxy). direct=true means the system
+// via the shared cached resolver (cachedSystemProxy). direct=true means the system
 // resolved this target to a direct connection (no proxy or PAC says DIRECT).
 func systemProxyFor(host string, port int) (*session.SocksProxy, bool, error) {
 	req := &http.Request{URL: &url.URL{Scheme: "https", Host: net.JoinHostPort(host, strconv.Itoa(port))}}
-	u, err := llmProxy(req)
+	u, err := cachedSystemProxy(req)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1160,7 +1145,7 @@ func (a *App) SaveLocalState(state store.LocalState) error {
 
 func (a *App) LoadLocalState() (store.LocalState, error) {
 	if a.localStateStore == nil {
-		return store.LocalState{SidebarVisible: true, AISidebarVisible: true}, nil
+		return store.LocalState{SidebarVisible: true}, nil
 	}
 	return a.localStateStore.Load()
 }
@@ -1273,11 +1258,6 @@ func (a *App) reloadStoresAfterSync() {
 	if a.settingsStore != nil {
 		if settings, err := a.settingsStore.Load(); err == nil {
 			a.emit("store:settings:changed", settings)
-		}
-	}
-	if a.aiConfigStore != nil {
-		if cfg, err := a.aiConfigStore.Load(); err == nil {
-			a.emit("store:ai:changed", cfg)
 		}
 	}
 	if a.quickCommandsStore != nil {
@@ -1458,22 +1438,6 @@ func (a *App) SyncDeleteRepo() error {
 	return a.syncService.DeleteRepo()
 }
 
-// AI Session Store methods
-
-func (a *App) SaveAISessions(data store.AISessionData) error {
-	if a.aiSessionStore == nil {
-		return fmt.Errorf("AI session store not initialized")
-	}
-	return a.aiSessionStore.Save(data)
-}
-
-func (a *App) LoadAISessions() (store.AISessionData, error) {
-	if a.aiSessionStore == nil {
-		return store.AISessionData{}, fmt.Errorf("AI session store not initialized")
-	}
-	return a.aiSessionStore.Load()
-}
-
 // SettingsStore methods
 
 func (a *App) SaveSettings(settings store.AppSettings) error {
@@ -1497,26 +1461,6 @@ func (a *App) LoadSettings() (store.AppSettings, error) {
 		return store.AppSettings{}, fmt.Errorf("settings store not initialized")
 	}
 	return a.settingsStore.Load()
-}
-
-// AIConfigStore methods
-
-func (a *App) LoadAIModels() (store.AIStoreData, error) {
-	if a.aiConfigStore == nil {
-		return store.AIStoreData{}, fmt.Errorf("ai config store not initialized")
-	}
-	return a.aiConfigStore.Load()
-}
-
-func (a *App) SaveAIModels(cfg store.AIStoreData) error {
-	if a.aiConfigStore == nil {
-		return fmt.Errorf("ai config store not initialized")
-	}
-	err := a.aiConfigStore.Save(cfg)
-	if err == nil {
-		a.triggerAutoSync()
-	}
-	return err
 }
 
 // QuickCommandsStore methods

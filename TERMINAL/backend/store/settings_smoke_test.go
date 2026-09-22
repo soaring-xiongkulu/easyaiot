@@ -14,7 +14,6 @@ func TestSettingsStore_SaveLoadRoundTrip(t *testing.T) {
 	// Bypass NewSettingsStore (which uses os.UserConfigDir) — synthesize a
 	// store pointing at our temp dir.
 	s := &SettingsStore{configDir: dir}
-	s.SetPasswordStore(nil)
 
 	want := defaultSettings()
 	want.Language = "zh-CN"
@@ -58,22 +57,6 @@ func TestSettingsStore_LoadMissingFile(t *testing.T) {
 	}
 	if got.Theme == "" {
 		t.Errorf("expected defaults to populate, got zero-value settings")
-	}
-}
-
-func TestSettingsStore_DefaultsMissingAIMaxTurns(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"theme":"dark","ai":{}}`), 0600); err != nil {
-		t.Fatalf("seed settings: %v", err)
-	}
-	s := &SettingsStore{configDir: dir}
-
-	got, err := s.Load()
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	if got.AI.MaxTurns == nil || *got.AI.MaxTurns != defaultMaxTurns {
-		t.Errorf("AI.MaxTurns: got %v, want %d for a missing field", got.AI.MaxTurns, defaultMaxTurns)
 	}
 }
 
