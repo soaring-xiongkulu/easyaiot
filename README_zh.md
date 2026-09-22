@@ -42,7 +42,7 @@ EasyAIoT 官方网站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 </p>
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
-平台由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TWIN、TRANSFORM、PANEL、IDEA、HARNESS、SITE、TERMINAL</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测、<strong>基于 HARNESS 的大模型智能标注</strong>与 SAM3 开放词汇智能标注、人脸/车牌识别、<strong>POST 定制研判</strong>（检出之后按现场规则过滤、复合判断再告警，改规则不必重训模型）、联邦算力集群调度、<strong>SENTINEL 集群节点哨兵</strong>（按业务摸清节点就绪与可调度能力，缺件可自助补齐，任务按真能力下发），以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>POST 定制研判服务</strong>，把检测结果锻造成可贴现场的业务事件，误报少、规则可配、上线可先试跑；配套 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、四档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」；另以 <strong>TERMINAL 终端模块</strong>（基于开源 uniTerm 集成改名）提供 SSH / RDP / VNC / SFTP / 数据库 / Kubernetes 等 30 余种协议的一站式终端与远程运维入口，内置可自主规划并执行多轮 Shell 命令的 AI Agent。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置；并新增 <strong>ANDROID / IOS / HARMONYOS 三端壳打包工程</strong>，把这一移动体验以 APK / IPA / HAP 安装包形态覆盖到主流手机系统，一套前端、一键出包、版本统一管理。
+平台由 <strong>WEB、APP、DEVICE、EDGE、SENTINEL、VIDEO、RTC、AI、RUNTIME、POST、VISUALIZE、TWIN、TRANSFORM、PANEL、IDEA、HARNESS、SITE、TERMINAL</strong> 等核心模块组成，并以 <strong>COMPILE</strong> 承接多平台打包交付（含 Ubuntu / CentOS·RHEL <strong>7～9</strong>（x86 + <strong>CentOS ARM</strong>，按 el7/el8/el9 分包） / <strong>麒麟(Kylin) / 欧拉(openEuler)</strong> / Windows / macOS / ARM）。在能力侧，平台覆盖 GB28181 / ONVIF 多协议摄像头接入、<strong>RTC 消费级摄像头 P2P 桥接</strong>（基于 go2rtc，覆盖 <strong>Tapo、Tuya、Ring、Nest、小米、Wyze、DoorBird、GoPro、Roborock</strong> 九大品牌——门店 Tapo 补盲、涂鸦白牌纳管、海外 Ring/Nest 门铃、米家存量利旧、Wyze 低成本扩点、DoorBird 门口对讲、GoPro 机动机位、石头扫地机移动视角等场景，Web 一键接入并纳入统一视频与 AI 研判闭环）、<strong>大疆机场与无人机空中视角接入</strong>、实时 / 抓拍 / 巡检算法任务、<strong>RUNTIME 原生高速执行层</strong>（编译型二进制承接拉流解码、YOLO 推理、带框推流与多路原画转发——相对解释型链路更低 CPU/内存、更稳时延；同一二进制覆盖实时 / 抓拍 / 巡检 / 转发）、YOLO 目标检测、<strong>基于 HARNESS 的大模型智能标注</strong>与 SAM3 开放词汇智能标注、人脸/车牌识别、<strong>POST 定制研判</strong>（检出之后按现场规则过滤、复合判断再告警，改规则不必重训模型）、联邦算力集群调度、<strong>SENTINEL 集群节点哨兵</strong>（按业务摸清节点就绪与可调度能力，缺件可自助补齐，任务按真能力下发），以及 <strong>无限联邦边缘集群模式</strong>（普通开发板可即开即用、现场智能就地决策、告警与证据自动汇聚上云，算力随业务任意铺开），还有 MQTT / TCP / HTTP / Modbus-TCP / Modbus-RTU / OPC UA 物联网设备全生命周期管理，并由 <strong>EDGE C# 边缘采集运行时</strong>在现场以插件化采集器承接 Modbus RTU/TCP、OPC UA 等工业协议采集、本地调度与 MQTT 云边对接，以及<strong>可视化大屏与 Web 工艺组态</strong>，让设备数据既能展成指挥态势、也能落回工艺画面；并新增 <strong>POST 定制研判服务</strong>，把检测结果锻造成可贴现场的业务事件，误报少、规则可配、上线可先试跑；配套 <strong>TRANSFORM 多向数据流转引擎</strong>，把平台侧业务事件按约定投递到 MES / ERP / CRM / WMS 等外部系统，多方对接可配、可追、可复用；配套 <strong>PANEL 交付与值守入口</strong>，让一体机到场当天可装可验，值守与排障不必事事等开发远程敲命令；另以 <strong>SITE 官方网站</strong>对外呈现产品价值、四档硬件选型与安装包入口，让访客先看懂再下载、先选型再落地；并以 <strong>IDEA 社区贡献在线 IDE</strong> 让贡献者浏览器即可打开全仓、用 GitHub Copilot 共创、按改动发布到本机并提交 PR，把开源共建从「先配环境」变成「打开即改」；另以 <strong>TERMINAL 终端模块</strong>（基于开源 uniTerm 集成改名）提供 SSH / RDP / VNC / SFTP / 数据库 / Kubernetes 等 30 余种协议的一站式终端与远程运维入口。在体验侧，Web 管控台与移动 App / 小程序能力对齐，让指挥中心与现场巡检同一套业务逻辑、随时随地处置；并新增 <strong>ANDROID / IOS / HARMONYOS 三端壳打包工程</strong>，把这一移动体验以 APK / IPA / HAP 安装包形态覆盖到主流手机系统，一套前端、一键出包、版本统一管理。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
@@ -127,6 +127,25 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 | ![系统概览](.image/banner/panel/panel_1000.png) | ![容器管理](.image/banner/panel/panel_1001.png) | ![容器日志](.image/banner/panel/panel_1002.png) |
 | ![一键部署](.image/banner/panel/panel_1003.png) | ![镜像就绪](.image/banner/panel/panel_1004.png) | ![镜像拉取](.image/banner/panel/panel_1005.png) |
 | ![系统诊断](.image/banner/panel/panel_1006.png) | ![系统维护](.image/banner/panel/panel_1007.png) | ![服务拓扑](.image/banner/panel/panel_1008.png) |
+
+### ⌨️ TERMINAL：30+ 协议收进一个入口，值守排障不必再装一排工具
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+现场排障最耗时的往往不是故障本身，而是工具的拼凑：SSH 一个客户端、数据库另装 Navicat、Redis 再开一个、传文件另起 SFTP、看容器还要登服务器敲命令——账号、隧道、跳板各配一套，换台机器再配一遍。TERMINAL 基于开源 uniTerm 集成改名，以 <strong>30 余种协议</strong>覆盖远程终端、远程桌面、文件传输、数据库、容器五大运维场景，EasyAIoT 全套中间件左栏即点即连；以 Wails v3（Go + Vue 3）打成 Windows / macOS / Linux 单体应用、亦可 server 模式纯 HTTP 运行，把「装一排工具、配一堆客户端」变成「开一个入口、连所有现场」。
+</p>
+
+<ul style="font-size: 14px; line-height: 1.8; color: #444; margin: 10px 0;">
+  <li><strong>远程终端与桌面</strong>：SSH / Telnet / Mosh 远程终端与本地、串口终端，密码 / 密钥认证 + <strong>SSH 隧道端口转发</strong>直达内网；RDP / VNC / SPICE / X11 远程桌面，Windows 机器不必另装远控也能直接进去</li>
+  <li><strong>文件传输</strong>：SFTP / SCP / FTP / SMB / WebDAV / S3 双栏浏览，支持 <code>rz</code>/<code>sz</code> 与拖拽上传，日志包、取证文件当场拉回本地</li>
+  <li><strong>数据库客户端</strong>：MySQL / PostgreSQL / Oracle / SQL Server / Redis / MongoDB 开箱即用，库表结构、SQL 查询、结果集编辑、Redis 键值可视化一站完成，不必另装 Navicat / RDM</li>
+  <li><strong>容器与监控</strong>：Kubernetes / Docker / Podman / nerdctl 容器终端、日志、启停一屏办完，配合 CPU / 内存 / 磁盘 / 网络 / 进程<strong>实时监控</strong>定位资源瓶颈</li>
+</ul>
+
+| | | |
+|:---:|:---:|:---:|
+| ![SSH 终端](.image/banner/terminal/terminal_1002.png) | ![容器管理](.image/banner/terminal/terminal_1000.png) | ![容器日志](.image/banner/terminal/terminal_1001.png) |
+| ![服务日志](.image/banner/terminal/terminal_1008.png) | ![数据库表结构](.image/banner/terminal/terminal_1003.png) | ![多库管理](.image/banner/terminal/terminal_1005.png) |
+| ![SQL 查询](.image/banner/terminal/terminal_1004.png) | ![S3 文件浏览](.image/banner/terminal/terminal_1007.png) | ![Redis 管理](.image/banner/terminal/terminal_1006.png) |
 
 ### 📡 RTC：消费级摄像头 P2P 桥接，让「没有 RTSP」的设备也能进平台
 
