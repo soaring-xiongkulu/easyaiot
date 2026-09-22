@@ -55,7 +55,7 @@ fi
 
 # 3) 各模块 install_linux.sh update 入口存在
 note "3) 模块 update 入口..."
-for m in DEVICE AI VIDEO WEB APP RTC VISUALIZE TRANSFORM HARNESS IDEA PANEL; do
+for m in DEVICE AI VIDEO WEB APP RTC VISUALIZE TRANSFORM HARNESS TERMINAL IDEA PANEL; do
   entry="$ROOT/$m/install_linux.sh"
   [ -f "$entry" ] || { bad "$m 缺少 install_linux.sh"; continue; }
   # 包装脚本或真实脚本应能接受 update
@@ -84,6 +84,7 @@ check_skip() {
 }
 check_skip "$ROOT/IDEA/install.sh" "IDEA"
 check_skip "$ROOT/HARNESS/install.sh" "HARNESS"
+check_skip "$ROOT/TERMINAL/install.sh" "TERMINAL"
 check_skip "$ROOT/PANEL/install.sh" "PANEL"
 check_skip "$ROOT/AI/install_linux.sh" "AI"
 check_skip "$ROOT/VIDEO/install_linux.sh" "VIDEO"
@@ -127,6 +128,7 @@ probe "VIDEO health" "http://127.0.0.1:6000/actuator/health"
 probe "AI" "http://127.0.0.1:5000/"
 probe "IDEA health" "http://127.0.0.1:9300/health"
 probe "HARNESS" "http://127.0.0.1:3080/"
+probe "TERMINAL" "http://127.0.0.1:9245/"
 
 # 7) 干跑：模拟 update 前半段（不真正 pull 全量镜像）
 note "7) 干跑 update 前半段（ensure + docker check，60s 限时）..."

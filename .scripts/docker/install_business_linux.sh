@@ -114,12 +114,13 @@ ensure_industrial_demo_after_business_stack() {
     fi
 }
 
-# 业务模块（按依赖顺序：HARNESS 先于 IDEA -> 网关/微服务 -> AI/RTC/POST/视频 -> 前端 -> 全量模块 -> 运维控制台）
-ALL_MODULES=(HARNESS IDEA DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
+# 业务模块（按依赖顺序：HARNESS 先于 IDEA -> 多协议终端 -> 网关/微服务 -> AI/RTC/POST/视频 -> 前端 -> 全量模块 -> 运维控制台）
+ALL_MODULES=(HARNESS IDEA TERMINAL DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
 
 declare -A MODULE_NAMES=(
     [IDEA]="IDEA 在线 IDE"
     [HARNESS]="HARNESS AI 助手"
+    [TERMINAL]="TERMINAL 多协议终端"
     [DEVICE]="Device 服务"
     [AI]="AI 服务"
     [RTC]="RTC 服务"
@@ -136,6 +137,7 @@ declare -A MODULE_NAMES=(
 declare -A MODULE_PORTS=(
     [IDEA]="9300"
     [HARNESS]="3080"
+    [TERMINAL]="9245"
     [DEVICE]="48080"
     [AI]="5000"
     [RTC]="6100"
@@ -152,6 +154,7 @@ declare -A MODULE_PORTS=(
 declare -A MODULE_HEALTH_ENDPOINTS=(
     [IDEA]="/health"
     [HARNESS]="/"
+    [TERMINAL]="/"
     [DEVICE]="/actuator/health"
     [AI]="/actuator/health"
     [RTC]="/actuator/health"
@@ -510,6 +513,10 @@ execute_module() {
             print_error "未检测到 HARNESS 目录，无法部署 AI 助手"
             return 1
         fi
+        if [ "$module" = "TERMINAL" ]; then
+            print_error "未检测到 TERMINAL 目录，无法部署多协议终端"
+            return 1
+        fi
         print_warning "目录不存在，跳过: $module"
         return 1
     fi
@@ -529,6 +536,10 @@ execute_module() {
         fi
         if [ "$module" = "HARNESS" ]; then
             print_error "未检测到 HARNESS/install_linux.sh，无法部署 AI 助手"
+            return 1
+        fi
+        if [ "$module" = "TERMINAL" ]; then
+            print_error "未检测到 TERMINAL/install_linux.sh，无法部署多协议终端"
             return 1
         fi
         return 1
@@ -702,7 +713,7 @@ usage() {
     cat <<EOF
 EasyAIoT 业务系统统一管理脚本
 
-管理模块: HARNESS、IDEA、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TWIN、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full）
+管理模块: HARNESS、IDEA、TERMINAL、DEVICE、AI、RTC、POST、VIDEO、WEB、APP、VISUALIZE、TWIN、TRANSFORM、PANEL（不含中间件；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full；TERMINAL 同 HARNESS，mini/standard/full 启用）
 
 用法:
   $0 <命令> [选项] [模块...]
@@ -733,7 +744,7 @@ EasyAIoT 业务系统统一管理脚本
   --stop-on-error        某模块失败后立即中止（恢复旧行为）
 
 模块:
-  未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> DEVICE -> AI -> RTC -> POST -> VIDEO -> WEB -> APP -> VISUALIZE -> TWIN -> TRANSFORM -> PANEL
+  未指定时默认全部（按部署形态过滤），顺序为 HARNESS -> IDEA -> TERMINAL -> DEVICE -> AI -> RTC -> POST -> VIDEO -> WEB -> APP -> VISUALIZE -> TWIN -> TRANSFORM -> PANEL
   stop / clean / clean-all 时自动逆序执行
   默认某模块失败后继续其余模块；可用环境/行为保持兼容，--continue-on-error 仍可用
 

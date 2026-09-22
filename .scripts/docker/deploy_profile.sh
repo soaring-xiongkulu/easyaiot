@@ -58,6 +58,7 @@ apply_deploy_profile() {
             # RUNTIME 告警走 HTTP → VIDEO，不依赖 MQTT/EMQX
             export EASYAIOT_ENABLE_EMQX=0
             export EASYAIOT_ENABLE_HARNESS=0
+            export EASYAIOT_ENABLE_TERMINAL=0
             export EASYAIOT_ENABLE_IDEA=0
             export EASYAIOT_ENABLE_PANEL=0
             export EASYAIOT_ENABLE_MQTT_DEMO=0
@@ -189,6 +190,8 @@ is_full_deploy_profile() {
 #           无源码 runtime 未显式开启时也默认跳过。
 #   IDEA — 社区贡献在线 IDE，mini/standard/full 均启用（EASYAIOT_ENABLE_IDEA=0 关闭）
 #   HARNESS — DeepSeek Harness AI Agent，mini/standard/full 均启用（EASYAIOT_ENABLE_HARNESS=0 关闭）
+#   TERMINAL — 多协议终端 server（SSH/RDP/VNC/K8s，WEB 助手第三入口），mini/standard/full 均启用
+#              （EASYAIOT_ENABLE_TERMINAL=0 关闭；edge 形态无 WEB 助手入口，自动关闭）
 module_enabled_for_deploy_profile() {
     case "$1" in
         APP|VISUALIZE|TWIN|TRANSFORM) [ "${EASYAIOT_DEPLOY_PROFILE:-full}" = "full" ] ;;
@@ -209,6 +212,12 @@ module_enabled_for_deploy_profile() {
             ;;
         HARNESS)
             case "${EASYAIOT_ENABLE_HARNESS:-}" in
+                0|false|FALSE|no|NO|off|OFF) return 1 ;;
+                *) return 0 ;;
+            esac
+            ;;
+        TERMINAL)
+            case "${EASYAIOT_ENABLE_TERMINAL:-}" in
                 0|false|FALSE|no|NO|off|OFF) return 1 ;;
                 *) return 0 ;;
             esac

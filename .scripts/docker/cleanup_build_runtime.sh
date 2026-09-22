@@ -19,7 +19,7 @@
 #   bash .scripts/docker/cleanup_build_runtime.sh --dry-run # 仅预览
 #   bash .scripts/docker/cleanup_build_runtime.sh --module AI -y
 #     # 仅清理指定模块（如 AI）：该模块镜像 + .build-cache/ai（含 arm 交叉缓存）
-#     # 可选模块同 build-runtime: HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL
+#     # 可选模块同 build-runtime: HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL
 #     # 指定模块时默认清理 镜像+该模块构建缓存；全局 BuildKit 缓存无法按模块过滤，自动跳过
 #
 # 注意: 若当前环境正在使用这些镜像运行服务，请先 stop 再清理。
@@ -59,7 +59,7 @@ DO_MARKER=false
 DRY_RUN=false
 ASSUME_YES=false
 SHOW_HELP=false
-# 指定模块时仅清理该模块（空=全部）；模块名同 build-runtime（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
+# 指定模块时仅清理该模块（空=全部）；模块名同 build-runtime（HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL）
 CLEAN_MODULE=""
 
 # 跨架构构建常拉取的大体积基础镜像（清理时故意保留，避免每次 ARM 重建都重新下载）
@@ -93,7 +93,7 @@ show_help() {
   --dist           清理 WEB/dist-prebuilt-* 跨架构中间产物
   --logs           清理 .scripts/docker/logs 下 runtime_image / build_ 日志
   --marker         删除 .runtime_images_pulled 拉取标记
-  --module <模块>  仅清理指定模块（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TRANSFORM|PANEL）
+  --module <模块>  仅清理指定模块（HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL）
                    与 --images/--cache 联用时只清理该模块镜像与 .build-cache/<模块> 子目录；
                    与 --all 联用同理（BuildKit 缓存为全局共享，指定模块时自动跳过）；
                    --dist 仅在模块为 WEB 时生效
@@ -217,6 +217,7 @@ runtime_container_pattern_for() {
     case "${1:-}" in
         DEVICE)   echo "^(iot-)" ;;
         HARNESS)  echo "^(easyaiot-harness|harness)" ;;
+        TERMINAL) echo "^(easyaiot-terminal|terminal)" ;;
         IDEA)     echo "^(easyaiot-idea-portal|easyaiot-idea-workspace|idea-portal|idea-workspace)" ;;
         PANEL)    echo "^(easyaiot-panel|panel)" ;;
         AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM)
@@ -402,7 +403,7 @@ show_cleanup_preview() {
             local -a cache_targets=()
             collect_module_cache_targets cache_targets
             if [ ${#cache_targets[@]} -eq 0 ]; then
-                print_info "${CLEAN_MODULE} 无独立构建缓存目录（仅 AI/VIDEO/DEVICE/WEB/APP/VISUALIZE 有），跳过"
+                print_info "${CLEAN_MODULE} 无独立构建缓存目录（仅 AI/VIDEO/DEVICE/WEB/APP/VISUALIZE/TWIN 有），跳过"
             else
                 local ct
                 for ct in "${cache_targets[@]}"; do
@@ -526,7 +527,7 @@ cleanup_build_cache_dir() {
         local -a targets=()
         collect_module_cache_targets targets
         if [ ${#targets[@]} -eq 0 ]; then
-            print_info "${CLEAN_MODULE} 无独立构建缓存目录（仅 AI/VIDEO/DEVICE/WEB/APP/VISUALIZE 有），跳过"
+            print_info "${CLEAN_MODULE} 无独立构建缓存目录（仅 AI/VIDEO/DEVICE/WEB/APP/VISUALIZE/TWIN 有），跳过"
             return 0
         fi
         local t size

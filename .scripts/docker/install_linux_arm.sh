@@ -89,6 +89,7 @@ echo "" >> "$LOG_FILE"
 MODULES=(
     "HARNESS"          # DeepSeek Harness AI Agent（IDEA 分屏依赖，须优先就绪）
     "IDEA"             # 社区贡献在线 IDE
+    "TERMINAL"         # 多协议终端（SSH/RDP/VNC/K8s，WEB 助手第三入口）
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
     "AI"               # AI服务
@@ -106,7 +107,7 @@ MODULES=(
 # 编排前置模块（仅控制启动顺序；失败不再中止后续模块）
 is_bootstrap_module() {
     case "$1" in
-        HARNESS|IDEA) return 0 ;;
+        HARNESS|IDEA|TERMINAL) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -114,6 +115,7 @@ is_bootstrap_module() {
 # 模块名称映射
 declare -A MODULE_NAMES
 MODULE_NAMES["HARNESS"]="HARNESS AI助手"
+MODULE_NAMES["TERMINAL"]="TERMINAL多协议终端"
 MODULE_NAMES["IDEA"]="IDEA在线IDE"
 MODULE_NAMES[".scripts/docker"]="基础服务"
 MODULE_NAMES["DEVICE"]="Device服务"
@@ -131,6 +133,7 @@ MODULE_NAMES["PANEL"]="运维控制台"
 # 模块端口映射
 declare -A MODULE_PORTS
 MODULE_PORTS["HARNESS"]="3080"
+MODULE_PORTS["TERMINAL"]="9245"
 MODULE_PORTS["IDEA"]="9300"
 MODULE_PORTS[".scripts/docker"]="8848"  # Nacos端口
 MODULE_PORTS["DEVICE"]="48080"           # Gateway端口
@@ -148,6 +151,7 @@ MODULE_PORTS["PANEL"]="9200"
 # 模块健康检查端点
 declare -A MODULE_HEALTH_ENDPOINTS
 MODULE_HEALTH_ENDPOINTS["HARNESS"]="/"
+MODULE_HEALTH_ENDPOINTS["TERMINAL"]="/"
 MODULE_HEALTH_ENDPOINTS["IDEA"]="/health"
 MODULE_HEALTH_ENDPOINTS[".scripts/docker"]="/nacos/actuator/health"
 MODULE_HEALTH_ENDPOINTS["DEVICE"]="/actuator/health"  # Gateway健康检查
@@ -801,6 +805,10 @@ execute_module_command() {
             print_error "未检测到 HARNESS 目录，无法部署 AI 助手"
             return 1
         fi
+        if [ "$module" = "TERMINAL" ]; then
+            print_error "未检测到 TERMINAL 目录，无法部署多协议终端"
+            return 1
+        fi
         if [ "$module" = "PANEL" ]; then
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（runtime 无 PANEL 目录）"
             return 0
@@ -821,6 +829,10 @@ execute_module_command() {
         fi
         if [ "$module" = "HARNESS" ]; then
             print_error "未检测到 HARNESS/install_linux.sh，无法部署 AI 助手"
+            return 1
+        fi
+        if [ "$module" = "TERMINAL" ]; then
+            print_error "未检测到 TERMINAL/install_linux.sh，无法部署多协议终端"
             return 1
         fi
         if [ "$module" = "PANEL" ]; then
@@ -1057,6 +1069,11 @@ install_linux() {
                     print_info "    docker images | grep harness"
                     print_info "    bash HARNESS/install.sh status"
                     ;;
+                "TERMINAL多协议终端")
+                    print_info "  - TERMINAL：检查 easyaiot/terminal 镜像与 :9245 端口"
+                    print_info "    docker images | grep terminal"
+                    print_info "    bash TERMINAL/install.sh status"
+                    ;;
                 "IDEA在线IDE")
                     print_info "  - IDEA：检查 idea-workspace / idea-portal 镜像构建"
                     print_info "    docker images | grep idea"
@@ -1175,7 +1192,7 @@ start_all() {
 
     # HARNESS 先于 IDEA（失败跳过并继续后续模块）
     local module
-    for module in HARNESS IDEA; do
+    for module in HARNESS TERMINAL IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "启动 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "start"; then
@@ -1479,7 +1496,7 @@ update_all() {
     # HARNESS 先于 IDEA（失败跳过并继续后续模块）
     collect_biz_modules
     local module
-    for module in HARNESS IDEA; do
+    for module in HARNESS TERMINAL IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "更新 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "update"; then
@@ -1556,6 +1573,9 @@ verify_all() {
         echo -e "  IDEA 在线 IDE:         http://localhost:9300"
         if module_enabled_for_deploy_profile HARNESS; then
             echo -e "  AI 助手 (HARNESS):      http://localhost:3080"
+        fi
+        if module_enabled_for_deploy_profile TERMINAL; then
+            echo -e "  终端助手 (TERMINAL):    http://localhost:9245"
         fi
         echo -e "  基础服务 (Nacos):     http://localhost:8848/nacos"
         echo -e "  基础服务 (RustFS):     http://localhost:9000 (API), http://localhost:9001 (Console)"

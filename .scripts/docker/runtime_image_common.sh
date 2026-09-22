@@ -40,6 +40,7 @@ DEVICE_COMPOSE_SERVICES=(
 
 INDEPENDENT_MODULES=(
     "aiot-harness|easyaiot/harness|HARNESS"
+    "aiot-terminal|easyaiot/terminal|TERMINAL"
     "aiot-idea-portal|easyaiot/idea-portal|IDEA"
     "aiot-idea-workspace|easyaiot/idea-workspace|IDEA"
     "aiot-ai|ai-service|AI"
@@ -111,8 +112,8 @@ runtime_is_single_arch_build() {
     [ -n "$a" ] && [ "$a" != "all" ]
 }
 
-# build-runtime 可选单模块（IDEA/PANEL 全形态；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full）
-ALL_RUNTIME_BUILD_MODULES=(HARNESS IDEA DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
+# build-runtime 可选单模块（IDEA/TERMINAL/PANEL 全形态；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full）
+ALL_RUNTIME_BUILD_MODULES=(HARNESS IDEA TERMINAL DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
 
 runtime_build_module_help() {
     local out="all" m
@@ -147,6 +148,7 @@ runtime_normalize_build_module() {
         ""|all) echo "" ;;
         idea|aiot-idea|aiot-idea-portal|aiot-idea-workspace|easyaiot/idea-portal|easyaiot/idea-workspace) echo "IDEA" ;;
         harness|aiot-harness|easyaiot/harness) echo "HARNESS" ;;
+        terminal|aiot-terminal|easyaiot/terminal) echo "TERMINAL" ;;
         device) echo "DEVICE" ;;
         ai|aiot-ai) echo "AI" ;;
         rtc|aiot-rtc) echo "RTC" ;;
@@ -586,6 +588,7 @@ runtime_build_module_desc() {
     case "$1" in
         IDEA)      echo "在线 IDE（portal + workspace，全形态）" ;;
         HARNESS)   echo "DeepSeek Harness AI 助手（全形态）" ;;
+        TERMINAL)  echo "多协议终端（SSH/RDP/VNC/K8s，全形态）" ;;
         DEVICE)    echo "Device 微服务（含 aiot-visualize 后台）" ;;
         AI)        echo "AI 服务" ;;
         RTC)       echo "RTC / go2rtc 摄像头桥接（全形态）" ;;
@@ -660,6 +663,7 @@ runtime_interactive_select_build_module() {
         case "$mod" in
             IDEA)     echo "  ${idx}) IDEA      — 社区贡献在线 IDE（portal + workspace，全形态）" ;;
             HARNESS)  echo "  ${idx}) HARNESS   — DeepSeek Harness AI 助手（全形态）" ;;
+            TERMINAL) echo "  ${idx}) TERMINAL  — 多协议终端（SSH/RDP/VNC/K8s，全形态）" ;;
             DEVICE) echo "  ${idx}) DEVICE    — Device 微服务（含 aiot-visualize 后台）" ;;
             AI)     echo "  ${idx}) AI        — AI 服务" ;;
             RTC)    echo "  ${idx}) RTC       — RTC / go2rtc 摄像头桥接（全形态）" ;;
@@ -986,6 +990,7 @@ runtime_images_collect_check_refs() {
         "easyaiot/idea-portal:${tag}"
         "easyaiot/idea-workspace:${tag}"
         "easyaiot/harness:${tag}"
+        "easyaiot/terminal:${tag}"
         "ai-service:${tag}"
         "rtc-service:${tag}"
         "video-service:${tag}"
@@ -1497,7 +1502,7 @@ runtime_print_install_local_build_help() {
     runtime_img_msg info "  bash ${install_script} start     # 镜像就绪后启动"
     echo ""
     if [ "$install_script" = ".scripts/docker/install_business_linux.sh" ]; then
-        runtime_img_msg info "（当前脚本仅含业务模块 IDEA/HARNESS/DEVICE/AI/RTC/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件）"
+        runtime_img_msg info "（当前脚本仅含业务模块 IDEA/HARNESS/TERMINAL/DEVICE/AI/RTC/VIDEO/WEB/APP/VISUALIZE/TRANSFORM/PANEL，不含中间件）"
     else
         runtime_img_msg info "方案 3：仅构建/安装单个模块（示例 DEVICE）"
         runtime_img_msg info "  bash DEVICE/install_linux.sh build"
@@ -1777,7 +1782,7 @@ runtime_images_invoke() {
 # 显示运行时镜像管理用法摘要
 runtime_images_usage() {
     cat <<EOF
-运行时镜像管理（业务模块 $(runtime_build_module_pipe_list | tr '|' '/')，不含中间件；IDEA/HARNESS/PANEL 全形态；POST 仅 standard/full 部署；APP/VISUALIZE/TRANSFORM 仅 full）
+运行时镜像管理（业务模块 $(runtime_build_module_pipe_list | tr '|' '/')，不含中间件；IDEA/HARNESS/TERMINAL/PANEL 全形态；POST 仅 standard/full 部署；APP/VISUALIZE/TRANSFORM 仅 full）
 
 pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   mini     — 精简 DEVICE（4/13：gateway/system/infra/sink）

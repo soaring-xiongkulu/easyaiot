@@ -15,7 +15,7 @@
 #   status     - 查看所有服务状态
 #   logs       - 查看服务日志
 #   build           - 重新构建所有镜像（各模块本地构建）
-#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL）
+#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|TERMINAL|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
 #   clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件；指定模块时仅清理该模块镜像与其构建缓存）
@@ -225,6 +225,7 @@ echo "" >> "$LOG_FILE"
 MODULES=(
     "HARNESS"          # DeepSeek Harness AI Agent（IDEA 分屏依赖，须优先就绪）
     "IDEA"             # 社区贡献在线 IDE
+    "TERMINAL"         # 多协议终端（SSH/RDP/VNC/K8s，WEB 助手第三入口）
     ".scripts/docker"  # 基础服务（Nacos、PostgreSQL、Redis等）
     "DEVICE"           # Device服务（网关和微服务）
     "AI"               # AI服务
@@ -242,7 +243,7 @@ MODULES=(
 # 编排前置模块（仅控制启动顺序；失败不再中止后续模块）
 is_bootstrap_module() {
     case "$1" in
-        HARNESS|IDEA) return 0 ;;
+        HARNESS|IDEA|TERMINAL) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -258,6 +259,7 @@ MODULE_NAMES["POST"]="POST服务"
 MODULE_NAMES["VIDEO"]="Video服务"
 MODULE_NAMES["WEB"]="Web前端服务"
 MODULE_NAMES["HARNESS"]="HARNESS AI助手"
+MODULE_NAMES["TERMINAL"]="TERMINAL多协议终端"
 MODULE_NAMES["APP"]="App移动端H5"
 MODULE_NAMES["VISUALIZE"]="可视化编辑器"
 MODULE_NAMES["TWIN"]="数字孪生引擎"
@@ -275,6 +277,7 @@ MODULE_PORTS["POST"]="8089"
 MODULE_PORTS["VIDEO"]="6000"
 MODULE_PORTS["WEB"]="8888"
 MODULE_PORTS["HARNESS"]="3080"
+MODULE_PORTS["TERMINAL"]="9245"
 MODULE_PORTS["APP"]="9010"
 MODULE_PORTS["VISUALIZE"]="8002"
 MODULE_PORTS["TWIN"]="8003"
@@ -292,6 +295,7 @@ MODULE_HEALTH_ENDPOINTS["POST"]="/readyz"
 MODULE_HEALTH_ENDPOINTS["VIDEO"]="/actuator/health"
 MODULE_HEALTH_ENDPOINTS["WEB"]="/health"
 MODULE_HEALTH_ENDPOINTS["HARNESS"]="/"
+MODULE_HEALTH_ENDPOINTS["TERMINAL"]="/"
 MODULE_HEALTH_ENDPOINTS["APP"]="/health"
 MODULE_HEALTH_ENDPOINTS["VISUALIZE"]="/health"
 MODULE_HEALTH_ENDPOINTS["TWIN"]="/health"
@@ -928,6 +932,10 @@ execute_module_command() {
             print_error "未检测到 HARNESS 目录，无法部署 AI 助手"
             return 1
         fi
+        if [ "$module" = "TERMINAL" ]; then
+            print_error "未检测到 TERMINAL 目录，无法部署多协议终端"
+            return 1
+        fi
         if [ "$module" = "PANEL" ]; then
             print_info "跳过运维控制台（PANEL）：$(panel_skip_deploy_reason)（runtime 无 PANEL 目录）"
             return 0
@@ -948,6 +956,10 @@ execute_module_command() {
         fi
         if [ "$module" = "HARNESS" ]; then
             print_error "未检测到 HARNESS/install_linux.sh，无法部署 AI 助手"
+            return 1
+        fi
+        if [ "$module" = "TERMINAL" ]; then
+            print_error "未检测到 TERMINAL/install_linux.sh，无法部署多协议终端"
             return 1
         fi
         if [ "$module" = "PANEL" ]; then
@@ -1205,6 +1217,11 @@ install_linux() {
                     print_info "  - HARNESS：检查 easyaiot/harness 镜像与 :3080 端口"
                     print_info "    docker images | grep harness"
                     print_info "    bash HARNESS/install.sh status"
+                    ;;
+                "TERMINAL多协议终端")
+                    print_info "  - TERMINAL：检查 easyaiot/terminal 镜像与 :9245 端口"
+                    print_info "    docker images | grep terminal"
+                    print_info "    bash TERMINAL/install.sh status"
                     ;;
             esac
         done
@@ -1517,7 +1534,7 @@ start_all() {
     create_network
 
     local module
-    for module in HARNESS IDEA; do
+    for module in HARNESS TERMINAL IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "启动 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "start"; then
@@ -1817,7 +1834,7 @@ clean_all() {
 
 # 清理 build-runtime 构建产物：先停止服务，再调用 cleanup_build_runtime.sh
 # 用法: clean-build-runtime [模块] [选项...]
-#   模块为可选的 build-runtime 模块名（HARNESS|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL），
+#   模块为可选的 build-runtime 模块名（HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL），
 #   指定后仅停止该模块服务、仅清理该模块镜像与该模块 .build-cache；其余选项原样透传给 cleanup_build_runtime.sh。
 clean_build_runtime() {
     shift
@@ -1935,7 +1952,7 @@ update_all() {
     fi
     
     local module
-    for module in HARNESS IDEA; do
+    for module in HARNESS TERMINAL IDEA; do
         if module_enabled_for_deploy_profile "$module"; then
             print_section "更新 ${MODULE_NAMES[$module]}"
             if ! execute_module_command "$module" "update"; then
@@ -2025,6 +2042,9 @@ verify_all() {
         echo -e "  IDEA 在线 IDE:         http://localhost:9300"
         if module_enabled_for_deploy_profile HARNESS; then
             echo -e "  AI 助手 (HARNESS):      http://localhost:3080"
+        fi
+        if module_enabled_for_deploy_profile TERMINAL; then
+            echo -e "  终端助手 (TERMINAL):    http://localhost:9245"
         fi
         echo -e "  基础服务 (Nacos):     http://localhost:8848/nacos"
         echo -e "  基础服务 (RustFS):     http://localhost:9000 (API), http://localhost:9001 (Console)"

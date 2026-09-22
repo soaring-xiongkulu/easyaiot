@@ -32,7 +32,7 @@
 #                    - pull:  不指定则交互选择（默认 full）；指定则直接拉取该形态
 #   --arch <arch>    指定构建架构：all | amd64 | arm64（默认 all=全部架构）
 #                    单架构模式仅构建/推送该架构镜像，跳过多架构 manifest 更新
-#   --module <mod>   指定构建模块：all | HARNESS | IDEA | DEVICE | AI | RTC | POST | VIDEO | WEB | APP | VISUALIZE | TWIN | TRANSFORM | PANEL（默认 all=全部）
+#   --module <mod>   指定构建模块：all | HARNESS | TERMINAL | IDEA | DEVICE | AI | RTC | POST | VIDEO | WEB | APP | VISUALIZE | TWIN | TRANSFORM | PANEL（默认 all=全部）
 #                    单模块模式仅构建/推送该模块镜像，跳过全量 install_linux.sh build
 #   --native-source  使用原始源（非国内镜像源），默认使用腾讯云镜像源加速
 #
@@ -58,6 +58,7 @@
 #   共享镜像（全形态通用，pull 时按形态跳过不会启动的 DEVICE 服务）:
 #     docker.cnb.cool/holmesian/easyaiot/aiot-idea-portal:amd64    → easyaiot/idea-portal:latest
 #     docker.cnb.cool/holmesian/easyaiot/aiot-idea-workspace:amd64 → easyaiot/idea-workspace:latest
+#     docker.cnb.cool/holmesian/easyaiot/aiot-terminal:amd64 → easyaiot/terminal:latest
 #     docker.cnb.cool/holmesian/easyaiot/aiot-ai:amd64       → ai-service:latest
 #     docker.cnb.cool/holmesian/easyaiot/aiot-video:amd64    → video-service:latest
 #     docker.cnb.cool/holmesian/easyaiot/aiot-rtc:amd64      → rtc-service:latest
@@ -953,6 +954,7 @@ build_single_module() {
         aiot-idea-portal) build_module_with_install_script "IDEA" "easyaiot/idea-portal" "$local_ref" "$target_arch" ;;
         aiot-idea-workspace) build_module_with_install_script "IDEA" "easyaiot/idea-workspace" "$local_ref" "$target_arch" ;;
         aiot-harness) build_module_with_install_script "HARNESS" "easyaiot/harness" "$local_ref" "$target_arch" ;;
+        aiot-terminal) build_module_with_install_script "TERMINAL" "easyaiot/terminal" "$local_ref" "$target_arch" ;;
         aiot-ai)    build_module_with_install_script "AI" "ai-service" "$local_ref" "$target_arch" ;;
         aiot-rtc)   build_module_with_install_script "RTC" "rtc-service" "$local_ref" "$target_arch" ;;
         aiot-post)  build_module_with_install_script "POST" "post-service" "$local_ref" "$target_arch" ;;
