@@ -1658,6 +1658,7 @@
   "workspace.createCancelled": "已取消创建，已连接的成员保留",
   "workspace.createSkippedHosts": "{count} 个所选连接类型不支持加入工作区",
   "workspace.dropHint": "将连接拖动到此处加入工作区",
+  "startTab.middlewarePresets": "EasyAIoT 中间件",
   "conn.typeWebApp": "Web 应用",
   "sidebar.connectUrl": "打开网页"
 }

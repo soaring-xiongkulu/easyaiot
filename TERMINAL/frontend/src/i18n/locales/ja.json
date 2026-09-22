@@ -1657,6 +1657,7 @@
   "workspace.createCancelled": "作成をキャンセル — 接続済みメンバーは保持されます",
   "workspace.createSkippedHosts": "{count} 個の選択された接続タイプはワークスペースに追加できません",
   "workspace.dropHint": "接続をここにドラッグしてワークスペースに追加",
+  "startTab.middlewarePresets": "EasyAIoT ミドルウェア",
   "conn.typeWebApp": "Web アプリ",
   "sidebar.connectUrl": "URL を開く"
 }

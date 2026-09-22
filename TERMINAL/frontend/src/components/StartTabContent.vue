@@ -2,7 +2,7 @@
   <div ref="startTabRef" class="start-tab">
     <div class="start-content" :style="contentStyle">
       <!-- Branding -->
-      <div class="start-brand" v-show="!searchQuery.trim()">Terminal</div>
+      <div class="start-brand" v-show="!searchQuery.trim()">EasyAIoT Terminal</div>
 
       <!-- Search row -->
     <div class="start-search-row">
@@ -70,6 +70,34 @@
 
     <!-- Home view sections -->
     <template v-if="tab.viewMode === 'home'">
+      <!-- EasyAIoT middleware presets: seeded quick access, double-click connects -->
+      <template v-if="middlewareConfigs.length > 0 && !searchQuery.trim()">
+        <div class="start-section-label">{{ t('startTab.middlewarePresets') }}</div>
+        <div class="start-cards-grid">
+          <div
+            v-for="config in middlewareConfigs"
+            :key="'mw-' + config.id"
+            class="start-card"
+            :class="{ focused: isCardFocused('conn:' + config.id), selected: selectedIds.has('conn:' + config.id) }"
+            @click="onCardClick(config, $event)"
+            @dblclick="onCardDblClick(config, $event)"
+            @contextmenu.prevent="onContextMenu($event, config)"
+          >
+            <div class="start-card-top">
+              <div class="start-card-icon" :class="config.type">
+                <el-icon><component :is="connTypeIcon(config) || Server" :size="'1.75rem'" /></el-icon>
+              </div>
+              <div>
+                <div class="start-card-name">{{ config.name }}</div>
+                <div class="start-card-meta">{{ getCardSubtitle(config) }}</div>
+              </div>
+            </div>
+            <button class="card-fav-btn" :class="{ on: favoriteStore.isFavorite(config.id) }" :title="favoriteStore.isFavorite(config.id) ? t('sidebar.removeFromFavorites') : t('sidebar.addToFavorites')" @click.stop="favoriteStore.toggle(config.id)"><Star :size="'0.875rem'" /></button>
+            <button class="card-more-btn" @click.stop="onCardMoreClick($event, config)" :title="t('terminal.more')"><MoreHorizontal :size="'1rem'" /></button>
+          </div>
+        </div>
+      </template>
+
       <!-- Favorites -->
       <template v-if="favoriteConfigs.length > 0">
         <div class="start-section-label">{{ t('startTab.favorites') }}</div>
@@ -397,6 +425,7 @@ const lastClickId = ref<string | null>(null)
 function getAllVisibleIds(): string[] {
   const ids: string[] = []
   if (props.tab.viewMode === 'home') {
+    for (const c of middlewareConfigs.value) ids.push('conn:' + c.id)
     for (const c of favoriteConfigs.value) ids.push('fav:' + c.id)
     for (const c of recentConfigs.value) ids.push('recent:' + c.id)
   }
@@ -479,6 +508,17 @@ const recentConfigs = computed(() => {
       (c.host || '').toLowerCase().includes(query) ||
       c.type.toLowerCase().includes(query))
     .slice(0, 12)
+})
+
+// ── EasyAIoT middleware presets ──
+// Connections seeded by the backend under the deterministic preset-ID prefix;
+// the section hides while searching (search covers presets via All
+// connections) and follows the type filter like every other section.
+const middlewareConfigs = computed(() => {
+  const filtered = selectedTypeFilter.value === 'all'
+  return connectionStore.connections
+    .filter(c => c.id.startsWith('preset-easyaiot-'))
+    .filter(c => filtered || matchTypeFilter(c, selectedTypeFilter.value))
 })
 
 // ── Favorite connections (favorites.json, ordered) ──
@@ -735,6 +775,7 @@ const focusableItems = computed<FocusableItem[]>(() => {
     return items
   }
   const items: FocusableItem[] = []
+  for (const config of middlewareConfigs.value) items.push({ kind: 'connection', config })
   for (const config of favoriteConfigs.value) items.push({ kind: 'favorite', config })
   for (const config of recentConfigs.value) items.push({ kind: 'recent', config })
   for (const group of groupCards.value.groups) items.push({ kind: 'group', groupId: group.id, name: group.name })
@@ -1405,6 +1446,7 @@ function doEditConnection(config: ConnectionConfig | null) {
 .start-card-icon.vnc,
 .start-card-icon.spice { color: var(--accent); }
 .start-card-icon.k8s { color: var(--accent); }
+.start-card-icon.url { color: var(--success); }
 .start-card-icon.serial { color: var(--success-dim); }
 .start-card-icon.group { color: var(--text-secondary); }
 .start-card-icon.ungrouped { color: var(--text-muted); }

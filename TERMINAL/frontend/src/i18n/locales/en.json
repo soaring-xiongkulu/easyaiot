@@ -1658,6 +1658,7 @@
   "workspace.createCancelled": "Creation cancelled — connected members were kept",
   "workspace.createSkippedHosts": "{count} selected connection type(s) cannot join a workspace",
   "workspace.dropHint": "Drag connections here to add them to the workspace",
+  "startTab.middlewarePresets": "EasyAIoT Middleware",
   "conn.typeWebApp": "Web App",
   "sidebar.connectUrl": "Open URL"
 }

@@ -1657,6 +1657,7 @@
   "workspace.createCancelled": "생성 취소 — 연결된 멤버는 유지됩니다",
   "workspace.createSkippedHosts": "{count}개 선택한 연결 유형은 워크스페이스에 추가할 수 없습니다",
   "workspace.dropHint": "연결을 여기로 끌어다 워크스페이스에 추가하세요",
+  "startTab.middlewarePresets": "EasyAIoT 미들웨어",
   "conn.typeWebApp": "웹 앱",
   "sidebar.connectUrl": "URL 열기"
 }

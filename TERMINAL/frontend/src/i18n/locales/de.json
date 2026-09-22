@@ -1657,6 +1657,7 @@
   "workspace.createCancelled": "Erstellung abgebrochen — verbundene Mitglieder blieben erhalten",
   "workspace.createSkippedHosts": "{count} ausgewählte Verbindungstypen können nicht beitreten",
   "workspace.dropHint": "Verbindungen hierher ziehen, um sie hinzuzufügen",
+  "startTab.middlewarePresets": "EasyAIoT-Middleware",
   "conn.typeWebApp": "Web-App",
   "sidebar.connectUrl": "URL öffnen"
 }

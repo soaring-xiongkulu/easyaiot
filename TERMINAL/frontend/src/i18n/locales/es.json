@@ -1657,6 +1657,7 @@
   "workspace.createCancelled": "Creación cancelada — se conservaron los miembros conectados",
   "workspace.createSkippedHosts": "{count} tipo(s) de conexión seleccionados no pueden unirse al espacio",
   "workspace.dropHint": "Arrastre conexiones aquí para añadirlas al espacio",
+  "startTab.middlewarePresets": "Middleware de EasyAIoT",
   "conn.typeWebApp": "App web",
   "sidebar.connectUrl": "Abrir URL"
 }

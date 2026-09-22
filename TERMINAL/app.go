@@ -316,6 +316,10 @@ func (a *App) initStores(dataDir string, upgrade bool) {
 	// connection + settings stores).
 	a.initCredentials(dataDir, upgrade)
 
+	// Built-in EasyAIoT middleware quick-access presets (first run / roster
+	// upgrades). After initCredentials so password fields can be encrypted.
+	a.ensureMiddlewarePresets()
+
 	// Sync service: sync metadata (sync-config.json + local repo clone) lives
 	// in the system user-config dir; the config files it encrypts/decrypts are
 	// read from dataDir.
@@ -2067,14 +2071,25 @@ func (a *App) SetupCredentials(mode, masterPassword string) error {
 	if a.credentialStore == nil {
 		return errors.New("credential store not initialized")
 	}
-	return a.credentialStore.Setup(mode, masterPassword)
+	if err := a.credentialStore.Setup(mode, masterPassword); err != nil {
+		return err
+	}
+	// The vault just became usable — retry the preset seeding that startup
+	// skipped while it was locked (first-run path: initStores ran before this
+	// dialog ever appeared).
+	a.ensureMiddlewarePresets()
+	return nil
 }
 
 func (a *App) UnlockCredentials(masterPassword string) error {
 	if a.credentialStore == nil {
 		return errors.New("credential store not initialized")
 	}
-	return a.credentialStore.Unlock(masterPassword)
+	if err := a.credentialStore.Unlock(masterPassword); err != nil {
+		return err
+	}
+	a.ensureMiddlewarePresets()
+	return nil
 }
 
 func (a *App) SwitchCredentialMode(targetMode, masterPassword string) error {
