@@ -104,6 +104,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { CameraOutlined, CarOutlined } from '@ant-design/icons-vue';
+import { Alert as AAlert, Tag as ATag, Upload as AUpload } from 'ant-design-vue';
 import type { UploadProps } from 'ant-design-vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';

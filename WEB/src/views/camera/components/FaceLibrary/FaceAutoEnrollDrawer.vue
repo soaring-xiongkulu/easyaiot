@@ -87,6 +87,7 @@ import { BasicDrawer, useDrawerInner } from "@/components/Drawer";
 import { BasicForm, useForm } from "@/components/Form";
 import { useMessage } from "@/hooks/web/useMessage";
 import { getDeviceList } from "@/api/device/camera";
+import { Alert as AAlert, Badge as ABadge } from "ant-design-vue";
 import { Button } from "@/components/Button";
 import {
   getFaceAutoEnrollTask,

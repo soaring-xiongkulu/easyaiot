@@ -169,7 +169,7 @@
 
       <!-- 分页 -->
       <div class="workbench-pagination">
-        <a-pagination
+        <Pagination
           v-model:current="page"
           :page-size="pageSize"
           :total="total"
@@ -201,7 +201,7 @@ import {
   UndoOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons-vue';
-import { Empty, Input as AInput, Spin, Tag as ATag } from 'ant-design-vue';
+import { Empty, Input as AInput, Pagination, Spin, Tag as ATag } from 'ant-design-vue';
 import { BasicDrawer, useDrawer, useDrawerInner } from '@/components/Drawer';
 import { useModal } from '@/components/Modal';
 import { Button, PopConfirmButton } from '@/components/Button';

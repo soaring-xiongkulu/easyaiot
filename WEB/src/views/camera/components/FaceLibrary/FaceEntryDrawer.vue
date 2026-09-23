@@ -161,6 +161,18 @@ import {
 import { getEntryColumns } from './Data';
 import FaceEntryModal from './FaceEntryModal.vue';
 import FaceNormalizeModal from './FaceNormalizeModal.vue';
+import {
+  Avatar as AAvatar,
+  Card as ACard,
+  Col as ACol,
+  Empty as AEmpty,
+  Image as AImage,
+  InputSearch as AInputSearch,
+  Row as ARow,
+  Spin as ASpin,
+  Tag as ATag,
+  Tooltip as ATooltip,
+} from 'ant-design-vue';
 import { Button, PopConfirmButton } from '@/components/Button'
 defineOptions({ name: 'FaceEntryDrawer' });
 
