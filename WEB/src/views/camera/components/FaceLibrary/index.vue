@@ -297,7 +297,9 @@ function showDownloadSuccess() {
 }
 
 async function refreshModelStatus() {
-  const wasReady = modelReady.value;
+  // 仅当本次会话真实经历了下载（手动触发或进入页面时正在下载）才提示“安装完成”，
+  // 模型本就存在时的首次状态查询不弹提示
+  const wasDownloading = modelDownloading.value;
   try {
     const res = await getFaceRecModelStatus();
     if (res?.data) {
@@ -312,8 +314,9 @@ async function refreshModelStatus() {
       }
       if (res.data.exists) {
         stopModelPolling();
+        const justFinished = downloadStarted.value || wasDownloading;
         downloadStarted.value = false;
-        if (!wasReady) {
+        if (justFinished) {
           showDownloadSuccess();
           createMessage.success('人脸特征模型已安装完成');
           if (viewMode.value === 'card') {
