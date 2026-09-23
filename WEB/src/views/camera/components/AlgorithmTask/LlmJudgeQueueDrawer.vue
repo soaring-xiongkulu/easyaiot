@@ -90,6 +90,15 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { ReloadOutlined } from '@ant-design/icons-vue';
+import {
+  Segmented as ASegmented,
+  Switch as ASwitch,
+  Alert as AAlert,
+  Spin as ASpin,
+  Tag as ATag,
+  Empty as AEmpty,
+  Pagination as APagination,
+} from 'ant-design-vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';

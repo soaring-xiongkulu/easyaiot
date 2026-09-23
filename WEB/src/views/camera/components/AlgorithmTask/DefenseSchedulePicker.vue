@@ -129,6 +129,7 @@
 
 <script lang="ts" setup>
 import { ref, watch, computed, onUnmounted } from 'vue';
+import { Select as ASelect } from 'ant-design-vue';
 
 interface Props {
   modelValue?: {

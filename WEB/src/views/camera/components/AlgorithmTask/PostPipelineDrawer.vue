@@ -344,7 +344,16 @@ import {
   LockOutlined,
   PlusOutlined,
 } from '@ant-design/icons-vue';
-import { Alert as AAlert, Empty as AEmpty, Spin } from 'ant-design-vue';
+import {
+  Alert as AAlert,
+  Empty as AEmpty,
+  Spin,
+  Tag as ATag,
+  Tooltip as ATooltip,
+  Switch as ASwitch,
+  Select as ASelect,
+  InputNumber as AInputNumber,
+} from 'ant-design-vue';
 import { BasicDrawer, useDrawer, useDrawerInner } from '@/components/Drawer';
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';

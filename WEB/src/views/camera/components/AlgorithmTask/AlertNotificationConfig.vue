@@ -77,6 +77,13 @@
 
 <script lang="ts" setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import {
+  FormItem as AFormItem,
+  Switch as ASwitch,
+  Select as ASelect,
+  SelectOption as ASelectOption,
+  InputNumber as AInputNumber,
+} from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { notifyTemplateQueryByType } from '@/api/device/notice';
 

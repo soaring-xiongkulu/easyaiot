@@ -116,6 +116,21 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { Spin } from 'ant-design-vue';
+import {
+  Alert as AAlert,
+  Tabs as ATabs,
+  TabPane as ATabPane,
+  Form as AForm,
+  Row as ARow,
+  Col as ACol,
+  FormItem as AFormItem,
+  Select as ASelect,
+  SelectOption as ASelectOption,
+  Divider as ADivider,
+  Tag as ATag,
+  Collapse as ACollapse,
+  CollapsePanel as ACollapsePanel,
+} from 'ant-design-vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { Button } from '@/components/Button';
 import { useMessage } from '@/hooks/web/useMessage';

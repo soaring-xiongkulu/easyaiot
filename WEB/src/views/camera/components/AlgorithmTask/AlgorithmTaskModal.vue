@@ -48,7 +48,16 @@ import { BasicDrawer, useDrawer, useDrawerInner } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
 import { useMessage } from '@/hooks/web/useMessage';
 import { QuestionCircleOutlined } from '@ant-design/icons-vue';
-import { Popover, Select, Button as AntButton } from 'ant-design-vue';
+import {
+  Popover,
+  Select,
+  Button as AntButton,
+  Tabs as ATabs,
+  TabPane as ATabPane,
+  Alert as AAlert,
+  Divider as ADivider,
+  Empty as AEmpty,
+} from 'ant-design-vue';
 import {
   createAlgorithmTask,
   updateAlgorithmTask,

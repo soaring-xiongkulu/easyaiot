@@ -216,6 +216,19 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
+import {
+  Alert as AAlert,
+  Space as ASpace,
+  Tag as ATag,
+  Switch as ASwitch,
+  Form as AForm,
+  FormItem as AFormItem,
+  Select as ASelect,
+  SelectOption as ASelectOption,
+  Divider as ADivider,
+  InputNumber as AInputNumber,
+  Empty as AEmpty,
+} from 'ant-design-vue';
 import { Button } from '@/components/Button';
 import { useDrawer } from '@/components/Drawer';
 import { useMessage } from '@/hooks/web/useMessage';
