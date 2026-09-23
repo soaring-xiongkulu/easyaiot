@@ -1,75 +1,808 @@
 <template>
   <div class="rag-page">
-    <div class="page-heading"><div><h2>RAG 知识与专家</h2><p>从来源文档沉淀可追溯知识片段，组合为知识集，再编排成可复用的 RAG 专家</p></div><div class="flow"><span>知识文档</span><RightOutlined/><span>知识片段</span><RightOutlined/><span>知识集</span><RightOutlined/><span>RAG 专家</span></div></div>
-    <div class="panel">
-      <div class="tabs"><button v-for="item in nav" :key="item.key" :class="{active:view===item.key}" @click="view=item.key"><component :is="item.icon"/>{{item.label}}<em>{{item.count}}</em></button><Button type="primary" @click="primaryAction"><PlusOutlined/>{{primaryText}}</Button></div>
-      <Spin :spinning="loading">
-        <div v-if="view==='documents'" class="workspace">
-          <div class="section-head"><div><h3>知识文档</h3><p>统一保存知识来源，上传后自动解析为可编辑片段</p></div><Input v-model:value="keyword" allow-clear placeholder="搜索文档"/></div>
-          <List :data-source="filteredDocuments"><template #renderItem="{item}"><ListItem class="row"><ListItemMeta :title="item.name" :description="`${item.char_count} 字符 · ${item.segment_count} 个片段 · ${item.enabled_segment_count} 个已启用`"><template #avatar><div class="icon"><FileTextOutlined/></div></template></ListItemMeta><Tag color="green">已解析</Tag><Button type="link" @click="openDocument(item)">查看与标注</Button><Popconfirm title="删除文档会同时删除其片段和知识集引用，确认删除？" @confirm="removeDocument(item.id)"><Button danger type="text"><DeleteOutlined/></Button></Popconfirm></ListItem></template></List>
-        </div>
-        <div v-else-if="view==='segments'" class="workspace">
-          <div class="section-head"><div><h3>知识片段</h3><p>片段同时保留文档来源和业务知识集归属</p></div><div class="filters"><Select v-model:value="documentFilter" allow-clear placeholder="全部来源文档" :options="documents.map(v=>({label:v.name,value:v.id}))"/><Input v-model:value="keyword" allow-clear placeholder="搜索标题或内容"/></div></div>
-          <div class="segment-grid"><article v-for="item in filteredSegments" :key="item.id"><header><Tag color="blue">{{item.document_name}}</Tag><Tag :color="item.is_enabled?'green':'default'">{{item.is_enabled?'已启用':'已停用'}}</Tag></header><h3>{{item.title}}</h3><p>{{item.content}}</p><footer><span>{{item.knowledge_set_count}} 个知识集引用</span><Button type="link" @click="openSegment(item)">编辑片段</Button></footer></article></div>
-        </div>
-        <div v-else-if="view==='sets'" class="workspace"><div class="section-head"><div><h3>知识集</h3><p>跨文档组合知识片段，作为专家可复用的业务知识资产</p></div><Input v-model:value="keyword" allow-clear placeholder="搜索知识集"/></div><div class="card-grid"><article v-for="item in filteredSets" :key="item.id"><div class="card-top"><div class="icon set"><FolderOutlined/></div><div><h3>{{item.name}}</h3><Tag color="cyan">{{item.category}}</Tag></div><Button type="text" @click="openSet(item)"><EditOutlined/></Button><Popconfirm title="确认删除知识集？原文档和片段将保留。" @confirm="removeSet(item.id)"><Button danger type="text"><DeleteOutlined/></Button></Popconfirm></div><p>{{item.description||'暂无说明'}}</p><div class="metrics"><b>{{item.document_count}}<small>来源文档</small></b><b>{{item.segment_count}}<small>知识片段</small></b><b>{{item.expert_count}}<small>专家引用</small></b></div><footer><Button type="link" @click="testSet(item)"><SearchOutlined/>检索验证</Button></footer></article></div></div>
-        <div v-else class="workspace"><div class="section-head"><div><h3>RAG 专家</h3><p>组合多个知识集，配置角色、回答边界与应用能力</p></div><Input v-model:value="keyword" allow-clear placeholder="搜索专家"/></div><div class="card-grid"><article v-for="item in filteredExperts" :key="item.id"><div class="card-top"><div class="icon expert"><RobotOutlined/></div><div><h3>{{item.name}}</h3><Tag color="purple">{{item.category}}</Tag></div><Button type="text" @click="openExpert(item)"><EditOutlined/></Button><Popconfirm title="确认删除专家？知识资产不会被删除。" @confirm="removeExpert(item.id)"><Button danger type="text"><DeleteOutlined/></Button></Popconfirm></div><p>知识集：{{item.knowledge_set_names.join('、')}}</p><div class="prompt">{{item.system_prompt}}</div><footer><Button type="link" @click="testExpert(item)"><MessageOutlined/>效果测试</Button></footer></article></div></div>
-      </Spin>
+    <!-- 页头：定位说明 + 向量库运行状态 -->
+    <div class="page-heading">
+      <div class="page-heading__text">
+        <h2>RAG 知识与专家</h2>
+        <p>
+          文档沉淀为可追溯的知识片段，组成知识集后编排成 RAG 专家；
+          在「算法任务 · 大模型后处理规则」中绑定专家，告警研判即自动携带知识库上下文
+        </p>
+      </div>
+      <a-tooltip :title="healthTooltip">
+        <span class="health-pill" :class="health?.ok ? 'is-ok' : 'is-bad'">
+          <span class="health-pill__dot" />
+          {{ health?.ok ? '向量库正常' : '向量库异常' }}
+        </span>
+      </a-tooltip>
     </div>
 
-    <Drawer v-model:open="uploadOpen" width="1100" title="导入知识文档"><div class="drawer-intro"><FileTextOutlined/><div><b>导入知识来源</b><p>平台解析文档并生成候选知识片段，之后可逐条审核、编辑和标注。</p></div></div><Upload.Dragger class="large-upload" :show-upload-list="false" accept=".txt,.md,.markdown,.csv,.json,.log" :before-upload="upload"><p class="ant-upload-drag-icon"><InboxOutlined/></p><p>点击或拖拽知识文档</p><p class="ant-upload-hint">TXT / Markdown / CSV / JSON / LOG，UTF-8，最大 10MB</p></Upload.Dragger></Drawer>
-    <Drawer v-model:open="documentOpen" width="1280" :title="`${currentDocument?.name||''} · 文档解析与片段标注`"><div class="document-layout"><aside><h3>文档信息</h3><p>{{currentDocument?.char_count}} 字符</p><p>{{documentSegments.length}} 个知识片段</p><Alert type="info" show-icon message="自动切片是候选结果。请编辑标题、内容和标签，确认后再加入知识集。"/><Button block type="dashed" @click="openNewSegment"><PlusOutlined/>人工标注新片段</Button></aside><main><article v-for="item in documentSegments" :key="item.id" class="segment-row"><div><Tag>片段 {{item.index+1}}</Tag><Tag :color="item.is_enabled?'green':'default'">{{item.is_enabled?'参与检索':'不参与检索'}}</Tag><h3>{{item.title}}</h3><p>{{item.content}}</p></div><Button type="link" @click="openSegment(item)">编辑</Button></article></main></div></Drawer>
-    <Drawer v-model:open="segmentOpen" width="1000" :title="editingSegmentId?'编辑知识片段':'人工标注知识片段'"><Form class="drawer-form" layout="vertical"><FormItem label="来源文档" required><Select v-model:value="segmentForm.document_id" size="large" :disabled="!!editingSegmentId" :options="documents.map(v=>({label:v.name,value:v.id}))"/></FormItem><FormItem label="片段标题" required><Input v-model:value="segmentForm.title" size="large" placeholder="用一句话概括该知识"/></FormItem><FormItem label="知识内容" required><Textarea v-model:value="segmentForm.content" :rows="12" placeholder="可从文档中选择、整理或补充知识内容"/></FormItem><FormItem label="业务标签"><Select v-model:value="segmentForm.tags" mode="tags" size="large" placeholder="输入标签后回车"/></FormItem><FormItem label="参与检索"><Switch v-model:checked="segmentForm.is_enabled"/></FormItem></Form><template #footer><div class="drawer-footer"><Button @click="segmentOpen=false">取消</Button><Button v-if="editingSegmentId" danger @click="removeSegment(editingSegmentId)">删除片段</Button><Button type="primary" :loading="saving" @click="saveSegment">保存并向量化</Button></div></template></Drawer>
-    <Drawer v-model:open="setOpen" width="1280" :title="editingSetId?'编辑知识集':'新建知识集'"><div class="drawer-intro set"><FolderOutlined/><div><b>组合可复用知识资产</b><p>知识集可以跨文档选择片段；同一片段可同时被多个知识集引用，不复制数据。</p></div></div><Form class="drawer-form wide" layout="vertical"><div class="two-cols"><FormItem label="知识集名称" required><Input v-model:value="setForm.name" size="large"/></FormItem><FormItem label="业务分类" required><Select v-model:value="setForm.category" size="large" :options="categories.map(v=>({label:v,value:v}))"/></FormItem></div><FormItem label="说明"><Textarea v-model:value="setForm.description" :rows="3"/></FormItem><FormItem label="选择知识片段" required><Transfer v-model:target-keys="setForm.segment_ids" :data-source="transferSegments" :titles="['可选知识片段','已加入知识集']" show-search :list-style="{width:'46%',height:'430px'}" :render="item=>item.title"/></FormItem></Form><template #footer><div class="drawer-footer"><Button @click="setOpen=false">取消</Button><Button type="primary" :loading="saving" @click="saveSet">保存知识集</Button></div></template></Drawer>
-    <Drawer v-model:open="expertOpen" width="1200" :title="editingExpertId?'编辑 RAG 专家':'创建 RAG 专家'"><div class="drawer-intro expert"><RobotOutlined/><div><b>专家能力编排</b><p>组合多个知识集并定义回答角色；知识集更新后专家自动使用最新片段。</p></div></div><Form class="drawer-form" layout="vertical"><FormItem label="专家名称" required><Input v-model:value="expertForm.name" size="large"/></FormItem><FormItem label="业务分类" required><Select v-model:value="expertForm.category" size="large" :options="categories.map(v=>({label:v,value:v}))"/></FormItem><FormItem label="关联知识集" required><Select v-model:value="expertForm.knowledge_set_ids" mode="multiple" size="large" :options="sets.map(v=>({label:`${v.name}（${v.segment_count} 片段）`,value:v.id}))"/></FormItem><FormItem label="专家指令" required><Textarea v-model:value="expertForm.system_prompt" :rows="8"/></FormItem><FormItem label="欢迎语"><Textarea v-model:value="expertForm.welcome_message" :rows="3"/></FormItem></Form><template #footer><div class="drawer-footer"><Button @click="expertOpen=false">取消</Button><Button type="primary" :loading="saving" @click="saveExpert">保存专家</Button></div></template></Drawer>
-    <Drawer v-model:open="testOpen" width="1100" :title="testTitle"><div class="test-box"><div class="ask"><Input v-model:value="question" size="large" placeholder="输入真实业务问题验证召回和回答" @pressEnter="runTest"/><Button type="primary" size="large" :loading="testing" @click="runTest">测试</Button></div><Alert v-if="warning" type="warning" show-icon :message="warning"/><div v-if="answer" class="answer"><pre>{{answer}}</pre></div><Divider v-if="testSources.length">知识来源</Divider><Collapse><CollapsePanel v-for="(item,index) in testSources" :key="item.segment_id" :header="`资料 ${index+1} · ${item.document_name} · 相关度 ${item.score}`"><p>{{item.content}}</p></CollapsePanel></Collapse></div></Drawer>
+    <!-- 检索底座透明化：Embedding 未配置时明确告知降级影响与解法 -->
+    <a-alert v-if="health?.embedding_mode === 'local-hash'" class="emb-alert" type="warning" show-icon>
+      <template #message>
+        当前使用<b>词频降级检索</b>（未配置 Embedding 服务）：知识可正常入库与召回，但只能按字词匹配、无法理解语义。
+        在 AI 服务环境变量配置 RAG_EMBEDDING_BASE_URL 与 RAG_EMBEDDING_MODEL 后，新向量自动切换为语义检索。
+      </template>
+    </a-alert>
+
+    <!-- 统计条：点击切换页签，同时充当流程导航 -->
+    <div class="stat-strip">
+      <button
+        v-for="stat in stats"
+        :key="stat.key"
+        class="stat-strip__item"
+        :class="{ active: view === stat.key }"
+        type="button"
+        @click="view = stat.key"
+      >
+        <span class="stat-strip__num">{{ stat.count }}</span>
+        <span class="stat-strip__label">
+          {{ stat.label }}
+          <em v-if="stat.sub">{{ stat.sub }}</em>
+        </span>
+      </button>
+    </div>
+
+    <a-tabs v-model:activeKey="view" class="rag-tabs" destroy-inactive-tab-pane>
+      <!-- ==================== 知识文档 ==================== -->
+      <a-tab-pane key="documents" tab="知识文档">
+        <div class="pane">
+          <div class="pane__head">
+            <div class="pane__head-text">
+              <h3>知识文档</h3>
+              <p>上传知识来源，平台自动解析为候选片段，再到「知识片段」人工审核标注</p>
+            </div>
+            <div class="pane__head-actions">
+              <a-input v-model:value="keyword" allow-clear placeholder="搜索文档名称" class="w-240" />
+              <a-button type="primary" @click="uploadOpen = true">
+                <template #icon><UploadOutlined /></template>
+                导入文档
+              </a-button>
+            </div>
+          </div>
+
+          <a-empty v-if="!filteredDocuments.length" class="pane__empty" description="暂无知识文档，先导入一份 TXT / Markdown 试试" />
+
+          <div v-else class="doc-grid">
+            <article v-for="item in filteredDocuments" :key="item.id" class="doc-card">
+              <header class="doc-card__head">
+                <div class="doc-card__icon"><FileTextOutlined /></div>
+                <div class="doc-card__title-box">
+                  <h3 :title="item.name">{{ item.name }}</h3>
+                  <span class="doc-card__time">{{ formatTime(item.updated_at) }}</span>
+                </div>
+              </header>
+              <div class="doc-card__metrics">
+                <div><b>{{ formatChars(item.char_count) }}</b><small>字符</small></div>
+                <div><b>{{ item.segment_count }}</b><small>片段</small></div>
+                <div><b>{{ item.enabled_segment_count }}</b><small>参与检索</small></div>
+              </div>
+              <footer class="doc-card__foot">
+                <a-button type="link" size="small" @click="openDocument(item)">
+                  <template #icon><EyeOutlined /></template>
+                  查看与标注
+                </a-button>
+                <a-popconfirm
+                  title="删除文档会同时删除其片段并解除知识集引用，确定删除？"
+                  ok-text="删除"
+                  cancel-text="取消"
+                  @confirm="removeDocument(item)"
+                >
+                  <a-button danger type="text" size="small">
+                    <template #icon><DeleteOutlined /></template>
+                  </a-button>
+                </a-popconfirm>
+              </footer>
+            </article>
+          </div>
+        </div>
+      </a-tab-pane>
+
+      <!-- ==================== 知识片段 ==================== -->
+      <a-tab-pane key="segments" tab="知识片段">
+        <div class="pane">
+          <SegmentWorkbench :segments="segments" :documents="documents" @changed="refresh" @create-set="handleCreateSet" />
+        </div>
+      </a-tab-pane>
+
+      <!-- ==================== 知识集 ==================== -->
+      <a-tab-pane key="sets" tab="知识集">
+        <div class="pane">
+          <KnowledgeSetPanel ref="setPanelRef" :sets="sets" :segments="segments" :documents="documents" @changed="refresh" />
+        </div>
+      </a-tab-pane>
+
+      <!-- ==================== RAG 专家 ==================== -->
+      <a-tab-pane key="experts" tab="RAG 专家">
+        <div class="pane">
+          <ExpertPanel :experts="experts" :sets="sets" @changed="refresh" />
+        </div>
+      </a-tab-pane>
+    </a-tabs>
+
+    <!-- 导入文档 -->
+    <a-drawer v-model:open="uploadOpen" width="720" title="导入知识文档" destroy-on-close>
+      <div class="upload-intro">
+        <div class="upload-intro__icon"><FileTextOutlined /></div>
+        <div>
+          <b>导入知识来源</b>
+          <p>平台按段落语义切片并逐块向量化，生成候选知识片段；建议上传前先按主题整理文档结构，单篇过长时拆分为多个文档更利于检索。</p>
+        </div>
+      </div>
+      <a-upload-dragger
+        class="large-upload"
+        :show-upload-list="false"
+        :accept="RAG_UPLOAD_ACCEPT"
+        :before-upload="handleUpload"
+      >
+        <p class="ant-upload-drag-icon"><InboxOutlined /></p>
+        <p class="ant-upload-text">点击或拖拽知识文档到此处</p>
+        <p class="ant-upload-hint">TXT / Markdown / CSV / JSON / LOG · UTF-8 编码 · 单个不超过 {{ RAG_UPLOAD_MAX_MB }}MB</p>
+      </a-upload-dragger>
+      <a-alert
+        class="upload-tip"
+        type="info"
+        show-icon
+        message="切片策略：按空行分段聚合，约 900 字符一块、相邻块保留 120 字符重叠；上传完成后请到「知识片段」逐条审核标题与标签。"
+      />
+    </a-drawer>
+
+    <!-- 文档详情：解析结果与片段标注 -->
+    <a-drawer v-model:open="documentOpen" :width="980" :title="documentTitle" destroy-on-close>
+      <div class="doc-detail">
+        <aside class="doc-detail__aside">
+          <div class="doc-detail__stat">
+            <div><b>{{ formatChars(currentDocument?.char_count) }}</b><small>字符</small></div>
+            <div><b>{{ documentSegments.length }}</b><small>片段</small></div>
+            <div><b>{{ enabledDocSegmentCount }}</b><small>参与检索</small></div>
+          </div>
+          <a-alert type="info" show-icon message="自动切片是候选结果，建议逐条核对标题、内容与标签后再加入知识集。" />
+          <a-button block type="dashed" @click="openNewSegment()">
+            <template #icon><PlusOutlined /></template>
+            人工标注新片段
+          </a-button>
+        </aside>
+        <main class="doc-detail__main">
+          <a-empty v-if="!documentSegments.length" description="该文档还没有片段" />
+          <article v-for="item in documentSegments" :key="item.id" class="doc-seg-row" :class="{ off: !item.is_enabled }">
+            <div class="doc-seg-row__main">
+              <div class="doc-seg-row__tags">
+                <a-tag>片段 {{ item.index + 1 }}</a-tag>
+                <a-tag :color="item.is_enabled ? 'green' : 'default'">{{ item.is_enabled ? '参与检索' : '不参与检索' }}</a-tag>
+                <a-tag v-for="tag in item.tags" :key="tag">{{ tag }}</a-tag>
+              </div>
+              <h4>{{ item.title }}</h4>
+              <p>{{ item.content }}</p>
+            </div>
+            <a-button type="link" size="small" @click="openEditSegment(item)">编辑</a-button>
+          </article>
+        </main>
+      </div>
+    </a-drawer>
+
+    <SegmentEditorDrawer
+      v-model:open="segmentEditorOpen"
+      :documents="documents"
+      :segment="editingSegment"
+      :default-document-id="currentDocument?.id"
+      :known-tags="knownTags"
+      @saved="onSegmentSaved"
+    />
   </div>
 </template>
+
 <script lang="ts" setup>
-import {computed,onMounted,reactive,ref,watch} from 'vue'
-import {Alert,Button,Collapse,CollapsePanel,Divider,Drawer,Form,FormItem,Input,List,ListItem,ListItemMeta,Popconfirm,Select,Spin,Switch,Tag,Textarea,Transfer,Upload,message} from 'ant-design-vue'
-import {DatabaseOutlined,DeleteOutlined,EditOutlined,FileTextOutlined,FolderOutlined,InboxOutlined,MessageOutlined,PlusOutlined,RightOutlined,RobotOutlined,SearchOutlined} from '@ant-design/icons-vue'
-import {chatWithRagExpert,createKnowledgeSegment,createKnowledgeSet,createRagExpert,deleteKnowledgeDocument,deleteKnowledgeSegment,deleteKnowledgeSet,deleteRagExpert,listKnowledgeDocuments,listKnowledgeSegments,listKnowledgeSets,listRagExperts,searchKnowledgeSet,updateKnowledgeSegment,updateKnowledgeSet,updateRagExpert,uploadKnowledgeDocument,type KnowledgeDocument,type KnowledgeSegment,type KnowledgeSet,type RagExpert,type RagSource} from '@/api/device/rag'
-defineOptions({name:'LLMTraining'})
-const categories=['工业制造','能源电力','智慧交通','智慧城市','农业','医疗健康','建筑工程','零售','物流仓储']
-const view=ref('documents'),keyword=ref(''),documentFilter=ref<number>(),loading=ref(false),saving=ref(false),testing=ref(false)
-const documents=ref<KnowledgeDocument[]>([]),segments=ref<KnowledgeSegment[]>([]),sets=ref<KnowledgeSet[]>([]),experts=ref<RagExpert[]>([]),documentSegments=ref<KnowledgeSegment[]>([]),testSources=ref<RagSource[]>([])
-const uploadOpen=ref(false),documentOpen=ref(false),segmentOpen=ref(false),setOpen=ref(false),expertOpen=ref(false),testOpen=ref(false)
-const currentDocument=ref<KnowledgeDocument>(),editingSegmentId=ref<number>(),editingSetId=ref<number>(),editingExpertId=ref<number>(),testingSet=ref<KnowledgeSet>(),testingExpert=ref<RagExpert>()
-const question=ref(''),answer=ref(''),warning=ref('')
-const segmentForm=reactive({document_id:undefined as number|undefined,title:'',content:'',tags:[] as string[],is_enabled:true})
-const setForm=reactive({name:'',category:'工业制造',description:'',segment_ids:[] as number[]})
-const expertForm=reactive({name:'',category:'工业制造',knowledge_set_ids:[] as number[],system_prompt:'',welcome_message:''})
-const nav=computed(()=>[{key:'documents',label:'知识文档',icon:FileTextOutlined,count:documents.value.length},{key:'segments',label:'知识片段',icon:DatabaseOutlined,count:segments.value.length},{key:'sets',label:'知识集',icon:FolderOutlined,count:sets.value.length},{key:'experts',label:'RAG 专家',icon:RobotOutlined,count:experts.value.length}])
-const primaryText=computed(()=>({documents:'导入文档',segments:'标注片段',sets:'新建知识集',experts:'创建专家'}[view.value]))
-const filteredDocuments=computed(()=>documents.value.filter(v=>v.name.toLowerCase().includes(keyword.value.toLowerCase())))
-const filteredSegments=computed(()=>segments.value.filter(v=>(!documentFilter.value||v.document_id===documentFilter.value)&&(`${v.title}${v.content}`.toLowerCase().includes(keyword.value.toLowerCase()))))
-const filteredSets=computed(()=>sets.value.filter(v=>v.name.toLowerCase().includes(keyword.value.toLowerCase())))
-const filteredExperts=computed(()=>experts.value.filter(v=>v.name.toLowerCase().includes(keyword.value.toLowerCase())))
-const transferSegments=computed(()=>segments.value.map(v=>({key:v.id,title:`${v.title} · ${v.document_name}`,description:v.content})))
-const testTitle=computed(()=>testingSet.value?`${testingSet.value.name} · 知识检索验证`:`${testingExpert.value?.name||''} · 专家效果测试`)
-watch(view,()=>{keyword.value=''})
-async function refresh(){loading.value=true;try{const [d,s,k,e]:any=await Promise.all([listKnowledgeDocuments(),listKnowledgeSegments(),listKnowledgeSets(),listRagExperts()]);documents.value=d?.data||d||[];segments.value=s?.data||s||[];sets.value=k?.data||k||[];experts.value=e?.data||e||[]}finally{loading.value=false}}
-function primaryAction(){if(view.value==='documents')uploadOpen.value=true;else if(view.value==='segments')openNewSegment();else if(view.value==='sets')openSet();else openExpert()}
-async function upload(file:File){loading.value=true;try{await uploadKnowledgeDocument(file);uploadOpen.value=false;await refresh();message.success('文档解析完成，请审核知识片段')}finally{loading.value=false}return false}
-async function openDocument(item:KnowledgeDocument){currentDocument.value=item;documentOpen.value=true;const r:any=await listKnowledgeSegments(item.id);documentSegments.value=r?.data||r||[]}
-function openNewSegment(){editingSegmentId.value=undefined;Object.assign(segmentForm,{document_id:currentDocument.value?.id,title:'',content:'',tags:[],is_enabled:true});segmentOpen.value=true}
-function openSegment(item:KnowledgeSegment){editingSegmentId.value=item.id;Object.assign(segmentForm,{document_id:item.document_id,title:item.title,content:item.content,tags:[...item.tags],is_enabled:item.is_enabled});segmentOpen.value=true}
-async function saveSegment(){if(!segmentForm.document_id||!segmentForm.title.trim()||!segmentForm.content.trim())return message.warning('请完整填写片段');saving.value=true;try{editingSegmentId.value?await updateKnowledgeSegment(editingSegmentId.value,segmentForm):await createKnowledgeSegment(segmentForm.document_id,segmentForm);segmentOpen.value=false;await refresh();if(currentDocument.value)await openDocument(currentDocument.value);message.success('知识片段已保存并向量化')}finally{saving.value=false}}
-async function removeSegment(id:number){await deleteKnowledgeSegment(id);segmentOpen.value=false;await refresh();if(currentDocument.value)await openDocument(currentDocument.value)}
-function openSet(item?:KnowledgeSet){editingSetId.value=item?.id;Object.assign(setForm,{name:item?.name||'',category:item?.category||'工业制造',description:item?.description||'',segment_ids:[...(item?.segment_ids||[])]});setOpen.value=true}
-async function saveSet(){if(!setForm.name.trim()||!setForm.segment_ids.length)return message.warning('请填写名称并选择知识片段');saving.value=true;try{editingSetId.value?await updateKnowledgeSet(editingSetId.value,setForm):await createKnowledgeSet(setForm);setOpen.value=false;await refresh();message.success('知识集已保存')}finally{saving.value=false}}
-function openExpert(item?:RagExpert){editingExpertId.value=item?.id;Object.assign(expertForm,{name:item?.name||'',category:item?.category||'工业制造',knowledge_set_ids:[...(item?.knowledge_set_ids||[])],system_prompt:item?.system_prompt||'',welcome_message:item?.welcome_message||''});expertOpen.value=true}
-async function saveExpert(){if(!expertForm.name.trim()||!expertForm.knowledge_set_ids.length||!expertForm.system_prompt.trim())return message.warning('请完整配置专家');saving.value=true;try{editingExpertId.value?await updateRagExpert(editingExpertId.value,expertForm):await createRagExpert(expertForm);expertOpen.value=false;await refresh();message.success('RAG 专家已保存')}finally{saving.value=false}}
-function resetTest(){question.value='';answer.value='';warning.value='';testSources.value=[];testOpen.value=true}
-function testSet(item:KnowledgeSet){testingSet.value=item;testingExpert.value=undefined;resetTest()}
-function testExpert(item:RagExpert){testingExpert.value=item;testingSet.value=undefined;resetTest()}
-async function runTest(){if(!question.value.trim())return message.warning('请输入测试问题');testing.value=true;try{const r:any=testingSet.value?await searchKnowledgeSet(testingSet.value.id,question.value):await chatWithRagExpert(testingExpert.value!.id,question.value);const d=r?.data||r;if(testingSet.value){testSources.value=d||[];answer.value=''}else{answer.value=d.response;testSources.value=d.sources||[];warning.value=d.warning||''}}finally{testing.value=false}}
-async function removeDocument(id:number){await deleteKnowledgeDocument(id);await refresh()}
-async function removeSet(id:number){await deleteKnowledgeSet(id);await refresh()}
-async function removeExpert(id:number){await deleteRagExpert(id);await refresh()}
-onMounted(refresh)
+import { computed, nextTick, onMounted, ref } from 'vue';
+import {
+  Tabs as ATabs,
+  TabPane as ATabPane,
+  Drawer as ADrawer,
+  Input as AInput,
+  Button as AButton,
+  Tag as ATag,
+  Alert as AAlert,
+  Popconfirm as APopconfirm,
+  Empty as AEmpty,
+  Tooltip as ATooltip,
+  UploadDragger as AUploadDragger,
+} from 'ant-design-vue';
+import {
+  DeleteOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  InboxOutlined,
+  PlusOutlined,
+  UploadOutlined,
+} from '@ant-design/icons-vue';
+import { useMessage } from '@/hooks/web/useMessage';
+import {
+  deleteKnowledgeDocument,
+  getRagHealth,
+  listKnowledgeDocuments,
+  listKnowledgeSegments,
+  listKnowledgeSets,
+  listRagExperts,
+  uploadKnowledgeDocument,
+  type KnowledgeDocument,
+  type KnowledgeSegment,
+  type KnowledgeSet,
+  type RagExpert,
+  type RagHealth,
+} from '@/api/device/rag';
+import { formatApiErrorMessage } from '@/views/camera/utils/apiErrorMessage';
+import { RAG_UPLOAD_ACCEPT, RAG_UPLOAD_MAX_MB } from './ragPresets';
+import SegmentEditorDrawer from './SegmentEditorDrawer.vue';
+import SegmentWorkbench from './SegmentWorkbench.vue';
+import KnowledgeSetPanel from './KnowledgeSetPanel.vue';
+import ExpertPanel from './ExpertPanel.vue';
+
+defineOptions({ name: 'LLMTraining' });
+
+const { createMessage } = useMessage();
+
+const view = ref('documents');
+const keyword = ref('');
+const documents = ref<KnowledgeDocument[]>([]);
+const segments = ref<KnowledgeSegment[]>([]);
+const sets = ref<KnowledgeSet[]>([]);
+const experts = ref<RagExpert[]>([]);
+const health = ref<RagHealth>();
+
+const uploadOpen = ref(false);
+const documentOpen = ref(false);
+const segmentEditorOpen = ref(false);
+const currentDocument = ref<KnowledgeDocument>();
+const documentSegments = ref<KnowledgeSegment[]>([]);
+const editingSegment = ref<KnowledgeSegment | null>(null);
+const setPanelRef = ref<InstanceType<typeof KnowledgeSetPanel>>();
+
+/** 片段工作台「创建为知识集」：切到知识集页签并预选片段 */
+async function handleCreateSet(segmentIds: number[]) {
+  view.value = 'sets';
+  await nextTick();
+  setPanelRef.value?.openCreate(segmentIds);
+}
+
+const filteredDocuments = computed(() => {
+  const key = keyword.value.trim().toLowerCase();
+  return documents.value.filter((d) => !key || d.name.toLowerCase().includes(key));
+});
+
+const stats = computed(() => [
+  { key: 'documents', label: '知识文档', count: documents.value.length, sub: '' },
+  {
+    key: 'segments',
+    label: '知识片段',
+    count: segments.value.length,
+    sub: `启用 ${segments.value.filter((s) => s.is_enabled).length}`,
+  },
+  { key: 'sets', label: '知识集', count: sets.value.length, sub: '' },
+  {
+    key: 'experts',
+    label: 'RAG 专家',
+    count: experts.value.length,
+    sub: `启用 ${experts.value.filter((e) => e.is_enabled).length}`,
+  },
+]);
+
+const documentTitle = computed(() => `${currentDocument.value?.name || ''} · 文档解析与片段标注`);
+const enabledDocSegmentCount = computed(() => documentSegments.value.filter((s) => s.is_enabled).length);
+const knownTags = computed(() => {
+  const counter = new Map<string, number>();
+  segments.value.forEach((s) => (s.tags || []).forEach((t) => counter.set(t, (counter.get(t) || 0) + 1)));
+  return [...counter.entries()].sort((a, b) => b[1] - a[1]).map(([tag]) => tag);
+});
+const healthTooltip = computed(() => {
+  if (!health.value) return '正在检测向量库状态';
+  return health.value.ok
+    ? `Milvus ${health.value.uri} · 集合 ${health.value.collection} · ${health.value.dimensions} 维`
+    : `连接失败：${health.value.error || '未知错误'}`;
+});
+
+async function refresh() {
+  try {
+    const [d, s, k, e]: any[] = await Promise.all([
+      listKnowledgeDocuments(),
+      listKnowledgeSegments(),
+      listKnowledgeSets(),
+      listRagExperts(),
+    ]);
+    documents.value = d?.data || d || [];
+    segments.value = s?.data || s || [];
+    sets.value = k?.data || k || [];
+    experts.value = e?.data || e || [];
+  } catch (error: any) {
+    createMessage.error(formatApiErrorMessage(error, '加载 RAG 知识数据失败'));
+  }
+}
+
+async function refreshHealth() {
+  try {
+    const res: any = await getRagHealth();
+    health.value = res?.data || res;
+  } catch {
+    health.value = { ok: false, uri: '-', collection: '-', error: '无法连接 AI 服务' };
+  }
+}
+
+async function handleUpload(file: File) {
+  const maxSize = RAG_UPLOAD_MAX_MB * 1024 * 1024;
+  if (file.size > maxSize) {
+    createMessage.warning(`文件超过 ${RAG_UPLOAD_MAX_MB}MB 限制`);
+    return false;
+  }
+  try {
+    const res: any = await uploadKnowledgeDocument(file);
+    const count = res?.data?.segment_count ?? res?.segment_count;
+    createMessage.success(count ? `文档已解析，生成 ${count} 个候选片段，请到「知识片段」审核` : '文档解析完成');
+    uploadOpen.value = false;
+    await refresh();
+    view.value = 'segments';
+  } catch (error: any) {
+    createMessage.error(formatApiErrorMessage(error, '文档解析失败'));
+  }
+  return false;
+}
+
+async function openDocument(item: KnowledgeDocument) {
+  currentDocument.value = item;
+  documentOpen.value = true;
+  try {
+    const res: any = await listKnowledgeSegments(item.id);
+    documentSegments.value = res?.data || res || [];
+  } catch (error: any) {
+    createMessage.error(formatApiErrorMessage(error, '加载文档片段失败'));
+    documentSegments.value = [];
+  }
+}
+
+function openNewSegment() {
+  editingSegment.value = null;
+  segmentEditorOpen.value = true;
+}
+
+function openEditSegment(item: KnowledgeSegment) {
+  editingSegment.value = item;
+  segmentEditorOpen.value = true;
+}
+
+async function onSegmentSaved() {
+  await refresh();
+  if (currentDocument.value && documentOpen.value) {
+    await openDocument(currentDocument.value);
+  }
+}
+
+async function removeDocument(item: KnowledgeDocument) {
+  try {
+    await deleteKnowledgeDocument(item.id);
+    createMessage.success('文档及其片段已删除');
+    if (currentDocument.value?.id === item.id) {
+      documentOpen.value = false;
+      currentDocument.value = undefined;
+    }
+    await refresh();
+  } catch (error: any) {
+    createMessage.error(formatApiErrorMessage(error, '删除文档失败'));
+  }
+}
+
+function formatTime(value?: string) {
+  if (!value) return '-';
+  return String(value).replace('T', ' ').slice(0, 16);
+}
+
+function formatChars(count?: number) {
+  if (!count) return '0';
+  if (count >= 10000) return `${(count / 10000).toFixed(1)} 万`;
+  return String(count);
+}
+
+onMounted(() => {
+  refresh();
+  refreshHealth();
+});
 </script>
+
 <style lang="less" scoped>
-.rag-page{min-height:100%;padding:20px 24px 32px;background:#fff;color:#262626}.page-heading{display:flex;justify-content:space-between;margin-bottom:20px}.page-heading h2{margin:0 0 6px;font-size:20px;font-weight:500}.page-heading p,.section-head p{margin:0;color:#8c8c8c}.flow{display:flex;align-items:center;gap:8px;color:#bfbfbf;font-size:11px}.flow span{padding:5px 9px;border:1px solid #e5e7eb;border-radius:4px;color:#595959;background:#fafafa}.panel{border:1px solid #e5e7eb;border-radius:4px}.tabs{display:flex;align-items:stretch;height:58px;padding:0 16px;border-bottom:1px solid #f0f0f0;gap:26px}.tabs button:not(.ant-btn){position:relative;display:flex;align-items:center;gap:7px;border:0;background:none;color:#595959;cursor:pointer}.tabs button.active{color:#1677ff}.tabs button.active::after{position:absolute;bottom:-1px;right:0;left:0;height:2px;background:#1677ff;content:''}.tabs em{padding:0 6px;border-radius:10px;background:#f5f5f5;font-size:11px;font-style:normal}.tabs>.ant-btn{margin:auto 0 auto auto}.workspace{min-height:440px;padding:18px}.section-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.section-head h3{margin:0 0 5px;font-size:16px;font-weight:500}.section-head>.ant-input-affix-wrapper{width:260px}.filters{display:flex;gap:10px}.filters>*{width:230px}.row{border:1px solid #f0f0f0;border-radius:4px;margin-bottom:10px;padding:14px!important}.icon{display:grid;width:42px;height:42px;place-items:center;border-radius:4px;background:#e6f4ff;color:#1677ff;font-size:20px}.icon.set{background:#e6fffb;color:#08979c}.icon.expert{background:#f9f0ff;color:#722ed1}.segment-grid,.card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.segment-grid article,.card-grid article{padding:18px;border:1px solid #e8e8e8;border-radius:4px}.segment-grid article>p,.card-grid article>p,.prompt{display:-webkit-box;overflow:hidden;color:#595959;line-height:1.7;-webkit-box-orient:vertical;-webkit-line-clamp:3}.segment-grid footer,.card-grid footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid #f0f0f0;color:#8c8c8c}.card-top{display:flex;align-items:center;gap:10px}.card-top>div:nth-child(2){min-width:0;flex:1}.card-top h3{margin:0 0 5px;font-size:15px}.metrics{display:flex;background:#fafafa;padding:12px}.metrics b{flex:1;font-size:18px}.metrics small{display:block;color:#8c8c8c;font-size:11px;font-weight:400}.drawer-intro{display:flex;gap:16px;align-items:center;padding:20px 24px;margin-bottom:24px;border:1px solid #bae0ff;background:#f0f8ff}.drawer-intro>svg{font-size:30px;color:#1677ff}.drawer-intro b{font-size:16px}.drawer-intro p{margin:4px 0 0;color:#8c8c8c}.drawer-intro.set{border-color:#87e8de;background:#f0fffc}.drawer-intro.set>svg{color:#08979c}.drawer-intro.expert{border-color:#d3adf7;background:#faf5ff}.drawer-intro.expert>svg{color:#722ed1}.large-upload{display:block;height:480px}.large-upload :deep(.ant-upload){height:480px}.drawer-form{max-width:880px;padding:0 24px}.drawer-form.wide{max-width:none}.drawer-form .ant-form-item{margin-bottom:24px}.two-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}.drawer-footer{display:flex;justify-content:flex-end;gap:10px}.document-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:24px}.document-layout aside{padding:20px;border:1px solid #e8e8e8}.document-layout aside .ant-alert{margin:20px 0}.segment-row{display:flex;gap:16px;margin-bottom:12px;padding:18px;border:1px solid #e8e8e8}.segment-row>div{min-width:0;flex:1}.segment-row h3{margin:12px 0 6px}.segment-row p{margin:0;white-space:pre-wrap;line-height:1.7}.ask{display:flex;gap:10px;margin-bottom:18px}.answer{margin:16px 0;padding:20px;background:#fafafa}.answer pre{white-space:pre-wrap;font:14px/1.8 inherit}@media(max-width:1100px){.segment-grid,.card-grid{grid-template-columns:repeat(2,1fr)}.flow{display:none}}@media(max-width:700px){.tabs{gap:10px;overflow:auto}.segment-grid,.card-grid,.document-layout,.two-cols{grid-template-columns:1fr}}
+@rag-primary: #1677ff;
+
+.rag-page {
+  min-height: 100%;
+  padding: 20px 24px 32px;
+  background: #fff;
+}
+
+/* ===== 页头 ===== */
+.page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.88);
+  }
+
+  p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 13px;
+    max-width: 720px;
+  }
+}
+
+.health-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: default;
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  &.is-ok {
+    color: #389e0d;
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+
+    .health-pill__dot {
+      background: #52c41a;
+    }
+  }
+
+  &.is-bad {
+    color: #d4380d;
+    background: #fff2e8;
+    border: 1px solid #ffbb96;
+
+    .health-pill__dot {
+      background: #ff4d4f;
+    }
+  }
+}
+
+/* ===== 检索底座降级提示 ===== */
+.emb-alert {
+  margin-bottom: 14px;
+
+  b {
+    color: #d46b08;
+  }
+}
+
+/* ===== 统计条 ===== */
+.stat-strip {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.stat-strip__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border: 1px solid #e8e8ec;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: fade(@rag-primary, 45%);
+  }
+
+  &.active {
+    border-color: @rag-primary;
+    box-shadow: 0 0 0 2px fade(@rag-primary, 10%);
+  }
+
+  &__num {
+    font-size: 22px;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.85);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__label {
+    display: flex;
+    flex-direction: column;
+    font-size: 12.5px;
+    color: rgba(0, 0, 0, 0.55);
+    text-align: left;
+
+    em {
+      font-style: normal;
+      font-size: 11.5px;
+      color: @rag-primary;
+    }
+  }
+}
+
+.w-240 {
+  width: 240px;
+}
+
+/* ===== 页签容器 ===== */
+.pane {
+  min-height: 420px;
+}
+
+.pane__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
+  p {
+    margin: 0;
+    font-size: 12.5px;
+    color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+.pane__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pane__empty {
+  padding: 70px 0;
+}
+
+/* ===== 文档卡片 ===== */
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.doc-card {
+  padding: 16px 18px;
+  border: 1px solid #e8e8ec;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: fade(@rag-primary, 45%);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: #e6f4ff;
+    color: @rag-primary;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  &__title-box {
+    min-width: 0;
+
+    h3 {
+      margin: 0 0 3px;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__time {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  &__metrics {
+    display: flex;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fafbfc;
+
+    > div {
+      flex: 1;
+      text-align: center;
+
+      b {
+        font-size: 16px;
+        color: rgba(0, 0, 0, 0.85);
+      }
+
+      small {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        color: rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 4px;
+    border-top: 1px solid #f2f2f5;
+  }
+}
+
+/* ===== 上传抽屉 ===== */
+.upload-intro {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border: 1px solid #bae0ff;
+  border-radius: 10px;
+  background: #f0f8ff;
+
+  &__icon {
+    font-size: 26px;
+    color: @rag-primary;
+  }
+
+  b {
+    font-size: 15px;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: rgba(0, 0, 0, 0.5);
+    line-height: 1.7;
+  }
+}
+
+.large-upload {
+  margin-bottom: 14px;
+}
+
+.upload-tip {
+  margin-top: 14px;
+}
+
+/* ===== 文档详情 ===== */
+.doc-detail {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+
+  &__aside {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #e8e8ec;
+    border-radius: 10px;
+    position: sticky;
+    top: 0;
+  }
+
+  &__stat {
+    display: flex;
+
+    > div {
+      flex: 1;
+      text-align: center;
+
+      b {
+        font-size: 17px;
+        color: rgba(0, 0, 0, 0.85);
+      }
+
+      small {
+        display: block;
+        font-size: 11px;
+        color: rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+}
+
+.doc-seg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid #e8e8ec;
+  border-radius: 10px;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: fade(@rag-primary, 45%);
+  }
+
+  &.off .doc-seg-row__main {
+    opacity: 0.55;
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    :deep(.ant-tag) {
+      margin: 0;
+      font-size: 11px;
+      line-height: 18px;
+      padding: 0 6px;
+    }
+  }
+
+  h4 {
+    margin: 8px 0 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
+  p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: rgba(0, 0, 0, 0.6);
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 1100px) {
+  .doc-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-strip {
+    flex-wrap: wrap;
+  }
+}
 </style>
