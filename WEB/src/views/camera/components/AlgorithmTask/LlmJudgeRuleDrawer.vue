@@ -12,7 +12,8 @@
     root-class-name="llm-judge-drawer"
   >
     <template #title>
-      <div class="llj-title">
+      <!-- 列表态：任务规则总览 -->
+      <div v-if="!editorOpen" class="llj-title">
         <div class="llj-title__main">
           <div class="llj-title__badge">
             <Icon icon="mdi:brain" :size="19" />
@@ -23,16 +24,47 @@
           </div>
         </div>
         <div class="llj-title__actions">
-          <Button type="primary" :disabled="disabled || !taskId" @click="openEditor()">
+          <Button type="primary" :disabled="disabled || !taskId" @click="openCreate()">
             <template #icon><PlusOutlined /></template>
             新增规则
           </Button>
         </div>
       </div>
+
+      <!-- 编辑态：抽屉内切换为规则表单，避免抽屉上再叠弹窗 -->
+      <div v-else class="llj-title">
+        <div class="llj-title__main">
+          <Button type="text" class="llj-back" @click="backToList">
+            <template #icon><LeftOutlined /></template>
+            返回
+          </Button>
+          <div class="llj-title__divider" />
+          <div class="llj-title__badge">
+            <EditOutlined v-if="editingRule" />
+            <PlusOutlined v-else />
+          </div>
+          <div class="llj-title__text">
+            <div class="llj-title__name">{{ editingRule ? '编辑研判规则' : '新增研判规则' }}</div>
+            <div class="llj-title__sub">{{ editorSubtitle }}</div>
+          </div>
+        </div>
+      </div>
     </template>
 
     <template #footer>
-      <div class="llj-footer">
+      <!-- 编辑态：取消 / 保存 -->
+      <div v-if="editorOpen" class="llj-footer">
+        <div class="llj-footer__hint">
+          <InfoCircleOutlined />
+          <span>保存后立即生效，命中规则的告警由绑定智能体独立队列研判，不阻塞算法主链路。</span>
+        </div>
+        <div class="llj-footer__btns">
+          <Button :disabled="saving" @click="backToList">取消</Button>
+          <Button type="primary" :loading="saving" @click="handleSave">保存</Button>
+        </div>
+      </div>
+      <!-- 列表态：关闭 -->
+      <div v-else class="llj-footer">
         <div class="llj-footer__hint">
           <InfoCircleOutlined />
           <span>告警事件触发后，命中规则的事件由绑定智能体对事件图片/视频独立队列研判，不阻塞算法主链路。</span>
@@ -44,7 +76,8 @@
     </template>
 
     <Spin :spinning="loading">
-      <div class="llj-shell">
+      <!-- ==================== 列表态 ==================== -->
+      <div v-if="!editorOpen" class="llj-shell">
         <div class="llj-intro">
           <Icon icon="ant-design:info-circle-filled" :size="14" class="llj-intro__icon" />
           <span>
@@ -67,20 +100,29 @@
             </template>
           </AAlert>
 
-          <template v-else-if="rules.length">
+          <template v-else-if="sortedRules.length">
             <div
-              v-for="rule in rules"
+              v-for="rule in sortedRules"
               :key="rule.id"
               class="llj-card"
               :class="{ off: !rule.enabled }"
             >
               <div class="llj-card__head">
-                <a-tooltip title="优先级 · 数值越大越优先匹配告警">
+                <a-tooltip
+                  title="优先级 · 数值越大越优先匹配告警"
+                  :get-popup-container="popupInPlace"
+                >
                   <span class="llj-card__prio" :class="priorityClass(rule.priority)">
                     P{{ rule.priority }}
                   </span>
                 </a-tooltip>
                 <span class="llj-card__name" :title="rule.rule_name">{{ rule.rule_name }}</span>
+                <a-tag
+                  class="llj-card__mode"
+                  :color="rule.judge_mode === 'video' ? 'orange' : 'cyan'"
+                >
+                  {{ rule.judge_mode === 'video' ? '视频研判' : '图片研判' }}
+                </a-tag>
                 <div class="llj-card__head-right">
                   <a-tag v-if="!rule.enabled" color="default">已停用</a-tag>
                   <a-switch
@@ -107,12 +149,6 @@
                   </span>
                 </div>
                 <div class="llj-kv">
-                  <span class="llj-kv__label">研判方式</span>
-                  <span class="llj-kv__value">
-                    {{ judgeModeLabel(rule) }}
-                  </span>
-                </div>
-                <div class="llj-kv">
                   <span class="llj-kv__label">通知模式</span>
                   <span class="llj-kv__value">
                     <span class="llj-kv__mode" :class="rule.secondary_judge ? 'is-gate' : 'is-plain'">
@@ -129,25 +165,31 @@
                   <span class="llj-kv__value">{{ rule.sample_rate_percent ?? 10 }}%</span>
                 </div>
                 <div class="llj-kv">
-                  <span class="llj-kv__label">智能体</span>
-                  <span class="llj-kv__value" :title="agentName(rule.agent_id)">{{ agentName(rule.agent_id) }}</span>
-                </div>
-                <div class="llj-kv">
-                  <span class="llj-kv__label">大模型</span>
-                  <span class="llj-kv__value">{{ modelName(rule.model_id) }}</span>
-                </div>
-                <div class="llj-kv">
                   <span class="llj-kv__label">研判间隔</span>
                   <span class="llj-kv__value">
                     {{ rule.min_interval_sec > 0 ? `≥ ${rule.min_interval_sec}s` : '不限' }}
                   </span>
                 </div>
+                <div class="llj-kv">
+                  <span class="llj-kv__label">智能体</span>
+                  <span class="llj-kv__value" :title="agentName(rule.agent_id)">{{ agentName(rule.agent_id) }}</span>
+                </div>
+                <div class="llj-kv">
+                  <span class="llj-kv__label">大模型</span>
+                  <span class="llj-kv__value" :title="modelName(rule.model_id)">{{ modelName(rule.model_id) }}</span>
+                </div>
+                <div class="llj-kv">
+                  <span class="llj-kv__label">更新时间</span>
+                  <span class="llj-kv__value">{{ formatTime(rule.updated_at || rule.created_at) || '-' }}</span>
+                </div>
               </div>
 
               <div class="llj-card__foot">
-                <span class="llj-card__time">{{ formatTime(rule.updated_at || rule.created_at) }}</span>
+                <span class="llj-card__time">
+                  {{ judgeModeLabel(rule) }}
+                </span>
                 <div class="llj-card__actions">
-                  <Button type="text" size="small" :disabled="disabled" @click="openEditor(rule)">
+                  <Button type="text" size="small" :disabled="disabled" @click="openEdit(rule)">
                     <template #icon><EditOutlined /></template>
                     编辑
                   </Button>
@@ -180,7 +222,7 @@
               type="primary"
               size="small"
               class="llj-empty__btn"
-              @click="openEditor()"
+              @click="openCreate()"
             >
               <template #icon><PlusOutlined /></template>
               新增规则
@@ -188,30 +230,30 @@
           </div>
         </div>
       </div>
-    </Spin>
 
-    <a-modal
-      v-model:open="editorOpen"
-      :title="editingRule ? '编辑研判规则' : '新增研判规则'"
-      :confirm-loading="saving"
-      :z-index="1300"
-      width="720px"
-      ok-text="保存"
-      cancel-text="取消"
-      destroy-on-close
-      @ok="handleSave"
-    >
-      <a-form ref="ruleFormRef" :model="ruleForm" :rules="ruleRules" layout="vertical">
-        <div class="led-section">
-          <div class="led-section__title">基础信息</div>
+      <!-- ==================== 编辑态 ==================== -->
+      <AForm
+        v-else
+        ref="ruleFormRef"
+        :model="ruleForm"
+        :rules="ruleRules"
+        layout="vertical"
+        class="led-form"
+      >
+        <!-- ① 基础信息 -->
+        <section class="led-section">
+          <div class="led-section__title">
+            <span class="led-section__num">1</span>
+            基础信息
+          </div>
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item label="规则名称" name="rule_name">
                 <a-input v-model:value="ruleForm.rule_name" placeholder="如：夜间入侵二次确认" />
               </a-form-item>
             </a-col>
-            <a-col :span="12">
-              <a-form-item label="优先级" name="priority" help="数值越大越优先匹配告警">
+            <a-col :span="6">
+              <a-form-item label="优先级" name="priority" help="数值越大越优先">
                 <a-select
                   v-model:value="ruleForm.priority"
                   :options="priorityOptions"
@@ -219,40 +261,22 @@
                 />
               </a-form-item>
             </a-col>
-            <a-col :span="12">
-              <a-form-item
-                label="绑定智能体"
-                name="agent_id"
-                help="AI 模块专家（rag_expert），携带知识库上下文研判"
-              >
-                <a-select
-                  v-model:value="ruleForm.agent_id"
-                  placeholder="请选择智能体"
-                  show-search
-                  :options="agentOptions"
-                  option-filter-prop="label"
-                  :get-popup-container="popupInPlace"
-                />
-              </a-form-item>
-            </a-col>
-            <a-col :span="12">
-              <a-form-item label="大模型" help="留空 = 使用智能体默认模型">
-                <a-select
-                  v-model:value="ruleForm.model_id"
-                  placeholder="默认模型"
-                  allow-clear
-                  show-search
-                  :options="modelOptions"
-                  option-filter-prop="label"
-                  :get-popup-container="popupInPlace"
+            <a-col :span="6">
+              <a-form-item label="启用" name="enabled" help="停用后不参与匹配">
+                <a-switch
+                  v-model:checked="ruleForm.enabled"
+                  checked-children="开"
+                  un-checked-children="关"
                 />
               </a-form-item>
             </a-col>
           </a-row>
-        </div>
+        </section>
 
-        <div class="led-section">
+        <!-- ② 匹配条件 -->
+        <section class="led-section">
           <div class="led-section__title">
+            <span class="led-section__num">2</span>
             匹配条件
             <span class="led-section__hint">均留空 = 匹配全部告警</span>
           </div>
@@ -285,11 +309,15 @@
               </a-form-item>
             </a-col>
           </a-row>
-        </div>
+        </section>
 
-        <div class="led-section">
-          <div class="led-section__title">研判执行</div>
-          <a-form-item label="判断方式" name="judge_mode">
+        <!-- ③ 研判执行 -->
+        <section class="led-section">
+          <div class="led-section__title">
+            <span class="led-section__num">3</span>
+            研判执行
+          </div>
+          <a-form-item label="研判方式" name="judge_mode">
             <div class="led-modes">
               <div
                 class="led-mode"
@@ -354,23 +382,76 @@
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item
-                label="二次判断（门控通知）"
-                name="secondary_judge"
-                help="开启后：大模型确认事件成立才发送通知，驳回则抑制"
+                label="绑定智能体"
+                name="agent_id"
+                help="AI 模块专家（rag_expert），携带知识库上下文研判"
               >
+                <a-select
+                  v-model:value="ruleForm.agent_id"
+                  placeholder="请选择智能体"
+                  show-search
+                  :options="agentOptions"
+                  option-filter-prop="label"
+                  :get-popup-container="popupInPlace"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="大模型" help="留空 = 使用智能体默认模型">
+                <a-select
+                  v-model:value="ruleForm.model_id"
+                  placeholder="默认模型"
+                  allow-clear
+                  show-search
+                  :options="modelOptions"
+                  option-filter-prop="label"
+                  :get-popup-container="popupInPlace"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-form-item
+            help="留空 = 使用智能体默认提示词；可用占位符：{object_name}、{event}、{detections_json}"
+          >
+            <template #label>
+              提示词覆盖
+              <span class="led-label-opt">（可选）</span>
+            </template>
+            <a-textarea
+              v-model:value="ruleForm.prompt_override"
+              :rows="3"
+              placeholder="可选，覆盖智能体默认研判提示词"
+            />
+          </a-form-item>
+        </section>
+
+        <!-- ④ 通知与容错 -->
+        <section class="led-section">
+          <div class="led-section__title">
+            <span class="led-section__num">4</span>
+            通知与容错
+          </div>
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item name="secondary_judge">
+                <template #label>
+                  二次判断（门控通知）
+                  <a-tag class="led-label-tag" :color="ruleForm.secondary_judge ? 'red' : 'green'">
+                    {{ ruleForm.secondary_judge ? '命中才通知' : '通知+回写' }}
+                  </a-tag>
+                </template>
                 <a-switch
                   v-model:checked="ruleForm.secondary_judge"
                   checked-children="门控"
                   un-checked-children="回写"
                 />
+                <div class="led-switch-help">
+                  开启后：大模型确认事件成立才发送通知，驳回则抑制；关闭则正常通知，研判结论仅回写增强
+                </div>
               </a-form-item>
             </a-col>
             <a-col :span="12">
-              <a-form-item
-                label="研判失败策略"
-                name="fail_policy"
-                help="大模型调用失败时通知如何处理"
-              >
+              <a-form-item label="研判失败策略" name="fail_policy" help="大模型调用失败时通知如何处理">
                 <a-select
                   v-model:value="ruleForm.fail_policy"
                   :options="failPolicyOptions"
@@ -379,10 +460,14 @@
               </a-form-item>
             </a-col>
           </a-row>
-        </div>
+        </section>
 
-        <div class="led-section">
-          <div class="led-section__title">调度控制</div>
+        <!-- ⑤ 调度控制 -->
+        <section class="led-section led-section--last">
+          <div class="led-section__title">
+            <span class="led-section__num">5</span>
+            调度控制
+          </div>
           <a-row :gutter="16">
             <a-col :span="8">
               <a-form-item
@@ -420,28 +505,30 @@
               </a-form-item>
             </a-col>
           </a-row>
-        </div>
-
-        <div class="led-section led-section--last">
-          <div class="led-section__title">提示词覆盖</div>
-          <a-form-item
-            help="留空 = 使用智能体默认提示词；可用占位符：{object_name}、{event}、{detections_json}"
-          >
-            <a-textarea
-              v-model:value="ruleForm.prompt_override"
-              :rows="3"
-              placeholder="可选，覆盖智能体默认研判提示词"
-            />
-          </a-form-item>
-        </div>
-      </a-form>
-    </a-modal>
+        </section>
+      </AForm>
+    </Spin>
   </BasicDrawer>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
-import { Alert as AAlert, Spin } from 'ant-design-vue';
+import { ref, computed, nextTick } from 'vue';
+import {
+  Alert as AAlert,
+  Spin,
+  Form as AForm,
+  FormItem as AFormItem,
+  Row as ARow,
+  Col as ACol,
+  Select as ASelect,
+  Input as AInput,
+  Textarea as ATextarea,
+  InputNumber as AInputNumber,
+  Switch as ASwitch,
+  Tag as ATag,
+  Tooltip as ATooltip,
+  Popconfirm as APopconfirm,
+} from 'ant-design-vue';
 import {
   PlusOutlined,
   InfoCircleOutlined,
@@ -450,6 +537,7 @@ import {
   FileImageOutlined,
   VideoCameraOutlined,
   CheckCircleFilled,
+  LeftOutlined,
 } from '@ant-design/icons-vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { Button } from '@/components/Button';
@@ -478,6 +566,8 @@ const [register, { closeDrawer }] = useDrawerInner(async (data) => {
   taskId.value = data?.taskId ?? null;
   taskName.value = data?.taskName || '';
   disabled.value = data?.disabled === true;
+  editorOpen.value = false;
+  editingRule.value = null;
   if (taskId.value) {
     await Promise.all([loadRules(), loadExperts(), loadModels()]);
   }
@@ -502,6 +592,15 @@ const headerSubtitle = computed(() => {
   if (loadError.value) return `${base}规则加载失败`;
   return `${base}已启用 ${enabledCount.value}/${totalCount.value} 条规则`;
 });
+const editorSubtitle = computed(() => {
+  const base = taskName.value ? `任务：${taskName.value}` : '';
+  return editingRule.value ? `${base} · 正在编辑「${editingRule.value.rule_name}」` : base;
+});
+
+/** 优先级高的规则排前面，与「仅最高优先级生效」的匹配语义一致 */
+const sortedRules = computed(() =>
+  [...rules.value].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)),
+);
 
 const agentOptions = computed(() =>
   experts.value.map((e) => ({
@@ -538,7 +637,7 @@ const failPolicyOptions = [
   { label: 'reject · 抑制通知', value: 'reject' },
 ];
 
-/** 让 Select 下拉渲染在弹窗内部，避免被高层级抽屉遮挡 */
+/** 让 Select/Tooltip 等浮层渲染在抽屉内部，避免被高层级宿主抽屉遮挡 */
 function popupInPlace(triggerNode: HTMLElement): HTMLElement {
   return triggerNode.parentElement || document.body;
 }
@@ -555,9 +654,9 @@ function failPolicyLabel(policy: LlmFailPolicy): string {
 }
 function judgeModeLabel(rule: LlmJudgeRule): string {
   if (rule.judge_mode === 'video') {
-    return `视频研判 · 前${rule.video_pre_seconds}s/后${rule.video_post_seconds}s`;
+    return `视频研判 · 前${rule.video_pre_seconds}s / 后${rule.video_post_seconds}s`;
   }
-  return '图片研判';
+  return '图片研判 · 事件抓拍图';
 }
 function priorityClass(priority: number): string {
   if (priority >= 8) return 'is-high';
@@ -609,19 +708,18 @@ async function loadModels() {
   }
 }
 
-// ====================== 新增 / 编辑 ======================
+// ====================== 新增 / 编辑（抽屉内切换视图） ======================
 const editorOpen = ref(false);
 const editingRule = ref<LlmJudgeRule | null>(null);
 const ruleFormRef = ref();
 const ruleForm = ref<Record<string, any>>({});
 const ruleRules = {
-  rule_name: [{ required: true, message: '请输入规则名称', trigger: 'blur' }],
-  agent_id: [{ required: true, message: '请选择智能体', trigger: 'change' }],
-  judge_mode: [{ required: true, message: '请选择判断方式', trigger: 'change' }],
+  rule_name: [{ required: true, message: '请输入规则名称', trigger: 'blur' as const }],
+  agent_id: [{ required: true, message: '请选择智能体', trigger: 'change' as const }],
+  judge_mode: [{ required: true, message: '请选择研判方式', trigger: 'change' as const }],
 };
 
-function openEditor(record?: LlmJudgeRule) {
-  editingRule.value = record || null;
+function fillForm(record?: LlmJudgeRule) {
   ruleForm.value = {
     rule_name: record?.rule_name || '',
     match_objects: record?.match_objects || [],
@@ -641,7 +739,37 @@ function openEditor(record?: LlmJudgeRule) {
     priority: record?.priority ?? 5,
     enabled: record?.enabled !== false,
   };
+}
+
+function openCreate() {
+  if (disabled.value || !taskId.value) return;
+  editingRule.value = null;
+  fillForm();
   editorOpen.value = true;
+  afterEditorMounted();
+}
+
+function openEdit(record: LlmJudgeRule) {
+  if (disabled.value) return;
+  editingRule.value = record;
+  fillForm(record);
+  editorOpen.value = true;
+  afterEditorMounted();
+}
+
+function backToList() {
+  editorOpen.value = false;
+  editingRule.value = null;
+}
+
+/** 表单挂载后清空上次的校验态，并回到抽屉顶部 */
+function afterEditorMounted() {
+  nextTick(() => {
+    ruleFormRef.value?.clearValidate?.();
+    document
+      .querySelector('.llm-judge-drawer .ant-drawer-body')
+      ?.scrollTo({ top: 0, behavior: 'auto' });
+  });
 }
 
 async function handleSave() {
@@ -683,7 +811,7 @@ async function handleSave() {
       await createLlmJudgeRule(taskId.value, payload);
       createMessage.success('规则已创建，任务大模型后处理已自动开启');
     }
-    editorOpen.value = false;
+    backToList();
     await loadRules();
     emit('changed');
   } catch (error: any) {
@@ -774,6 +902,19 @@ async function handleDelete(record: LlmJudgeRule) {
   &__actions {
     flex-shrink: 0;
   }
+}
+
+.llj-back {
+  padding-left: 0;
+  padding-right: 10px;
+  flex-shrink: 0;
+}
+
+.llj-title__divider {
+  width: 1px;
+  height: 22px;
+  background: #e5e7eb;
+  flex-shrink: 0;
 }
 
 .llj-shell {
@@ -894,6 +1035,14 @@ async function handleDelete(record: LlmJudgeRule) {
     white-space: nowrap;
   }
 
+  &__mode {
+    flex-shrink: 0;
+
+    :deep(.ant-tag) {
+      margin: 0;
+    }
+  }
+
   &__head-right {
     display: flex;
     align-items: center;
@@ -929,7 +1078,7 @@ async function handleDelete(record: LlmJudgeRule) {
 
   &__time {
     font-size: 12px;
-    color: rgba(0, 0, 0, 0.35);
+    color: rgba(0, 0, 0, 0.45);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1060,7 +1209,11 @@ async function handleDelete(record: LlmJudgeRule) {
   }
 }
 
-/* ===== 编辑弹窗：分区表单 ===== */
+/* ===== 编辑态：分区表单 ===== */
+.led-form {
+  width: 100%;
+}
+
 .led-section {
   padding-bottom: 4px;
   margin-bottom: 10px;
@@ -1082,14 +1235,20 @@ async function handleDelete(record: LlmJudgeRule) {
     font-weight: 600;
     color: rgba(0, 0, 0, 0.85);
     margin-bottom: 14px;
+  }
 
-    &::before {
-      content: '';
-      width: 3px;
-      height: 13px;
-      border-radius: 2px;
-      background: @llj-primary;
-    }
+  &__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: @llj-primary;
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 700;
+    flex-shrink: 0;
   }
 
   &__hint {
@@ -1097,6 +1256,28 @@ async function handleDelete(record: LlmJudgeRule) {
     font-weight: 400;
     color: rgba(0, 0, 0, 0.4);
   }
+}
+
+.led-label-opt {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.led-label-tag {
+  margin-left: 6px;
+  font-size: 11px;
+  line-height: 16px;
+  :deep(.ant-tag) {
+    margin: 0;
+  }
+}
+
+.led-switch-help {
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 4px;
 }
 
 /* 判断方式选项卡 */
