@@ -193,6 +193,10 @@ def save_expert(item=None):
     item = item or RagExpert()
     item.name, item.category, item.knowledge_sets = name, category, sets
     item.system_prompt, item.welcome_message = prompt, data.get('welcome_message')
+    if item.id is None:
+        item.is_enabled = bool(data.get('is_enabled', True))
+    elif 'is_enabled' in data:
+        item.is_enabled = bool(data.get('is_enabled'))
     db.session.add(item)
     db.session.commit()
     return ok(item.to_dict(), 'RAG 专家已保存')
@@ -219,12 +223,22 @@ def expert_chat(item_id):
     sources = retrieve_segments(segment_ids, question, limit=int(data.get('top_k') or 5))
     context = '\n\n'.join(f'【资料 {index}｜{item["document_name"]}】\n{item["content"]}'
                             for index, item in enumerate(sources, 1)) or '未检索到相关知识。'
+    # 多轮调试：仅保留最近 6 条有效历史，避免上下文超长
+    history = []
+    for row in (data.get('history') or []):
+        if not isinstance(row, dict):
+            continue
+        role, content = row.get('role'), str(row.get('content') or '').strip()
+        if role in ('user', 'assistant') and content:
+            history.append({'role': role, 'content': content})
+    history = history[-6:]
     model = LLMModel.query.filter_by(is_active=True).order_by(LLMModel.id).first()
     if not model:
         response = f'【检索结果】\n\n{sources[0]["content"]}' if sources else '知识集中没有检索到相关依据。'
         return ok({'response': response, 'model': None, 'mode': 'retrieval', 'sources': sources})
-    messages = [{'role': 'system', 'content': f'{expert.system_prompt}\n必须依据资料回答，资料不足时明确说明，不得编造。引用使用【资料 1】格式。\n\n{context}'},
-                {'role': 'user', 'content': question}]
+    messages = [{'role': 'system', 'content': f'{expert.system_prompt}\n必须依据资料回答，资料不足时明确说明，不得编造。引用使用【资料 1】格式。\n\n{context}'}]
+    messages.extend(history)
+    messages.append({'role': 'user', 'content': question})
     try:
         result = invoke_chat(model, messages, stream=False, timeout=model.timeout)
         return ok({'response': result['response'], 'model': model.model_name, 'sources': sources})
