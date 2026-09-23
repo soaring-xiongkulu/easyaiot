@@ -1009,7 +1009,7 @@ EasyAIoT是一個開源學習項目，與商業行爲無關。用戶在使用該
 
 ## 🎬 演示影片
 
-- Bilibili：https://www.bilibili.com/video/BV1XChi6qEK5/?vd_source=2f810014df44025e0bcef187560a91c4
+- Bilibili：https://www.bilibili.com/video/BV1eShJ6bE6f/?vd_source=2f810014df44025e0bcef187560a91c4
 
 ## ⚙️ 項目地址
 
