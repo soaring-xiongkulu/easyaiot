@@ -48,7 +48,7 @@
             <LLMManage ref="llmManageRef"></LLMManage>
           </div>
         </TabPane>
-        <TabPane v-if="showAdvancedTabs" key="8" tab="RAG 专家训练">
+        <TabPane v-if="showAdvancedTabs" key="8" tab="RAG 知识与专家">
           <div class="tab-pane-scroll">
             <LLMTraining />
           </div>
