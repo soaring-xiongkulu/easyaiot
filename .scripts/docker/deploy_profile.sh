@@ -885,6 +885,9 @@ apply_python_service_deploy_env() {
             _set_env_docker_kv "$env_file" NODE_REMOTE_DEPLOY true
         fi
         if [ "$module" = "VIDEO" ]; then
+            # 模型信息/权重下载统一指向 AI 服务（edge 切回 full 后残留的
+            # AI_SERVICE_URL=…/video 会回环 VIDEO 自身，模型记录 404）
+            _set_env_docker_kv "$env_file" AI_SERVICE_URL "http://127.0.0.1:5000"
             # RTC / go2rtc：存量 .env.docker 可能缺项，安装/切形态时补齐
             _set_env_docker_kv "$env_file" RTC_SERVICE_URL "http://127.0.0.1:6100"
             _set_env_docker_kv "$env_file" RTC_GO2RTC_WEB_URL "/dev-api/go2rtc/"
