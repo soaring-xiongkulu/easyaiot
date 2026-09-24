@@ -700,6 +700,20 @@ def _record_class_names(record: dict) -> List[str]:
     return []
 
 
+def _write_names_file(model_dir: Path, record: dict) -> Optional[Path]:
+    """按模型类别写 model.names（与 model.onnx 同名配对，供 RUNTIME classes_path）。"""
+    names = _record_class_names(record)
+    if not names:
+        return None
+    names_path = model_dir / 'model.names'
+    try:
+        names_path.write_text('\n'.join(names) + '\n', encoding='utf-8')
+        return names_path
+    except OSError as e:
+        logger.warning('写入 %s 失败: %s', names_path, e)
+        return None
+
+
 def _resolve_object_ref_candidates(ref: str) -> List[Tuple[str, str]]:
     """把模型注册的权重路径解析为候选 (bucket, key) 列表。
 
@@ -733,10 +747,11 @@ def _resolve_object_ref_candidates(ref: str) -> List[Tuple[str, str]]:
 def _materialize_model_files(
     model_id: int, model_dir: Path, default_names: Path
 ) -> Optional[Tuple[str, str]]:
-    """本地目录缺权重时，从模型注册表自动拉取 ONNX，训练完即可直接建任务。
+    """本地目录缺权重时，从模型注册表自动拉取，训练完即可直接建任务。
 
-    onnx_model_path 为 AI「模型导出」产物，按约定存于 export-bucket。
-    下载经 ModelService，RustFS/MinIO（S3）与 mini 本地存储两种形态均可用。
+    优先拉 onnx_model_path（AI「模型导出」产物，存于 export-bucket）；
+    没有则拉 model_path 的 .pt 并现场导出 ONNX。下载经 ModelService，
+    RustFS/MinIO（S3）与 mini 本地存储两种形态均可用。
     返回 (onnx_path, names_path)；失败返回 None（沿用原错误提示路径）。
     """
     record = _fetch_model_record(model_id)
@@ -749,6 +764,9 @@ def _materialize_model_files(
     except OSError as e:
         logger.warning('模型目录创建失败 %s: %s', model_dir, e)
         return None
+
+    # 类别文件先落盘：model.onnx 会自动配对同名 model.names
+    _write_names_file(model_dir, record)
 
     def _try_download(ref: str, dest: Path) -> bool:
         try:
@@ -779,7 +797,14 @@ def _materialize_model_files(
     if onnx_ref and _try_download(onnx_ref, onnx_out):
         return str(onnx_out), _pick_names(onnx_out, default_names)
 
-    logger.warning('模型 %s 未能从注册表拉取到可用权重 (onnx=%s)', model_id, onnx_ref)
+    pt_ref = (record.get('model_path') or '').strip()
+    pt_out = model_dir / 'model.pt'
+    if pt_ref and pt_ref.lower().endswith('.pt') and _try_download(pt_ref, pt_out):
+        exported = _export_pt_to_onnx(pt_out, onnx_out)
+        if exported and exported.is_file():
+            return str(exported), _pick_names(exported, default_names)
+
+    logger.warning('模型 %s 未能从注册表拉取到可用权重 (onnx=%s pt=%s)', model_id, onnx_ref, pt_ref)
     return None
 
 
