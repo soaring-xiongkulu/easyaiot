@@ -61,6 +61,21 @@ EXPORT_STATUS = {
     'FAILED': '失败'
 }
 
+
+def build_export_download_url(export_id):
+    """构建导出文件下载URL。
+
+    后台线程只有应用上下文；容器环境默认不设置 SERVER_NAME（见 run.py），
+    Flask 的 url_for 即使生成相对路径也会抛 RuntimeError，
+    此时改用 url_map.bind('') 构建相对路径（WEB 前端实际通过自身代理
+    /model/export/download/{id} 下载，不依赖绝对地址）。
+    """
+    try:
+        return url_for('export.download_export', export_id=export_id, _external=True)
+    except RuntimeError:
+        adapter = current_app.url_map.bind('', url_scheme='http')
+        return adapter.build('export.download_export', {'export_id': export_id})
+
 SUPPORTED_FORMATS = {
     'onnx': {'ext': '.onnx', 'mime': 'application/octet-stream'},
     'openvino': {'ext': '_openvino_model/', 'mime': 'application/octet-stream'}
@@ -343,11 +358,7 @@ def process_export_async(model_id, format, export_config, export_id, task_id):
                 export_tasks[task_id]['progress'] = 100
                 
                 # 生成下载URL（需要在应用上下文中）
-                export_tasks[task_id]['download_url'] = url_for(
-                    'export.download_export',
-                    export_id=export_record.id,
-                    _external=True
-                )
+                export_tasks[task_id]['download_url'] = build_export_download_url(export_record.id)
 
                 # 更新模型表的对应字段
                 if format == 'onnx':
