@@ -290,6 +290,66 @@ create_directories() {
     print_success "目录创建完成"
 }
 
+# HTTPS 自签证书（nginx 443 ssl 需要；缺失会导致 nginx 启动即崩溃循环）
+ensure_ssl_certs() {
+    local crt="conf/ssl/server.crt"
+    local key="conf/ssl/server.key"
+    mkdir -p conf/ssl
+    if [ -f "$crt" ] && [ -f "$key" ]; then
+        print_info "SSL 证书已存在: $crt"
+        return 0
+    fi
+    print_info "生成 nginx HTTPS 自签证书..."
+    if command -v node >/dev/null 2>&1 && [ -f scripts/gen-dev-certs.mjs ]; then
+        if node scripts/gen-dev-certs.mjs; then
+            print_success "已通过 scripts/gen-dev-certs.mjs 生成证书"
+            return 0
+        fi
+    fi
+    if ! command -v openssl >/dev/null 2>&1; then
+        print_error "未找到 openssl，无法生成 SSL 证书"
+        print_info "请安装 openssl 后重试，或手动放入 conf/ssl/server.crt 与 conf/ssl/server.key"
+        return 1
+    fi
+    local tmpcnf
+    tmpcnf="$(mktemp)"
+    cat >"$tmpcnf" <<'EOF'
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3_req
+
+[dn]
+CN = localhost
+
+[v3_req]
+subjectAltName = @alt_names
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[alt_names]
+DNS.1 = localhost
+DNS.2 = *.localhost
+IP.1 = 127.0.0.1
+IP.2 = ::1
+EOF
+    if openssl req -x509 -nodes -newkey rsa:2048 \
+        -keyout "$key" -out "$crt" -days 825 \
+        -config "$tmpcnf" -extensions v3_req >/dev/null 2>&1; then
+        rm -f "$tmpcnf"
+        chmod 644 "$crt"
+        chmod 600 "$key"
+        print_success "已生成自签证书: $crt / $key"
+        return 0
+    fi
+    rm -f "$tmpcnf"
+    print_error "openssl 生成证书失败"
+    return 1
+}
+
 # 检查前端构建产物（已废弃，构建现在在容器内完成）
 check_dist() {
     # 构建现在在Docker容器内完成，不再需要检查宿主机的dist目录
@@ -452,7 +512,8 @@ install_service() {
     check_docker_compose
     create_directories
     create_env_file
-    
+    ensure_ssl_certs || exit 1
+
     # 检查端口占用
     if ! check_port; then
         print_error "端口检查失败，请解决端口占用问题后重试"
@@ -505,7 +566,8 @@ start_service() {
         print_warning ".env 文件不存在，正在创建..."
         create_env_file
     fi
-    
+    ensure_ssl_certs || exit 1
+
     # 检查端口占用
     if ! check_port; then
         print_error "端口检查失败，请解决端口占用问题后重试"
@@ -533,7 +595,8 @@ restart_service() {
     print_info "重启服务..."
     check_docker
     check_docker_compose
-    
+    ensure_ssl_certs || exit 1
+
     $COMPOSE_CMD restart
     print_success "服务已重启"
     check_status
@@ -620,6 +683,7 @@ update_service() {
     check_macos
     check_docker
     check_docker_compose
+    ensure_ssl_certs || exit 1
 
     if easyaiot_update_should_recreate_only web-service:latest; then
         $COMPOSE_CMD up -d --force-recreate --remove-orphans
