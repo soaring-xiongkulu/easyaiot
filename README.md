@@ -1033,7 +1033,7 @@ For delivery, watchkeeping, and business operations: organized by **operation ch
 
 ## 🎬 Demo Video
 
-- Bilibili: https://www.bilibili.com/video/BV1eShJ6bE6f/?vd_source=2f810014df44025e0bcef187560a91c4
+- Bilibili: https://www.bilibili.com/video/BV1Kkaw6NE1B/?vd_source=2f810014df44025e0bcef187560a91c4
 
 ## ⚙️ Project Repositories
 
