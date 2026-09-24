@@ -635,6 +635,154 @@ def _resolve_dir_to_onnx(model_dir: Path, default_names: Path) -> Optional[Tuple
     return None
 
 
+_EXPORT_BUCKET = 'export-bucket'
+
+
+def _fetch_model_record(model_id: int) -> Optional[dict]:
+    """获取模型注册信息（model_path / onnx_model_path / class_names）。
+
+    优先调用模型服务 HTTP API（标准/集群形态即 AI 模块；edge 形态回环本机
+    VIDEO 自己的 /model/{id}），失败时回退 VIDEO 库本地 model 表（edge 种子）。
+    """
+    import requests
+    from app.utils.service_urls import resolve_model_service_base_url
+
+    base_url = resolve_model_service_base_url().rstrip('/')
+    try:
+        resp = requests.get(
+            f'{base_url}/model/{int(model_id)}',
+            headers={'X-Authorization': f'Bearer {os.getenv("JWT_TOKEN", "")}'},
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            payload = resp.json() or {}
+            data = payload.get('data') or {}
+            if payload.get('code') == 0 and data:
+                return data
+        logger.warning('模型注册信息获取失败 model_id=%s http=%s', model_id, resp.status_code)
+    except Exception as e:
+        logger.warning('模型注册信息 HTTP 获取异常 model_id=%s: %s', model_id, e)
+
+    try:
+        from models import AiModel
+        row = AiModel.query.get(int(model_id))
+        if row is not None:
+            return {
+                'id': row.id,
+                'name': row.name,
+                'model_path': row.model_path,
+                'onnx_model_path': row.onnx_model_path,
+                'class_names': row.class_names,
+                'selected_class_names': row.selected_class_names,
+            }
+    except Exception as e:
+        logger.debug('本地 model 表回退查询失败 model_id=%s: %s', model_id, e)
+    return None
+
+
+def _record_class_names(record: dict) -> List[str]:
+    """取模型完整类别（按训练索引顺序）；缺失时退回选中类别。"""
+    raw = record.get('class_names')
+    if not raw:
+        raw = record.get('selected_class_names')
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except Exception:
+            raw = None
+    if isinstance(raw, dict):
+        try:
+            raw = [raw[k] for k in sorted(raw, key=lambda x: int(x))]
+        except Exception:
+            raw = list(raw.values())
+    if isinstance(raw, (list, tuple)):
+        return [str(x).strip() for x in raw if str(x).strip()]
+    return []
+
+
+def _resolve_object_ref_candidates(ref: str) -> List[Tuple[str, str]]:
+    """把模型注册的权重路径解析为候选 (bucket, key) 列表。
+
+    支持 /api/v1/buckets/{bucket}/objects/download?prefix={key} 完整 URL 与
+    bucket/key 相对路径；exports/ 前缀按 AI 导出约定映射到 export-bucket。
+    """
+    ref = (ref or '').strip()
+    if not ref:
+        return []
+    if '/buckets/' in ref:
+        parsed = urlparse(ref)
+        parts = parsed.path.split('/')
+        if len(parts) >= 5 and parts[3] == 'buckets':
+            query = parse_qs(parsed.query)
+            key = query.get('prefix', [None])[0]
+            if key:
+                from urllib.parse import unquote
+                return [(parts[4], unquote(key))]
+        return []
+    if ref.startswith('/') or ref.startswith('http'):
+        return []
+    if '/' not in ref:
+        return []
+    if ref.startswith('exports/'):
+        # AI 模型导出固定上传 export-bucket，onnx_model_path 仅存相对 object key
+        return [(_EXPORT_BUCKET, ref), ('exports', ref.split('/', 1)[1])]
+    bucket, key = ref.split('/', 1)
+    return [(bucket, key)]
+
+
+def _materialize_model_files(
+    model_id: int, model_dir: Path, default_names: Path
+) -> Optional[Tuple[str, str]]:
+    """本地目录缺权重时，从模型注册表自动拉取 ONNX，训练完即可直接建任务。
+
+    onnx_model_path 为 AI「模型导出」产物，按约定存于 export-bucket。
+    下载经 ModelService，RustFS/MinIO（S3）与 mini 本地存储两种形态均可用。
+    返回 (onnx_path, names_path)；失败返回 None（沿用原错误提示路径）。
+    """
+    record = _fetch_model_record(model_id)
+    if not record:
+        logger.warning('模型 %s 无注册信息，无法自动拉取权重', model_id)
+        return None
+
+    try:
+        model_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        logger.warning('模型目录创建失败 %s: %s', model_dir, e)
+        return None
+
+    def _try_download(ref: str, dest: Path) -> bool:
+        try:
+            from app.services.minio_service import ModelService
+        except Exception as e:
+            logger.warning('对象存储服务不可用，跳过拉取: %s', e)
+            return False
+        for bucket, key in _resolve_object_ref_candidates(ref):
+            try:
+                ok, err = ModelService.download_from_minio(bucket, key, str(dest))
+            except Exception as e:
+                ok, err = False, str(e)
+            if ok and dest.is_file() and dest.stat().st_size > 0:
+                logger.info('模型权重已自动拉取: %s/%s -> %s', bucket, key, dest)
+                return True
+            if dest.exists():
+                try:
+                    dest.unlink()
+                except OSError:
+                    pass
+            if ok:
+                return False
+            logger.info('权重候选 %s/%s 拉取失败: %s', bucket, key, err)
+        return False
+
+    onnx_ref = (record.get('onnx_model_path') or '').strip()
+    onnx_out = model_dir / 'model.onnx'
+    if onnx_ref and _try_download(onnx_ref, onnx_out):
+        return str(onnx_out), _pick_names(onnx_out, default_names)
+
+    logger.warning('模型 %s 未能从注册表拉取到可用权重 (onnx=%s)', model_id, onnx_ref)
+    return None
+
+
 def _resolve_single_model_path(
     mid_int: int, *, prefer_cluster: bool, default_names: Path
 ) -> Optional[Tuple[str, str]]:
@@ -676,9 +824,19 @@ def _resolve_single_model_path(
 
     model_dir = _resolve_custom_model_dir(mid_int, prefer_cluster=prefer_cluster)
     if model_dir is not None:
-        resolved = _resolve_dir_to_onnx(model_dir, default_names)
-        if resolved:
-            return resolved
+        if model_dir.is_dir():
+            resolved = _resolve_dir_to_onnx(model_dir, default_names)
+            if resolved:
+                return resolved
+        # 本地目录缺失或无权重：从模型注册表自动拉取（集群走 sync-to-cluster 预同步）
+        if not prefer_cluster:
+            materialized = _materialize_model_files(mid_int, model_dir, default_names)
+            if materialized:
+                return materialized
+        if not model_dir.is_dir():
+            # Still allow canonical remote path for Agent nodes
+            canonical = model_dir / 'model.onnx'
+            return str(canonical), _pick_names(canonical, default_names)
     return None
 
 
