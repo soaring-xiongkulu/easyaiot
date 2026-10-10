@@ -1,0 +1,51 @@
+# EasyAIoT TERMINAL server 模式镜像（Wails v3 -tags server,production）
+# 与 build/Taskfile.yml build:docker 契约一致：
+#   --build-arg CGO_ENABLED / GO_IMAGE / RUNTIME_IMAGE；容器内固定监听 8080。
+# 自包含多阶段构建：镜像内完成前端与 Go 编译，宿主机仅需 Docker。
+
+# 基础镜像固定走国内源（docker.m.daocloud.io，含 docker.io 与 gcr.io 代理）：
+# Docker Hub 直连在部分网络下被限速/重置。需要官方源时用 --build-arg 覆盖即可。
+ARG GO_IMAGE=docker.m.daocloud.io/library/golang:1.26-alpine
+ARG NODE_IMAGE=docker.m.daocloud.io/library/node:20-alpine
+ARG RUNTIME_IMAGE=gcr.m.daocloud.io/distroless/static-debian12
+# 静态 docker CLI：配合挂载的 /var/run/docker.sock，让容器形态的
+# 「Docker」快捷预设也能管理宿主机容器（distroless 自带不了任何 CLI）
+ARG DOCKER_CLI_IMAGE=docker.m.daocloud.io/library/docker:cli
+# busybox 的 sh：容器探测用 `sh -c "command -v docker"`（distroless 无任何
+# shell），本地终端/后登录脚本（docker exec 进 TDengine/Kafka）也依赖它。
+# 必须用 uclibc 变体（静态链接）——latest 是 musl 动态链接，distroless
+# 里没有加载器会直接 ENOENT
+ARG BUSYBOX_IMAGE=docker.m.daocloud.io/library/busybox:uclibc
+
+FROM ${NODE_IMAGE} AS frontend
+WORKDIR /src/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM ${GO_IMAGE} AS builder
+ARG CGO_ENABLED=0
+# GOPROXY 固定走华为云国内代理（proxy.golang.org 在部分网络下连接被重置，
+# 导致 go mod download 卡住/失败；direct 兜底私有模块）
+ENV GOPROXY=https://repo.huaweicloud.com/repository/goproxy/,direct
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+# go:embed all:frontend/dist —— 以镜像内新构建的前端产物为准
+COPY --from=frontend /src/frontend/dist ./frontend/dist
+RUN CGO_ENABLED=${CGO_ENABLED} GOFLAGS=-buildvcs=false \
+    go build -tags server,production -trimpath -ldflags "-s -w" \
+    -o /out/Terminal-server .
+
+FROM ${DOCKER_CLI_IMAGE} AS dockercli
+FROM ${BUSYBOX_IMAGE} AS busybox
+
+FROM ${RUNTIME_IMAGE}
+# busybox 按 argv[0] 分发 applet：拷成 /bin/sh 即可作为 shell 使用
+COPY --from=busybox /bin/busybox /bin/sh
+COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=builder /out/Terminal-server /bin/Terminal-server
+EXPOSE 8080
+ENTRYPOINT ["/bin/Terminal-server"]

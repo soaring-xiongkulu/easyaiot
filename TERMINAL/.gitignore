@@ -21,6 +21,9 @@ build/darwin/*
 !build/darwin/Info.dev.plist
 # icns ships prebuilt so `wails dev`/`run` show the real icon before generate:icns ever runs
 !build/darwin/icons.icns
+# Server-mode image build context (TERMINAL/install.sh builds easyaiot/terminal from it)
+!build/docker/
+!build/docker/**
 uniTerm.exe
 __debug*
 
@@ -76,7 +79,7 @@ docs/superpowers/
 designs/
 /design.md
 docs/articles/
-docker/
+/docker/
 
 # Android scaffold (copied from wails build assets; outputs stay ignored)
 !build/android/
