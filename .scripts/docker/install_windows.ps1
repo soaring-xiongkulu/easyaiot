@@ -350,11 +350,11 @@ function Update-DockerDesktopSettingsStore {
             $json = Get-Content -Raw -Encoding UTF8 $path | ConvertFrom-Json
             # PSCustomObject：动态加属性
             $map = @{
-                memoryMiB = $MemoryMiB; MemoryMiB = $MemoryMiB
-                cpus = $Cpus; Cpus = $Cpus
-                diskSizeMiB = $DiskMiB; DiskSizeMiB = $DiskMiB
-                swapMiB = $SwapMiB; SwapMiB = $SwapMiB
-                useResourceSaver = $false; UseResourceSaver = $false
+                memoryMiB = $MemoryMiB
+                cpus = $Cpus
+                diskSizeMiB = $DiskMiB
+                swapMiB = $SwapMiB
+                useResourceSaver = $false
             }
             foreach ($k in $map.Keys) {
                 if ($null -eq $json.PSObject.Properties[$k]) {
