@@ -11,7 +11,7 @@ SOURCE_SECRET_KEY="${MINIO_SOURCE_SECRET_KEY:-}"
 DEST_ENDPOINT="${RUSTFS_DEST_ENDPOINT:-http://127.0.0.1:9000}"
 DEST_ACCESS_KEY="${RUSTFS_ACCESS_KEY:-minioadmin}"
 DEST_SECRET_KEY="${RUSTFS_SECRET_KEY:-}"
-MC_IMAGE="${MC_IMAGE:-minio/mc:latest}"
+MC_IMAGE="${MC_IMAGE:-minio/aistor/mc:latest}"
 MODE="sync"
 
 usage() {
@@ -27,7 +27,7 @@ Optional environment variables:
   MINIO_SOURCE_ACCESS_KEY  Default: minioadmin
   RUSTFS_DEST_ENDPOINT     Default: http://127.0.0.1:9000
   RUSTFS_ACCESS_KEY        Default: minioadmin
-  MC_IMAGE                 Default: minio/mc:latest
+  MC_IMAGE                 Default: minio/aistor/mc:latest
 
 Modes:
   --dry-run  Show the objects that would be copied
@@ -52,7 +52,7 @@ fi
 
 config_dir="$(mktemp -d "${TMPDIR:-/tmp}/easyaiot-rustfs-migration.XXXXXX")"
 cleanup() {
-    # minio/mc runs as root and may create mode-0700 directories. Clean them
+    # minio/aistor/mc runs as root and may create mode-0700 directories. Clean them
     # through a short-lived container, then remove the now-empty host folder.
     docker run --rm -v "${config_dir}:/cleanup" alpine:3.22 \
         find /cleanup -mindepth 1 -depth -delete >/dev/null 2>&1 || true

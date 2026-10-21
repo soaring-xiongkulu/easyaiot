@@ -513,12 +513,12 @@ ensure_minio_buckets() {
   local failed=0
   local bucket
 
-  # minio/mc 精简镜像无 shell，不能用 `mc sh -c`；先 alias 再 mb
+  # minio/aistor/mc 精简镜像无 shell，不能用 `mc sh -c`；先 alias 再 mb
   local mc_config_dir
   mc_config_dir=$(mktemp -d)
   if ! docker run --rm --network "${NETWORK_NAME}" \
     -v "${mc_config_dir}:/root/.mc" \
-    minio/mc alias set local "http://RustFS:9000" "${access_key}" "${secret_key}" >/dev/null 2>&1; then
+    minio/aistor/mc alias set local "http://RustFS:9000" "${access_key}" "${secret_key}" >/dev/null 2>&1; then
     warn "RustFS mc alias 设置失败，跳过存储桶初始化"
     rm -rf "$mc_config_dir"
     return 1
@@ -527,7 +527,7 @@ ensure_minio_buckets() {
   for bucket in "${MINIO_BUCKETS[@]}"; do
     if docker run --rm --network "${NETWORK_NAME}" \
       -v "${mc_config_dir}:/root/.mc" \
-      minio/mc mb --ignore-existing "local/${bucket}" >/dev/null 2>&1; then
+      minio/aistor/mc mb --ignore-existing "local/${bucket}" >/dev/null 2>&1; then
       ok "存储桶就绪: ${bucket}"
     else
       warn "存储桶初始化失败: ${bucket}"
