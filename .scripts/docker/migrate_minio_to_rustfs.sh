@@ -50,6 +50,21 @@ if [[ -z "$SOURCE_SECRET_KEY" || -z "$DEST_SECRET_KEY" ]]; then
     exit 2
 fi
 
+if ! docker image inspect "$MC_IMAGE" >/dev/null 2>&1; then
+    # The aistor mc image is only published on quay.io; pulling the short name
+    # resolves against Docker Hub (and its mirrors), where the repo does not exist.
+    for img in "quay.io/${MC_IMAGE#quay.io/}" "$MC_IMAGE"; do
+        if DOCKER_CONTENT_TRUST=0 docker pull "$img"; then
+            [ "$img" != "$MC_IMAGE" ] && docker tag "$img" "$MC_IMAGE" 2>/dev/null || true
+            break
+        fi
+    done
+    docker image inspect "$MC_IMAGE" >/dev/null 2>&1 || {
+        echo "Unable to pull ${MC_IMAGE}" >&2
+        exit 1
+    }
+fi
+
 config_dir="$(mktemp -d "${TMPDIR:-/tmp}/easyaiot-rustfs-migration.XXXXXX")"
 cleanup() {
     # minio/aistor/mc runs as root and may create mode-0700 directories. Clean them

@@ -55,6 +55,8 @@ MINIO_BUCKETS=(
   "dataset" "datasets" "export-bucket" "inference-inputs" "inference-results" "models" "snap-space" "alert-images"
   "plate-models" "plate-train-results" "plate-train-logs" "plate-inference-results"
 )
+# aistor 系 mc 客户端镜像仅发布在 quay.io，Docker Hub 及其国内镜像站均无此仓库
+MC_IMAGE="${MC_IMAGE:-minio/aistor/mc:latest}"
 
 service_port() {
   case "$1" in
@@ -501,10 +503,33 @@ wait_for_health() {
   return 1
 }
 
+# 全新机器本地无 mc 镜像时先拉取：quay.io 直连（带仓库主机名，不经过 registry-mirrors），
+# 失败再按短名走 Docker Hub / 已配置的镜像源
+ensure_mc_image() {
+  if docker image inspect "$MC_IMAGE" >/dev/null 2>&1; then
+    return 0
+  fi
+  info "拉取 mc 客户端镜像 ${MC_IMAGE} ..."
+  local img
+  for img in "quay.io/${MC_IMAGE#quay.io/}" "$MC_IMAGE"; do
+    if DOCKER_CONTENT_TRUST=0 docker pull "$img"; then
+      [ "$img" != "$MC_IMAGE" ] && docker tag "$img" "$MC_IMAGE" 2>/dev/null || true
+      ok "mc 客户端镜像就绪: ${MC_IMAGE}"
+      return 0
+    fi
+  done
+  err "无法拉取 mc 镜像: ${MC_IMAGE}"
+  return 1
+}
+
 ensure_minio_buckets() {
   info "初始化 RustFS 存储桶..."
   if ! wait_for_health 9000 "/health/ready"; then
     warn "RustFS 未就绪，跳过存储桶初始化"
+    return 1
+  fi
+  if ! ensure_mc_image; then
+    warn "mc 客户端镜像不可用，跳过存储桶初始化"
     return 1
   fi
 
@@ -518,7 +543,7 @@ ensure_minio_buckets() {
   mc_config_dir=$(mktemp -d)
   if ! docker run --rm --network "${NETWORK_NAME}" \
     -v "${mc_config_dir}:/root/.mc" \
-    minio/aistor/mc alias set local "http://RustFS:9000" "${access_key}" "${secret_key}" >/dev/null 2>&1; then
+    "$MC_IMAGE" alias set local "http://RustFS:9000" "${access_key}" "${secret_key}" >/dev/null 2>&1; then
     warn "RustFS mc alias 设置失败，跳过存储桶初始化"
     rm -rf "$mc_config_dir"
     return 1
@@ -527,7 +552,7 @@ ensure_minio_buckets() {
   for bucket in "${MINIO_BUCKETS[@]}"; do
     if docker run --rm --network "${NETWORK_NAME}" \
       -v "${mc_config_dir}:/root/.mc" \
-      minio/aistor/mc mb --ignore-existing "local/${bucket}" >/dev/null 2>&1; then
+      "$MC_IMAGE" mb --ignore-existing "local/${bucket}" >/dev/null 2>&1; then
       ok "存储桶就绪: ${bucket}"
     else
       warn "存储桶初始化失败: ${bucket}"
