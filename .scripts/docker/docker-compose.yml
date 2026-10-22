@@ -296,7 +296,7 @@ services:
       - easyaiot-network
 
   RustFS:
-    image: rustfs/rustfs:1.0.0
+    image: rustfs/rustfs:1.0.3
     container_name: rustfs-server
     depends_on:
       RustFS-init:

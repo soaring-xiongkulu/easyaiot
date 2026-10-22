@@ -53,7 +53,7 @@ MINIO_ROOT_PASSWORD="basiclab@iot975248395"
 DOCKER_MIRROR="https://docker.m.daocloud.io/"
 
 # 与 docker-compose.yml 保持一致，启动时从 compose 解析
-MINIO_IMAGE="rustfs/rustfs:1.0.0"
+MINIO_IMAGE="rustfs/rustfs:1.0.3"
 
 FORCE_OS_CHECK=false
 WAIT_READY=true

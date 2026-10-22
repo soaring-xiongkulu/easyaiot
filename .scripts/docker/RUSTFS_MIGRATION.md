@@ -1,6 +1,6 @@
-# RustFS 1.0.0 migration
+# RustFS 1.0 migration
 
-The middleware Compose stack now runs `rustfs/rustfs:1.0.0` on ports 9000
+The middleware Compose stack now runs `rustfs/rustfs:1.0.3` on ports 9000
 (S3) and 9001 (console). RustFS stores data under `rustfs_data/`; the legacy
 `minio_data/` directory is deliberately left untouched for rollback.
 
