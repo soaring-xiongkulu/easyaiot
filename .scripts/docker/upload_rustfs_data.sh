@@ -210,12 +210,28 @@ ensure_minio_python_sdk() {
 }
 
 ensure_mc_image() {
-    if docker image inspect "$MC_IMAGE" >/dev/null 2>&1; then
+    local inspect_err
+    if inspect_err=$(docker image inspect "$MC_IMAGE" 2>&1 >/dev/null); then
         return 0
     fi
+
+    # 区分权限问题与镜像缺失，避免把 permission denied 误判为未安装
+    if echo "$inspect_err" | grep -qi "permission denied"; then
+        print_error "当前用户无 Docker 访问权限，请使用 sudo 运行，或执行: sudo usermod -aG docker \$USER 后重新登录"
+        return 1
+    fi
+
+    # 本地可能只保存了带 quay.io 前缀的名字，直接复用并补 tag，避免重复拉取
+    local mc_alias="quay.io/${MC_IMAGE#quay.io/}"
+    if [ "$mc_alias" != "$MC_IMAGE" ] && docker image inspect "$mc_alias" >/dev/null 2>&1; then
+        docker tag "$mc_alias" "$MC_IMAGE" 2>/dev/null || true
+        print_success "mc 镜像就绪: ${MC_IMAGE}（复用 ${mc_alias}）"
+        return 0
+    fi
+
     print_info "拉取 mc 客户端镜像 ${MC_IMAGE} ..."
     set +e
-    for img in "quay.io/minio/aistor/mc:latest" "$MC_IMAGE"; do
+    for img in "$mc_alias" "$MC_IMAGE"; do
         if DOCKER_CONTENT_TRUST=0 docker pull "$img"; then
             [ "$img" != "$MC_IMAGE" ] && docker tag "$img" "$MC_IMAGE" 2>/dev/null || true
             set -e
