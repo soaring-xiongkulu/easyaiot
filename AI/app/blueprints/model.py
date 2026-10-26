@@ -674,7 +674,7 @@ def create_model():
         data = request.get_json()
         name = data.get('name')
         description = data.get('description', '')
-        file_path = data.get('filePath', '')
+        file_path = _normalize_model_storage_path(data.get('filePath', ''))
         image_url = data.get('imageUrl', '')
         version = _normalize_model_version(data.get('version', _DEFAULT_MODEL_VERSION))
         status = 0
@@ -782,7 +782,7 @@ def update_model(model_id):
         if 'description' in data:
             model.description = data['description']
         if 'filePath' in data:
-            model.model_path = data['filePath']
+            model.model_path = _normalize_model_storage_path(data['filePath'])
         if 'imageUrl' in data:
             model.image_url = data['imageUrl']
         if 'status' in data and data['status'] is not None:
@@ -993,6 +993,26 @@ def resolve_minio_bucket_key(path: str):
             return parts[0], parts[1]
         return 'models', path
     return None, None
+
+
+def _normalize_model_storage_path(path) -> str:
+    """规范化手工登记的模型存储路径（/model/create 与 /model/<id>/update）。
+
+    上传接口的对象键固定落在 models 桶的 yolo/ 命名空间；filePath 若登记成该
+    命名空间的纯对象键（如 yolo/yolov8/onnx/x.onnx），自动补 models/ 桶前缀，
+    与解析端兜底（resolve_minio_bucket_key）口径一致。其余格式——完整下载
+    URL、带桶前缀相对路径、本地路径（如 data/datasets/3/best.pt，推理侧直接
+    os.path.join 使用）——一律原样保留，避免破坏本地路径语义。
+    """
+    text = str(path or '').strip()
+    if not text:
+        return text
+    if '/buckets/' in text or '://' in text or text.startswith('/'):
+        return text
+    first, sep, rest = text.partition('/')
+    if first == 'yolo' and sep and rest:
+        return f'models/{text}'
+    return text
 
 
 def _iter_model_storage_paths(model: Model):
