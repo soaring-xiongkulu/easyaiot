@@ -636,6 +636,8 @@ def _resolve_dir_to_onnx(model_dir: Path, default_names: Path) -> Optional[Tuple
 
 
 _EXPORT_BUCKET = 'export-bucket'
+# 模型权重允许存放的桶：上传入口固定 models，导出入口固定 export-bucket/exports
+_KNOWN_MODEL_BUCKETS = frozenset({'models', _EXPORT_BUCKET, 'exports'})
 
 
 def _fetch_model_record(model_id: int) -> Optional[dict]:
@@ -719,6 +721,8 @@ def _resolve_object_ref_candidates(ref: str) -> List[Tuple[str, str]]:
 
     支持 /api/v1/buckets/{bucket}/objects/download?prefix={key} 完整 URL 与
     bucket/key 相对路径；exports/ 前缀按 AI 导出约定映射到 export-bucket。
+    首段不是已知模型桶名的相对路径（如手工登记的 yolo/yolov8/onnx/x.onnx
+    纯对象键）默认归 models 桶，并保留按桶名解释的候选兜底。
     """
     ref = (ref or '').strip()
     if not ref:
@@ -735,13 +739,15 @@ def _resolve_object_ref_candidates(ref: str) -> List[Tuple[str, str]]:
         return []
     if ref.startswith('/') or ref.startswith('http'):
         return []
-    if '/' not in ref:
-        return []
     if ref.startswith('exports/'):
         # AI 模型导出固定上传 export-bucket，onnx_model_path 仅存相对 object key
         return [(_EXPORT_BUCKET, ref), ('exports', ref.split('/', 1)[1])]
+    if '/' not in ref:
+        return [('models', ref)]
     bucket, key = ref.split('/', 1)
-    return [(bucket, key)]
+    if bucket in _KNOWN_MODEL_BUCKETS:
+        return [(bucket, key)]
+    return [('models', ref), (bucket, key)]
 
 
 def _materialize_model_files(
