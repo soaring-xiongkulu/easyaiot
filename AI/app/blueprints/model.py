@@ -969,10 +969,17 @@ def parse_minio_url(url: str):
         return None, None
 
 
+# 模型权重允许存放的桶：上传入口固定 models，导出入口固定 export-bucket/exports，
+# 车牌训练入口固定 plate-models
+_KNOWN_MODEL_BUCKETS = {'models', 'export-bucket', 'exports', 'plate-models'}
+
+
 def resolve_minio_bucket_key(path: str):
     """
     将模型存储路径解析为 MinIO bucket 与 object_key。
     支持 API 下载 URL 与 bucket/object 相对路径（如 exports/model_3/onnx/model.onnx）。
+    首段不是已知模型桶名的相对路径（如手工登记的 yolo/yolov8/onnx/x.onnx
+    纯对象键）默认归 models 桶。
     """
     if not path or not str(path).strip():
         return None, None
@@ -982,7 +989,9 @@ def resolve_minio_bucket_key(path: str):
         return bucket_name, object_key
     if '/' in path:
         parts = path.split('/', 1)
-        return parts[0], parts[1]
+        if parts[0] in _KNOWN_MODEL_BUCKETS:
+            return parts[0], parts[1]
+        return 'models', path
     return None, None
 
 
