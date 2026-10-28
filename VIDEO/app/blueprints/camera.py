@@ -59,6 +59,7 @@ from app.utils.rtc_source import (
 )
 from app.utils.gb28181_source import resolve_gb28181_source
 from app.utils.node_client import resolve_java_backend_url
+from app.utils.rtsp_stream_utils import capture_rtsp_frame
 from models import Device, db, Image, DeviceDirectory, DetectionRegion, StreamForwardTask, AlgorithmTask
 from sqlalchemy import and_
 
@@ -1796,15 +1797,10 @@ def grab_frame_for_snapshot(device):
             logger.error(f"RTMP流抽帧异常: {str(e)}", exc_info=True)
             return None, f'RTMP流抽帧异常: {str(e)}'
     else:
-        # 使用OpenCV从RTSP流抓取一帧
-        cap = cv2.VideoCapture(source)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区，获取最新帧
-
-        ret, frame = cap.read()
-        cap.release()
-
-        if not ret:
-            return None, '无法从视频流读取帧'
+        # RTSP 起播时可能先返回灰屏/损坏帧；复用公共抓帧逻辑进行短暂预热并跳过坏帧。
+        ret, frame = capture_rtsp_frame(source)
+        if not ret or frame is None:
+            return None, '无法从视频流读取有效帧（视频流未就绪或连续返回灰屏）'
         return frame, None
 
 

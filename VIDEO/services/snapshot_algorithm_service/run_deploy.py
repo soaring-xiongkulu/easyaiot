@@ -97,6 +97,7 @@ from app.utils.rtsp_stream_utils import (
     is_likely_rtsp_flat_corrupt_frame,
     task_streams_prefer_tcp,
 )
+from app.utils.rtsp_url import redact_url_credentials
 
 
 def _shanghai_time_str(timestamp: float) -> str:
@@ -1233,7 +1234,10 @@ def load_task_config():
                 }
                 input_type = "RTSP" if rtsp_url and rtsp_url.startswith(
                     'rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
-                logger.info(f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={rtsp_url}")
+                logger.info(
+                    f"📹 设备 {device.id} ({device.name or device.id}): "
+                    f"{input_type}={redact_url_credentials(rtsp_url)}"
+                )
 
         # 将设备流地址信息存储到task_config中（通过动态属性）
         task_config.device_streams = device_streams
@@ -2033,7 +2037,7 @@ def buffer_streamer_worker(device_id: str):
     logger.info(f"📺 设备 {device_id} 流地址配置:")
     input_stream_type = "RTSP" if rtsp_url and rtsp_url.startswith(
         'rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
-    logger.info(f"   {input_stream_type}输入流: {rtsp_url}")
+    logger.info(f"   {input_stream_type}输入流: {redact_url_credentials(rtsp_url)}")
 
     if not rtsp_url:
         logger.error(f"设备 {device_id} 输入流地址不存在，缓流器退出")
@@ -2095,12 +2099,18 @@ def buffer_streamer_worker(device_id: str):
                         _last_gb28181_resolve_time = time.time()
                         _new_url = resolve_gb28181_source(_original_source, logger=logger)
                         if _new_url and _new_url != rtsp_url:
-                            logger.info(f"📌 设备 {device_id} GB28181 源重新解析: {rtsp_url} -> {_new_url}")
+                            logger.info(
+                                f"📌 设备 {device_id} GB28181 源重新解析: "
+                                f"{redact_url_credentials(rtsp_url)} -> {redact_url_credentials(_new_url)}"
+                            )
                             rtsp_url = _new_url
                             device_stream_info['rtsp_url'] = _new_url
                             retry_count = 0
                         elif _new_url:
-                            logger.info(f"📌 设备 {device_id} GB28181 源重新解析（URL 未变）: {rtsp_url}")
+                            logger.info(
+                                f"📌 设备 {device_id} GB28181 源重新解析（URL 未变）: "
+                                f"{redact_url_credentials(rtsp_url)}"
+                            )
                         else:
                             logger.warning(
                                 f"⚠️ 设备 {device_id} GB28181 源重新解析失败，使用上次 URL 重试"
@@ -2109,7 +2119,10 @@ def buffer_streamer_worker(device_id: str):
                 stream_type = "RTSP" if rtsp_url.startswith('rtsp://') else "RTMP" if rtsp_url.startswith(
                     'rtmp://') else "流"
 
-                logger.info(f"正在连接设备 {device_id} 的 {stream_type} 流: {rtsp_url} (重试次数: {retry_count})")
+                logger.info(
+                    f"正在连接设备 {device_id} 的 {stream_type} 流: "
+                    f"{redact_url_credentials(rtsp_url)} (重试次数: {retry_count})"
+                )
 
                 _queue_max_override = None
                 if _is_gb28181:

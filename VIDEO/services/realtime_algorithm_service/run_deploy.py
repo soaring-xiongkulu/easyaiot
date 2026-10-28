@@ -114,6 +114,7 @@ from app.utils.service_urls import (
     resolve_face_matching_publish_url,
     resolve_plate_matching_publish_url,
 )
+from app.utils.rtsp_url import redact_url_credentials
 
 
 def _parse_gpu_id_list(value: str) -> List[int]:
@@ -2074,13 +2075,17 @@ def load_task_config():
                 }
                 input_type = "RTSP" if rtsp_url and rtsp_url.startswith(
                     'rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
+                safe_input_url = redact_url_credentials(rtsp_url)
+                safe_rtmp_url = redact_url_credentials(rtmp_url)
+                safe_playback_url = redact_url_credentials(playback_rtmp_url)
                 if playback_rtmp_url and playback_rtmp_url != rtmp_url:
                     logger.info(
-                        f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={rtsp_url}, "
-                        f"AI推流={rtmp_url}, 播放地址={playback_rtmp_url}")
+                        f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={safe_input_url}, "
+                        f"AI推流={safe_rtmp_url}, 播放地址={safe_playback_url}")
                 else:
                     logger.info(
-                        f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={rtsp_url}, AI RTMP输出={rtmp_url}")
+                        f"📹 设备 {device.id} ({device.name or device.id}): {input_type}={safe_input_url}, "
+                        f"AI RTMP输出={safe_rtmp_url}")
 
         # 将设备流地址信息存储到task_config中（通过动态属性）
         task_config.device_streams = device_streams
@@ -3764,8 +3769,8 @@ def buffer_streamer_worker(device_id: str):
     logger.info(f"📺 设备 {device_id} 流地址配置:")
     input_stream_type = "RTSP" if rtsp_url and rtsp_url.startswith(
         'rtsp://') else "RTMP" if rtsp_url and rtsp_url.startswith('rtmp://') else "输入流"
-    logger.info(f"   {input_stream_type}输入流: {rtsp_url}")
-    logger.info(f"   RTMP推流地址: {rtmp_url if rtmp_url else '(未配置)'}")
+    logger.info(f"   {input_stream_type}输入流: {redact_url_credentials(rtsp_url)}")
+    logger.info(f"   RTMP推流地址: {redact_url_credentials(rtmp_url) if rtmp_url else '(未配置)'}")
 
     if not rtsp_url:
         logger.error(f"设备 {device_id} 输入流地址不存在，缓流器退出")
@@ -3862,11 +3867,17 @@ def buffer_streamer_worker(device_id: str):
                         _last_gb28181_resolve_time = time.time()
                         _new_url = resolve_gb28181_source(_original_source, logger=logger)
                         if _new_url and _new_url != rtsp_url:
-                            logger.info(f"📌 设备 {device_id} GB28181源重新解析: {rtsp_url} -> {_new_url}")
+                            logger.info(
+                                f"📌 设备 {device_id} GB28181源重新解析: "
+                                f"{redact_url_credentials(rtsp_url)} -> {redact_url_credentials(_new_url)}"
+                            )
                             rtsp_url = _new_url
                             retry_count = 0  # URL 已更新，重置重试计数
                         elif _new_url:
-                            logger.info(f"📌 设备 {device_id} GB28181源重新解析（URL未变）: {rtsp_url}")
+                            logger.info(
+                                f"📌 设备 {device_id} GB28181源重新解析（URL未变）: "
+                                f"{redact_url_credentials(rtsp_url)}"
+                            )
                         else:
                             logger.warning(f"⚠️ 设备 {device_id} GB28181源重新解析失败，使用上次URL重试")
 
@@ -3892,7 +3903,10 @@ def buffer_streamer_worker(device_id: str):
                             time.sleep(rtsp_retry_delay_sec)
                         continue
 
-                logger.info(f"正在连接设备 {device_id} 的 {stream_type} 流: {rtsp_url} (重试次数: {retry_count})")
+                logger.info(
+                    f"正在连接设备 {device_id} 的 {stream_type} 流: "
+                    f"{redact_url_credentials(rtsp_url)} (重试次数: {retry_count})"
+                )
 
                 _queue_max_override = None
                 if _is_gb28181 or device_stream_info.get('source_type') == 'gb28181':
@@ -4310,7 +4324,7 @@ def buffer_streamer_worker(device_id: str):
 
                     codec_info = f"硬件编码 ({device_codec})" if device_codec == 'h264_nvenc' else f"软件编码 ({device_codec})"
                     logger.info(f"🚀 启动设备 {device_id} 推送进程")
-                    logger.info(f"   📺 推流地址: {rtmp_url}")
+                    logger.info(f"   📺 推流地址: {redact_url_credentials(rtmp_url)}")
                     logger.info(
                         f"   📐 raw输入 {stdin_w}x{stdin_h} -> 编码约 {target_w}x{target_h} @ {effective_fps}fps"
                     )
@@ -4388,7 +4402,10 @@ def buffer_streamer_worker(device_id: str):
                             elif error_lines:
                                 logger.error(f"   输出: {error_lines[-5:]}")
                             else:
-                                logger.error(f"   未捕获到错误信息，请检查RTMP服务器是否运行: {rtmp_url}")
+                                logger.error(
+                                    f"   未捕获到错误信息，请检查RTMP服务器是否运行: "
+                                    f"{redact_url_credentials(rtmp_url)}"
+                                )
                             
                             # 如果是硬件编码器错误，自动切换到软件编码并重新启动
                             should_retry_with_software = False
@@ -4468,7 +4485,7 @@ def buffer_streamer_worker(device_id: str):
                                 source_mode=source_access_mode,
                             )
                             logger.info(f"✅ 设备 {device_id} 推送进程已启动 (PID: {pusher_process.pid})")
-                            logger.info(f"   📺 推流地址: {rtmp_url}")
+                            logger.info(f"   📺 推流地址: {redact_url_credentials(rtmp_url)}")
                             logger.info(
                                 f"   📐 输出参数: raw {stdin_w}x{stdin_h} -> scale至档位分辨率 @ {effective_fps}fps"
                             )
