@@ -36,6 +36,14 @@
     const flowId = String(code || index || '').trim();
     const rawPath = String(path || '').trim();
 
+    // 显式携带 folder 的页面（业务脚本 code-server IDE）按 folder 打开；
+    // 必须先于 flowId 分支，否则 taskId 会被误拼成路径（/dev-api/vscode/{taskId}）导致 IDE 404。
+    if (rawPath && folder) {
+      const basePath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+      const folderValue = decodeURIComponent(String(folder));
+      const separator = basePath.includes('?') ? '&' : '?';
+      return `${basePath}${separator}folder=${encodeURIComponent(folderValue)}`;
+    }
     if (rawPath && flowId) {
       const basePath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
       return `${basePath}${flowId}`;
@@ -43,12 +51,6 @@
     // 规则引擎兜底：无 query.path 时仍按 nginx 路径打开编辑器
     if (flowId && (route.name === 'RuleChainsNodeRed' || String(route.path).includes('rulechain-editor'))) {
       return `/dev-api/nodeRed/#flow/${flowId}`;
-    }
-    if (rawPath && folder) {
-      const basePath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
-      const folderValue = decodeURIComponent(String(folder));
-      const separator = basePath.includes('?') ? '&' : '?';
-      return `${basePath}${separator}folder=${encodeURIComponent(folderValue)}`;
     }
     if (rawPath) {
       return rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
