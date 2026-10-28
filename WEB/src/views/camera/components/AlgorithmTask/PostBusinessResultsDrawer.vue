@@ -117,9 +117,9 @@ const columns = [
   { title: '区域', dataIndex: 'region', width: 140 },
   { title: '业务结果', key: 'results' },
 ];
-function describe(row: PostBusinessResult): string[] {
+function describe(row: Record<string, any>): string[] {
   const result: string[] = [];
-  const r = row.results;
+  const r = row.results as PostBusinessResult['results'];
   for (const e of r.line_cross?.crossed || [])
     result.push(
       `${e.region_name || '检测线'} · ${e.direction === 'forward' ? '正向' : e.direction === 'backward' ? '反向' : '越线'} · 目标 ${e.track_id}`,

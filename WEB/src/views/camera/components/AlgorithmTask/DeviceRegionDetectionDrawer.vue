@@ -18,7 +18,7 @@
           <span class="monitoring-guide__step"><i>3</i>查看线 / 区域统计反馈</span>
         </div>
         <div class="monitoring-guide__spacer" />
-        <Button size="small" :type="trainingGround ? 'primary' : 'default'" pre-icon="ant-design:aim-outlined" @click="trainingGround = !trainingGround">{{ trainingGround ? '退出训练场' : '训练场模式' }}</Button>
+        <Button size="small" :type="trainingGround ? 'primary' : 'default'" pre-icon="ant-design:aim-outlined" @click="toggleTrainingGround">{{ trainingGround ? '退出训练场' : '训练场模式' }}</Button>
         <Button size="small" :loading="bindingsLoading" pre-icon="ant-design:sync-outlined" @click="loadBindings">刷新规则</Button>
       </div>
       <a-alert v-if="bindingsError" type="error" :message="bindingsError" show-icon />
@@ -182,6 +182,9 @@ async function loadBindings(){
 const taskModels = ref<Array<{ id: number; name: string }>>([]);
 /** 训练场走生产 /video/post/tasks/{id}/trainframe 路由（经真实 MQTT 驱动 POST 引擎），生产环境可用 */
 const trainingGround = ref(false);
+function toggleTrainingGround() {
+  trainingGround.value = !trainingGround.value;
+}
 /** 训练场地图复用当前设备的图形（归一化坐标），随保存事件自动更新 */
 const trainingGroundRegions = computed(() => {
   const list = deviceRegions.value[selectedDeviceId.value || ''] || [];
