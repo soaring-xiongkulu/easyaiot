@@ -12,7 +12,7 @@ class SimpleTracker:
     """目标追踪器，使用框近似度算法匹配，不依赖识别结果"""
     
     def __init__(self, similarity_threshold=0.2, max_age=25, smooth_alpha=0.25, 
-                 center_similarity_threshold=150, leave_time_threshold=0.5, leave_percent_threshold=0.0):
+                 center_similarity_threshold=150, leave_time_threshold=5.0, leave_percent_threshold=0.0):
         """
         初始化追踪器
         
@@ -21,7 +21,10 @@ class SimpleTracker:
             max_age: 追踪目标最大存活帧数（未匹配时保留的帧数）
             smooth_alpha: 框位置平滑系数（0-1），值越大越平滑
             center_similarity_threshold: 中心点相似度阈值（像素）
-            leave_time_threshold: 确认物体离开所需的时间阈值（秒）
+            leave_time_threshold: 确认物体离开所需的时间阈值（秒）。
+                必须明显大于有效检测采样间隔（告警默认约 1~2 秒/次，多路轮询更久），
+                否则连续两帧漏检就会删除轨迹并给同一目标换新 track_id，
+                导致人流/进出统计重复计数。默认 5 秒容忍约 4 帧漏检。
             leave_percent_threshold: 确认物体离开时所需的检测比
         """
         self.similarity_threshold = similarity_threshold
