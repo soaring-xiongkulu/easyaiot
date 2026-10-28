@@ -101,6 +101,11 @@ func Run(reg Registry, event contract.InferEvent, task config.TaskConfig, region
 
 // RunWith executes with optional external resolver (endpoint-aware).
 func RunWith(opt Options, event contract.InferEvent, task config.TaskConfig, regions []config.Region) Result {
+	for _, step := range task.EffectivePipeline() {
+		if len(boundRegionIDs(step)) > 0 || (step.Plugin == "default_pass" && step.Params["monitoring_mode"] == "bound") {
+			return runBindings(opt, event, task, regions)
+		}
+	}
 	dets := make([]contract.Detection, len(event.Detections))
 	copy(dets, event.Detections)
 

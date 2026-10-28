@@ -14,8 +14,12 @@ func (LineCross) Kinds() []pipeline.PluginKind {
 }
 
 func (LineCross) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
+	globalTrackState.processMu.Lock()
+	defer globalTrackState.processMu.Unlock()
 	if len(activeLineRegions(ctx)) == 0 {
+		drop := pipeline.DecisionDrop
 		return pipeline.PluginDelta{
+			Decision: &drop, DropReason: "missing_line_region",
 			EnrichmentPatch: map[string]any{
 				"line_cross": "bypass",
 				"crossed":    []any{},
@@ -47,7 +51,7 @@ func (LineCross) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 		if len(lines) == 0 {
 			continue
 		}
-		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
+		key := pluginTrackStateKey(ctx, det, "line_cross")
 		st := globalTrackState.touch(key, now)
 
 		for _, line := range lines {
@@ -58,14 +62,23 @@ func (LineCross) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 			p0, p1 := scaled[0], scaled[1]
 			curr := lineSide(pt[0], pt[1], p0[0], p0[1], p1[0], p1[1])
 			prev := st.lineSide[line.ID]
-			st.lineSide[line.ID] = curr
+			prevPoint := st.linePoint[line.ID]
+			// A sample exactly on the line must not erase the previous side.
+			if curr != 0 {
+				st.lineSide[line.ID] = curr
+				st.linePoint[line.ID] = pt
+			}
 
-			if crossedSide(prev, curr, direction) {
+			if crossedSide(prev, curr, direction) && segmentsIntersect(prevPoint, pt, p0, p1) {
+				actualDirection := "forward"
+				if prev < 0 {
+					actualDirection = "backward"
+				}
 				crossedEvents = append(crossedEvents, map[string]any{
 					"track_id":    det.TrackID,
 					"region_id":   line.ID,
 					"region_name": line.RegionName,
-					"direction":   direction,
+					"direction":   actualDirection,
 					"class_name":  det.ClassName,
 				})
 				kept = appendUniqueDetection(kept, det)

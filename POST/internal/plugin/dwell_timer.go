@@ -14,8 +14,12 @@ func (DwellTimer) Kinds() []pipeline.PluginKind {
 }
 
 func (DwellTimer) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
+	globalTrackState.processMu.Lock()
+	defer globalTrackState.processMu.Unlock()
 	if len(activePolygonRegions(ctx)) == 0 {
+		drop := pipeline.DecisionDrop
 		return pipeline.PluginDelta{
+			Decision: &drop, DropReason: "missing_polygon_region",
 			EnrichmentPatch: map[string]any{
 				"dwell_timer": "bypass",
 				"dwells":      []any{},
@@ -47,7 +51,7 @@ func (DwellTimer) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 		if len(regions) == 0 {
 			continue
 		}
-		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
+		key := pluginTrackStateKey(ctx, det, "dwell_timer")
 		st := globalTrackState.touch(key, now)
 
 		for _, region := range regions {
@@ -65,9 +69,10 @@ func (DwellTimer) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 					enterAt = now
 				}
 				elapsed := now.Sub(enterAt).Seconds()
-				if elapsed < minDwell {
+				if elapsed < minDwell || st.dwellAlerted[region.ID] {
 					continue
 				}
+				st.dwellAlerted[region.ID] = true
 				dwells = append(dwells, map[string]any{
 					"track_id":      det.TrackID,
 					"region_id":     region.ID,
@@ -82,6 +87,7 @@ func (DwellTimer) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
 				}
 			} else if prevInside {
 				delete(st.regionEnter, region.ID)
+				delete(st.dwellAlerted, region.ID)
 			}
 		}
 	}

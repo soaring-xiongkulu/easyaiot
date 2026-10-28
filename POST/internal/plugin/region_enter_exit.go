@@ -3,6 +3,8 @@ package plugin
 import (
 	"easyaiot/post/internal/contract"
 	"easyaiot/post/internal/pipeline"
+	"fmt"
+	"time"
 )
 
 // RegionEnterExit fires when a tracked target enters or exits a polygon region.
@@ -14,8 +16,12 @@ func (RegionEnterExit) Kinds() []pipeline.PluginKind {
 }
 
 func (RegionEnterExit) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
+	globalTrackState.processMu.Lock()
+	defer globalTrackState.processMu.Unlock()
 	if len(activePolygonRegions(ctx)) == 0 {
+		drop := pipeline.DecisionDrop
 		return pipeline.PluginDelta{
+			Decision: &drop, DropReason: "missing_polygon_region",
 			EnrichmentPatch: map[string]any{
 				"region_enter_exit": "bypass",
 				"events":            []any{},
@@ -46,8 +52,10 @@ func (RegionEnterExit) Process(ctx *pipeline.Context) (pipeline.PluginDelta, err
 		if len(regions) == 0 {
 			continue
 		}
-		key := trackStateKey(ctx.Event.TaskID, ctx.Event.DeviceID, det.ModelID, det.TrackID)
+		key := pluginTrackStateKey(ctx, det, "region_enter_exit")
 		st := globalTrackState.touch(key, now)
+		detCopy := det
+		st.lastDet = &detCopy
 
 		for _, region := range regions {
 			inside := detectionInRegion(det, region, fw, fh, hitMode)
@@ -81,6 +89,8 @@ func (RegionEnterExit) Process(ctx *pipeline.Context) (pipeline.PluginDelta, err
 		}
 	}
 
+	events, kept = appendSynthesizedExits(ctx, events, kept, now, eventType)
+
 	if len(events) == 0 {
 		empty := []contract.Detection{}
 		drop := pipeline.DecisionDrop
@@ -106,4 +116,49 @@ func (RegionEnterExit) Process(ctx *pipeline.Context) (pipeline.PluginDelta, err
 		delta.RegionLabel = primaryRegion
 	}
 	return delta, nil
+}
+
+// appendSynthesizedExits closes enter-state of tracks that stopped being
+// observed (tracker lost them or they left the frame mid-region). Without it a
+// store visitor is counted on every re-detection and "exit" stays at zero.
+func appendSynthesizedExits(ctx *pipeline.Context, events []map[string]any, kept []contract.Detection, now time.Time, eventType string) ([]map[string]any, []contract.Detection) {
+	timeout := paramFloat(ctx.PluginParams, "exit_timeout_sec", 15)
+	if timeout <= 0 {
+		return events, kept
+	}
+	if eventType == "enter" {
+		return events, kept
+	}
+	prefix := fmt.Sprintf("region_enter_exit:%v:%d:%s:", ctx.PluginParams["binding_state_scope"], ctx.Event.TaskID, ctx.Event.DeviceID)
+	for _, ex := range globalTrackState.expireStaleEnter(prefix, time.Duration(timeout*float64(time.Second)), now) {
+		for _, rid := range ex.Regions {
+			className := ""
+			if ex.LastDet != nil {
+				className = ex.LastDet.ClassName
+			}
+			events = append(events, map[string]any{
+				"event":       "exit",
+				"track_id":    ex.TrackID,
+				"region_id":   rid,
+				"region_name": regionNameByID(ctx, rid),
+				"class_name":  className,
+				"synthesized": true,
+			})
+		}
+		// The branch pipeline drops on empty detections; replay the last known
+		// detection so the exit event survives the pass gate.
+		if ex.LastDet != nil {
+			kept = appendUniqueDetection(kept, *ex.LastDet)
+		}
+	}
+	return events, kept
+}
+
+func regionNameByID(ctx *pipeline.Context, regionID int64) string {
+	for _, r := range ctx.Regions {
+		if r.ID == regionID {
+			return r.RegionName
+		}
+	}
+	return fmt.Sprintf("region-%d", regionID)
 }

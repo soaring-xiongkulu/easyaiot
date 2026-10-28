@@ -19,6 +19,15 @@ func (RegionGate) Kinds() []pipeline.PluginKind {
 }
 
 func (RegionGate) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
+	// Transition plugins need observations on BOTH sides of a boundary.
+	// Their own model-scoped regions perform the spatial decision.
+	for _, step := range ctx.Task.EffectivePipeline() {
+		if step.IsEnabled() && (step.Plugin == "region_enter_exit" || step.Plugin == "line_cross" || step.Plugin == "dwell_timer") {
+			return pipeline.PluginDelta{EnrichmentPatch: map[string]any{
+				"region_filter": "transition", "reason": "spatial_plugin_handles_regions",
+			}}, nil
+		}
+	}
 	hitMode := paramString(ctx.PluginParams, "hit_mode", "center")
 	minOverlapRatio := paramFloat(ctx.PluginParams, "min_overlap_ratio", 0.5)
 

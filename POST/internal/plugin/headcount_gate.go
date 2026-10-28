@@ -3,6 +3,7 @@ package plugin
 import (
 	"easyaiot/post/internal/contract"
 	"easyaiot/post/internal/pipeline"
+	"fmt"
 )
 
 // HeadcountGate passes only when detection count in regions meets threshold.
@@ -14,6 +15,8 @@ func (HeadcountGate) Kinds() []pipeline.PluginKind {
 }
 
 func (HeadcountGate) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error) {
+	globalTrackState.processMu.Lock()
+	defer globalTrackState.processMu.Unlock()
 	hitMode := paramString(ctx.PluginParams, "hit_mode", "center")
 	threshold := paramInt(ctx.PluginParams, "threshold", 1)
 	operator := paramString(ctx.PluginParams, "operator", "gte")
@@ -73,6 +76,19 @@ func (HeadcountGate) Process(ctx *pipeline.Context) (pipeline.PluginDelta, error
 		}, nil
 	}
 
+	// Evaluate every observation, then throttle repeated notifications. Ingress
+	// throttling would hide the first frame on which the threshold is reached.
+	cooldown := paramFloat(ctx.PluginParams, "cooldown_sec", 0)
+	if cooldown > 0 {
+		now := parseEventTime(ctx.Event.Timestamp)
+		key := fmt.Sprintf("headcount:%d:%s:%v:%v:%v:%v", ctx.Event.TaskID, ctx.Event.DeviceID, ctx.Event.ModelIDs, classes, ctx.PluginParams["binding_region_id"], ctx.PluginParams["binding_state_scope"])
+		state := globalTrackState.touch(key, now)
+		if !state.lastAlert.IsZero() && now.Sub(state.lastAlert).Seconds() < cooldown {
+			drop := pipeline.DecisionDrop
+			return pipeline.PluginDelta{Decision: &drop, DropReason: "headcount_cooldown"}, nil
+		}
+		state.lastAlert = now
+	}
 	delta := pipeline.PluginDelta{
 		Detections: &counted,
 		EnrichmentPatch: map[string]any{

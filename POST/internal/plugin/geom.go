@@ -108,9 +108,9 @@ func crossedSide(prev, curr int, direction string) bool {
 		return false
 	}
 	switch direction {
-	case "a_to_b":
+	case "a_to_b", "forward":
 		return prev > 0 && curr < 0
-	case "b_to_a":
+	case "b_to_a", "backward":
 		return prev < 0 && curr > 0
 	default:
 		return true
@@ -126,7 +126,11 @@ func detectionPoint(det contract.Detection, hitMode string) [2]float64 {
 }
 
 func detectionInRegion(det contract.Detection, region config.Region, fw, fh int, hitMode string) bool {
-	return detectionMatchesRegion(det, region, fw, fh, hitMode, 0.5)
+	ratio := 0.5
+	if region.MinOverlapRatio != nil {
+		ratio = *region.MinOverlapRatio
+	}
+	return detectionMatchesRegion(det, region, fw, fh, hitMode, ratio)
 }
 
 func detectionMatchesRegion(
