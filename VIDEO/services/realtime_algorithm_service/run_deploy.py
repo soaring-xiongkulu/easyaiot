@@ -443,6 +443,7 @@ model_inference_stats_lock = threading.RLock()
 parallel_inference_last_log = {}  # {device_id: monotonic timestamp}
 # 为每个摄像头创建独立的追踪器
 trackers = {}  # {device_id: SimpleTracker}
+trackers_lock = threading.Lock()
 # 为每个摄像头创建独立的帧索引计数器
 frame_counts = {}  # {device_id: int}
 # 双检测队列：overlay（主画面叠框）与 alert（告警）完全分离
@@ -1135,6 +1136,50 @@ def _poll_device_detection_queue(queues_dict: dict, timeout: float = 0.1):
     return None, None, None
 
 
+def _resolve_tracking_leave_time_threshold() -> float:
+    """轨迹离开判定阈值（秒）。
+
+    告警链路的有效采样间隔约 1~2 秒（多路轮询时更久），阈值必须明显大于
+    采样间隔，否则同一个人连续两帧漏检就被当作“离开”删除轨迹并换新
+    track_id，导致人流/进出/越线统计重复计数。默认 5 秒，可用环境变量
+    TRACKING_LEAVE_TIME_THRESHOLD 覆盖（下限 1 秒）。
+    """
+    raw = os.getenv('TRACKING_LEAVE_TIME_THRESHOLD', '').strip()
+    try:
+        value = float(raw) if raw else 5.0
+    except (TypeError, ValueError):
+        logger.warning(f"⚠️ TRACKING_LEAVE_TIME_THRESHOLD 配置无效: {raw!r}，回退默认 5.0 秒")
+        value = 5.0
+    return max(1.0, value)
+
+
+def _build_device_tracker(task):
+    return SimpleTracker(
+        similarity_threshold=getattr(task, 'tracking_similarity_threshold', 0.2),
+        max_age=getattr(task, 'tracking_max_age', 25),
+        smooth_alpha=getattr(task, 'tracking_smooth_alpha', 0.25),
+        leave_time_threshold=_resolve_tracking_leave_time_threshold(),
+    )
+
+
+def _get_or_create_tracker(device_id: str):
+    """按设备获取追踪器；配置加载早期未初始化时在检测线程惰性补建。
+
+    告警线程固定 use_tracking=True，缺少追踪器时若静默回填 track_id=0，
+    越线/进出/停留等连续轨迹插件会拿到无法关联的观测（同一目标每帧都算新目标）。
+    """
+    tracker = trackers.get(device_id)
+    if tracker is not None:
+        return tracker
+    with trackers_lock:
+        tracker = trackers.get(device_id)
+        if tracker is None:
+            tracker = _build_device_tracker(task_config)
+            trackers[device_id] = tracker
+            logger.info(f"设备 {device_id} 追踪器惰性初始化成功")
+    return tracker
+
+
 def _run_yolo_on_frame(
     frame,
     device_id: str,
@@ -1198,14 +1243,8 @@ def _run_yolo_on_frame(
 
     tracked_detections = []
     if use_tracking:
-        tracker = trackers.get(device_id)
-        if tracker:
-            tracked_detections = tracker.update(all_detections, frame_number, current_time=timestamp)
-        else:
-            tracked_detections = [
-                dict(det, track_id=0, is_cached=False, first_seen_time=timestamp, duration=0.0)
-                for det in all_detections
-            ]
+        tracker = trackers.get(device_id) or _get_or_create_tracker(device_id)
+        tracked_detections = tracker.update(all_detections, frame_number, current_time=timestamp)
     else:
         tracked_detections = [
             dict(det, track_id=0, is_cached=False, first_seen_time=timestamp, duration=0.0)
@@ -1223,14 +1262,8 @@ def _run_yolo_on_frame(
             if supplemented is not all_detections:
                 all_detections = supplemented
                 if use_tracking:
-                    tracker = trackers.get(device_id)
-                    if tracker:
-                        tracked_detections = tracker.update(all_detections, frame_number, current_time=timestamp)
-                    else:
-                        tracked_detections = [
-                            dict(det, track_id=0, is_cached=False, first_seen_time=timestamp, duration=0.0)
-                            for det in all_detections
-                        ]
+                    tracker = trackers.get(device_id) or _get_or_create_tracker(device_id)
+                    tracked_detections = tracker.update(all_detections, frame_number, current_time=timestamp)
                 else:
                     tracked_detections = [
                         dict(det, track_id=0, is_cached=False, first_seen_time=timestamp, duration=0.0)
@@ -2065,12 +2098,10 @@ def load_task_config():
 
             # 初始化追踪器（叠框/告警共用；OVERLAY_USE_TRACKING 默认开启）
             if (task.tracking_enabled or OVERLAY_USE_TRACKING) and device_id not in trackers:
-                trackers[device_id] = SimpleTracker(
-                    similarity_threshold=task.tracking_similarity_threshold,
-                    max_age=task.tracking_max_age,
-                    smooth_alpha=task.tracking_smooth_alpha
-                )
-                logger.info(f"设备 {device_id} 追踪器初始化成功")
+                with trackers_lock:
+                    if device_id not in trackers:
+                        trackers[device_id] = _build_device_tracker(task)
+                        logger.info(f"设备 {device_id} 追踪器初始化成功")
 
         logger.info(f"任务配置加载成功: {task.task_name}, 模型IDs: {model_ids}, 关联设备数: {len(device_streams)}")
         pod_ip = os.getenv('POD_IP', '').strip()
@@ -2223,6 +2254,66 @@ def _release_alert_suppression_slot(suppression_key, reserved_at: float) -> None
             last_alert_time.pop(suppression_key, None)
 
 
+_keepalive_last_sent = {}  # {device_id: monotonic seconds}
+_keepalive_lock = threading.Lock()
+
+
+def _maybe_send_continuous_keepalive(device_id, device_name, frame_number, frame, timestamp):
+    """空检测帧心跳（仅连续轨迹插件任务）。
+
+    区域进出等时序插件依赖持续观测驱动状态过期清理；画面无人时不再有
+    InferEvent，已进入区域的目标无法补发“离开”事件，进出统计会长期缺
+    口。这里按固定间隔发送空观测，让 POST 侧能及时收尾。
+    """
+    if not task_config or not task_config.alert_event_enabled:
+        return
+    from app.utils.post_pipeline_runtime import needs_continuous_observations
+    if not needs_continuous_observations(task_config):
+        return
+    try:
+        interval = max(1.0, float(os.getenv('POST_KEEPALIVE_INTERVAL', '5')))
+    except (TypeError, ValueError):
+        interval = 5.0
+    now = time.time()
+    with _keepalive_lock:
+        if now - _keepalive_last_sent.get(device_id, 0.0) < interval:
+            return
+        _keepalive_last_sent[device_id] = now
+    try:
+        from app.utils.algo_mqtt_bus import (
+            ensure_post_health_probe,
+            should_publish_infer_event,
+            build_infer_event,
+            publish_infer_event,
+        )
+        ensure_post_health_probe()
+        if not should_publish_infer_event():
+            return
+        frame_height = frame_width = 0
+        if frame is not None and hasattr(frame, 'shape'):
+            frame_height = int(frame.shape[0])
+            frame_width = int(frame.shape[1])
+        infer_event = build_infer_event(
+            task_id=int(TASK_ID),
+            task_type='realtime',
+            device_id=device_id,
+            detections=[],
+            event_kind='infer',
+            task_name=task_config.task_name if hasattr(task_config, 'task_name') else '',
+            device_name=device_name,
+            frame_number=frame_number,
+            frame_width=frame_width,
+            frame_height=frame_height,
+            image_path='',
+            model_ids=[],
+            correlation_id=str(uuid.uuid4()),
+            hints={'keepalive': True},
+        )
+        publish_infer_event(infer_event)
+    except Exception as e:
+        logger.debug(f"keepalive InferEvent 发送失败 device={device_id}: {e}")
+
+
 def try_send_alert_for_detections(
     device_id: str,
     device_name: str,
@@ -2241,7 +2332,16 @@ def try_send_alert_for_detections(
         get_task_alert_class_names(task_config),
     )
     if not detections or not task_config or not task_config.alert_event_enabled:
+        _maybe_send_continuous_keepalive(device_id, device_name, frame_number, frame_for_image, current_timestamp)
         return
+    # Temporal plugins must see observations before alert throttling. Otherwise
+    # a five-minute suppression window hides both sides of an entrance crossing.
+    from app.utils.post_pipeline_runtime import needs_continuous_observations
+    continuous_post = False
+    if needs_continuous_observations(task_config):
+        from app.utils.algo_mqtt_bus import ensure_post_health_probe, should_publish_infer_event
+        ensure_post_health_probe()
+        continuous_post = should_publish_infer_event()
     event_groups = build_alert_event_groups(detections)
     sent_correlation_ids = []
     algorithm_name = task_config.task_name if hasattr(task_config, 'task_name') else 'detection'
@@ -2252,7 +2352,7 @@ def try_send_alert_for_detections(
         with alert_time_lock:
             last_time = last_alert_time.get(suppression_key, 0)
             time_since_last_alert = current_time - last_time
-            suppress_interval = _alert_event_suppress_seconds()
+            suppress_interval = 0 if continuous_post else _alert_event_suppress_seconds()
             if suppress_interval > 0 and time_since_last_alert < suppress_interval:
                 logger.info(
                     f"⏸️  任务 {TASK_ID} 设备 {device_id} 事件 {event_identity} 告警抑制{log_suffix}："

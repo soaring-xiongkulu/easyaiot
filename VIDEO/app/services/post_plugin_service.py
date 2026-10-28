@@ -139,7 +139,8 @@ BUILTIN_PLUGIN_CATALOG: List[Dict[str, Any]] = [
         'params_schema': {
             'type': 'object',
             'properties': {
-                'threshold': {'type': 'integer', 'default': 1, 'title': '阈值'},
+                'threshold': {'type': 'integer', 'default': 1, 'minimum': 0, 'title': '阈值'},
+                'cooldown_sec': {'type': 'number', 'default': 0, 'minimum': 0, 'title': '重复提醒间隔（秒，0 为每次触发）'},
                 'operator': {
                     'type': 'string',
                     'enum': ['gte', 'lte', 'eq'],

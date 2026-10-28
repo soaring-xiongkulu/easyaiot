@@ -21,7 +21,7 @@ from models import (
 )
 from app.utils.algorithm_task_runtime import mark_stream_runtime_stopped
 from app.utils.cron_utils import validate_snap_cron_min_interval
-from app.utils.region_hit_mode import validate_post_pipeline
+from app.utils.region_hit_mode import validate_post_pipeline, validate_post_pipeline_runtime
 # 注意：已移除冲突检查，推流转发任务和算法任务可以共存
 # 推流转发任务使用 rtmp_stream/http_stream，算法任务使用 ai_rtmp_stream/ai_http_stream
 import json
@@ -1127,6 +1127,9 @@ def create_algorithm_task(task_name: str,
                 logger.warning(f"⚠️  告警通知配置解析后不是字典类型: {type(config_dict)}")
                 alert_notification_config = None
         
+        if alert_event_enabled:
+            validate_post_pipeline_runtime(post_pipeline, task_type, tracking_enabled, executor,
+                                           post_process_enabled or pose_analysis_enabled or pose_intent_enabled)
         task = AlgorithmTask(
             task_name=task_name,
             task_code=task_code,
@@ -1575,6 +1578,16 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             kwargs['post_pipeline'] = None
         elif 'post_pipeline' in kwargs:
             kwargs['post_pipeline'] = _serialize_post_pipeline(kwargs['post_pipeline'])
+
+        if alert_event_on and {'post_pipeline', 'tracking_enabled', 'task_type', 'executor', 'post_process_enabled', 'pose_analysis_enabled', 'pose_intent_enabled'} & set(kwargs):
+            validate_post_pipeline_runtime(
+                kwargs.get('post_pipeline', task.post_pipeline),
+                kwargs.get('task_type', task.task_type),
+                kwargs.get('tracking_enabled', task.tracking_enabled),
+                kwargs.get('executor', task.executor),
+                any(kwargs.get(key, getattr(task, key, False)) for key in
+                    ('post_process_enabled', 'pose_analysis_enabled', 'pose_intent_enabled')),
+            )
 
         if 'model_ids' in kwargs:
             _validate_model_removal_region_usage(task, kwargs.get('model_ids'))

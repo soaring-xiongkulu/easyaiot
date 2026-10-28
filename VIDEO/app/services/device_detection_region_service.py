@@ -20,6 +20,23 @@ class RegionRevisionConflict(ValueError):
     """区域配置已被其他请求修改。"""
 
 
+def _remove_region_bindings(task, deleted_ids):
+    if not deleted_ids or not task.post_pipeline:
+        return
+    steps = json.loads(task.post_pipeline) if isinstance(task.post_pipeline, str) else task.post_pipeline
+    retained = []
+    for step in steps:
+        params = step.get('params') or {}
+        ids = params.get('region_ids')
+        if ids:
+            remaining = [rid for rid in ids if rid not in deleted_ids]
+            if not remaining:
+                continue
+            step = {**step, 'params': {**params, 'region_ids': remaining}}
+        retained.append(step)
+    task.post_pipeline = json.dumps(retained, ensure_ascii=False)
+
+
 def _parse_model_ids(raw) -> List[int]:
     if not raw:
         return []
@@ -213,6 +230,7 @@ def replace_device_regions(device_id: str, task_id: int, regions_data: List[Dict
         for region in existing:
             if region.id not in retained_ids:
                 db.session.delete(region)
+        _remove_region_bindings(task, {region.id for region in existing if region.id not in retained_ids})
         new_revision = _bump_template_revision(task)
         db.session.commit()
         return saved, new_revision
@@ -360,6 +378,7 @@ def delete_device_region(region_id: int) -> bool:
         task = AlgorithmTask.query.get(region.task_id) if region.task_id else None
         db.session.delete(region)
         if task:
+            _remove_region_bindings(task, {region.id})
             _bump_template_revision(task)
         db.session.commit()
 

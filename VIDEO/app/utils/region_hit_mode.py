@@ -56,15 +56,56 @@ def validate_post_pipeline(pipeline: Iterable[Any]) -> None:
     for index, step in enumerate(pipeline):
         if not isinstance(step, dict):
             raise ValueError(f'post_pipeline[{index}] 必须是对象')
-        if step.get('plugin') != 'region_gate':
-            continue
         params = step.get('params')
         if params is None:
             params = {}
         if not isinstance(params, dict):
             raise ValueError(f'post_pipeline[{index}].params 必须是对象')
 
+        plugin = step.get('plugin')
+        if 'region_ids' in params:
+            ids = params['region_ids']
+            if not isinstance(ids, list) or not ids or any(isinstance(rid, bool) or not isinstance(rid, int) or rid <= 0 for rid in ids):
+                raise ValueError('绑定区域必须是非空的正整数 ID 列表')
+        if not isinstance(plugin, str) or not plugin.strip():
+            raise ValueError('插件 ID 必须为非空字符串')
+        if plugin == 'line_cross' and params.get('direction', 'both') not in ('both', 'forward', 'backward', 'a_to_b', 'b_to_a'):
+            raise ValueError('越线方向无效')
+        if plugin == 'region_enter_exit' and params.get('event_type', 'both') not in ('enter', 'exit', 'both'):
+            raise ValueError('区域进出事件类型无效')
+        if plugin in ('headcount_gate', 'dwell_timer'):
+            key = 'threshold' if plugin == 'headcount_gate' else 'min_dwell_sec'
+            value = params.get(key, 1 if plugin == 'headcount_gate' else 5)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise ValueError(f'{key} 必须为非负有限数字')
+            if plugin == 'headcount_gate' and int(value) != value:
+                raise ValueError('人数阈值必须是整数')
+        if plugin == 'headcount_gate' and params.get('operator', 'gte') not in ('gte', 'lte', 'eq'):
+            raise ValueError('人数比较方式无效')
+        if plugin == 'headcount_gate':
+            cooldown = params.get('cooldown_sec', 0)
+            if isinstance(cooldown, bool) or not isinstance(cooldown, (int, float)) or not math.isfinite(cooldown) or cooldown < 0:
+                raise ValueError('重复提醒间隔必须为非负有限数字')
+        if plugin != 'region_gate':
+            continue
+
         normalize_region_hit_config(
             params.get('hit_mode', REGION_HIT_MODE_CENTER),
             params.get('min_overlap_ratio'),
         )
+
+
+def validate_post_pipeline_runtime(raw, task_type, tracking_enabled, executor='python', sink_processing=False):
+    import json
+    steps = json.loads(raw) if isinstance(raw, str) and raw else raw
+    if not steps:
+        return
+    validate_post_pipeline(steps)
+    if any(step.get('enabled') is not False and step.get('plugin') in
+           ('line_cross', 'region_enter_exit', 'dwell_timer') for step in steps):
+        if task_type != 'realtime' or not tracking_enabled:
+            raise ValueError('越线、区域进出和停留监测需要实时算法任务并开启目标追踪')
+        if executor == 'cpp':
+            raise ValueError('当前 C++ 执行器尚未输出目标轨迹 ID，请使用 Python 实时算法模式运行越线、进出和停留监测')
+        if sink_processing:
+            raise ValueError('连续轨迹插件暂不能与业务脚本或姿态分析同时启用，请分别创建任务')

@@ -14,6 +14,77 @@ logger = logging.getLogger(__name__)
 post_plugin_bp = Blueprint('post_plugin', __name__)
 
 
+@post_plugin_bp.route('/tasks/<int:task_id>/bindings', methods=['GET'])
+def get_task_bindings(task_id):
+    from models import AlgorithmTask
+    from app.services.post_region_binding_service import binding_state
+    task = AlgorithmTask.query.get(task_id)
+    if task is None:
+        return jsonify({'code': 404, 'msg': '任务不存在'}), 404
+    return jsonify({'code': 0, 'data': binding_state(task), 'msg': 'success'})
+
+
+@post_plugin_bp.route('/tasks/<int:task_id>/regions/<int:region_id>/binding', methods=['PUT'])
+def put_region_binding(task_id, region_id):
+    from app.services.post_region_binding_service import save_binding
+    from app.services.device_detection_region_service import RegionRevisionConflict
+    try:
+        result = save_binding(task_id, region_id, request.get_json(silent=True) or {})
+        from app.blueprints.device_detection_region import _refresh_task_runtime
+        result['runtime_sync_status'] = _refresh_task_runtime(task_id)
+        return jsonify({'code': 0, 'data': result, 'msg': 'success'})
+    except RegionRevisionConflict as exc:
+        return jsonify({'code': 409, 'msg': str(exc)}), 409
+    except (ValueError, TypeError) as exc:
+        return jsonify({'code': 400, 'msg': str(exc)}), 400
+    except Exception:
+        logger.exception('保存区域插件绑定失败')
+        return jsonify({'code': 500, 'msg': '保存绑定失败'}), 500
+
+
+@post_plugin_bp.route('/tasks/<int:task_id>/results', methods=['GET'])
+def task_business_results(task_id):
+    from models import AlgorithmTask
+    from app.services.post_plugin_results import list_business_results
+    if AlgorithmTask.query.get(task_id) is None:
+        return jsonify({'code': 404, 'msg': '任务不存在'}), 404
+    try:
+        return jsonify({'code': 0, 'data': list_business_results(task_id, request.args), 'msg': 'success'})
+    except (ValueError, TypeError) as exc:
+        return jsonify({'code': 400, 'msg': str(exc)}), 400
+    except Exception:
+        logger.exception('查询后处理业务结果失败 task_id=%s', task_id)
+        return jsonify({'code': 500, 'msg': '查询后处理业务结果失败'}), 500
+
+
+@post_plugin_bp.route('/tasks/<int:task_id>/trainframe', methods=['POST'])
+def post_task_trainframe(task_id):
+    """训练场投放一帧：前端模拟人经真实 MQTT InferEvent 驱动 POST 插件引擎。"""
+    from models import AlgorithmTask, Device
+    from app.services.train_frame_simulator import MAX_ACTORS, TrainFrameError, publish_train_frame
+    task = AlgorithmTask.query.get(task_id)
+    if task is None:
+        return jsonify({'code': 404, 'msg': '任务不存在'}), 404
+    body = request.get_json(silent=True) or {}
+    device_id = str(body.get('device_id') or '').strip()
+    if not device_id:
+        return jsonify({'code': 400, 'msg': '缺少 device_id'}), 400
+    device = Device.query.get(device_id)
+    if device is None:
+        return jsonify({'code': 404, 'msg': '摄像头不存在'}), 404
+    actors = body.get('actors')
+    if not isinstance(actors, list) or len(actors) > MAX_ACTORS:
+        return jsonify({'code': 400, 'msg': f'actors 必须是列表且不超过 {MAX_ACTORS} 个'}), 400
+    try:
+        published = publish_train_frame(task, device, actors)
+    except TrainFrameError as exc:
+        return jsonify({'code': 400, 'msg': str(exc)}), 400
+    except Exception:
+        logger.exception('训练场投放失败 task_id=%s device=%s', task_id, device_id)
+        return jsonify({'code': 503, 'msg': '投放失败：消息总线不可用或模板推送失败，请稍后重试'}), 503
+    return jsonify({'code': 0, 'data': {'published': published}, 'msg': f'已发布 1 帧（{published} 个模拟目标）'})
+
+
 @post_plugin_bp.route('/plugins/catalog', methods=['GET'])
 def plugin_catalog():
     """内置/外置插件目录（须在 /plugins/<plugin_id> 之前注册）。"""
