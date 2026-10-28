@@ -36,6 +36,9 @@ export interface PostPluginCatalogItem {
 }
 
 export interface PostPipelineTaskContext {
+  tracking_enabled?: boolean;
+  executor?: string;
+  sink_processing?: boolean;
   id?: number | null;
   task_name?: string;
   task_type?: string;
@@ -201,6 +204,7 @@ export const BUILTIN_PLUGIN_CATALOG: PostPluginCatalogItem[] = [
     params_schema: {
       properties: {
         threshold: { type: 'integer', default: 1, title: '人数阈值' },
+        cooldown_sec: { type: 'number', default: 0, minimum: 0, title: '重复提醒间隔（秒，0 为每次触发）' },
         operator: {
           type: 'string',
           enum: ['gte', 'lte', 'eq'],
@@ -272,8 +276,8 @@ export function normalizePipelineStructure(steps: PostPipelineStep[]): PostPipel
       head = { ...normalized, enabled: true };
     } else if (step.plugin === FIXED_TAIL_PLUGIN) {
       tail = { ...normalized, enabled: true };
-    } else if (!seen.has(step.plugin)) {
-      seen.add(step.plugin);
+    } else if (!seen.has(`${step.plugin}:${JSON.stringify(params.region_ids || [])}`)) {
+      seen.add(`${step.plugin}:${JSON.stringify(params.region_ids || [])}`);
       middle.push(normalized);
     }
   }
@@ -328,6 +332,15 @@ export function summarizePipeline(steps: PostPipelineStep[] | null | undefined):
     return '已调整首尾步骤参数';
   }
   return `已配置 ${middleCount} 个中间步骤`;
+}
+
+export function summarizeMonitoringRules(steps: PostPipelineStep[] | null | undefined): string {
+  const business = (steps || []).filter(s => ['line_cross', 'region_enter_exit', 'headcount_gate', 'dwell_timer'].includes(s.plugin));
+  const bound = business.filter(s => { const ids=s.params?.region_ids; return Array.isArray(ids) && ids.length>0; });
+  const active = bound.filter(s => s.enabled !== false).length;
+  if (bound.length) return `${active} 条已启用${bound.length > active ? ` · ${bound.length-active} 条暂停` : ''}`;
+  if (business.length) return `${business.length} 项旧配置待迁移`;
+  return '尚未绑定监测规则';
 }
 
 export const STEP_UI_SUMMARY: Record<string, string> = {

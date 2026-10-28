@@ -52,6 +52,12 @@
           message="启用告警事件后，此处配置检测完成后的过滤与告警判定流程；保存任务后生效。"
         />
 
+        <div class="pp-scenes">
+          <div class="pp-scenes__intro"><strong>从生活场景开始</strong><span>选择场景会替换当前规则链，随后可调整参数</span></div>
+          <Button v-for="scene in scenes" :key="scene.plugin" :disabled="disabled" @click="applyScene(scene)">{{ scene.name }}</Button>
+        </div>
+        <AAlert v-if="trackingWarning" type="warning" show-icon :message="trackingWarning" />
+        <AAlert v-if="hasBoundaryPlugin" type="info" show-icon message="轨迹事件需要保留区域外目标，区域过滤由业务插件负责。越线需为每个摄像头绘制检测线；正向表示从线的左侧到右侧（按起点→终点）。多个业务插件串联表示必须依次满足全部条件。" />
         <div class="pp-workspace">
           <aside class="pp-panel pp-panel--library">
             <div class="pp-panel__head pp-panel__head--library">
@@ -285,6 +291,9 @@
                       v-else-if="field.type === 'integer'"
                       v-model:value="selectedStep.params![field.key]"
                       :disabled="disabled"
+                      :min="field.minimum ?? 0"
+                      :max="field.maximum"
+                      :precision="0"
                       style="width: 100%"
                     />
                     <a-input-number
@@ -394,6 +403,19 @@ const TRACKING_PLUGINS = new Set([
   'dwell_timer',
 ]);
 
+const scenes = [
+  { name: '出入口人流监测', plugin: 'line_cross', params: { direction: 'both', sample_point: 'bottom', target_classes: ['person'] } },
+  { name: '区域进出监测', plugin: 'region_enter_exit', params: { event_type: 'both', hit_mode: 'bottom_center', target_classes: ['person'] } },
+  { name: '人员聚集提醒', plugin: 'headcount_gate', params: { threshold: 5, cooldown_sec: 60, operator: 'gte', count_mode: 'in_regions', target_classes: ['person'] } },
+  { name: '长时间逗留提醒', plugin: 'dwell_timer', params: { min_dwell_sec: 30, hit_mode: 'bottom_center', target_classes: ['person'] } },
+];
+function applyScene(scene: typeof scenes[number]) {
+  const meta = findPluginMeta(catalog.value, scene.plugin);
+  if (!meta) return;
+  localSteps.value = toLocalSteps([DEFAULT_PIPELINE[0], { ...buildStepFromPlugin(meta), params: { ...scene.params }, fail_strategy: 'fail_closed' }, DEFAULT_PIPELINE[1]]);
+  selectedIndex.value = 1;
+}
+
 let uidSeq = 0;
 function nextUid() {
   uidSeq += 1;
@@ -447,6 +469,15 @@ const headerSubtitle = computed(() => {
 const previewSteps = computed(() => effectiveSteps(fromLocalSteps(localSteps.value)));
 const middleStepCount = computed(() => Math.max(0, localSteps.value.length - 2));
 const selectedStep = computed(() => localSteps.value[selectedIndex.value] || null);
+const hasBoundaryPlugin = computed(() => localSteps.value.some(s => s.enabled !== false && TRACKING_PLUGINS.has(s.plugin)));
+const trackingWarning = computed(() => {
+  if (!localSteps.value.some(s => s.enabled !== false && TRACKING_PLUGINS.has(s.plugin))) return '';
+  if (taskContext.value.executor === 'cpp') return '当前 C++ 执行器未输出轨迹 ID，请选择 Python 实时算法模式运行此场景。';
+  if (taskContext.value.sink_processing) return '连续轨迹监测暂不能与业务脚本或姿态分析同时启用，请分别创建任务。';
+  if (taskContext.value.task_type && taskContext.value.task_type !== 'realtime') return '越线、进出和停留监测需要连续视频，请选择实时算法任务。';
+  if (taskContext.value.tracking_enabled === false) return '请先在任务配置中开启目标追踪，再保存此场景。';
+  return '';
+});
 const selectedMeta = computed(() =>
   selectedStep.value ? findPluginMeta(catalog.value, selectedStep.value.plugin) : undefined,
 );
@@ -635,6 +666,7 @@ function openDebugDrawer() {
 }
 
 function handleApply() {
+  if (trackingWarning.value) { createMessage.warning(trackingWarning.value); return; }
   const steps = fromLocalSteps(localSteps.value);
   const pipeline = isSameAsDefaultPipeline(steps) ? null : steps;
   onApplyRef.value?.(pipeline);
@@ -679,6 +711,7 @@ watch(localSteps, () => {
 </script>
 
 <style lang="less" scoped>
+.pp-scenes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 16px; background: #f0f7ff; border: 1px solid #d6e8ff; border-radius: 10px; &__intro { display: flex; flex-direction: column; gap: 4px; margin-right: auto; span { font-size: 12px; color: #64748b; } } }
 .pp-drawer-title {
   display: flex;
   align-items: center;

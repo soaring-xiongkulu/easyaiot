@@ -36,7 +36,6 @@
         <a-empty v-else description="请先保存基础配置" />
       </a-tab-pane>
     </a-tabs>
-    <PostPipelineDrawer @register="registerPostPipelineDrawer" />
     <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
     <LlmJudgeRuleDrawer @register="registerLlmJudgeDrawer" @changed="handleLlmRulesChanged" />
   </BasicDrawer>
@@ -78,10 +77,8 @@ import { notifyTemplateQueryByType } from '@/api/device/notice';
 import { getDeviceChannels, queryVideoList } from '@/api/device/gb28181';
 import DefenseSchedulePicker from './DefenseSchedulePicker.vue';
 import ServiceStatusTab from './ServiceStatusTab.vue';
-import PostPipelineDrawer from './PostPipelineDrawer.vue';
 import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
 import LlmJudgeRuleDrawer from './LlmJudgeRuleDrawer.vue';
-import { isCustomPipeline, summarizePipeline } from './postPipelineTypes';
 import CronExpressionField from './CronExpressionField.vue';
 import {
   DEFAULT_SNAP_CRON,
@@ -136,7 +133,6 @@ const taskId = ref<number | null>(null);
 const formValues = ref<any>({});
 const confirmLoading = ref(false);
 const postPipeline = ref<any[] | null>(null);
-const [registerPostPipelineDrawer, { openDrawer: openPostPipelineDrawer }] = useDrawer();
 const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
 const [registerLlmJudgeDrawer, { openDrawer: openLlmJudgeDrawer }] = useDrawer();
 /** 任务是否运行中（运行中不可编辑区域） */
@@ -1035,7 +1031,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
     },
     {
       field: 'region_detection_entry',
-      label: '区域检测',
+      label: '监测规则',
       component: 'Input',
       render: () =>
         h('div', { class: 'region-detection-entry' }, [
@@ -1044,14 +1040,13 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
             {
               type: 'link',
               size: 'small',
-              disabled: taskIsEnabled.value,
               onClick: (e: Event) => {
                 e.preventDefault();
                 e.stopPropagation();
                 void openRegionDetectionEditor();
               },
             },
-            () => (isViewMode.value ? '查看区域绘制' : '打开区域绘制'),
+            () => '打开监测规则工作区',
           ),
           h(
             'span',
@@ -1060,12 +1055,10 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
                 ? 'region-detection-entry__hint muted'
                 : 'region-detection-entry__hint muted',
             },
-            taskIsEnabled.value
-              ? '任务运行中，请先停止后再配置'
-              : '在摄像头画面上绘制检测区域',
+            taskId.value ? '画线 / 区域 → 绑定规则 → 统计反馈' : '先保存任务，再配置监测规则',
           ),
         ]),
-      helpMessage: '区域按摄像头保存，可在保存任务前配置；后处理「区域过滤」步骤将统一按几何范围过滤检测结果',
+      helpMessage: '每条检测线或区域绑定自己的业务规则，独立执行并保存，支持运行时更新。请先保存任务与关联摄像头。',
       ifShow: ({ values }) =>
         (baseTaskType(values.task_mode) === 'realtime' ||
           baseTaskType(values.task_mode) === 'snap' ||
@@ -1317,38 +1310,6 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
         ]),
       helpMessage:
         '告警事件触发后，按规则绑定的智能体对事件图片/视频在独立队列研判，不阻塞算法主链路；开启「二次判断」后，大模型确认事件成立才发送通知',
-      ifShow: ({ values }) =>
-        (baseTaskType(values.task_mode) === 'realtime' ||
-          baseTaskType(values.task_mode) === 'snap' ||
-          baseTaskType(values.task_mode) === 'patrol') &&
-        !!values.alert_event_enabled,
-    },
-    {
-      field: 'post_pipeline_entry',
-      label: '后处理规则链',
-      component: 'Input',
-      render: () =>
-        h('div', { class: 'post-pipeline-entry' }, [
-          h(
-            Button,
-            {
-              type: 'link',
-              size: 'small',
-              onClick: (e: Event) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openPostPipelineEditor();
-              },
-            },
-            () => (isViewMode.value ? '查看后处理规则链' : '配置后处理规则链'),
-          ),
-          h(
-            'span',
-            { class: 'post-pipeline-entry__hint muted' },
-            summarizePipeline(postPipeline.value),
-          ),
-        ]),
-      helpMessage: '启用告警事件后，可配置后处理规则链对推理结果进行过滤与告警输出',
       ifShow: ({ values }) =>
         (baseTaskType(values.task_mode) === 'realtime' ||
           baseTaskType(values.task_mode) === 'snap' ||
@@ -2178,30 +2139,6 @@ async function handleLlmRulesChanged() {
   }
 }
 
-function openPostPipelineEditor() {
-  if (!formValues.value?.alert_event_enabled) {
-    createMessage.warning('请先启用告警事件');
-    return;
-  }
-  const mode = fromTaskMode(formValues.value?.task_mode);
-  openPostPipelineDrawer(true, {
-    pipeline: postPipeline.value,
-    disabled: isViewMode.value,
-    postProcessEnabled: !!formValues.value?.post_process_enabled,
-    taskContext: {
-      id: taskId.value,
-      task_name: formValues.value?.task_name,
-      task_type: mode.task_type,
-      device_ids: Array.isArray(formValues.value?.device_ids)
-        ? formValues.value.device_ids.map(String)
-        : [],
-    },
-    onApply: (pipeline) => {
-      postPipeline.value = pipeline;
-    },
-  });
-}
-
 async function openRegionDetectionEditor() {
   if (!taskId.value) {
     createMessage.warning('请先保存算法任务后再配置区域检测');
@@ -2602,9 +2539,9 @@ const handleSubmit = async () => {
       values.post_process_replicas = 1;
     }
     values.llm_post_process_enabled = !!values.llm_post_process_enabled;
-    values.post_pipeline = values.alert_event_enabled && isCustomPipeline(postPipeline.value)
-      ? postPipeline.value
-      : null;
+    // Monitoring rules have a dedicated revision-checked owner. A stale task
+    // form must never overwrite changes saved from the geometry workspace.
+    delete values.post_pipeline;
 
     if (baseTaskType(values.task_mode) === 'snap' && values.cron_expression) {
       const cronCheck = validateSnapCronMinInterval(values.cron_expression);

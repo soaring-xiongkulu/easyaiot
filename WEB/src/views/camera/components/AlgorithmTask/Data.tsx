@@ -3,6 +3,7 @@ import { BasicColumn, FormProps } from "@/components/Table";
 import { Tag } from "ant-design-vue";
 import { summarizeMatchingForList } from "@/views/camera/utils/libraryMatching";
 import { formatClusterRuntime, formatSchedulePolicy } from '@/utils/clusterRuntime';
+import { summarizeMonitoringRules } from './postPipelineTypes';
 
 export function getBasicColumns(): BasicColumn[] {
   return [
@@ -138,7 +139,13 @@ export function getBasicColumns(): BasicColumn[] {
       },
     },
     {
-      title: '后处理',
+      title: '监测规则',
+      dataIndex: 'post_pipeline',
+      width: 150,
+      customRender: ({ text }) => <Tag color="blue">{summarizeMonitoringRules(text)}</Tag>,
+    },
+    {
+      title: '业务脚本',
       dataIndex: 'post_process_enabled',
       width: 90,
       customRender: ({ text }) => (

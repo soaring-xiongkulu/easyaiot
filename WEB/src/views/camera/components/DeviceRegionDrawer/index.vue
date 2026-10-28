@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="region-editor">
+  <div ref="container" class="region-editor" :class="{ 'has-business': !!$slots.business }">
     <!-- 主画布区 -->
     <section class="region-editor__main">
       <header class="region-editor__toolbar">
@@ -95,6 +95,10 @@
 
       <footer v-if="drawHint && currentImage" class="region-editor__status">
         <span>{{ drawHint }}</span>
+        <span>{{ saving ? '保存中…' : regionsDirty ? '图形尚未保存' : '图形已保存' }}</span>
+        <button v-if="regionsDirty && !saving" type="button" @click="persistRegions({ silent: false })">重试保存</button>
+        <APopconfirm v-if="saveError && !saving" title="重新载入会放弃本地尚未保存的图形修改，是否继续？" @confirm="reloadSnapshot"><button type="button">重新载入最新图形</button></APopconfirm>
+        <span v-if="saveError">{{ saveError }}</span>
       </footer>
     </section>
 
@@ -124,7 +128,7 @@
             @click="selectRegion(getRegionKey(region, index))"
           >
             <span class="region-item__swatch" />
-            <span class="region-item__name">{{ getDisplayRegionName(region, index) }}</span>
+            <span class="region-item__name">{{ getDisplayRegionName(region, index) }}<small v-if="$slots.business" class="region-binding-label">{{ (regionBadges?.[region.id] || []).join(' · ') || '未绑定业务规则' }}</small></span>
             <span class="region-item__type">{{ getRegionTypeName(region.region_type) }}</span>
             <APopconfirm
               title="确定删除该区域？"
@@ -144,6 +148,10 @@
       </div>
 
       <div v-if="selectedRegion" class="region-editor__aside-foot">
+        <div v-if="selectedRegion.region_type === 'line'" class="line-help">
+          <strong>检测线 A → B</strong><p>拖动端点调整位置。绿色箭头表示正向穿越，交换 A/B 会反转正反方向。</p>
+          <button type="button" class="region-action-btn" :disabled="saving" @click="reverseLine">交换起终点 A/B</button>
+        </div>
         <label class="region-editor__field-label">区域名称</label>
         <Input
           v-model:value="selectedRegion.region_name"
@@ -174,6 +182,7 @@
           @change="handleRegionModelsChange"
         />
 
+        <template v-if="selectedRegion.region_type !== 'line'">
         <label class="region-editor__field-label region-editor__field-label--hit-mode">
           事件命中判定
         </label>
@@ -202,7 +211,9 @@
             @change="handleRegionOverlapChange"
           />
         </template>
+        </template>
       </div>
+        <slot v-if="selectedRegion" name="business" :region="selectedRegion" :saving="saving || regionsDirty" :revision="regionRevision" :syncRevision="syncBindingRevision" :reloadSnapshot="reloadSnapshot" />
     </aside>
   </div>
 </template>
@@ -286,6 +297,7 @@ const props = defineProps<{
   /** 无基准图时自动抓图 */
   autoCapture?: boolean;
   taskModels?: Array<{ id: number; name: string }>;
+  regionBadges?: Record<number, string[]>;
 }>();
 
 const emit = defineEmits<{
@@ -300,6 +312,7 @@ const { createMessage } = useMessage();
 const ToolType = {
   SELECT: 'select',
   RECTANGLE: 'rectangle',
+  LINE: 'line',
   POLYGON: 'polygon'
 };
 
@@ -312,6 +325,7 @@ interface Tool {
 }
 
 const tools = ref<Tool[]>([
+  { id: ToolType.LINE, name: '检测线', icon: 'mdi:vector-line', tip: '按住拖拽从 A 到 B 画线；用于出入口人流与越线检测' },
   {
     id: ToolType.SELECT,
     name: '选择',
@@ -344,6 +358,19 @@ const currentImageId = ref<number | null>(props.initialImageId || null);
 const currentImagePath = ref<string | null>(props.initialImagePath || null);
 const imageLoaded = ref(false);
 const regionRevision = ref(1);
+const saveError = ref('');
+async function reloadSnapshot() {
+  if (persistTimer) { clearTimeout(persistTimer); persistTimer=null; }
+  await persistQueue;
+  try {
+    const snapshot=await getDeviceRegionsSnapshot(props.deviceId,props.taskId);
+    regionRevision.value=snapshot.revision;
+    regions.value=snapshot.regions.map(normalizeRegionModelScope);
+    regionsDirty.value=false;saveError.value='';editVersion++;
+    if (!regions.value.some(r=>r.id===selectedRegionId.value)) selectedRegionId.value=null;
+    emit('save',regions.value);draw();
+  } catch(e) { saveError.value=formatApiErrorMessage(e,'重新载入失败，请重试'); }
+}
 
 // 区域数据
 const regions = ref<DeviceDetectionRegion[]>((props.initialRegions || []).map(region => ({
@@ -355,6 +382,12 @@ const regions = ref<DeviceDetectionRegion[]>((props.initialRegions || []).map(re
   color: region.color || generateRandomColor(),
 })));
 const selectedRegionId = ref<number | string | null>(null);
+const dragVertex = ref(-1);
+function syncBindingRevision(revision: number) { regionRevision.value = revision; }
+function reverseLine() {
+  if (!selectedRegion.value || selectedRegion.value.region_type !== 'line') return;
+  selectedRegion.value.points.reverse(); markRegionsDirty(); draw(); schedulePersist(0);
+}
 /** 本地有未同步到 props 的编辑（绘制/删除/改名）时，避免被 initialRegions 覆盖 */
 const regionsDirty = ref(false);
 
@@ -364,10 +397,12 @@ const drawHint = computed(() => {
   switch (activeTool.value) {
     case ToolType.SELECT:
       return regions.value.length
-        ? '点击区域选中后可编辑名称或删除'
-        : '选择「矩形」或「多边形」工具开始绘制';
+        ? '点击图形选中后可编辑或绑定规则；检测线可拖动端点调整'
+        : '选择「检测线」「矩形」或「多边形」开始绘制，完成后在右侧绑定规则';
     case ToolType.RECTANGLE:
       return '在画面上按住拖拽，松开完成矩形绘制';
+    case ToolType.LINE:
+      return '按住鼠标从 A 拖到 B，松开完成检测线；随后在右侧绑定人流规则。Esc 取消';
     case ToolType.POLYGON:
       return isDrawing.value
         ? '继续点击添加顶点，双击或右键完成封闭'
@@ -452,6 +487,7 @@ function handleRegionOverlapChange() {
 
 // 获取区域类型名称
 const getRegionTypeName = (type: string) => {
+  if (type === 'line') return '检测线';
   if (type === 'rectangle') return '矩形';
   if (type === 'polygon') return '多边形';
   return type;
@@ -512,7 +548,7 @@ const handleRegionNameChange = () => {
 };
 
 // 生成随机颜色（专业灰色系）
-const generateRandomColor = (): string => {
+function generateRandomColor(): string {
   const colors = [
     '#8c8c8c', '#a6a6a6', '#bfbfbf', '#d9d9d9', '#737373',
     '#595959', '#434343', '#262626', '#707070', '#909090',
@@ -756,7 +792,7 @@ function drawRegionNameLabel(
   text: string,
   x: number,
   y: number,
-  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  bounds: { minX: number; maxX: number; minY: number; maxY: number } = { minX: 0, maxX: canvas.value?.width || 2000, minY: 0, maxY: canvas.value?.height || 1200 },
 ) {
   const font = '500 12px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
   const padX = 7;
@@ -861,10 +897,25 @@ const drawRegion = (region: DeviceDetectionRegion) => {
     
     ctx.value.stroke();
 
+    if (region.region_type === 'line' && region.points.length === 2) {
+      const a = toCanvasCoords(region.points[0]); const b = toCanvasCoords(region.points[1]);
+      const length = Math.hypot(b.x-a.x,b.y-a.y);
+      if (length > 0) {
+        const nx=(b.y-a.y)/length, ny=-(b.x-a.x)/length;
+        const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+        ctx.value.strokeStyle='#10b981'; ctx.value.fillStyle='#10b981'; ctx.value.lineWidth=3;
+        ctx.value.beginPath();ctx.value.moveTo(mx-nx*28,my-ny*28);ctx.value.lineTo(mx+nx*28,my+ny*28);ctx.value.stroke();
+        ctx.value.beginPath();ctx.value.moveTo(mx+nx*28,my+ny*28);ctx.value.lineTo(mx+nx*16-ny*7,my+ny*16+nx*7);ctx.value.lineTo(mx+nx*16+ny*7,my+ny*16-nx*7);ctx.value.closePath();ctx.value.fill();
+        drawRegionNameLabel(ctx.value,'正向',mx+nx*45,my+ny*45);
+      }
+      [a,b].forEach((p,i)=>{ctx.value!.fillStyle='#fff';ctx.value!.strokeStyle='#2563eb';ctx.value!.beginPath();ctx.value!.arc(p.x,p.y,6,0,Math.PI*2);ctx.value!.fill();ctx.value!.stroke();drawRegionNameLabel(ctx.value!,i?'B':'A',p.x+12,p.y-12);});
+    }
+
     if (region.region_name) {
       const anchor = getRegionLabelAnchor(region, toCanvasCoords);
       if (anchor) {
-        drawRegionNameLabel(ctx.value, region.region_name, anchor.x, anchor.y, anchor.bounds);
+        const badges = props.regionBadges?.[region.id] || [];
+        drawRegionNameLabel(ctx.value, `${region.region_name}${badges.length ? ' · '+badges.join(' / ') : ''}`, anchor.x, region.region_type === 'line' ? anchor.y + 22 : anchor.y, region.region_type === 'line' ? undefined : anchor.bounds);
       }
     }
   }
@@ -892,6 +943,10 @@ const drawCurrentRegion = () => {
   ctx.value.fillStyle = redColor + '50';
 
   switch (activeTool.value) {
+    case ToolType.LINE:
+      { const a=toCanvasCoords(currentPoints.value[0]); const b=toCanvasCoords({x:startX.value,y:startY.value});
+        ctx.value.beginPath();ctx.value.moveTo(a.x,a.y);ctx.value.lineTo(b.x,b.y);ctx.value.stroke(); }
+      break;
     case ToolType.RECTANGLE:
       if (currentPoints.value.length > 0) {
         const rectStart = toCanvasCoords(currentPoints.value[0]);
@@ -938,6 +993,12 @@ const drawCurrentRegion = () => {
 
 // 检查点是否在区域内
 const isPointInRegion = (region: DeviceDetectionRegion, x: number, y: number): boolean => {
+  if (region.region_type === 'line' && region.points.length === 2) {
+    const [a,b]=region.points; const w=imageDisplaySize.value.width,h=imageDisplaySize.value.height;
+    const dx=(b.x-a.x)*w,dy=(b.y-a.y)*h;
+    const t=Math.max(0,Math.min(1,((x-a.x)*w*dx+(y-a.y)*h*dy)/(dx*dx+dy*dy || 1)));
+    return Math.hypot((x-a.x)*w-t*dx,(y-a.y)*h-t*dy)<=10;
+  }
   if (region.region_type === 'rectangle' && region.points && region.points.length >= 4) {
     const [p1, p2, p3, p4] = region.points;
     const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
@@ -983,6 +1044,10 @@ const handleMouseDown = (e: MouseEvent) => {
   startY.value = y;
 
   if (activeTool.value === ToolType.SELECT) {
+    if (selectedRegion.value?.region_type === 'line') {
+      const index=selectedRegion.value.points.findIndex(p=>Math.hypot((p.x-x)*imgWidth,(p.y-y)*imgHeight)<12);
+      if(index>=0){dragVertex.value=index;return;}
+    }
     // 选择模式：检查点击是否在某个区域内
     let clickedRegion = false;
     for (let i = regions.value.length - 1; i >= 0; i--) {
@@ -1000,12 +1065,12 @@ const handleMouseDown = (e: MouseEvent) => {
     return;
   }
 
-  if ([ToolType.RECTANGLE, ToolType.POLYGON].includes(activeTool.value)) {
+  if ([ToolType.RECTANGLE, ToolType.POLYGON, ToolType.LINE].includes(activeTool.value)) {
     isDrawing.value = true;
 
     if (activeTool.value === ToolType.POLYGON && currentPoints.value.length === 0) {
       appendDistinctRegionPoint(currentPoints.value, { x, y });
-    } else if (activeTool.value === ToolType.RECTANGLE) {
+    } else if (activeTool.value === ToolType.RECTANGLE || activeTool.value === ToolType.LINE) {
       currentPoints.value = [{ x, y }];
     }
     draw();
@@ -1031,6 +1096,7 @@ const handleMouseMove = (e: MouseEvent) => {
 
   startX.value = Math.min(1, Math.max(0, point.x));
   startY.value = Math.min(1, Math.max(0, point.y));
+  if(dragVertex.value>=0 && selectedRegion.value){selectedRegion.value.points[dragVertex.value]={x:startX.value,y:startY.value};markRegionsDirty();draw();return;}
 
   if (isDrawing.value) {
     draw();
@@ -1038,18 +1104,27 @@ const handleMouseMove = (e: MouseEvent) => {
 };
 
 const onWindowMouseMove = (e: MouseEvent) => {
-  if (isDrawing.value) {
+  if (isDrawing.value || dragVertex.value >= 0) {
     handleMouseMove(e);
   }
 };
 
 const onWindowMouseUp = () => {
-  if (isDrawing.value) {
+  if (isDrawing.value || dragVertex.value >= 0) {
     handleMouseUp();
   }
 };
 
 const handleMouseUp = () => {
+  if(dragVertex.value>=0){dragVertex.value=-1;schedulePersist(0);return;}
+  if (isDrawing.value && activeTool.value===ToolType.LINE && currentPoints.value.length) {
+    const a=currentPoints.value[0],b={x:startX.value,y:startY.value};
+    if(Math.hypot((a.x-b.x)*imageDisplaySize.value.width,(a.y-b.y)*imageDisplaySize.value.height)>=12){
+      const region: DeviceDetectionRegion={id:-Date.now(),device_id:props.deviceId,region_name:`检测线 ${regions.value.filter(r=>r.region_type==='line').length+1}`,region_type:'line',points:[a,b],color:'#2563eb',opacity:.3,is_enabled:true,sort_order:regions.value.length,model_scope:'all',model_ids:[],image_id:currentImageId.value || undefined};
+      regions.value.push(region);selectedRegionId.value=region.id;markRegionsDirty();draw();void persistRegions({silent:true});
+    }
+    isDrawing.value=false;currentPoints.value=[];activeTool.value=ToolType.SELECT;draw();return;
+  }
   if (isDrawing.value && currentPoints.value.length > 0) {
     if (activeTool.value === ToolType.RECTANGLE) {
       const width = startX.value - currentPoints.value[0].x;
@@ -1080,6 +1155,7 @@ const handleMouseUp = () => {
 
         regions.value.push(newRegion);
         selectedRegionId.value = getRegionKey(newRegion, regions.value.length - 1);
+        activeTool.value = ToolType.SELECT;
         markRegionsDirty();
         draw();
         void persistRegions({ silent: true }).catch(() => {});
@@ -1122,6 +1198,7 @@ const finishPolygon = () => {
 
     regions.value.push(newRegion);
     selectedRegionId.value = getRegionKey(newRegion, regions.value.length - 1);
+    activeTool.value = ToolType.SELECT;
     markRegionsDirty();
     draw();
     void persistRegions({ silent: true }).catch(() => {});
@@ -1144,6 +1221,9 @@ const handleContextMenu = (e: MouseEvent) => {
 
 // 选择区域
 const selectRegion = (id: number | string) => {
+  activeTool.value = ToolType.SELECT;
+  isDrawing.value = false;
+  currentPoints.value = [];
   selectedRegionId.value = id;
   draw();
 };
@@ -1250,6 +1330,7 @@ async function persistRegions(options: { silent?: boolean } = {}) {
 
     try {
       saving.value = true;
+      saveError.value = '';
 
       const payload = regions.value.map((region, index) =>
         normalizeRegionForSave(region, index, currentImageId.value),
@@ -1291,6 +1372,7 @@ async function persistRegions(options: { silent?: boolean } = {}) {
       }
     } catch (error) {
       console.error('保存失败', error);
+      saveError.value = formatApiErrorMessage(error, '图形未保存，请重试或重新载入最新图形');
       if (isRegionRevisionConflict(error)) {
         createMessage.warning('区域配置已被其他用户修改，请重新打开后再保存');
       } else if (!options.silent) {
@@ -1413,7 +1495,7 @@ const handleKeyDown = (e: KeyboardEvent): void => {
       setActiveTool(ToolType.POLYGON);
       break;
     case 'Escape':
-      if (isDrawing.value && activeTool.value === ToolType.POLYGON) {
+      if (isDrawing.value) {
         isDrawing.value = false;
         currentPoints.value = [];
         draw();
@@ -1423,6 +1505,7 @@ const handleKeyDown = (e: KeyboardEvent): void => {
 };
 
 // 初始化
+watch(() => props.regionBadges, () => draw(), { deep: true });
 onMounted(async () => {
   await nextTick();
   initCanvas();
@@ -1490,6 +1573,12 @@ onUnmounted(() => {
 </script>
 
 <style lang="less" scoped>
+.region-binding-label { display: block; font-size: 10px; color: #2563eb; margin-top: 3px; white-space: normal; }
+.line-help { padding: 10px; margin-bottom: 12px; background: #ecfdf5; border-radius: 8px; font-size: 12px; p { margin: 6px 0; color: #475569; } }
+.region-editor.has-business .region-editor__aside { width: 360px; overflow-y: auto; }
+.region-editor.has-business .region-editor__aside-body { flex: 0 0 auto; max-height: 150px; }
+.region-editor__status { display: flex; justify-content: space-between; gap: 12px; }
+@media (max-width: 900px) { .region-editor.has-business { flex-direction: column; overflow-y: auto; } .region-editor.has-business .region-editor__main { min-height: 450px; flex-shrink: 0; } .region-editor.has-business .region-editor__aside { width: 100%; overflow: visible; flex-shrink: 0; } }
 @text: rgba(0, 0, 0, 0.65);
 @text-muted: rgba(0, 0, 0, 0.45);
 @primary: #1677ff;

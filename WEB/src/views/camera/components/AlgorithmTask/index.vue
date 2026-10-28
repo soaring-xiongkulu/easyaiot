@@ -93,6 +93,10 @@
                       </div>
                     </div>
                   </div>
+                  <div class="monitoring-entry">
+                    <span>{{ summarizeMonitoringRules(item.post_pipeline) }}</span>
+                    <Button size="small" type="link" :disabled="!hasCameras(item)" @click="handleOpenRegions(item)">配置线 / 区域与规则</Button>
+                  </div>
                   <div class="btns">
                     <div class="btn" @click="handleView(item)">
                       <Icon icon="ant-design:eye-filled" :size="15" color="#3B82F6" />
@@ -109,7 +113,7 @@
                       class="btn"
                       :class="{ disabled: !hasCameras(item) }"
                       @click="hasCameras(item) && handleOpenRegions(item)"
-                      title="区域配置（支持运行时热更新）"
+                      title="监测规则：画线 / 区域、绑定规则与统计"
                     >
                       <Icon icon="ant-design:border-outer-outlined" :size="15" color="#3B82F6" />
                     </div>
@@ -127,6 +131,9 @@
                       :title="hasLlmPostProcess(item) ? '查看大模型研判队列' : '未启用大模型后处理，暂无研判队列'"
                     >
                       <Icon icon="ant-design:robot-outlined" :size="16" :color="hasLlmPostProcess(item) ? '#3B82F6' : '#b7bdc8'" />
+                    </div>
+                    <div class="btn" @click="openBusinessResultsDrawer(true, item)" title="后处理业务看板">
+                      <Icon icon="ant-design:bar-chart-outlined" :size="15" color="#3B82F6" />
                     </div>
                     <div class="btn" @click="handleManageServices(item)" title="心跳信息">
                       <Icon icon="ant-design:heart-outlined" :size="15" color="#3B82F6" />
@@ -203,13 +210,14 @@
     <AlgorithmTaskModal @register="registerModal" @success="handleSuccess" />
 
     <!-- 独立区域配置入口：运行中的任务也允许热更新区域 -->
-    <DeviceRegionDetectionDrawer @register="registerRegionDrawer" />
+    <DeviceRegionDetectionDrawer @register="registerRegionDrawer" @saved="handleSuccess" />
 
     <!-- 服务管理抽屉 -->
     <ServiceManageDrawer @register="registerServiceDrawer" @success="handleSuccess" />
 
     <!-- 大模型后处理运行结果：与任务配置分离的独立入口 -->
     <LlmJudgeQueueDrawer @register="registerLlmQueueDrawer" />
+    <PostBusinessResultsDrawer @register="registerBusinessResultsDrawer" />
     
     <!-- 抓拍空间抽屉 -->
     <SnapSpaceDrawer @register="registerSnapSpaceDrawer" />
@@ -263,6 +271,8 @@ import AlgorithmTaskModal from './AlgorithmTaskModal.vue';
 import DeviceRegionDetectionDrawer from './DeviceRegionDetectionDrawer.vue';
 import ServiceManageDrawer from './ServiceManageDrawer.vue';
 import LlmJudgeQueueDrawer from './LlmJudgeQueueDrawer.vue';
+import PostBusinessResultsDrawer from './PostBusinessResultsDrawer.vue';
+import { summarizeMonitoringRules } from './postPipelineTypes';
 import SnapSpaceDrawer from './SnapSpaceDrawer.vue';
 import DialogPlayer from '@/components/VideoPlayer/DialogPlayer.vue';
 import CameraStreamSelectModal from '../CameraStreamSelectModal/index.vue';
@@ -305,6 +315,7 @@ const [registerModal, { openDrawer }] = useDrawer();
 const [registerRegionDrawer, { openDrawer: openRegionDrawer }] = useDrawer();
 const [registerServiceDrawer, { openDrawer: openServiceDrawer }] = useDrawer();
 const [registerLlmQueueDrawer, { openDrawer: openLlmQueueDrawer }] = useDrawer();
+const [registerBusinessResultsDrawer, { openDrawer: openBusinessResultsDrawer }] = useDrawer();
 const [registerSnapSpaceDrawer, { openDrawer: openSnapSpaceDrawer }] = useDrawer();
 const [registerPlayerModal, { openModal: openPlayerModal }] = useModal();
 
@@ -401,6 +412,7 @@ const handleCopyDeviceNames = (item: AlgorithmTask) => {
 // 获取表格操作按钮
 const getTableActions = (record: AlgorithmTask) => {
   const actions = [
+    { icon: 'ant-design:bar-chart-outlined', tooltip: '后处理业务看板', onClick: () => openBusinessResultsDrawer(true, record) },
     {
       icon: 'ant-design:eye-filled',
       tooltip: '查看',
@@ -420,7 +432,7 @@ const getTableActions = (record: AlgorithmTask) => {
     },
     {
       icon: 'ant-design:border-outer-outlined',
-      tooltip: '区域配置（支持运行时热更新）',
+      tooltip: '监测规则：画线 / 区域、绑定规则与统计',
       disabled: !hasCameras(record),
       onClick: () => handleOpenRegions(record),
     },
@@ -1001,6 +1013,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="less">
+.monitoring-entry { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; padding: 6px 0; font-size: 12px; color: #64748b; }
 #algorithm-task {
   .toolbar-buttons {
     display: flex;
@@ -1034,7 +1047,7 @@ onMounted(() => {
     background-position: center center;
     background-size: 104% 104%;
     transition: all 0.5s;
-    min-height: 208px;
+    min-height: 264px;
     height: 100%;
 
     &.normal {
@@ -1058,9 +1071,9 @@ onMounted(() => {
     .task-info {
       flex-direction: column;
       box-sizing: border-box;
-      width: calc(100% - 156px);
+      width: 100%;
       min-width: 0;
-      padding-left: 16px;
+      padding: 0 16px 48px;
 
       .status {
         min-width: 90px;
@@ -1093,6 +1106,7 @@ onMounted(() => {
 
       .props {
         margin-top: 10px;
+        padding-right: 124px;
 
         > .flex {
           gap: 8px;

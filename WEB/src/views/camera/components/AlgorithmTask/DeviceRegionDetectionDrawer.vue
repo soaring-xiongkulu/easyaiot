@@ -2,13 +2,36 @@
   <BasicDrawer
     v-bind="$attrs"
     @register="register"
-    title="区域检测配置"
+    title="监测规则工作区 · 画线 / 区域与业务规则"
     width="96%"
     placement="right"
     :showFooter="false"
     destroy-on-close
   >
     <div class="region-config-shell">
+      <div class="monitoring-guide">
+        <div class="monitoring-guide__steps">
+          <span class="monitoring-guide__step"><i>1</i>选择摄像头，画线或框区域</span>
+          <Icon icon="ant-design:right-outlined" :size="11" class="monitoring-guide__arrow" />
+          <span class="monitoring-guide__step"><i>2</i>选中图形，绑定监测规则</span>
+          <Icon icon="ant-design:right-outlined" :size="11" class="monitoring-guide__arrow" />
+          <span class="monitoring-guide__step"><i>3</i>查看线 / 区域统计反馈</span>
+        </div>
+        <div class="monitoring-guide__spacer" />
+        <Button size="small" :type="trainingGround ? 'primary' : 'default'" pre-icon="ant-design:aim-outlined" @click="trainingGround = !trainingGround">{{ trainingGround ? '退出训练场' : '训练场模式' }}</Button>
+        <Button size="small" :loading="bindingsLoading" pre-icon="ant-design:sync-outlined" @click="loadBindings">刷新规则</Button>
+      </div>
+      <a-alert v-if="bindingsError" type="error" :message="bindingsError" show-icon />
+
+      <!-- 训练场模式：场景地图 + 模拟人 + 实时计数器（投放走生产 trainframe 路由 → 真实 MQTT → POST 引擎） -->
+      <TrainingGroundPanel
+        v-if="trainingGround && selectedDeviceId && taskId"
+        :key="`tg-${selectedDeviceId}`"
+        :task-id="taskId"
+        :device-id="selectedDeviceId"
+        :device-name="getSelectedDevice()?.name || selectedDeviceId"
+        :regions="trainingGroundRegions"
+      />
       <div v-if="initializing" class="region-config-loading">
         <ASpin :tip="initializingTip" size="large" />
       </div>
@@ -81,10 +104,15 @@
             :initial-image-path="deviceImagePaths[selectedDeviceId]"
             :auto-capture="!deviceImagePaths[selectedDeviceId] || captureFailedDeviceIds.has(selectedDeviceId)"
             :task-models="taskModels"
+            :region-badges="regionBadges"
             @save="handleRegionSave"
             @image-captured="handleImageCaptured"
             @cover-updated="handleCoverUpdated"
-          />
+          >
+            <template #business="{ region, saving, revision, syncRevision, reloadSnapshot }">
+              <RegionPluginBindingPanel :key="`${taskId}-${region.id}`" :task-id="taskId" :region="region" :saving="saving" :revision="revision" :state="bindingState" @reload="loadBindings" @reload-latest="reloadSnapshot" @saved="(state) => { bindingState = state; syncRevision(state.revision); emit('saved'); }" />
+            </template>
+          </DeviceRegionDrawer>
           <div v-else class="region-workspace__empty">
             <AEmpty description="暂无关联摄像头" :image="false" />
           </div>
@@ -98,6 +126,7 @@ import { computed, onUnmounted, ref } from 'vue';
 import { LoadingOutlined } from '@ant-design/icons-vue';
 import {
   Empty as AEmpty,
+  Alert as AAlert,
   Spin as ASpin,
   Tag as ATag,
 } from 'ant-design-vue';
@@ -112,6 +141,9 @@ import {
 } from '@/api/device/device_detection_region';
 import { getTaskStreams, type CameraStreamInfo } from '@/api/device/algorithm_task';
 import DeviceRegionDrawer from '../DeviceRegionDrawer/index.vue';
+import RegionPluginBindingPanel from './RegionPluginBindingPanel.vue';
+import TrainingGroundPanel from './TrainingGroundPanel.vue';
+import { getPostBindings, type PostBindingState } from '@/api/device/post_pipeline';
 import { resolveAlertImageDisplayUrl } from '@/utils/alertMinioImage';
 import { formatApiErrorMessage } from '@/views/camera/utils/apiErrorMessage';
 import { captureSnapshotWithQuality } from '@/views/camera/utils/deviceSnapshotCapture';
@@ -122,11 +154,45 @@ import {
 } from '@/views/camera/utils/snapshotQuality';
 
 defineOptions({ name: 'DeviceRegionDetectionDrawer' });
+const emit=defineEmits<{(e:'saved'):void}>();
 
 const { createMessage } = useMessage();
 
 const taskId = ref<number | null>(null);
+const bindingState=ref<PostBindingState|null>(null);
+const bindingsLoading=ref(false);const bindingsError=ref('');let bindingsSequence=0;
+const bindingNames:Record<string,string>={line_cross:'人流 / 越线',region_enter_exit:'进出',headcount_gate:'聚集',dwell_timer:'逗留'};
+const regionBadges=computed(()=>{
+ const labels:Record<number,string[]>={};
+ for(const step of bindingState.value?.pipeline || []){
+  const ids=step.params?.region_ids as number[]|undefined;
+  for(const region of bindingState.value?.regions || []){
+   const legacy=!ids?.length && bindingNames[step.plugin] && ((region.type==='line')===(step.plugin==='line_cross'));
+   if(ids?.includes(region.id)||legacy)(labels[region.id] ||= []).push(`${bindingNames[step.plugin] || step.plugin}${step.enabled===false?'（暂停）':legacy?'（旧关联）':''}`);
+  }
+ }
+ return labels;
+});
+async function loadBindings(){
+ if(!taskId.value)return;const id=taskId.value;const seq=++bindingsSequence;bindingsLoading.value=true;bindingsError.value='';
+ try{const state=await getPostBindings(id);if(seq===bindingsSequence)bindingState.value=state;}
+ catch(e){if(seq===bindingsSequence)bindingsError.value=e instanceof Error?e.message:'规则加载失败';}
+ finally{if(seq===bindingsSequence)bindingsLoading.value=false;}
+}
 const taskModels = ref<Array<{ id: number; name: string }>>([]);
+/** 训练场走生产 /video/post/tasks/{id}/trainframe 路由（经真实 MQTT 驱动 POST 引擎），生产环境可用 */
+const trainingGround = ref(false);
+/** 训练场地图复用当前设备的图形（归一化坐标），随保存事件自动更新 */
+const trainingGroundRegions = computed(() => {
+  const list = deviceRegions.value[selectedDeviceId.value || ''] || [];
+  return list.map((r) => ({
+    id: r.id,
+    name: r.region_name,
+    type: r.region_type === 'line' ? 'line' : 'poly',
+    points: r.points || [],
+    enabled: r.is_enabled,
+  }));
+});
 /** 打开抽屉时锁定的设备 ID，防止抓图后列表被全量设备污染 */
 const pinnedDeviceIds = ref<string[] | null>(null);
 
@@ -207,6 +273,7 @@ const [register] = useDrawerInner(async (data) => {
   captureFailedDeviceIds.value = new Set();
   pinnedDeviceIds.value = null;
   taskId.value = null;
+  bindingState.value = null;bindingsSequence++;
   taskModels.value = [];
 
   const incomingIds = Array.isArray(data?.deviceIds)
@@ -217,6 +284,7 @@ const [register] = useDrawerInner(async (data) => {
 
   if (data?.taskId) {
     taskId.value = data.taskId;
+    void loadBindings();
   }
   if (Array.isArray(data?.taskModels)) {
     taskModels.value = data.taskModels
@@ -484,6 +552,7 @@ function handleRegionSave(regions: DeviceDetectionRegion[]) {
   if (selectedDeviceId.value) {
     deviceRegions.value[selectedDeviceId.value] = regions;
   }
+  void loadBindings().then(() => emit('saved'));
 }
 
 function handleImageCaptured(imageId: number, imagePath: string) {
@@ -650,6 +719,55 @@ async function loadDevices() {
 </script>
 
 <style lang="less" scoped>
+.monitoring-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(90deg, #eff6ff, #f8fafc 65%);
+  border: 1px solid #dbeafe;
+  border-left: 3px solid #3b82f6;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #475569;
+
+  &__steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__step {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+
+    i {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: #fff;
+      font-size: 11px;
+      font-style: normal;
+      font-weight: 600;
+    }
+  }
+
+  &__arrow {
+    color: #93c5fd;
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+}
 @text: rgba(0, 0, 0, 0.65);
 @text-muted: rgba(0, 0, 0, 0.45);
 @border: #f0f0f0;

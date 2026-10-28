@@ -86,6 +86,40 @@ const commonApi = <T = any>(
 export const getPostPluginCatalog = () =>
   commonApi<PostPluginCatalog>('get', `${POST_PREFIX}/plugins/catalog`);
 
+export interface PostBusinessResult {
+  id: number;
+  time: string;
+  device_id: string;
+  device_name: string;
+  region: string;
+  results: Record<string, Record<string, any>>;
+}
+
+export const getPostBusinessResults = (taskId: number, params: {
+  start: string; end: string; page: number; page_size: number; plugin?: string; device_id?: string; region_id?: number;
+}) => commonApi<{ items: PostBusinessResult[]; total: number; summary: Record<string, number> }>(
+  'get', `${POST_PREFIX}/tasks/${taskId}/results`, params,
+);
+
+export interface PostBindingState {
+  revision: number;
+  task: Record<string, any>;
+  pipeline: PostPipelineStep[];
+  regions: Array<{ id: number; device_id: string; name: string; type: string; enabled: boolean }>;
+  legacy_plugins: string[];
+  runtime_sync_status?: string;
+}
+export const getPostBindings = (taskId: number) => commonApi<PostBindingState>('get', `${POST_PREFIX}/tasks/${taskId}/bindings`);
+
+/** 训练场投放一帧：模拟人经真实 MQTT InferEvent 驱动 POST 插件引擎（生产与隔离回归同一路由） */
+export const postTrainFrame = (taskId: number, body: {
+  device_id: string;
+  actors: Array<{ track_id: number; x: number; y: number }>;
+}) => commonApi<{ published: number }>('post', `${POST_PREFIX}/tasks/${taskId}/trainframe`, body);
+export const savePostRegionBinding = (taskId: number, regionId: number, body: {
+  expected_revision: number; plugin: string; params?: Record<string, unknown>; enabled?: boolean; remove?: boolean;
+}) => defHttp.put<PostBindingState>({ url: `${POST_PREFIX}/tasks/${taskId}/regions/${regionId}/binding`, data: body }, { isTransformResponse: true, retryRequest: { isOpenRetry: false, count: 0, waitTime: 0 } });
+
 export const debugPostPipeline = (body: {
   event: InferEventSample;
   pipeline_override?: PostPipelineStep[];
