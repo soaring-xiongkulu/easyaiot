@@ -31,7 +31,7 @@ class PostFailStrategyProducerContractTest(unittest.TestCase):
         closed_pos = source.index('AlgoMqttBus::postFailClosed()')
         direct_pos = source.index('AlgoMqttBus::publishAlert', closed_pos)
         self.assertLess(closed_pos, direct_pos)
-        self.assertIn('direct alert suppressed', source[closed_pos:direct_pos])
+        self.assertIn('直接告警已抑制', source[closed_pos:direct_pos])
 
     def test_cpp_region_parser_accepts_video_object_coordinates(self):
         source = (ROOT / 'RUNTIME/src/ConfigParser.cpp').read_text(encoding='utf-8')

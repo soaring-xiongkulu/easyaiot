@@ -159,7 +159,12 @@ class RegionValidationTest(unittest.TestCase):
 
 class ReplaceRegionsTransactionTest(unittest.TestCase):
     def setUp(self):
-        self.task = SimpleNamespace(id=7, model_ids='[11, 12]', template_revision=4)
+        self.task = SimpleNamespace(
+            id=7,
+            model_ids='[11, 12]',
+            template_revision=4,
+            post_pipeline='[]',
+        )
         self.session = MagicMock()
         self.task_query = MagicMock()
         self.task_query.filter_by.return_value.with_for_update.return_value.first.return_value = self.task

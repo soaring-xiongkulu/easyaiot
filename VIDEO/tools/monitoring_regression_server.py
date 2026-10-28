@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-os.environ['POST_BASE_URL'] = 'http://127.0.0.1:19090'
+os.environ.setdefault('POST_BASE_URL', 'http://127.0.0.1:19090')
 os.environ['CAMERA_SOURCE_MODE'] = 'direct'
 os.environ['ALGO_BUS_TRANSPORT'] = 'off'
 # 生产 trainframe 路由经 algo_mqtt_bus._brokers() 发现 broker，隔离环境指向本地 18883
@@ -30,7 +30,10 @@ import paho.mqtt.client as mqtt
 from models import db, AlgorithmTask, Device, Image, Alert, DeviceDetectionRegion
 from app.blueprints import post_plugin, device_detection_region, algorithm_task, camera
 
-WORK = Path(tempfile.gettempdir()) / 'easyaiot-monitoring-integration'
+WORK = Path(
+    os.environ.get('MONITORING_REGRESSION_WORK')
+    or (Path(tempfile.gettempdir()) / 'easyaiot-monitoring-integration')
+)
 WORK.mkdir(exist_ok=True)
 app = Flask(__name__)
 app.config.update(SQLALCHEMY_DATABASE_URI=f'sqlite:///{(WORK / "video.sqlite").as_posix()}', SQLALCHEMY_TRACK_MODIFICATIONS=False)
@@ -60,7 +63,15 @@ def camera_frame(device_id):
 
 def fixture_upload(device_id, frame, extension):
     url = f'/dev-api/video/regression/frame/{device_id}.png'
-    db.session.add(Image(device_id=device_id, path=url, width=1280, height=720))
+    filename = f'{device_id}.png'
+    db.session.add(Image(
+        device_id=device_id,
+        filename=filename,
+        original_filename=filename,
+        path=url,
+        width=1280,
+        height=720,
+    ))
     db.session.commit()
     return url
 
@@ -220,4 +231,9 @@ if __name__ == '__main__':
         from app.services.post_template_client import put_template
         put_template(1)
     print(f'ISOLATED regression DB: {WORK / "video.sqlite"}', flush=True)
-    app.run(host='127.0.0.1',port=6000,threaded=True,use_reloader=False)
+    app.run(
+        host=os.environ.get('MONITORING_REGRESSION_HOST', '127.0.0.1'),
+        port=int(os.environ.get('MONITORING_REGRESSION_PORT', '6000')),
+        threaded=True,
+        use_reloader=False,
+    )

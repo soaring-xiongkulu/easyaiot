@@ -83,7 +83,7 @@ const taskListSource = readFileSync(
   resolve(process.cwd(), 'src/views/camera/components/AlgorithmTask/index.vue'),
   'utf8',
 );
-assert.match(taskListSource, /tooltip:\s*'区域配置（支持运行时热更新）'/);
+assert.match(taskListSource, /tooltip:\s*'监测规则：画线 \/ 区域、绑定规则与统计'/);
 assert.match(taskListSource, /handleOpenRegions\(record\)/);
 assert.match(taskListSource, /<DeviceRegionDetectionDrawer\s+@register="registerRegionDrawer"/);
 
