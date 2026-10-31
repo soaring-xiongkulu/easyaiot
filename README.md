@@ -50,7 +50,7 @@ The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, SE
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 For a more complete illustrated introduction, see <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT Project Introduction V2.0 (PPT)</a>, and <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI Video Surveillance Analytics Platform (PDF)</a>. For day-to-day platform operations after deployment, see the <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Platform Operations Manual</a>.
+📄 For a more complete illustrated introduction, see <a href=".doc/项目介绍/EasyAIoT项目介绍 V3.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">EasyAIoT Project Introduction V3.0 (PPT)</a>, and <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">AI Video Surveillance Analytics Platform (PDF)</a>. For day-to-day platform operations after deployment, see the <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">Platform Operations Manual</a>.
 </p>
 
 ### 🏆 Certificates
