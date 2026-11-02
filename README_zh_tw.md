@@ -55,9 +55,10 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 
 ### 🏆 資質證書
 
-| | | | |
-|:---:|:---:|:---:|:---:|
-| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee 2025 年度開源專案 · 工業軟體賽道 Top1"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · 最有價值開源專案"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN 部落格專家"> |
+| | | |
+|:---:|:---:|:---:|
+| <img src=".image/certificates/shanghai-oss-innovation-2026-2nd-prize.jpg" width="200" alt="2026 上海開源軟體應用創新大賽 · AI+工業軟體賽道 二等獎"> | <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee 2025 年度開源專案 · 工業軟體賽道 Top1"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> |
+| <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · 最有價值開源專案"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN 部落格專家"> | |
 
 ## 🚀 快速開始
 

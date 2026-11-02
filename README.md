@@ -55,9 +55,10 @@ The platform comprises core modules including <strong>WEB, APP, DEVICE, EDGE, SE
 
 ### 🏆 Certificates
 
-| | | | |
-|:---:|:---:|:---:|:---:|
-| <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee Annual OSS Award 2025 · Industrial Software Track Top 1"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> | <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · Most Valuable Open Source Project"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN Blog Expert"> |
+| | | |
+|:---:|:---:|:---:|
+| <img src=".image/certificates/shanghai-oss-innovation-2026-2nd-prize.jpg" width="200" alt="2026 Shanghai Open Source Software Application Innovation Contest · AI + Industrial Software Track · 2nd Prize"> | <img src=".image/certificates/gitee-oss-award-2025-top1.jpg" width="200" alt="Gitee Annual OSS Award 2025 · Industrial Software Track Top 1"> | <img src=".image/certificates/gitee-2000-stars.jpg" width="200" alt="Gitee 2000+ Stars"> |
+| <img src=".image/certificates/gitee-gvp-2025.jpg" width="200" alt="Gitee GVP 2025 · Most Valuable Open Source Project"> | <img src=".image/certificates/csdn-blog-expert.jpg" width="200" alt="CSDN Blog Expert"> | |
 
 ## 🚀 Quick Start
 
