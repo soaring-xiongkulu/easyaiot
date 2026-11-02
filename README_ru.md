@@ -50,7 +50,7 @@
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #555; margin: 15px 0;">
-📄 Для более полного иллюстрированного описания см. <a href=".doc/项目介绍/EasyAIoT项目介绍 V2.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">Презентация проекта EasyAIoT V2.0 (PPT)</a>, а также <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">Платформа AI-анализа видеонаблюдения (PDF)</a>. Повседневные операции после развёртывания см. в <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">руководстве по эксплуатации платформы</a>.
+📄 Для более полного иллюстрированного описания см. <a href=".doc/项目介绍/EasyAIoT项目介绍 V3.0.pptx" style="color: #3498db; text-decoration: none; font-weight: 600;">Презентация проекта EasyAIoT V3.0 (PPT)</a>, а также <a href=".doc/项目介绍/AI视频监控分析平台.pdf" style="color: #3498db; text-decoration: none; font-weight: 600;">Платформа AI-анализа видеонаблюдения (PDF)</a>. Повседневные операции после развёртывания см. в <a href=".doc/操作手册/README.md" style="color: #3498db; text-decoration: none; font-weight: 600;">руководстве по эксплуатации платформы</a>.
 </p>
 
 ### 🏆 Сертификаты
