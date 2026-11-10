@@ -17,6 +17,7 @@
     <a-tabs v-model:active-key="activeTab" size="small">
       <a-tab-pane key="rule" tab="规则设置">
         <a-alert v-if="warning" type="warning" show-icon :message="warning" />
+        <a-alert v-else-if="sinkConflict" type="warning" show-icon message="此连续轨迹规则需要关闭任务的业务脚本、姿态分析和姿态意图分析。可在下方确认关闭并绑定；如需保留这些功能，请使用独立任务。" />
         <a-alert
           v-if="state?.legacy_plugins.length"
           type="info"
@@ -73,10 +74,17 @@
             v-model:checked="enabled"
           checked-children="启用"
             un-checked-children="暂停"
-          /><a-button
+          /><a-popconfirm
+            v-if="sinkConflict && !warning"
+            title="将关闭此任务的业务脚本、姿态分析和姿态意图分析，并保存当前规则。是否继续？"
+            @confirm="save(false, true)"
+          ><a-button type="primary" :loading="busy" :disabled="busy || saving || !state">
+            关闭冲突功能并{{ bound ? '保存规则' : '建立绑定' }}
+          </a-button></a-popconfirm><a-button
+            v-else
             type="primary"
             :loading="busy"
-            :disabled="saving || !!warning || !state"
+            :disabled="busy || saving || !!warning || !state"
             @click="save(false)"
             >{{ bound ? '保存规则' : '建立绑定' }}</a-button
           ><a-popconfirm
@@ -213,12 +221,12 @@ const warning = computed(() => {
     (t.task_type !== 'realtime' || t.executor === 'cpp' || !t.tracking_enabled)
   )
     return '此规则需要 Python 实时模式并开启目标追踪，请先修改并保存任务设置。';
-  if (
-    plugin.value !== 'headcount_gate' &&
-    (t.post_process_enabled || t.pose_analysis_enabled || t.pose_intent_enabled)
-  )
-    return '此连续轨迹规则暂不能与业务脚本或姿态分析混用。';
   return '';
+});
+const sinkConflict = computed(() => {
+  const t = props.state?.task;
+  return enabled.value && plugin.value !== 'headcount_gate' && !!t &&
+    !!(t.post_process_enabled || t.pose_analysis_enabled || t.pose_intent_enabled);
 });
 function loadDraft() {
   failedDraft.value=false;
@@ -240,7 +248,7 @@ function loadDraft() {
   enabled.value = bound.value?.enabled !== false;
   feedback.value = '';
 }
-async function save(remove: boolean) {
+async function save(remove: boolean, disableSinkProcessing = false) {
   if (!props.state || props.region.id <= 0) return;
   busy.value = true;
   feedback.value = '';
@@ -251,6 +259,7 @@ async function save(remove: boolean) {
       params: params.value,
       enabled: enabled.value,
       remove,
+      disable_sink_processing: disableSinkProcessing,
     });
     emit('saved', state);
     failedDraft.value=false;

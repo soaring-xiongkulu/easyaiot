@@ -117,7 +117,7 @@ export const postTrainFrame = (taskId: number, body: {
   actors: Array<{ track_id: number; x: number; y: number }>;
 }) => commonApi<{ published: number }>('post', `${POST_PREFIX}/tasks/${taskId}/trainframe`, body);
 export const savePostRegionBinding = (taskId: number, regionId: number, body: {
-  expected_revision: number; plugin: string; params?: Record<string, unknown>; enabled?: boolean; remove?: boolean;
+  expected_revision: number; plugin: string; params?: Record<string, unknown>; enabled?: boolean; remove?: boolean; disable_sink_processing?: boolean;
 }) => defHttp.put<PostBindingState>({ url: `${POST_PREFIX}/tasks/${taskId}/regions/${regionId}/binding`, data: body }, { isTransformResponse: true, retryRequest: { isOpenRetry: false, count: 0, waitTime: 0 } });
 
 export const debugPostPipeline = (body: {

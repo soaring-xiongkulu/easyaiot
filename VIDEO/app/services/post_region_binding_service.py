@@ -73,6 +73,12 @@ def save_binding(task_id, region_id, data):
             steps.append(tail)
         tail['params'] = {**(tail.get('params') or {}), 'monitoring_mode': 'bound'}
         tail['enabled'] = True
+        # Persist the explicitly confirmed mode switch atomically with the binding.
+        if (data.get('disable_sink_processing') is True and not data.get('remove')
+                and data.get('enabled') is not False
+                and plugin in ('line_cross', 'region_enter_exit', 'dwell_timer')):
+            for key in ('post_process_enabled', 'pose_analysis_enabled', 'pose_intent_enabled'):
+                setattr(task, key, False)
         validate_post_pipeline_runtime(steps, task.task_type, task.tracking_enabled, task.executor,
             any(getattr(task, key, False) for key in ('post_process_enabled', 'pose_analysis_enabled', 'pose_intent_enabled')))
         task.post_pipeline = json.dumps(steps, ensure_ascii=False)

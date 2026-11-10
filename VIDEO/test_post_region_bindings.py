@@ -21,6 +21,9 @@ class Task(Base):
     executor=Column(String,default='python')
     tracking_enabled=Column(Boolean,default=True)
     alert_event_enabled=Column(Boolean,default=True)
+    post_process_enabled=Column(Boolean,default=False)
+    pose_analysis_enabled=Column(Boolean,default=False)
+    pose_intent_enabled=Column(Boolean,default=False)
     updated_at=Column(DateTime)
 
 
@@ -74,6 +77,30 @@ class BindingTest(unittest.TestCase):
         state=service.save_binding(1,1,{'expected_revision':1,'plugin':'line_cross','remove':True})
         rules=[s for s in state['pipeline'] if s['plugin']=='line_cross']
         self.assertEqual([[2]],[s['params']['region_ids'] for s in rules])
+
+    def test_sink_conflict_requires_explicit_switch(self):
+        task = self.session.get(Task, 1)
+        task.post_process_enabled = task.pose_analysis_enabled = task.pose_intent_enabled = True
+        self.session.commit()
+        data = {'expected_revision': 1, 'plugin': 'line_cross'}
+        with self.assertRaises(ValueError):
+            service.save_binding(1, 1, data)
+        self.assertTrue(task.post_process_enabled)
+        state = service.save_binding(1, 1, {**data, 'disable_sink_processing': True})
+        self.assertEqual(2, state['revision'])
+        for key in ('post_process_enabled', 'pose_analysis_enabled', 'pose_intent_enabled'):
+            self.assertFalse(state['task'][key])
+
+    def test_failed_switch_rolls_back_task_settings(self):
+        task = self.session.get(Task, 1)
+        task.post_process_enabled = True
+        task.tracking_enabled = False
+        self.session.commit()
+        with self.assertRaises(ValueError):
+            service.save_binding(1, 1, {'expected_revision': 1, 'plugin': 'line_cross',
+                                      'disable_sink_processing': True})
+        self.assertTrue(task.post_process_enabled)
+        self.assertEqual(1, task.template_revision)
 
     def test_statistics_for_each_bound_shape(self):
         info={'enrichment':{'business_rules':[
