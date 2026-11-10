@@ -73,7 +73,7 @@ def save_binding(task_id, region_id, data):
             steps.append(tail)
         tail['params'] = {**(tail.get('params') or {}), 'monitoring_mode': 'bound'}
         tail['enabled'] = True
-        # Persist the explicitly confirmed mode switch atomically with the binding.
+        # 用户明确确认后，在同一事务中关闭冲突功能并保存绑定，失败时整体回滚。
         if (data.get('disable_sink_processing') is True and not data.get('remove')
                 and data.get('enabled') is not False
                 and plugin in ('line_cross', 'region_enter_exit', 'dwell_timer')):
