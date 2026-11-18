@@ -65,7 +65,7 @@
         </template>
         <template v-else-if="column.key === 'latestValue'">
           <div class="value-cell">
-            <strong>{{ runtimeMap[resolvePropertyCode(record)]?.dataValue ?? "--" }}</strong>
+            <strong>{{ formatPointValue(record) }}</strong>
             <span>{{ formatTime(runtimeMap[resolvePropertyCode(record)]?.ts) }}</span>
           </div>
         </template>
@@ -263,7 +263,20 @@
                     />
                   </FormItem>
                 </Col>
-                <Col :span="16">
+                <Col :span="8">
+                  <FormItem label="显示小数位">
+                    <InputNumber
+                      v-model:value="formState.decimalPlaces"
+                      size="large"
+                      :min="0"
+                      :max="10"
+                      :precision="0"
+                      class="w-full"
+                      placeholder="2"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
                   <FormItem label="访问权限">
                     <RadioGroup v-model:value="formState.writable" class="point-permission">
                       <Radio :value="false">只读采集</Radio>
@@ -311,6 +324,7 @@ import { getDevicethingModels, updateDevices } from "@/api/device/devices";
 import { getPropertiesList } from "@/api/device/phsyicalModal";
 import { useMessage } from "@/hooks/web/useMessage";
 import { formatToDateTime } from "@/utils/dateUtil";
+import { formatDeviceValue } from "@/utils/deviceValue";
 import { useModal } from "@/components/Modal";
 import PointHistory from "../Model/components/Detail.vue";
 
@@ -322,6 +336,7 @@ interface PointConfig {
   nodeId?: string;
   dataType: string;
   scale?: number;
+  decimalPlaces?: number;
   writable: boolean;
   [key: string]: any;
 }
@@ -350,6 +365,7 @@ const emptyModbusPoint = (): PointConfig => ({
   dataType: "UINT16",
   valueRadix: 16,
   scale: 1,
+  decimalPlaces: 2,
   writable: false,
   quantity: 1,
   byteOrder: "BIG_ENDIAN",
@@ -365,7 +381,9 @@ const emptyOpcUaPoint = (): PointConfig => ({
   writable: false,
 });
 
-function resolvePropertyCode(point?: PointConfig | null) {
+function resolvePropertyCode(
+  point?: { propertyCode?: unknown; identifier?: unknown } | null,
+) {
   return String(point?.propertyCode || point?.identifier || "").trim();
 }
 
@@ -429,6 +447,7 @@ const columns = computed(() => {
     { title: "数据类型", dataIndex: "dataType", width: 110 },
     { title: "数值进制", key: "valueRadix", width: 120 },
     { title: "倍率", dataIndex: "scale", width: 80 },
+    { title: "小数位", dataIndex: "decimalPlaces", width: 90 },
     { title: "最新数据", key: "latestValue", width: 160 },
     { title: "权限", key: "writable", width: 90 },
     { title: "操作", key: "action", width: 170, fixed: "right" },
@@ -514,7 +533,7 @@ async function loadRuntimeValues() {
   }
 }
 
-function openEditor(point?: PointConfig, index = -1) {
+function openEditor(point?: PointConfig | Record<string, any>, index = -1) {
   editingIndex.value = index;
   const base = isOpcUa.value ? emptyOpcUaPoint() : emptyModbusPoint();
   const merged = { ...base, ...(point || {}) };
@@ -588,7 +607,7 @@ async function removePoint(index: number) {
 }
 
 const [registerHistory, { openModal: openHistory }] = useModal();
-function viewPoint(point: PointConfig) {
+function viewPoint(point: PointConfig | Record<string, any>) {
   let protocolConfig: Record<string, any> = {};
   try {
     protocolConfig = getExtension().protocolConfig || {};
@@ -601,6 +620,8 @@ function viewPoint(point: PointConfig) {
     data: {
       propertyCode: code,
       propertyName: propertyLabel(code) || code,
+      pointName: point.identifier && point.identifier !== code ? point.identifier : "",
+      decimalPlaces: point.decimalPlaces,
       unit: runtimeMap[code]?.unit || "",
       deviceIdentification: props.device?.deviceIdentification || "",
       industrialPoint: type.startsWith("MODBUS")
@@ -612,7 +633,7 @@ function viewPoint(point: PointConfig) {
   });
 }
 
-function customRow(record: PointConfig) {
+function customRow(record: PointConfig | Record<string, any>) {
   return {
     class: "clickable-row",
     onClick: () => viewPoint(record),
@@ -629,6 +650,13 @@ function radixLabel(value?: number) {
 
 function formatTime(value?: number) {
   return value ? formatToDateTime(value) : "暂无上报";
+}
+
+function formatPointValue(point: PointConfig | Record<string, any>) {
+  const runtime = runtimeMap[resolvePropertyCode(point)];
+  const value = formatDeviceValue(runtime?.dataValue, point.decimalPlaces);
+  if (value === "--") return value;
+  return `${value}${runtime?.unit || ""}`;
 }
 
 onMounted(() => {

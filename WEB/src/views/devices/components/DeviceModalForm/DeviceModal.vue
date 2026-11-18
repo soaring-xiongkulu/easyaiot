@@ -275,6 +275,18 @@
                       <InputNumber v-model:value="point.scale" :step="0.1" class="w-full" placeholder="1" />
                     </FormItem>
                   </Col>
+                  <Col :span="8">
+                    <FormItem label="显示小数位">
+                      <InputNumber
+                        v-model:value="point.decimalPlaces"
+                        :min="0"
+                        :max="10"
+                        :precision="0"
+                        class="w-full"
+                        placeholder="2"
+                      />
+                    </FormItem>
+                  </Col>
                 </Row>
               </div>
             </div>
@@ -767,6 +779,7 @@ function addModbusPoint() {
     byteOrder: 'BIG_ENDIAN',
     wordOrder: 'BIG_ENDIAN',
     scale: 1,
+    decimalPlaces: 2,
     offset: 0,
     writable: false,
   });

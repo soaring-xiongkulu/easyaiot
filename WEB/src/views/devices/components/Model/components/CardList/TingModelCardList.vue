@@ -14,7 +14,7 @@
                 <div class="title-wrap">
                   <Tooltip :title="fullTitle(item)" placement="topLeft">
                     <span class="title">
-                      <span class="name">{{ item.propertyName || '--' }}</span>
+                      <span class="name">{{ item.pointName || item.propertyName || '--' }}</span>
                       <span v-if="item.propertyCode" class="code">({{ item.propertyCode }})</span>
                     </span>
                   </Tooltip>
@@ -65,6 +65,7 @@ import {Icon} from '@/components/Icon';
 import {propTypes} from '@/utils/propTypes';
 import {isFunction} from '@/utils/is';
 import {formatToDateTime} from '@/utils/dateUtil';
+import {formatDeviceValue} from '@/utils/deviceValue';
 
 const ListItem = List.Item;
 
@@ -90,7 +91,7 @@ function isBreached(item: any) {
   return false;
 }
 
-const data = ref([]);
+const data = ref<any[]>([]);
 const total = ref(0);
 
 const state = reactive({
@@ -132,8 +133,7 @@ function mergeRuntimeList(nextList: any[], prevList: any[]) {
 }
 
 function displayValue(item: any) {
-  if (item?.dataValue == null || item?.dataValue === '') return '--';
-  return String(item.dataValue);
+  return formatDeviceValue(item?.dataValue, item?.decimalPlaces);
 }
 
 function fullValue(item: any) {
@@ -143,10 +143,11 @@ function fullValue(item: any) {
 }
 
 function fullTitle(item: any) {
+  const displayName = item?.pointName || item?.propertyName || '--';
   if (item?.propertyCode) {
-    return `${item.propertyName || '--'} (${item.propertyCode})`;
+    return `${displayName} (${item.propertyCode})`;
   }
-  return item?.propertyName || '--';
+  return displayName;
 }
 
 function valueClass(item: any) {
