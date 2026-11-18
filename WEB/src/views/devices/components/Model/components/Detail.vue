@@ -47,7 +47,7 @@
             </div>
             <div v-if="latestPoint" class="latest-value">
               <span>最新值</span>
-              <strong>{{ latestPoint.value }}{{ state.unit || '' }}</strong>
+              <strong>{{ formatTrendValue(latestPoint.value) }}{{ state.unit || '' }}</strong>
             </div>
           </div>
           <div class="chart-wrap">
@@ -56,7 +56,7 @@
               v-if="!trendData.length"
               class="chart-empty"
               :image="Empty.PRESENTED_IMAGE_SIMPLE"
-              description="暂无趋势数据"
+              description="当前时间范围暂无数据，可扩大范围或确认设备正在上报"
             />
           </div>
         </section>
@@ -87,7 +87,7 @@
             </div>
             <div v-if="predictResult.latestValue != null" class="latest-value">
               <span>最新值</span>
-              <strong>{{ predictResult.latestValue }}{{ state.unit || '' }}</strong>
+              <strong>{{ formatTrendValue(predictResult.latestValue) }}{{ state.unit || '' }}</strong>
             </div>
           </div>
           <div class="chart-wrap">
@@ -167,6 +167,7 @@ import { getDevicethingmodelsHistory, predictPropertyTrend } from '@/api/device/
 import { detailColumns } from '../tableData';
 import { useRoute } from 'vue-router';
 import { buildPredictionAnalysis } from './predictionAnalysis';
+import { formatDeviceValue, normalizeDecimalPlaces } from '@/utils/deviceValue';
 
 interface TrendPoint {
   time: string;
@@ -189,6 +190,7 @@ const state = reactive({
   propertyName: '',
   deviceIdentification: '',
   identifier: '',
+  decimalPlaces: undefined as number | undefined,
   industrialPoint: null as Record<string, any> | null,
 });
 
@@ -224,6 +226,7 @@ const timeList = [
   { label: '24小时', value: 24 },
   { label: '7天', value: 168 },
   { label: '30天', value: 720 },
+  { label: '全部', value: 'all' },
 ];
 const customTime = ref<string[]>([]);
 const selectPriceDate = ref<any>('');
@@ -242,9 +245,16 @@ const latestPoint = computed(() => {
   return [...trendData.value].sort((a, b) => b.timestamp - a.timestamp)[0];
 });
 
+function formatTrendValue(value: unknown) {
+  return formatDeviceValue(value, state.decimalPlaces);
+}
+
 function getTimeRange() {
   if (customTime.value?.length === 2) {
     return [Date.parse(customTime.value[0]), Date.parse(customTime.value[1])];
+  }
+  if (currentTime.value === 'all') {
+    return [undefined, undefined];
   }
   const endTime = Date.now();
   return [endTime - 60 * 60 * 1000 * Number(currentTime.value), endTime];
@@ -479,7 +489,10 @@ async function renderPredictChart() {
       right: 8,
     },
     grid: { left: 56, right: 24, top: 36, bottom: 72 },
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (value) => `${formatTrendValue(value)}${state.unit || ''}`,
+    },
     dataZoom: buildTimeAxisZoom(),
     xAxis: {
       type: 'time',
@@ -660,7 +673,7 @@ async function renderChart() {
     grid: { left: 56, right: 24, top: 24, bottom: 72 },
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value) => `${value}${state.unit || ''}`,
+      valueFormatter: (value) => `${formatTrendValue(value)}${state.unit || ''}`,
     },
     dataZoom: buildTimeAxisZoom(),
     xAxis: {
@@ -690,11 +703,12 @@ async function renderChart() {
 
 const [register, { closeModal, getOpen }] = useModalInner(({ data }) => {
   state.unit = data.unit || '';
-  state.propertyName = data.propertyName || data.propertyCode;
+  state.propertyName = data.pointName || data.propertyName || data.propertyCode;
   state.deviceIdentification = String(
     data.deviceIdentification || route.params.deviceIdentification || '',
   );
   state.identifier = data.propertyCode;
+  state.decimalPlaces = normalizeDecimalPlaces(data.decimalPlaces);
   state.industrialPoint = data.industrialPoint || null;
   currentTime.value = 1;
   customTime.value = [];
@@ -773,7 +787,9 @@ const [registerTable, { setColumns, reload, redoHeight }] = useTable({
       const rawData = item.rawData || extractRawPayload(originalValue, identifier);
       return {
         ...item,
-        dataValue: parsed.display,
+        dataValue: parsed.numeric == null
+          ? parsed.display
+          : formatDeviceValue(parsed.numeric, state.decimalPlaces),
         rawData: rawData || undefined,
         _chartValue: parsed.numeric,
       };
@@ -806,6 +822,7 @@ function resetAndClose() {
   tableRowCount.value = 0;
   customTime.value = [];
   state.industrialPoint = null;
+  state.decimalPlaces = undefined;
   viewMode.value = 'history';
   disposeChart();
   disposePredictChart();
