@@ -16,6 +16,7 @@ export function checkStatus(
   status: number,
   msg: string,
   errorMessageMode: ErrorMessageMode = 'message',
+  skipAuthRefresh = false,
 ): void {
   const { t } = useI18n()
   let errMessage = ''
@@ -29,6 +30,9 @@ export function checkStatus(
     // Return to the current page after successful login. This step needs to be operated on the login page.
     case 401:
       errMessage = msg || t('sys.api.errMsg401')
+      if (skipAuthRefresh) {
+        break
+      }
       if (stp === SessionTimeoutProcessingEnum.PAGE_COVERAGE) {
         import('@/store/modules/user').then(({ useUserStoreWithOut }) => {
           useUserStoreWithOut().setSessionTimeout(true)

@@ -35,7 +35,7 @@ export interface PlatformBrandingImageVO {
 export function getPlatformBranding() {
   return defHttp.get<PlatformBrandingVO>(
     { url: '/infra/platform-branding/get' },
-    { errorMessageMode: 'none' },
+    { errorMessageMode: 'none', skipAuthRefresh: true },
   )
 }
 

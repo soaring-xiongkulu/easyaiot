@@ -26,6 +26,8 @@ export interface RequestOptions {
   ignoreCancelToken?: boolean
   // Whether to send token in header
   withToken?: boolean
+  // Whether a 401 response should bypass token refresh and session-expiry handling
+  skipAuthRefresh?: boolean
   // 请求重试机制
   retryRequest?: RetryRequest
 }

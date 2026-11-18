@@ -190,7 +190,10 @@ export const useUserStore = defineStore('app-user', {
      * @description: logout
      */
     async logout(goLogin = false) {
-      if (this.getAccessToken) {
+      const loginPath = new URL(router.resolve(PageEnum.BASE_LOGIN).href, window.location.origin).pathname
+      const isLoginPage = router.currentRoute.value.path === PageEnum.BASE_LOGIN
+        || window.location.pathname === loginPath
+      if (this.getAccessToken && !isLoginPage) {
         try {
           await doLogout()
         }
@@ -203,8 +206,11 @@ export const useUserStore = defineStore('app-user', {
       this.setSessionTimeout(false)
       this.setUserInfo(null)
       clearAuthCache(true)
-      goLogin && router.push(PageEnum.BASE_LOGIN)
-      window.location.reload()
+      if (goLogin && !isLoginPage)
+        await router.push(PageEnum.BASE_LOGIN)
+      // 登录页的匿名请求即使异常也只能清理会话；刷新会重新触发同一请求并形成循环。
+      if (!isLoginPage)
+        window.location.reload()
     },
 
     /**

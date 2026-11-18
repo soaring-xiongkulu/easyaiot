@@ -97,7 +97,8 @@ const transform: AxiosTransform = {
     switch (code) {
       case ResultEnum.UNAUTHORIZED:
         timeoutMsg = t('sys.api.timeoutMessage')
-        handleSessionTimeout()
+        if (!options.skipAuthRefresh)
+          handleSessionTimeout()
         break
       default:
         if (msg)
@@ -282,6 +283,7 @@ const transform: AxiosTransform = {
     errorLogStore.addAjaxErrorInfo(error)
     const { response, code, message, config } = error || {}
     const errorMessageMode = config?.requestOptions?.errorMessageMode || 'none'
+    const skipAuthRefresh = config?.requestOptions?.skipAuthRefresh === true
     const msg: string = (response?.data?.error?.message || response?.data?.msg) ?? ''
     const err: string = error?.toString?.() ?? ''
     let errMessage = ''
@@ -316,7 +318,7 @@ const transform: AxiosTransform = {
       throw new Error(error as unknown as string)
     }
 
-    checkStatus(error?.response?.status, msg, errorMessageMode)
+    checkStatus(error?.response?.status, msg, errorMessageMode, skipAuthRefresh)
 
     // 添加自动重试机制 保险起见 只针对GET请求
     const retryRequest = new AxiosRetry()

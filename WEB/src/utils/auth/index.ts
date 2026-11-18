@@ -50,10 +50,12 @@ export function handleSessionTimeout() {
   if (isLoggingOut)
     return
   isLoggingOut = true
-  import('@/store/modules/user').then(({ useUserStoreWithOut }) => {
-    const userStore = useUserStoreWithOut()
-    userStore.logout(true)
-  })
+  import('@/store/modules/user')
+    .then(({ useUserStoreWithOut }) => useUserStoreWithOut().logout(true))
+    .finally(() => {
+      // 登录页不会再通过整页刷新重置模块状态，需显式释放防重入标记。
+      isLoggingOut = false
+    })
 }
 
 export function getAccessToken(): string {
