@@ -36,6 +36,8 @@ EASYAIOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${EASYAIOT_ROOT}/.scripts/docker/init-build-cache-dirs.sh"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh"
+# shellcheck source=../.scripts/docker/sed_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/sed_helpers.sh"
 # shellcheck source=../.scripts/docker/module_update_helpers.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 
@@ -595,7 +597,7 @@ ensure_nginx_conf_for_profile() {
     export NGINX_CONF="$conf"
     if [ -f .env ]; then
         if grep -q '^NGINX_CONF=' .env 2>/dev/null; then
-            sed -i "s|^NGINX_CONF=.*|NGINX_CONF=${conf}|" .env
+            sed_inplace .env "s|^NGINX_CONF=.*|NGINX_CONF=${conf}|"
         else
             echo "NGINX_CONF=${conf}" >> .env
         fi

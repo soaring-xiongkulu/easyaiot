@@ -1,6 +1,11 @@
 #!/bin/bash
 # EasyAIoT Docker Compose GPU 配置辅助（AI / VIDEO 共用）
 
+_GPU_COMPOSE_HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=sed_helpers.sh
+source "${_GPU_COMPOSE_HELPERS_DIR}/sed_helpers.sh"
+unset _GPU_COMPOSE_HELPERS_DIR
+
 GPU_AVAILABLE=false
 GPU_HARDWARE_DETECTED=false
 
@@ -66,29 +71,29 @@ configure_compose_gpu() {
         print_info "启用 GPU 支持..."
         rm -f "$override_file"
         if grep -qE '^[[:space:]]*# runtime: nvidia' "$compose_file"; then
-            sed -i 's/^\([[:space:]]*\)# runtime: nvidia/\1runtime: nvidia/' "$compose_file"
+            sed_inplace "$compose_file" 's/^\([[:space:]]*\)# runtime: nvidia/\1runtime: nvidia/'
         fi
         if grep -qE '^[[:space:]]*# deploy:' "$compose_file"; then
-            sed -i '/^[[:space:]]*# deploy:/,/capabilities:.*gpu/ s/^\([[:space:]]*\)# /\1/' "$compose_file"
+            sed_inplace "$compose_file" '/^[[:space:]]*# deploy:/,/capabilities:.*gpu/ s/^\([[:space:]]*\)# /\1/'
         fi
         # 去掉误留的 runtime: runc
         if grep -qE '^[[:space:]]*runtime: runc' "$compose_file"; then
-            sed -i '/^[[:space:]]*runtime: runc/d' "$compose_file"
+            sed_inplace "$compose_file" '/^[[:space:]]*runtime: runc/d'
         fi
         if [ -f "$env_file" ] && grep -q '^USE_GPU=' "$env_file"; then
-            sed -i 's/^USE_GPU=.*/USE_GPU=True/' "$env_file"
+            sed_inplace "$env_file" 's/^USE_GPU=.*/USE_GPU=True/'
         fi
         print_success "GPU 配置已启用"
     else
         print_info "使用 CPU 模式（GPU 配置已禁用）"
         if grep -qE '^[[:space:]]*runtime: nvidia' "$compose_file"; then
-            sed -i 's/^\([[:space:]]*\)runtime: nvidia/\1# runtime: nvidia/' "$compose_file"
+            sed_inplace "$compose_file" 's/^\([[:space:]]*\)runtime: nvidia/\1# runtime: nvidia/'
         fi
         if grep -qE '^[[:space:]]*deploy:' "$compose_file" && ! grep -qE '^[[:space:]]*# deploy:' "$compose_file"; then
-            sed -i '/^[[:space:]]*deploy:/,/capabilities:.*gpu/ s/^\([[:space:]]*\)/\1# /' "$compose_file"
+            sed_inplace "$compose_file" '/^[[:space:]]*deploy:/,/capabilities:.*gpu/ s/^\([[:space:]]*\)/\1# /'
         fi
         if [ -f "$env_file" ] && grep -q '^USE_GPU=' "$env_file"; then
-            sed -i 's/^USE_GPU=.*/USE_GPU=False/' "$env_file"
+            sed_inplace "$env_file" 's/^USE_GPU=.*/USE_GPU=False/'
         fi
         # daemon default-runtime=nvidia + 驱动未加载时，PyTorch 镜像（含 nvidia 标签）必须显式 runc
         {

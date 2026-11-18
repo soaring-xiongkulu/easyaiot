@@ -9,6 +9,8 @@ cd "${ROOT}"
 EASYAIOT_ROOT="$(cd "${ROOT}/.." && pwd)"
 # shellcheck source=../.scripts/docker/deploy_profile.sh
 source "${EASYAIOT_ROOT}/.scripts/docker/deploy_profile.sh" 2>/dev/null || true
+# shellcheck source=../.scripts/docker/sed_helpers.sh
+source "${EASYAIOT_ROOT}/.scripts/docker/sed_helpers.sh"
 
 cmd="${1:-help}"
 
@@ -25,7 +27,7 @@ set_harness_env_var() {
   local file="${ROOT}/harness.env"
   ensure_env_file
   if grep -q "^${key}=" "${file}"; then
-    sed -i "s|^${key}=.*|${key}=${val}|" "${file}"
+    sed_inplace "${file}" "s|^${key}=.*|${key}=${val}|"
   else
     echo "${key}=${val}" >> "${file}"
   fi

@@ -13,6 +13,7 @@ cp -a "$REPO_ROOT/.scripts/docker/runtime_image_common.sh" "$OPT_RT/.scripts/doc
 cp -a "$REPO_ROOT/.scripts/docker/runtime_image.sh" "$OPT_RT/.scripts/docker/"
 cp -a "$REPO_ROOT/.scripts/docker/deploy_profile.sh" "$OPT_RT/.scripts/docker/"
 cp -a "$REPO_ROOT/.scripts/docker/gpu_compose_helpers.sh" "$OPT_RT/.scripts/docker/"
+cp -a "$REPO_ROOT/.scripts/docker/sed_helpers.sh" "$OPT_RT/.scripts/docker/"
 cp -a "$REPO_ROOT/.scripts/docker/install_linux.sh" "$OPT_RT/.scripts/docker/"
 cp -a "$REPO_ROOT/.scripts/docker/install_linux_arm.sh" "$OPT_RT/.scripts/docker/" 2>/dev/null || true
 cp -a "$REPO_ROOT/.scripts/docker/install_linux_kylin.sh" "$OPT_RT/.scripts/docker/" 2>/dev/null || true
