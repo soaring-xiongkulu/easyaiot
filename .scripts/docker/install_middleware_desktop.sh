@@ -170,6 +170,9 @@ compose_up_for_profile() {
     err "没有可启动的中间件服务"
     return 1
   fi
+  # 仅在马上要 compose up 时才允许因架构不符移除旧容器。
+  # status/logs 等查询命令不得改变一个已经正常运行的 Nacos。
+  reconcile_nacos_platform
   info "启动中间件: ${up_services[*]}"
   # Desktop 上部分镜像站 HEAD 会 403；本地已有镜像时避免 compose 再强拉失败
   if compose up -d --pull never "${up_services[@]}" 2>/dev/null; then
@@ -356,29 +359,30 @@ copy_srs_conf() {
   fi
 }
 
-# 若本地 Nacos 容器架构与本机不符（常见：Apple Silicon 误用 amd64 + QEMU），删除以便按 NACOS_PLATFORM 重建
+# 若本地 Nacos 容器镜像架构与本机不符（常见：Apple Silicon 误用 amd64 + QEMU），
+# 删除以便紧随其后的 compose up 按 NACOS_PLATFORM 重建。
 reconcile_nacos_platform() {
   local want="${NACOS_PLATFORM:-}"
   [ -n "$want" ] || return 0
   docker inspect nacos-server >/dev/null 2>&1 || return 0
 
-  local expect_arch="" got_arch="" matched=0
+  local expect_arch="" got_arch="" image=""
   case "$want" in
     linux/arm64*|linux/aarch64*) expect_arch="arm64" ;;
     linux/amd64*|linux/x86_64*) expect_arch="amd64" ;;
     *) return 0 ;;
   esac
 
-  got_arch=$(docker inspect nacos-server --format '{{.Architecture}}' 2>/dev/null || true)
-  [ -n "$got_arch" ] || got_arch=$(docker inspect nacos-server --format '{{.Platform}}' 2>/dev/null || true)
-  [ -n "$got_arch" ] || return 0
-
-  if [ "$expect_arch" = "arm64" ] && [[ "$got_arch" == *arm64* || "$got_arch" == *aarch64* ]]; then
-    matched=1
-  elif [ "$expect_arch" = "amd64" ] && [[ "$got_arch" == *amd64* || "$got_arch" == *x86_64* ]]; then
-    matched=1
-  fi
-  [ "$matched" -eq 1 ] && return 0
+  image=$(docker inspect nacos-server --format '{{.Config.Image}}' 2>/dev/null || true)
+  [ -n "$image" ] || return 0
+  got_arch=$(docker image inspect "$image" --format '{{.Architecture}}' 2>/dev/null || true)
+  case "$got_arch" in
+    arm64|aarch64) got_arch="arm64" ;;
+    amd64|x86_64) got_arch="amd64" ;;
+    # Docker Desktop 的容器 Platform 常只有 linux；任何未知值都不能作为删除依据。
+    *) return 0 ;;
+  esac
+  [ "$got_arch" = "$expect_arch" ] && return 0
 
   warn "Nacos 容器架构为 ${got_arch}，与本机期望 ${want} 不一致，将重建..."
   docker rm -f nacos-server >/dev/null 2>&1 || true
@@ -392,7 +396,12 @@ ensure_ready() {
   ensure_env
   ensure_network
   copy_srs_conf
-  reconcile_nacos_platform
+}
+
+# 只读命令仅检查 Docker/Compose 可用性，不创建目录、改写环境或重建容器。
+ensure_query_ready() {
+  ensure_docker
+  ensure_compose
 }
 
 pull_middleware_images() {
@@ -680,10 +689,10 @@ cmd_start() {
 
 cmd_stop()   { ensure_ready; info "停止服务..."; compose down; ok "已停止"; }
 cmd_restart(){ ensure_ready; info "重启服务..."; compose down; compose_up_for_profile; post_start_hooks; ok "已重启"; }
-cmd_status() { ensure_ready; compose ps; }
+cmd_status() { ensure_query_ready; compose ps; }
 
 cmd_logs() {
-  ensure_ready
+  ensure_query_ready
   if [[ "${1:-}" = "-f" || "${1:-}" = "--follow" ]]; then
     shift || true
     compose logs -f "$@"

@@ -39,6 +39,29 @@ _deploy_profile_repo_root() {
     echo "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 }
 
+_deploy_profile_is_desktop_host() {
+    [ -n "${EASYAIOT_DESKTOP_OS:-}" ] && return 0
+    [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ] && return 0
+    case "$(uname -s 2>/dev/null || true)" in
+        Darwin|MINGW*|MSYS*|CYGWIN*) return 0 ;;
+    esac
+    return 1
+}
+
+# VIDEO 的 local-storage 在容器内固定为 /data/local-storage；这里只解析宿主机 bind 源。
+# Linux 保留历史默认值，Docker Desktop 则放到已共享、可写的媒体根目录下。
+resolve_easyaiot_local_storage_host_root() {
+    local media_root="${1:-}"
+    if [ -n "${EASYAIOT_EDGE_RECORDING_ROOT:-}" ]; then
+        echo "${EASYAIOT_EDGE_RECORDING_ROOT}"
+    elif _deploy_profile_is_desktop_host; then
+        [ -n "$media_root" ] || media_root="${EASYAIOT_MEDIA_ROOT:-${HOME}/easyaiot/media}"
+        echo "${media_root%/}/local-storage"
+    else
+        echo "/data/local-storage"
+    fi
+}
+
 _deploy_profile_load_media_root_helpers() {
     local helper
     helper="$(_deploy_profile_repo_root)/.scripts/media-cluster/nfs/resolve_media_root.sh"
@@ -777,6 +800,7 @@ _apply_python_sink_media_env() {
     local env_file="$1"
     local compose_env="${2:-}"
     local with_sink_hooks="${3:-1}"
+    local with_local_storage_bind="${4:-0}"
     local mount_root
     _deploy_profile_load_media_root_helpers
     # 宿主机绑定源（供 docker-compose ${EASYAIOT_MEDIA_ROOT} 替换）
@@ -818,6 +842,14 @@ _apply_python_sink_media_env() {
         touch "$compose_env" 2>/dev/null || true
         if [ -w "$compose_env" ] || [ -w "$(dirname "$compose_env")" ]; then
             _set_env_docker_kv "$compose_env" EASYAIOT_MEDIA_ROOT "$mount_root"
+            if [ "$with_local_storage_bind" = "1" ]; then
+                local local_storage_root
+                local_storage_root="$(resolve_easyaiot_local_storage_host_root "$mount_root")"
+                if _deploy_profile_is_desktop_host && ! mkdir -p "$local_storage_root" 2>/dev/null; then
+                    echo "[media] 警告: 无法创建本地对象目录 ${local_storage_root}" >&2
+                fi
+                _set_env_docker_kv "$compose_env" EASYAIOT_EDGE_RECORDING_ROOT "$local_storage_root"
+            fi
         else
             echo "[media] 警告: 无法写入 ${compose_env}（权限不足），请手动设置 EASYAIOT_MEDIA_ROOT=${mount_root}" >&2
         fi
@@ -869,7 +901,7 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" RTC_GO2RTC_WEB_URL "/dev-api/go2rtc/"
                 _set_env_docker_kv "$env_file" RTC_RTSP_HOST "127.0.0.1"
                 _set_env_docker_kv "$env_file" RTC_RTSP_PORT "8554"
-                _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0
+                _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0 1
             else
                 _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0
             fi
@@ -905,7 +937,7 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST false
             fi
             _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST false
-            _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 1
+            _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 1 1
         else
             # AI：仅同步媒体根，供 compose ${EASYAIOT_MEDIA_ROOT} 替换
             _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0
@@ -918,7 +950,7 @@ apply_mini_python_service_env() {
     apply_python_service_deploy_env "$@"
 }
 
-# mini 形态：安装阶段将 RustFS 磁盘历史对象同步到宿主机 /data/local-storage
+# mini 形态：安装阶段将 RustFS 磁盘历史对象同步到 VIDEO 使用的同一宿主机目录。
 migrate_mini_minio_data_to_local_storage() {
     is_mini_deploy_profile || return 0
     is_edge_deploy_profile && return 0
@@ -934,12 +966,23 @@ migrate_mini_minio_data_to_local_storage() {
     if [ ! -d "$ai_dir" ]; then
         return 0
     fi
-    echo "mini 形态：同步 RustFS 种子数据到 /data/local-storage ..."
+    local media_root="${EASYAIOT_MEDIA_ROOT:-}"
+    local local_storage_root
+    if [ -z "$media_root" ] && _deploy_profile_is_desktop_host; then
+        _deploy_profile_load_media_root_helpers
+        media_root="$(ensure_easyaiot_media_bind_source 2>/dev/null || resolve_easyaiot_media_root 2>/dev/null || echo "${HOME}/easyaiot/media")"
+    fi
+    local_storage_root="$(resolve_easyaiot_local_storage_host_root "$media_root")"
+    if _deploy_profile_is_desktop_host && ! mkdir -p "$local_storage_root" 2>/dev/null; then
+        echo "警告: 无法创建 mini 本地对象目录 ${local_storage_root}"
+        return 1
+    fi
+    echo "mini 形态：同步 RustFS 种子数据到 ${local_storage_root} ..."
     if (
         cd "$ai_dir" && \
         EASYAIOT_DEPLOY_PROFILE=mini \
         MINIO_SEED_DATA_ROOT="$minio_seed" \
-        LOCAL_STORAGE_ROOT="/data/local-storage" \
+        LOCAL_STORAGE_ROOT="$local_storage_root" \
         python3 -c "
 from app.services.local_storage_service import migrate_seed_data_to_local_storage
 copied, skipped = migrate_seed_data_to_local_storage(buckets=['models'], skip_existing=True)
