@@ -31,6 +31,16 @@ Site officiel EasyAIoT : [http://36.111.47.113:8090/](http://36.111.47.113:8090/
 
 Présentation produit, fonctionnalités, quatre niveaux matériels, téléchargement des installateurs et accès à la documentation — pour comprendre rapidement la valeur de la plateforme et démarrer le déploiement.
 
+## 🏗️ Architecture de la plateforme
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+EasyAIoT relie les équipements de terrain, l'exécution en périphérie, l'intelligence de la plateforme et les applications métier grâce à un socle unifié de données et d'événements. Les modèles, tâches, configurations et commandes descendent de façon centralisée, tandis que les vidéos, télémesures, résultats d'inférence et alertes remontent, formant une boucle complète de la perception à l'action.
+</p>
+
+<div align="center">
+    <img src=".image/iframe5.png" width="100%" alt="Architecture intégrée cloud-bord-périphérique d'EasyAIoT">
+</div>
+
 ## 📖 Présentation du projet
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

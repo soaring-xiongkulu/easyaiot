@@ -31,6 +31,16 @@ EasyAIoT Official Website: [http://36.111.47.113:8090/](http://36.111.47.113:809
 
 Product introduction, feature overview, four hardware tiers, installer downloads, and documentation entry—so you can quickly understand the platform and start deploying.
 
+## 🏗️ Platform Architecture
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+EasyAIoT unifies field devices, edge execution, platform intelligence, and business applications on a shared data and event foundation. Models, tasks, configurations, and control commands flow downward, while video, telemetry, inference results, and alerts return centrally—forming a complete loop from sensing and inference to assessment, alerting, and action.
+</p>
+
+<div align="center">
+    <img src=".image/iframe5.png" width="100%" alt="EasyAIoT cloud-edge-device integrated architecture">
+</div>
+
 ## 📖 Project Overview
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

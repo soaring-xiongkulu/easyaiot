@@ -31,6 +31,16 @@ EasyAIoT 官方網站：[http://36.111.47.113:8090/](http://36.111.47.113:8090/)
 
 提供產品介紹、特性說明、四檔硬體選型、安裝包下載與文件入口，便於快速了解平臺價值並開始落地。
 
+## 🏗️ 平臺架構
+
+<p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
+EasyAIoT 以統一數據與事件底座貫通現場設備、邊緣執行、平臺智能與業務應用：模型、任務、配置和控制統一下發，視頻、遙測、推理結果與告警集中回傳，形成從感知、推理、研判到告警聯動的完整閉環。
+</p>
+
+<div align="center">
+    <img src=".image/iframe5.png" width="100%" alt="EasyAIoT 雲邊端一體化架構圖">
+</div>
+
 ## 📖 項目介紹
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
