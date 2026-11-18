@@ -27,6 +27,7 @@ import com.digitalpetri.modbus.tcp.client.NettyClientTransportConfig;
 import com.digitalpetri.modbus.tcp.client.NettyTcpClientTransport;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.Duration;
@@ -277,6 +278,13 @@ public class IotModbusPollingProtocol extends AbstractIndustrialPollingProtocol 
         double offset = point.getOffset() == null ? 0D : point.getOffset();
         if (scale == 1D && offset == 0D && !dataType.startsWith("FLOAT")) {
             return raw;
+        }
+        // 整数寄存器使用十进制定点运算，避免 287 * 0.1 产生 28.700000000000003。
+        if (!dataType.startsWith("FLOAT")) {
+            return BigDecimal.valueOf(raw.longValue())
+                    .multiply(BigDecimal.valueOf(scale))
+                    .add(BigDecimal.valueOf(offset))
+                    .stripTrailingZeros();
         }
         return raw.doubleValue() * scale + offset;
     }

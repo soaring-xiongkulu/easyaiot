@@ -46,8 +46,8 @@ INSERT INTO public.product_properties (
   (911001, '温度', 'temperature', 'DOUBLE', '演示温度', NULL, NULL, NULL, 'r', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_TCP_DEMO', 1),
   (911002, '设定值', 'setpoint', 'INT', '演示设定值', NULL, NULL, NULL, 'w', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_TCP_DEMO', 1),
   (911003, '运行', 'running', 'BOOL', '演示运行状态', NULL, NULL, NULL, 'w', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_TCP_DEMO', 1),
-  (911011, '温度', 'temperature', 'DOUBLE', '演示温度', NULL, NULL, NULL, 'r', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_RTU_DEMO', 1),
-  (911012, '设定值', 'setpoint', 'INT', '演示设定值', NULL, NULL, NULL, 'w', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_RTU_DEMO', 1),
+  (911011, '温度', 'temperature', 'DOUBLE', '演示温度', NULL, NULL, NULL, 'r', NULL, 0, NULL, '℃', 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_RTU_DEMO', 1),
+  (911012, '设定值', 'setpoint', 'INT', '演示设定值', NULL, NULL, NULL, 'w', NULL, 0, NULL, '℃', 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_RTU_DEMO', 1),
   (911013, '运行', 'running', 'BOOL', '演示运行状态', NULL, NULL, NULL, 'w', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_MODBUS_RTU_DEMO', 1),
   (911021, '温度', 'temperature', 'DOUBLE', '演示温度', NULL, NULL, NULL, 'r', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_OPCUA_DEMO', 1),
   (911022, '设定值', 'setpoint', 'DOUBLE', '演示设定值', NULL, NULL, NULL, 'w', NULL, 0, NULL, NULL, 'admin', CURRENT_TIMESTAMP, NULL, NULL, NULL, 'IND_OPCUA_DEMO', 1),
@@ -58,6 +58,7 @@ ON CONFLICT (id) DO UPDATE SET
   datatype = EXCLUDED.datatype,
   description = EXCLUDED.description,
   method = EXCLUDED.method,
+  unit = COALESCE(EXCLUDED.unit, product_properties.unit),
   product_identification = EXCLUDED.product_identification;
 
 -- 演示设备（占位 host，启动脚本会改成当前可达地址）
@@ -78,7 +79,7 @@ INSERT INTO public.device (
    'ENABLE', 'OFFLINE', NULL, 'IND_MODBUS_RTU_DEMO', 'admin', CURRENT_TIMESTAMP,
    'admin', CURRENT_TIMESTAMP, NULL, NULL, 'SN_MRTU_001', NULL, NULL,
    1,
-   '{"protocolConfig":{"type":"MODBUS_RTU","enabled":true,"serialPort":"/tmp/easyaiot-modbus-rtu-u","baudRate":9600,"dataBits":8,"stopBits":"1","parity":"NONE","unitId":1,"transmitDelayMs":0,"pollIntervalMs":5000,"points":[{"propertyCode":"temperature","identifier":"temperature","function":"HOLDING_REGISTER","address":0,"dataType":"UINT16","scale":0.1,"writable":false},{"propertyCode":"setpoint","identifier":"setpoint","function":"HOLDING_REGISTER","address":1,"dataType":"UINT16","scale":1,"writable":true},{"propertyCode":"running","identifier":"running","function":"COIL","address":0,"dataType":"UINT16","writable":true}]}}',
+   '{"protocolConfig":{"type":"MODBUS_RTU","enabled":true,"serialPort":"/tmp/easyaiot-modbus-rtu-u","baudRate":9600,"dataBits":8,"stopBits":"1","parity":"NONE","unitId":1,"transmitDelayMs":0,"pollIntervalMs":5000,"points":[{"propertyCode":"temperature","identifier":"temperature","function":"HOLDING_REGISTER","address":0,"dataType":"UINT16","scale":0.1,"decimalPlaces":1,"writable":false},{"propertyCode":"setpoint","identifier":"setpoint","function":"HOLDING_REGISTER","address":1,"dataType":"UINT16","scale":1,"decimalPlaces":0,"writable":true},{"propertyCode":"running","identifier":"running","function":"COIL","address":0,"dataType":"UINT16","decimalPlaces":0,"writable":true}]}}',
    CURRENT_TIMESTAMP, NULL, NULL, 'COMMON', 1, 0),
   (920003, 'opcua01', 'demo', 'DEV_OPCUA_001', 'OPC UA 演示设备', 'industrial demo',
    'ENABLE', 'OFFLINE', NULL, 'IND_OPCUA_DEMO', 'admin', CURRENT_TIMESTAMP,

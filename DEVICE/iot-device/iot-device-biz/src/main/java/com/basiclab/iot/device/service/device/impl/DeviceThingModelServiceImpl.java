@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -129,7 +130,56 @@ public class DeviceThingModelServiceImpl implements DeviceThingModelService {
 
         // 3) 仍有缺失时，使用 Sink 维护的最新属性缓存（工业协议轮询）
         fillMissingValuesFromRedis(id, result);
+        applyPointDisplayConfig(result, device.getExtension());
         return result;
+    }
+
+    /**
+     * 将设备协议点位中的显示配置补充到运行状态响应。
+     * propertyCode 是稳定的物模型绑定键，identifier 只作为用户可维护的点位名称。
+     */
+    static void applyPointDisplayConfig(List<TDDeviceDataResp> result, String extensionText) {
+        if (CollectionUtils.isEmpty(result) || StrUtil.isBlank(extensionText)) {
+            return;
+        }
+        try {
+            JSONObject root = JSON.parseObject(extensionText);
+            JSONObject protocolConfig = root == null ? null : root.getJSONObject("protocolConfig");
+            com.alibaba.fastjson2.JSONArray points = protocolConfig == null
+                    ? null : protocolConfig.getJSONArray("points");
+            if (points == null || points.isEmpty()) {
+                return;
+            }
+            Map<String, JSONObject> pointMap = new HashMap<>();
+            for (int i = 0; i < points.size(); i++) {
+                JSONObject point = points.getJSONObject(i);
+                if (point == null) {
+                    continue;
+                }
+                String propertyCode = StrUtil.blankToDefault(
+                        point.getString("propertyCode"), point.getString("identifier"));
+                if (StrUtil.isNotBlank(propertyCode)) {
+                    pointMap.put(propertyCode, point);
+                }
+            }
+            for (TDDeviceDataResp item : result) {
+                JSONObject point = pointMap.get(item.getPropertyCode());
+                if (point == null) {
+                    continue;
+                }
+                String pointName = StrUtil.trim(point.getString("identifier"));
+                // 旧配置 identifier 与 propertyCode 相同，此时继续展示更友好的物模型名称。
+                if (StrUtil.isNotBlank(pointName) && !pointName.equals(item.getPropertyCode())) {
+                    item.setPointName(pointName);
+                }
+                Integer decimalPlaces = point.getInteger("decimalPlaces");
+                if (decimalPlaces != null) {
+                    item.setDecimalPlaces(Math.max(0, Math.min(10, decimalPlaces)));
+                }
+            }
+        } catch (Exception e) {
+            log.debug("解析点位显示配置失败: {}", e.getMessage());
+        }
     }
 
     private void applyParams(List<TDDeviceDataResp> result, JSONObject params,
@@ -303,7 +353,7 @@ public class DeviceThingModelServiceImpl implements DeviceThingModelService {
         }
     }
 
-    private JSONObject parseParams(String raw) {
+    static JSONObject parseParams(String raw) {
         if (!StringUtils.hasText(raw)) {
             return null;
         }
@@ -332,7 +382,7 @@ public class DeviceThingModelServiceImpl implements DeviceThingModelService {
     /**
      * 将 {k:v,k2:v2} 宽松解析为 JSONObject（仅用于运行状态展示兼容）。
      */
-    private JSONObject tryRecoverUnquotedJson(String raw) {
+    static JSONObject tryRecoverUnquotedJson(String raw) {
         if (!raw.startsWith("{") || !raw.endsWith("}")) {
             return null;
         }
@@ -342,25 +392,109 @@ public class DeviceThingModelServiceImpl implements DeviceThingModelService {
                 return new JSONObject();
             }
             JSONObject obj = new JSONObject();
-            for (String part : body.split(",")) {
-                int idx = part.indexOf(':');
+            for (String part : splitTopLevel(body)) {
+                int idx = findTopLevelColon(part);
                 if (idx <= 0) {
                     continue;
                 }
-                String key = part.substring(0, idx).trim();
+                String key = unquote(part.substring(0, idx).trim());
                 String val = part.substring(idx + 1).trim();
-                if ((key.startsWith("\"") && key.endsWith("\"")) || (key.startsWith("'") && key.endsWith("'"))) {
-                    key = key.substring(1, key.length() - 1);
+                if (StrUtil.isBlank(key)) {
+                    continue;
                 }
-                if ((val.startsWith("\"") && val.endsWith("\"")) || (val.startsWith("'") && val.endsWith("'"))) {
-                    val = val.substring(1, val.length() - 1);
-                }
-                obj.put(key, val);
+                obj.put(key, parseLooseValue(val));
             }
             return obj.isEmpty() ? null : obj;
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** 仅在对象最外层按逗号分割，避免嵌套 _raw 对象中的同名键覆盖解析值。 */
+    private static List<String> splitTopLevel(String body) {
+        List<String> parts = new ArrayList<>();
+        int start = 0;
+        int depth = 0;
+        char quote = 0;
+        boolean escaped = false;
+        for (int i = 0; i < body.length(); i++) {
+            char ch = body.charAt(i);
+            if (quote != 0) {
+                if (escaped) {
+                    escaped = false;
+                } else if (ch == '\\') {
+                    escaped = true;
+                } else if (ch == quote) {
+                    quote = 0;
+                }
+                continue;
+            }
+            if (ch == '\'' || ch == '"') {
+                quote = ch;
+            } else if (ch == '{' || ch == '[' || ch == '(') {
+                depth++;
+            } else if (ch == '}' || ch == ']' || ch == ')') {
+                depth = Math.max(0, depth - 1);
+            } else if (ch == ',' && depth == 0) {
+                parts.add(body.substring(start, i).trim());
+                start = i + 1;
+            }
+        }
+        parts.add(body.substring(start).trim());
+        return parts;
+    }
+
+    private static int findTopLevelColon(String part) {
+        int depth = 0;
+        char quote = 0;
+        boolean escaped = false;
+        for (int i = 0; i < part.length(); i++) {
+            char ch = part.charAt(i);
+            if (quote != 0) {
+                if (escaped) {
+                    escaped = false;
+                } else if (ch == '\\') {
+                    escaped = true;
+                } else if (ch == quote) {
+                    quote = 0;
+                }
+                continue;
+            }
+            if (ch == '\'' || ch == '"') {
+                quote = ch;
+            } else if (ch == '{' || ch == '[' || ch == '(') {
+                depth++;
+            } else if (ch == '}' || ch == ']' || ch == ')') {
+                depth = Math.max(0, depth - 1);
+            } else if (ch == ':' && depth == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static Object parseLooseValue(String value) {
+        String text = value == null ? "" : value.trim();
+        if (text.startsWith("{") && text.endsWith("}")) {
+            JSONObject nested = tryRecoverUnquotedJson(text);
+            return nested == null ? text : nested;
+        }
+        try {
+            return JSON.parse(text);
+        } catch (Exception ignored) {
+            return unquote(text);
+        }
+    }
+
+    private static String unquote(String value) {
+        if (value != null && value.length() >= 2) {
+            char first = value.charAt(0);
+            char last = value.charAt(value.length() - 1);
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                return value.substring(1, value.length() - 1);
+            }
+        }
+        return value;
     }
 
     private static final class ShadowSnapshot {

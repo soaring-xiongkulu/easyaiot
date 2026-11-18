@@ -25,6 +25,18 @@ public class TDDeviceDataResp {
      */
     @ApiModelProperty("属性名称")
     private String propertyName;
+
+    /**
+     * 设备点位自定义名称。为空时前端回退到物模型属性名称。
+     */
+    @ApiModelProperty("点位名称")
+    private String pointName;
+
+    /**
+     * 点位数值展示的小数位数；为空表示使用默认的浮点误差归一化展示。
+     */
+    @ApiModelProperty("显示小数位数")
+    private Integer decimalPlaces;
     /**
      * 数据类型
       */

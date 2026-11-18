@@ -541,6 +541,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             if (!boundCodes.add(propertyCode)) {
                 throw new IllegalArgumentException("物模型属性「" + propertyCode + "」被多个点位重复绑定");
             }
+            Integer decimalPlaces = point.getInteger("decimalPlaces");
+            if (decimalPlaces != null && (decimalPlaces < 0 || decimalPlaces > 10)) {
+                throw new IllegalArgumentException("第 " + (i + 1) + " 个点位的显示小数位必须在 0 到 10 之间");
+            }
             // 回写规范化：保证持久化含 propertyCode，identifier 缺省时等于 propertyCode
             point.put("propertyCode", propertyCode);
             if (StrUtil.isBlank(point.getString("identifier"))) {
@@ -1917,4 +1921,3 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
 }
-
