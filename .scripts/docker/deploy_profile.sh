@@ -940,12 +940,18 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_HOST "srs-server"
                 _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_PORT "1935"
                 _set_env_docker_kv "$env_file" SRS_HOST "srs-server"
+                # Docker Desktop 使用 bridge，VIDEO 通过 easyaiot-network 访问 EMQX。
+                _set_env_docker_kv "$env_file" MQTT_BROKER_URLS "emqx-server:1883"
             else
                 # Linux 仍使用 host 网络，不能继承仓库中 Desktop 的 srs-server。
                 _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_HOST "127.0.0.1"
                 _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_PORT "1935"
                 _set_env_docker_kv "$env_file" SRS_HOST "127.0.0.1"
+                _set_env_docker_kv "$env_file" MQTT_BROKER_URLS "127.0.0.1:1883"
             fi
+            # 从 edge 切回 mini/standard/full 时必须清掉 http 残留值；
+            # 实时算法告警只通过 MQTT 发布，没有 HTTP 回退。
+            _set_env_docker_kv "$env_file" ALGO_BUS_TRANSPORT mqtt
             # 模型信息/权重下载统一指向 AI 服务（edge 切回 full 后残留的
             # AI_SERVICE_URL=…/video 会回环 VIDEO 自身，模型记录 404）
             _set_env_docker_kv "$env_file" AI_SERVICE_URL "http://127.0.0.1:5000"
