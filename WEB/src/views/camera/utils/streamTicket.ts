@@ -60,7 +60,7 @@ async function getTicket(path: string, forceRefresh: boolean): Promise<StreamTic
       return ticket;
     })
     .catch((err) => {
-      // 失败不缓存（含 401），下次重新签发；让错误冒泡触发 axios 的跳登录逻辑
+      // 失败不缓存（含 401），下次重新签发；调用方会降级使用未签名地址。
       cache.delete(path);
       throw err;
     });

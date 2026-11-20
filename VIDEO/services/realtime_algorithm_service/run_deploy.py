@@ -3283,8 +3283,11 @@ def _check_srs_api_ready(host: str, api_port: int, timeout: float = 3.0) -> bool
 
 
 def _normalize_srs_api_host(host: str) -> str:
-    """本机推流时 SRS HTTP API 统一走 loopback（与 stream_forward_service 一致）。"""
+    """解析 SRS API 主机；显式 bridge 服务名优先，否则本机 SRS 走 loopback。"""
     host = (host or '').strip()
+    push_host = (os.getenv('STREAM_FORWARD_PUSH_HOST') or os.getenv('SRS_HOST') or '').strip()
+    if push_host and host.lower() == push_host.lower():
+        return push_host
     if host in ('srs-server', 'srs', 'SRS', 'localhost', '127.0.0.1'):
         return '127.0.0.1'
     if os.getenv('POD_IP', '').strip():
@@ -3299,6 +3302,15 @@ def _resolve_ai_rtmp_push_url(device_id: str, device_ai_rtmp_stream: Optional[st
     播放地址仍由 stream_url_sync_service 写入 device.ai_rtmp_stream（外网 IP）。
     """
     stream_key = build_task_stream_key(TASK_ID, device_id)
+    push_host = (os.getenv('STREAM_FORWARD_PUSH_HOST') or os.getenv('SRS_HOST') or '').strip()
+    if push_host:
+        raw_port = (os.getenv('STREAM_FORWARD_PUSH_PORT') or os.getenv('SRS_RTMP_PORT') or '1935').strip()
+        try:
+            push_port = int(raw_port)
+        except (TypeError, ValueError):
+            push_port = 1935
+        return f'rtmp://{push_host}:{push_port}/ai/{stream_key}'
+
     pod_ip = os.getenv('POD_IP', '').strip()
     if pod_ip:
         rtmp_port = _srs_rtmp_port()
@@ -3315,7 +3327,8 @@ def check_rtmp_server_connection(rtmp_url: str) -> bool:
             return False
 
         api_port = _srs_api_port()
-        if _check_srs_api_ready('127.0.0.1', api_port):
+        push_host = (os.getenv('STREAM_FORWARD_PUSH_HOST') or os.getenv('SRS_HOST') or '').strip()
+        if not push_host and _check_srs_api_ready('127.0.0.1', api_port):
             return True
 
         url_part = rtmp_url.replace('rtmp://', '')

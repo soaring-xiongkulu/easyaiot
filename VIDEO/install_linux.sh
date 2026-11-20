@@ -43,6 +43,9 @@ source "${EASYAIOT_ROOT}/.scripts/docker/module_update_helpers.sh"
 # 带 GPU/CPU / RUNTIME / source-free override 的 compose 调用
 video_compose() {
     local -a files=(-f docker-compose.yaml)
+    if [ -f docker-compose.desktop.yaml ] && { [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; }; then
+        files+=(-f docker-compose.desktop.yaml)
+    fi
     if [ -f .docker-compose.gpu.override.yaml ]; then
         files+=(-f .docker-compose.gpu.override.yaml)
     fi
@@ -392,7 +395,7 @@ create_env_file() {
             print_info "自动配置中间件连接信息（使用host网络模式，通过localhost访问中间件）..."
             
             # 临时文件写回，兼容 macOS BSD sed
-            _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@localhost:5432/iot-video20"
+            _set_env_docker_kv .env.docker DATABASE_URL "postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-video20"
             _set_env_docker_kv .env.docker NACOS_SERVER "localhost:8848"
             _set_env_docker_kv .env.docker MINIO_ENDPOINT "localhost:9000"
             _set_env_docker_kv .env.docker MINIO_SECRET_KEY "basiclab@iot975248395"
@@ -413,14 +416,14 @@ create_env_file() {
         # Docker Desktop 使用 bridge + 服务名，不能改回 localhost（host 网络在 Desktop 无效）
         if [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; then
             print_info "桌面端部署：保留/使用容器网络中间件地址（postgres-server 等）"
-            _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@postgres-server:5432/iot-video20"
+            _set_env_docker_kv .env.docker DATABASE_URL "postgresql+psycopg2://postgres:iot45722414822@postgres-server:5432/iot-video20"
             _set_env_docker_kv .env.docker REDIS_HOST "redis-server"
         else
             print_info "检查并更新中间件连接信息（使用host网络模式）..."
             
             # 检查并更新数据库连接（如果还是旧的服务名，改为localhost）
             if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-                _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@localhost:5432/iot-video20"
+                _set_env_docker_kv .env.docker DATABASE_URL "postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-video20"
                 print_info "已更新数据库连接为 localhost:5432（host网络模式）"
             fi
             
@@ -881,4 +884,3 @@ main() {
 
 # 运行主函数
 main "$@"
-

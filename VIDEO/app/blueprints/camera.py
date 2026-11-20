@@ -80,6 +80,20 @@ def _resolve_auth_check_url() -> str:
     return f'{base}{_AUTH_CHECK_PATH}'
 
 
+def _auth_check_urls() -> list[str]:
+    """返回登录校验地址及容器内直连 iot-system 的兜底地址。"""
+    primary = _resolve_auth_check_url()
+    fallback = (
+        os.environ.get('AUTH_CHECK_FALLBACK_URL')
+        or f'http://iot-system:48099{_AUTH_CHECK_PATH}'
+    ).strip()
+    urls: list[str] = []
+    for url in (primary, fallback):
+        if url and url not in urls:
+            urls.append(url)
+    return urls
+
+
 def _check_login(req) -> bool:
     """用请求里的 JWT 校验登录态：HTTP 200 且业务 code==0 才算有效。
 
@@ -96,22 +110,29 @@ def _check_login(req) -> bool:
             return True
     except Exception as e:
         logger.debug(f'本地 VIDEO token 校验跳过: {e}')
-    try:
-        r = requests.get(
-            _resolve_auth_check_url(),
-            headers={
-                'Authorization': auth,
-                'tenant-id': req.headers.get('tenant-id', '') or req.headers.get('Tenant-Id', ''),
-            },
-            timeout=5,
-        )
-        if r.status_code != 200:
-            return False
-        body = r.json()
-        return isinstance(body, dict) and body.get('code') == 0
-    except Exception as e:
-        logger.warning(f'流票据登录校验失败: {e}')
-        return False
+    headers = {
+        'Authorization': auth,
+        'tenant-id': req.headers.get('tenant-id', '') or req.headers.get('Tenant-Id', ''),
+    }
+    for url in _auth_check_urls():
+        try:
+            response = requests.get(url, headers=headers, timeout=5)
+            body = response.json() if response.status_code == 200 else None
+            code = body.get('code') if isinstance(body, dict) else None
+            if response.status_code == 200 and code == 0:
+                return True
+            if response.status_code == 401 or code == 401:
+                logger.info('流票据登录校验未通过: url=%s code=401', url)
+                return False
+            logger.warning(
+                '流票据登录校验上游异常，尝试兜底: url=%s status=%s code=%s',
+                url,
+                response.status_code,
+                code,
+            )
+        except Exception as e:
+            logger.warning('流票据登录校验失败，尝试兜底: url=%s error=%s', url, e)
+    return False
 
 
 @camera_bp.route('/stream/ticket/sign', methods=['POST'])
@@ -120,7 +141,7 @@ def sign_stream_ticket():
 
     请求: { "path": "/rtp/xxx.live.flv", "ttl": 90 }
     返回: { "code": 0, "data": { "e": <过期unix秒>, "st": <url-safe base64 md5> } }
-    未登录/过期: HTTP 401（前端 axios 据此跳登录）。
+    未登录/过期: HTTP 401（播放器请求会跳过全局会话失效处理）。
 
     签名公式必须与 nginx `secure_link_md5 "$arg_e$uri <secret>"` 逐字符一致：
     md5( f"{e}{path} {secret}" ) -> url-safe base64 -> 去掉 '=' 填充。

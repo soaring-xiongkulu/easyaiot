@@ -733,7 +733,7 @@ def _resolve_rtmp_push_url(device_id: str, device_rtmp_stream: Optional[str] = N
     仍推节点本机 SRS（避免外网 IP 回环/端口误判）。播放地址由
     stream_url_sync_service 按实际发布节点写入。
     """
-    push_host = os.getenv('STREAM_FORWARD_PUSH_HOST', '').strip()
+    push_host = (os.getenv('STREAM_FORWARD_PUSH_HOST') or os.getenv('SRS_HOST') or '').strip()
     if push_host:
         raw_port = os.getenv('STREAM_FORWARD_PUSH_PORT', '1935').strip() or '1935'
         try:
@@ -758,7 +758,8 @@ def check_rtmp_server_connection(rtmp_url: str) -> bool:
             return False
 
         api_port = _srs_api_port()
-        if not os.getenv('STREAM_FORWARD_PUSH_HOST', '').strip() and _check_srs_api_ready('127.0.0.1', api_port):
+        push_host = (os.getenv('STREAM_FORWARD_PUSH_HOST') or os.getenv('SRS_HOST') or '').strip()
+        if not push_host and _check_srs_api_ready('127.0.0.1', api_port):
             return True
 
         url_parts = rtmp_url.replace('rtmp://', '').split('/')
@@ -832,7 +833,8 @@ def check_and_stop_existing_stream(stream_url: str) -> None:
             return
 
         rtmp_host = host_port.split(':')[0] if ':' in host_port else host_port
-        if rtmp_host in ('srs-server', 'srs', 'SRS'):
+        push_host = (os.getenv('STREAM_FORWARD_PUSH_HOST') or os.getenv('SRS_HOST') or '').strip()
+        if rtmp_host in ('srs-server', 'srs', 'SRS') and not push_host:
             rtmp_host = '127.0.0.1'
         if rtmp_host in ('localhost', '127.0.0.1'):
             rtmp_host = '127.0.0.1'

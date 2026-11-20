@@ -762,7 +762,7 @@ create_env_file() {
 
             # 自动配置中间件连接信息（临时文件写回，兼容 macOS BSD sed）
             print_info "自动配置中间件连接信息..."
-            _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@localhost:5432/iot-ai20"
+            _set_env_docker_kv .env.docker DATABASE_URL "postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-ai20"
             _set_env_docker_kv .env.docker NACOS_SERVER "localhost:8848"
             _set_env_docker_kv .env.docker MINIO_ENDPOINT "localhost:9000"
             _set_env_docker_kv .env.docker MINIO_SECRET_KEY "basiclab@iot975248395"
@@ -779,7 +779,7 @@ create_env_file() {
         print_info ".env.docker 文件已存在"
         if [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; then
             print_info "桌面端部署：使用容器网络中间件地址（postgres-server / iot-system）"
-            _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@postgres-server:5432/iot-ai20"
+            _set_env_docker_kv .env.docker DATABASE_URL "postgresql+psycopg2://postgres:iot45722414822@postgres-server:5432/iot-ai20"
             _set_env_docker_kv .env.docker JAVA_BACKEND_URL "http://iot-system:48099"
             _set_env_docker_kv .env.docker REDIS_HOST "redis-server"
         else
@@ -787,7 +787,7 @@ create_env_file() {
 
             # 检查并更新数据库连接（如果使用Docker服务名，改为localhost，因为使用host网络模式）
             if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-                _set_env_docker_kv .env.docker DATABASE_URL "postgresql://postgres:iot45722414822@localhost:5432/iot-ai20"
+                _set_env_docker_kv .env.docker DATABASE_URL "postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-ai20"
                 print_info "已更新数据库连接为 localhost:5432（host网络模式）"
             fi
 

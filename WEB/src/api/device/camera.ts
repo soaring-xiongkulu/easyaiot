@@ -24,12 +24,19 @@ export interface StreamTicketResp {
 
 /**
  * 为受保护的流路径（/ai /live /rtp）签发短期 secure_link 票据。
- * 需登录；未登录/会话过期返回 401，由 axios 拦截器统一跳登录。
+ * 需登录；签发失败只影响本次预览，不应触发整站退出登录。
  * @param path 流地址的 pathname，例如 /rtp/xxx.live.flv
  * @param ttl  有效期（秒），默认 90
  */
 export const signStreamTicket = (path: string, ttl = 90): Promise<StreamTicketResp> => {
-  return commonApi('post', `${CAMERA_PREFIX}/stream/ticket/sign`, { path, ttl }) as Promise<StreamTicketResp>;
+  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
+  return defHttp.post({
+    url: `${CAMERA_PREFIX}/stream/ticket/sign`,
+    data: { path, ttl },
+  }, {
+    skipAuthRefresh: true,
+    errorMessageMode: 'none',
+  }) as Promise<StreamTicketResp>;
 };
 
 // ====================== 流媒体转发接口 ======================

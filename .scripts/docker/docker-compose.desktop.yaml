@@ -1,0 +1,16 @@
+# Docker Desktop (macOS / Windows) override.
+# host 网络在 Desktop 虚拟机内不会自动暴露到桌面宿主机；SRS 改用统一 bridge 网络。
+services:
+  SRS:
+    network_mode: !reset null
+    ports:
+      - "1935:1935"
+      - "1985:1985"
+      - "8080:8080"
+    networks:
+      - easyaiot-network
+
+networks:
+  easyaiot-network:
+    name: easyaiot-network
+    external: true

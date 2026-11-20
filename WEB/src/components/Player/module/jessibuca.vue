@@ -476,7 +476,7 @@ export default {
         } catch (e) {
           // 签发失败(mint 不可用/网络/会话过期)：降级用未签名地址尽力播放，
           // 不把整路播放卡死在签发服务上：强制校验关闭时仍可播；开启时会 403 ->
-          // on('error') -> maybeRenewOnError 再续票自愈；若是 401，axios 已统一跳登录。
+          // on('error') -> maybeRenewOnError 再续票自愈；票据 401 不影响整站登录态。
           console.warn("stream ticket sign failed, fallback to unsigned url", e);
           target = this.multiView
             ? this.playUrl

@@ -2,6 +2,8 @@
 setuptools<81
 Flask==2.3.2
 Flask-SQLAlchemy==3.0.5
+# 2.1 将无驱动 postgresql:// 默认切到 psycopg3；当前运行时使用 psycopg2。
+SQLAlchemy>=2,<2.1
 Flask-CORS>=3.0.0
 # YOLO26 需 ultralytics>=8.4.0；YOLO11/YOLOv8 仍兼容
 ultralytics>=8.4.0,<9.0.0

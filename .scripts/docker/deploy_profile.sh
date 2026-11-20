@@ -873,6 +873,16 @@ apply_python_service_deploy_env() {
             _set_env_docker_kv "$env_file" GATEWAY_URL "http://127.0.0.1:6000"
             _set_env_docker_kv "$env_file" NODE_REMOTE_DEPLOY false
             if [ "$module" = "VIDEO" ]; then
+                if _deploy_profile_is_desktop_host; then
+                    _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_HOST "srs-server"
+                    _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_PORT "1935"
+                    _set_env_docker_kv "$env_file" SRS_HOST "srs-server"
+                else
+                    # Linux host 网络继续使用本机 SRS，清掉仓库中 Desktop 的服务名默认值。
+                    _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_HOST "127.0.0.1"
+                    _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_PORT "1935"
+                    _set_env_docker_kv "$env_file" SRS_HOST "127.0.0.1"
+                fi
                 _set_env_docker_kv "$env_file" ALERT_KEEP_LATEST true
                 _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST true
                 _set_env_docker_kv "$env_file" MINIO_ENABLED false
@@ -908,15 +918,34 @@ apply_python_service_deploy_env() {
             continue
         fi
 
-        _set_env_docker_kv "$env_file" JAVA_BACKEND_URL "http://localhost:48080"
-        _set_env_docker_kv "$env_file" GATEWAY_URL "http://localhost:48080"
-        _set_env_docker_kv "$env_file" AUTH_CHECK_URL "http://localhost:48080/admin-api/system/auth/get-permission-info"
+        if _deploy_profile_is_desktop_host; then
+            # Docker Desktop 使用 bridge；容器内 localhost 指向自身。业务请求走网关，
+            # 登录校验直连 iot-system，避开 Gateway 对无效 token 返回 HTTP 500 的路径。
+            _set_env_docker_kv "$env_file" JAVA_BACKEND_URL "http://iot-gateway:48080"
+            _set_env_docker_kv "$env_file" GATEWAY_URL "http://iot-gateway:48080"
+            _set_env_docker_kv "$env_file" AUTH_CHECK_URL "http://iot-system:48099/admin-api/system/auth/get-permission-info"
+        else
+            _set_env_docker_kv "$env_file" JAVA_BACKEND_URL "http://localhost:48080"
+            _set_env_docker_kv "$env_file" GATEWAY_URL "http://localhost:48080"
+            _set_env_docker_kv "$env_file" AUTH_CHECK_URL "http://localhost:48080/admin-api/system/auth/get-permission-info"
+        fi
         if is_mini_deploy_profile || is_local_storage_deploy_profile; then
             _set_env_docker_kv "$env_file" NODE_REMOTE_DEPLOY false
         else
             _set_env_docker_kv "$env_file" NODE_REMOTE_DEPLOY true
         fi
         if [ "$module" = "VIDEO" ]; then
+            if _deploy_profile_is_desktop_host; then
+                # SRS 与 VIDEO 同在 easyaiot-network；推流不能指向 VIDEO 容器自身。
+                _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_HOST "srs-server"
+                _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_PORT "1935"
+                _set_env_docker_kv "$env_file" SRS_HOST "srs-server"
+            else
+                # Linux 仍使用 host 网络，不能继承仓库中 Desktop 的 srs-server。
+                _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_HOST "127.0.0.1"
+                _set_env_docker_kv "$env_file" STREAM_FORWARD_PUSH_PORT "1935"
+                _set_env_docker_kv "$env_file" SRS_HOST "127.0.0.1"
+            fi
             # 模型信息/权重下载统一指向 AI 服务（edge 切回 full 后残留的
             # AI_SERVICE_URL=…/video 会回环 VIDEO 自身，模型记录 404）
             _set_env_docker_kv "$env_file" AI_SERVICE_URL "http://127.0.0.1:5000"

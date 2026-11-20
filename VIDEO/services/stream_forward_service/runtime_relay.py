@@ -22,7 +22,11 @@ def _task_executor(task) -> str:
 
 
 def stream_forward_use_runtime(task=None) -> bool:
-    return _task_executor(task) == 'cpp'
+    if _task_executor(task) != 'cpp':
+        return False
+    from app.services.runtime_config_service import resolve_runtime_bin
+    runtime_bin = (resolve_runtime_bin(task) or '').strip()
+    return bool(runtime_bin and os.path.isfile(runtime_bin) and os.access(runtime_bin, os.X_OK))
 
 
 def _resolve_ffmpeg_binary() -> str:

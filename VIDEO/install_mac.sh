@@ -258,7 +258,7 @@ create_env_file() {
             print_info "自动配置中间件连接信息（使用host网络模式，通过localhost访问中间件）..."
             
             # 更新数据库连接（使用localhost，因为使用host网络模式）
-            sed -i '' 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
+            sed -i '' 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
             
             # 更新Nacos配置（使用localhost，因为使用host网络模式）
             sed -i '' 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
@@ -292,7 +292,7 @@ create_env_file() {
         
         # 检查并更新数据库连接（如果还是旧的服务名，改为localhost）
         if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-            sed -i '' 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
+            sed -i '' 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
             print_info "已更新数据库连接为 localhost:5432（host网络模式）"
         fi
         
@@ -606,4 +606,3 @@ main() {
 
 # 运行主函数
 main "$@"
-

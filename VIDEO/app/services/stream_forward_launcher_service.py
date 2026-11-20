@@ -1681,7 +1681,8 @@ def start_stream_forward_task(task_id: int):
         try:
             ensure_runtime_bin_ready(task)
         except Exception as e:
-            raise RuntimeError(f'高性能推流转发需要 RUNTIME 二进制: {e}') from e
+            # 桌面预构建镜像不一定携带 RUNTIME；worker 会自动退回已有 FFmpeg native relay。
+            logger.warning('高性能推流转发 RUNTIME 不可用，回退 FFmpeg: %s', e)
 
     with _starting_lock:
         if task_id not in _starting_tasks:

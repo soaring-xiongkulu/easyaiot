@@ -18,6 +18,7 @@ err()   { echo -e "${RED}[ERR]${NC}  $1" >&2; }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
+COMPOSE_DESKTOP_FILE="${SCRIPT_DIR}/docker-compose.desktop.yaml"
 NETWORK_NAME="easyaiot-network"
 ARCH_FILE="${SCRIPT_DIR}/.env.arch"
 ENV_FILE="${SCRIPT_DIR}/.env.docker"
@@ -66,7 +67,8 @@ service_port() {
     Redis) echo 6379 ;;
     Kafka) echo 9092 ;;
     RustFS) echo 9000 ;;
-    SRS) echo 1935 ;;
+    # SRS 健康接口在 HTTP API 端口；RTMP 1935 仅用于推流。
+    SRS) echo 1985 ;;
     NodeRED) echo 1880 ;;
     FUXA) echo 1881 ;;
     EMQX) echo 1883 ;;
@@ -116,13 +118,15 @@ ensure_compose() {
 
 compose() {
   local env_args=()
+  local compose_files=(-f "${COMPOSE_FILE}")
   [[ -f "${ENV_FILE}" ]] && env_args=(--env-file "${ENV_FILE}")
+  [[ -f "${COMPOSE_DESKTOP_FILE}" ]] && compose_files+=(-f "${COMPOSE_DESKTOP_FILE}")
   # NACOS_PLATFORM 必须与本机架构一致；默认 linux/amd64 会在 Apple Silicon 上走 QEMU，导致 Nacos 长期 unhealthy
   (cd "${SCRIPT_DIR}" && \
     DOCKER_PLATFORM="${DOCKER_PLATFORM}" \
     NACOS_PLATFORM="${NACOS_PLATFORM:-${DOCKER_PLATFORM}}" \
     BASE_IMAGE="${BASE_IMAGE}" \
-    "${COMPOSE_CMD[@]}" ${COMPOSE_PROFILE_ARGS[@]+"${COMPOSE_PROFILE_ARGS[@]}"} "${env_args[@]}" -f "${COMPOSE_FILE}" "$@")
+    "${COMPOSE_CMD[@]}" ${COMPOSE_PROFILE_ARGS[@]+"${COMPOSE_PROFILE_ARGS[@]}"} "${env_args[@]}" "${compose_files[@]}" "$@")
 }
 
 # 按部署形态启动中间件（mini/standard 跳过 FUXA/NodeRED 等）
@@ -326,27 +330,27 @@ copy_srs_conf() {
   fi
 
   mkdir -p "$dst"
-  local gateway_ip
-  gateway_ip=$(get_docker_network_gateway "${NETWORK_NAME}")
-  if [[ -z "$gateway_ip" ]]; then
-    warn "无法获取 Docker 网络网关 IP，将使用 172.18.0.1"
-    gateway_ip="172.18.0.1"
-  else
-    info "检测到 Docker 网络网关 IP: $gateway_ip"
-  fi
-
   cp -R "${src}/." "$dst/"
 
   if [[ -f "$target" ]]; then
-    if _sed_inplace "s|http://([0-9]{1,3}\\.){3}[0-9]{1,3}:48080|http://${gateway_ip}:48080|g" "$target" 2>/dev/null; then
-      info "已将 SRS 配置中的 Gateway 地址更新为: $gateway_ip:48080"
+    local on_publish_url="http://video-service:6000/video/camera/callback/on_publish"
+    local on_dvr_url="http://iot-gateway:48080/admin-api/sink/media/hook/srs/on_dvr"
+    if is_edge_deploy_profile; then
+      on_dvr_url="http://video-service:6000/video/media/hook/srs/on_dvr"
+    fi
+    if _sed_inplace "s|on_publish[[:space:]]+http://[^;]+;|on_publish          ${on_publish_url};|g" "$target" 2>/dev/null \
+      && _sed_inplace "s|on_dvr[[:space:]]+http://[^;]+;|on_dvr              ${on_dvr_url};|g" "$target" 2>/dev/null; then
+      info "SRS Hook 已改为容器网络地址: publish=${on_publish_url}, dvr=${on_dvr_url}"
       ok "SRS 配置已复制并更新"
     else
       local temp_file
       temp_file=$(mktemp)
-      if sed -E "s|http://([0-9]{1,3}\\.){3}[0-9]{1,3}:48080|http://${gateway_ip}:48080|g" "$target" > "$temp_file" 2>/dev/null; then
+      if sed -E \
+        -e "s|on_publish[[:space:]]+http://[^;]+;|on_publish          ${on_publish_url};|g" \
+        -e "s|on_dvr[[:space:]]+http://[^;]+;|on_dvr              ${on_dvr_url};|g" \
+        "$target" > "$temp_file" 2>/dev/null; then
         mv "$temp_file" "$target"
-        info "已将 SRS 配置中的 Gateway 地址更新为: $gateway_ip:48080"
+        info "SRS Hook 已改为容器网络地址: publish=${on_publish_url}, dvr=${on_dvr_url}"
         ok "SRS 配置已复制并更新"
       else
         rm -f "$temp_file"

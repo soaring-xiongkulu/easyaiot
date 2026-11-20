@@ -19,7 +19,7 @@ from healthcheck import HealthCheck, EnvironmentDump
 from nacos import NacosClient
 from sqlalchemy import text
 
-from app.utils.ai_env import load_ai_env
+from app.utils.ai_env import load_ai_env, normalize_database_url
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 _lib_root = os.path.join(_repo_root, '.scripts', 'lib')
@@ -189,8 +189,9 @@ def create_app():
     if not database_url:
         raise ValueError("DATABASE_URL环境变量未设置，请检查docker-compose.yaml配置或.env文件")
     
-    # 转换postgres://为postgresql://（SQLAlchemy要求）
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    # SQLAlchemy 2.1 会把无驱动 PostgreSQL URL 交给 psycopg3；镜像安装的是 psycopg2。
+    database_url = normalize_database_url(database_url)
+    os.environ['DATABASE_URL'] = database_url
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['TIMEZONE'] = 'Asia/Shanghai'

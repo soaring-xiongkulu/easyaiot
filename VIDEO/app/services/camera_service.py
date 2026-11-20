@@ -798,12 +798,24 @@ def _get_host_ip_for_stream_urls() -> str:
 
 def _legacy_local_stream_urls(device_id: str) -> tuple[str, str, str, str]:
     """本机 SRS 默认流地址（不经过媒体节点池）。"""
-    host = _get_host_ip_for_stream_urls()
+    push_host = (
+        os.getenv('STREAM_FORWARD_PUSH_HOST')
+        or os.getenv('SRS_HOST')
+        or ''
+    ).strip()
+    if push_host:
+        # Docker bridge 内推流走 SRS 服务名；播放地址由前端改写到当前页面 host。
+        rtmp_host = push_host
+        http_host = (os.getenv('SRS_HTTP_PLAY_HOST') or '127.0.0.1').strip()
+    else:
+        rtmp_host = http_host = _get_host_ip_for_stream_urls()
+    rtmp_port = (os.getenv('STREAM_FORWARD_PUSH_PORT') or os.getenv('SRS_RTMP_PORT') or '1935').strip()
+    http_port = (os.getenv('SRS_HTTP_PORT') or '8080').strip()
     return (
-        f'rtmp://{host}:1935/live/{device_id}',
-        f'http://{host}:8080/live/{device_id}.flv',
-        f'rtmp://{host}:1935/ai/{device_id}',
-        f'http://{host}:8080/ai/{device_id}.flv',
+        f'rtmp://{rtmp_host}:{rtmp_port}/live/{device_id}',
+        f'http://{http_host}:{http_port}/live/{device_id}.flv',
+        f'rtmp://{rtmp_host}:{rtmp_port}/ai/{device_id}',
+        f'http://{http_host}:{http_port}/ai/{device_id}.flv',
     )
 
 

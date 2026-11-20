@@ -72,6 +72,9 @@ wire_cpp_runtime_override() {
 # compose 调用：附带 RUNTIME override（若存在）
 video_compose() {
     local -a files=(-f docker-compose.yaml)
+    if [ -f docker-compose.desktop.yaml ] && { [ -n "${EASYAIOT_DESKTOP_OS:-}" ] || [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ]; }; then
+        files+=(-f docker-compose.desktop.yaml)
+    fi
     if [ -f .docker-compose.runtime.override.yaml ]; then
         files+=(-f .docker-compose.runtime.override.yaml)
     fi
@@ -562,7 +565,7 @@ create_env_file() {
             
             print_info "自动配置中间件连接信息（使用host网络模式，通过localhost访问中间件）..."
             
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
             
             sed -i 's|^NACOS_SERVER=.*|NACOS_SERVER=localhost:8848|' .env.docker
             
@@ -589,7 +592,7 @@ create_env_file() {
         print_info "检查并更新中间件连接信息（使用host网络模式）..."
         
         if grep -q "DATABASE_URL=.*PostgresSQL" .env.docker || grep -q "DATABASE_URL=.*postgres-server" .env.docker; then
-            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
+            sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:iot45722414822@localhost:5432/iot-video20|' .env.docker
             print_info "已更新数据库连接为 localhost:5432（host网络模式）"
         fi
         
