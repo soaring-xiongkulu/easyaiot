@@ -29,6 +29,14 @@ class TestAiServiceUrls(unittest.TestCase):
             self.assertTrue(is_mini_deploy_profile())
             self.assertFalse(minio_storage_enabled())
 
+    def test_mini_profile_can_explicitly_enable_minio(self):
+        with patch.dict(os.environ, {
+            'EASYAIOT_DEPLOY_PROFILE': 'mini',
+            'MINIO_ENABLED': 'true',
+        }, clear=True):
+            self.assertTrue(is_mini_deploy_profile())
+            self.assertTrue(minio_storage_enabled())
+
     def test_standard_profile_enables_minio_even_with_mini_gateway_port(self):
         with patch.dict(os.environ, {
             'EASYAIOT_DEPLOY_PROFILE': 'standard',

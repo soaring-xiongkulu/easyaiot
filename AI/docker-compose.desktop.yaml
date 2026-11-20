@@ -12,6 +12,7 @@ services:
       - DATABASE_URL=postgresql+psycopg2://postgres:iot45722414822@postgres-server:5432/iot-ai20
       - REDIS_HOST=redis-server
       - NACOS_SERVER=host.docker.internal:8848
+      - MINIO_ENABLED=true
       - MINIO_ENDPOINT=host.docker.internal:9000
       - KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:9092
       - TDENGINE_HOST=host.docker.internal

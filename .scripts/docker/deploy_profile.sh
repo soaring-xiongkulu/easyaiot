@@ -968,8 +968,23 @@ apply_python_service_deploy_env() {
             _set_env_docker_kv "$env_file" ALERT_USE_DIRECT_PERSIST false
             _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 1 1
         else
-            # AI：仅同步媒体根，供 compose ${EASYAIOT_MEDIA_ROOT} 替换
-            _apply_python_sink_media_env "$env_file" "${root}/${module}/.env" 0
+            # VIDEO 会把截图写入 RustFS/MinIO 并返回 /api/v1/buckets/...；AI
+            # 的同源代理必须读取同一对象存储。mini 若未显式开启会按本地目录
+            # 处理，导致已成功抓拍的图片在 WEB 质量校验时返回 404。
+            local ai_compose_env="${root}/${module}/.env"
+            local ai_minio_endpoint="localhost:9000"
+            if _deploy_profile_is_desktop_host; then
+                # Docker Desktop 使用 bridge，容器内 localhost 指向 AI 自身。
+                ai_minio_endpoint="host.docker.internal:9000"
+            fi
+            _set_env_docker_kv "$env_file" MINIO_ENABLED true
+            _set_env_docker_kv "$env_file" MINIO_ENDPOINT "$ai_minio_endpoint"
+            if [ -f "$ai_compose_env" ]; then
+                _set_env_docker_kv "$ai_compose_env" MINIO_ENABLED true
+                _set_env_docker_kv "$ai_compose_env" MINIO_ENDPOINT "$ai_minio_endpoint"
+            fi
+            # AI：同步媒体根，供 compose ${EASYAIOT_MEDIA_ROOT} 替换
+            _apply_python_sink_media_env "$env_file" "$ai_compose_env" 0
         fi
     done
 }
