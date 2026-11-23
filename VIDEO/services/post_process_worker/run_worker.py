@@ -12,9 +12,9 @@ VIDEO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 if VIDEO_ROOT not in sys.path:
     sys.path.insert(0, VIDEO_ROOT)
 
-from app.utils.video_env import load_video_env
+from app.utils.video_env import load_video_env_preserving_launcher
 
-load_video_env(override=True)
+load_video_env_preserving_launcher()
 
 logging.basicConfig(
     level=logging.INFO,

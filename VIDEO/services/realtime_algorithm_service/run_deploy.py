@@ -42,9 +42,9 @@ for _p in (_lib_root,):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from app.utils.video_env import load_video_env
+from app.utils.video_env import load_video_env_preserving_launcher
 
-load_video_env(override=True)
+load_video_env_preserving_launcher()
 
 # 共享 mmap 只在 CameraSourceManager 本机有效。远程部署标记由控制面写入，
 # 即使节点本地 .env 默认 shared，也必须在加载配置后重新强制为 direct。

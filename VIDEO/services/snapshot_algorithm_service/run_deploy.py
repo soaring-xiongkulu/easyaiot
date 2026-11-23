@@ -41,9 +41,9 @@ for _p in (_lib_root,):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from app.utils.video_env import load_video_env
+from app.utils.video_env import load_video_env_preserving_launcher
 
-load_video_env(override=True)
+load_video_env_preserving_launcher()
 
 import app.utils.nvidia_lib_path  # noqa: F401  须在 import onnxruntime 之前
 
