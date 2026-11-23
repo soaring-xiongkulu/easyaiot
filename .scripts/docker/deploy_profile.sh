@@ -656,6 +656,48 @@ resolve_nfs_server_from_mount() {
 
 # 写入或更新 .env.docker 中的键值
 # 使用临时文件方式（而非 sed -i），兼容 GNU sed 与 BSD sed（macOS）
+_deploy_profile_read_env_value() {
+    local file="$1" key="$2" line
+    [ -f "$file" ] || return 0
+    line="$(grep -m1 "^${key}=" "$file" 2>/dev/null || true)"
+    [ -n "$line" ] || return 0
+    printf '%s\n' "${line#*=}" \
+        | sed -e "s/^[[:space:]\"']*//" -e "s/[[:space:]\"']*$//"
+}
+
+# STREAM_TICKET_SECRET 以 VIDEO/.env 为首选来源；存量包缺失时从 WEB nginx 配置恢复。
+# 只返回密钥，不写日志，避免在安装输出中泄露。
+_resolve_stream_ticket_secret() {
+    local root="${1:-$(_deploy_profile_repo_root)}"
+    local secret conf
+    secret="$(_deploy_profile_read_env_value "${root}/VIDEO/.env" STREAM_TICKET_SECRET)"
+    if [ -n "$secret" ]; then
+        printf '%s\n' "$secret"
+        return 0
+    fi
+
+    for conf in \
+        "${root}/WEB/conf/nginx.conf" \
+        "${root}/WEB/conf/nginx.mini.conf" \
+        "${root}/WEB/conf/nginx.edge.conf"; do
+        [ -f "$conf" ] || continue
+        secret="$(awk '
+            $1 == "set" && $2 == "$stream_secret" {
+                value = $3
+                sub(/;.*/, "", value)
+                gsub(/^"|"$/, "", value)
+                print value
+                exit
+            }
+        ' "$conf")"
+        if [ -n "$secret" ]; then
+            printf '%s\n' "$secret"
+            return 0
+        fi
+    done
+    return 0
+}
+
 _set_env_docker_kv() {
     local file="$1" key="$2" value="$3"
     [ -f "$file" ] || return 0
@@ -829,10 +871,15 @@ _apply_python_sink_media_env() {
     # 容器内固定挂载点（与 VIDEO/AI docker-compose.yaml 一致；勿把宿主机路径写进 .env.docker）
     local container_media_root="/mnt/easyaiot-media"
     if [ "$with_sink_hooks" = "1" ]; then
+        local sink_gateway_host="localhost"
+        if _deploy_profile_is_desktop_host; then
+            # Docker Desktop 使用 bridge，容器内 localhost 指向 VIDEO 自身。
+            sink_gateway_host="iot-gateway"
+        fi
         _set_env_docker_kv "$env_file" MINIO_ENABLED true
         _set_env_docker_kv "$env_file" IOT_SINK_USE_GATEWAY 1
-        _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
-        _set_env_docker_kv "$env_file" IOT_SINK_MEDIA_HOOK_URL "http://localhost:48080/admin-api/sink/media/hook/srs/on_dvr"
+        _set_env_docker_kv "$env_file" SINK_DVR_HOOK_URL "http://${sink_gateway_host}:48080/admin-api/sink/media/hook/srs/on_dvr"
+        _set_env_docker_kv "$env_file" IOT_SINK_MEDIA_HOOK_URL "http://${sink_gateway_host}:48080/admin-api/sink/media/hook/srs/on_dvr"
     fi
     _set_env_docker_kv "$env_file" ALERT_IMAGES_DIR "${container_media_root}/alert_images"
     _set_env_docker_kv "$env_file" SRS_HOST_DATA_ROOT "$container_media_root"
@@ -873,11 +920,15 @@ apply_python_service_deploy_env() {
     if [ -z "$root" ]; then
         root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
     fi
-    local module env_file
+    local module env_file stream_ticket_secret
+    stream_ticket_secret="$(_resolve_stream_ticket_secret "$root")"
     for module in VIDEO AI; do
         env_file="${root}/${module}/.env.docker"
         [ -f "$env_file" ] || continue
         _set_env_docker_kv "$env_file" EASYAIOT_DEPLOY_PROFILE "${EASYAIOT_DEPLOY_PROFILE:-full}"
+        if [ "$module" = "VIDEO" ] && [ -n "$stream_ticket_secret" ]; then
+            _set_env_docker_kv "$env_file" STREAM_TICKET_SECRET "$stream_ticket_secret"
+        fi
 
         if is_edge_deploy_profile; then
             # 零 DEVICE：业务回调指向本机 VIDEO
