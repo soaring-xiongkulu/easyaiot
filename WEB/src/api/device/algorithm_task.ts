@@ -715,7 +715,8 @@ export const getTaskStreams = (task_id: number) => {
 export const getDeviceTaskStreams = (device_id: string) => {
   return commonApi<TaskStreamsResponse>(
     'get',
-    `${ALGORITHM_PREFIX}/device/${encodeURIComponent(device_id)}/task-streams`
+    `${ALGORITHM_PREFIX}/device/${encodeURIComponent(device_id)}/task-streams`,
+    { errorMessageMode: 'none' },
   );
 };
 
