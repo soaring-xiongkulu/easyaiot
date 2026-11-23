@@ -124,6 +124,7 @@ const tokenOpen = ref(false)
 const online = ref(false)
 const clock = ref('')
 const webUrl = ref('')
+const webScheme = ref<'http' | 'https'>('https')
 const webRunning = ref(false)
 const webStatus = ref<'running' | 'stopped' | 'missing' | string>('missing')
 const webMessage = ref('')
@@ -133,12 +134,42 @@ const uiBuild = '20260804-deploy-names'
 let timer: number | undefined
 let clockTimer: number | undefined
 
-function defaultWebUrl() {
-  const host = window.location.hostname || '127.0.0.1'
-  return `https://${host}:8888`
+function normalizeWebUrl(value?: string, defaultScheme: 'http' | 'https' = 'https') {
+  let raw = (value || '').trim()
+  let explicitScheme = ''
+  let match = raw.match(/^(https?):\/\//i)
+  while (match) {
+    if (!explicitScheme) explicitScheme = match[1].toLowerCase()
+    raw = raw.slice(match[0].length).trim().replace(/^\/+/, '')
+    match = raw.match(/^(https?):\/\//i)
+  }
+
+  const fallbackHost = window.location.hostname || '127.0.0.1'
+  if (!raw) raw = fallbackHost
+  const scheme = explicitScheme || defaultScheme
+
+  try {
+    const url = new URL(`${scheme}://${raw}`)
+    if (!explicitScheme && !url.port) url.port = '8888'
+    if (defaultScheme === 'https' && url.protocol === 'http:' && url.port === '8888') {
+      url.protocol = 'https:'
+    }
+    return url.toString().replace(/\/$/, '')
+  } catch {
+    const host = fallbackHost.includes(':') && !fallbackHost.startsWith('[')
+      ? `[${fallbackHost}]`
+      : fallbackHost
+    return `${defaultScheme}://${host}:8888`
+  }
 }
 
-const resolvedWebUrl = computed(() => (webUrl.value || defaultWebUrl()).replace(/\/$/, ''))
+function defaultWebUrl() {
+  return normalizeWebUrl(window.location.hostname || '127.0.0.1')
+}
+
+const resolvedWebUrl = computed(() =>
+  normalizeWebUrl(webUrl.value || defaultWebUrl(), webScheme.value),
+)
 
 const webStatusLabel = computed(() => {
   if (webStatus.value === 'running') return 'WEB 运行中'
@@ -194,12 +225,14 @@ function goDeployFromWebDialog() {
 async function refreshLinks() {
   try {
     const data = await getLinks()
-    webUrl.value = data?.web?.url || defaultWebUrl()
+    webScheme.value = data?.web?.scheme === 'http' ? 'http' : 'https'
+    webUrl.value = normalizeWebUrl(data?.web?.url || defaultWebUrl(), webScheme.value)
     webRunning.value = !!data?.web?.running
     webStatus.value = data?.web?.status || (webRunning.value ? 'running' : 'missing')
     webMessage.value = data?.web?.message || ''
     webContainer.value = data?.web?.container || ''
   } catch {
+    webScheme.value = 'https'
     webUrl.value = defaultWebUrl()
     webRunning.value = false
     webStatus.value = 'missing'

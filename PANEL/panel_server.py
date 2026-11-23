@@ -4,9 +4,11 @@ from __future__ import annotations
 import logging
 import os
 import platform
+import re
 import sys
 import time
 from typing import Any, Dict
+from urllib.parse import urlsplit, urlunsplit
 
 import psutil
 from flask import Flask, jsonify, request, send_from_directory
@@ -28,8 +30,13 @@ PANEL_JOB_HISTORY_LIMIT = int(os.environ.get('PANEL_JOB_HISTORY_LIMIT', '15'))
 # EasyAIoT WEB 管控台地址；空则按请求主机 + PANEL_WEB_PORT 自动拼
 PANEL_WEB_URL = os.environ.get('PANEL_WEB_URL', '').strip()
 PANEL_WEB_PORT = (os.environ.get('PANEL_WEB_PORT', '8888').strip() or '8888')
+PANEL_WEB_SCHEME = (os.environ.get('PANEL_WEB_SCHEME', 'https').strip().lower() or 'https').rstrip(':/')
+if PANEL_WEB_SCHEME not in ('http', 'https'):
+    logger.warning('无效的 PANEL_WEB_SCHEME=%s，回退为 https', PANEL_WEB_SCHEME)
+    PANEL_WEB_SCHEME = 'https'
 # 与 WEB/docker-compose.yaml 的 container_name/image（web-service）及历史命名对齐
 _WEB_HINTS = ('web-service', 'easyaiot-web', 'iot-web', 'web-nginx', 'aiot-web')
+_WEB_SCHEME_PREFIX = re.compile(r'^(https?)://', re.IGNORECASE)
 
 
 def _is_frozen() -> bool:
@@ -177,8 +184,65 @@ def _check_token() -> bool:
     return request.headers.get('X-Panel-Token', '') == PANEL_TOKEN
 
 
+def _strip_repeated_web_schemes(value: str) -> tuple[str, str]:
+    """拆出首个协议并消化误配产生的重复 http(s):// 前缀。"""
+    scheme = ''
+    remainder = (value or '').strip()
+    while remainder:
+        match = _WEB_SCHEME_PREFIX.match(remainder)
+        if not match:
+            break
+        if not scheme:
+            scheme = match.group(1).lower()
+        remainder = remainder[match.end():].lstrip()
+    return scheme, remainder.lstrip('/')
+
+
+def _format_web_host(host: str) -> str:
+    host = (host or '').strip()
+    if ':' in host and not host.startswith('['):
+        return f'[{host}]'
+    return host
+
+
+def _normalize_web_url(value: str, fallback_host: str = '127.0.0.1') -> str:
+    """规范化 WEB 地址：裸主机补默认端口、消化重复协议，并让默认 8888 使用 TLS。"""
+    explicit_scheme, remainder = _strip_repeated_web_schemes(value)
+    fallback_host = fallback_host or '127.0.0.1'
+    if not remainder:
+        remainder = _format_web_host(fallback_host)
+
+    scheme = explicit_scheme or PANEL_WEB_SCHEME
+    try:
+        parsed = urlsplit(f'{scheme}://{remainder}')
+        hostname = parsed.hostname or fallback_host
+        port = parsed.port
+    except ValueError:
+        logger.warning('无法解析 PANEL WEB 地址 %r，回退到请求主机', value)
+        hostname = fallback_host
+        port = int(PANEL_WEB_PORT) if PANEL_WEB_PORT.isdigit() else None
+        parsed = urlsplit('')
+        scheme = PANEL_WEB_SCHEME
+
+    # 只有裸 host 才补 WEB 默认端口；显式完整 URL 可合法使用 443/80 或反向代理端口。
+    if port is None and not explicit_scheme:
+        port = int(PANEL_WEB_PORT) if PANEL_WEB_PORT.isdigit() else None
+
+    # WEB 默认发布为 8888 -> 容器 443。除非显式覆盖默认 scheme，否则纠正旧的 http 配置。
+    if scheme == 'http' and str(port or '') == PANEL_WEB_PORT and PANEL_WEB_SCHEME == 'https':
+        scheme = 'https'
+
+    netloc = _format_web_host(hostname)
+    if port is not None:
+        netloc = f'{netloc}:{port}'
+    path = parsed.path.rstrip('/')
+    return urlunsplit((scheme, netloc, path, parsed.query, parsed.fragment))
+
+
 def _request_hostname() -> str:
     host = (request.host or '').split(',')[0].strip()
+    _, host = _strip_repeated_web_schemes(host)
+    host = host.split('/', 1)[0]
     if not host:
         return '127.0.0.1'
     if host.startswith('['):
@@ -191,12 +255,12 @@ def _request_hostname() -> str:
 
 
 def _resolve_web_url() -> str:
-    if PANEL_WEB_URL:
-        return PANEL_WEB_URL.rstrip('/')
     host = _request_hostname()
     if host in ('0.0.0.0', ''):
         host = '127.0.0.1'
-    return f'http://{host}:{PANEL_WEB_PORT}'
+    if PANEL_WEB_URL:
+        return _normalize_web_url(PANEL_WEB_URL, host)
+    return _normalize_web_url(host, host)
 
 
 def _web_runtime() -> Dict[str, Any]:
@@ -227,6 +291,7 @@ def _web_runtime() -> Dict[str, Any]:
     return {
         'url': url,
         'port': PANEL_WEB_PORT,
+        'scheme': PANEL_WEB_SCHEME,
         'configured': bool(PANEL_WEB_URL),
         'running': status == 'running',
         'status': status,

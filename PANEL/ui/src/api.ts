@@ -62,6 +62,7 @@ export interface PanelOverview {
     web?: {
       url?: string
       port?: string
+      scheme?: 'http' | 'https'
       configured?: boolean
       running?: boolean
       status?: 'running' | 'stopped' | 'missing' | string
@@ -173,6 +174,7 @@ export const getLinks = () =>
     web: {
       url: string
       port: string
+      scheme?: 'http' | 'https'
       configured: boolean
       running: boolean
       status?: 'running' | 'stopped' | 'missing' | string

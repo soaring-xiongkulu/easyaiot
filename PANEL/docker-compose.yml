@@ -15,6 +15,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # 挂载仓库根，便于执行 install_*.sh / 读取部署形态
       - ${EASYAIOT_ROOT:-..}:/easyaiot
+      # 后端链接修复可随仓库更新生效，避免仅 docker cp 到容器可写层后 recreate 丢失
+      - ./panel_server.py:/opt/panel/panel_server.py:ro
     environment:
       EASYAIOT_ROOT: /easyaiot
       # 容器内为 Linux；桌面原生包由 COMPILE 写入 install_mac/windows
@@ -28,6 +30,7 @@ services:
       PANEL_STATIC_DIR: /opt/panel/ui/dist
       PANEL_WEB_URL: ${PANEL_WEB_URL:-}
       PANEL_WEB_PORT: ${PANEL_WEB_PORT:-8888}
+      PANEL_WEB_SCHEME: ${PANEL_WEB_SCHEME:-https}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9200/health')"]
       interval: 30s
