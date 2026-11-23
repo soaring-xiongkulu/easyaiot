@@ -283,6 +283,54 @@ stop_local_iot_gateway_jar_if_needed() {
     print_warning "48080 仍被占用，请手动检查: ss -ltnp | grep 48080"
 }
 
+# iot-sink 启动失败时 MQTT/Kafka/Vert.x 线程可能继续撑住旧版 JVM，容器会永久 Up/unhealthy。
+# 等待健康端点；若日志已经明确出现端口占用/应用启动失败则立即重启，超时也重启，最多 3 轮。
+ensure_iot_sink_ready() {
+    device_compose_service_enabled "iot-sink" || return 0
+
+    if ! docker container inspect iot-sink >/dev/null 2>&1; then
+        print_error "iot-sink 容器不存在"
+        return 1
+    fi
+
+    local round attempt started_at state
+    for round in 1 2 3; do
+        print_info "等待 iot-sink 健康就绪 (端口: 48092，第 ${round}/3 轮)..."
+        attempt=1
+        while [ "$attempt" -le 30 ]; do
+            if curl -fsS --connect-timeout 2 --max-time 5 \
+                "http://localhost:48092/actuator/health" >/dev/null 2>&1; then
+                print_success "iot-sink 已健康就绪"
+                return 0
+            fi
+
+            state=$(docker inspect --format '{{.State.Status}}' iot-sink 2>/dev/null || true)
+            if [ "$state" != "running" ]; then
+                print_warning "iot-sink 当前状态为 ${state:-unknown}，准备重启"
+                break
+            fi
+
+            started_at=$(docker inspect --format '{{.State.StartedAt}}' iot-sink 2>/dev/null || true)
+            if [ -n "$started_at" ] && docker logs --since "$started_at" --tail 300 iot-sink 2>&1 \
+                | grep -Eq "Port 48092 (is already in use|was already in use)|APPLICATION FAILED TO START"; then
+                print_warning "检测到 iot-sink 启动失败日志，提前进入自愈重启"
+                break
+            fi
+            sleep 2
+            attempt=$((attempt + 1))
+        done
+
+        if [ "$round" -lt 3 ]; then
+            print_warning "iot-sink 未就绪，执行 docker restart（第 ${round}/2 次）..."
+            docker restart iot-sink >/dev/null
+        fi
+    done
+
+    print_error "iot-sink 经 3 轮检查仍未就绪"
+    docker logs --tail 80 iot-sink 2>&1 | sed 's/^/  /' || true
+    return 1
+}
+
 # 后台启动 compose 服务。
 apply_device_profile_env() {
     ensure_deploy_profile
@@ -309,12 +357,13 @@ compose_up_detached() {
 
     local -a up_targets=()
     local explicit_targets=0
+    local want_sink=0
     if [ $# -gt 0 ]; then
         up_targets=("$@")
         explicit_targets=1
     else
         read -r -a up_targets <<< "$(collect_device_up_services)"
-        # 按形态启动时清理 full/standard 残留（mini 不应再有 iot-device/iot-node/iot-sink 等）
+        # 按形态启动时清理残留服务（例如 mini 不应再有 iot-device/iot-node/tdengine 等）
         stop_device_disabled_services
     fi
 
@@ -324,6 +373,14 @@ compose_up_detached() {
         print_error "当前部署形态没有可启动的 DEVICE 服务"
         return 1
     fi
+
+    local target
+    for target in "${up_targets[@]}"; do
+        if [ "$target" = "iot-sink" ]; then
+            want_sink=1
+            break
+        fi
+    done
 
     local -a skip_services=()
     read -r -a skip_services <<< "$(device_skipped_services)"
@@ -374,6 +431,10 @@ compose_up_detached() {
     # 典型场景：rootless Docker 下 runc 间歇性无法创建 /dev/null → 容器 Created 而非 Running。
     _repair_created_iot_containers
     _up_rc=$?
+
+    if [ "$_up_rc" -eq 0 ] && [ "$want_sink" -eq 1 ]; then
+        ensure_iot_sink_ready || _up_rc=$?
+    fi
 
     return "$_up_rc"
 }
@@ -1343,6 +1404,13 @@ restart_services() {
     fi
     print_info "DEVICE 重启: ${targets[*]}"
     device_compose restart "${targets[@]}"
+    local target
+    for target in "${targets[@]}"; do
+        if [ "$target" = "iot-sink" ]; then
+            ensure_iot_sink_ready
+            break
+        fi
+    done
     print_success "服务重启完成"
     ensure_platform_agent_after_device_stack
 }

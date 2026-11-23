@@ -1692,6 +1692,20 @@ desktop_verify() {
       print_error "$(module_name "$module") 未就绪"
       failed="${failed} $(module_name "$module")"
     fi
+
+    # DEVICE 网关健康并不代表告警事件面可用；sink 僵死时算法仍能发 MQTT，但告警无法入库。
+    if [ "$module" = "DEVICE" ] && docker container inspect iot-sink >/dev/null 2>&1; then
+      total=$((total + 1))
+      print_info "验证 iot-sink (端口: 48092)..."
+      if curl -fsS --connect-timeout 2 --max-time 5 \
+        "http://localhost:48092/actuator/health" >/dev/null 2>&1; then
+        print_success "iot-sink 运行正常"
+        ok_count=$((ok_count + 1))
+      else
+        print_error "iot-sink 未就绪"
+        failed="${failed} iot-sink"
+      fi
+    fi
   done
   echo ""
   echo "通过: ${ok_count}/${total}"

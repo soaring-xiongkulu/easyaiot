@@ -29,7 +29,14 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 public class SinkServerApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SinkServerApplication.class, args);
+        try {
+            SpringApplication.run(SinkServerApplication.class, args);
+        } catch (Throwable throwable) {
+            // MQTT、Kafka、Vert.x 等非 daemon 线程可能在 Spring 启动失败后继续存活，
+            // 导致容器保持 Up/unhealthy，restart: always 也无法接管。明确退出让 Docker 重启。
+            log.error("iot-sink 启动失败，退出进程以触发容器重启", throwable);
+            System.exit(1);
+        }
     }
 
 }

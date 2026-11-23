@@ -1045,6 +1045,30 @@ wait_for_service() {
     return 1
 }
 
+# DEVICE 的 gateway 只覆盖控制面；若 iot-sink 存在，还必须验证告警消费/入库服务。
+verify_iot_sink_health_if_present() {
+    if ! docker container inspect iot-sink >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local attempt=0
+    local response="000"
+    print_info "验证 iot-sink (端口: 48092)..."
+    while [ "$attempt" -lt 60 ]; do
+        response=$(curl -sS -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 5 \
+            "http://localhost:48092/actuator/health" 2>/dev/null || true)
+        if [ "$response" = "200" ]; then
+            print_success "iot-sink 运行正常"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+
+    print_error "iot-sink 未就绪 (HTTP ${response:-000})"
+    return 1
+}
+
 # 验证服务健康状态
 verify_service_health() {
     local module=$1
@@ -1060,6 +1084,9 @@ verify_service_health() {
             response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$port$health_endpoint" 2>/dev/null || echo "000")
             if [ "$response" = "200" ] || [ "$response" = "000" ]; then
                 print_success "$module_name 运行正常"
+                if [ "$module" = "DEVICE" ]; then
+                    verify_iot_sink_health_if_present || return 1
+                fi
                 return 0
             else
                 print_warning "$module_name 响应异常 (HTTP $response)"

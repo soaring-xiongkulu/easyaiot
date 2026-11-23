@@ -18,5 +18,6 @@ ENV TZ=Asia/Shanghai JAVA_OPTS="-Xms512m -Xmx512m"
 # 暴露后端项目的 48092 端口
 EXPOSE 48092
 
-# 启动后端项目
-CMD java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar app.jar
+# Desktop 在容器快速 remove/recreate 后偶发仍无法立即重新绑定应用端口，短暂退避后再启动。
+# 使用 exec 保证 Java 成为 PID 1，启动失败退出时 restart: always 可以正确接管。
+CMD ["sh", "-c", "sleep \"${IOT_SINK_START_DELAY_SEC:-2}\"; exec java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar app.jar"]

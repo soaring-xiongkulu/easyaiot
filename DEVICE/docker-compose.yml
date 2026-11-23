@@ -412,11 +412,16 @@ services:
     image: iot-sink-biz:latest
     container_name: iot-sink
     user: root
+    # 同时覆盖旧版预构建镜像的 CMD，使 Desktop 下次 recreate 即可获得启动退避，无需先重建镜像。
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - 'sleep "$${IOT_SINK_START_DELAY_SEC:-2}"; exec java $${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar app.jar'
     ports:
       - "0.0.0.0:48092:48092"
     environment:
       - TZ=Asia/Shanghai # 配置程序默认时区为上海（中国标准时间）
       - JAVA_OPTS=-Xms256m -Xmx320m
+      - IOT_SINK_START_DELAY_SEC=${IOT_SINK_START_DELAY_SEC:-2}
       - SPRING_PROFILES_ACTIVE=${IOT_SINK_SPRING_PROFILES_ACTIVE:-local} # mini/standard 形态由安装脚本追加 mini/standard profile（无 TDengine 时 tdengine 数据源 lazy）
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=Nacos:8848 # 配置中心地址（使用Docker服务名）
       - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE= # 使用默认命名空间（public）
