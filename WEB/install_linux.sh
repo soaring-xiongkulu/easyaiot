@@ -387,13 +387,22 @@ handle_port_conflict() {
     echo ""
     print_info "检测到以下进程占用端口: ${pids[*]}"
     echo ""
-    print_info "请选择处理方式:"
-    echo "  1) 自动 - 自动kill占用端口的进程"
-    echo "  2) 手动 - 手动处理（脚本退出）"
-    echo "  3) 停止 - 停止脚本执行"
-    echo ""
-    print_info "请输入选项 (1/2/3，默认: 2): "
-    read -r choice
+    local choice
+    if [ "${EASYAIOT_WEB_PORT_AUTO_KILL:-0}" = "1" ] \
+        || [ "${EASYAIOT_SKIP_IMAGE_PROMPT:-0}" = "1" ] \
+        || [ ! -t 0 ]; then
+        # Desktop 并行 start 无法交互；stop 后 Docker 端口代理也可能短暂残留。
+        choice=1
+        print_info "非交互启动，自动释放端口 $port（可设置 EASYAIOT_WEB_PORT_AUTO_KILL=1 显式启用）"
+    else
+        print_info "请选择处理方式:"
+        echo "  1) 自动 - 自动kill占用端口的进程"
+        echo "  2) 手动 - 手动处理（脚本退出）"
+        echo "  3) 停止 - 停止脚本执行"
+        echo ""
+        print_info "请输入选项 (1/2/3，默认: 2): "
+        read -r choice || choice=2
+    fi
     
     case "${choice:-2}" in
         1)
