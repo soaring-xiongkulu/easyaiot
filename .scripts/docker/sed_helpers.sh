@@ -7,7 +7,8 @@ sed_inplace() {
 
     [ -f "$file" ] || return 1
 
-    local tmp="${file}.tmp.$$"
+    # $$ 在并行子 shell 中可能保持为父进程 PID，需加入实际 Bash PID 和随机数。
+    local tmp="${file}.tmp.$$.${BASHPID:-0}.${RANDOM}"
     if sed "$@" "$file" > "$tmp"; then
         # Write through the existing inode so ownership and permissions are kept.
         if cat "$tmp" > "$file"; then

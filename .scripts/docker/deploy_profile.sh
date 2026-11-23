@@ -39,6 +39,12 @@ _deploy_profile_repo_root() {
     echo "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 }
 
+# 并行子 shell 中 $$ 仍可能是父进程 PID；BASHPID + RANDOM 保证临时文件不互相踩踏。
+_deploy_profile_unique_tmp() {
+    local file="$1"
+    echo "${file}.tmp.$$.${BASHPID:-0}.${RANDOM}"
+}
+
 _deploy_profile_is_desktop_host() {
     [ -n "${EASYAIOT_DESKTOP_OS:-}" ] && return 0
     [ "${EASYAIOT_COMPOSE_DESKTOP:-0}" = "1" ] && return 0
@@ -654,7 +660,8 @@ _set_env_docker_kv() {
     local file="$1" key="$2" value="$3"
     [ -f "$file" ] || return 0
     if grep -q "^${key}=" "$file" 2>/dev/null; then
-        local tmp="${file}.tmp.$$"
+        local tmp
+        tmp="$(_deploy_profile_unique_tmp "$file")"
         sed "s|^${key}=.*|${key}=${value}|" "$file" > "$tmp" && mv "$tmp" "$file"
     else
         # 确保追加前文件以换行结尾，避免与最后一行粘连
@@ -668,7 +675,8 @@ _set_web_env_kv() {
     local file="$1" key="$2" value="$3"
     [ -f "$file" ] || return 0
     if grep -qE "^${key}[[:space:]]*=" "$file" 2>/dev/null; then
-        local tmp="${file}.tmp.$$"
+        local tmp
+        tmp="$(_deploy_profile_unique_tmp "$file")"
         sed -E "s|^${key}[[:space:]]*=.*|${key} = ${value}|" "$file" > "$tmp" && mv "$tmp" "$file"
     else
         [ -n "$(tail -c1 "$file" 2>/dev/null || true)" ] && echo "" >> "$file"
@@ -704,7 +712,8 @@ sync_web_deploy_profile_env() {
     _set_web_env_kv "$web_env" "VITE_GLOB_APP_CAPTCHA_ENABLE" "$captcha_flag"
     _set_web_env_kv "$web_env" "VITE_GLOB_EDGE_STANDALONE" "$edge_flag"
     if grep -q '^NGINX_CONF=' "$web_env" 2>/dev/null; then
-        local tmp="${web_env}.tmp.$$"
+        local tmp
+        tmp="$(_deploy_profile_unique_tmp "$web_env")"
         sed "s|^NGINX_CONF=.*|NGINX_CONF=${conf}|" "$web_env" > "$tmp" && mv "$tmp" "$web_env"
     else
         [ -n "$(tail -c1 "$web_env" 2>/dev/null || true)" ] && echo "" >> "$web_env"
@@ -714,6 +723,9 @@ sync_web_deploy_profile_env() {
 
 # 将 .deploy_profile 同步到各业务模块持久化配置（install/start/restart 均应一致）
 sync_deploy_profile_to_modules() {
+    # desktop_start 已在拉起并行子进程前完成同步，子进程只需继承环境变量。
+    [ "${EASYAIOT_SKIP_PROFILE_SYNC:-0}" = "1" ] && return 0
+
     local root="${1:-$(_deploy_profile_repo_root)}"
     apply_middleware_deploy_env "$root"
     apply_python_service_deploy_env "$root"

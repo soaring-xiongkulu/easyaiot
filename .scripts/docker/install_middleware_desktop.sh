@@ -228,7 +228,7 @@ ensure_dirs() {
   fi
   touch "${SCRIPT_DIR}/.env"
   if grep -q '^EASYAIOT_MEDIA_ROOT=' "${SCRIPT_DIR}/.env" 2>/dev/null; then
-    local tmp="${SCRIPT_DIR}/.env.tmp.$$"
+    local tmp="${SCRIPT_DIR}/.env.tmp.$$.${BASHPID:-0}.${RANDOM}"
     sed "s|^EASYAIOT_MEDIA_ROOT=.*|EASYAIOT_MEDIA_ROOT=${media_root}|" "${SCRIPT_DIR}/.env" > "$tmp" && mv "$tmp" "${SCRIPT_DIR}/.env"
   else
     echo "EASYAIOT_MEDIA_ROOT=${media_root}" >> "${SCRIPT_DIR}/.env"
@@ -255,7 +255,7 @@ ensure_env() {
   # 与本机架构对齐，避免 compose 默认 NACOS_PLATFORM=linux/amd64 在 Apple Silicon 上走 QEMU
   if [ -n "${NACOS_PLATFORM:-}" ]; then
     if grep -q "^NACOS_PLATFORM=" "${ENV_FILE}" 2>/dev/null; then
-      local tmp="${ENV_FILE}.tmp.$$"
+      local tmp="${ENV_FILE}.tmp.$$.${BASHPID:-0}.${RANDOM}"
       sed "s|^NACOS_PLATFORM=.*|NACOS_PLATFORM=${NACOS_PLATFORM}|" "${ENV_FILE}" > "$tmp" && mv "$tmp" "${ENV_FILE}"
     else
       ensure_env_var "NACOS_PLATFORM" "${NACOS_PLATFORM}"

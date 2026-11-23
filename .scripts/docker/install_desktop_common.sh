@@ -1532,6 +1532,8 @@ desktop_start() {
       : > "$mlog"
       (
         LOG_FILE="$mlog"
+        # 父进程已同步各模块 .env，避免并行 start 再次写同一批文件。
+        export EASYAIOT_SKIP_PROFILE_SYNC=1
         export_desktop_arch_env
         execute_module_command "$module" "start" >/dev/null 2>&1
       ) &
