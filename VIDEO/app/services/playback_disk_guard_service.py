@@ -321,8 +321,11 @@ def _delete_playback_db_for_file(file_path: str) -> int:
         return 0
 
 
-def cleanup_orphan_playback_records(batch_size: int = 500, max_rows: int = 20000) -> Dict[str, int]:
-    """清理指向已不存在文件的 Playback 孤儿记录。"""
+def _cleanup_orphan_playback_records_in_context(
+    batch_size: int = 500,
+    max_rows: int = 20000,
+) -> Dict[str, int]:
+    """在 Flask app context 内清理指向已不存在文件的 Playback 孤儿记录。"""
     from models import Playback, db
     from app.services.media_dvr_utils import resolve_playback_absolute_path
 
@@ -362,6 +365,30 @@ def cleanup_orphan_playback_records(batch_size: int = 500, max_rows: int = 20000
     if removed:
         logger.info('Playback 孤儿清理完成: scanned=%s removed=%s', scanned, removed)
     return {'scanned': scanned, 'removed': removed}
+
+
+def cleanup_orphan_playback_records(batch_size: int = 500, max_rows: int = 20000) -> Dict[str, int]:
+    """清理 Playback 孤儿记录；无 Flask 上下文时尽力获取，否则安全跳过。"""
+    from flask import has_app_context
+
+    if has_app_context():
+        return _cleanup_orphan_playback_records_in_context(batch_size, max_rows)
+
+    from models import db
+
+    app = None
+    get_app = getattr(db, 'get_app', None)
+    if callable(get_app):
+        try:
+            app = get_app()
+        except Exception as exc:
+            logger.warning('Playback 孤儿清理无法获取 Flask app，已跳过: %s', exc)
+    if app is None:
+        logger.warning('Playback 孤儿清理缺少 Flask app context，已跳过')
+        return {'scanned': 0, 'removed': 0, 'skipped': 1}
+
+    with app.app_context():
+        return _cleanup_orphan_playback_records_in_context(batch_size, max_rows)
 
 
 def _prune_empty_parents(file_path: str, stop_at: str) -> None:
