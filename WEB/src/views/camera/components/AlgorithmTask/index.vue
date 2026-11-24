@@ -336,7 +336,7 @@ const searchParams = ref<{
   is_enabled?: boolean;
 }>({});
 
-function formatTaskTypeLabel(item: { task_type?: string; executor?: string }) {
+function formatTaskTypeLabel(item: { task_type?: string; executor?: string; runtime_target?: string }) {
   const base =
     item.task_type === 'realtime'
       ? '实时视频分析'
@@ -345,6 +345,10 @@ function formatTaskTypeLabel(item: { task_type?: string; executor?: string }) {
         : '事件抓拍分析';
   const ex = String(item.executor || 'python').toLowerCase();
   if (ex === 'cpp' || ex === 'c++' || ex === 'runtime' || ex === 'cxx') {
+    const target = String(item.runtime_target || '').toLowerCase();
+    if (target === 'rk3588') {
+      return `${base}（低时延 · RK3588）`;
+    }
     return `${base}（低时延）`;
   }
   return `${base}（全功能）`;

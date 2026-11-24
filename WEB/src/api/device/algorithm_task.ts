@@ -35,6 +35,8 @@ export interface AlgorithmTask {
   task_type: 'realtime' | 'snap' | 'patrol';
   /** 执行后端：python（默认）| cpp（本机 RUNTIME） */
   executor?: 'python' | 'cpp' | string;
+  /** 芯片运行时适配器：auto | generic | rk3588 */
+  runtime_target?: 'auto' | 'generic' | 'rk3588' | string;
   runtime_bin_path?: string;
   runtime_control_port?: number;
   device_ids?: string[];
@@ -173,6 +175,9 @@ export const getAlgorithmTask = (task_id: number) => {
 /** 本机 VIDEO 侧 RUNTIME 版本与就绪状态 */
 export interface RuntimeInfo {
   ready?: boolean;
+  target?: 'generic' | 'rk3588' | string;
+  module?: 'RUNTIME' | 'RUNTIME-RK3588' | string;
+  hardwareOnly?: boolean;
   binPath?: string | null;
   version?: string | null;
   git?: string | null;
@@ -184,8 +189,9 @@ export interface RuntimeInfo {
   versionFile?: string | null;
 }
 
-export const getRuntimeInfo = () => {
+export const getRuntimeInfo = (runtime_target?: 'auto' | 'generic' | 'rk3588' | string) => {
   return commonApi<RuntimeInfo>('get', `${ALGORITHM_PREFIX}/runtime/info`, {
+    params: runtime_target ? { runtime_target } : undefined,
     errorMessageMode: 'none',
   });
 };
@@ -248,6 +254,16 @@ export const createAlgorithmTask = (data: {
   post_process_replicas?: number;
   /** 是否启用大模型（LLM）后处理，默认关闭 */
   llm_post_process_enabled?: boolean;
+  /** 执行器：python（全功能）/ cpp（低时延 RUNTIME） */
+  executor?: 'python' | 'cpp';
+  /** 芯片算法运行时：auto / generic / rk3588 */
+  runtime_target?: 'auto' | 'generic' | 'rk3588';
+  runtime_bin_path?: string;
+  runtime_control_port?: number;
+  /** 调度策略：local / auto / node */
+  schedule_policy?: 'local' | 'auto' | 'node';
+  prefer_gpu?: boolean;
+  target_node_id?: number;
 }) => {
   return commonApi<{ code: number; msg: string; data: AlgorithmTask }>(
     'post',

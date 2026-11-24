@@ -138,7 +138,14 @@ const [registerLlmJudgeDrawer, { openDrawer: openLlmJudgeDrawer }] = useDrawer()
 /** 任务是否运行中（运行中不可编辑区域） */
 const taskIsEnabled = ref(false);
 /** VIDEO 本机 RUNTIME 版本（高性能模式下展示） */
-const runtimeInfo = ref<{ ready?: boolean; version?: string | null; binPath?: string | null } | null>(null);
+const runtimeInfo = ref<{
+  ready?: boolean;
+  target?: string;
+  module?: string;
+  hardwareOnly?: boolean;
+  version?: string | null;
+  binPath?: string | null;
+} | null>(null);
 const runtimeInfoTaskMode = ref<string>('realtime_cpp');
 
 const showRuntimeVersionBanner = computed(() => {
@@ -148,16 +155,20 @@ const showRuntimeVersionBanner = computed(() => {
 
 const runtimeVersionBanner = computed(() => {
   const info = runtimeInfo.value;
+  const requested = String(formValues.value?.runtime_target || 'auto');
+  const moduleLabel = info?.module
+    || (requested === 'rk3588' ? 'RUNTIME-RK3588' : requested === 'generic' ? 'RUNTIME' : '本机运行时');
   if (!info) {
-    return '本机 RUNTIME：正在查询版本…';
+    return `${moduleLabel}：正在查询版本…`;
   }
+  const chipLabel = info.target === 'rk3588' ? 'RK3588 NPU' : '通用运行时';
   if (info.ready && info.version) {
-    return `本机 RUNTIME 版本：${info.version}${info.binPath ? `（${info.binPath}）` : ''}`;
+    return `${info.module || moduleLabel}（${chipLabel}）已就绪：${info.version}${info.binPath ? `（${info.binPath}）` : ''}`;
   }
   if (info.ready) {
-    return '本机 RUNTIME 已就绪，但未找到 VERSION 文件（请重新编译以写入版本信息）';
+    return `${info.module || moduleLabel}（${chipLabel}）已就绪，但未找到 VERSION 文件`;
   }
-  return '本机推理运行时未就绪：低时延任务将触发自动编译，或请先完成业务运行时安装';
+  return `${info.module || moduleLabel}（${chipLabel}）未就绪：低时延任务将触发自动编译，或请先完成业务运行时安装`;
 });
 
 const postTaskContext = computed(() => {
@@ -193,9 +204,9 @@ async function refreshLlmRuleSummary() {
   }
 }
 
-async function loadRuntimeInfo() {
+async function loadRuntimeInfo(runtimeTarget?: string) {
   try {
-    const data = await getRuntimeInfo();
+    const data = await getRuntimeInfo(runtimeTarget);
     // defHttp 可能返回 data 本体，也可能保留 { code, data }
     const info = (data as any)?.data && typeof (data as any).data === 'object'
       ? (data as any).data
@@ -204,6 +215,11 @@ async function loadRuntimeInfo() {
   } catch {
     runtimeInfo.value = { ready: false };
   }
+}
+
+/** 读取后端识别到的芯片运行时；经函数调用避免被上面的 null 赋值窄化 */
+function detectedRuntimeTarget(): string {
+  return String(runtimeInfo.value?.target || 'auto');
 }
 const isFullDayDefense = ref<boolean>(true);
 const alertNotificationEnabled = ref<boolean>(false); // 告警通知启用状态
@@ -955,6 +971,21 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
       helpMessage: '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、业务脚本等完整能力集',
       defaultValue: 'realtime_cpp',
+    },
+    {
+      field: 'runtime_target',
+      label: '芯片算法运行时',
+      component: 'Select',
+      defaultValue: 'auto',
+      componentProps: {
+        options: [
+          { label: '自动识别本机芯片（推荐）', value: 'auto' },
+          { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
+          { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
+        ],
+      },
+      helpMessage: 'VIDEO 统一编排任务，下层按芯片运行时执行。RK3588 只接受优化版 INT8 RKNN，不会回退 ONNX 或 CPU；后续芯片可按同一接口扩展。',
+      ifShow: ({ values }) => String(values.task_mode || '').endsWith('_cpp'),
     },
     {
       field: 'patrol_interval_sec',
@@ -1773,7 +1804,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   ingressScheduleNotice.value = { type: 'info', message: '' };
   resetFields();
   runtimeInfo.value = null;
-  void loadRuntimeInfo();
+  await loadRuntimeInfo();
 
   // 确保默认模型已初始化（在加载前）
   initDefaultModels();
@@ -1882,6 +1913,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     await setFieldsValue({
       task_name: record.task_name,
       task_mode: editTaskMode,
+      runtime_target: record.runtime_target || detectedRuntimeTarget(),
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
@@ -1934,6 +1966,10 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       ? (record as any).post_pipeline
       : null;
 
+    if (String(record.executor || 'cpp').toLowerCase() !== 'python') {
+      void loadRuntimeInfo(record.runtime_target || 'auto');
+    }
+
     // 刷新大模型研判规则摘要（静默失败不影响表单）
     void refreshLlmRuleSummary();
 
@@ -1953,6 +1989,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       updateSchema([
         { field: 'task_name', componentProps: { disabled: true } },
         { field: 'task_mode', componentProps: { disabled: true } },
+        { field: 'runtime_target', componentProps: { disabled: true } },
         { field: 'schedule_policy', componentProps: { disabled: true } },
         { field: 'target_node_id', componentProps: { disabled: true } },
         { field: 'device_ids', componentProps: { disabled: true } },
@@ -1985,6 +2022,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       updateSchema([
         { field: 'task_name', componentProps: { disabled: false } },
         { field: 'task_mode', componentProps: { disabled: false } },
+        { field: 'runtime_target', componentProps: { disabled: false } },
         { field: 'schedule_policy', componentProps: { disabled: false } },
         { field: 'target_node_id', componentProps: { disabled: false } },
         { field: 'device_ids', componentProps: { disabled: false } },
@@ -2017,6 +2055,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     updateSchema([
       { field: 'task_name', componentProps: { disabled: false } },
       { field: 'task_mode', componentProps: { disabled: false } },
+        { field: 'runtime_target', componentProps: { disabled: false } },
       { field: 'schedule_policy', componentProps: { disabled: false } },
       { field: 'target_node_id', componentProps: { disabled: false } },
       { field: 'device_ids', componentProps: { disabled: false } },
@@ -2045,6 +2084,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     runtimeInfoTaskMode.value = 'realtime_cpp';
     await setFieldsValue({
       task_mode: 'realtime_cpp',
+      runtime_target: detectedRuntimeTarget(),
       schedule_policy: 'local',
       prefer_gpu: true,
       cron_expression: DEFAULT_SNAP_CRON,
@@ -2195,8 +2235,15 @@ const handleFieldValueChange = async (key: string, value: any) => {
     formValues.value = { ...currentValues, device_ids: value || [] };
   } else if (key === 'task_mode') {
     runtimeInfoTaskMode.value = String(value || '');
-    if (String(value || '').endsWith('_cpp') && !runtimeInfo.value) {
-      void loadRuntimeInfo();
+    if (String(value || '').endsWith('_cpp')) {
+      const currentValues = await getFieldsValue();
+      void loadRuntimeInfo(currentValues.runtime_target || detectedRuntimeTarget());
+    }
+  } else if (key === 'runtime_target') {
+    void loadRuntimeInfo(String(value || 'auto'));
+    if (value === 'rk3588') {
+      await setFieldsValue({ schedule_policy: 'local', target_node_id: undefined });
+      formValues.value = { ...(await getFieldsValue()), schedule_policy: 'local', target_node_id: undefined };
     }
   } else if (key === 'is_full_day_defense') {
     isFullDayDefense.value = value !== undefined ? value : true;
@@ -2320,6 +2367,34 @@ const handleSubmit = async () => {
       values.task_type = mapped.task_type;
       values.executor = mapped.executor;
       values.task_mode = toTaskMode(mapped.task_type, mapped.executor);
+      if (mapped.executor !== 'cpp') values.runtime_target = 'auto';
+    }
+
+    const requestedRuntimeTarget = String(values.runtime_target || 'auto');
+    // auto 由后端按本机芯片解析；本机为 RK3588 时同样受硬件契约约束
+    const effectiveRuntimeTarget = requestedRuntimeTarget === 'auto'
+      ? detectedRuntimeTarget()
+      : requestedRuntimeTarget;
+    if (values.executor === 'cpp' && effectiveRuntimeTarget === 'rk3588') {
+      if ((values.schedule_policy || 'local') !== 'local') {
+        createMessage.error('RK3588 硬件运行时只支持本机调度，请将调度策略改为本机部署');
+        confirmLoading.value = false;
+        setDrawerProps({ confirmLoading: false });
+        return;
+      }
+      if (!Array.isArray(values.model_ids) || !values.model_ids.length) {
+        createMessage.error('RK3588 算法任务必须选择至少一个 .rknn 模型');
+        confirmLoading.value = false;
+        setDrawerProps({ confirmLoading: false });
+        return;
+      }
+      const incompatibleBuiltins = (values.model_ids || []).filter((id: any) => Number(id) < 0 && Number(id) !== -2);
+      if (incompatibleBuiltins.length) {
+        createMessage.error('RK3588 内置模型请选择 yolov8n；其他默认模型不是 RKNN 1 输入 / 9 输出契约');
+        confirmLoading.value = false;
+        setDrawerProps({ confirmLoading: false });
+        return;
+      }
     }
 
     // 新建任务时，默认设置为未启用状态（需要通过启动按钮来启动）
@@ -2605,6 +2680,7 @@ const handleReset = async () => {
     isFullDayDefense.value = true; // 默认全天布防
     await setFieldsValue({
       task_mode: 'realtime_cpp',
+      runtime_target: detectedRuntimeTarget(),
       schedule_policy: 'local',
       prefer_gpu: true,
       target_node_id: undefined,
