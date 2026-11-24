@@ -666,6 +666,11 @@ const refreshIngressScheduleOptions = (selectedValues: unknown) => {
         type: 'error',
         message: `${selectedOption.unavailableReason}，请先在节点管理中恢复节点并确认已部署视频分析运行时。`,
       };
+    } else if (shouldRestrictScheduleToLocal()) {
+      ingressScheduleNotice.value = {
+        type: 'error',
+        message: `当前任务使用 RK3588 硬件运行时，无法调度到接入节点 ${selectedOption?.ingressNodeName || `#${selectedIngressNodeId}`}；请选择本机直连摄像头，或直接在边缘节点创建任务。`,
+      };
     } else {
       ingressScheduleNotice.value = {
         type: 'success',
@@ -676,6 +681,7 @@ const refreshIngressScheduleOptions = (selectedValues: unknown) => {
     ingressScheduleNotice.value = { type: 'info', message: '' };
   }
 
+  const restrictScheduleToLocal = shouldRestrictScheduleToLocal();
   updateSchema([
     {
       field: 'device_ids',
@@ -685,9 +691,10 @@ const refreshIngressScheduleOptions = (selectedValues: unknown) => {
       field: 'schedule_policy',
       componentProps: {
         placeholder: '请选择调度策略',
-        options: schedulePolicyOptions,
-        disabled: isViewMode.value || !!selectedIngressNodeId,
+        options: restrictScheduleToLocal ? localSchedulePolicyOptions : schedulePolicyOptions,
+        disabled: isViewMode.value || (!!selectedIngressNodeId && !restrictScheduleToLocal),
       },
+      helpMessage: schedulePolicyHelp.value,
     },
     {
       field: 'target_node_id',
@@ -709,6 +716,16 @@ const applyIngressScheduleSelection = async (
   autoAssign = true,
 ) => {
   refreshIngressScheduleOptions(selectedValues);
+  if (shouldRestrictScheduleToLocal()) {
+    forcedIngressNodeId.value = null;
+    await setFieldsValue({ schedule_policy: 'local', target_node_id: undefined });
+    formValues.value = {
+      ...(await getFieldsValue()),
+      schedule_policy: 'local',
+      target_node_id: undefined,
+    };
+    return;
+  }
   const ingressGroups = selectedIngressNodeIds(selectedValues);
   const nextIngressNodeId = ingressGroups.length === 1 ? ingressGroups[0] : null;
 
@@ -730,6 +747,16 @@ const applyIngressScheduleSelection = async (
   });
 };
 
+/** 运行时档位变化后重新套用接入节点约束，避免提示/调度策略停留在旧档位 */
+const syncIngressScheduleForCurrentForm = async () => {
+  const currentValues = await getFieldsValue();
+  await applyIngressScheduleSelection(
+    currentValues?.device_ids || [],
+    modalData.value.type !== 'view',
+  );
+  formValues.value = { ...formValues.value, ...await getFieldsValue() };
+};
+
 const getIngressScheduleValidationError = (values: any): string | undefined => {
   const groups = selectedIngressNodeIds(values?.device_ids);
   if (groups.length > 1) {
@@ -743,6 +770,14 @@ const getIngressScheduleValidationError = (values: any): string | undefined => {
   );
   if (option?.unavailableReason) {
     return `${option.unavailableReason}，暂时不能创建算法任务`;
+  }
+  const taskMode = String(values?.task_mode || '');
+  const requestedTarget = String(values?.runtime_target || 'auto');
+  const effectiveTarget = !requestedTarget || requestedTarget === 'auto'
+    ? (hostRuntimeTarget.value || 'auto')
+    : requestedTarget;
+  if (taskMode.endsWith('_cpp') && effectiveTarget === 'rk3588') {
+    return `RK3588 硬件运行时任务无法使用通过 ${option?.ingressNodeName || `边缘节点 #${ingressNodeId}`} 接入的摄像头，请选择本机直连摄像头；或直接在边缘节点创建任务`;
   }
   if (values.schedule_policy !== 'node' || Number(values.target_node_id) !== ingressNodeId) {
     return `摄像头通过 ${option?.ingressNodeName || `边缘节点 #${ingressNodeId}`} 接入，算法任务必须指定到同一节点`;
@@ -2529,11 +2564,13 @@ const handleFieldValueChange = async (key: string, value: any) => {
     if (isCppMode) {
       void loadRuntimeInfo(currentValues.runtime_target || detectedRuntimeTarget());
     }
+    await syncIngressScheduleForCurrentForm();
   } else if (key === 'runtime_target') {
     const nextTarget = String(value || 'auto');
     await applyRuntimeTargetDependentOptions(nextTarget);
     void loadRuntimeInfo(nextTarget);
     formValues.value = { ...(await getFieldsValue()), runtime_target: nextTarget };
+    await syncIngressScheduleForCurrentForm();
   } else if (key === 'is_full_day_defense') {
     isFullDayDefense.value = value !== undefined ? value : true;
     // 如果切换到非全天布防，默认设置为半防模式并清空表格，让用户自己选择
