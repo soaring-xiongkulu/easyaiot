@@ -10,7 +10,7 @@ import uuid
 import tempfile
 import json
 from datetime import datetime
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 from flask import Blueprint, request, jsonify, send_file
 from flask import redirect, url_for, flash, render_template
 from sqlalchemy import or_
@@ -29,6 +29,7 @@ model_bp = Blueprint('model', __name__)
 logger = logging.getLogger(__name__)
 
 _DEFAULT_MODEL_VERSION = '1.0.0'
+_UPLOAD_MODEL_EXTENSIONS = ('.pt', '.onnx', '.rknn')
 
 
 def _normalize_model_version(version) -> str:
@@ -37,6 +38,37 @@ def _normalize_model_version(version) -> str:
     if text.lower().startswith('v'):
         text = text[1:].lstrip()
     return text or _DEFAULT_MODEL_VERSION
+
+
+def _model_file_suffix(value) -> str:
+    """从本地路径、对象键或下载 URL 中提取小写扩展名。
+
+    MinIO 下载 URL 的文件名在 prefix 查询参数里
+    （如 /api/v1/buckets/models/objects/download?prefix=rknn/x.rknn），
+    不能直接对 URL path 做 splitext。
+    """
+    raw = str(value or '').strip()
+    if not raw:
+        return ''
+    parsed = urlparse(raw)
+    prefix = (parse_qs(parsed.query).get('prefix') or [''])[0]
+    candidate = unquote(prefix or parsed.path or raw)
+    return os.path.splitext(candidate)[1].lower()
+
+
+def _apply_model_file_path(model: Model, file_path: str) -> str:
+    """按权重格式写入对应字段：RKNN 登记到 rknn_model_path，其余保持 model_path。"""
+    normalized = _normalize_model_storage_path(file_path)
+    if _model_file_suffix(normalized) == '.rknn':
+        model.rknn_model_path = normalized
+    else:
+        model.model_path = normalized
+    return normalized
+
+
+def _primary_model_file_path(model: Model) -> str:
+    """模型编辑/下载回显的当前权重路径。"""
+    return model.model_path or model.rknn_model_path or ''
 
 
 def _serialize_model_class_fields(model: Model) -> dict:
@@ -191,6 +223,7 @@ def models():
                     Model.torchscript_model_path.isnot(None),
                     Model.tensorrt_model_path.isnot(None),
                     Model.openvino_model_path.isnot(None),
+                    Model.rknn_model_path.isnot(None),
                 )
             )
 
@@ -383,14 +416,15 @@ def upload_model_file():
 @model_bp.route('/upload', methods=['POST'])
 def upload_custom_model():
     """
-    上传用户自定义YOLO模型（支持 yolov8、yolov11 和 yolov26）
+    上传用户自定义YOLO/RKNN模型（支持 yolov8、yolov11、yolov26 与 RK3588 RKNN）
     
     请求参数:
-    - file: 模型文件（.pt或.onnx格式，multipart/form-data）
+    - file: 模型文件（.pt、.onnx 或 .rknn，multipart/form-data）
     - name: 模型名称（可选，如果提供则保存到数据库）
     - description: 模型描述（可选）
     - version: 模型版本（可选，默认1.0.0）
     - save_to_db: 是否保存到数据库（可选，默认false）
+    - classNames: RKNN 模型类别名称（可选，JSON 数组字符串）
     """
     if 'file' not in request.files:
         return jsonify({'code': 400, 'msg': '未找到文件'}), 400
@@ -401,8 +435,8 @@ def upload_custom_model():
 
     # 检查文件扩展名
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ['.pt', '.onnx']:
-        return jsonify({'code': 400, 'msg': '只支持.pt和.onnx格式的YOLO模型文件'}), 400
+    if ext not in _UPLOAD_MODEL_EXTENSIONS:
+        return jsonify({'code': 400, 'msg': '只支持 .pt、.onnx 和 .rknn 格式的模型文件'}), 400
 
     # 获取可选参数
     name = request.form.get('name', '').strip()
@@ -454,6 +488,25 @@ def upload_custom_model():
                 return jsonify({
                     'code': 400,
                     'msg': f'ONNX模型验证失败: {error_msg}'
+                }), 400
+        elif ext == '.rknn':
+            # RKNN 文件无法在通用 AI 容器内做张量契约校验，只检查文件头；
+            # 1 输入/9 输出 INT8 契约由 RK3588 运行时加载时强制校验。
+            try:
+                from app.utils.rknn_validator import validate_rknn_model
+                rknn_info = validate_rknn_model(temp_path)
+                detection_method = f"rknn_{rknn_info['magic']}_header"
+                logger.info(
+                    "RKNN模型文件头验证成功: magic=%s size=%s",
+                    rknn_info['magic'],
+                    rknn_info['size'],
+                )
+            except Exception as e:
+                error_msg = str(e)
+                logger.error(f"RKNN模型验证失败: {error_msg}")
+                return jsonify({
+                    'code': 400,
+                    'msg': f'RKNN模型验证失败: {error_msg}'
                 }), 400
         else:
             # 验证YOLO模型版本（必须是 yolov8、yolov11 或 yolov26）
@@ -507,6 +560,8 @@ def upload_custom_model():
         # 根据文件类型选择不同的存储路径
         if ext == '.onnx':
             object_key = f"yolo/{yolo_version}/onnx/{unique_filename}"
+        elif ext == '.rknn':
+            object_key = f"rknn/{unique_filename}"
         else:
             object_key = f"yolo/{yolo_version}/{unique_filename}"
 
@@ -519,8 +574,13 @@ def upload_custom_model():
         download_url = f"/api/v1/buckets/{bucket_name}/objects/download?prefix={object_key}"
         minio_path = f"{bucket_name}/{object_key}"
 
-        # 提取模型类别标签
-        class_names = extract_class_names_from_model(temp_path)
+        # 提取模型类别标签；RKNN 为编译后模型，无法从文件中反解类别，改由调用方传入
+        if ext == '.rknn':
+            class_names = parse_class_names_json(
+                request.form.get('classNames') or request.form.get('class_names')
+            )
+        else:
+            class_names = extract_class_names_from_model(temp_path)
         selected_class_names = request.form.get('selectedClassNames') or request.form.get('selected_class_names')
         if selected_class_names:
             parsed_selected = parse_class_names_json(selected_class_names)
@@ -540,7 +600,7 @@ def upload_custom_model():
                 'fileName': file.filename,
                 'yolo_version': yolo_version,
                 'detection_method': detection_method,
-                'model_format': 'onnx' if ext == '.onnx' else 'pt',
+                'model_format': ext.lstrip('.'),
                 'class_names': class_names,
                 'classNames': class_names,
                 'selected_class_names': selected_class_names_list,
@@ -563,7 +623,8 @@ def upload_custom_model():
 
             # 设置默认描述（如果未提供）
             if not description:
-                description = f"用户上传的{yolo_version.upper()}自定义模型"
+                format_label = 'RKNN' if ext == '.rknn' else (yolo_version or 'YOLO').upper()
+                description = f"用户上传的{format_label}自定义模型"
                 logger.info(f"使用默认模型描述: {description}")
 
             # 处理默认图片（如果未提供imageUrl）
@@ -617,12 +678,13 @@ def upload_custom_model():
                 }), 400
 
             try:
-                # 创建模型记录，保存MinIO下载URL到model_path字段
+                # 创建模型记录，权重 URL 按格式落到对应字段
                 model = Model(
                     name=name,
                     description=description,
-                    model_path=download_url if ext != '.onnx' else None,  # PT模型保存到model_path
-                    onnx_model_path=download_url if ext == '.onnx' else None,  # ONNX模型保存到onnx_model_path
+                    model_path=download_url if ext == '.pt' else None,
+                    onnx_model_path=download_url if ext == '.onnx' else None,
+                    rknn_model_path=download_url if ext == '.rknn' else None,
                     version=version,
                     image_url=image_url if image_url else None,
                     class_names=dump_class_names_json(class_names),
@@ -638,6 +700,7 @@ def upload_custom_model():
                 response_data['data']['model_version'] = model.version
                 response_data['data']['model_description'] = model.description
                 response_data['data']['image_url'] = model.image_url
+                response_data['data']['rknn_model_path'] = model.rknn_model_path
                 logger.info(f"模型已保存到数据库: {model.id} - {model.name}")
             except IntegrityError as e:
                 db.session.rollback()
@@ -675,7 +738,7 @@ def create_model():
         data = request.get_json()
         name = data.get('name')
         description = data.get('description', '')
-        file_path = _normalize_model_storage_path(data.get('filePath', ''))
+        file_path = data.get('filePath', '')
         image_url = data.get('imageUrl', '')
         version = _normalize_model_version(data.get('version', _DEFAULT_MODEL_VERSION))
         status = 0
@@ -706,11 +769,11 @@ def create_model():
         model = Model(
             name=name,
             description=description,
-            model_path=file_path,
             image_url=image_url,
             version=version,
             status=status
         )
+        file_path = _apply_model_file_path(model, file_path)
         model.family_key = (name or '').strip().lower()
         _apply_model_class_fields(model, data)
         origin = (data.get('model_origin') or data.get('modelOrigin') or 'upload').strip() or 'upload'
@@ -727,7 +790,8 @@ def create_model():
                 'name': model.name,
                 'version': model.version,
                 'status': getattr(model, 'status', 0) or 0,
-                'filePath': model.model_path,
+                'filePath': file_path,
+                'rknn_model_path': model.rknn_model_path,
                 'imageUrl': model.image_url,
                 **_serialize_model_class_fields(model),
             }
@@ -776,6 +840,7 @@ def update_model(model_id):
                 }), 400
 
         # 更新允许的字段
+        updated_file_path = None
         if 'name' in data:
             model.name = data['name']
         if 'version' in data:
@@ -783,7 +848,7 @@ def update_model(model_id):
         if 'description' in data:
             model.description = data['description']
         if 'filePath' in data:
-            model.model_path = _normalize_model_storage_path(data['filePath'])
+            updated_file_path = _apply_model_file_path(model, data['filePath'])
         if 'imageUrl' in data:
             model.image_url = data['imageUrl']
         if 'status' in data and data['status'] is not None:
@@ -806,7 +871,12 @@ def update_model(model_id):
                 'name': model.name,
                 'version': model.version,
                 'status': getattr(model, 'status', 0) or 0,
-                'filePath': model.model_path,
+                'filePath': (
+                    updated_file_path
+                    if updated_file_path is not None
+                    else _primary_model_file_path(model)
+                ),
+                'rknn_model_path': model.rknn_model_path,
                 'imageUrl': model.image_url,
                 **_serialize_model_class_fields(model),
             }
@@ -1031,8 +1101,8 @@ def download_model(model_id):
     try:
         model = Model.query.get_or_404(model_id)
         
-        # 优先使用 model_path，如果没有则使用 onnx_model_path
-        model_path = model.model_path or model.onnx_model_path
+        # 优先使用 model_path，其次 onnx_model_path，最后 RKNN 权重
+        model_path = model.model_path or model.onnx_model_path or model.rknn_model_path
         
         if not model_path:
             return jsonify({
@@ -1047,8 +1117,9 @@ def download_model(model_id):
                 'msg': '无法解析模型文件路径'
             }), 400
 
-        # 创建临时文件
-        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pt')
+        # 创建临时文件；后缀与真实权重格式保持一致
+        file_ext = _model_file_suffix(model_path) or '.bin'
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_ext)
         tmp_file.close()
 
         # 从MinIO下载
@@ -1060,7 +1131,6 @@ def download_model(model_id):
             }), 404 if error_msg and '不存在' in error_msg else 500
 
         # 确定文件扩展名
-        file_ext = '.onnx' if model.onnx_model_path and not model.model_path else '.pt'
         download_name = f"{model.name}_{model.version or _DEFAULT_MODEL_VERSION}{file_ext}"
 
         # 发送文件

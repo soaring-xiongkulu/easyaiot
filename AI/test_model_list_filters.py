@@ -20,6 +20,7 @@ class ModelListFilterTest(unittest.TestCase):
             db.session.add_all([
                 Model(name='crowd-detector', version='1.0.0', model_path='/models/crowd.pt'),
                 Model(name='crowd-counter', version='1.0.7', onnx_model_path='/models/counter.onnx'),
+                Model(name='rknn-detector', version='1.0.0', rknn_model_path='/models/rknn.rknn'),
                 Model(name='vehicle-detector', version='1.0.7'),
             ])
             db.session.commit()
@@ -51,10 +52,10 @@ class ModelListFilterTest(unittest.TestCase):
     def test_filters_models_with_any_available_weights(self):
         payload = self._get_payload('has_weights=true')
 
-        self.assertEqual(payload['total'], 2)
+        self.assertEqual(payload['total'], 3)
         self.assertEqual(
             {row['name'] for row in payload['data']},
-            {'crowd-detector', 'crowd-counter'},
+            {'crowd-detector', 'crowd-counter', 'rknn-detector'},
         )
 
 
