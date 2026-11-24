@@ -1,85 +1,106 @@
 import { defHttp } from '@/utils/http/axios';
 
-enum Api {
-  Edge = '/node/edge',
+const EDGE_PREFIX = '/video/edge';
+
+export interface EdgeRemoteAccess {
+  enabled?: boolean;
+  provider?: string;
+  status?: string;
+  serviceEnabled?: boolean;
+  serviceAccessUrl?: string;
+  sshEnabled?: boolean;
+  sshAccessHost?: string;
+  sshAccessPort?: number;
+  sshUsername?: string;
 }
 
-type EdgeRequestOptions = {
-  errorMessageMode?: 'none' | 'message' | 'modal';
-  isTransformResponse?: boolean;
-};
-
-const commonApi = (
-  method: 'get' | 'post' | 'delete' | 'put',
-  url: string,
-  params = {},
-  options: EdgeRequestOptions = {},
-) => {
-  defHttp.setHeader({ 'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token') });
-  const { isTransformResponse = true, errorMessageMode } = options;
-  return defHttp[method](
-    {
-      url,
-      headers: { ignoreCancelToken: true },
-      ...params,
-    },
-    { isTransformResponse, errorMessageMode },
-  );
-};
+export interface EdgePipeline {
+  id?: string;
+  name?: string;
+  status?: string;
+  fps?: number;
+  models?: string[];
+  deviceId?: string;
+}
 
 export interface EdgeNodeVO {
-  id?: number;
-  computeNodeId?: number;
-  name?: string;
-  host?: string;
-  status?: string;
+  id: number;
   fingerprint?: string;
-  mqttClientId?: string;
-  mqttUsername?: string;
+  name: string;
+  host?: string;
+  status: 'online' | 'offline' | string;
+  enabled: boolean;
+  nodeKind?: string;
+  hardwareProvider?: string;
+  socModel?: string;
+  acceleratorType?: string;
+  acceleratorCount?: number;
+  runtimeTarget?: string;
+  runtimeVersion?: string;
   agentVersion?: string;
-  nodeRole?: string;
+  agentPort?: number;
   maxTaskCount?: number;
   activeTaskCount?: number;
-  cephMountReady?: boolean;
-  lastHeartbeatAt?: string;
-  enabled?: boolean;
-  remark?: string;
-  tags?: Record<string, string>;
   cpuPercent?: number;
   memPercent?: number;
-  agentPort?: number;
-  createTime?: string;
-  updateTime?: string;
+  diskPercent?: number;
+  temperatureC?: number;
+  memUsedBytes?: number;
+  memTotalBytes?: number;
+  diskUsedBytes?: number;
+  diskTotalBytes?: number;
+  acceleratorInfo?: Record<string, any>[];
+  pipelines?: EdgePipeline[];
+  remoteAccess?: EdgeRemoteAccess;
+  telemetryTransport?: string;
+  lastHeartbeatAt?: string;
+  connectedAt?: string;
+  disconnectedAt?: string;
+  remark?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EdgeNodeMetric {
+  id: number;
+  nodeId: number;
+  cpuPercent?: number;
+  memPercent?: number;
+  diskPercent?: number;
+  temperatureC?: number;
+  activeTasks?: number;
+  collectedAt?: string;
 }
 
 export interface EdgeNodePageReq {
   pageNo?: number;
   pageSize?: number;
-  name?: string;
-  host?: string;
+  keyword?: string;
   status?: string;
+  socModel?: string;
   enabled?: boolean;
 }
 
-function normalizePage(res: any) {
-  const data = res?.data ?? res;
-  if (data?.list) return data;
-  if (Array.isArray(data)) return { list: data, total: data.length };
-  return { list: [], total: 0 };
-}
+export const getEdgeNodePage = (params: EdgeNodePageReq) =>
+  defHttp.get<{ data: EdgeNodeVO[]; total: number }>({ url: `${EDGE_PREFIX}/node/page`, params });
 
-export const getEdgeNodePage = (params: EdgeNodePageReq) => {
-  return commonApi('get', Api.Edge + '/page', { params }).then(normalizePage);
-};
+export const getEdgeNode = (id: number) =>
+  defHttp.get<EdgeNodeVO>({ url: `${EDGE_PREFIX}/node/${id}` });
 
-export const getEdgeNode = (id: number) => {
-  return commonApi('get', Api.Edge + '/get', { params: { id } });
-};
+export const getEdgeNodeMetrics = (id: number, params: { minutes?: number; limit?: number } = {}) =>
+  defHttp.get<EdgeNodeMetric[]>({ url: `${EDGE_PREFIX}/node/${id}/metrics`, params });
 
-export const updateEdgeNode = (data: Partial<EdgeNodeVO> & { id: number }) => {
-  return commonApi('put', Api.Edge + '/update', { data });
-};
+export const updateEdgeNode = (id: number, data: Partial<Pick<EdgeNodeVO, 'name' | 'remark' | 'enabled'>>) =>
+  defHttp.put<EdgeNodeVO>({ url: `${EDGE_PREFIX}/node/${id}`, data });
 
-export const deleteEdgeNode = (id: number) => {
-  return commonApi('delete', Api.Edge + '/delete', { params: { id } });
-};
+export const deleteEdgeNode = (id: number) =>
+  defHttp.delete<boolean>({ url: `${EDGE_PREFIX}/node/${id}` });
+
+export const sendEdgeNodeCommand = (
+  id: number,
+  command: 'ping' | 'status' | 'runtime.restart' | 'runtime.reload' | 'frp.restart',
+  params: Record<string, any> = {},
+) => defHttp.post<{ commandId: string; status: string }>({
+  url: `${EDGE_PREFIX}/node/${id}/command`,
+  data: { command, params },
+});
