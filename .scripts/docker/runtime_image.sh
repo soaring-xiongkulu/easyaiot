@@ -34,7 +34,6 @@
 #                    单架构模式仅构建/推送该架构镜像，跳过多架构 manifest 更新
 #   --module <mod>   指定构建模块：all | HARNESS | TERMINAL | IDEA | DEVICE | AI | RTC | POST | VIDEO | WEB | APP | VISUALIZE | TWIN | TRANSFORM | PANEL（默认 all=全部）
 #                    单模块模式仅构建/推送该模块镜像，跳过全量 install_linux.sh build
-#                    RUNTIME-RK3588 为板端原生运行时，不由本脚本构建；请使用 install_linux.sh build-runtime RUNTIME-RK3588
 #   --native-source  使用原始源（非国内镜像源），默认使用腾讯云镜像源加速
 #
 # 架构自动检测（uname -m）:
@@ -237,12 +236,6 @@ if [ -n "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" ]; then
     fi
     if [ -n "$_bm_norm" ]; then
         export EASYAIOT_RUNTIME_BUILD_MODULE="$_bm_norm"
-        if runtime_is_native_build_module "$EASYAIOT_RUNTIME_BUILD_MODULE"; then
-            print_error "RUNTIME-RK3588 是 Rockchip 原生运行时（MPP/RGA/RKNN），不构建/推送 Docker 镜像"
-            print_info "请使用一键脚本: bash .scripts/docker/install_linux.sh build-runtime RUNTIME-RK3588"
-            print_info "或直接编译: bash RUNTIME-RK3588/install_linux.sh build"
-            exit 2
-        fi
     else
         unset EASYAIOT_RUNTIME_BUILD_MODULE
     fi

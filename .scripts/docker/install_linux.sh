@@ -15,11 +15,10 @@
 #   status     - 查看所有服务状态
 #   logs       - 查看服务日志
 #   build           - 重新构建所有镜像（各模块本地构建）
-#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|TERMINAL|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL|RUNTIME-RK3588）
-#                          指定 RUNTIME-RK3588 时改为板端原生编译（MPP/RGA/RKNN），不构建/推送镜像
+#   build-runtime [模块] - 构建/推送运行时镜像到远程仓库（推送成功后删除本地镜像；可选 HARNESS|TERMINAL|IDEA|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL）
 #   pull            - 从远程仓库拉取预构建运行时镜像（等同 runtime_image.sh pull）
 #   clean      - 清理所有容器和镜像
-#   clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件；指定模块时仅清理该模块镜像与其构建缓存；RUNTIME-RK3588 仅删本机 build/ 产物）
+#   clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，再删运行时镜像/构建缓存；保留跨架构基础镜像；不停中间件；指定模块时仅清理该模块镜像与其构建缓存）
 #   update     - 更新镜像并重启所有服务（交互可选拉取/本地重建）
 #   verify     - 验证所有服务是否启动成功
 #   verify-alert - 告警事件面验收（共享盘挂载 + MQTT→iot-sink→入库）
@@ -1837,15 +1836,9 @@ pull_runtime_images() {
 }
 
 # 构建并可选推送运行时镜像到远程仓库（交互式；第二参数可指定单模块）
-# 指定 RUNTIME-RK3588 时改为板端原生编译，不经过 Docker/镜像仓库
 build_runtime_images() {
     runtime_apply_build_module_arg "${2:-}" || exit 1
     runtime_interactive_select_build_module
-    if runtime_is_native_build_module "${EASYAIOT_RUNTIME_BUILD_MODULE:-}"; then
-        print_section "构建原生运行时 ${EASYAIOT_RUNTIME_BUILD_MODULE}"
-        runtime_build_native_module "$EASYAIOT_RUNTIME_BUILD_MODULE" || exit 1
-        return 0
-    fi
     check_docker "$@"
     runtime_images_prepare_build_interactive
     runtime_images_export_for_invoke
@@ -1883,8 +1876,8 @@ clean_all() {
 
 # 清理 build-runtime 构建产物：先停止服务，再调用 cleanup_build_runtime.sh
 # 用法: clean-build-runtime [模块] [选项...]
-#   模块为可选的 build-runtime 模块名（HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL|RUNTIME-RK3588），
-#   指定后仅停止该模块服务、仅清理该模块镜像与该模块 .build-cache；RUNTIME-RK3588 仅清理本机 build/ 产物；其余选项原样透传给 cleanup_build_runtime.sh。
+#   模块为可选的 build-runtime 模块名（HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL），
+#   指定后仅停止该模块服务、仅清理该模块镜像与该模块 .build-cache；其余选项原样透传给 cleanup_build_runtime.sh。
 clean_build_runtime() {
     shift
     local module=""
@@ -1929,12 +1922,6 @@ clean_build_runtime() {
         fi
     fi
 
-    # 原生运行时模块没有 Docker 镜像/构建缓存，直接清理本机编译产物
-    if runtime_is_native_build_module "$module"; then
-        runtime_clean_native_module "$module" "${cleanup_args[@]}"
-        return 0
-    fi
-
     # 交互模式（无参数、TTY、非菜单调用）询问是否仅清理指定模块；非交互环境保持原默认全量清理
     if [ -z "$module" ] && [ ${#cleanup_args[@]} -eq 0 ] \
         && [ "${EASYAIOT_FROM_MENU:-0}" != "1" ] && [ -t 0 ]; then
@@ -1955,11 +1942,6 @@ clean_build_runtime() {
                 echo ""
                 ;;
         esac
-    fi
-
-    if runtime_is_native_build_module "$module"; then
-        runtime_clean_native_module "$module" "${cleanup_args[@]}"
-        return 0
     fi
 
     print_section "清理 build-runtime 构建产物"
@@ -2294,10 +2276,9 @@ show_help() {
     echo "  logs [模块]     - 查看指定模块日志"
     echo "  build           - 重新构建所有镜像（各模块本地构建）"
     echo "  build-runtime [模块] - 构建/推送运行时镜像（推送成功后删本地镜像；可选 $(runtime_build_module_pipe_list)）"
-    echo "      RUNTIME-RK3588 为板端原生编译（MPP/RGA/RKNN），不构建/推送 Docker 镜像，仅显式指定时执行"
     echo "  pull            - 从远程仓库拉取预构建运行时镜像（交互式，默认 full）"
     echo "  clean           - 清理所有容器和镜像"
-    echo "  clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像；指定模块时仅停该模块服务、仅清该模块镜像与构建缓存；RUNTIME-RK3588 仅删本机 build/ 产物）"
+    echo "  clean-build-runtime [模块] - 清理 build-runtime 构建产物（先停业务服务，默认删运行时镜像+构建缓存；保留跨架构基础镜像；指定模块时仅停该模块服务、仅清该模块镜像与构建缓存）"
     echo "  update          - 更新镜像并重启所有服务（交互可选拉取/本地重建）"
     echo "  verify          - 验证所有服务是否启动成功（含告警/DVR 事件面验收）"
     echo "  verify-alert    - 告警事件面验收（控制面共享盘 + MQTT→iot-sink→入库）"
@@ -2351,7 +2332,7 @@ show_help() {
     echo "  EASYAIOT_APPLY_INDUSTRIAL_SEED=0   - 启动演示时不写入/刷新工业协议演示设备种子"
     echo "  EASYAIOT_RUNTIME_REGISTRY    - 运行时镜像仓库（默认见 runtime_registry.conf）"
     echo "  EASYAIOT_RUNTIME_BUILD_ARCH  - build-runtime 目标架构: all(默认) | amd64 | arm64"
-    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: $(runtime_build_module_help)（默认 all=全部；all 不包含 RUNTIME-RK3588）"
+    echo "  EASYAIOT_RUNTIME_BUILD_MODULE - build-runtime 目标模块: $(runtime_build_module_help)（默认 all=全部）"
     echo "  SITE_PORT                    - 官网宿主机端口（默认 8090）"
     echo "  VIDEO_BASE_URL               - 云边一体：中心汇聚面根地址（如 http://192.168.1.10:6000）"
     echo "  GATEWAY_URL                  - 云边一体：中心网关地址（如 http://192.168.1.10:48080）"
