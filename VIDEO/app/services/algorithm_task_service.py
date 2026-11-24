@@ -892,6 +892,7 @@ def create_algorithm_task(task_name: str,
                          post_pipeline=None,
                          llm_post_process_enabled: bool = False,
                          executor: str = 'cpp',
+                         runtime_target: str = 'auto',
                          runtime_bin_path: Optional[str] = None,
                          runtime_control_port: Optional[int] = None) -> AlgorithmTask:
     """创建算法任务"""
@@ -912,14 +913,31 @@ def create_algorithm_task(task_name: str,
             target_node_id,
         )
 
-        from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
+        from app.services.runtime_config_service import (
+            ensure_runtime_bin_ready,
+            normalize_executor,
+            parse_runtime_target,
+            resolve_runtime_target,
+            validate_runtime_model_contract,
+        )
         executor = normalize_executor(executor)
+        runtime_target = parse_runtime_target(runtime_target)
         if executor == 'cpp':
             if task_type not in ('realtime', 'snap', 'patrol'):
                 raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
-            # 本机需已编译 RUNTIME；远程依赖 iot-node 分发到节点
-            if (schedule_policy or 'local') == 'local':
-                ensure_runtime_bin_ready(None)
+            effective_policy = schedule_policy or 'local'
+            resolved_target = resolve_runtime_target(None, runtime_target)
+            if effective_policy != 'local' and resolved_target == 'rk3588':
+                raise ValueError(
+                    'RK3588 硬件运行时只支持本机调度（edge + RUNTIME-RK3588）。'
+                    '远程节点调度请显式选择通用 RUNTIME，或将调度策略改为本机'
+                )
+            validate_runtime_model_contract(resolved_target, model_ids)
+            # 本机需已编译目标芯片运行时；远程依赖 iot-node 分发到节点
+            if effective_policy == 'local':
+                ensure_runtime_bin_ready(None, runtime_target=runtime_target)
+        else:
+            runtime_target = 'auto'
         if runtime_control_port is not None:
             runtime_control_port = int(runtime_control_port)
             if runtime_control_port < 8000 or runtime_control_port > 9000:
@@ -1186,6 +1204,7 @@ def create_algorithm_task(task_name: str,
             post_pipeline=_resolve_post_pipeline_for_alert(post_pipeline, alert_event_enabled),
             llm_post_process_enabled=bool(llm_post_process_enabled),
             executor=executor or 'cpp',
+            runtime_target=runtime_target,
             runtime_bin_path=(runtime_bin_path or None),
             runtime_control_port=runtime_control_port,
         )
@@ -1239,10 +1258,19 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                 or 'task_type' in kwargs
                 or 'schedule_policy' in kwargs
                 or 'model_ids' in kwargs
+                or 'runtime_target' in kwargs
         ):
-            from app.services.runtime_config_service import normalize_executor, ensure_runtime_bin_ready
+            from app.services.runtime_config_service import (
+                ensure_runtime_bin_ready,
+                normalize_executor,
+                parse_runtime_target,
+                resolve_runtime_target,
+                validate_runtime_model_contract,
+            )
             if 'executor' in kwargs:
                 kwargs['executor'] = normalize_executor(kwargs.get('executor'))
+            if 'runtime_target' in kwargs:
+                kwargs['runtime_target'] = parse_runtime_target(kwargs.get('runtime_target'))
             effective_executor = normalize_executor(
                 kwargs.get('executor', getattr(task, 'executor', None) or 'cpp')
             )
@@ -1250,11 +1278,27 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             effective_policy = kwargs.get(
                 'schedule_policy', getattr(task, 'schedule_policy', None) or 'local'
             )
+            effective_target_raw = kwargs.get(
+                'runtime_target', getattr(task, 'runtime_target', None) or 'auto'
+            )
             if effective_executor == 'cpp':
                 if effective_type not in ('realtime', 'snap', 'patrol'):
                     raise ValueError(f'executor=cpp 不支持任务类型: {effective_type}')
+                resolved_target = resolve_runtime_target(None, effective_target_raw)
+                if (effective_policy or 'local') != 'local' and resolved_target == 'rk3588':
+                    raise ValueError(
+                        'RK3588 硬件运行时只支持本机调度（edge + RUNTIME-RK3588）。'
+                        '远程节点调度请显式选择通用 RUNTIME，或将调度策略改为本机'
+                    )
+                effective_model_ids = _normalize_task_model_ids(
+                    kwargs.get('model_ids', getattr(task, 'model_ids', None))
+                )
+                validate_runtime_model_contract(resolved_target, effective_model_ids)
+                # 本机需已编译目标芯片运行时；远程依赖 iot-node 分发到节点
                 if (effective_policy or 'local') == 'local':
-                    ensure_runtime_bin_ready(task)
+                    ensure_runtime_bin_ready(task, runtime_target=effective_target_raw)
+            else:
+                kwargs['runtime_target'] = 'auto'
         if 'runtime_control_port' in kwargs and kwargs['runtime_control_port'] is not None:
             port = int(kwargs['runtime_control_port'])
             if port < 8000 or port > 9000:
@@ -1400,7 +1444,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
             'post_process_enabled', 'post_process_script', 'post_process_replicas',
             'post_pipeline',
             'llm_post_process_enabled',
-            'executor', 'runtime_bin_path', 'runtime_control_port',
+            'executor', 'runtime_target', 'runtime_bin_path', 'runtime_control_port',
         ]
         
         if 'sam_supplement_config' in kwargs:

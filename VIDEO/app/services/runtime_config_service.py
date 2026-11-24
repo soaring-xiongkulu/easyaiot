@@ -18,7 +18,7 @@ import subprocess
 import sys
 import threading
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from models import AlgorithmTask, Device, DeviceDetectionRegion
@@ -32,7 +32,32 @@ from app.utils.service_urls import resolve_video_service_base_url
 logger = logging.getLogger(__name__)
 
 _AUTO_BUILD_LOCK = threading.Lock()
-_AUTO_BUILD_DONE = False
+_AUTO_BUILD_DONE = set()
+
+RUNTIME_TARGET_AUTO = 'auto'
+RUNTIME_TARGET_GENERIC = 'generic'
+RUNTIME_TARGET_RK3588 = 'rk3588'
+
+# RK3588 的 /proc/device-tree 是 sysfs 的符号链接；容器里通常只能看到 sysfs，
+# 因此设备树探测必须同时覆盖两种布局。
+_HOST_CHIP_PROBE_PATHS = (
+    '/proc/device-tree/compatible',
+    '/proc/device-tree/model',
+    '/sys/firmware/devicetree/base/compatible',
+    '/sys/firmware/devicetree/base/model',
+    '/proc/cpuinfo',
+)
+_RUNTIME_TARGET_ALIASES = {
+    'rk3588': RUNTIME_TARGET_RK3588,
+    'rknn-rk3588': RUNTIME_TARGET_RK3588,
+    'runtime-rk3588': RUNTIME_TARGET_RK3588,
+    'rockchip-rk3588': RUNTIME_TARGET_RK3588,
+    'generic': RUNTIME_TARGET_GENERIC,
+    'runtime': RUNTIME_TARGET_GENERIC,
+    'onnx': RUNTIME_TARGET_GENERIC,
+    'cpu': RUNTIME_TARGET_GENERIC,
+    'cuda': RUNTIME_TARGET_GENERIC,
+}
 
 
 def _repo_root() -> Path:
@@ -46,6 +71,148 @@ def _repo_root() -> Path:
     if (opt / 'RUNTIME').is_dir():
         return opt
     return video_root.parent
+
+
+def _host_is_rk3588() -> bool:
+    """只做芯片识别，不把普通 aarch64 误判成 RK3588。"""
+    probes = []
+    for path in _HOST_CHIP_PROBE_PATHS:
+        try:
+            probes.append(Path(path).read_bytes().decode('utf-8', errors='ignore'))
+        except OSError:
+            continue
+    return 'rk3588' in '\n'.join(probes).lower()
+
+
+def parse_runtime_target(value) -> str:
+    """校验外部传入的运行时目标；未知芯片必须显式失败，不能静默改成 auto。"""
+    raw = str(value or RUNTIME_TARGET_AUTO).strip().lower().replace('_', '-')
+    if raw in ('', RUNTIME_TARGET_AUTO):
+        return RUNTIME_TARGET_AUTO
+    target = _RUNTIME_TARGET_ALIASES.get(raw)
+    if target is None:
+        raise ValueError(
+            f'不支持的芯片算法运行时: {value}。可选: auto / rk3588 / generic'
+        )
+    return target
+
+
+def normalize_runtime_target(value) -> str:
+    """兼容历史库值与环境变量别名；未知值回退 auto 以便旧任务继续启动。"""
+    raw = str(value or RUNTIME_TARGET_AUTO).strip().lower().replace('_', '-')
+    if raw == RUNTIME_TARGET_AUTO:
+        return RUNTIME_TARGET_AUTO
+    return _RUNTIME_TARGET_ALIASES.get(raw, RUNTIME_TARGET_AUTO)
+
+
+def resolve_runtime_target(task: Optional[AlgorithmTask] = None, requested: Optional[str] = None) -> str:
+    """解析算法任务下层运行时；上层任务协议保持统一。"""
+    raw = requested
+    if raw is None and task is not None:
+        raw = getattr(task, 'runtime_target', None)
+    target = normalize_runtime_target(raw)
+    if target == RUNTIME_TARGET_AUTO:
+        target = normalize_runtime_target(
+            os.getenv('EASYAIOT_RUNTIME_TARGET') or os.getenv('RUNTIME_TARGET')
+        )
+    if target == RUNTIME_TARGET_AUTO:
+        target = RUNTIME_TARGET_RK3588 if _host_is_rk3588() else RUNTIME_TARGET_GENERIC
+    return target
+
+
+def resolve_remote_runtime_target(task: Optional[AlgorithmTask] = None) -> str:
+    """远程 iot-node 目前只分发通用 RUNTIME；RK3588 必须显式拒绝而非静默降级。"""
+    requested = normalize_runtime_target(getattr(task, 'runtime_target', None) if task is not None else None)
+    if requested == RUNTIME_TARGET_RK3588:
+        raise ValueError(
+            'RK3588 硬件运行时只支持 edge 本机调度（RUNTIME-RK3588 + MPP/RGA/RKNN）。'
+            '远程 iot-node 尚未提供 RK3588 运行时分发，请将调度策略改为本机，'
+            '或为该任务选择通用 RUNTIME'
+        )
+    # auto 在远程节点上没有芯片探测通道，按通用 RUNTIME 的下发契约处理。
+    return RUNTIME_TARGET_GENERIC
+
+
+def validate_runtime_model_contract(runtime_target, model_ids: Any) -> str:
+    """创建/更新任务时尽早校验芯片与模型契约，避免启动时才失败。"""
+    target = resolve_runtime_target(None, runtime_target)
+    if target != RUNTIME_TARGET_RK3588:
+        return target
+
+    if isinstance(model_ids, str):
+        try:
+            raw_ids = json.loads(model_ids) if model_ids.strip() else []
+        except Exception:
+            raw_ids = []
+    else:
+        raw_ids = list(model_ids or [])
+    parsed: List[int] = []
+    for value in raw_ids:
+        try:
+            parsed.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    if not parsed:
+        raise ValueError(
+            'RK3588 算法任务必须选择至少一个 .rknn 模型（内置 yolov8n 或业务 RKNN 模型）'
+        )
+    unsupported = sorted({model_id for model_id in parsed if model_id < 0 and model_id != -2})
+    if unsupported:
+        raise ValueError(
+            f'RK3588 不支持这些内置模型: {unsupported}。仅内置 yolov8n(-2) 提供 '
+            f'1 输入 / 9 输出 RKNN INT8 契约，其他模型请上传 .rknn 权重'
+        )
+    return target
+
+
+def runtime_module_name(target: Optional[str] = None) -> str:
+    resolved = resolve_runtime_target(None, target)
+    return 'RUNTIME-RK3588' if resolved == RUNTIME_TARGET_RK3588 else 'RUNTIME'
+
+
+def _runtime_module_name(target: str) -> str:
+    return 'RUNTIME-RK3588' if target == RUNTIME_TARGET_RK3588 else 'RUNTIME'
+
+
+def runtime_bin_env_key(target: Optional[str] = None) -> str:
+    resolved = resolve_runtime_target(None, target)
+    return 'RUNTIME_RK3588_BIN' if resolved == RUNTIME_TARGET_RK3588 else 'RUNTIME_BIN'
+
+
+def _remember_runtime_bin(target: str, bin_path: str) -> None:
+    """只写目标自己的 env 键，避免 RK3588 二进制污染通用 RUNTIME_BIN。"""
+    key = runtime_bin_env_key(target)
+    os.environ.setdefault(key, bin_path)
+    if target == RUNTIME_TARGET_RK3588:
+        # 旧部署可能把 RK3588 路径直接写进 RUNTIME_BIN；允许它作为共享提示，
+        # 但绝不能让通用路径覆盖 RUNTIME_RK3588_BIN。
+        shared = (os.environ.get('RUNTIME_BIN') or '').strip()
+        if shared and 'RUNTIME-RK3588' in shared:
+            os.environ.setdefault('RUNTIME_RK3588_BIN', shared)
+
+
+def remote_runtime_bin(target: Optional[str] = None) -> str:
+    """远程 iot-node 运行时目录布局（RK3588 安装器为 bin/RUNTIME）。"""
+    resolved = resolve_runtime_target(None, target)
+    return f'/opt/easyaiot/{_runtime_module_name(resolved)}/bin/RUNTIME'
+
+
+def remote_runtime_work_dir(target: Optional[str] = None) -> str:
+    resolved = resolve_runtime_target(None, target)
+    return f'/opt/easyaiot/{_runtime_module_name(resolved)}'
+
+
+def remote_runtime_config_dir(target: Optional[str] = None) -> str:
+    resolved = resolve_runtime_target(None, target)
+    return f'/opt/easyaiot/{_runtime_module_name(resolved)}/config'
+
+
+def remote_runtime_library_path(target: Optional[str] = None) -> str:
+    resolved = resolve_runtime_target(None, target)
+    if resolved == RUNTIME_TARGET_RK3588:
+        # RK3588 运行时不加载 ORT/CUDA；系统库走 aarch64 目录。
+        return '/opt/easyaiot/RUNTIME-RK3588/lib:/usr/lib/aarch64-linux-gnu'
+    return REMOTE_RUNTIME_LD_LIBRARY_PATH
 
 
 def _running_in_docker() -> bool:
@@ -62,9 +229,10 @@ def _runtime_auto_install_enabled() -> bool:
     return raw in ('1', 'true', 'yes', 'on')
 
 
-def apply_runtime_deploy_env() -> None:
-    """把 RUNTIME/deploy.env 合并进当前进程（不覆盖已显式设置的变量）。"""
-    deploy_env = _repo_root() / 'RUNTIME' / 'deploy.env'
+def apply_runtime_deploy_env(target: Optional[str] = None) -> None:
+    """把目标运行时 deploy.env 合并进当前进程（不覆盖显式变量）。"""
+    resolved = resolve_runtime_target(None, target)
+    deploy_env = _repo_root() / _runtime_module_name(resolved) / 'deploy.env'
     if not deploy_env.is_file():
         return
     try:
@@ -81,64 +249,74 @@ def apply_runtime_deploy_env() -> None:
                 continue
             os.environ[key] = value
     except Exception as e:
-        logger.warning('读取 RUNTIME/deploy.env 失败: %s', e)
+        logger.warning('读取 %s/deploy.env 失败: %s', _runtime_module_name(resolved), e)
 
 
-def resolve_runtime_bin(task: Optional[AlgorithmTask] = None) -> str:
-    apply_runtime_deploy_env()
+def resolve_runtime_bin(task: Optional[AlgorithmTask] = None, *, runtime_target: Optional[str] = None) -> str:
+    target = resolve_runtime_target(task, runtime_target)
+    apply_runtime_deploy_env(target)
     if task is not None:
         custom = (getattr(task, 'runtime_bin_path', None) or '').strip()
         if custom and os.path.isfile(custom) and os.access(custom, os.X_OK):
             return custom
-    env_bin = (os.getenv('RUNTIME_BIN') or '').strip()
+    env_bin = (os.getenv(runtime_bin_env_key(target)) or '').strip()
+    if not env_bin and target == RUNTIME_TARGET_RK3588:
+        shared_bin = (os.getenv('RUNTIME_BIN') or '').strip()
+        if 'RUNTIME-RK3588' in shared_bin:
+            env_bin = shared_bin
     if env_bin and os.path.isfile(env_bin) and os.access(env_bin, os.X_OK):
         return env_bin
 
     root = _repo_root()
+    module = _runtime_module_name(target)
     candidates = [
-        Path('/opt/easyaiot/RUNTIME/build/RUNTIME'),
-        root / 'RUNTIME' / 'build' / 'RUNTIME',
-        root / 'RUNTIME' / 'build' / 'Release' / 'RUNTIME',
-        root / 'RUNTIME' / 'build' / 'Debug' / 'RUNTIME',
+        Path('/opt/easyaiot') / module / 'bin' / 'RUNTIME',
+        Path('/opt/easyaiot') / module / 'build' / 'RUNTIME',
+        root / module / 'build' / 'RUNTIME',
+        root / module / 'build' / 'Release' / 'RUNTIME',
+        root / module / 'build' / 'Debug' / 'RUNTIME',
     ]
     for path in candidates:
         if path.is_file() and os.access(path, os.X_OK):
             return str(path)
-    return str(candidates[1] if (root / 'RUNTIME').is_dir() else candidates[0])
+    return str(candidates[2] if (root / module).is_dir() else candidates[0])
 
 
-def _runtime_bin_exists(task: Optional[AlgorithmTask] = None) -> Optional[str]:
-    path = resolve_runtime_bin(task)
+def _runtime_bin_exists(
+    task: Optional[AlgorithmTask] = None, *, runtime_target: Optional[str] = None
+) -> Optional[str]:
+    path = resolve_runtime_bin(task, runtime_target=runtime_target)
     if path and os.path.isfile(path) and os.access(path, os.X_OK):
         return path
     return None
 
 
-def try_auto_build_runtime(*, reason: str = '') -> bool:
-    """本机缺失 RUNTIME 时自动执行 install_linux.sh install。成功返回 True。"""
-    global _AUTO_BUILD_DONE
-    existing = _runtime_bin_exists(None)
+def try_auto_build_runtime(*, reason: str = '', runtime_target: Optional[str] = None) -> bool:
+    """本机缺失目标运行时时自动编译。RK3588 只 build，不启动独立清单服务。"""
+    target = resolve_runtime_target(None, runtime_target)
+    module = _runtime_module_name(target)
+    existing = _runtime_bin_exists(None, runtime_target=target)
     if existing:
-        os.environ.setdefault('RUNTIME_BIN', existing)
+        _remember_runtime_bin(target, existing)
         return True
 
     if not _runtime_auto_install_enabled():
         logger.info(
-            'RUNTIME 二进制不存在，且已关闭自动编译（RUNTIME_AUTO_INSTALL=0 / EASYAIOT_RUNTIME_SKIP=1）'
+            '%s 二进制不存在，且已关闭自动编译（RUNTIME_AUTO_INSTALL=0 / EASYAIOT_RUNTIME_SKIP=1）',
+            module,
         )
         return False
 
     if sys.platform != 'linux':
         logger.warning(
-            '当前系统 %s 非 Linux：跳过 RUNTIME 自动编译。可用 executor=python，或自行交叉编译。',
-            sys.platform,
+            '当前系统 %s 非 Linux：跳过 %s 自动编译。', sys.platform, module,
         )
         return False
 
     if _running_in_docker():
         logger.warning(
-            '容器内未找到 RUNTIME 二进制，跳过自动编译（请在宿主机执行 '
-            'VIDEO/scripts/ensure_runtime_cpp.sh 或 RUNTIME/install_linux.sh）'
+            '容器内未找到 %s 二进制，跳过自动编译（请在宿主机执行 '
+            'VIDEO/scripts/ensure_runtime_cpp.sh）', module,
         )
         return False
 
@@ -147,96 +325,103 @@ def try_auto_build_runtime(*, reason: str = '') -> bool:
         return False
 
     root = _repo_root()
-    install_sh = root / 'RUNTIME' / 'install_linux.sh'
+    install_sh = root / module / 'install_linux.sh'
     if not install_sh.is_file():
-        logger.warning('未找到 %s，无法自动编译 RUNTIME', install_sh)
+        logger.warning('未找到 %s，无法自动编译 %s', install_sh, module)
         return False
 
     with _AUTO_BUILD_LOCK:
-        if _AUTO_BUILD_DONE:
-            return bool(_runtime_bin_exists(None))
-        existing = _runtime_bin_exists(None)
+        if target in _AUTO_BUILD_DONE:
+            return bool(_runtime_bin_exists(None, runtime_target=target))
+        existing = _runtime_bin_exists(None, runtime_target=target)
         if existing:
-            os.environ.setdefault('RUNTIME_BIN', existing)
-            _AUTO_BUILD_DONE = True
+            _remember_runtime_bin(target, existing)
+            _AUTO_BUILD_DONE.add(target)
             return True
 
         why = f'（{reason}）' if reason else ''
-        logger.info('未检测到 RUNTIME 二进制%s，自动执行: bash %s install …', why, install_sh)
+        action = 'build' if target == RUNTIME_TARGET_RK3588 else 'install'
+        logger.info('未检测到 %s 二进制%s，自动执行: bash %s %s …', module, why, install_sh, action)
         print(
-            f'[VIDEO] 未检测到 RUNTIME，开始自动编译（可能需数分钟）…\n'
-            f'        bash {install_sh} install\n'
+            f'[VIDEO] 未检测到 {module}，开始自动编译（可能需数分钟）…\n'
+            f'        bash {install_sh} {action}\n'
             f'        关闭: RUNTIME_AUTO_INSTALL=0 或 EASYAIOT_RUNTIME_SKIP=1',
             flush=True,
         )
         try:
             completed = subprocess.run(
-                ['bash', str(install_sh), 'install'],
+                ['bash', str(install_sh), action],
                 cwd=str(install_sh.parent),
                 check=False,
             )
         except Exception as e:
-            logger.error('自动编译 RUNTIME 启动失败: %s', e, exc_info=True)
-            _AUTO_BUILD_DONE = True
+            logger.error('自动编译 %s 启动失败: %s', module, e, exc_info=True)
+            _AUTO_BUILD_DONE.add(target)
             return False
 
-        apply_runtime_deploy_env()
-        ready = _runtime_bin_exists(None)
-        _AUTO_BUILD_DONE = True
+        apply_runtime_deploy_env(target)
+        ready = _runtime_bin_exists(None, runtime_target=target)
+        _AUTO_BUILD_DONE.add(target)
         if completed.returncode != 0 or not ready:
             logger.warning(
-                'RUNTIME 自动编译失败（exit=%s）。executor=cpp 任务将不可用，'
-                '可改用 executor=python，或手工执行: bash %s install',
+                '%s 自动编译失败（exit=%s），对应芯片任务不可用。手工执行: bash %s %s',
+                module,
                 completed.returncode,
                 install_sh,
+                action,
             )
             return False
 
-        os.environ.setdefault('RUNTIME_BIN', ready)
-        lib = runtime_library_path_env()
+        _remember_runtime_bin(target, ready)
+        lib = runtime_library_path_env(target)
         if lib:
             os.environ['LD_LIBRARY_PATH'] = lib
-        logger.info('RUNTIME 自动编译完成: %s', ready)
-        print(f'[VIDEO] RUNTIME 就绪: {ready}', flush=True)
+        logger.info('%s 自动编译完成: %s', module, ready)
+        print(f'[VIDEO] {module} 就绪: {ready}', flush=True)
         return True
 
 
 def ensure_runtime_on_video_startup() -> None:
     """VIDEO 启动时软检查：已有则加载 env；缺失则尝试自动编译（失败只告警）。"""
-    apply_runtime_deploy_env()
-    existing = _runtime_bin_exists(None)
+    target = resolve_runtime_target(None)
+    module = _runtime_module_name(target)
+    apply_runtime_deploy_env(target)
+    existing = _runtime_bin_exists(None, runtime_target=target)
     if existing:
-        os.environ.setdefault('RUNTIME_BIN', existing)
-        lib = runtime_library_path_env()
+        _remember_runtime_bin(target, existing)
+        lib = runtime_library_path_env(target)
         if lib:
             os.environ['LD_LIBRARY_PATH'] = lib
-        logger.info('RUNTIME 已就绪: %s', existing)
+        logger.info('%s 已就绪: %s', module, existing)
         return
 
     if not _runtime_auto_install_enabled():
-        logger.info('本机未找到 RUNTIME，自动编译已关闭，executor=cpp 任务需先手工编译')
+        logger.info('本机未找到 %s，自动编译已关闭，硬件算法任务需先手工编译', module)
         return
 
-    ok = try_auto_build_runtime(reason='VIDEO 本地启动')
+    ok = try_auto_build_runtime(reason='VIDEO 本地启动', runtime_target=target)
     if not ok and (os.getenv('EASYAIOT_RUNTIME_REQUIRED') or '').strip() == '1':
         raise RuntimeError(
-            'EASYAIOT_RUNTIME_REQUIRED=1 且 RUNTIME 不可用，终止启动。'
-            '请编译 RUNTIME 或关闭该开关。'
+            f'EASYAIOT_RUNTIME_REQUIRED=1 且 {module} 不可用，终止启动。'
         )
 
 
-def ensure_runtime_bin_ready(task: Optional[AlgorithmTask] = None) -> str:
+def ensure_runtime_bin_ready(
+    task: Optional[AlgorithmTask] = None, *, runtime_target: Optional[str] = None
+) -> str:
     """Resolve and validate RUNTIME binary; raise ValueError if missing."""
-    path = _runtime_bin_exists(task)
+    target = resolve_runtime_target(task, runtime_target)
+    module = _runtime_module_name(target)
+    path = _runtime_bin_exists(task, runtime_target=target)
     if not path:
-        if try_auto_build_runtime(reason='算法任务启动'):
-            path = _runtime_bin_exists(task)
+        if try_auto_build_runtime(reason='算法任务启动', runtime_target=target):
+            path = _runtime_bin_exists(task, runtime_target=target)
     if not path:
-        expected = resolve_runtime_bin(task)
+        expected = resolve_runtime_bin(task, runtime_target=target)
         raise ValueError(
-            f'RUNTIME 二进制不存在: {expected}。'
-            f'请先编译（bash RUNTIME/install_linux.sh install），'
-            f'或确认未设置 RUNTIME_AUTO_INSTALL=0 / EASYAIOT_RUNTIME_SKIP=1'
+            f'{module} 二进制不存在: {expected}。'
+            f'请先执行 VIDEO/scripts/ensure_runtime_cpp.sh，'
+            f'并确认 EASYAIOT_RUNTIME_TARGET={target}'
         )
     if not os.access(path, os.X_OK):
         raise ValueError(f'RUNTIME 二进制不可执行: {path}')
@@ -262,10 +447,14 @@ def _parse_version_file(path: Path) -> dict:
     return data
 
 
-def read_runtime_version_info(task: Optional[AlgorithmTask] = None) -> dict:
+def read_runtime_version_info(
+    task: Optional[AlgorithmTask] = None, *, runtime_target: Optional[str] = None
+) -> dict:
     """读取本机 RUNTIME 版本信息（VERSION 文件 / deploy.env / 二进制旁）。"""
-    apply_runtime_deploy_env()
-    bin_path = _runtime_bin_exists(task)
+    target = resolve_runtime_target(task, runtime_target)
+    module = _runtime_module_name(target)
+    apply_runtime_deploy_env(target)
+    bin_path = _runtime_bin_exists(task, runtime_target=target)
     root = _repo_root()
     candidates = []
     if bin_path:
@@ -275,10 +464,10 @@ def read_runtime_version_info(task: Optional[AlgorithmTask] = None) -> dict:
         if bin_p.parent.name == 'bin':
             candidates.append(bin_p.parent.parent / 'VERSION')
     candidates.extend([
-        root / 'RUNTIME' / 'build' / 'VERSION',
-        root / 'RUNTIME' / 'VERSION',
-        Path('/opt/easyaiot/RUNTIME/VERSION'),
-        Path('/opt/easyaiot/RUNTIME/build/VERSION'),
+        root / module / 'build' / 'VERSION',
+        root / module / 'VERSION',
+        Path('/opt/easyaiot') / module / 'VERSION',
+        Path('/opt/easyaiot') / module / 'build' / 'VERSION',
     ])
 
     parsed = {}
@@ -296,6 +485,9 @@ def read_runtime_version_info(task: Optional[AlgorithmTask] = None) -> dict:
     )
     return {
         'ready': bool(bin_path),
+        'target': target,
+        'module': module,
+        'hardwareOnly': target == RUNTIME_TARGET_RK3588,
         'binPath': bin_path,
         'version': version,
         'git': parsed.get('git') or (os.getenv('RUNTIME_GIT') or '').strip() or None,
@@ -949,6 +1141,136 @@ def _resolve_models_with_ids(
     return [(fallback_id, str(default_onnx), env_names or str(default_names))]
 
 
+def _rknn_names_path(model_path: Path, default_names: Path) -> str:
+    for suffix in ('.names', '.txt'):
+        candidate = model_path.with_suffix(suffix)
+        if candidate.is_file():
+            return str(candidate)
+    return str(default_names)
+
+
+def _download_rknn_model(model_id: int, model_dir: Path, default_names: Path) -> Optional[Tuple[str, str]]:
+    record = _fetch_model_record(model_id)
+    if not record:
+        return None
+    model_dir.mkdir(parents=True, exist_ok=True)
+    written_names = _write_names_file(model_dir, record)
+    refs = [
+        record.get('rknn_model_path'),
+        record.get('model_path'),
+        record.get('onnx_model_path'),
+    ]
+    destination = model_dir / 'model.rknn'
+    try:
+        from app.services.minio_service import ModelService
+    except Exception as exc:
+        logger.warning('RKNN 模型对象存储服务不可用: %s', exc)
+        return None
+
+    for raw_ref in refs:
+        ref = str(raw_ref or '').strip()
+        if not ref or not ref.lower().endswith('.rknn'):
+            continue
+        if ref.startswith('/') and Path(ref).is_file():
+            source = Path(ref)
+            return str(source), str(written_names or _rknn_names_path(source, default_names))
+        for bucket, key in _resolve_object_ref_candidates(ref):
+            try:
+                ok, error = ModelService.download_from_minio(bucket, key, str(destination))
+            except Exception as exc:
+                ok, error = False, str(exc)
+            if ok and destination.is_file() and destination.stat().st_size > 0:
+                return str(destination), str(written_names or _rknn_names_path(destination, default_names))
+            logger.info('RKNN 权重候选 %s/%s 拉取失败: %s', bucket, key, error)
+            try:
+                destination.unlink(missing_ok=True)
+            except OSError:
+                pass
+    return None
+
+
+def _resolve_rknn_models_with_ids(
+    task: AlgorithmTask, prefer_cluster: bool = False
+) -> List[Tuple[Optional[int], str, str]]:
+    """解析 RK3588 专用模型；绝不接受 ONNX/PT，也不做 CPU 回退。"""
+    root = _repo_root()
+    module_root = root / 'RUNTIME-RK3588'
+    default_names = module_root / 'models' / 'coco.names'
+    env_names = (os.getenv('RUNTIME_RK3588_CLASSES_PATH') or os.getenv('RUNTIME_CLASSES_PATH') or '').strip()
+    if env_names:
+        default_names = Path(env_names)
+
+    raw = getattr(task, 'model_ids', None)
+    try:
+        model_ids = json.loads(raw) if isinstance(raw, str) else list(raw or [])
+    except Exception:
+        model_ids = []
+
+    resolved: List[Tuple[Optional[int], str, str]] = []
+    unresolved: List[int] = []
+    for value in model_ids:
+        try:
+            model_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if model_id < 0:
+            # RKNN 默认模型契约明确对应 YOLOv8n；其它内置 ONNX 模型不能冒充兼容。
+            if model_id != -2:
+                unresolved.append(model_id)
+                continue
+            env_model = (os.getenv('RUNTIME_RK3588_MODEL_PATH') or '').strip()
+            candidates = [
+                Path(env_model) if env_model and (prefer_cluster or Path(env_model).is_file()) else None,
+                Path('/opt/easyaiot/RUNTIME-RK3588/models/yolov8n-rk3588-int8.rknn'),
+                module_root / 'models' / 'yolov8n-rk3588-int8.rknn',
+            ]
+            model_path = next((path for path in candidates if path and (prefer_cluster or path.is_file())), None)
+            if model_path is None:
+                unresolved.append(model_id)
+                continue
+            resolved.append((model_id, str(model_path), _rknn_names_path(model_path, default_names)))
+            continue
+
+        if model_id <= 0:
+            unresolved.append(model_id)
+            continue
+        model_dir = _resolve_custom_model_dir(model_id, prefer_cluster=prefer_cluster)
+        if model_dir is None:
+            unresolved.append(model_id)
+            continue
+        if model_dir.is_dir():
+            matches = sorted(model_dir.glob('*.rknn')) + sorted(model_dir.glob('*.RKNN'))
+            preferred = [path for path in matches if path.name.lower() == 'model.rknn']
+            model_path = preferred[0] if preferred else (matches[0] if matches else None)
+            if model_path is not None:
+                resolved.append((model_id, str(model_path), _rknn_names_path(model_path, default_names)))
+                continue
+        if not prefer_cluster:
+            materialized = _download_rknn_model(model_id, model_dir, default_names)
+            if materialized:
+                resolved.append((model_id, materialized[0], materialized[1]))
+                continue
+        if prefer_cluster:
+            resolved.append((model_id, str(model_dir / 'model.rknn'), str(model_dir / 'model.names')))
+            continue
+        unresolved.append(model_id)
+
+    if unresolved:
+        raise ValueError(
+            f'RK3588 任务模型不可用: {unresolved}。只接受 Rockchip 优化版 YOLOv8n INT8 .rknn；'
+            f'内置模型请选择 yolov8n，业务模型请上传 .rknn 权重'
+        )
+    if resolved:
+        return resolved
+
+    env_model = (os.getenv('RUNTIME_RK3588_MODEL_PATH') or '').strip()
+    if env_model and env_model.lower().endswith('.rknn'):
+        model_path = Path(env_model)
+        if prefer_cluster or model_path.is_file():
+            return [(None, str(model_path), _rknn_names_path(model_path, default_names))]
+    raise ValueError('RK3588 算法任务必须选择至少一个可用的 .rknn 模型，不提供 ONNX/CPU 回退')
+
+
 def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> List[Tuple[str, str]]:
     """兼容旧调用方，仅返回模型文件和类别文件；业务模型 ID 由生成器单独透传。"""
     return [
@@ -973,12 +1295,29 @@ def _realtime_device_control_port(task_id: int, device_index: int) -> int:
     return max(8000, min(9000, port))
 
 
-def runtime_config_dir() -> Path:
-    env_dir = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
+def runtime_config_dir(target: Optional[str] = None) -> Path:
+    resolved = resolve_runtime_target(None, target)
+    module = _runtime_module_name(resolved)
+    if resolved == RUNTIME_TARGET_RK3588:
+        env_dir = (os.getenv('RUNTIME_RK3588_CONFIG_DIR') or '').strip()
+        if not env_dir:
+            shared = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
+            if shared and 'RUNTIME-RK3588' in shared:
+                env_dir = shared
+    else:
+        env_dir = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
+
     if env_dir:
         path = Path(env_dir)
     else:
-        path = _repo_root() / 'RUNTIME' / 'config'
+        candidates = [
+            _repo_root() / module / 'config',
+            Path('/opt/easyaiot') / module / 'config',
+        ]
+        path = next(
+            (candidate for candidate in candidates if candidate.parent.is_dir()),
+            candidates[0],
+        )
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -1143,6 +1482,7 @@ def _build_runtime_ini_text(
     compute_node_id: str,
     resolved_urls: Dict[str, str],
     heartbeat_url: str,
+    runtime_target: str,
 ) -> str:
     devices_json_one_line = _devices_json(devices_for_json, resolved_urls).replace('\n', '')
     regions_block = _regions_ini_block(devices_for_json, task.id)
@@ -1175,7 +1515,30 @@ def _build_runtime_ini_text(
         if business_model_id is not None:
             ai_model_lines.append(f'{id_prefix}={business_model_id}')
     ai_model_block = '\n'.join(ai_model_lines)
-    return f"""# Auto-generated by VIDEO for executor=cpp — do not edit by hand while task is running
+    if runtime_target == 'rk3588':
+        ai_runtime_block = f"""threads=3
+frame_skip={frame_skip}"""
+        hardware_block = """
+[rk3588]
+npu_workers=3
+task_queue_depth=2
+frame_pool_size=6
+mpp_buffer_count=8
+use_sram=true
+enable_perf_query=false
+"""
+    else:
+        ai_runtime_block = f"""threads=2
+frame_skip={frame_skip}
+prefer_gpu={'true' if prefer_gpu else 'false'}
+force_cpu={'true' if force_cpu else 'false'}
+gpu_device_id={gpu_device_id}
+prefer_hwaccel={'true' if (prefer_gpu and not force_cpu) else 'false'}
+force_soft_av={'true' if (force_cpu or not prefer_gpu) else 'false'}
+hwaccel_device_id={gpu_device_id}
+nvenc_preset={(os.getenv('RUNTIME_NVENC_PRESET') or os.getenv('REALTIME_NVENC_PRESET') or 'p3').strip() or 'p3'}"""
+        hardware_block = ''
+    return f"""# Auto-generated by VIDEO for executor=cpp target={runtime_target} — do not edit while running
 [video]
 rtsp_url={rtsp_url}
 rtmp_url={rtmp_out}
@@ -1186,15 +1549,8 @@ fps=25
 [ai]
 enable=true
 {ai_model_block}
-threads=2
-frame_skip={frame_skip}
-prefer_gpu={'true' if prefer_gpu else 'false'}
-force_cpu={'true' if force_cpu else 'false'}
-gpu_device_id={gpu_device_id}
-prefer_hwaccel={'true' if (prefer_gpu and not force_cpu) else 'false'}
-force_soft_av={'true' if (force_cpu or not prefer_gpu) else 'false'}
-hwaccel_device_id={gpu_device_id}
-nvenc_preset={(os.getenv('RUNTIME_NVENC_PRESET') or os.getenv('REALTIME_NVENC_PRESET') or 'p3').strip() or 'p3'}
+{ai_runtime_block}
+{hardware_block}
 
 [alarm]
 enable={'true' if task.alert_event_enabled else 'false'}
@@ -1265,6 +1621,7 @@ def generate_runtime_inis(
     heartbeat_url: Optional[str] = None,
     compute_node_id: Optional[str] = None,
     mqtt_broker_urls: Optional[str] = None,
+    runtime_target: Optional[str] = None,
 ) -> List[str]:
     """生成 RUNTIME ini 路径列表。
 
@@ -1302,16 +1659,19 @@ def generate_runtime_inis(
     if not devices:
         raise ValueError(f'任务 {task.id} 的设备均无可用 RTSP/source 地址')
 
-    models = _resolve_models_with_ids(task, prefer_cluster=prefer_cluster_model)
-    for _business_model_id, onnx_path, _names_path in models:
-        if write_local and not os.path.isfile(onnx_path):
-            raise ValueError(f'模型文件不存在: {onnx_path}（cpp 需要 .onnx；.pt 应已自动导出）')
-        if write_local and not str(onnx_path).lower().endswith('.onnx'):
-            raise ValueError(f'RUNTIME 最终需要 .onnx，当前为: {onnx_path}')
-        if prefer_cluster_model and not str(onnx_path).lower().endswith('.onnx'):
+    runtime_target = resolve_runtime_target(task, runtime_target)
+    models = (
+        _resolve_rknn_models_with_ids(task, prefer_cluster=prefer_cluster_model)
+        if runtime_target == RUNTIME_TARGET_RK3588
+        else _resolve_models_with_ids(task, prefer_cluster=prefer_cluster_model)
+    )
+    required_suffix = '.rknn' if runtime_target == RUNTIME_TARGET_RK3588 else '.onnx'
+    for _business_model_id, model_path, _names_path in models:
+        if write_local and not os.path.isfile(model_path):
+            raise ValueError(f'{runtime_target} 模型文件不存在: {model_path}')
+        if not str(model_path).lower().endswith(required_suffix):
             raise ValueError(
-                f'远程 cpp 需要 ONNX 模型，当前解析到: {onnx_path}。'
-                f'请确保模型已同步至集群，或允许控制面执行 .pt→onnx 导出'
+                f'{runtime_target} 运行时只接受 {required_suffix} 模型，当前为: {model_path}'
             )
 
     conf = float(task.detect_conf if task.detect_conf is not None else 0.5)
@@ -1327,7 +1687,7 @@ def generate_runtime_inis(
     patrol_interval = max(3, int(getattr(task, 'patrol_interval_sec', None) or 10))
     patrol_pool = max(1, min(int(getattr(task, 'patrol_pool_size', None) or 4), 16))
 
-    log_dir = log_path if log_path else str(runtime_config_dir())
+    log_dir = log_path if log_path else str(runtime_config_dir(runtime_target))
     alert_image_dir = (os.getenv('ALERT_IMAGES_DIR') or '').strip() or os.path.join(log_dir, 'alerts')
     if write_local:
         os.makedirs(alert_image_dir, exist_ok=True)
@@ -1426,7 +1786,7 @@ def generate_runtime_inis(
     ))
     # snap/patrol 分片：单 ini，但需独立端口/文件名，避免同节点多 workload 冲突
     shard_mode = bool(only_device_ids) and task_type in ('snap', 'patrol')
-    ini_base = Path(remote_ini_dir) if remote_ini_dir else runtime_config_dir()
+    ini_base = Path(remote_ini_dir) if remote_ini_dir else runtime_config_dir(runtime_target)
 
     paths: List[str] = []
     contents: List[str] = []
@@ -1516,6 +1876,7 @@ def generate_runtime_inis(
             compute_node_id=compute_node_id,
             resolved_urls=resolved_urls,
             heartbeat_url=resolved_heartbeat_url,
+            runtime_target=runtime_target,
         )
         contents.append(content)
         if write_local:
@@ -1544,6 +1905,7 @@ def generate_runtime_ini(
     heartbeat_url: Optional[str] = None,
     compute_node_id: Optional[str] = None,
     mqtt_broker_urls: Optional[str] = None,
+    runtime_target: Optional[str] = None,
 ) -> str:
     """Generate RUNTIME ini；realtime 多路时写多份并返回第一路路径（完整列表见 generate_runtime_inis）。"""
     if remote_ini_path and write_local is False:
@@ -1556,6 +1918,7 @@ def generate_runtime_ini(
             heartbeat_url=heartbeat_url,
             compute_node_id=compute_node_id,
             mqtt_broker_urls=mqtt_broker_urls,
+            runtime_target=runtime_target,
         )
         # 覆盖远程路径名（调用方指定）
         generate_runtime_ini.last_content = (  # type: ignore[attr-defined]
@@ -1570,6 +1933,7 @@ def generate_runtime_ini(
         heartbeat_url=heartbeat_url,
         compute_node_id=compute_node_id,
         mqtt_broker_urls=mqtt_broker_urls,
+        runtime_target=runtime_target,
     )
     return paths[0]
 
@@ -1585,6 +1949,7 @@ def generate_runtime_ini_content(
     heartbeat_url: Optional[str] = None,
     compute_node_id: Optional[str] = None,
     mqtt_broker_urls: Optional[str] = None,
+    runtime_target: Optional[str] = None,
 ) -> Tuple[str, str]:
     """Return (remote_ini_path, ini_content) without requiring local model file.
 
@@ -1604,6 +1969,7 @@ def generate_runtime_ini_content(
         heartbeat_url=heartbeat_url,
         compute_node_id=compute_node_id,
         mqtt_broker_urls=mqtt_broker_urls,
+        runtime_target=runtime_target,
     )
     contents = getattr(generate_runtime_inis, 'last_contents', None) or []
     if not contents:
@@ -1624,6 +1990,7 @@ def generate_runtime_inis_content(
     heartbeat_url: Optional[str] = None,
     compute_node_id: Optional[str] = None,
     mqtt_broker_urls: Optional[str] = None,
+    runtime_target: Optional[str] = None,
 ) -> List[Tuple[str, str]]:
     """返回 [(ini_path, content), ...]，供远程分片多路部署。"""
     paths = generate_runtime_inis(
@@ -1637,6 +2004,7 @@ def generate_runtime_inis_content(
         heartbeat_url=heartbeat_url,
         compute_node_id=compute_node_id,
         mqtt_broker_urls=mqtt_broker_urls,
+        runtime_target=runtime_target,
     )
     contents = getattr(generate_runtime_inis, 'last_contents', None) or []
     if len(contents) != len(paths):
@@ -1763,9 +2131,11 @@ def normalize_executor(value) -> str:
     return 'cpp'
 
 
-def _deploy_env_library_paths() -> List[str]:
-    """从 RUNTIME/deploy.env 读取库目录（不依赖进程 env，避免被 nvidia 路径抢先占位）。"""
-    deploy_env = _repo_root() / 'RUNTIME' / 'deploy.env'
+def _deploy_env_library_paths(target: Optional[str] = None) -> List[str]:
+    """从目标运行时 deploy.env 读取库目录（不依赖进程 env，避免被 nvidia 路径抢先占位）。"""
+    resolved = resolve_runtime_target(None, target)
+    module = _runtime_module_name(resolved)
+    deploy_env = _repo_root() / module / 'deploy.env'
     if not deploy_env.is_file():
         return []
     kv: Dict[str, str] = {}
@@ -1780,7 +2150,7 @@ def _deploy_env_library_paths() -> List[str]:
             if key:
                 kv[key] = value
     except Exception as e:
-        logger.warning('解析 RUNTIME/deploy.env 库路径失败: %s', e)
+        logger.warning('解析 %s/deploy.env 库路径失败: %s', module, e)
         return []
 
     paths: List[str] = []
@@ -1806,54 +2176,85 @@ def _deploy_env_library_paths() -> List[str]:
     return paths
 
 
-def runtime_library_path_env() -> str:
-    """Build LD_LIBRARY_PATH hint for conda + ORT SDK + CUDA (host or Docker mounts)."""
-    apply_runtime_deploy_env()
+_GENERIC_LIBRARY_MARKERS = (
+    '/RUNTIME/lib',
+    'runtime-conda-lib',
+    '/ort-lib',
+    'onnxruntime-linux',
+    '/cuda-lib',
+)
+
+
+def runtime_library_path_env(target: Optional[str] = None) -> str:
+    """Build LD_LIBRARY_PATH for the resolved runtime target.
+
+    RK3588 不加载 ONNX Runtime/CUDA，避免通用库抢在 RKNN/MPP 的系统库之前。
+    """
+    resolved = resolve_runtime_target(None, target)
+    apply_runtime_deploy_env(resolved)
     parts: List[str] = []
-    # deploy.env 中的 OpenCV/ORT 路径优先（须在 nvidia pip 库之前）
-    parts.extend(_deploy_env_library_paths())
-    for mounted in (
-        '/opt/easyaiot/runtime-conda-lib',
-        '/opt/easyaiot/ort-lib',
-        '/opt/easyaiot/cuda-lib',
-        '/opt/easyaiot/RUNTIME/lib',
-    ):
-        if os.path.isdir(mounted):
-            parts.append(mounted)
-    conda = (os.getenv('CONDA_PREFIX') or '').strip()
-    if conda:
-        parts.append(os.path.join(conda, 'lib'))
-    # common local ORT layout (gpu preferred)
-    root = _repo_root()
-    runtime_bundle_lib = root / 'RUNTIME' / 'lib'
-    if runtime_bundle_lib.is_dir():
-        parts.append(str(runtime_bundle_lib))
-    for arch in ('x64', 'aarch64'):
-        for name in (
-            f'onnxruntime-linux-{arch}-gpu-1.23.2',
-            f'onnxruntime-linux-{arch}-1.23.2',
+    if resolved == RUNTIME_TARGET_RK3588:
+        parts.extend(_deploy_env_library_paths(resolved))
+        for lib_dir in (
+            '/opt/easyaiot/RUNTIME-RK3588/lib',
+            str(_repo_root() / 'RUNTIME-RK3588' / 'lib'),
         ):
-            ort = root / '.deps' / name / 'lib'
-            if ort.is_dir():
-                parts.append(str(ort))
-                break
-        else:
-            continue
-        break
-    existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
-    if existing:
+            if os.path.isdir(lib_dir):
+                parts.append(lib_dir)
+        existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
         for segment in existing.split(':'):
             segment = segment.strip()
-            if segment:
-                parts.append(segment)
-    for cuda_path in (
-        '/usr/local/cuda/lib64',
-        '/usr/local/cuda/lib',
-        '/usr/lib/x86_64-linux-gnu',
-        '/usr/lib/aarch64-linux-gnu',
-    ):
-        if os.path.isdir(cuda_path):
-            parts.append(cuda_path)
+            if not segment or any(marker in segment for marker in _GENERIC_LIBRARY_MARKERS):
+                continue
+            parts.append(segment)
+        for sys_path in ('/usr/local/lib', '/usr/lib/aarch64-linux-gnu'):
+            if os.path.isdir(sys_path):
+                parts.append(sys_path)
+    else:
+        # deploy.env 中的 OpenCV/ORT 路径优先（须在 nvidia pip 库之前）
+        parts.extend(_deploy_env_library_paths(resolved))
+        for mounted in (
+            '/opt/easyaiot/runtime-conda-lib',
+            '/opt/easyaiot/ort-lib',
+            '/opt/easyaiot/cuda-lib',
+            '/opt/easyaiot/RUNTIME/lib',
+        ):
+            if os.path.isdir(mounted):
+                parts.append(mounted)
+        conda = (os.getenv('CONDA_PREFIX') or '').strip()
+        if conda:
+            parts.append(os.path.join(conda, 'lib'))
+        # common local ORT layout (gpu preferred)
+        root = _repo_root()
+        runtime_bundle_lib = root / 'RUNTIME' / 'lib'
+        if runtime_bundle_lib.is_dir():
+            parts.append(str(runtime_bundle_lib))
+        for arch in ('x64', 'aarch64'):
+            for name in (
+                f'onnxruntime-linux-{arch}-gpu-1.23.2',
+                f'onnxruntime-linux-{arch}-1.23.2',
+            ):
+                ort = root / '.deps' / name / 'lib'
+                if ort.is_dir():
+                    parts.append(str(ort))
+                    break
+            else:
+                continue
+            break
+        existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
+        if existing:
+            for segment in existing.split(':'):
+                segment = segment.strip()
+                if segment:
+                    parts.append(segment)
+        for cuda_path in (
+            '/usr/local/cuda/lib64',
+            '/usr/local/cuda/lib',
+            '/usr/lib/x86_64-linux-gnu',
+            '/usr/lib/aarch64-linux-gnu',
+        ):
+            if os.path.isdir(cuda_path):
+                parts.append(cuda_path)
     # dedupe preserve order
     seen = set()
     out = []

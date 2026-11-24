@@ -40,9 +40,16 @@ logger = logging.getLogger(__name__)
 def runtime_info():
     """本机 RUNTIME 版本与就绪状态（供 WEB / 运维对照）。"""
     try:
-        from app.services.runtime_config_service import read_runtime_version_info
-        info = read_runtime_version_info()
+        from app.services.runtime_config_service import (
+            parse_runtime_target,
+            read_runtime_version_info,
+        )
+        requested = (request.args.get('runtime_target') or '').strip() or None
+        target = parse_runtime_target(requested) if requested else None
+        info = read_runtime_version_info(runtime_target=target)
         return jsonify({'code': 0, 'msg': 'success', 'data': info})
+    except ValueError as e:
+        return jsonify({'code': 400, 'msg': str(e), 'data': None}), 400
     except Exception as e:
         logger.error('读取 RUNTIME 信息失败: %s', e, exc_info=True)
         return jsonify({'code': 500, 'msg': str(e), 'data': None}), 500
@@ -167,6 +174,7 @@ def create_task():
             post_pipeline=data.get('post_pipeline'),
             llm_post_process_enabled=data.get('llm_post_process_enabled', False),
             executor=data.get('executor', 'cpp'),
+            runtime_target=data.get('runtime_target', 'auto'),
             runtime_bin_path=data.get('runtime_bin_path'),
             runtime_control_port=data.get('runtime_control_port'),
         )

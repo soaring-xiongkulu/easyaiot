@@ -1111,6 +1111,8 @@ class AlgorithmTask(db.Model):
     # 执行后端：python=现有 run_deploy；cpp=RUNTIME 二进制（realtime/snap/patrol，本机）
     executor = db.Column(db.String(20), default='cpp', nullable=False,
                          comment='执行后端[python,cpp]，默认 cpp')
+    runtime_target = db.Column(db.String(32), default='auto', nullable=False,
+                               comment='算法运行时目标[auto,generic,rk3588]')
     runtime_bin_path = db.Column(db.String(500), nullable=True,
                                  comment='RUNTIME 二进制路径（空则用 RUNTIME_BIN 或仓库默认）')
     runtime_control_port = db.Column(db.Integer, nullable=True,
@@ -1315,6 +1317,7 @@ class AlgorithmTask(db.Model):
             'node_id': self.node_id,
             'device_deployments': self._parse_device_deployments(),
             'executor': getattr(self, 'executor', None) or 'cpp',
+            'runtime_target': getattr(self, 'runtime_target', None) or 'auto',
             'runtime_bin_path': getattr(self, 'runtime_bin_path', None),
             'runtime_control_port': getattr(self, 'runtime_control_port', None),
             'service_server_ip': self.service_server_ip,
@@ -3344,6 +3347,7 @@ def ensure_algorithm_task_executor_columns(engine):
     log = logging.getLogger(__name__)
     columns = {
         'executor': "VARCHAR(20) DEFAULT 'cpp'",
+        'runtime_target': "VARCHAR(32) DEFAULT 'auto'",
         'runtime_bin_path': 'VARCHAR(500)',
         'runtime_control_port': 'INTEGER',
     }
