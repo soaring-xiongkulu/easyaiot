@@ -131,6 +131,8 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 
 ![RK3588 系统架构图](.images/rk3588/rk3588-architecture.jpg)
 
+上述硬件通路运行于下方 RK3588 盒子，实拍依次为前面板与无线扩展、整机、接口面板。
+
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板与无线扩展">
   <img src=".images/rk3588/rk3588-box.jpg" width="32%" alt="RK3588 边缘 AI 盒子">

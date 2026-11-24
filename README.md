@@ -131,6 +131,8 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
 
 ![RK3588 system architecture diagram](.images/rk3588/rk3588-architecture.jpg)
 
+The hardware path above runs on the RK3588 box shown below: front panel with wireless expansion, the enclosure, and the I/O panel.
+
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 front panel and wireless expansion">
   <img src=".images/rk3588/rk3588-box.jpg" width="32%" alt="RK3588 edge AI box">

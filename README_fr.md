@@ -131,6 +131,8 @@ EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégra
 
 ![Schéma d'architecture RK3588](.images/rk3588/rk3588-architecture.jpg)
 
+Ce chemin matériel est implémenté par le boîtier RK3588 présenté ci-dessous : face avant avec extension sans fil, boîtier et connectique.
+
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="Face avant et extension sans fil RK3588">
   <img src=".images/rk3588/rk3588-box.jpg" width="32%" alt="Boîtier edge RK3588">

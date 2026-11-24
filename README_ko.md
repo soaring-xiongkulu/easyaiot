@@ -131,6 +131,8 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 
 ![RK3588 시스템 아키텍처 다이어그램](.images/rk3588/rk3588-architecture.jpg)
 
+위 하드웨어 경로는 아래 RK3588 박스에서 실행됩니다. 사진은 전면 패널과 무선 확장, 본체, 입출력 패널 순서입니다.
+
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 전면 패널 및 무선 확장">
   <img src=".images/rk3588/rk3588-box.jpg" width="32%" alt="RK3588 엣지 AI 박스">
