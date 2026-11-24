@@ -63,7 +63,7 @@ MPP 硬解 ──► 固定数量 NV12 DMA-BUF ───────────
 
 ## 独立一键部署
 
-不需要先部署 EasyAIoT 平台，也不依赖 WEB、AI、VIDEO、MQTT 或 Docker。先从示例得到一份任务清单，只需维护这一个文件：
+推理运行时本身不依赖 WEB、AI、VIDEO、MQTT 或 Docker；离线现场可以完全独立运行。需要中心统管时，只额外启用同一清单里的轻量 MQTT Agent，盒子端仍不安装平台服务。先从示例得到一份任务清单，只需维护这一个文件：
 
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
@@ -72,6 +72,29 @@ bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
 
+任务清单同时决定是否接入平台、是否打开内网穿透：
+
+```json
+{
+  "control_plane": {
+    "enabled": true,
+    "url": "http://平台IP:48080/admin-api/video/edge",
+    "join_token": "中心平台配置的 EDGE_ENROLL_TOKEN",
+    "node_name": "园区北区-RK3588-01"
+  },
+  "remote_access": {
+    "enabled": false,
+    "provider": "frp"
+  }
+}
+```
+
+- `control_plane.enabled=true`：安装器自动注册 MQTT Agent，首次通过 VIDEO 完成纳管，此后心跳、CPU/内存/温度、NPU、推理管线和 FRP 状态只走 MQTT；WEB 的独立“边缘计算”菜单会自动出现盒子，不需要手工建节点。
+- 遥测链路固定为 `RK3588 → EMQX → iot-sink（鉴权、HMAC 验签、协议归一化、直接写 iot-video20）→ VIDEO / WEB`，不绕 Kafka，也不进入 NODE 模块。
+- `remote_access.enabled=false`：不下载、不安装、不启动 frpc；盒子只主动连接 MQTT，不暴露任何公网端口。
+- `remote_access.enabled=true`：一键安装并校验 arm64 frpc；`service.enabled` 与 `ssh.enabled` 分别控制状态服务和 SSH 隧道。FRP 只解决“从平台访问/登录盒子”，不承载心跳和指标，因此隧道短暂中断不会破坏 MQTT 统管。
+- MQTT 除 Broker 登录鉴权外，每条消息还使用节点独立 token 做 HMAC-SHA256，并校验时间窗、Topic/nodeId 与 messageId 去重；FRP token、SSH 凭据不会进入 WEB 返回值。
+
 清单与平台 `RUNTIME` 的运行约定一致：
 
 - `models` 集中登记 RKNN 模型、类别文件与可选业务模型 ID；模型安装一次，可被任意任务复用；
@@ -79,7 +102,7 @@ sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 - 每路实时视频生成独立 INI、控制端口和受监管进程，某一路故障不会把其他路一起带走；
 - 全部路径、模型引用、任务 ID 和控制端口先校验后安装，避免部署到一半才发现配置错误。
 
-脚本随后完成硬件与驱动预检、本机编译、共享模型安装、逐路配置生成、systemd 模板实例注册与启动，并逐路等待 `/health` 验收 MPP、RGA、RKNN 硬件链路。没有 systemd 时，每路自动使用独立 PID 与日志。交互菜单只需选择任务清单，不会再要求把一条 RTSP 和一个模型塞进环境变量。
+脚本随后完成硬件与驱动预检、本机编译、共享模型安装、逐路配置生成、systemd 模板实例注册与启动，并逐路等待 `/health` 验收 MPP、RGA、RKNN 硬件链路。启用平台纳管时还会安装 MQTT Agent；启用 FRP 时才会下载、校验并注册 frpc。没有 systemd 时，每路推理任务自动使用独立 PID 与日志。交互菜单只需选择任务清单，不会再要求把一条 RTSP 和一个模型塞进环境变量。
 
 ```bash
 bash .scripts/docker/install_linux.sh rk3588 list

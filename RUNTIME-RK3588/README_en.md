@@ -40,7 +40,7 @@ FFmpeg demux -> MPP NV12 DMA-BUF -> RGA -> preallocated RKNN input FD -> NPU cor
 
 ## Standalone one-command deployment
 
-The deployment does not require the EasyAIoT platform and does not start WEB, AI, VIDEO, MQTT, Docker, or any other module. Start from the task manifest and maintain this one file:
+The inference runtime itself does not require WEB, AI, VIDEO, MQTT, Docker, or any other platform module. It can stay fully offline, or optionally run one lightweight MQTT agent to join a central platform. Start from the task manifest and maintain this one file:
 
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
@@ -48,6 +48,10 @@ cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
+
+The same manifest controls platform enrollment and optional remote access. With `control_plane.enabled=true`, the installer registers an MQTT agent and the box appears automatically in the standalone **Edge Computing** menu. The telemetry path is deliberately direct: `RK3588 → EMQX → iot-sink (authentication, HMAC verification, normalization, direct iot-video20 persistence) → VIDEO / WEB`; it does not pass through Kafka or NODE.
+
+`remote_access.enabled=false` installs no frpc process and opens no public port. When enabled, service access and SSH are separate FRP tunnels. FRP is only an operator access path; heartbeat, hardware metrics, pipelines and tunnel state continue to use MQTT. Each MQTT message is protected by the node token, HMAC-SHA256, a clock window, topic/node identity checks and message-id deduplication.
 
 The manifest deliberately matches the platform `RUNTIME` convention:
 

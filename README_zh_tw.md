@@ -151,6 +151,8 @@ sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 
 任務清單沿用 `RUNTIME` 的約定：`models` 是可重用的 RKNN 模型庫，`tasks` 中每一項就是一路 RTSP，並用類似 `"models": ["person_vehicle", "helmet"]` 的方式自由綁定一個或多個模型；要接十路影片，只需增加十個任務，不存在「只能一路、只能一個模型」的限制。安裝器會先一次校驗全部路徑、模型引用和控制埠，再把模型各安裝一份、為每路影片生成一份 INI 和一個獨立受監管程序，最後逐路等待 `/health` 驗收 MPP、RGA、RKNN 硬體鏈路。systemd 以模板實例提供開機自啟與故障拉起；沒有 systemd 時，每路也有獨立 PID 與日誌。它不會安裝 Docker，也不會啟動 WEB、AI、VIDEO、MQTT 等其他模組。維運時執行 `rk3588 status [任務ID]`、`logs [任務ID]`、`verify [任務ID]`，既能看全部，也能只看一路；互動選單也只會請你選擇這份清單。
 
+需要中心統管時，只要在同一清單將 `control_plane.enabled` 設為 `true`，盒子就會自動出現在 WEB 獨立一級選單「邊緣計算」中，晶片/NPU、推理管線、負載、溫度及可選的服務存取與 SSH 入口都集中呈現。遙測鏈路固定為 `RK3588 → EMQX → iot-sink（鑑權、HMAC 驗簽、協議歸一化、直接落庫）→ VIDEO / WEB`，不經過 Kafka，也不進入 NODE。`remote_access.enabled` 獨立決定是否啟用 FRP：關閉時不安裝 frpc、不開放公網埠；開啟時一鍵生成服務與 SSH 兩條獨立隧道，節點統管仍始終走 MQTT。
+
 ### 🎛️ PANEL：一體機到場當天可裝可驗，值守不必等開發遠程
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
