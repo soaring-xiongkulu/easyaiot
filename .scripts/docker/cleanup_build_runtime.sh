@@ -19,8 +19,9 @@
 #   bash .scripts/docker/cleanup_build_runtime.sh --dry-run # 仅预览
 #   bash .scripts/docker/cleanup_build_runtime.sh --module AI -y
 #     # 仅清理指定模块（如 AI）：该模块镜像 + .build-cache/ai（含 arm 交叉缓存）
-#     # 可选模块同 build-runtime: HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL
+#     # 可选模块同 build-runtime: HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL|RUNTIME-RK3588
 #     # 指定模块时默认清理 镜像+该模块构建缓存；全局 BuildKit 缓存无法按模块过滤，自动跳过
+#     # RUNTIME-RK3588 为原生模块：默认仅删 RUNTIME-RK3588/build；--dist/--cache/--all 可清理导出产物与离线缓存
 #
 # 注意: 若当前环境正在使用这些镜像运行服务，请先 stop 再清理。
 # ============================================
@@ -93,10 +94,11 @@ show_help() {
   --dist           清理 WEB/dist-prebuilt-* 跨架构中间产物
   --logs           清理 .scripts/docker/logs 下 runtime_image / build_ 日志
   --marker         删除 .runtime_images_pulled 拉取标记
-  --module <模块>  仅清理指定模块（HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL）
+  --module <模块>  仅清理指定模块（HARNESS|IDEA|TERMINAL|DEVICE|AI|RTC|POST|VIDEO|WEB|APP|VISUALIZE|TWIN|TRANSFORM|PANEL|RUNTIME-RK3588）
                    与 --images/--cache 联用时只清理该模块镜像与 .build-cache/<模块> 子目录；
                    与 --all 联用同理（BuildKit 缓存为全局共享，指定模块时自动跳过）；
                    --dist 仅在模块为 WEB 时生效
+                   RUNTIME-RK3588 为原生模块：默认仅删 build/；--dist 删 dist/，--cache 删 .bundle-runtime/
   --all            执行以上全部清理
   --yes, -y        跳过确认
   --dry-run, -n    仅预览，不实际删除
@@ -108,6 +110,7 @@ show_help() {
   bash .scripts/docker/cleanup_build_runtime.sh --all --dry-run
   bash .scripts/docker/cleanup_build_runtime.sh --module AI -y
   bash .scripts/docker/cleanup_build_runtime.sh --module VIDEO --images --cache -n
+  bash .scripts/docker/cleanup_build_runtime.sh --module RUNTIME-RK3588 -y
 EOF
 }
 
@@ -641,6 +644,20 @@ warn_running_services() {
 }
 
 run_selected_cleanup() {
+    if runtime_is_native_build_module "$CLEAN_MODULE"; then
+        local -a native_args=()
+        $ASSUME_YES && native_args+=(--yes)
+        $DRY_RUN && native_args+=(--dry-run)
+        if $DO_DIST && $DO_CACHE; then
+            native_args+=(--all)
+        else
+            $DO_DIST && native_args+=(--dist)
+            $DO_CACHE && native_args+=(--cache)
+        fi
+        runtime_clean_native_module "$CLEAN_MODULE" "${native_args[@]}"
+        return 0
+    fi
+
     if [ -n "$CLEAN_MODULE" ]; then
         print_info "清理范围: 仅模块 ${CLEAN_MODULE}（镜像 + 该模块 .build-cache；全局 BuildKit 缓存与其余模块镜像不受影响）"
         echo ""
@@ -712,9 +729,13 @@ interactive_menu() {
             runtime_interactive_pick_module
             CLEAN_MODULE="${RUNTIME_PICKED_MODULE}"
             if [ -n "$CLEAN_MODULE" ]; then
-                DO_IMAGES=true
-                DO_CACHE=true
-                print_info "将仅清理模块: ${CLEAN_MODULE}"
+                if runtime_is_native_build_module "$CLEAN_MODULE"; then
+                    print_info "将仅清理模块: ${CLEAN_MODULE}（本机 build/ 产物）"
+                else
+                    DO_IMAGES=true
+                    DO_CACHE=true
+                    print_info "将仅清理模块: ${CLEAN_MODULE}"
+                fi
             else
                 interactive_menu
                 return 0
@@ -749,9 +770,13 @@ interactive_menu() {
                         runtime_interactive_pick_module
                         CLEAN_MODULE="${RUNTIME_PICKED_MODULE}"
                         if [ -n "$CLEAN_MODULE" ]; then
-                            DO_IMAGES=true
-                            DO_CACHE=true
-                            print_info "将仅清理模块: ${CLEAN_MODULE}"
+                            if runtime_is_native_build_module "$CLEAN_MODULE"; then
+                                print_info "将仅清理模块: ${CLEAN_MODULE}（本机 build/ 产物）"
+                            else
+                                DO_IMAGES=true
+                                DO_CACHE=true
+                                print_info "将仅清理模块: ${CLEAN_MODULE}"
+                            fi
                         fi
                         ;;
                     *)
@@ -780,14 +805,15 @@ main() {
     else
         # 仅传 -y / --dry-run 时默认清理镜像 + 构建缓存
         if ! $DO_IMAGES && ! $DO_BUILDER && ! $DO_CACHE && ! $DO_DIST && ! $DO_LOGS && ! $DO_MARKER; then
-            if [ -n "$CLEAN_MODULE" ]; then
+            if [ -n "$CLEAN_MODULE" ] && ! runtime_is_native_build_module "$CLEAN_MODULE"; then
                 # 模块级默认: 该模块镜像 + 该模块 .build-cache（全局 BuildKit 缓存不碰）
                 DO_IMAGES=true
                 DO_CACHE=true
-            else
+            elif [ -z "$CLEAN_MODULE" ]; then
                 DO_IMAGES=true
                 DO_BUILDER=true
             fi
+            # 原生模块（RUNTIME-RK3588）默认只清理 build/ 产物，不涉及 Docker
         fi
         run_selected_cleanup
     fi

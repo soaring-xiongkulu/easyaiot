@@ -726,7 +726,7 @@ EasyAIoT 业务系统统一管理脚本
   status        查看状态
   logs [服务名] 查看日志（可指定模块后接服务名，如 logs DEVICE iot-gateway）
   build         重新构建镜像（各模块本地构建）
-  build-runtime 构建/推送运行时镜像到远程仓库
+  build-runtime [模块] 构建/推送运行时镜像到远程仓库；指定 RUNTIME-RK3588 时改为板端原生编译（非 Docker 镜像）
   pull          从远程仓库拉取预构建运行时镜像（交互式，默认 full）
   build-base    仅 DEVICE：Maven 编译并提取 Jar（第一阶段）
   clean         清理容器（DEVICE 保留镜像）
@@ -766,7 +766,7 @@ EasyAIoT 业务系统统一管理脚本
   边缘双形态请在 install 中先选 edge，再选 standalone / integrated
   自动化示例: EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_EDGE_MORPHOLOGY=integrated VIDEO_BASE_URL=http://...
   build-runtime 可选 EASYAIOT_RUNTIME_BUILD_ARCH: all(默认) | amd64 | arm64（单架构时跳过 manifest）
-  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: $(runtime_build_module_help)
+  build-runtime 可选 EASYAIOT_RUNTIME_BUILD_MODULE: $(runtime_build_module_help)（RUNTIME-RK3588 为板端原生编译，非 Docker 镜像）
   日志: $LOG_DIR/
 EOF
 }
@@ -848,6 +848,19 @@ parse_args() {
         fi
     fi
 
+    # build-runtime 可直接指定原生模块（RUNTIME-RK3588 不走 Docker/镜像仓库，不参与 resolve_modules）
+    if [ "$COMMAND" = "build-runtime" ] || [ "$COMMAND" = "images-build" ]; then
+        if [ ${#positional[@]} -gt 0 ]; then
+            local native_norm
+            native_norm=$(runtime_normalize_build_module "${positional[0]}")
+            if runtime_is_native_build_module "$native_norm"; then
+                export EASYAIOT_RUNTIME_BUILD_MODULE="$native_norm"
+                MODULE_POSITIONAL=()
+                return 0
+            fi
+        fi
+    fi
+
     # install 需在交互选定部署形态后再 resolve（见 main）
     if [ "$COMMAND" = "install" ]; then
         return 0
@@ -904,6 +917,12 @@ main() {
             ;;
         build-runtime|images-build)
             init_deploy_profile_for_command build-runtime
+            runtime_interactive_select_build_module
+            if runtime_is_native_build_module "${EASYAIOT_RUNTIME_BUILD_MODULE:-}"; then
+                print_section "构建原生运行时 ${EASYAIOT_RUNTIME_BUILD_MODULE}"
+                runtime_build_native_module "$EASYAIOT_RUNTIME_BUILD_MODULE" || exit 1
+                exit 0
+            fi
             check_docker
             runtime_images_prepare_build_interactive
             runtime_images_export_for_invoke
