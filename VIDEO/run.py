@@ -236,6 +236,7 @@ def create_app(start_background_tasks=None):
                 ensure_stream_forward_task_executor_columns,
                 ensure_camera_ingress_columns,
                 ensure_media_asset_compat_columns,
+                ensure_model_rknn_column,
                 ensure_post_plugin_tables,
                 ensure_algorithm_task_llm_columns,
                 ensure_alert_llm_columns,
@@ -251,6 +252,7 @@ def create_app(start_background_tasks=None):
             ensure_stream_forward_task_executor_columns(db.engine)
             ensure_camera_ingress_columns(db.engine)
             ensure_media_asset_compat_columns(db.engine)
+            ensure_model_rknn_column(db.engine)
             ensure_post_plugin_tables(db.engine)
             ensure_algorithm_task_llm_columns(db.engine)
             ensure_alert_llm_columns(db.engine)

@@ -3011,6 +3011,7 @@ class AiModel(db.Model):
     torchscript_model_path = db.Column(db.String(500))
     tensorrt_model_path = db.Column(db.String(500))
     openvino_model_path = db.Column(db.String(500))
+    rknn_model_path = db.Column(db.String(500))
     model_origin = db.Column(db.String(32), default='upload', nullable=True)
     origin_ref = db.Column(db.String(128), nullable=True)
 
@@ -3535,6 +3536,26 @@ def ensure_alert_llm_columns(engine):
             log.info('已为 alert 表添加 %s 列', col)
     except Exception as e:
         log.warning('ensure_alert_llm_columns: %s', e)
+
+
+def ensure_model_rknn_column(engine):
+    """老库 model 表无 rknn_model_path 列时补列（RUNTIME-RK3588 业务模型）。"""
+    import logging
+    from sqlalchemy import inspect, text
+
+    log = logging.getLogger(__name__)
+    try:
+        inspector = inspect(engine)
+        if 'model' not in inspector.get_table_names():
+            return
+        col_names = {c['name'] for c in inspector.get_columns('model')}
+        if 'rknn_model_path' in col_names:
+            return
+        with engine.begin() as conn:
+            conn.execute(text('ALTER TABLE model ADD COLUMN rknn_model_path VARCHAR(500)'))
+        log.info('已为 model 表添加 rknn_model_path 列')
+    except Exception as e:
+        log.warning('ensure_model_rknn_column: %s', e)
 
 
 def ensure_algorithm_llm_tables(engine):

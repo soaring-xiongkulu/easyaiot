@@ -833,7 +833,7 @@ _KNOWN_MODEL_BUCKETS = frozenset({'models', _EXPORT_BUCKET, 'exports'})
 
 
 def _fetch_model_record(model_id: int) -> Optional[dict]:
-    """获取模型注册信息（model_path / onnx_model_path / class_names）。
+    """获取模型注册信息（model_path / onnx_model_path / rknn_model_path / class_names）。
 
     优先调用模型服务 HTTP API（标准/集群形态即 AI 模块；edge 形态回环本机
     VIDEO 自己的 /model/{id}），失败时回退 VIDEO 库本地 model 表（edge 种子）。
@@ -866,6 +866,7 @@ def _fetch_model_record(model_id: int) -> Optional[dict]:
                 'name': row.name,
                 'model_path': row.model_path,
                 'onnx_model_path': row.onnx_model_path,
+                'rknn_model_path': getattr(row, 'rknn_model_path', None),
                 'class_names': row.class_names,
                 'selected_class_names': row.selected_class_names,
             }
