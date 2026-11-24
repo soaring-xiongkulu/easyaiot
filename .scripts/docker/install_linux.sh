@@ -44,7 +44,8 @@
 #   EASYAIOT_DEPLOY_PROFILE=edge ./install_linux.sh install
 #   ./install_linux.sh edge install   # 等价快捷入口，默认 standalone
 # RK3588 盒子独立部署：
-#   EASYAIOT_RK3588_RTSP_URL=rtsp://... EASYAIOT_RK3588_MODEL_PATH=/path/model.rknn ./install_linux.sh rk3588 install
+#   cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+#   ./install_linux.sh rk3588 install ./rk3588.tasks.json
 # ============================================
 
 set -e
@@ -2276,7 +2277,7 @@ show_help() {
     echo "  check           - 检查 Docker 和 Docker Compose 安装状态"
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
-    echo "  rk3588 [子命令] - RK3588 盒子独立部署（默认 install，不依赖其他模块）"
+    echo "  rk3588 [子命令] [任务清单或任务ID] - RK3588 盒子独立部署（不依赖其他模块）"
     echo "  mobile [子命令] - 移动端 APP 三端打包管理（委托 .scripts/docker/mobile.sh）"
     echo "  build-runtime-cpp [target|--all|--compile-target NAME] - RUNTIME C++ 离线包矩阵构建"
     echo "  preflight-runtime-cpp [--node N | os_family [arch]] - 分发前预检本地 tarball"
@@ -2293,9 +2294,11 @@ show_help() {
     echo "  默认端口: http://localhost:8090"
     echo ""
     echo "RK3588 子命令（./install_linux.sh rk3588 <子命令>）:"
-    echo "  install | update | preflight | build | start | stop | restart | status | logs | verify | uninstall"
+    echo "  install <清单> | update [清单] | config-check <清单> | list"
+    echo "  start | stop | restart | status | logs | verify（这些命令可再跟任务ID）"
+    echo "  preflight | deps | build | uninstall"
     echo "  只部署 RUNTIME-RK3588；不启动 WEB / AI / VIDEO / MQTT / Docker 等其他模块"
-    echo "  必填: EASYAIOT_RK3588_RTSP_URL + EASYAIOT_RK3588_MODEL_PATH（或 MODEL_URL）"
+    echo "  清单约定: 多路 RTSP + 模型库；每路任务可绑定一个或多个 RKNN 模型"
     echo ""
     echo "移动端子命令（./install_linux.sh mobile <子命令>，详见 MOBILE.md）:"
     echo "  status | build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]"
@@ -2324,9 +2327,8 @@ show_help() {
     echo "  GATEWAY_URL                  - 云边一体：中心网关地址（如 http://192.168.1.10:48080）"
     echo "  MQTT_BROKER_URLS             - 云边一体：中心消息总线地址"
     echo "  EASYAIOT_RUNTIME_INSTALL_DIR - 云边一体：边缘算力安装目录（默认 /opt/easyaiot/RUNTIME）"
-    echo "  EASYAIOT_RK3588_RTSP_URL     - RK3588 独立部署：摄像头 RTSP 地址"
-    echo "  EASYAIOT_RK3588_MODEL_PATH   - RK3588 独立部署：本机 .rknn 模型路径"
-    echo "  EASYAIOT_RK3588_MODEL_URL    - RK3588 独立部署：可选的 .rknn 下载地址"
+    echo "  EASYAIOT_RK3588_MANIFEST     - RK3588 独立部署：多流多模型任务清单路径"
+    echo "  EASYAIOT_RK3588_RTSP_URL / MODEL_PATH / MODEL_URL - 旧版单任务参数（仅兼容）"
     echo "  EASYAIOT_VERIFY_ALERT_ON_VERIFY=0 - verify 时跳过告警 MQTT/共享盘验收"
     echo "  EASYAIOT_VERIFY_ALERT_STRICT=1    - verify-alert 前置缺失时按失败退出"
     echo "  MQTT_BROKER_URLS / ALERT_IMAGES_DIR / VERIFY_DEVICE_ID - 告警验收覆盖项"
@@ -2367,6 +2369,7 @@ run_runtime_atomic() { run_edge_integrated_install "$@"; }
 # RK3588 盒子专用：只委托 RUNTIME-RK3588 自己的主机服务，不进入 Docker/平台模块流程。
 run_rk3588_module() {
     local rk_cmd="${1:-install}"
+    shift || true
     local rk_dir="${PROJECT_ROOT}/RUNTIME-RK3588"
     local rk_script="${rk_dir}/install_linux.sh"
 
@@ -2376,14 +2379,14 @@ run_rk3588_module() {
     fi
 
     case "$rk_cmd" in
-        install|update|preflight|deps|build|start|stop|restart|status|logs|verify|uninstall|help|-h|--help)
+        install|update|config-check|check-config|validate-config|list|preflight|deps|build|start|stop|restart|status|logs|verify|uninstall|help|-h|--help)
             print_section "RUNTIME-RK3588 盒子独立部署（${rk_cmd}）"
             print_info "仅处理 RK3588 硬件运行时，不启动其他 EasyAIoT 模块"
-            (cd "$rk_dir" && bash ./install_linux.sh "$rk_cmd")
+            (cd "$PROJECT_ROOT" && bash "$rk_script" "$rk_cmd" "$@")
             ;;
         *)
             print_error "未知 RK3588 子命令: ${rk_cmd}"
-            echo "可用: install | update | preflight | build | start | stop | restart | status | logs | verify | uninstall"
+            echo "可用: install | update | config-check | list | preflight | build | start | stop | restart | status | logs | verify | uninstall"
             return 1
             ;;
     esac
@@ -2559,7 +2562,7 @@ main() {
             run_site_module "${2:-install}"
             ;;
         rk3588|runtime-rk3588|rk3588-runtime)
-            run_rk3588_module "${2:-install}"
+            run_rk3588_module "${@:2}"
             ;;
         mobile|移动端)
             run_mobile_module "${@:2}"

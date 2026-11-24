@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -70,6 +71,22 @@ class StandaloneManifestTest(unittest.TestCase):
         result, _ = self.run_compile(document)
         self.assertEqual(result.returncode, 2)
         self.assertIn("未定义模型", result.stderr)
+
+    def test_root_installer_forwards_manifest_to_config_check(self):
+        manifest = self.base / "tasks.json"
+        manifest.write_text(json.dumps(self.document()), encoding="utf-8")
+        env = os.environ.copy()
+        env.update({
+            "EASYAIOT_RK3588_INSTALL_DIR": str(self.base / "install"),
+            "EASYAIOT_RK3588_STATE_DIR": str(self.base / "state"),
+            "EASYAIOT_RK3588_LOG_DIR": str(self.base / "logs"),
+        })
+        result = subprocess.run([
+            "bash", str(ROOT.parent / ".scripts" / "docker" / "install_linux.sh"),
+            "rk3588", "config-check", str(manifest),
+        ], cwd=ROOT.parent, env=env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("任务清单可部署", result.stdout)
 
 
 if __name__ == "__main__":
