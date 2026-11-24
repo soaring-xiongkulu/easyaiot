@@ -117,7 +117,7 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT的深度融合。平臺通過算法任務管理、即時流分析、模型服務集羣推理等核心能力，實現從設備接入到數據採集、AI分析、智能決策的全鏈路閉環，真正實現萬物互聯、萬物智控。
 </p>
 
-### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> RK3588 邊緣 AI 硬體模組
+### 🔧 RK3588 邊緣 AI 硬體模組
 
 `RUNTIME-RK3588` 是 EasyAIoT 面向 Rockchip RK3588 的獨立推理執行環境，與通用 `RUNTIME` 分開維護。視頻處理固定在晶片的硬體單元上：FFmpeg 只做解複用，MPP 解碼，RGA 完成縮放與色彩轉換，三核 NPU 並行推理，MPP 以 `h264_rkmpp` 編碼輸出。影格以 DMA-BUF 在硬體單元之間傳遞；只有畫框、取證和推流等需要 CPU 存取的情境才生成 BGR 影像。
 
@@ -127,43 +127,11 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 - **失敗即停**：啟動時校驗 RK3588、RKNPU、RGA、MPP、DRM 與 `h264_rkmpp`，任一缺失即拒絕啟動；不提供 ONNX、CPU 推理、軟體解碼或 `libx264` 回退，避免出現「能運行但延遲與 CPU 佔用不可用」的部署。
 - **部署形態**：本地推理只回傳檢測結果、告警與取證圖，原始視頻留在現場，降低上行頻寬與回應時延；雙網口配合 Wi-Fi、4G/5G 與 SIM，可覆蓋隔離網路、移動點位和備份鏈路。
 
-**系統架構：碼流在硬體單元間以 DMA-BUF 傳遞，執行緒與佇列均為固定容量**
+**RK3588 系統架構**
 
-```mermaid
-flowchart LR
-    IN["RTSP / 視頻檔案"] --> PRE{"硬體與驅動預檢<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
-    PRE -->|缺失| STOP["拒絕啟動<br/>無 CPU / ONNX / 軟體編解碼回退"]
-    PRE -->|通過| DEMUX["FFmpeg<br/>僅解複用"]
+![RK3588 系統架構圖](.images/rk3588/rk3588-architecture.jpg)
 
-    subgraph HW["RK3588 SoC 硬體單元"]
-        MPPD["MPP 硬體解碼<br/>NV12 DMA-BUF 固定緩衝池"]
-        NPU["三核 NPU<br/>Core 0 / 1 / 2 · lane 綁定 · 權重共用"]
-        DRAW["RGA<br/>畫框後轉回 NV12"]
-        MPPE["MPP 硬體編碼<br/>h264_rkmpp"]
-    end
-
-    subgraph RT["執行時：執行緒與有界佇列"]
-        FR["FrameRing<br/>滿載丟最舊影格"]
-        TQ["每核 TaskRing<br/>優先最短 lane"]
-        CQ["每核 CompletionRing<br/>獨立彙聚執行緒"]
-        RR["ResultRing"]
-        EMIT["Emit 執行緒<br/>告警判定 / 取證"]
-    end
-
-    subgraph OUT["輸出"]
-        MQ["檢測結果 / 告警<br/>MQTT 上報"]
-        SNAP["告警取證圖"]
-        RTMP["RTMP 推流"]
-    end
-
-    DEMUX --> MPPD --> FR --> TQ
-    TQ -->|RGA 縮放 → RKNN 推理| NPU
-    NPU -->|原生 INT8 後處理| CQ --> RR --> EMIT
-    EMIT --> MQ
-    EMIT --> SNAP
-    FR -.->|按需取原始影格| EMIT
-    EMIT --> DRAW --> MPPE --> RTMP
-```
+上述硬體通路運行於下方 RK3588 盒子，實拍依次為前面板與無線擴展、整機、接口面板。
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板與無線擴展">

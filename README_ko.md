@@ -117,7 +117,7 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣지-디바이스 통합 지능형 사물인터넷 플랫폼입니다. 플랫폼은 알고리즘 태스크 관리, 실시간 스트림 분석, 모델 서비스 클러스터 추론 등의 핵심 기능을 통해, 디바이스 접속부터 데이터 수집, AI 분석, 지능형 의사결정에 이르는 전 과정의 폐쇄 루프를 실현하여 진정한 만물 인터넷화, 만물 지능화 제어를 실현합니다.
 </p>
 
-### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> RK3588 엣지 AI 하드웨어 모듈
+### 🔧 RK3588 엣지 AI 하드웨어 모듈
 
 `RUNTIME-RK3588`은 Rockchip RK3588을 위한 EasyAIoT의 독립 추론 런타임이며 범용 `RUNTIME`과 별도로 유지됩니다. 영상 처리는 SoC의 하드웨어 유닛에 고정됩니다. FFmpeg은 역다중화만 수행하고, MPP가 디코딩하며, RGA가 리사이즈와 색 변환을 맡고, 3개 NPU 코어가 병렬로 추론하며, MPP가 `h264_rkmpp`로 인코딩합니다. 프레임은 DMA-BUF 형태로 하드웨어 유닛 사이를 이동하며, 오버레이·증거 캡처·스트리밍처럼 CPU 접근이 필요한 경우에만 BGR 이미지를 생성합니다.
 
@@ -127,43 +127,11 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 - **실패 시 중단:** 시작 시 RK3588, RKNPU, RGA, MPP, DRM, `h264_rkmpp`를 검증하며 하나라도 없으면 프로세스를 중단합니다. ONNX, CPU 추론, 소프트웨어 디코딩, `libx264` 폴백이 없어 "동작은 하지만 지연과 CPU 사용량이 사용 불가능한" 배포를 방지합니다.
 - **배포 형태:** 로컬 추론은 감지 결과, 알람, 증거 이미지만 전송하고 원본 영상은 현장에 남겨 업링크 대역폭과 응답 지연을 줄입니다. 듀얼 이더넷과 Wi-Fi, 4G/5G, SIM은 격리망, 이동 현장, 백업 회선을 지원합니다.
 
-**시스템 아키텍처: 프레임은 DMA-BUF로 하드웨어 유닛 사이를 이동하고, 모든 스레드와 큐는 고정 용량을 가집니다**
+**RK3588 시스템 아키텍처**
 
-```mermaid
-flowchart LR
-    IN["RTSP / 동영상 파일"] --> PRE{"하드웨어·드라이버 사전 점검<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
-    PRE -->|누락| STOP["시작 거부<br/>CPU / ONNX / 소프트웨어 코덱 폴백 없음"]
-    PRE -->|통과| DEMUX["FFmpeg<br/>역다중화만"]
+![RK3588 시스템 아키텍처 다이어그램](.images/rk3588/rk3588-architecture.jpg)
 
-    subgraph HW["RK3588 SoC 하드웨어 유닛"]
-        MPPD["MPP 하드웨어 디코딩<br/>NV12 DMA-BUF 고정 버퍼 풀"]
-        NPU["3코어 NPU<br/>Core 0 / 1 / 2 · lane 고정 · 가중치 공유"]
-        DRAW["RGA<br/>오버레이 후 NV12 복원"]
-        MPPE["MPP 하드웨어 인코딩<br/>h264_rkmpp"]
-    end
-
-    subgraph RT["런타임: 스레드와 유한 큐"]
-        FR["FrameRing<br/>가득 차면 가장 오래된 프레임 폐기"]
-        TQ["코어별 TaskRing<br/>최단 lane 우선"]
-        CQ["코어별 CompletionRing<br/>전용 수집 스레드"]
-        RR["ResultRing"]
-        EMIT["Emit 스레드<br/>알람 판정 / 증거"]
-    end
-
-    subgraph OUT["출력"]
-        MQ["감지 결과 / 알람<br/>MQTT 보고"]
-        SNAP["알람 증거 이미지"]
-        RTMP["RTMP 푸시"]
-    end
-
-    DEMUX --> MPPD --> FR --> TQ
-    TQ -->|RGA 리사이즈 → RKNN 추론| NPU
-    NPU -->|네이티브 INT8 후처리| CQ --> RR --> EMIT
-    EMIT --> MQ
-    EMIT --> SNAP
-    FR -.->|필요 시 원본 프레임| EMIT
-    EMIT --> DRAW --> MPPE --> RTMP
-```
+위 하드웨어 경로는 아래 RK3588 박스에서 실행됩니다. 사진은 전면 패널과 무선 확장, 본체, 입출력 패널 순서입니다.
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 전면 패널 및 무선 확장">

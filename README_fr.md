@@ -117,7 +117,7 @@ Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendr
 EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégration cloud-bord-périphérique, se concentrant sur l'intégration profonde de l'IA et de l'IoT. Grâce à des capacités fondamentales telles que la gestion des tâches algorithmiques, l'analyse de flux en temps réel et le raisonnement en cluster de services de modèles, la plateforme réalise une boucle fermée complète allant de la connexion des appareils à la collecte de données, l'analyse par IA et la prise de décision intelligente, atteignant véritablement l'interconnexion et le contrôle intelligent de toutes choses.
 </p>
 
-### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> Module matériel IA edge RK3588
+### 🔧 Module matériel IA edge RK3588
 
 `RUNTIME-RK3588` est un runtime d'inférence autonome d'EasyAIoT pour Rockchip RK3588, maintenu séparément du `RUNTIME` générique. Le traitement vidéo est fixé sur les unités matérielles du SoC : FFmpeg ne fait que démultiplexer, MPP décode, RGA redimensionne et convertit les couleurs, les trois cœurs NPU infèrent en parallèle et MPP encode via `h264_rkmpp`. Les images circulent entre les unités sous forme de DMA-BUF ; des images BGR ne sont créées que là où un accès CPU est nécessaire : incrustation, capture de preuve et diffusion.
 
@@ -127,43 +127,11 @@ EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégra
 - **Arrêt en cas d'absence :** au démarrage, RK3588, RKNPU, RGA, MPP, DRM et `h264_rkmpp` sont vérifiés ; un élément manquant arrête le processus. Aucun repli ONNX, inférence CPU, décodage logiciel ou `libx264`, ce qui évite les déploiements qui « fonctionnent » avec une latence et une charge CPU inacceptables.
 - **Forme de déploiement :** l'inférence locale ne transmet que détections, alertes et images de preuve, laisse la vidéo d'origine sur site et réduit la bande passante montante et le délai de réaction. Double Ethernet, Wi-Fi, 4G/5G et SIM couvrent réseaux isolés, sites mobiles et liaisons de secours.
 
-**Architecture système : les images circulent entre les unités matérielles en DMA-BUF ; threads et files ont une capacité fixe**
+**Architecture système RK3588**
 
-```mermaid
-flowchart LR
-    IN["RTSP / fichier vidéo"] --> PRE{"Précontrôle matériel et pilotes<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
-    PRE -->|absent| STOP["Refus de démarrer<br/>aucun repli CPU / ONNX / codec logiciel"]
-    PRE -->|validé| DEMUX["FFmpeg<br/>démultiplexage seul"]
+![Schéma d'architecture RK3588](.images/rk3588/rk3588-architecture.jpg)
 
-    subgraph HW["Unités matérielles RK3588 SoC"]
-        MPPD["Décodage matériel MPP<br/>groupe borné de NV12 DMA-BUF"]
-        NPU["NPU 3 cœurs<br/>Core 0 / 1 / 2 · lane dédiée · poids partagés"]
-        DRAW["RGA<br/>surimpression puis retour en NV12"]
-        MPPE["Encodage matériel MPP<br/>h264_rkmpp"]
-    end
-
-    subgraph RT["Runtime : threads et files bornées"]
-        FR["FrameRing<br/>remplace l'image la plus ancienne"]
-        TQ["TaskRing par cœur<br/>lane la plus courte d'abord"]
-        CQ["CompletionRing par cœur<br/>collecteur dédié"]
-        RR["ResultRing"]
-        EMIT["Thread Emit<br/>décision d'alerte / preuve"]
-    end
-
-    subgraph OUT["Sorties"]
-        MQ["Détections / alertes<br/>publication MQTT"]
-        SNAP["Image de preuve"]
-        RTMP["Flux RTMP"]
-    end
-
-    DEMUX --> MPPD --> FR --> TQ
-    TQ -->|redimensionnement RGA → inférence RKNN| NPU
-    NPU -->|post-traitement INT8 natif| CQ --> RR --> EMIT
-    EMIT --> MQ
-    EMIT --> SNAP
-    FR -.->|image brute à la demande| EMIT
-    EMIT --> DRAW --> MPPE --> RTMP
-```
+Ce chemin matériel est implémenté par le boîtier RK3588 présenté ci-dessous : face avant avec extension sans fil, boîtier et connectique.
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="Face avant et extension sans fil RK3588">

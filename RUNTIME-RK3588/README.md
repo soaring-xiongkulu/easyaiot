@@ -20,43 +20,9 @@ RK3588 官方规格包括 4×Cortex-A76 + 4×Cortex-A55、Mali-G610、2D 图像�
 
 ## 硬件流水线
 
-下图给出模块的系统架构——硬件单元、运行时线程与有界队列的分层边界：
+模块的系统架构如下：
 
-```mermaid
-flowchart LR
-    IN["RTSP / 视频文件"] --> PRE{"硬件与驱动预检<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
-    PRE -->|缺失| STOP["拒绝启动<br/>无 CPU / ONNX / 软编解码回退"]
-    PRE -->|通过| DEMUX["FFmpeg<br/>仅解复用"]
-
-    subgraph HW["RK3588 SoC 硬件单元"]
-        MPPD["MPP 硬件解码<br/>NV12 DMA-BUF 固定缓冲池"]
-        NPU["三核 NPU<br/>Core 0 / 1 / 2 · lane 绑定 · 权重共享"]
-        DRAW["RGA<br/>画框后转回 NV12"]
-        MPPE["MPP 硬件编码<br/>h264_rkmpp"]
-    end
-
-    subgraph RT["运行时：线程与有界队列"]
-        FR["FrameRing<br/>满载丢最旧帧"]
-        TQ["每核 TaskRing<br/>优先最短 lane"]
-        CQ["每核 CompletionRing<br/>独立汇聚线程"]
-        RR["ResultRing"]
-        EMIT["Emit 线程<br/>告警判定 / 取证"]
-    end
-
-    subgraph OUT["输出"]
-        MQ["检测结果 / 告警<br/>MQTT 上报"]
-        SNAP["告警取证图"]
-        RTMP["RTMP 推流"]
-    end
-
-    DEMUX --> MPPD --> FR --> TQ
-    TQ -->|RGA 缩放 → RKNN 推理| NPU
-    NPU -->|原生 INT8 后处理| CQ --> RR --> EMIT
-    EMIT --> MQ
-    EMIT --> SNAP
-    FR -.->|按需取原始帧| EMIT
-    EMIT --> DRAW --> MPPE --> RTMP
-```
+![RK3588 系统架构图](../.images/rk3588/rk3588-architecture.jpg)
 
 压缩包从输入到输出的具体数据通路如下：
 
