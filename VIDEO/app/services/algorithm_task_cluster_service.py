@@ -431,13 +431,18 @@ def _deploy_cpp_shard_command_and_files(
     heartbeat_url: Optional[str] = None,
     compute_node_id: Optional[str] = None,
     mqtt_broker_urls: Optional[str] = None,
+    runtime_target: Optional[str] = None,
 ) -> Tuple[List[str], List[Dict[str, str]], str]:
     """返回 (command, files, work_dir)。"""
     from app.services.runtime_config_service import (
-        REMOTE_RUNTIME_BIN,
         generate_runtime_inis_content,
+        remote_runtime_bin,
+        remote_runtime_work_dir,
+        resolve_remote_runtime_target,
     )
 
+    remote_target = runtime_target or resolve_remote_runtime_target(task)
+    remote_bin = remote_runtime_bin(remote_target)
     task_type = _normalize_task_type(task)
     # realtime：一路一 ini；snap/patrol：分片内多设备一个 ini
     force_per_device = task_type == 'realtime'
@@ -451,17 +456,18 @@ def _deploy_cpp_shard_command_and_files(
         heartbeat_url=heartbeat_url,
         compute_node_id=compute_node_id,
         mqtt_broker_urls=mqtt_broker_urls,
+        runtime_target=remote_target,
     )
     files = [{'path': p, 'content': c, 'mode': '0644'} for p, c in pairs]
-    work_dir = '/opt/easyaiot/RUNTIME'
+    work_dir = remote_runtime_work_dir(remote_target)
     if len(pairs) == 1:
-        return [REMOTE_RUNTIME_BIN, pairs[0][0]], files, work_dir
+        return [remote_bin, pairs[0][0]], files, work_dir
 
     # realtime 分片内多路（DEVICES_PER_SHARD>1）：bash 并行拉起
     ini_args = ' '.join(f'"{p}"' for p, _ in pairs)
     script = (
         'set -e; pids=(); '
-        f'for f in {ini_args}; do "{REMOTE_RUNTIME_BIN}" "$f" & pids+=($!); done; '
+        f'for f in {ini_args}; do "{remote_bin}" "$f" & pids+=($!); done; '
         'trap \'kill "${pids[@]}" 2>/dev/null || true\' EXIT TERM INT; '
         'wait'
     )
@@ -497,9 +503,11 @@ def _build_shard_env(
     host: str,
     device_ids: List[str],
     workload_id: str,
+    *,
+    runtime_target: Optional[str] = None,
+    local: bool = False,
 ) -> dict:
     from app.services.algorithm_task_launcher_service import _build_task_deploy_env
-    from app.services.runtime_config_service import REMOTE_RUNTIME_BIN, REMOTE_RUNTIME_LD_LIBRARY_PATH
 
     env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
     video_root_remote = os.getenv('NODE_REMOTE_VIDEO_ROOT', '/opt/easyaiot/VIDEO')
@@ -508,10 +516,25 @@ def _build_shard_env(
     env['DEVICE_IDS'] = ','.join(str(x) for x in device_ids)
     env['ALGORITHM_SHARD_DEVICE_IDS'] = env['DEVICE_IDS']
     if _normalize_executor(task) == 'cpp':
-        env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
-        env['LD_LIBRARY_PATH'] = REMOTE_RUNTIME_LD_LIBRARY_PATH
-        env['USE_GPU'] = 'true' if getattr(task, 'prefer_gpu', True) else 'false'
-        env['RUNTIME_PREFER_GPU'] = env['USE_GPU']
+        from app.services.runtime_config_service import (
+            remote_runtime_bin,
+            remote_runtime_library_path,
+            resolve_remote_runtime_target,
+            resolve_runtime_target,
+        )
+        target = runtime_target or (
+            resolve_runtime_target(task) if local else resolve_remote_runtime_target(task)
+        )
+        env['EASYAIOT_RUNTIME_TARGET'] = target
+        if not local:
+            env['RUNTIME_BIN'] = remote_runtime_bin(target)
+            env['LD_LIBRARY_PATH'] = remote_runtime_library_path(target)
+        if target == 'rk3588':
+            env['USE_GPU'] = 'false'
+            env['RUNTIME_PREFER_GPU'] = 'false'
+        else:
+            env['USE_GPU'] = 'true' if getattr(task, 'prefer_gpu', True) else 'false'
+            env['RUNTIME_PREFER_GPU'] = env['USE_GPU']
     return env
 
 
@@ -525,6 +548,7 @@ def _deploy_shard_locally(
     from app.services.runtime_config_service import (
         ensure_runtime_bin_ready,
         generate_runtime_inis,
+        resolve_runtime_target,
         runtime_library_path_env,
     )
 
@@ -541,7 +565,8 @@ def _deploy_shard_locally(
     if executor != 'cpp':
         raise RuntimeError('算法本机分片兜底目前仅支持 executor=cpp')
 
-    runtime_bin = ensure_runtime_bin_ready(task)
+    runtime_target = resolve_runtime_target(task)
+    runtime_bin = ensure_runtime_bin_ready(task, runtime_target=runtime_target)
     force_per_device = _normalize_task_type(task) == 'realtime'
     ini_paths = generate_runtime_inis(
         task,
@@ -550,13 +575,21 @@ def _deploy_shard_locally(
         write_local=True,
         only_device_ids=device_ids,
         force_per_device=force_per_device,
+        runtime_target=runtime_target,
     )
     env = os.environ.copy()
-    env.update(_build_shard_env(task, task_id, log_dir, host, device_ids, workload_id))
-    lib_path = runtime_library_path_env()
+    env.update(_build_shard_env(
+        task, task_id, log_dir, host, device_ids, workload_id,
+        runtime_target=runtime_target, local=True,
+    ))
+    env['RUNTIME_BIN'] = runtime_bin
+    lib_path = runtime_library_path_env(runtime_target)
     if lib_path:
-        existing = (env.get('LD_LIBRARY_PATH') or '').strip()
-        env['LD_LIBRARY_PATH'] = f'{lib_path}:{existing}' if existing else lib_path
+        if runtime_target == 'rk3588':
+            env['LD_LIBRARY_PATH'] = lib_path
+        else:
+            existing = (env.get('LD_LIBRARY_PATH') or '').strip()
+            env['LD_LIBRARY_PATH'] = f'{lib_path}:{existing}' if existing else lib_path
 
     if len(ini_paths) == 1:
         cmd = [runtime_bin, ini_paths[0]]
@@ -640,7 +673,17 @@ def deploy_shard_with_workload_id(
 
     executor = _normalize_executor(task)
     files = None
-    env = _build_shard_env(task, task_id, log_dir, host, device_ids, workload_id)
+    remote_target = None
+    if executor == 'cpp':
+        from app.services.runtime_config_service import resolve_remote_runtime_target
+        try:
+            remote_target = resolve_remote_runtime_target(task)
+        except ValueError as e:
+            raise RuntimeError(str(e)) from e
+    env = _build_shard_env(
+        task, task_id, log_dir, host, device_ids, workload_id,
+        runtime_target=remote_target,
+    )
     # 分片运行在目标节点：节点 id 必须随 env 下发，RUNTIME 心跳/MQTT 告警据此归属边缘节点
     env['NODE_ID'] = str(node_id)
     env['COMPUTE_NODE_ID'] = str(node_id)
@@ -654,6 +697,7 @@ def deploy_shard_with_workload_id(
             heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
             compute_node_id=str(node_id),
             mqtt_broker_urls=env.get('MQTT_BROKER_URLS'),
+            runtime_target=remote_target,
         )
     else:
         command, work_dir = _deploy_python_shard_command(task, task_id)
@@ -737,6 +781,13 @@ def deploy_sharded_algorithm_task(
 
     if not _task_is_enabled(task_id):
         return False, '任务已停用，取消分片部署', False
+
+    if _normalize_executor(task) == 'cpp':
+        from app.services.runtime_config_service import resolve_remote_runtime_target
+        try:
+            resolve_remote_runtime_target(task)
+        except ValueError as e:
+            return False, str(e), False
 
     ok, sync_msg = _ensure_task_models_on_cluster(task)
     if not ok:

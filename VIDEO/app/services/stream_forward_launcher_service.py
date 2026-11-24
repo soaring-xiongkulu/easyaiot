@@ -543,6 +543,7 @@ def _build_stream_forward_deploy_env(
     from app.services.runtime_config_service import (
         normalize_executor,
         resolve_runtime_bin,
+        resolve_runtime_target,
         REMOTE_RUNTIME_BIN,
         REMOTE_RUNTIME_LD_LIBRARY_PATH,
         runtime_config_dir,
@@ -656,16 +657,25 @@ def _build_stream_forward_deploy_env(
     if executor == 'cpp':
         is_remote_node = node_tags is not None or os.getenv('NODE_REMOTE_VIDEO_ROOT')
         if is_remote_node:
+            env['EASYAIOT_RUNTIME_TARGET'] = 'generic'
             env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
             env['RUNTIME_CONFIG_DIR'] = '/opt/easyaiot/RUNTIME/config'
             env['LD_LIBRARY_PATH'] = REMOTE_RUNTIME_LD_LIBRARY_PATH
         else:
+            runtime_target = resolve_runtime_target(task)
+            env['EASYAIOT_RUNTIME_TARGET'] = runtime_target
             env['RUNTIME_BIN'] = resolve_runtime_bin(task)
-            env['RUNTIME_CONFIG_DIR'] = str(runtime_config_dir())
-            lib_path = runtime_library_path_env()
+            env['RUNTIME_CONFIG_DIR'] = str(runtime_config_dir(runtime_target))
+            if runtime_target == 'rk3588':
+                env['USE_GPU'] = 'false'
+                env['RUNTIME_PREFER_GPU'] = 'false'
+            lib_path = runtime_library_path_env(runtime_target)
             if lib_path:
-                existing = (env.get('LD_LIBRARY_PATH') or '').strip()
-                env['LD_LIBRARY_PATH'] = f'{lib_path}:{existing}' if existing else lib_path
+                if runtime_target == 'rk3588':
+                    env['LD_LIBRARY_PATH'] = lib_path
+                else:
+                    existing = (env.get('LD_LIBRARY_PATH') or '').strip()
+                    env['LD_LIBRARY_PATH'] = f'{lib_path}:{existing}' if existing else lib_path
     return env
 
 

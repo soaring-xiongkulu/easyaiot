@@ -654,13 +654,24 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
     from app.services.runtime_config_service import (
         normalize_executor,
         generate_runtime_ini_content,
-        REMOTE_RUNTIME_BIN,
-        REMOTE_RUNTIME_LD_LIBRARY_PATH,
+        remote_runtime_bin,
+        remote_runtime_library_path,
+        remote_runtime_work_dir,
+        resolve_remote_runtime_target,
     )
     from app.services.algorithm_task_cluster_service import (
         use_device_level_schedule,
         deploy_sharded_algorithm_task,
     )
+
+    executor = normalize_executor(getattr(task, 'executor', None) or 'cpp')
+    remote_target = 'generic'
+    if executor == 'cpp':
+        try:
+            remote_target = resolve_remote_runtime_target(task)
+        except ValueError as e:
+            return (False, str(e), False)
+    remote_bin = remote_runtime_bin(remote_target)
 
     ok, sync_msg = _ensure_task_models_on_cluster(task)
     if not ok:
@@ -689,7 +700,6 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
 
     video_root_remote = os.getenv('NODE_REMOTE_VIDEO_ROOT', '/opt/easyaiot/VIDEO')
     log_dir = os.path.join(video_root_remote, 'logs', f'task_{task_id}')
-    executor = normalize_executor(getattr(task, 'executor', None) or 'cpp')
     files = None
     work_dir = video_root_remote
     env = _build_task_deploy_env(task_id, task.task_type, log_dir, host, task=task)
@@ -762,15 +772,16 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                     heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
                     compute_node_id=remote_node_id,
                     mqtt_broker_urls=env.get('MQTT_BROKER_URLS'),
+                    runtime_target=remote_target,
                 )
                 files = [{'path': p, 'content': c, 'mode': '0644'} for p, c in pairs]
                 if len(pairs) == 1:
-                    command = [REMOTE_RUNTIME_BIN, pairs[0][0]]
+                    command = [remote_bin, pairs[0][0]]
                 else:
                     ini_args = ' '.join(f'"{p}"' for p, _ in pairs)
                     script = (
                         'set -e; pids=(); '
-                        f'for f in {ini_args}; do "{REMOTE_RUNTIME_BIN}" "$f" & pids+=($!); done; '
+                        f'for f in {ini_args}; do "{remote_bin}" "$f" & pids+=($!); done; '
                         'trap \'kill "${pids[@]}" 2>/dev/null || true\' EXIT TERM INT; '
                         'wait'
                     )
@@ -784,16 +795,17 @@ def _deploy_task_on_remote_node(task_id: int, task: AlgorithmTask) -> Tuple[bool
                     heartbeat_url=env.get('VIDEO_HEARTBEAT_URL'),
                     compute_node_id=remote_node_id,
                     mqtt_broker_urls=env.get('MQTT_BROKER_URLS'),
+                    runtime_target=remote_target,
                 )
-                command = [REMOTE_RUNTIME_BIN, ini_path]
+                command = [remote_bin, ini_path]
                 files = [{'path': ini_path, 'content': ini_content, 'mode': '0644'}]
         except Exception as e:
             logger.error('生成远程 RUNTIME 配置失败: %s', e, exc_info=True)
             return (False, f'生成远程 RUNTIME 配置失败: {e}', False)
-        work_dir = '/opt/easyaiot/RUNTIME'
+        work_dir = remote_runtime_work_dir(remote_target)
         env['VIDEO_ROOT'] = video_root_remote
-        env['RUNTIME_BIN'] = REMOTE_RUNTIME_BIN
-        env['LD_LIBRARY_PATH'] = REMOTE_RUNTIME_LD_LIBRARY_PATH
+        env['RUNTIME_BIN'] = remote_bin
+        env['LD_LIBRARY_PATH'] = remote_runtime_library_path(remote_target)
         env['USE_GPU'] = 'true' if getattr(task, 'prefer_gpu', True) else 'false'
         env['RUNTIME_PREFER_GPU'] = env['USE_GPU']
         if getattr(task, 'runtime_control_port', None):
@@ -1486,6 +1498,7 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
 
             executor = (getattr(task, 'executor', None) or 'cpp').strip().lower()
             runtime_bin = None
+            runtime_target = None
             runtime_ini = None
             runtime_inis = None
             if executor in ('cpp', 'c++', 'runtime', 'cxx'):
@@ -1496,14 +1509,19 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     from .runtime_config_service import (
                         generate_runtime_inis,
                         ensure_runtime_bin_ready,
+                        resolve_runtime_target,
                         runtime_library_path_env,
                     )
-                    runtime_bin = ensure_runtime_bin_ready(task)
-                    runtime_inis = generate_runtime_inis(task, log_path)
+                    runtime_target = resolve_runtime_target(task)
+                    runtime_bin = ensure_runtime_bin_ready(task, runtime_target=runtime_target)
+                    runtime_inis = generate_runtime_inis(
+                        task, log_path, runtime_target=runtime_target,
+                    )
                     runtime_ini = runtime_inis[0] if runtime_inis else None
-                    lib_path = runtime_library_path_env()
+                    lib_path = runtime_library_path_env(runtime_target)
                     if lib_path:
                         extra_env['LD_LIBRARY_PATH'] = lib_path
+                    extra_env['EASYAIOT_RUNTIME_TARGET'] = runtime_target
                     if getattr(task, 'runtime_control_port', None):
                         task.service_port = int(task.runtime_control_port)
                     else:
@@ -1511,9 +1529,10 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     task.service_log_path = log_path
                     db.session.commit()
                     logger.info(
-                        'cpp 任务 %s 生成 %s 路 RUNTIME 配置',
+                        'cpp 任务 %s 生成 %s 路 RUNTIME 配置（chip runtime=%s）',
                         task_id,
                         len(runtime_inis or []),
+                        runtime_target,
                     )
                 except Exception as e:
                     logger.error('生成 RUNTIME 配置失败: %s', e, exc_info=True)
@@ -1544,6 +1563,7 @@ def start_task_services(task_id: int, task: AlgorithmTask) -> Tuple[bool, str, b
                     task_type=task.task_type,
                     extra_env=extra_env,
                     executor=executor,
+                    runtime_target=runtime_target,
                     runtime_bin=runtime_bin,
                     runtime_ini=runtime_ini,
                     runtime_inis=runtime_inis,

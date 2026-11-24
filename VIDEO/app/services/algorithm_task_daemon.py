@@ -36,6 +36,7 @@ class AlgorithmTaskDaemon:
         llm_enabled: bool = False,
         extra_env: dict = None,
         executor: str = 'cpp',
+        runtime_target: str = None,
         runtime_bin: str = None,
         runtime_ini: str = None,
         runtime_inis: list = None,
@@ -50,6 +51,7 @@ class AlgorithmTaskDaemon:
             llm_enabled: 是否启用LLM
             extra_env: 启动时注入子进程的额外环境变量（如 SAM 配置，避免守护进程查库）
             executor: python | cpp
+            runtime_target: auto | rk3588 | generic（确定 RUNTIME 模块与库路径）
             runtime_bin: RUNTIME 二进制路径（executor=cpp）
             runtime_ini: RUNTIME 配置 ini 路径（executor=cpp，单路兼容）
             runtime_inis: RUNTIME 多路 ini 列表（cpp realtime 一路一进程）
@@ -61,6 +63,7 @@ class AlgorithmTaskDaemon:
         self._task_type = task_type
         self._extra_env = extra_env or {}
         self._executor = (executor or 'cpp').strip().lower()
+        self._runtime_target = runtime_target or 'auto'
         self._runtime_bin = runtime_bin
         inis = []
         if runtime_inis:
@@ -702,10 +705,22 @@ class AlgorithmTaskDaemon:
 
     def _get_cpp_deploy_args_for_ini(self, runtime_ini: str) -> tuple:
         """按指定 ini 构造 RUNTIME 启动参数。"""
-        runtime_bin = (self._runtime_bin or os.getenv('RUNTIME_BIN') or '').strip()
+        from app.services.runtime_config_service import (
+            resolve_runtime_target,
+            runtime_bin_env_key,
+            runtime_library_path_env,
+        )
+        runtime_target = resolve_runtime_target(None, self._runtime_target)
+        env_key = runtime_bin_env_key(runtime_target)
+        runtime_bin = (
+            self._runtime_bin
+            or os.getenv(env_key)
+            or (os.getenv('RUNTIME_BIN') if runtime_target == 'generic' else '')
+            or ''
+        ).strip()
         runtime_ini = (runtime_ini or '').strip()
         if not runtime_bin or not os.path.isfile(runtime_bin):
-            self._log(f'RUNTIME 二进制不存在: {runtime_bin}', 'ERROR')
+            self._log(f'RUNTIME({runtime_target}) 二进制不存在: {runtime_bin}', 'ERROR')
             return None, None, None
         if not os.access(runtime_bin, os.X_OK) and not runtime_bin.lower().endswith('.exe'):
             self._log(f'RUNTIME 二进制不可执行: {runtime_bin}', 'ERROR')
@@ -719,7 +734,8 @@ class AlgorithmTaskDaemon:
         env = os.environ.copy()
         env['TASK_ID'] = str(self._task_id)
         env['LOG_PATH'] = self._log_path
-        env['RUNTIME_BIN'] = runtime_bin
+        env['EASYAIOT_RUNTIME_TARGET'] = runtime_target
+        env[env_key] = runtime_bin
         # POST's InferEvent ingress is MQTT-only.  When this task is explicitly
         # configured for the local HTTP alert hook, do not let the container-wide
         # POST_ENABLED setting divert alarms into an unavailable MQTT publisher.
@@ -739,26 +755,33 @@ class AlgorithmTaskDaemon:
                 env[key] = val
         if self._extra_env:
             env.update(self._extra_env)
-        # Default prefer GPU unless explicitly disabled
-        if 'USE_GPU' not in env:
-            env['USE_GPU'] = 'true'
-        if 'RUNTIME_PREFER_GPU' not in env:
-            env['RUNTIME_PREFER_GPU'] = 'true'
-        # Ensure ORT/conda/CUDA libs are visible
+        # Default prefer GPU unless explicitly disabled; RK3588 uses NPU/MPP only.
+        if runtime_target == 'rk3588':
+            env['USE_GPU'] = 'false'
+            env['RUNTIME_PREFER_GPU'] = 'false'
+        else:
+            if 'USE_GPU' not in env:
+                env['USE_GPU'] = 'true'
+            if 'RUNTIME_PREFER_GPU' not in env:
+                env['RUNTIME_PREFER_GPU'] = env['USE_GPU']
+        # Ensure target-specific libs are visible
         try:
-            from app.services.runtime_config_service import runtime_library_path_env
-            lib_path = runtime_library_path_env()
+            lib_path = runtime_library_path_env(runtime_target)
             if lib_path:
-                existing = (env.get('LD_LIBRARY_PATH') or '').strip()
-                if existing:
-                    # prepend resolved path but keep existing
-                    env['LD_LIBRARY_PATH'] = lib_path if lib_path == existing else f'{lib_path}:{existing}'
-                else:
+                if runtime_target == 'rk3588':
+                    # 不继承进程级通用 ONNX/CUDA 路径，避免与 RKNN/MPP 系统库冲突
                     env['LD_LIBRARY_PATH'] = lib_path
+                else:
+                    existing = (env.get('LD_LIBRARY_PATH') or '').strip()
+                    if existing:
+                        # prepend resolved path but keep existing
+                        env['LD_LIBRARY_PATH'] = lib_path if lib_path == existing else f'{lib_path}:{existing}'
+                    else:
+                        env['LD_LIBRARY_PATH'] = lib_path
         except Exception as e:
             self._log(f'构建 LD_LIBRARY_PATH 失败: {e}', 'WARNING')
         self._log(
-            f'CPP 启动: {" ".join(cmds)} (USE_GPU={env.get("USE_GPU")}, '
+            f'CPP 启动[{runtime_target}]: {" ".join(cmds)} (USE_GPU={env.get("USE_GPU")}, '
             f'RUNTIME_PREFER_GPU={env.get("RUNTIME_PREFER_GPU")})',
             'INFO',
         )
