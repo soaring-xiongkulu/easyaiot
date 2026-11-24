@@ -72,6 +72,16 @@ bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
 
+也可以把 `RUNTIME-RK3588` 当作 `build-runtime` 的模块单独编译或清理。它是板端原生运行时，不走 Docker 镜像与镜像仓库：
+
+```bash
+# 仅编译 RUNTIME-RK3588（调用 RUNTIME-RK3588/install_linux.sh build）
+sudo bash .scripts/docker/install_linux.sh build-runtime RUNTIME-RK3588
+
+# 仅清理本机编译产物 build/（--dry-run 可预览；--dist/--cache 可一并清理导出与离线缓存）
+sudo bash .scripts/docker/install_linux.sh clean-build-runtime RUNTIME-RK3588 --dry-run
+```
+
 任务清单同时决定是否接入平台、是否打开内网穿透：
 
 ```json
