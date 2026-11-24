@@ -1,0 +1,1770 @@
+﻿//
+// Created by basiclab on 25-10-15.
+//
+#include "AlgoMqttBus.h"
+#include "AlarmCallback.h"
+#include "Detech.h"
+#include "AlertClassFilter.h"
+#include "YoloThreadPool.h"
+#include "Datatype.h"
+#include "ffmpeg_hw.h"
+#include <atomic>
+#include <chrono>
+#include <cstring>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
+#include <map>
+#include <set>
+#include <sstream>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/geometry.hpp>
+#include <unistd.h>
+
+// Defined in Manage.cpp — request clean process exit on finite-source EOF
+extern std::atomic<int> s_exit;
+
+static YoloThreadPool *yolo_thread_pool = nullptr;
+
+namespace {
+std::string formatUtcNow() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm{};
+    gmtime_r(&t, &tm);
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+    return oss.str();
+}
+
+std::string resolveAlertHookUrl(const Config& config) {
+    if (!config.alertHookUrl.empty()) {
+        return config.alertHookUrl;
+    }
+    return config.hookHttpUrl;
+}
+
+bool httpAlertFallbackEnabled(const Config& config) {
+    if (AlgoMqttBus::busEnabled(config)) {
+        return false;
+    }
+    return !resolveAlertHookUrl(config).empty();
+}
+
+bool alarmDeliveryEnabled(const Config& config) {
+    return AlgoMqttBus::busEnabled(config) || httpAlertFallbackEnabled(config);
+}
+
+bool parseHttpUrl(const std::string& url, std::string& host, int& port, std::string& path) {
+    size_t protocolPos = url.find("://");
+    if (protocolPos == std::string::npos) {
+        return false;
+    }
+    std::string rest = url.substr(protocolPos + 3);
+    size_t pathPos = rest.find('/');
+    std::string hostPort = pathPos == std::string::npos ? rest : rest.substr(0, pathPos);
+    path = pathPos == std::string::npos ? "/" : rest.substr(pathPos);
+    size_t colonPos = hostPort.find(':');
+    if (colonPos != std::string::npos) {
+        host = hostPort.substr(0, colonPos);
+        try {
+            port = std::stoi(hostPort.substr(colonPos + 1));
+        } catch (...) {
+            port = 80;
+        }
+    } else {
+        host = hostPort;
+        port = 80;
+    }
+    return !host.empty();
+}
+
+std::string envValue(const char* name) {
+    const char* v = std::getenv(name);
+    return (v && *v) ? std::string(v) : std::string();
+}
+
+// 边缘计算节点上的 RUNTIME 必须向控制面上报节点真实地址。
+// 优先采用 launcher 注入的 HOST_IP/POD_IP（VIDEO 部署时写入目标节点 host），
+// 无环境变量时探测本机第一个非回环 IPv4；否则回退 127.0.0.1。
+std::string resolveWorkerIp() {
+    for (const char* key : {"HOST_IP", "POD_IP"}) {
+        std::string ip = envValue(key);
+        if (!ip.empty() && ip != "127.0.0.1" && ip != "::1" && ip != "localhost") {
+            return ip;
+        }
+    }
+    struct ifaddrs* ifa = nullptr;
+    if (getifaddrs(&ifa) == 0) {
+        for (struct ifaddrs* it = ifa; it; it = it->ifa_next) {
+            if (!it->ifa_addr || it->ifa_addr->sa_family != AF_INET) {
+                continue;
+            }
+            if (it->ifa_flags & IFF_LOOPBACK) {
+                continue;
+            }
+            char buf[INET_ADDRSTRLEN] = {0};
+            const sockaddr_in* sin = reinterpret_cast<const sockaddr_in*>(it->ifa_addr);
+            if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf))) {
+                freeifaddrs(ifa);
+                return buf;
+            }
+        }
+        freeifaddrs(ifa);
+    }
+    return "127.0.0.1";
+}
+
+// 与 AlgoMqttBus 的 node_id 解析保持一致：ini compute_node_id → 环境变量回退。
+// 远程部署时 VIDEO 会将目标边缘节点 id 写入 ini / env，心跳据此归属节点。
+std::string resolveNodeId(const Config& config) {
+    if (!config.computeNodeId.empty()) {
+        return config.computeNodeId;
+    }
+    std::string nodeId = envValue("COMPUTE_NODE_ID");
+    if (nodeId.empty()) {
+        nodeId = envValue("NODE_ID");
+    }
+    return nodeId;
+}
+}  // namespace
+
+Detech::Detech(Config &config): _config(config) {
+    LOG(INFO) << "[初始化] 配置初始化完成";
+}
+
+std::string Detech::_normalizedTaskType() const {
+    std::string tt = _config.taskType;
+    if (tt == "snapshot") return "snap";
+    if (tt.empty()) return "realtime";
+    return tt;
+}
+
+Detech::~Detech() {
+    LOG(INFO) << "[清理] Detech 析构函数被调用，正在释放资源...";
+    stop();
+
+    if (_workerThread.joinable()) {
+        _workerThread.join();
+    }
+    if (_pipeline) {
+        _pipeline->join();
+        _pipeline.reset();
+    }
+    if (_streamForwarder) {
+        _streamForwarder->join();
+        _streamForwarder.reset();
+    }
+    if (_snapScheduler) {
+        _snapScheduler->join();
+        _snapScheduler.reset();
+    }
+    if (_patrolScheduler) {
+        _patrolScheduler->join();
+        _patrolScheduler.reset();
+    }
+
+    _stopHeartbeatThread();
+    _stopControlServer();
+    _stopAlarmSenderThread();
+
+    if (_rtmpEncoder) {
+        _rtmpEncoder->release();
+        delete _rtmpEncoder;
+        _rtmpEncoder = nullptr;
+    }
+    if (_httpClient) {
+        delete _httpClient;
+        _httpClient = nullptr;
+    }
+    // 线程池为 static 指针，若不显式销毁，worker 线程永远不会被 join：
+    // 进程退出时 ORT 的 MLDataType 静态单例先于进程结束被析构，仍在 Run 的 worker
+    // 会访问悬垂类型对象（表现为 "GetElementType is not implemented"），
+    // 该帧检测被吞掉返回空检测。必须在所有推理使用者 join 后、静态析构开始前释放。
+    if (yolo_thread_pool) {
+        delete yolo_thread_pool;
+        yolo_thread_pool = nullptr;
+    }
+    runtime::releaseHwDecodeState(&_hwDecodeState);
+    LOG(INFO) << "[清理] Detech 资源清理完成";
+}
+
+int Detech::start() {
+    _isRun = true;
+    const std::string mode = _normalizedTaskType();
+    const bool isForward = (mode == "forward");
+    LOG(INFO) << "[初始化] task_type=" << mode;
+
+    if (!isForward && !_init_yolo_detector()) {
+        LOG(ERROR) << "[初始化] YOLO 检测器初始化失败！";
+        return -1;
+    }
+
+    // realtime needs FFmpeg decode pipeline; forward uses copy relay
+    if (mode == "realtime") {
+        if (!_init_media_player()) {
+            LOG(ERROR) << "[初始化] 媒体播放器初始化失败！";
+            return -2;
+        }
+    } else if (isForward) {
+        if (_config.rtspUrl.empty()) {
+            LOG(ERROR) << "[初始化] 转发模式需要 rtsp_url";
+            return -2;
+        }
+        if (_config.rtmpUrl.empty()) {
+            LOG(ERROR) << "[初始化] 转发模式需要 rtmp_url";
+            return -2;
+        }
+        LOG(INFO) << "[初始化] 纯转发中继（无 AI/解码/编码）";
+    }
+
+    if (!_init_http_client()) {
+        LOG(ERROR) << "[初始化] HTTP 客户端初始化失败！";
+        return -3;
+    }
+    if (!isForward && !_init_media_alarmer()) {
+        return -4;
+    }
+    if (mode == "realtime") {
+        if (!_init_media_pusher()) {
+            return -5;
+        }
+    }
+    if (!_init_control_server()) {
+        return -6;
+    }
+
+    if (!isForward) {
+        _startAlarmSenderThread();
+    }
+    _startControlServer();
+    _startHeartbeatThread();
+
+    if (isForward) {
+        LOG(INFO) << "[视频] 纯转发复制中继模式";
+        _streamingEnabled.store(true);
+        _workerThread = std::thread([this]() { _run_forward_loop(); });
+    } else if (mode == "snap") {
+        LOG(INFO) << "[视频] 抓拍调度模式";
+        _workerThread = std::thread([this]() { _run_snap_loop(); });
+    } else if (mode == "patrol") {
+        LOG(INFO) << "[视频] 巡检调度模式";
+        _workerThread = std::thread([this]() { _run_patrol_loop(); });
+    } else if (_config.headless) {
+        LOG(INFO) << "[视频] 无界面实时流水线";
+        _workerThread = std::thread([this]() { _run_pipeline_loop(); });
+    } else {
+        LOG(WARNING) << "[视频] 生产环境不支持显示模式，强制使用无界面流水线";
+        _workerThread = std::thread([this]() { _run_pipeline_loop(); });
+    }
+
+    LOG(INFO) << "[成功] RUNTIME 已启动（非阻塞）";
+    return 0;
+}
+
+int Detech::stop() {
+    _isRun = false;
+    if (_pipeline) {
+        _pipeline->stop();
+    }
+    if (_streamForwarder) {
+        _streamForwarder->stop();
+    }
+    if (_snapScheduler) {
+        _snapScheduler->stop();
+    }
+    if (_patrolScheduler) {
+        _patrolScheduler->stop();
+    }
+    return 0;
+}
+
+namespace {
+RtmpEncoderOptions makeRtmpOpts(const Config& cfg) {
+    RtmpEncoderOptions opts;
+    opts.preferHw = cfg.preferHwaccel;
+    opts.forceSoft = cfg.forceSoftAv;
+    opts.gpuDeviceId = cfg.hwaccelDeviceId >= 0 ? cfg.hwaccelDeviceId : cfg.gpuDeviceId;
+    opts.nvencPreset = cfg.nvencPreset.empty() ? "p3" : cfg.nvencPreset;
+    opts.bitRate = cfg.videoBitRate;
+    opts.gopSize = cfg.videoGopSize;
+    return opts;
+}
+}  // namespace
+
+void Detech::_run_forward_loop() {
+    _streamForwarder = std::make_unique<runtime::StreamForwarder>(_config, &_metrics);
+    _streamForwarder->start();
+    _streamForwarder->join();
+    _streamForwarder.reset();
+    LOG(INFO) << "[转发] 中继循环已退出";
+}
+
+void Detech::_run_pipeline_loop() {
+    _pipeline = std::make_unique<runtime::Pipeline>(
+        _config,
+        _ffmpegFormatCtx,
+        _ffmpegCodecCtx,
+        _videoIndex,
+        _videoWidth,
+        _videoHeight,
+        _videoFps,
+        yolo_thread_pool,
+        &_rtmpEncoder,
+        [this](const std::vector<DetectObject>& dets, const std::string& region, const cv::Mat& snapshot) {
+            if (_checkAlarmCooldown()) {
+                _sendAlarmCallback(dets, region, snapshot);
+            }
+        },
+        [this](int cx, int cy) { return _isInAlarmRegion(cx, cy, _videoWidth, _videoHeight); },
+        [this]() { return _streamingEnabled.load(); },
+        &_metrics,
+        &_hwDecodeState
+    );
+    _pipeline->start();
+    while (_isRun && _pipeline && _pipeline->isRunning()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    if (_pipeline) {
+        _pipeline->stop();
+        _pipeline->join();
+    }
+    // Finite file/VOD exhausted: exit process (Manage waits on s_exit)
+    if (_pipeline && _pipeline->endedByEof()) {
+        LOG(INFO) << "[视频] 有限时长媒体已到结尾 — 请求进程退出";
+        _isRun = false;
+        s_exit.store(1, std::memory_order_release);
+    }
+}
+
+void Detech::_run_snap_loop() {
+    _snapScheduler = std::make_unique<runtime::SnapScheduler>(
+        _config,
+        yolo_thread_pool,
+        [this](const std::vector<DetectObject>& dets, const std::string& region,
+               const std::string& deviceId, const std::string& deviceName, const cv::Mat& frame) {
+            if (_checkAlarmCooldown()) {
+                _sendAlarmCallback(dets, region, frame, deviceId, deviceName);
+            }
+        }
+    );
+    _snapScheduler->start();
+    while (_isRun && _snapScheduler && _snapScheduler->isRunning()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    if (_snapScheduler) {
+        _snapScheduler->stop();
+        _snapScheduler->join();
+    }
+}
+
+void Detech::_run_patrol_loop() {
+    _patrolScheduler = std::make_unique<runtime::PatrolScheduler>(
+        _config,
+        yolo_thread_pool,
+        [this](const std::vector<DetectObject>& dets, const std::string& region,
+               const std::string& deviceId, const std::string& deviceName, const cv::Mat& frame) {
+            if (_checkAlarmCooldown()) {
+                _sendAlarmCallback(dets, region, frame, deviceId, deviceName);
+            }
+        }
+    );
+    _patrolScheduler->start();
+    while (_isRun && _patrolScheduler && _patrolScheduler->isRunning()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    if (_patrolScheduler) {
+        _patrolScheduler->stop();
+        _patrolScheduler->join();
+    }
+}
+
+// ==================== 动态推流控制实现 ====================
+
+// 启动RTMP推流（运行时动态启用）
+bool Detech::startStreaming() {
+    std::lock_guard<std::mutex> lock(_streamingMutex);
+    
+    // 如果已经在推流，直接返回
+    if (_streamingEnabled.load()) {
+        LOG(WARNING) << "[推流] 已在推流，忽略启动请求";
+        return true;
+    }
+    
+    LOG(INFO) << "[推流] 正在启动 RTMP 推流...";
+    
+    // 如果RTMP编码器未初始化，需要先初始化
+    if (!_rtmpEncoder) {
+        if (_config.rtmpUrl.empty()) {
+            LOG(ERROR) << "[推流] 无法启动推流：未配置 RTMP 地址";
+            return false;
+        }
+        
+        // 创建并初始化RTMP编码器
+        _rtmpEncoder = new RTMPEncoder();
+        if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
+                                makeRtmpOpts(_config))) {
+            LOG(ERROR) << "[推流] RTMP 编码器初始化失败";
+            delete _rtmpEncoder;
+            _rtmpEncoder = nullptr;
+            return false;
+        }
+        
+        LOG(INFO) << "[推流] RTMP 编码器初始化成功 encode_ep="
+                  << _rtmpEncoder->encodeEp();
+    }
+    
+    // 启用推流
+    _streamingEnabled.store(true);
+    LOG(INFO) << "[推流] ✅ RTMP 推流启动成功";
+    LOG(INFO) << "[推流]   → 地址: " << _config.rtmpUrl;
+    LOG(INFO) << "[推流]   → 分辨率: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
+    
+    return true;
+}
+
+// 停止RTMP推流（运行时动态停止）
+bool Detech::stopStreaming() {
+    std::lock_guard<std::mutex> lock(_streamingMutex);
+    
+    // 如果已经停止，直接返回
+    if (!_streamingEnabled.load()) {
+        LOG(WARNING) << "[推流] 已停止推流，忽略停止请求";
+        return true;
+    }
+    
+    LOG(INFO) << "[推流] 正在停止 RTMP 推流...";
+    
+    // 禁用推流标志
+    _streamingEnabled.store(false);
+    
+    // 释放RTMP编码器资源（节省内存）
+    if (_rtmpEncoder) {
+        LOG(INFO) << "[推流] 正在释放 RTMP 编码器以节省内存...";
+        _rtmpEncoder->release();
+        delete _rtmpEncoder;
+        _rtmpEncoder = nullptr;
+        LOG(INFO) << "[推流] RTMP 编码器已释放（约释放 111MB 内存）";
+    }
+    
+    LOG(INFO) << "[推流] ✅ RTMP 推流停止成功";
+    
+    return true;
+}
+
+// 查询推流状态
+bool Detech::isStreaming() const {
+    return _streamingEnabled.load();
+}
+
+// ==================== HTTP控制服务器实现 ====================
+
+// 初始化HTTP控制服务器
+bool Detech::_init_control_server() {
+    // 检查控制端口是否配置
+    if (_config.controlPort <= 0) {
+        LOG(INFO) << "[控制] 未配置控制端口，控制服务已禁用";
+        return true;
+    }
+    
+    _controlPort = _config.controlPort;
+    LOG(INFO) << "[控制] 控制服务将监听端口 " << _controlPort;
+    LOG(INFO) << "[控制] 任务 ID: " << _config.taskId;
+    
+    return true;
+}
+
+// 启动HTTP控制服务器线程
+void Detech::_startControlServer() {
+    if (_controlPort <= 0) {
+        return;  // 未配置控制端口
+    }
+    
+    LOG(INFO) << "[控制] 正在启动控制服务线程...";
+    _controlServerRunning.store(true);
+    _controlServerThread = std::thread(&Detech::_controlServerThreadFunc, this);
+    LOG(INFO) << "[控制] 控制服务线程已在端口 " << _controlPort << " 启动";
+}
+
+// 停止HTTP控制服务器线程
+void Detech::_stopControlServer() {
+    if (!_controlServerRunning.load() && !_controlHttpServer) {
+        return;
+    }
+
+    LOG(INFO) << "[控制] 正在停止控制服务...";
+    _controlServerRunning.store(false);
+    if (_controlHttpServer) {
+        _controlHttpServer->stop();
+    }
+
+    if (_controlServerThread.joinable()) {
+        _controlServerThread.join();
+    }
+    _controlHttpServer = nullptr;
+    LOG(INFO) << "[控制] 控制服务已停止";
+}
+
+// HTTP控制服务器线程主函数
+void Detech::_controlServerThreadFunc() {
+    using namespace httplib;
+    
+    LOG(INFO) << "[控制线程] 控制服务线程运行中（线程 ID: " << std::this_thread::get_id() << ")";
+    LOG(INFO) << "[控制线程] 正在监听 http://0.0.0.0:" << _controlPort;
+    
+    try {
+        // 创建HTTP服务器
+        Server svr;
+        _controlHttpServer = &svr;
+        
+        // 健康检查接口（含流水线指标）
+        svr.Get("/health", [this](const Request& req, Response& res) {
+            Json::Value response;
+            response["status"] = "ok";
+            response["service"] = "RUNTIME Control Server";
+            response["task_id"] = this->_config.taskId;
+            response["task_type"] = this->_config.taskType;
+            response["streaming"] = this->isStreaming();
+            Json::Value metrics;
+            metrics["packets_in"] = (Json::UInt64)this->_metrics.packetsIn.load();
+            metrics["frames_decoded"] = (Json::UInt64)this->_metrics.framesDecoded.load();
+            metrics["frames_dropped"] = (Json::UInt64)this->_metrics.framesDropped.load();
+            metrics["infer_in"] = (Json::UInt64)this->_metrics.inferIn.load();
+            metrics["infer_out"] = (Json::UInt64)this->_metrics.inferOut.load();
+            metrics["alarms_emitted"] = (Json::UInt64)this->_metrics.alarmsEmitted.load();
+            metrics["last_latency_ms"] = (Json::UInt64)this->_metrics.lastLatencyMs.load();
+            if (this->_streamForwarder) {
+                metrics["packets_remuxed"] = (Json::UInt64)this->_streamForwarder->packetsRemuxed();
+            }
+            response["metrics"] = metrics;
+            if (yolo_thread_pool) {
+                response["infer_ep"] = yolo_thread_pool->inferEp();
+                response["model_layout"] = yolo_thread_pool->modelLayout();
+                response["model_count"] = (Json::UInt64)yolo_thread_pool->modelCount();
+            } else {
+                response["infer_ep"] = "none";
+                response["model_layout"] = "none";
+                response["model_count"] = 0;
+            }
+            if (this->_pipeline) {
+                response["decode_ep"] = this->_pipeline->decodeEp();
+            } else {
+                response["decode_ep"] = this->_hwDecodeState.decodeEp.empty()
+                    ? "none"
+                    : this->_hwDecodeState.decodeEp;
+            }
+            if (this->_rtmpEncoder && this->_rtmpEncoder->isInitialized()) {
+                response["encode_ep"] = this->_rtmpEncoder->encodeEp();
+            } else if (this->_streamForwarder) {
+                response["encode_ep"] = "copy";
+            } else {
+                response["encode_ep"] = "none";
+            }
+            response["prefer_gpu"] = this->_config.preferGpu;
+            response["force_cpu"] = this->_config.forceCpu;
+            response["gpu_device_id"] = this->_config.gpuDeviceId;
+            response["prefer_hwaccel"] = this->_config.preferHwaccel;
+            response["force_soft_av"] = this->_config.forceSoftAv;
+            
+            Json::StreamWriterBuilder writer;
+            res.set_content(Json::writeString(writer, response), "application/json");
+        });
+        
+        // 启动推流接口
+        svr.Post("/control/streaming/start", [this](const Request& req, Response& res) {
+            LOG(INFO) << "[控制线程] 收到启动推流请求";
+            
+            bool success = this->startStreaming();
+            
+            Json::Value response;
+            response["success"] = success;
+            response["streaming"] = this->isStreaming();
+            response["message"] = success ? "Streaming started successfully" : "Failed to start streaming";
+            
+            Json::StreamWriterBuilder writer;
+            res.set_content(Json::writeString(writer, response), "application/json");
+            res.status = success ? 200 : 500;
+        });
+        
+        // 停止推流接口
+        svr.Post("/control/streaming/stop", [this](const Request& req, Response& res) {
+            LOG(INFO) << "[控制线程] 收到停止推流请求";
+            
+            bool success = this->stopStreaming();
+            
+            Json::Value response;
+            response["success"] = success;
+            response["streaming"] = this->isStreaming();
+            response["message"] = success ? "Streaming stopped successfully" : "Failed to stop streaming";
+            
+            Json::StreamWriterBuilder writer;
+            res.set_content(Json::writeString(writer, response), "application/json");
+            res.status = success ? 200 : 500;
+        });
+        
+        // 查询推流状态接口
+        svr.Get("/control/streaming/status", [this](const Request& req, Response& res) {
+            Json::Value response;
+            response["streaming"] = this->isStreaming();
+            response["taskId"] = this->_config.taskId;
+            response["rtmpUrl"] = this->_config.rtmpUrl;
+            
+            Json::StreamWriterBuilder writer;
+            res.set_content(Json::writeString(writer, response), "application/json");
+        });
+        
+        // 设置服务器参数
+        svr.set_read_timeout(5, 0);   // 5秒超时
+        svr.set_write_timeout(5, 0);
+        
+        LOG(INFO) << "[控制线程] ✅ 控制服务就绪";
+        LOG(INFO) << "[控制线程] 可用接口:";
+        LOG(INFO) << "[控制线程]   GET  /health - 健康检查";
+        LOG(INFO) << "[控制线程]   POST /control/streaming/start - 启动推流";
+        LOG(INFO) << "[控制线程]   POST /control/streaming/stop - 停止推流";
+        LOG(INFO) << "[控制线程]   GET  /control/streaming/status - 查询推流状态";
+        
+        // 启动服务器（阻塞）
+        if (!svr.listen("0.0.0.0", _controlPort)) {
+            LOG(ERROR) << "[控制线程] 控制服务在端口 " << _controlPort << " 启动失败";
+        }
+        _controlHttpServer = nullptr;
+        
+    } catch (const std::exception& e) {
+        _controlHttpServer = nullptr;
+        LOG(ERROR) << "[控制线程] 控制服务异常: " << e.what();
+    }
+    
+    LOG(INFO) << "[控制线程] 控制服务线程退出";
+}
+
+bool Detech::_init_http_client() {
+    // cpp-httplib需要"host:port"格式，不是完整URL
+    std::string host = "localhost";
+    int port = 6000;
+    const std::string& hookUrl = !_config.alertHookUrl.empty()
+        ? _config.alertHookUrl
+        : _config.hookHttpUrl;
+
+    if (!hookUrl.empty()) {
+        size_t protocolEnd = hookUrl.find("://");
+        if (protocolEnd != std::string::npos) {
+            size_t hostStart = protocolEnd + 3;
+            size_t portStart = hookUrl.find(":", hostStart);
+            size_t pathStart = hookUrl.find("/", hostStart);
+
+            if (portStart != std::string::npos && pathStart != std::string::npos) {
+                host = hookUrl.substr(hostStart, portStart - hostStart);
+                std::string portStr = hookUrl.substr(portStart + 1, pathStart - portStart - 1);
+                port = std::stoi(portStr);
+            } else if (pathStart != std::string::npos) {
+                host = hookUrl.substr(hostStart, pathStart - hostStart);
+            }
+        }
+    }
+
+    LOG(INFO) << "[初始化] 正在创建 HTTP 客户端，目标 " << host << ":" << port;
+    _httpClient = new httplib::Client(host, port);
+    _httpClient->set_connection_timeout(5, 0);
+    _httpClient->set_read_timeout(5, 0);
+    _httpClient->set_write_timeout(5, 0);
+
+    LOG(INFO) << "[初始化] HTTP 客户端创建成功";
+    return true;
+}
+
+bool Detech::_init_yolo_detector() {
+    // Skip YOLO initialization if AI is disabled
+    if (!_config.enableAI) {
+        LOG(INFO) << "[初始化] AI 推理已禁用，跳过 YOLO 初始化";
+        return true;
+    }
+    
+    if (!yolo_thread_pool) {
+        yolo_thread_pool = new YoloThreadPool();
+
+        if (_config.modelPaths.empty()) {
+            LOG(ERROR) << "[错误] 配置文件中未配置模型路径！";
+            return false;
+        }
+
+        // 多模型：按 ini 出现顺序加载全部模型（model_path / model_path_<key>）
+        std::vector<YoloThreadPool::ModelSpec> modelSpecs;
+        for (const auto& modelKey : _config.modelKeys) {
+            auto pathIt = _config.modelPaths.find(modelKey);
+            if (pathIt == _config.modelPaths.end() || pathIt->second.empty()) {
+                continue;
+            }
+
+            YoloThreadPool::ModelSpec spec;
+            spec.key = modelKey;
+            auto businessIdIt = _config.modelBusinessIds.find(modelKey);
+            if (businessIdIt != _config.modelBusinessIds.end()) {
+                spec.businessModelId = businessIdIt->second;
+            }
+            spec.modelPath = pathIt->second;
+            LOG(INFO) << "[初始化] 模型路径 [" << modelKey << "]: " << spec.modelPath;
+
+            auto classIt = _config.modelClasses.find(modelKey);
+            if (classIt != _config.modelClasses.end()) {
+                LOG(INFO) << "[初始化] 类别文件 [" << modelKey << "]: " << classIt->second;
+                std::ifstream ifs(classIt->second);
+                if (ifs.is_open()) {
+                    std::string line;
+                    while (std::getline(ifs, line)) {
+                        // trim
+                        size_t a = line.find_first_not_of(" \t\r\n");
+                        if (a == std::string::npos) continue;
+                        size_t b = line.find_last_not_of(" \t\r\n");
+                        spec.classes.push_back(line.substr(a, b - a + 1));
+                    }
+                    LOG(INFO) << "[初始化] 已从文件 [" << modelKey << "] 加载 "
+                              << spec.classes.size() << " 个类别";
+                } else {
+                    LOG(WARNING) << "[初始化] 无法打开类别文件，使用默认 COCO 类别名";
+                }
+            }
+            modelSpecs.push_back(std::move(spec));
+        }
+
+        if (modelSpecs.empty()) {
+            LOG(ERROR) << "[错误] 配置文件中没有可用的模型路径！";
+            return false;
+        }
+
+        LOG(INFO) << "[初始化] 正在加载 " << modelSpecs.size() << " 个模型，每模型 "
+                  << _config.threadNums << " 线程"
+                  << " prefer_gpu=" << (_config.preferGpu ? "true" : "false")
+                  << " force_cpu=" << (_config.forceCpu ? "true" : "false")
+                  << " gpu_device_id=" << _config.gpuDeviceId;
+        int ret = yolo_thread_pool->setUp(
+            modelSpecs, _config.threadNums,
+            _config.preferGpu, _config.forceCpu, _config.gpuDeviceId,
+            _config.alarmConfidenceThreshold);
+        if (ret) {
+            LOG(ERROR) << "[错误] YOLO 线程池初始化失败，错误码: " << ret;
+            return false;
+        }
+        LOG(INFO) << "[成功] YOLO 线程池初始化完成 infer_ep=" << yolo_thread_pool->inferEp()
+                  << " layout=" << yolo_thread_pool->modelLayout()
+                  << " models=" << yolo_thread_pool->modelCount();
+    }
+    return true;
+}
+
+bool Detech::_init_media_player() {
+    LOG(INFO) << "[初始化] 正在初始化媒体播放器"
+              << " prefer_hwaccel=" << (_config.preferHwaccel ? "true" : "false")
+              << " force_soft_av=" << (_config.forceSoftAv ? "true" : "false")
+              << " hwaccel_device_id=" << _config.hwaccelDeviceId;
+    if (!_ffmpegFormatCtx) {
+        _ffmpegFormatCtx = avformat_alloc_context();
+    }
+    // RTSP-only options. For rtmp://, FFmpeg treats "timeout" as listen_timeout and
+    // implies listen mode — that breaks pull from SRS/ZLM.
+    AVDictionary* fmt_options = NULL;
+    const std::string& openUrl = _config.rtspUrl;
+    const bool isRtsp = openUrl.rfind("rtsp://", 0) == 0 || openUrl.rfind("rtsps://", 0) == 0;
+    const bool isRtmp = openUrl.rfind("rtmp://", 0) == 0 || openUrl.rfind("rtmps://", 0) == 0;
+    if (isRtsp) {
+        av_dict_set(&fmt_options, "rtsp_transport", "tcp", 0);
+        av_dict_set(&fmt_options, "stimeout", "3000000", 0);
+        av_dict_set(&fmt_options, "timeout", "5000000", 0);
+    } else if (isRtmp) {
+        av_dict_set(&fmt_options, "rtmp_live", "live", 0);
+    }
+    int ret = avformat_open_input(&_ffmpegFormatCtx, openUrl.c_str(), NULL, &fmt_options);
+    av_dict_free(&fmt_options);
+    if (ret != 0) {
+        LOG(ERROR) << "[错误] avformat_open_input 打开输入流失败: url=" << _config.rtspUrl.c_str();
+        return false;
+    }
+
+    if (avformat_find_stream_info(_ffmpegFormatCtx, NULL) < 0)
+    {
+        LOG(ERROR) << "[错误] avformat_find_stream_info 获取流信息失败";
+        return false;
+    }
+    _videoIndex = av_find_best_stream(_ffmpegFormatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (_videoIndex > -1) {
+        AVCodecParameters* videoCodecPar = _ffmpegFormatCtx->streams[_videoIndex]->codecpar;
+        if (!runtime::openVideoDecoder(&_ffmpegCodecCtx, videoCodecPar,
+                                       _config.preferHwaccel,
+                                       _config.forceSoftAv,
+                                       _config.hwaccelDeviceId,
+                                       &_hwDecodeState)) {
+            LOG(ERROR) << "[错误] 视频解码器打开失败 (openVideoDecoder)";
+            return false;
+        }
+        _ffmpegStream = _ffmpegFormatCtx->streams[_videoIndex];
+        if (0 == _ffmpegStream->avg_frame_rate.den) {
+            LOG(ERROR) << "[错误] 视频流帧率分母为 0 videoIndex=" << _videoIndex
+                       << ", 回退为 25fps";
+            _videoFps = 25;
+        }
+        else {
+            _videoFps = _ffmpegStream->avg_frame_rate.num / _ffmpegStream->avg_frame_rate.den;
+        }
+        _videoWidth = _ffmpegCodecCtx->width;
+        _videoHeight = _ffmpegCodecCtx->height;
+        _videoChannel = 3;
+        LOG(INFO) << "[成功] 媒体播放器就绪 " << _videoWidth << "x" << _videoHeight
+                  << "@" << _videoFps << "fps 解码后端=" << _hwDecodeState.decodeEp;
+    }
+    return true;
+}
+
+bool Detech::_init_media_pusher() {
+    // 检查配置：如果enable_rtmp=true，则默认启用推流
+    if (!_config.enableRtmp) {
+        LOG(INFO) << "[初始化] 配置中已禁用 RTMP 推流";
+        LOG(INFO) << "[初始化]   → 后续可通过 API 调用按需开启推流";
+        _streamingEnabled.store(false);
+        return true;
+    }
+    
+    // 检查RTMP URL是否配置
+    if (_config.rtmpUrl.empty()) {
+        LOG(WARNING) << "[初始化] 未配置 RTMP 地址，推流已禁用";
+        _streamingEnabled.store(false);
+        return true;
+    }
+    
+    // 创建并初始化RTMP编码器
+    _rtmpEncoder = new RTMPEncoder();
+    
+    LOG(INFO) << "[初始化] 正在初始化 RTMP 编码器...";
+    LOG(INFO) << "[初始化] RTMP 地址: " << _config.rtmpUrl;
+    LOG(INFO) << "[初始化] 视频: " << _videoWidth << "x" << _videoHeight << "@" << _videoFps << "fps";
+    
+    if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
+                            makeRtmpOpts(_config))) {
+        LOG(WARNING) << "[初始化] ⚠️ RTMP 编码器初始化失败（ZLMediaKit 未运行？）";
+        LOG(WARNING) << "[初始化] ⚠️ 推流已禁用，但程序将继续运行";
+        LOG(WARNING) << "[初始化] ⚠️ ZLM 就绪后可通过 API 启动推流";
+        delete _rtmpEncoder;
+        _rtmpEncoder = nullptr;
+        _streamingEnabled.store(false);
+        return true;  // 不阻止程序启动
+    }
+    
+    // 默认启用推流
+    _streamingEnabled.store(true);
+    LOG(INFO) << "[成功] RTMP 编码器初始化成功 encode_ep="
+              << _rtmpEncoder->encodeEp();
+    LOG(INFO) << "[成功] 推流默认已启用（可通过 API 控制）";
+    
+    return true;
+}
+
+// 获取当前时间戳（毫秒）
+uint64_t Detech::_get_curtime_stamp_ms() {
+    auto now = std::chrono::system_clock::now();
+    auto duration = now.time_since_epoch();
+    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    return static_cast<uint64_t>(millis);
+}
+
+bool Detech::_init_media_alarmer() {
+    if (!_config.enableAlarm) {
+        LOG(INFO) << "[初始化] 告警检测已禁用";
+        return true;
+    }
+
+    if (AlgoMqttBus::busEnabled(_config)) {
+        if (_config.mqttBrokerUrls.empty()) {
+            LOG(WARNING) << "[初始化] 告警已启用但 MQTT broker 地址为空 "
+                         << "（请设置 mqtt_broker_urls / MQTT_BROKER_URLS）";
+        }
+        LOG(INFO) << "[初始化] 告警回调已初始化（MQTT → iot-sink）";
+        LOG(INFO) << "  → MQTT broker 地址: " << _config.mqttBrokerUrls;
+    } else if (httpAlertFallbackEnabled(_config)) {
+        LOG(INFO) << "[初始化] 告警回调已初始化（HTTP → VIDEO hook）";
+        LOG(INFO) << "  → 回调地址: " << resolveAlertHookUrl(_config);
+    } else {
+        LOG(WARNING) << "[初始化] 告警已启用但未配置 MQTT 总线和 alert_hook_url";
+        return true;
+    }
+
+    LOG(INFO) << "  → 置信度阈值: " << _config.alarmConfidenceThreshold;
+    LOG(INFO) << "  → 冷却时间: " << _config.alarmCooldownTime << " 秒";
+
+    return true;
+}
+
+// 检查检测框中心点是否在任何报警区域内（支持归一化 0-10000 坐标）
+bool Detech::_isInAlarmRegion(int centerX, int centerY, int frameW, int frameH) {
+    if (_config.regions.empty()) {
+        return true;
+    }
+
+    cv::Point2f center(static_cast<float>(centerX), static_cast<float>(centerY));
+    for (const auto& regionPair : _config.regions) {
+        for (const auto& polygon : regionPair.second) {
+            if (polygon.size() < 3) {
+                continue;
+            }
+            std::vector<cv::Point> scaled;
+            scaled.reserve(polygon.size());
+            bool looksNormalized = true;
+            for (const auto& pt : polygon) {
+                if (pt.x > 10000 || pt.y > 10000) {
+                    looksNormalized = false;
+                    break;
+                }
+            }
+            if (looksNormalized && frameW > 0 && frameH > 0) {
+                for (const auto& pt : polygon) {
+                    scaled.emplace_back(
+                        static_cast<int>(pt.x / 10000.0 * frameW),
+                        static_cast<int>(pt.y / 10000.0 * frameH));
+                }
+            } else {
+                scaled = polygon;
+            }
+            if (cv::pointPolygonTest(scaled, center, false) >= 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// 绘制所有报警区域边界（半透明多边形）
+void Detech::_drawAlarmRegions(cv::Mat& image) {
+    if (_config.regions.empty()) {
+        return;
+    }
+    
+    int colorIndex = 0;
+    // 定义区域颜色（绿色系表示报警区域）
+    std::vector<cv::Scalar> colors = {
+        cv::Scalar(0, 255, 0),     // 绿色
+        cv::Scalar(0, 255, 255),   // 黄色
+        cv::Scalar(255, 0, 255),   // 紫色
+        cv::Scalar(255, 255, 0),   // 青色
+    };
+    
+    // 遍历所有报警区域
+    for (const auto& regionPair : _config.regions) {
+        const std::string& regionName = regionPair.first;
+        const std::vector<std::vector<cv::Point>>& polygons = regionPair.second;
+        
+        cv::Scalar color = colors[colorIndex % colors.size()];
+        colorIndex++;
+        
+        // 绘制每个多边形
+        for (const auto& polygon : polygons) {
+            if (polygon.size() < 3) {
+                continue;
+            }
+            
+            // ✅ 直接在原图上绘制多边形边界（不使用掩码）
+            // 绘制多边形边界（粗绿色线）
+            cv::polylines(image, polygon, true, color, 3);
+            
+            // ✅ 在区域中心显示区域名称
+            if (!polygon.empty()) {
+                // 计算多边形中心点
+                int sumX = 0, sumY = 0;
+                for (const auto& pt : polygon) {
+                    sumX += pt.x;
+                    sumY += pt.y;
+                }
+                cv::Point center(sumX / polygon.size(), sumY / polygon.size());
+                
+                // 绘制区域名称背景
+                std::string label = regionName;
+                int baseLine;
+                cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, &baseLine);
+                
+                cv::rectangle(image, 
+                             cv::Point(center.x - labelSize.width/2 - 10, center.y - labelSize.height - 10),
+                             cv::Point(center.x + labelSize.width/2 + 10, center.y + 10),
+                             color, -1);
+                
+                // 绘制区域名称（白色文字）
+                cv::putText(image, label, 
+                           cv::Point(center.x - labelSize.width/2, center.y), 
+                           cv::FONT_HERSHEY_SIMPLEX, 0.8, 
+                           cv::Scalar(255, 255, 255), 2);
+            }
+        }
+    }
+}
+
+// 检查告警冷却时间
+bool Detech::_checkAlarmCooldown() {
+    uint64_t currentTime = _get_curtime_stamp_ms();
+    uint64_t timeSinceLastAlarm = currentTime - _lastAlarmTime;
+    uint64_t cooldownMs = _config.alarmCooldownTime * 1000;  // 转换为毫秒
+    
+    if (timeSinceLastAlarm < cooldownMs) {
+        // 仍在冷却期内
+        return false;
+    }
+    
+    // 冷却期已过
+    return true;
+}
+
+// ==================== 企业级告警队列系统实现 ====================
+
+// 启动告警发送线程
+void Detech::_startAlarmSenderThread() {
+    if (!_config.enableAlarm || !alarmDeliveryEnabled(_config)) {
+        LOG(INFO) << "[告警] 告警已禁用或没有投递通道（MQTT/HTTP 回调），跳过告警线程";
+        return;
+    }
+    
+    LOG(INFO) << "[告警] 正在启动告警发送线程...";
+    _alarmThreadRunning.store(true);
+    _alarmSenderThread = std::thread(&Detech::_alarmSenderThreadFunc, this);
+    LOG(INFO) << "[告警] 告警发送线程启动成功";
+}
+
+// 停止告警发送线程
+void Detech::_stopAlarmSenderThread() {
+    if (!_alarmThreadRunning.load()) {
+        return;
+    }
+    
+    LOG(INFO) << "[告警] 正在停止告警发送线程...";
+    _alarmThreadRunning.store(false);
+    _alarmQueueCV.notify_all();  // 唤醒线程
+    
+    if (_alarmSenderThread.joinable()) {
+        _alarmSenderThread.join();  // 等待线程结束
+    }
+    
+    // 清空队列
+    {
+        std::lock_guard<std::mutex> lock(_alarmQueueMutex);
+        while (!_alarmQueue.empty()) {
+            _alarmQueue.pop();
+        }
+    }
+    
+    LOG(INFO) << "[告警] 告警发送线程已停止";
+}
+
+// 告警发送线程主函数
+void Detech::_alarmSenderThreadFunc() {
+    LOG(INFO) << "[告警线程] 告警发送线程运行中（线程 ID: " << std::this_thread::get_id() << ")";
+    
+    while (_alarmThreadRunning.load()) {
+        AlarmData alarmData;
+        bool hasData = false;
+        
+        // 从队列中获取告警数据
+        {
+            std::unique_lock<std::mutex> lock(_alarmQueueMutex);
+            
+            // 等待队列有数据或线程停止信号
+            _alarmQueueCV.wait(lock, [this] {
+                return !_alarmQueue.empty() || !_alarmThreadRunning.load();
+            });
+            
+            // 如果线程要停止且队列为空，退出循环
+            if (!_alarmThreadRunning.load() && _alarmQueue.empty()) {
+                break;
+            }
+            
+            // 取出队列头部数据
+            if (!_alarmQueue.empty()) {
+                alarmData = std::move(_alarmQueue.front());
+                _alarmQueue.pop();
+                hasData = true;
+                LOG(INFO) << "[告警线程] 已取出告警，队列剩余: " << _alarmQueue.size();
+            }
+        }
+        
+        // 如果没有数据，继续等待
+        if (!hasData) {
+            continue;
+        }
+        
+        // 发送告警：默认 MQTT → iot-sink；ALGO_BUS_TRANSPORT=http 时回退 VIDEO hook
+        try {
+            const std::string ts = formatUtcNow();
+            std::string primaryObject = alarmData.detections.empty()
+                ? "object"
+                : alarmData.detections.front().class_name;
+
+            Json::Value root;
+            root["object"] = primaryObject;
+            root["event"] = _config.algorithmName.empty() ? "detection" : _config.algorithmName;
+            const std::string did = !alarmData.deviceId.empty() ? alarmData.deviceId : _config.deviceId;
+            const std::string dname = !alarmData.deviceName.empty()
+                ? alarmData.deviceName
+                : (_config.deviceName.empty() ? did : _config.deviceName);
+            root["device_id"] = did;
+            root["device_name"] = dname;
+            root["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
+            root["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId) + "_" + ts;
+            root["time"] = ts;
+            root["image_path"] = alarmData.imagePath;
+            root["region"] = alarmData.regionName;
+            if (!_config.taskId.empty()) {
+                root["task_id"] = _config.taskId;
+            }
+
+            Json::Value info;
+            info["task_id"] = _config.taskId;
+            info["region"] = alarmData.regionName;
+            info["detection_count"] = static_cast<int>(alarmData.detections.size());
+            info["runtime_ts_ms"] = (Json::Value::UInt64)alarmData.timestamp;
+            Json::Value detectionsArray(Json::arrayValue);
+            std::set<int> modelIds;
+            for (const auto& det : alarmData.detections) {
+                Json::Value detObj;
+                detObj["class_name"] = det.class_name;
+                detObj["confidence"] = det.class_score;
+                detObj["class_id"] = det.class_id;
+                detObj["model_id"] = det.model_id;
+                Json::Value bbox(Json::arrayValue);
+                bbox.append(static_cast<int>(det.x1));
+                bbox.append(static_cast<int>(det.y1));
+                bbox.append(static_cast<int>(det.x2));
+                bbox.append(static_cast<int>(det.y2));
+                detObj["bbox"] = bbox;
+                detectionsArray.append(detObj);
+                if (det.model_id != 0) {
+                    modelIds.insert(det.model_id);
+                }
+            }
+            info["detections"] = detectionsArray;
+            Json::StreamWriterBuilder compact;
+            compact["indentation"] = "";
+            root["information"] = Json::writeString(compact, info);
+
+            Json::StreamWriterBuilder writer;
+            writer["indentation"] = "";
+            std::string jsonStr = Json::writeString(writer, root);
+
+            const bool snapshot = (_config.taskType == "snap" || _config.taskType == "snapshot");
+            bool usedHttpAlert = false;
+            AlgoMqttBus::ensureHealthProbe();
+            // InferEvent is an MQTT-only ingress. In edge/HTTP mode POST may still
+            // be globally enabled for other services, but it must not shadow the
+            // configured VIDEO alert hook.
+            if (AlgoMqttBus::busEnabled(_config) && AlgoMqttBus::shouldPublishInferEvent()) {
+                Json::Value ev;
+                ev["schema"] = "infer_event.v1";
+                ev["event_kind"] = "infer";
+                ev["correlation_id"] = root.get("correlation_id", "").asString();
+                if (ev["correlation_id"].asString().empty()) {
+                    ev["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId) + "_" + ts;
+                }
+                try {
+                    ev["task_id"] = static_cast<Json::Int64>(
+                        std::stoll(_config.taskId.empty() ? "0" : _config.taskId));
+                } catch (...) {
+                    ev["task_id"] = 0;
+                }
+                ev["task_name"] = _config.algorithmName;
+                ev["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
+                ev["device_id"] = did;
+                ev["device_name"] = dname;
+                ev["timestamp"] = ts;
+                ev["frame_width"] = _videoWidth;
+                ev["frame_height"] = _videoHeight;
+                ev["image_path"] = alarmData.imagePath;
+                Json::Value dets(Json::arrayValue);
+                for (const auto& det : alarmData.detections) {
+                    Json::Value d;
+                    if (det.model_id != 0) {
+                        d["model_id"] = det.model_id;
+                    }
+                    d["class_name"] = det.class_name;
+                    d["confidence"] = det.class_score;
+                    d["class_id"] = det.class_id;
+                    d["track_id"] = 0;
+                    Json::Value bbox(Json::arrayValue);
+                    bbox.append(det.x1);
+                    bbox.append(det.y1);
+                    bbox.append(det.x2);
+                    bbox.append(det.y2);
+                    d["bbox"] = bbox;
+                    dets.append(d);
+                }
+                ev["detections"] = dets;
+                ev["model_ids"] = Json::arrayValue;
+                for (int mid : modelIds) {
+                    ev["model_ids"].append(mid);
+                }
+                std::string inferJson = Json::writeString(writer, ev);
+                if (AlgoMqttBus::publishInferEvent(_config, inferJson)) {
+                    LOG(INFO) << "[告警线程] InferEvent 已发布，设备=" << did;
+                } else {
+                    LOG(ERROR) << "[告警线程] InferEvent 发布失败，设备=" << did;
+                }
+            } else if (AlgoMqttBus::postFailClosed()) {
+                LOG(WARNING) << "[告警线程] 关闭策略下 POST 不可用，直接告警已抑制，设备=" << did;
+            } else if (AlgoMqttBus::busEnabled(_config)) {
+                if (AlgoMqttBus::postInBypass()) {
+                    Json::Value infoObj;
+                    Json::CharReaderBuilder rb;
+                    std::string errs;
+                    std::string infoStr = root.get("information", "{}").asString();
+                    std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
+                    if (!reader->parse(infoStr.data(), infoStr.data() + infoStr.size(), &infoObj, &errs)) {
+                        infoObj = Json::objectValue;
+                    }
+                    infoObj["post_bypass"] = true;
+                    infoObj["post_bypass_reason"] = "post_unready";
+                    root["information"] = Json::writeString(compact, infoObj);
+                    jsonStr = Json::writeString(writer, root);
+                    LOG(WARNING) << "[告警线程] POST 旁路直接告警，设备=" << did;
+                }
+                if (AlgoMqttBus::publishAlert(_config, jsonStr, snapshot)) {
+                    LOG(INFO) << "[告警线程] MQTT 告警已发布，设备=" << did;
+                } else {
+                    LOG(ERROR) << "[告警线程] MQTT 告警发布失败，设备=" << did;
+                }
+            } else if (httpAlertFallbackEnabled(_config)) {
+                usedHttpAlert = true;
+                const std::string hookUrl = resolveAlertHookUrl(_config);
+                AlarmCallback callback(hookUrl);
+                VideoAlertContext ctx;
+                ctx.taskId = _config.taskId;
+                ctx.deviceId = did;
+                ctx.deviceName = dname;
+                ctx.taskType = _config.taskType.empty() ? "realtime" : _config.taskType;
+                ctx.algorithmName = _config.algorithmName.empty() ? "detection" : _config.algorithmName;
+                if (callback.sendVideoAlert(
+                        ctx,
+                        alarmData.detections,
+                        alarmData.regionName,
+                        ts,
+                        alarmData.imagePath)) {
+                    LOG(INFO) << "[告警线程] HTTP 告警已被接收，设备=" << did;
+                } else {
+                    LOG(ERROR) << "[告警线程] HTTP 告警发送失败，设备=" << did
+                               << " 回调地址=" << hookUrl;
+                }
+            } else {
+                LOG(ERROR) << "[告警线程] 无 MQTT/HTTP 告警投递通道，告警已丢弃";
+            }
+
+            // RUNTIME 人脸/车牌链路桥：任务启用人脸或车牌匹配且告警未走 HTTP hook 时
+            // （MQTT/InferEvent 路径），将同一告警（含整帧截图 image_path 与 correlation_id）
+            // 以 feed_only 投递 VIDEO hook；VIDEO process_alert_hook 仅据此把帧送入
+            // 人脸/车牌抓取队列（检测→裁剪→匹配），匹配记录经 correlation_id 与告警自动关联，
+            // 不重复落库/通知。
+            const bool anyMatching = _config.faceMatchingEnabled || _config.plateMatchingEnabled;
+            if (anyMatching && !usedHttpAlert
+                    && !resolveAlertHookUrl(_config).empty()) {
+                Json::Value feedRoot = root;
+                feedRoot["face_feed_only"] = _config.faceMatchingEnabled;
+                feedRoot["plate_feed_only"] = _config.plateMatchingEnabled;
+                std::string feedJson = Json::writeString(writer, feedRoot);
+                AlarmCallback feedCallback(resolveAlertHookUrl(_config));
+                if (feedCallback.sendVideoAlertJson(feedJson)) {
+                    LOG(INFO) << "[告警线程] feed_only 投递成功，设备=" << did
+                              << " 人脸=" << (_config.faceMatchingEnabled ? "开" : "关")
+                              << " 车牌=" << (_config.plateMatchingEnabled ? "开" : "关")
+                              << " corr=" << root.get("correlation_id", "").asString();
+                } else {
+                    LOG(WARNING) << "[告警线程] feed_only 投递失败，设备=" << did;
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG(ERROR) << "[告警线程] 发送告警时发生异常: " << e.what();
+        }
+    }
+    
+    LOG(INFO) << "[告警线程] 告警发送线程正常退出";
+}
+
+void Detech::_startHeartbeatThread() {
+    // Always start: VIDEO HTTP heartbeat (if URL) + InferEvent heartbeat (POST)
+    if (_heartbeatRunning.load()) {
+        return;
+    }
+    _heartbeatRunning.store(true);
+    _heartbeatThread = std::thread(&Detech::_heartbeatThreadFunc, this);
+    LOG(INFO) << "[心跳] 心跳线程已启动"
+              << (_config.heartbeatUrl.empty() ? "（仅 InferEvent 心跳）" : (" -> " + _config.heartbeatUrl));
+}
+
+void Detech::_stopHeartbeatThread() {
+    if (!_heartbeatRunning.load()) {
+        return;
+    }
+    _heartbeatRunning.store(false);
+    if (_heartbeatThread.joinable()) {
+        _heartbeatThread.join();
+    }
+    LOG(INFO) << "[心跳] 心跳线程已停止";
+}
+
+void Detech::_heartbeatThreadFunc() {
+    std::string host;
+    int port = 80;
+    std::string path = "/video/algorithm/heartbeat/realtime";
+    bool httpOk = false;
+    if (!_config.heartbeatUrl.empty() && parseHttpUrl(_config.heartbeatUrl, host, port, path)) {
+        httpOk = true;
+    } else if (!_config.heartbeatUrl.empty()) {
+        LOG(ERROR) << "[心跳] 无效的 URL: " << _config.heartbeatUrl;
+    }
+    httplib::Client client(host, port);
+    client.set_connection_timeout(3, 0);
+    client.set_read_timeout(3, 0);
+    client.set_write_timeout(3, 0);
+
+    int interval = _config.heartbeatIntervalSec > 0 ? _config.heartbeatIntervalSec : 10;
+    int inferHbSec = 60;
+    if (const char* env = std::getenv("INFER_HEARTBEAT_SEC")) {
+        int n = std::atoi(env);
+        if (n >= 15) inferHbSec = n;
+    }
+    auto lastInferHb = std::chrono::steady_clock::now() - std::chrono::seconds(inferHbSec);
+
+    AlgoMqttBus::ensureHealthProbe();
+
+    while (_heartbeatRunning.load() && _isRun) {
+        try {
+            if (httpOk) {
+                Json::Value root;
+                int taskIdNum = 0;
+                try {
+                    taskIdNum = std::stoi(_config.taskId);
+                } catch (...) {
+                    taskIdNum = 0;
+                }
+                root["task_id"] = taskIdNum;
+                root["server_ip"] = resolveWorkerIp();
+                {
+                    std::string nodeId = resolveNodeId(_config);
+                    if (!nodeId.empty()) {
+                        root["node_id"] = nodeId;
+                    }
+                }
+                root["port"] = _config.controlPort;
+                root["process_id"] = static_cast<int>(::getpid());
+                root["log_path"] = _config.logPath;
+                if (_patrolScheduler) {
+                    root["total_patrols"] = (Json::UInt64)_patrolScheduler->totalPatrols.load();
+                    root["total_detections"] = (Json::UInt64)_patrolScheduler->totalDetections.load();
+                }
+                Json::StreamWriterBuilder writer;
+                writer["indentation"] = "";
+                std::string body = Json::writeString(writer, root);
+                auto res = client.Post(path.c_str(), body, "application/json");
+                if (!(res && res->status == 200)) {
+                    LOG(WARNING) << "[心跳] 心跳上报失败，状态码="
+                                 << (res ? res->status : -1);
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG(WARNING) << "[心跳] 心跳异常: " << e.what();
+        }
+
+        // InferEvent heartbeat for POST TTL (skip while bypass)
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - lastInferHb).count() >= inferHbSec) {
+            lastInferHb = now;
+            if (AlgoMqttBus::busEnabled(_config) && AlgoMqttBus::shouldPublishInferEvent()) {
+                Json::Value ev;
+                ev["schema"] = "infer_event.v1";
+                ev["event_kind"] = "heartbeat";
+                ev["correlation_id"] = AlgoMqttBus::postEnabled()
+                    ? ((_config.taskId.empty() ? "runtime" : _config.taskId) + "_hb")
+                    : "hb";
+                try {
+                    ev["task_id"] = static_cast<Json::Int64>(
+                        std::stoll(_config.taskId.empty() ? "0" : _config.taskId));
+                } catch (...) {
+                    ev["task_id"] = 0;
+                }
+                ev["task_name"] = _config.algorithmName;
+                ev["task_type"] = _config.taskType.empty() ? "realtime" : _config.taskType;
+                ev["device_id"] = _config.deviceId.empty() ? "unknown" : _config.deviceId;
+                ev["device_name"] = _config.deviceName;
+                ev["timestamp"] = formatUtcNow();
+                ev["frame_width"] = _videoWidth;
+                ev["frame_height"] = _videoHeight;
+                ev["detections"] = Json::arrayValue;
+                ev["model_ids"] = Json::arrayValue;
+                // multi-device: also emit for each configured device
+                auto publishOne = [&](const std::string& did, const std::string& dname) {
+                    ev["device_id"] = did;
+                    ev["device_name"] = dname;
+                    ev["correlation_id"] = (_config.taskId.empty() ? "runtime" : _config.taskId)
+                        + "_hb_" + did;
+                    Json::StreamWriterBuilder wb;
+                    wb["indentation"] = "";
+                    AlgoMqttBus::publishInferEvent(_config, Json::writeString(wb, ev));
+                };
+                if (!_config.devices.empty()) {
+                    for (const auto& d : _config.devices) {
+                        publishOne(d.deviceId, d.deviceName);
+                    }
+                } else {
+                    publishOne(ev["device_id"].asString(), _config.deviceName);
+                }
+            }
+        }
+
+        for (int i = 0; i < interval * 10 && _heartbeatRunning.load() && _isRun; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+}
+
+std::string Detech::_saveAlertImage(const cv::Mat& frame) {
+    if (frame.empty()) {
+        return "";
+    }
+    std::string dir = _config.alertImageDir;
+    if (dir.empty()) {
+        dir = "alerts";
+    }
+    ::mkdir(dir.c_str(), 0755);
+    std::ostringstream name;
+    name << dir << "/alert_" << _config.taskId << "_" << _get_curtime_stamp_ms() << ".jpg";
+    try {
+        cv::Mat out = frame;
+        if (out.cols > 640) {
+            double scale = 640.0 / out.cols;
+            cv::resize(frame, out, cv::Size(), scale, scale);
+        }
+        if (cv::imwrite(name.str(), out)) {
+            return name.str();
+        }
+    } catch (...) {
+    }
+    return "";
+}
+
+// 发送告警回调（入队；可选落盘截图）
+void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
+                                const std::string& regionName,
+                                const cv::Mat& frame,
+                                const std::string& deviceId,
+                                const std::string& deviceName) {
+    if (!_config.enableAlarm) {
+        return;
+    }
+    if (!alarmDeliveryEnabled(_config)) {
+        return;
+    }
+    if (!_alarmThreadRunning.load()) {
+        LOG(WARNING) << "[告警] 告警发送线程未运行，告警已丢弃";
+        return;
+    }
+
+    const std::vector<DetectObject> filtered = AlertClassFilter::filterDetectionsForAlert(
+        detections, _config.alertClassNames);
+    if (filtered.empty()) {
+        return;
+    }
+
+    std::string imagePath = _saveAlertImage(frame);
+
+    {
+        std::lock_guard<std::mutex> lock(_alarmQueueMutex);
+        if (_alarmQueue.size() >= MAX_ALARM_QUEUE_SIZE) {
+            _alarmQueue.pop();
+        }
+        AlarmData alarmData(filtered, regionName, _get_curtime_stamp_ms(), imagePath, deviceId, deviceName);
+        _alarmQueue.push(std::move(alarmData));
+        LOG(INFO) << "[告警] 告警已入队，队列大小: " << _alarmQueue.size();
+    }
+    _alarmQueueCV.notify_one();
+    _lastAlarmTime = _get_curtime_stamp_ms();
+}
+
+void Detech::_display_video_loop() {
+    if (!_ffmpegFormatCtx || !_ffmpegCodecCtx) {
+        LOG(ERROR) << "[视频] FFmpeg 未初始化！";
+        return;
+    }
+    
+    // Create OpenCV window
+    const char* windowName = "RTSP Live Stream - Press 'q' to exit";
+    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
+    cv::resizeWindow(windowName, 1280, 720);
+    
+    // Allocate packet and frame
+    AVPacket* packet = av_packet_alloc();
+    AVFrame* frame = av_frame_alloc();
+    AVFrame* frameRGB = av_frame_alloc();
+    
+    if (!packet || !frame || !frameRGB) {
+        LOG(ERROR) << "[视频] AVPacket 或 AVFrame 分配失败";
+        return;
+    }
+    
+    // Allocate RGB buffer
+    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_BGR24, _videoWidth, _videoHeight, 1);
+    uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
+    av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, AV_PIX_FMT_BGR24, _videoWidth, _videoHeight, 1);
+    
+    // Create SwsContext for pixel format conversion
+    struct SwsContext* swsCtx = sws_getContext(
+        _videoWidth, _videoHeight, _ffmpegCodecCtx->pix_fmt,
+        _videoWidth, _videoHeight, AV_PIX_FMT_BGR24,
+        SWS_BILINEAR, NULL, NULL, NULL
+    );
+    
+    if (!swsCtx) {
+        LOG(ERROR) << "[视频] SwsContext 创建失败";
+        av_free(buffer);
+        av_frame_free(&frameRGB);
+        av_frame_free(&frame);
+        av_packet_free(&packet);
+        return;
+    }
+    
+    LOG(INFO) << "[视频] 显示循环已启动";
+    
+    // FPS calculation
+    int frameCount = 0;
+    auto startTime = std::chrono::steady_clock::now();
+    auto lastFrameTime = startTime;
+    double currentFPS = 0.0;
+    double currentLatency = 0.0;
+    
+    while (_isRun) {
+        // Read packet
+        int ret = av_read_frame(_ffmpegFormatCtx, packet);
+        if (ret < 0) {
+            if (ret == AVERROR_EOF) {
+                LOG(INFO) << "[视频] 视频流已结束";
+                break;
+            }
+            LOG(WARNING) << "[视频] 读取帧失败: " << ret;
+            continue;
+        }
+        
+        // Only process video packets
+        if (packet->stream_index != _videoIndex) {
+            av_packet_unref(packet);
+            continue;
+        }
+        
+        // Decode video packet
+        ret = avcodec_send_packet(_ffmpegCodecCtx, packet);
+        if (ret < 0) {
+            LOG(WARNING) << "[视频] 发送数据包到解码器失败";
+            av_packet_unref(packet);
+            continue;
+        }
+        
+        ret = avcodec_receive_frame(_ffmpegCodecCtx, frame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            av_packet_unref(packet);
+            continue;
+        } else if (ret < 0) {
+            LOG(WARNING) << "[视频] 解码帧失败";
+            av_packet_unref(packet);
+            continue;
+        }
+        
+        // Convert to BGR24 for OpenCV
+        sws_scale(swsCtx, frame->data, frame->linesize, 0, _videoHeight,
+                  frameRGB->data, frameRGB->linesize);
+        
+        // Create OpenCV Mat (deep copy for AI processing)
+        cv::Mat img(_videoHeight, _videoWidth, CV_8UC3);
+        cv::Mat tempImg(_videoHeight, _videoWidth, CV_8UC3, frameRGB->data[0], frameRGB->linesize[0]);
+        tempImg.copyTo(img);
+        
+        // AI Detection (if enabled) - ASYNCHRONOUS MODE
+        static std::vector<DetectObject> lastDetections;  // Cache last detection results
+        static int lastSubmittedFrameId = -1;
+        static int aiFrameInterval = 0;
+        const int SUBMIT_INTERVAL = 8;  // 每8帧检测一次
+        std::vector<DetectObject> detections;
+        int detectCount = 0;
+        
+        if (_config.enableAI && yolo_thread_pool) {
+            // Submit task every N frames to avoid queue buildup
+            if (aiFrameInterval % SUBMIT_INTERVAL == 0) {
+                yolo_thread_pool->submitTask(img, 0, 0, frameCount);
+                lastSubmittedFrameId = frameCount;
+            }
+            aiFrameInterval++;
+            
+            // Try to get any available result (non-blocking)
+            bool foundNewResult = false;
+            for (int checkFrame = lastSubmittedFrameId; checkFrame >= 0 && checkFrame >= lastSubmittedFrameId - 30; checkFrame--) {
+                int ret = yolo_thread_pool->getTargetResultNonBlock(detections, 0, 0, checkFrame);
+                if (ret == 0) {
+                    // Successfully got results, cache them
+                    lastDetections = detections;
+                    foundNewResult = true;
+                    break;
+                }
+            }
+            
+            // 🎯 绘制报警区域（ROI）- 已禁用，前端页面绘制
+            // _drawAlarmRegions(img);
+            
+            // 🎯 绘制检测框并应用区域过滤
+            if (_config.enableDrawRtmp && !lastDetections.empty()) {
+                int totalDetections = lastDetections.size();
+                int inRegionCount = 0;  // 在报警区域内的目标数量
+                std::vector<DetectObject> alarmDetections;  // 触发告警的目标列表
+                
+                for (const auto& det : lastDetections) {
+                    int x1 = (int)det.x1;
+                    int y1 = (int)det.y1;
+                    int x2 = (int)det.x2;
+                    int y2 = (int)det.y2;
+                    
+                    // 计算检测框中心点
+                    int centerX = (x1 + x2) / 2;
+                    int centerY = (y1 + y2) / 2;
+                    
+                    // InferEvent 真实交给 POST 时不重复做本地区域过滤；fail-open 旁路仍执行本地判断。
+                    bool inAlarmRegion = AlgoMqttBus::shouldPublishInferEvent()
+                        ? true
+                        : _isInAlarmRegion(centerX, centerY, img.cols, img.rows);
+                    if (inAlarmRegion) {
+                        inRegionCount++;
+                        
+                        // 检查置信度是否达到告警阈值
+                        if (det.class_score >= _config.alarmConfidenceThreshold) {
+                            alarmDetections.push_back(det);
+                        }
+                    }
+                    
+                    // 根据是否在报警区域内选择颜色
+                    cv::Scalar color;
+                    if (inAlarmRegion) {
+                        // 在报警区域内：使用红色（告警）
+                        color = cv::Scalar(0, 0, 255);  // 红色
+                    } else {
+                        // 不在报警区域内：使用蓝色（正常）
+                        color = cv::Scalar(255, 0, 0);  // 蓝色
+                    }
+                    
+                    // 绘制边界框（在报警区域内的框更粗）
+                    int thickness = inAlarmRegion ? 3 : 1;
+                    cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness);
+                    
+                    // 绘制中心点（用于调试）
+                    cv::circle(img, cv::Point(centerX, centerY), 5, color, -1);
+                    
+                    // 准备标签文本
+                    std::string label = det.class_name + " " + 
+                                       std::to_string((int)(det.class_score * 100)) + "%";
+                    if (inAlarmRegion) {
+                        label += " [ALARM]";  // 在报警区域内的目标添加标记
+                    }
+                    
+                    // 计算文本背景框大小
+                    int baseLine;
+                    cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 
+                                                         0.6, 2, &baseLine);
+                    
+                    // 确保标签不会超出图像顶部
+                    int labelY = std::max(y1, labelSize.height + 5);
+                    
+                    // 绘制标签背景
+                    cv::rectangle(img,
+                                 cv::Point(x1, labelY - labelSize.height - 5),
+                                 cv::Point(x1 + labelSize.width + 5, labelY),
+                                 color, -1);
+                    
+                    // 绘制标签文本
+                    cv::putText(img, label,
+                               cv::Point(x1 + 3, labelY - 3),
+                               cv::FONT_HERSHEY_SIMPLEX, 0.6, 
+                               cv::Scalar(255, 255, 255), 2);
+                }
+                
+                // 更新检测计数（只计算在报警区域内的目标）
+                detectCount = inRegionCount;
+                
+                // 🚨 触发告警回调（如果有目标在区域内且满足条件）
+                if (!alarmDetections.empty() && _checkAlarmCooldown()) {
+                    std::string regionName = _config.regions.empty() ? "全画面" : "检测区域";
+                    if (!_config.regions.empty()) {
+                        regionName = _config.regions.begin()->first;  // 获取第一个区域名称
+                    }
+                    _sendAlarmCallback(alarmDetections, regionName, img);
+                }
+            }
+        }
+        
+        // Calculate FPS
+        frameCount++;
+        auto currentTime = std::chrono::steady_clock::now();
+        auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
+        
+        if (elapsedTime >= 1000) {
+            currentFPS = frameCount * 1000.0 / elapsedTime;
+            frameCount = 0;
+            startTime = currentTime;
+        }
+        
+        // Calculate latency (time between frames)
+        auto frameLatency = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFrameTime).count();
+        currentLatency = frameLatency;
+        lastFrameTime = currentTime;
+        
+        // Draw info overlay
+        std::string fpsText = "FPS: " + std::to_string((int)currentFPS);
+        std::string latencyText = "Frame: " + std::to_string((int)currentLatency) + " ms";
+        std::string resText = std::to_string(_videoWidth) + "x" + std::to_string(_videoHeight);
+        std::string aiText = _config.enableAI ? 
+            ("AI: ON | Objects: " + std::to_string(detectCount)) : "AI: OFF";
+        
+        cv::putText(img, fpsText, cv::Point(10, 30), 
+                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
+        cv::putText(img, latencyText, cv::Point(10, 65), 
+                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
+        cv::putText(img, resText, cv::Point(10, 100), 
+                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
+        cv::putText(img, aiText, cv::Point(10, 135), 
+                    cv::FONT_HERSHEY_SIMPLEX, 0.8, 
+                    _config.enableAI ? cv::Scalar(0, 255, 255) : cv::Scalar(128, 128, 128), 2);
+        
+        // Display frame
+        cv::imshow(windowName, img);
+        
+        // RTMP推流（按需推流：只在_streamingEnabled=true时推流）
+        if (_streamingEnabled.load() && _rtmpEncoder && _rtmpEncoder->isInitialized()) {
+            // 推送带检测框的画面
+            if (!_rtmpEncoder->encodeAndPush(img)) {
+                // 推流失败只记录警告，不中断程序
+                static int pushErrorCount = 0;
+                pushErrorCount++;
+                if (pushErrorCount % 100 == 1) {  // 每100次失败输出一次日志
+                    LOG(WARNING) << "[推流] 帧推送失败（累计失败次数: " << pushErrorCount << "）";
+                }
+            }
+        }
+        
+        // Check for key press
+        int key = cv::waitKey(1);
+        if (key == 'q' || key == 'Q' || key == 27) { // 'q' or ESC
+            LOG(INFO) << "[视频] 用户请求退出";
+            _isRun = false;
+            break;
+        }
+        
+        av_packet_unref(packet);
+    }
+    
+    // Cleanup
+    LOG(INFO) << "[视频] 正在清理...";
+    cv::destroyAllWindows();
+    sws_freeContext(swsCtx);
+    av_free(buffer);
+    av_frame_free(&frameRGB);
+    av_frame_free(&frame);
+    av_packet_free(&packet);
+    
+    LOG(INFO) << "[视频] 显示循环已停止";
+}
