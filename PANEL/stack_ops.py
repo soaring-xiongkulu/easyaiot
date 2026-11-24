@@ -248,6 +248,7 @@ RUNTIME_BUILD_MODULE_OPTIONS = [
     {'value': 'APP', 'label': 'APP'},
     {'value': 'VISUALIZE', 'label': 'VISUALIZE'},
     {'value': 'TRANSFORM', 'label': 'TRANSFORM'},
+    {'value': 'RUNTIME-RK3588', 'label': 'RUNTIME-RK3588（RK3588 板端原生）'},
 ]
 BUILD_ARCH_OPTIONS = [
     {'value': 'all', 'label': '全部架构'},
@@ -506,7 +507,7 @@ class StackOps:
                 'label': '构建运行时',
                 'category': 'image',
                 'dangerous': False,
-                'desc': '构建/推送运行时镜像到远程仓库（桌面端不可用）',
+                'desc': '构建/推送运行时镜像到远程仓库；RUNTIME-RK3588 为板端原生编译，不构建镜像（桌面端不可用）',
                 'argKey': 'module',
                 'argLabel': '目标模块',
                 'argOptional': True,
