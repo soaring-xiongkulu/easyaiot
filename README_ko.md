@@ -41,18 +41,6 @@ EasyAIoT는 통합 데이터·이벤트 기반 위에서 현장 장치, 엣지 �
     <img src=".image/iframe5.png" width="100%" alt="EasyAIoT 클라우드-엣지-디바이스 통합 아키텍처">
 </div>
 
-## 🧠 RK3588 엣지 AI 어플라이언스
-
-**하드웨어는 AI를 실제 현장 역량으로 만드는 기반입니다.** 새로운 [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) 모듈은 EasyAIoT의 네이티브 비디오 런타임을 소형 RK3588 엣지 장비에 탑재하여 스트림 수신, 디코딩, AI 추론, 경보 및 박스 표시 영상을 카메라와 현장 장치 가까이에서 처리합니다. 금속 방열 핀 구조, Wi-Fi 및 4G/5G 확장, HDMI IN/OUT, USB와 Type-C, 듀얼 이더넷, SIM 연결을 통해 매장·캠퍼스·공장·건설 현장·원격 지역에 빠르게 배치할 수 있으며, 응답 지연과 업링크 대역폭을 줄이고 데이터를 현장에서 더 안전하게 관리할 수 있습니다.
-
-<div align="center">
-  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 전면 패널 및 무선 확장">
-  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 금속 방열 핀 케이스">
-  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 입출력 패널">
-</div>
-
-➡️ [RUNTIME-RK3588 모듈, 하드웨어 가치 및 배포 가이드 보기](RUNTIME-RK3588/README.md)
-
 ## 📖 프로젝트 소개
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -128,6 +116,23 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣지-디바이스 통합 지능형 사물인터넷 플랫폼입니다. 플랫폼은 알고리즘 태스크 관리, 실시간 스트림 분석, 모델 서비스 클러스터 추론 등의 핵심 기능을 통해, 디바이스 접속부터 데이터 수집, AI 분석, 지능형 의사결정에 이르는 전 과정의 폐쇄 루프를 실현하여 진정한 만물 인터넷화, 만물 지능화 제어를 실현합니다.
 </p>
+
+### 🧠 RK3588 엣지 AI 하드웨어 모듈
+
+**일반 ARM 포팅도, 이미지 한 장만 돌리는 데모 박스도 아닙니다.** `RUNTIME-RK3588`은 RK3588 실리콘을 기준으로 영상 실행 경로 전체를 다시 설계했습니다. FFmpeg은 패킷 역다중화만 담당하고, MPP가 NV12 DMA-BUF로 하드웨어 디코딩하며, RGA가 사전 할당된 RKNN 입력 메모리로 직접 리사이즈·색 변환합니다. 세 NPU 코어는 독립 추론 lane으로 동작하고 MPP가 H.264 하드웨어 인코딩을 마무리해, 프레임이 CPU 메모리를 반복 왕복하지 않습니다.
+
+- **처음부터 설계된 3코어 처리량:** NPU Core 0/1/2마다 태스크 링과 완료 링을 두고 모델 가중치를 공유하며, 전용 수집 스레드가 결과를 합칩니다. 제공 벤치마크는 지정 YOLOv8n INT8 모델에서 집계 150 FPS를 측정 가능한 인수 목표로 삼으며, 근거 없는 최대 성능 문구로 사용하지 않습니다.
+- **장시간 부하에서도 안정적:** 프레임·추론·결과 큐를 모두 유한 크기로 제한하고 DMA 버퍼와 텐서 메모리를 미리 할당해 재사용합니다. 과부하에서는 오래된 작업을 버려 지연과 메모리가 끝없이 쌓이지 않습니다. “제로 메모리”는 제로카피 우선, 무한 증가 없음, 프레임별 대형 할당 없음을 뜻합니다.
+- **엄격한 하드웨어 계약:** RK3588, RKNPU, RGA, MPP, DRM 또는 `h264_rkmpp`가 없으면 시작을 거부합니다. 잘못된 설치를 정상처럼 보이게 하면서 CPU와 지연을 소모하는 ONNX/CPU/소프트웨어 코덱 폴백은 없습니다.
+- **프로젝트 가치가 수치로 드러남:** 현장 추론은 모든 원본 영상을 올리지 않고 경보와 증거만 반환해 업링크 비용과 반응 시간을 줄이고 데이터를 현장에 보존합니다. 듀얼 이더넷, Wi-Fi/4G/5G, SIM, 금속 방열 구조는 격리망·이동 현장·백업 회선·장시간 운전을 지원합니다.
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 전면 패널 및 무선 확장">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 금속 방열 핀 케이스">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 입출력 패널">
+</div>
+
+RK3588은 장비가 **현장에서 계산하고 실시간 대응하며 안정적으로 버티는가**를 해결하고, 바로 다음 PANEL은 **현장 인력이 설치·인수·운영할 수 있는가**를 해결합니다. 두 기능이 함께 엣지 AI를 성능 데모에서 반복 가능한 납품 역량으로 바꿉니다.
 
 ### 🎛️ PANEL: 일체기 도착 당일 설치·인수, 당직은 원격 개발자를 기다리지 않음
 

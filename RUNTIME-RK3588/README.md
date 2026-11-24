@@ -16,7 +16,7 @@
 
 双 RJ45、HDMI IN/OUT、USB、Type-C 和 SIM 等接口让盒子可同时连接摄像头侧网络、平台侧网络及本地显示/存储设备，适合园区、门店、工业和交通现场的一体化部署。
 
-RK3588 官方规格包括 4×Cortex-A76 + 4×Cortex-A55、Mali-G610、2D 图像加速器、最高 8K 编解码能力，以及支持 INT4/INT8/INT16/FP16/BF16/TF32 的 6 TOPS 三核 NPU。详见 [Rockchip RK3588 产品页](https://www.rock-chips.com/a/en/products/RK35_Series/2022/0926/1660.html)和[官方简版数据手册](https://www.rock-chips.com/uploads/pdf/2022.8.26/191/Rockchip%20RK3588%20Brief%20Datasheet%20V1.0_20250828.pdf)。
+RK3588 官方规格包括 4×Cortex-A76 + 4×Cortex-A55、Mali-G610、2D 图像加速器、最高 8K 编解码能力，以及支持 INT4/INT8/INT16/FP16/BF16/TF32 的 6 TOPS 三核 NPU。本模块围绕这些片上单元建立专用数据通路，不把 RK3588 当作普通 ARM CPU 使用。
 
 ## 硬件流水线
 
@@ -45,7 +45,7 @@ MPP 硬解 ──► 固定数量 NV12 DMA-BUF ───────────
 
 “零内存”在这里指**零拷贝优先、零无界增长、零逐帧大块分配**，并不表示进程占用 0 字节内存。压缩包进入 MPP 时仍有一次有界拷贝，画框和告警图片也需要固定 BGR 缓冲。
 
-实现依据：[MPP 开发指南](https://github.com/rockchip-linux/mpp/blob/develop/doc/Rockchip_Developer_Guide_MPP_EN.md)、[RKNN Runtime API](https://github.com/airockchip/rknn-toolkit2/tree/master/rknpu2/runtime/Linux/librknn_api)、[RGA 开发指南](https://github.com/airockchip/librga/blob/main/docs/Rockchip_Developer_Guide_RGA_EN.md)和[RGA FAQ](https://github.com/airockchip/librga/blob/main/docs/Rockchip_FAQ_RGA_CN.md)。
+实现遵循 Rockchip MPP、RKNN Runtime 2 与 RGA 的官方接口约定，并严格校验硬件节点、驱动、张量布局和编解码能力。
 
 ## 强制运行条件
 
@@ -75,7 +75,7 @@ sudo EASYAIOT_RK3588_INSTALL_DIR=/opt/easyaiot/RUNTIME-RK3588 \
   calibration.txt /opt/models/yolov8n-rk3588-int8.rknn
 ```
 
-`calibration.txt` 每行一个有代表性的现场图片路径。脚本使用[官方 YOLOv8 优化模型与转换约定](https://github.com/airockchip/rknn_model_zoo/blob/main/examples/yolov8/README.md)，目标固定为 `rk3588`、INT8、优化等级 3，并在转换前验证 1 输入/9 输出契约。
+`calibration.txt` 每行一个有代表性的现场图片路径。脚本采用 Rockchip Model Zoo 的 YOLOv8 九输出优化模型约定，目标固定为 `rk3588`、INT8、优化等级 3，并在转换前验证 1 输入/9 输出契约。
 
 ## 配置
 

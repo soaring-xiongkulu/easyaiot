@@ -30,7 +30,7 @@ FFmpeg demux -> MPP NV12 DMA-BUF -> RGA -> preallocated RKNN input FD -> NPU cor
 - Snap and patrol modes use the same MPP/RGA capture path.
 - Fixed-capacity queues drop the oldest stale frame instead of growing indefinitely.
 
-“Zero memory” means zero-copy-first, no unbounded growth, and no per-frame large allocations—not literally zero bytes of process memory. See the official [RK3588 specifications](https://www.rock-chips.com/a/en/products/RK35_Series/2022/0926/1660.html), [MPP guide](https://github.com/rockchip-linux/mpp/blob/develop/doc/Rockchip_Developer_Guide_MPP_EN.md), [RKNN API](https://github.com/airockchip/rknn-toolkit2/tree/master/rknpu2/runtime/Linux/librknn_api), and [RGA guide](https://github.com/airockchip/librga/blob/main/docs/Rockchip_Developer_Guide_RGA_EN.md).
+“Zero memory” means zero-copy-first, no unbounded growth, and no per-frame large allocations—not literally zero bytes of process memory. The implementation follows the official Rockchip MPP, RKNN Runtime 2, and RGA interface contracts and strictly validates hardware nodes, drivers, tensor layouts, and codec capabilities.
 
 ## Build and install
 

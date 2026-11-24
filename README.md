@@ -41,18 +41,6 @@ EasyAIoT unifies field devices, edge execution, platform intelligence, and busin
     <img src=".image/iframe5.png" width="100%" alt="EasyAIoT cloud-edge-device integrated architecture">
 </div>
 
-## 🧠 RK3588 Edge AI Appliance
-
-**Hardware is the foundation that turns AI into an on-site capability.** The new [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) module brings EasyAIoT's native video runtime to a compact RK3588 edge appliance, allowing stream ingest, decoding, AI inference, alerts, and annotated video to run close to cameras and field devices. Its finned metal enclosure, Wi-Fi and 4G/5G expansion, HDMI IN/OUT, USB and Type-C ports, dual Ethernet, and SIM connectivity make it suitable for stores, campuses, factories, construction sites, and remote locations—delivering lower latency, reduced uplink bandwidth, stronger local data control, and faster deployment.
-
-<div align="center">
-  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 front panel and wireless expansion">
-  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 finned metal enclosure">
-  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 I/O panel">
-</div>
-
-➡️ [Explore the RUNTIME-RK3588 module, hardware value, and deployment guide](RUNTIME-RK3588/README.md)
-
 ## 📖 Project Overview
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -128,6 +116,23 @@ All green? You’re done—easier than you feared. Go grab that coffee early.
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. Through core capabilities such as algorithm task management, real-time stream analysis, and model service cluster inference, the platform achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
+
+### 🧠 RK3588 Edge AI Hardware Module
+
+**This is not a generic ARM port or a demo box that only runs one image.** `RUNTIME-RK3588` rebuilds the video execution path around the RK3588 silicon: FFmpeg only demuxes packets, MPP performs hardware decode into NV12 DMA-BUF, RGA resizes and converts directly into preallocated RKNN input memory, all three NPU cores run independent inference lanes, and MPP completes hardware H.264 encoding. Frames stay on the hardware path instead of repeatedly travelling through CPU memory.
+
+- **Three-core throughput by design:** NPU Core 0/1/2 each owns a task ring and completion ring, with shared model weights and a dedicated result collector. The included benchmark uses 150 aggregate FPS as a measurable acceptance target for the prescribed YOLOv8n INT8 model—not a vague peak-performance claim.
+- **Stable under sustained load:** frame, inference and result queues are all bounded; DMA buffers and tensor memory are preallocated and reused; overload drops stale work instead of accumulating latency or memory without limit. “Zero memory” means zero-copy-first, no unbounded growth, and no per-frame large allocations.
+- **Hardware-only, fail-fast contract:** missing RK3588, RKNPU, RGA, MPP, DRM or `h264_rkmpp` stops startup. There is no ONNX/CPU/software-codec fallback that appears compatible while silently consuming CPU and destroying latency.
+- **Value visible at the project level:** local inference returns alarms and evidence without uploading every original stream, reducing uplink cost and response latency while retaining data on site. Dual Ethernet plus Wi-Fi/4G/5G and SIM expansion cover isolated networks, mobile sites and backup links; the finned metal enclosure supports long-running edge workloads.
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 front panel and wireless expansion">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 finned metal enclosure">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 I/O panel">
+</div>
+
+RK3588 answers whether the appliance can **compute locally, respond in real time and remain stable**; PANEL immediately below answers whether it can **be installed, accepted and operated by field staff**. Together they turn edge AI from a benchmark into a repeatable delivery capability.
 
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 

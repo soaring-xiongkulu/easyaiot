@@ -41,18 +41,6 @@ EasyAIoT 以统一数据与事件底座贯通现场设备、边缘执行、平�
     <img src=".image/iframe5.png" width="100%" alt="EasyAIoT 云边端一体化架构图">
 </div>
 
-## 🧠 RK3588 边缘 AI 硬件
-
-**硬件是 AI 真正落地现场的基础。** 新增的 [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) 模块面向 RK3588 边缘 AI 一体机，让视频拉流、解码、AI 推理、告警和带框画面在摄像头与现场设备附近完成。大面积金属鳍片机身、Wi-Fi 与 4G/5G 扩展、HDMI IN/OUT、USB、Type-C、双网口和 SIM 等硬件能力，使它能快速进入门店、园区、工厂、工地与偏远点位，带来更低时延、更少上行带宽、更可控的现场数据和更简单的项目交付。
-
-<div align="center">
-  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板与无线扩展">
-  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 金属鳍片式机身">
-  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 接口面板">
-</div>
-
-➡️ [查看 RUNTIME-RK3588 模块、硬件价值与部署说明](RUNTIME-RK3588/README.md)
-
 ## 📖 项目介绍
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -128,6 +116,23 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。平台通过算法任务管理、实时流分析、模型服务集群推理等核心能力，实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
 </p>
+
+### 🧠 RK3588 边缘 AI 硬件模块
+
+**这不是把通用程序搬到 ARM 上，也不是只跑一张图片的演示盒。** `RUNTIME-RK3588` 围绕 RK3588 芯片重写整条视频执行链：FFmpeg 只负责解复用，MPP 将码流硬解为 NV12 DMA-BUF，RGA 直接缩放并写入预分配的 RKNN 输入内存，三颗 NPU 核独立并行推理，最后由 MPP 完成 H.264 硬编码。帧尽量留在硬件通路内流转，不再反复穿过 CPU 内存。
+
+- **三核吞吐不是参数开关，而是架构能力**：NPU Core 0/1/2 各自拥有任务环与完成环，共享模型权重，由独立汇聚线程收取结果；随模块提供的基准程序把指定 YOLOv8n INT8 模型的三核聚合 150 FPS 作为可测、可复现的验收目标，而不是一句脱离模型与散热条件的峰值宣传。
+- **长时间满载也要稳得住**：帧、推理任务、完成结果全部使用固定容量环状队列，DMA 缓冲和张量内存启动时预分配并持续复用；过载时淘汰已经失去实时价值的旧任务，不让延迟和内存无限堆积。“零内存”指零拷贝优先、零无界增长、零逐帧大块分配，不是模糊口号。
+- **只认硬件能力，不做虚假兼容**：缺少 RK3588、RKNPU、RGA、MPP、DRM 或 `h264_rkmpp` 就拒绝启动；没有 ONNX、CPU 推理和软件编解码回退，避免现场看似运行、实际 CPU 满载、延迟失控。
+- **价值最终落到项目账上**：原始视频不必全部上云，盒子在现场直接产出告警、证据与结构化结果，降低上行带宽、云端算力和响应时间，同时把敏感数据留在本地；双网口配合 Wi-Fi、4G/5G 与 SIM 可覆盖隔离网、移动点位和断网备链，金属鳍片机身为持续推理与视频处理提供散热基础。
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板与无线扩展">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 金属鳍片式机身">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 接口面板">
+</div>
+
+RK3588 解决的是一体机在现场能不能<strong>算得动、响应快、长期稳</strong>；紧接着的 PANEL 解决的是设备能不能<strong>装得上、验得过、值守人员接得住</strong>。两者合在一起，才把边缘 AI 从一次性能演示变成可复制、可验收、可持续运维的交付能力。
 
 ### 🎛️ PANEL：一体机到场当天可装可验，值守不必等开发远程
 

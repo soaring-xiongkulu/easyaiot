@@ -41,18 +41,6 @@ EasyAIoT relie les équipements de terrain, l'exécution en périphérie, l'inte
     <img src=".image/iframe5.png" width="100%" alt="Architecture intégrée cloud-bord-périphérique d'EasyAIoT">
 </div>
 
-## 🧠 Appliance IA edge RK3588
-
-**Le matériel est le socle qui transforme l'IA en capacité opérationnelle sur le terrain.** Le nouveau module [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) porte le runtime vidéo natif d'EasyAIoT sur une appliance edge RK3588 compacte : acquisition des flux, décodage, inférence IA, alertes et vidéo annotée s'exécutent au plus près des caméras et des équipements. Son boîtier métallique à ailettes, ses extensions Wi-Fi et 4G/5G, ses ports HDMI IN/OUT, USB et Type-C, son double Ethernet et sa connectivité SIM facilitent les déploiements en magasin, campus, usine, chantier ou site isolé, avec moins de latence, moins de bande passante montante et une meilleure maîtrise locale des données.
-
-<div align="center">
-  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="Face avant et extension sans fil RK3588">
-  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="Boîtier métallique à ailettes RK3588">
-  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="Connectique RK3588">
-</div>
-
-➡️ [Découvrir le module RUNTIME-RK3588, sa valeur matérielle et son guide de déploiement](RUNTIME-RK3588/README.md)
-
 ## 📖 Présentation du projet
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
@@ -128,6 +116,23 @@ Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendr
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
 EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégration cloud-bord-périphérique, se concentrant sur l'intégration profonde de l'IA et de l'IoT. Grâce à des capacités fondamentales telles que la gestion des tâches algorithmiques, l'analyse de flux en temps réel et le raisonnement en cluster de services de modèles, la plateforme réalise une boucle fermée complète allant de la connexion des appareils à la collecte de données, l'analyse par IA et la prise de décision intelligente, atteignant véritablement l'interconnexion et le contrôle intelligent de toutes choses.
 </p>
+
+### 🧠 Module matériel IA edge RK3588
+
+**Ce n'est ni un portage ARM générique, ni une boîte de démonstration limitée à une image.** `RUNTIME-RK3588` reconstruit toute la chaîne vidéo autour du silicium RK3588 : FFmpeg ne fait que démultiplexer, MPP décode matériellement vers des DMA-BUF NV12, RGA redimensionne et convertit directement dans la mémoire d'entrée RKNN préallouée, les trois cœurs NPU exécutent des voies indépendantes, puis MPP assure l'encodage H.264 matériel. Les images restent sur le chemin matériel au lieu de repasser sans cesse par la mémoire CPU.
+
+- **Débit réellement conçu pour trois cœurs :** les NPU Core 0/1/2 disposent chacun d'un anneau de tâches et d'un anneau de résultats, avec poids de modèle partagés et collecte dédiée. Le benchmark fourni fixe 150 FPS agrégés comme objectif de recette mesurable pour le modèle YOLOv8n INT8 prescrit, pas comme slogan de pic théorique.
+- **Stabilité en charge continue :** files d'images, d'inférence et de résultats bornées, buffers DMA et tenseurs préalloués et réutilisés ; en surcharge, les travaux périmés sont abandonnés au lieu d'accumuler latence et mémoire. « Zéro mémoire » signifie priorité au zéro-copie, aucune croissance non bornée et aucune grosse allocation par image.
+- **Contrat matériel strict :** l'absence de RK3588, RKNPU, RGA, MPP, DRM ou `h264_rkmpp` bloque le démarrage. Aucun repli ONNX/CPU/codec logiciel ne masque une installation incorrecte en sacrifiant CPU et latence.
+- **Valeur métier immédiate :** l'inférence locale remonte alertes et preuves sans envoyer tous les flux originaux, réduit le coût montant et le délai de réaction, et garde les données sur site. Double Ethernet, Wi-Fi/4G/5G, SIM et boîtier métallique à ailettes couvrent sites isolés, liaisons de secours et fonctionnement prolongé.
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="Face avant et extension sans fil RK3588">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="Boîtier métallique à ailettes RK3588">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="Connectique RK3588">
+</div>
+
+RK3588 garantit que l'appliance peut **calculer sur place, répondre en temps réel et rester stable** ; PANEL, juste après, garantit qu'elle peut **être installée, réceptionnée et exploitée par l'équipe terrain**. Ensemble, ils transforment l'IA edge d'un benchmark en capacité de livraison reproductible.
 
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 
