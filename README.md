@@ -146,7 +146,9 @@ The RK3588 module determines whether the appliance can infer locally in real tim
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # Edit one file: add models once, then let each RTSP task select one or more model keys.
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 status
 ```
 
 The manifest follows the same convention as `RUNTIME`: `models` is a reusable RKNN model registry, while every item in `tasks` is one RTSP stream and references a free combination such as `"models": ["person_vehicle", "helmet"]`. Add ten streams by adding ten task items—there is no single-stream or single-model limit. The installer validates every path, model reference and control port before changing the host, installs each model only once, generates one INI and one supervised process per stream, then verifies every `/health` endpoint. systemd template instances provide boot restart; hosts without systemd get a separate PID and log per task. It does not install Docker or start WEB, AI, VIDEO, MQTT or any other module. Use `rk3588 status [task-id]`, `logs [task-id]`, or `verify [task-id]` to operate all streams or one selected stream. The guided menu asks only for this manifest path.

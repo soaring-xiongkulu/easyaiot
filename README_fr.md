@@ -146,7 +146,9 @@ Le module RK3588 détermine si l'appliance peut inférer localement en temps ré
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # Modifier ce seul fichier : déclarer les modèles une fois, puis les associer librement aux flux RTSP.
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 status
 ```
 
 Le manifeste reprend la convention de `RUNTIME` : `models` est un registre réutilisable de modèles RKNN et chaque entrée de `tasks` représente un flux RTSP pouvant sélectionner un ou plusieurs modèles, par exemple `"models": ["person_vehicle", "helmet"]`. Dix flux se décrivent avec dix tâches ; il n'existe aucune limite artificielle à un flux ou un modèle. Avant toute modification de l'hôte, l'installateur valide les chemins, les références et les ports, installe chaque modèle une seule fois, génère un INI et un processus supervisé par flux, puis vérifie chaque endpoint `/health`. Les instances modèles systemd assurent le redémarrage au boot ; sans systemd, chaque tâche possède son PID et son journal. Docker et les modules WEB, AI, VIDEO ou MQTT ne sont pas démarrés. `rk3588 status [id]`, `logs [id]` et `verify [id]` opèrent tous les flux ou une seule tâche. Le menu guidé ne demande que le chemin de ce manifeste.

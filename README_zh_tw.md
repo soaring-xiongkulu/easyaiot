@@ -146,7 +146,9 @@ RK3588 模組決定設備能否在本地即時推理並長期穩定運行；緊�
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # 只編輯這一個檔案：模型登記一次，每路 RTSP 自由選擇一個或多個模型鍵
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 status
 ```
 
 任務清單沿用 `RUNTIME` 的約定：`models` 是可重用的 RKNN 模型庫，`tasks` 中每一項就是一路 RTSP，並用類似 `"models": ["person_vehicle", "helmet"]` 的方式自由綁定一個或多個模型；要接十路影片，只需增加十個任務，不存在「只能一路、只能一個模型」的限制。安裝器會先一次校驗全部路徑、模型引用和控制埠，再把模型各安裝一份、為每路影片生成一份 INI 和一個獨立受監管程序，最後逐路等待 `/health` 驗收 MPP、RGA、RKNN 硬體鏈路。systemd 以模板實例提供開機自啟與故障拉起；沒有 systemd 時，每路也有獨立 PID 與日誌。它不會安裝 Docker，也不會啟動 WEB、AI、VIDEO、MQTT 等其他模組。維運時執行 `rk3588 status [任務ID]`、`logs [任務ID]`、`verify [任務ID]`，既能看全部，也能只看一路；互動選單也只會請你選擇這份清單。

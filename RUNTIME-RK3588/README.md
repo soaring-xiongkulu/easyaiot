@@ -63,26 +63,109 @@ MPP 硬解 ──► 固定数量 NV12 DMA-BUF ───────────
 
 ## 独立一键部署
 
-推理运行时本身不依赖 WEB、AI、VIDEO、MQTT 或 Docker；离线现场可以完全独立运行。需要中心统管时，只额外启用同一清单里的轻量 MQTT Agent，盒子端仍不安装平台服务。先从示例得到一份任务清单，只需维护这一个文件：
+运行时本身不依赖 WEB、AI、VIDEO、MQTT 或 Docker，盒子可以完全离线运行。下面命令都在仓库根目录执行，第一次按顺序复制即可跑通一路视频。
+
+### 1. 确认盒子可用
 
 ```bash
-cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
-# 编辑 models 与 tasks 后，可先做零改动校验，再一键安装
-bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
-sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+# 只读检查：aarch64/RK3588 设备树、NPU/RGA/MPP/DRM 节点与 RKNN/RGA/MPP 库
+bash RUNTIME-RK3588/install_linux.sh preflight
 ```
 
-也可以把 `RUNTIME-RK3588` 当作 `build-runtime` 的模块单独编译或清理。它是板端原生运行时，不走 Docker 镜像与镜像仓库：
+输出 `RK3588_PREFLIGHT_OK` 再继续；缺节点或库时先按上面的“强制运行条件”补齐。
+
+### 2. 准备模型和类别文件
+
+运行时只接受 Rockchip Model Zoo 优化版 YOLOv8n INT8 RKNN（1 输入 9 输出）。把 `.rknn` 放到盒子上的一个固定目录，例如 `/opt/models`；类别文件可以直接用仓库自带的 [coco.names](models/coco.names)：
 
 ```bash
-# 仅编译 RUNTIME-RK3588（调用 RUNTIME-RK3588/install_linux.sh build）
-sudo bash .scripts/docker/install_linux.sh build-runtime RUNTIME-RK3588
-
-# 仅清理本机编译产物 build/（--dry-run 可预览；--dist/--cache 可一并清理导出与离线缓存）
-sudo bash .scripts/docker/install_linux.sh clean-build-runtime RUNTIME-RK3588 --dry-run
+ls -l /opt/models/yolov8n-rk3588-int8.rknn RUNTIME-RK3588/models/coco.names
 ```
 
-任务清单同时决定是否接入平台、是否打开内网穿透：
+没有 `.rknn` 时，先在转换机按下面的“RKNN 模型”一节生成，再把文件拷到盒子。
+
+### 3. 写一份最小任务清单
+
+第一次先不接平台，只跑一路视频；把模型路径和 RTSP 地址换成真实值：
+
+```bash
+cat > rk3588.tasks.json <<'JSON'
+{
+  "version": 1,
+  "control_plane": { "enabled": false },
+  "remote_access": { "enabled": false },
+  "models": {
+    "person_vehicle": {
+      "path": "/opt/models/yolov8n-rk3588-int8.rknn",
+      "classes": "RUNTIME-RK3588/models/coco.names"
+    }
+  },
+  "tasks": [
+    {
+      "id": "north-gate",
+      "device_name": "园区北门",
+      "rtsp_url": "rtsp://user:password@192.168.1.101/stream1",
+      "models": ["person_vehicle"],
+      "control_port": 8201
+    }
+  ]
+}
+JSON
+```
+
+模型只登记一次。要加第二路视频，复制一个 `tasks` 元素、换成新的 `id` 和 `rtsp_url` 即可；同一路要同时跑多个模型时，在 `models` 里再加一个键，并把键名放进该任务的 `models` 数组。`control_port` 是该路 `/health` 的端口，示例固定为 8201；不写时默认从 8200 开始按任务顺序分配。
+
+### 4. 先校验，不改系统
+
+```bash
+bash RUNTIME-RK3588/install_linux.sh config-check ./rk3588.tasks.json
+```
+
+看到 `任务清单可部署；未改动系统、未启动服务` 就说明路径、模型引用、任务 ID 和控制端口都有效。改完清单重复这一步即可，不必重装。
+
+### 5. 安装并启动
+
+```bash
+sudo bash RUNTIME-RK3588/install_linux.sh install ./rk3588.tasks.json
+```
+
+安装器会自动完成硬件/驱动预检、本机编译、模型安装、逐路 INI 生成、systemd 模板实例注册与启动，并逐路等待 `/health` 通过。没有 systemd 时改用逐任务 PID 与日志；不会启动 Docker、WEB、AI、VIDEO 或 MQTT Agent（除非清单显式启用 `control_plane`）。统一入口 `bash .scripts/docker/install_linux.sh rk3588 <子命令>` 只是转交给同一个模块脚本，两种写法等价。
+
+### 6. 验收与日常运维
+
+```bash
+# 所有任务
+bash RUNTIME-RK3588/install_linux.sh list
+bash RUNTIME-RK3588/install_linux.sh status
+
+# 只操作一路（任务 ID 就是清单里的 id）
+bash RUNTIME-RK3588/install_linux.sh verify north-gate
+bash RUNTIME-RK3588/install_linux.sh logs north-gate
+bash RUNTIME-RK3588/install_linux.sh restart north-gate
+
+# 直接查看这一路的硬件后端
+curl -s http://127.0.0.1:8201/health
+```
+
+`verify` 通过表示 MPP 硬解、RGA 和 RKNN 三核流水线在线；`/health` 中应出现 `infer_ep=rknn-rk3588-3core-ring`、`decode_ep=mpp-rk3588`、`encode_ep=h264_rkmpp`。不写任务 ID 时 `status`、`logs`、`verify`、`restart` 作用于全部视频流。`logs` 默认实时跟随，按 `Ctrl+C` 退出；只看最近 200 行可执行 `EASYAIOT_RK3588_LOG_FOLLOW=0 bash RUNTIME-RK3588/install_linux.sh logs north-gate`。
+
+修改清单（例如加一路视频）后重新编排：
+
+```bash
+sudo bash RUNTIME-RK3588/install_linux.sh update ./rk3588.tasks.json
+```
+
+需要单独编译而不安装时：
+
+```bash
+sudo bash RUNTIME-RK3588/install_linux.sh build
+```
+
+构建产物在 `RUNTIME-RK3588/build/`，可直接删除；卸载用 `bash RUNTIME-RK3588/install_linux.sh uninstall`，默认保留任务清单、逐路配置、模型和日志。
+
+### 接入中心平台（可选）
+
+需要中心统管时，在刚才的清单里加入 `control_plane`；需要从平台访问盒子时再打开 `remote_access`。不接平台则保持两个 `enabled` 都为 `false`：
 
 ```json
 {
@@ -112,17 +195,7 @@ sudo bash .scripts/docker/install_linux.sh clean-build-runtime RUNTIME-RK3588 --
 - 每路实时视频生成独立 INI、控制端口和受监管进程，某一路故障不会把其他路一起带走；
 - 全部路径、模型引用、任务 ID 和控制端口先校验后安装，避免部署到一半才发现配置错误。
 
-脚本随后完成硬件与驱动预检、本机编译、共享模型安装、逐路配置生成、systemd 模板实例注册与启动，并逐路等待 `/health` 验收 MPP、RGA、RKNN 硬件链路。启用平台纳管时还会安装 MQTT Agent；启用 FRP 时才会下载、校验并注册 frpc。没有 systemd 时，每路推理任务自动使用独立 PID 与日志。交互菜单只需选择任务清单，不会再要求把一条 RTSP 和一个模型塞进环境变量。
-
-```bash
-bash .scripts/docker/install_linux.sh rk3588 list
-bash .scripts/docker/install_linux.sh rk3588 status
-bash .scripts/docker/install_linux.sh rk3588 logs north-gate
-bash .scripts/docker/install_linux.sh rk3588 verify north-gate
-bash .scripts/docker/install_linux.sh rk3588 restart north-gate
-```
-
-不写任务 ID 时命令作用于全部视频流；写任务 ID 时只处理一路。修改已安装的 `/etc/easyaiot/runtime-rk3588/tasks.json` 后执行 `rk3588 update` 即可重编排。卸载只移除服务模板与程序，默认保留任务清单、逐路配置、模型和日志，避免误删现场数据。旧版单流环境变量仍会自动转换为一条任务，仅用于向后兼容。
+启用平台纳管时才会安装轻量 MQTT Agent；启用 FRP 时才会下载、校验并注册 frpc。安装后的清单保存在 `/etc/easyaiot/runtime-rk3588/tasks.json`，也可以直接编辑它再执行 `update`。旧版单流环境变量仍会自动转换为一条任务，仅用于向后兼容。
 
 交叉编译时必须提供 aarch64 RK3588 工具链，并通过 `ROCKCHIP_SDK_ROOT` 指向包含 RKNN/RGA/MPP 头文件和库的 SDK sysroot。CMake 在非 aarch64 或依赖缺失时会直接报错。
 

@@ -146,7 +146,9 @@ RK3588 모듈은 장비가 로컬에서 실시간 추론을 수행하고 장기�
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # 이 파일 하나만 편집합니다. 모델은 한 번 등록하고 각 RTSP 작업에서 하나 이상 선택합니다.
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 status
 ```
 
 매니페스트는 `RUNTIME`과 같은 규칙을 사용합니다. `models`는 재사용 가능한 RKNN 모델 저장소이고, `tasks`의 각 항목은 RTSP 한 스트림이며 `"models": ["person_vehicle", "helmet"]`처럼 하나 이상의 모델을 자유롭게 선택합니다. 10개 스트림이면 작업 10개를 추가하면 되며 단일 스트림·단일 모델 제한이 없습니다. 설치기는 호스트를 변경하기 전에 모든 경로, 모델 참조, 제어 포트를 검증하고, 모델은 각각 한 번만 설치한 뒤 스트림마다 INI 하나와 독립 감독 프로세스 하나를 생성하며 모든 `/health`를 확인합니다. systemd 템플릿 인스턴스가 부팅 및 장애 재시작을 맡고, systemd가 없어도 작업별 PID와 로그를 둡니다. Docker나 WEB, AI, VIDEO, MQTT는 시작하지 않습니다. `rk3588 status [작업ID]`, `logs [작업ID]`, `verify [작업ID]`로 전체 또는 한 스트림만 운영할 수 있으며 안내 메뉴도 이 매니페스트 경로만 묻습니다.
