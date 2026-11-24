@@ -26,7 +26,9 @@ endif()
 set(ROCKCHIP_SDK_ROOT "" CACHE PATH "Rockchip RKNN/RGA/MPP SDK root")
 set(RUNTIME_VERSION_STR "unknown" CACHE STRING "Runtime version")
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs geometry highgui videoio)
+find_package(OpenCV REQUIRED
+    COMPONENTS core imgproc imgcodecs
+    OPTIONAL_COMPONENTS geometry)
 find_package(CURL REQUIRED)
 find_package(glog CONFIG QUIET)
 if(TARGET glog::glog)

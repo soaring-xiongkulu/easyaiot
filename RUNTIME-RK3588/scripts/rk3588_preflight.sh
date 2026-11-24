@@ -22,7 +22,23 @@ if command -v ldconfig >/dev/null 2>&1; then
   [[ "$cache" == *librockchip_mpp.so* || "$cache" == *libmpp.so* ]] || fail "动态链接器找不到 Rockchip MPP"
 fi
 
-if [[ "${1:-}" != "--build" ]] && command -v ffmpeg >/dev/null 2>&1; then
+if [[ "${1:-}" == "--build" ]]; then
+  sdk_root="${ROCKCHIP_SDK_ROOT:-}"
+  has_rknn_header=0
+  has_rga_header=0
+  has_mpp_header=0
+  for root in "$sdk_root" /usr /usr/local /opt/rockchip /opt/rknn; do
+    [[ -n "$root" ]] || continue
+    [[ -f "$root/include/rknn_api.h" \
+       || -f "$root/rknpu2/runtime/Linux/librknn_api/include/rknn_api.h" ]] && has_rknn_header=1
+    [[ -f "$root/include/im2d.hpp" || -f "$root/include/rga/im2d.hpp" ]] && has_rga_header=1
+    [[ -f "$root/include/rk_mpi.h" || -f "$root/include/rockchip/rk_mpi.h" \
+       || -f "$root/mpp/inc/rk_mpi.h" ]] && has_mpp_header=1
+  done
+  [[ "$has_rknn_header" -eq 1 ]] || fail "缺少 RKNN 开发头文件 rknn_api.h；请安装 RKNN Runtime SDK 或设置 ROCKCHIP_SDK_ROOT"
+  [[ "$has_rga_header" -eq 1 ]] || fail "缺少 RGA 开发头文件 im2d.hpp；请安装 librga SDK 或设置 ROCKCHIP_SDK_ROOT"
+  [[ "$has_mpp_header" -eq 1 ]] || fail "缺少 MPP 开发头文件 rk_mpi.h；请安装 Rockchip MPP SDK 或设置 ROCKCHIP_SDK_ROOT"
+elif command -v ffmpeg >/dev/null 2>&1; then
   ffmpeg -hide_banner -encoders 2>/dev/null | awk '{print $2}' | grep -qx h264_rkmpp \
     || fail "FFmpeg 未编入 h264_rkmpp 编码器"
 fi

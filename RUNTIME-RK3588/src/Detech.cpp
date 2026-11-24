@@ -23,7 +23,9 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <opencv2/imgproc.hpp>
+#if __has_include(<opencv2/geometry.hpp>)
 #include <opencv2/geometry.hpp>
+#endif
 #include <unistd.h>
 
 // Defined in Manage.cpp — request clean process exit on finite-source EOF

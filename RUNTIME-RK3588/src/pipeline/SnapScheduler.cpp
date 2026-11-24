@@ -4,7 +4,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <glog/logging.h>
+#include <opencv2/imgproc.hpp>
+#if __has_include(<opencv2/geometry.hpp>)
 #include <opencv2/geometry.hpp>
+#endif
 #include <sstream>
 
 #include "AlgoMqttBus.h"

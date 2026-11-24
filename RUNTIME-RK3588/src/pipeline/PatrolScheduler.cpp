@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <chrono>
 #include <glog/logging.h>
+#include <opencv2/imgproc.hpp>
+#if __has_include(<opencv2/geometry.hpp>)
 #include <opencv2/geometry.hpp>
+#endif
 
 #include "AlgoMqttBus.h"
 #include "YoloThreadPool.h"

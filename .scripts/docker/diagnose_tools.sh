@@ -5,6 +5,18 @@
 
 easyaiot_run_command() {
     # 从菜单回调主脚本命令，避免再次进入交互菜单
+    # RK3588 入口同时兼容 install_linux_arm/麒麟/openEuler 等安装脚本；这些脚本
+    # 即使没有独立 case，也可从共用菜单直接委托专用模块。
+    if [ "${1:-}" = "rk3588" ] && ! declare -F run_rk3588_module >/dev/null 2>&1; then
+        local rk_root="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+        local rk_cmd="${2:-install}"
+        if [ ! -f "${rk_root}/RUNTIME-RK3588/install_linux.sh" ]; then
+            print_error "未找到 RK3588 独立部署脚本"
+            return 1
+        fi
+        (cd "${rk_root}/RUNTIME-RK3588" && bash ./install_linux.sh "$rk_cmd")
+        return $?
+    fi
     EASYAIOT_FROM_MENU=1 main "$@"
 }
 
@@ -22,9 +34,60 @@ _print_root_header() {
     echo "  2) 分析 — 日志、磁盘、状态等问题定位"
     echo "  3) 官网 — SITE 官方网站独立部署"
     echo "  4) 移动端 — APP 三端打包管理（Android/iOS/HarmonyOS）"
+    echo "  5) RK3588 — 边缘 AI 盒子独立部署（不装其他模块）"
     echo ""
     echo "  0) 退出"
     echo ""
+}
+
+_print_rk3588_header() {
+    echo ""
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}  【RK3588】边缘 AI 盒子独立部署${NC}"
+    echo -e "${YELLOW}  MPP + RGA + 三核 NPU，不依赖其他模块${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+    echo ""
+    echo "  1) 一键安装、启动并验收"
+    echo "  2) 启动"
+    echo "  3) 停止"
+    echo "  4) 重启"
+    echo "  5) 查看状态"
+    echo "  6) 查看日志"
+    echo "  7) 硬件流水线验收"
+    echo "  8) 更新并重新验收"
+    echo "  9) RK3588 驱动与硬件预检"
+    echo "  10) 卸载程序（保留配置、模型和日志）"
+    echo ""
+    echo "  0) 返回上级菜单"
+    echo ""
+}
+
+run_rk3588_interactive_menu() {
+    local choice=""
+    while true; do
+        _print_rk3588_header
+        read -r -p "请输入 RK3588 选项 [0-10]: " choice || choice=""
+        if [ -z "$choice" ]; then
+            continue
+        fi
+        case "$choice" in
+            1) easyaiot_run_command rk3588 install ;;
+            2) easyaiot_run_command rk3588 start ;;
+            3) easyaiot_run_command rk3588 stop ;;
+            4) easyaiot_run_command rk3588 restart ;;
+            5) easyaiot_run_command rk3588 status ;;
+            6) easyaiot_run_command rk3588 logs ;;
+            7) easyaiot_run_command rk3588 verify ;;
+            8) easyaiot_run_command rk3588 update ;;
+            9) easyaiot_run_command rk3588 preflight ;;
+            10) easyaiot_run_command rk3588 uninstall ;;
+            0|q|Q|exit|b|B) return 0 ;;
+            *)
+                print_error "无效选项: $choice"
+                sleep 1
+                ;;
+        esac
+    done
 }
 
 _print_site_header() {
@@ -224,7 +287,7 @@ run_install_root_menu() {
     local choice=""
     while true; do
         _print_root_header
-        read -r -p "请输入选项 [0-4，默认 0 退出]: " choice || choice=""
+        read -r -p "请输入选项 [0-5，默认 0 退出]: " choice || choice=""
         choice="${choice:-0}"
         case "$choice" in
             1)
@@ -238,6 +301,9 @@ run_install_root_menu() {
                 ;;
             4)
                 run_mobile_interactive_menu
+                ;;
+            5)
+                run_rk3588_interactive_menu
                 ;;
             0|q|Q|exit)
                 print_info "已退出交互式引导"
