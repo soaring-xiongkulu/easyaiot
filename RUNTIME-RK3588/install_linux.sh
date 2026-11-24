@@ -14,6 +14,12 @@ LEGACY_CONFIG_FILE="${EASYAIOT_RK3588_CONFIG_FILE:-${CONFIG_DIR}/runtime-rk3588.
 SERVICE_BASENAME="${EASYAIOT_RK3588_SERVICE_NAME:-easyaiot-runtime-rk3588}"
 UNIT_FILE="${EASYAIOT_RK3588_UNIT_FILE:-/etc/systemd/system/${SERVICE_BASENAME}@.service}"
 LEGACY_UNIT_FILE="/etc/systemd/system/${SERVICE_BASENAME}.service"
+EDGE_AGENT_CONFIG="${STATE_DIR}/edge-agent.json"
+EDGE_AGENT_STATE="${STATE_DIR}/edge-agent-state.json"
+EDGE_AGENT_UNIT="/etc/systemd/system/${SERVICE_BASENAME}-edge-agent.service"
+FRPC_CONFIG="${STATE_DIR}/frpc.toml"
+FRPC_BIN="${PREFIX}/bin/frpc"
+FRPC_UNIT="/etc/systemd/system/${SERVICE_BASENAME}-frpc.service"
 BIN="${PREFIX}/bin/RUNTIME"
 BENCH="${PREFIX}/bin/RUNTIME-RK3588-BENCH"
 RUN_DIR="${PREFIX}/run"
@@ -226,6 +232,7 @@ install_runtime_files() {
   as_root install -m 0755 "$ROOT/scripts/convert_rknn_model.py" "$PREFIX/scripts/convert_rknn_model.py"
   as_root install -m 0755 "$ROOT/scripts/prepare_yolov8n_rk3588.sh" "$PREFIX/scripts/prepare_yolov8n_rk3588.sh"
   as_root install -m 0755 "$MANIFEST_TOOL" "$PREFIX/scripts/standalone_manifest.py"
+  as_root install -m 0755 "$ROOT/scripts/edge_agent.py" "$PREFIX/scripts/edge_agent.py"
 
   local key source_model target_model source_classes target_classes
   while IFS=$'\t' read -r key source_model target_model source_classes target_classes; do
@@ -251,7 +258,169 @@ install_runtime_files() {
   done <"${PLAN_DIR}/tasks.tsv"
   as_root install -m 0640 "${PLAN_DIR}/tasks.tsv" "$TASK_STATE_FILE"
   as_root install -m 0640 "${PLAN_DIR}/manifest.json" "$MANIFEST_FILE"
+  as_root install -m 0600 "${PLAN_DIR}/edge-agent.json" "$EDGE_AGENT_CONFIG"
   ok "任务清单已落地: $MANIFEST_FILE"
+}
+
+plan_flag() {
+  local path="$1"
+  python3 - "$PLAN_DIR/edge-agent.json" "$path" <<'PY'
+import json, sys
+value = json.load(open(sys.argv[1], encoding='utf-8'))
+for key in sys.argv[2].split('.'):
+    value = value.get(key) if isinstance(value, dict) else None
+print('1' if value is True else '0')
+PY
+}
+
+installed_flag() {
+  local path="$1"
+  [[ -s "$EDGE_AGENT_CONFIG" ]] || { echo 0; return; }
+  python3 - "$EDGE_AGENT_CONFIG" "$path" <<'PY'
+import json, sys
+value = json.load(open(sys.argv[1], encoding='utf-8'))
+for key in sys.argv[2].split('.'):
+    value = value.get(key) if isinstance(value, dict) else None
+print('1' if value is True else '0')
+PY
+}
+
+ensure_edge_agent_dependency() {
+  [[ "$(plan_flag enabled)" == "1" ]] || return 0
+  python3 -c 'import paho.mqtt.client' >/dev/null 2>&1 && return 0
+  info "安装 MQTT Agent 依赖 paho-mqtt"
+  if command -v apt-get >/dev/null 2>&1; then
+    as_root apt-get update
+    as_root apt-get install -y python3-paho-mqtt python3-pip || true
+  fi
+  if ! python3 -c 'import paho.mqtt.client' >/dev/null 2>&1; then
+    command -v pip3 >/dev/null 2>&1 || fail "缺少 pip3，无法安装 paho-mqtt"
+    as_root pip3 install --break-system-packages 'paho-mqtt>=1.6.1,<3' \
+      || as_root pip3 install 'paho-mqtt>=1.6.1,<3'
+  fi
+  python3 -c 'import paho.mqtt.client' >/dev/null 2>&1 || fail "paho-mqtt 安装失败"
+}
+
+install_frpc() {
+  [[ "$(plan_flag remote_access.enabled)" == "1" ]] || return 0
+  local source_binary download_url expected_sha version archive extract_dir actual
+  IFS=$'\t' read -r source_binary download_url expected_sha version <"${PLAN_DIR}/frpc-source.tsv"
+  if [[ -n "$source_binary" ]]; then
+    [[ -x "$source_binary" ]] || fail "remote_access.frpc_binary 不可执行: $source_binary"
+    as_root install -m 0755 "$source_binary" "$FRPC_BIN"
+  else
+    [[ -n "$download_url" ]] || fail "FRP 已启用但没有 frpc_binary 或 download_url"
+    archive="${TMP_DIR}/frpc.tar.gz"
+    info "下载 FRP ${version} arm64 客户端"
+    curl --fail --location --retry 3 --connect-timeout 15 --output "$archive" "$download_url"
+    if [[ -n "$expected_sha" ]]; then
+      actual="$(sha256sum "$archive" | awk '{print $1}')"
+      [[ "$actual" == "$expected_sha" ]] || fail "frpc 安装包 SHA256 校验失败"
+    fi
+    extract_dir="${TMP_DIR}/frpc-extract"
+    mkdir -p "$extract_dir"
+    tar -xzf "$archive" -C "$extract_dir"
+    source_binary="$(find "$extract_dir" -type f -name frpc -perm -u+x -print -quit)"
+    [[ -n "$source_binary" ]] || fail "frpc 安装包内未找到可执行文件"
+    as_root install -m 0755 "$source_binary" "$FRPC_BIN"
+  fi
+  as_root install -m 0600 "${PLAN_DIR}/frpc.toml" "$FRPC_CONFIG"
+  "$FRPC_BIN" verify -c "$FRPC_CONFIG" || fail "frpc.toml 校验失败"
+  ok "FRP 客户端已就绪；服务入口和 SSH 隧道按清单独立启用"
+}
+
+install_edge_systemd_units() {
+  command -v systemctl >/dev/null 2>&1 || return 0
+  if [[ "$(plan_flag enabled)" == "1" ]]; then
+    local agent_unit="${TMP_DIR}/${SERVICE_BASENAME}-edge-agent.service"
+    cat >"$agent_unit" <<EOF
+[Unit]
+Description=EasyAIoT RK3588 MQTT edge management agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=${PREFIX}
+ExecStart=/usr/bin/python3 ${PREFIX}/scripts/edge_agent.py --config ${EDGE_AGENT_CONFIG}
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=${STATE_DIR} ${LOG_DIR}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    as_root install -m 0644 "$agent_unit" "$EDGE_AGENT_UNIT"
+  elif [[ -f "$EDGE_AGENT_UNIT" ]]; then
+    as_root rm -f -- "$EDGE_AGENT_UNIT"
+  fi
+
+  if [[ "$(plan_flag remote_access.enabled)" == "1" ]]; then
+    local frpc_unit="${TMP_DIR}/${SERVICE_BASENAME}-frpc.service"
+    cat >"$frpc_unit" <<EOF
+[Unit]
+Description=EasyAIoT RK3588 optional FRP remote access
+Wants=network-online.target ${SERVICE_BASENAME}-edge-agent.service
+After=network-online.target ${SERVICE_BASENAME}-edge-agent.service
+
+[Service]
+Type=simple
+ExecStart=${FRPC_BIN} -c ${FRPC_CONFIG}
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    as_root install -m 0644 "$frpc_unit" "$FRPC_UNIT"
+  elif [[ -f "$FRPC_UNIT" ]]; then
+    as_root rm -f -- "$FRPC_UNIT"
+  fi
+  systemd_running && as_root systemctl daemon-reload
+}
+
+stop_edge_services() {
+  command -v systemctl >/dev/null 2>&1 || return 0
+  as_root systemctl stop "${SERVICE_BASENAME}-frpc.service" >/dev/null 2>&1 || true
+  as_root systemctl stop "${SERVICE_BASENAME}-edge-agent.service" >/dev/null 2>&1 || true
+}
+
+start_edge_services() {
+  systemd_running || {
+    [[ "$(installed_flag enabled)" == "1" ]] \
+      && warn "当前系统没有 systemd；推理任务可运行，但 MQTT Agent/FRP 需手动守护"
+    return 0
+  }
+  if [[ "$(installed_flag enabled)" == "1" ]]; then
+    as_root systemctl enable --now "${SERVICE_BASENAME}-edge-agent.service"
+    ok "MQTT 边缘 Agent 已启动"
+  fi
+  if [[ "$(installed_flag remote_access.enabled)" == "1" ]]; then
+    as_root systemctl enable --now "${SERVICE_BASENAME}-frpc.service"
+    ok "可选 FRP 远程访问已启动"
+  fi
+}
+
+edge_services_status() {
+  [[ "$(installed_flag enabled)" == "1" ]] || { info "MQTT 平台纳管：未启用"; return 0; }
+  if systemd_running && systemctl is-active --quiet "${SERVICE_BASENAME}-edge-agent.service"; then
+    ok "MQTT 平台纳管：在线"
+  else
+    warn "MQTT 平台纳管：Agent 未运行"
+  fi
+  if [[ "$(installed_flag remote_access.enabled)" == "1" ]]; then
+    if systemd_running && systemctl is-active --quiet "${SERVICE_BASENAME}-frpc.service"; then
+      ok "FRP 远程访问：在线"
+    else
+      warn "FRP 远程访问：未连接"
+    fi
+  else
+    info "FRP 远程访问：按清单关闭"
+  fi
 }
 
 install_systemd_template() {
@@ -520,12 +689,17 @@ install_all() {
   preflight_build
   ensure_build_toolchain
   build_runtime
+  stop_edge_services
   stop_legacy_service
   service_stop
   disable_installed_instances
   install_runtime_files
+  ensure_edge_agent_dependency
+  install_frpc
   install_systemd_template
+  install_edge_systemd_units
   service_start
+  start_edge_services
   verify_runtime
   echo ""
   ok "部署完成：每路 RTSP 一个受监管进程，模型文件按清单共享安装"
@@ -534,6 +708,9 @@ install_all() {
   echo "  查看日志: $0 logs [任务ID]"
   echo "  修改配置: 编辑 $MANIFEST_FILE 后执行 $0 update"
   echo "  性能验收: $BENCH <模型.rknn> test.jpg 30 150 <类别.names>"
+  if [[ "$(installed_flag enabled)" == "1" ]]; then
+    echo "  平台纳管: MQTT Agent 已启用，状态会自动出现在 WEB「边缘计算」"
+  fi
 }
 
 check_manifest() {
@@ -546,6 +723,7 @@ check_manifest() {
 
 uninstall_runtime() {
   validate_paths
+  stop_edge_services
   stop_legacy_service
   service_stop
   disable_installed_instances
@@ -553,7 +731,12 @@ uninstall_runtime() {
     as_root rm -f -- "$UNIT_FILE"
     systemd_running && as_root systemctl daemon-reload
   fi
-  as_root rm -f -- "$BIN" "$BENCH"
+  if command -v systemctl >/dev/null 2>&1; then
+    as_root systemctl disable "${SERVICE_BASENAME}-edge-agent.service" >/dev/null 2>&1 || true
+    as_root systemctl disable "${SERVICE_BASENAME}-frpc.service" >/dev/null 2>&1 || true
+  fi
+  as_root rm -f -- "$EDGE_AGENT_UNIT" "$FRPC_UNIT" "$BIN" "$BENCH" "$FRPC_BIN"
+  systemd_running && as_root systemctl daemon-reload
   warn "程序与服务模板已移除；任务清单、逐路配置、模型和日志仍保留，避免误删现场数据"
   echo "  清单: $MANIFEST_FILE"
   echo "  配置: $TASK_CONFIG_DIR"
@@ -580,7 +763,12 @@ RUNTIME-RK3588 多路独立部署
 约定与 RUNTIME 一致：realtime 一路 RTSP 一份 INI、一个受监管进程；一份 INI
 可通过 model_path、model_path_<key> 装载多个 RKNN 模型。模型文件只安装一次，
 不同视频流按 models 列表自由复用。安装后由 systemd 模板实例开机自启；无 systemd
-时使用逐任务 PID 和日志文件。不会启动 WEB、AI、VIDEO、MQTT 或 Docker。
+时使用逐任务 PID 和日志文件。不会在盒子上启动 WEB、AI、VIDEO、EMQX 或 Docker；
+启用 control_plane 后只启动轻量 MQTT Agent，连接中心平台已有的 EMQX/iot-sink/VIDEO。
+
+任务清单可选：
+  control_plane.enabled=true  接入中心平台「边缘计算」统一管理
+  remote_access.enabled=true  再启用 FRP；service 与 ssh 两条隧道分别开关
 
 旧版 EASYAIOT_RK3588_RTSP_URL + EASYAIOT_RK3588_MODEL_PATH/MODEL_URL 仍可用，
 脚本会自动转换成单任务清单；它只用于兼容，不再是推荐部署方式。
@@ -611,22 +799,29 @@ case "$ACTION" in
   start)
     validate_paths
     service_start "$ACTION_ARG"
+    [[ -z "$ACTION_ARG" ]] && start_edge_services
     verify_runtime "$ACTION_ARG"
     ;;
   stop)
     validate_paths
+    [[ -z "$ACTION_ARG" ]] && stop_edge_services
     service_stop "$ACTION_ARG"
     ok "RK3588 任务已停止${ACTION_ARG:+: $ACTION_ARG}"
     ;;
   restart)
     validate_paths
+    [[ -z "$ACTION_ARG" ]] && stop_edge_services
     service_stop "$ACTION_ARG"
     service_start "$ACTION_ARG"
+    [[ -z "$ACTION_ARG" ]] && start_edge_services
     verify_runtime "$ACTION_ARG"
     ;;
   status)
     validate_paths
-    service_status "$ACTION_ARG"
+    status_rc=0
+    service_status "$ACTION_ARG" || status_rc=$?
+    [[ -z "$ACTION_ARG" ]] && edge_services_status
+    exit "$status_rc"
     ;;
   logs)
     validate_paths

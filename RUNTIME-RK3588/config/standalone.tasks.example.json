@@ -9,6 +9,33 @@
     "use_sram": true,
     "enable_perf_query": false
   },
+  "control_plane": {
+    "enabled": true,
+    "url": "http://192.168.1.10:48080/admin-api/video/edge",
+    "join_token": "请替换为中心平台 EDGE_ENROLL_TOKEN",
+    "node_name": "园区北区-RK3588-01",
+    "heartbeat_interval_seconds": 10,
+    "agent_port": 9100
+  },
+  "remote_access": {
+    "enabled": false,
+    "provider": "frp",
+    "server_addr": "frp.example.com",
+    "server_port": 7000,
+    "auth_token": "启用 FRP 时填写",
+    "frp_version": "0.71.1",
+    "service": {
+      "enabled": true,
+      "remote_port": 19100,
+      "public_url": "http://frp.example.com:19100"
+    },
+    "ssh": {
+      "enabled": false,
+      "remote_port": 16022,
+      "public_host": "frp.example.com",
+      "username": "rock"
+    }
+  },
   "models": {
     "person_vehicle": {
       "path": "/home/rock/models/person-vehicle-int8.rknn",

@@ -72,6 +72,46 @@ class StandaloneManifestTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("未定义模型", result.stderr)
 
+    def test_compiles_control_plane_and_optional_frp(self):
+        document = self.document()
+        document["control_plane"] = {
+            "enabled": True,
+            "url": "http://platform.example/admin-api/video/edge",
+            "join_token": "join-secret",
+            "node_name": "rk3588-lab",
+            "heartbeat_interval_seconds": 10,
+            "agent_port": 9100,
+        }
+        document["remote_access"] = {
+            "enabled": True,
+            "provider": "frp",
+            "server_addr": "frp.example.com",
+            "server_port": 7000,
+            "auth_token": "frp-secret",
+            "frpc_binary": "/usr/local/bin/frpc",
+            "service": {"enabled": True, "remote_port": 19100},
+            "ssh": {"enabled": True, "remote_port": 16022, "username": "rock"},
+        }
+        result, output = self.run_compile(document)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        agent = json.loads((output / "edge-agent.json").read_text(encoding="utf-8"))
+        self.assertTrue(agent["enabled"])
+        self.assertEqual(agent["remote_access"]["sshAccessPort"], 16022)
+        frpc = (output / "frpc.toml").read_text(encoding="utf-8")
+        self.assertIn('name = "easyaiot-edge-service"', frpc)
+        self.assertIn('name = "easyaiot-edge-ssh"', frpc)
+
+    def test_rejects_frp_without_control_plane(self):
+        document = self.document()
+        document["remote_access"] = {
+            "enabled": True,
+            "server_addr": "frp.example.com",
+            "auth_token": "secret",
+        }
+        result, _ = self.run_compile(document)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("必须先启用 control_plane", result.stderr)
+
     def test_root_installer_forwards_manifest_to_config_check(self):
         manifest = self.base / "tasks.json"
         manifest.write_text(json.dumps(self.document()), encoding="utf-8")

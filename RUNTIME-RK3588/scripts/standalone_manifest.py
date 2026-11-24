@@ -140,6 +140,97 @@ def compile_manifest(
     }
     mqtt_defaults = merged(mqtt_defaults, document.get("mqtt"), "mqtt")
 
+    control_plane = merged({
+        "enabled": False,
+        "url": "",
+        "join_token": "",
+        "node_name": "",
+        "heartbeat_interval_seconds": 10,
+        "agent_port": 9100,
+    }, document.get("control_plane"), "control_plane")
+    control_enabled = boolean(control_plane.get("enabled"), "control_plane.enabled")
+    control_url = clean_text(control_plane.get("url", ""), "control_plane.url", allow_empty=True).rstrip("/")
+    join_token = clean_text(control_plane.get("join_token", ""), "control_plane.join_token", allow_empty=True)
+    node_name = clean_text(control_plane.get("node_name", ""), "control_plane.node_name", allow_empty=True)
+    heartbeat_interval = integer(
+        control_plane.get("heartbeat_interval_seconds"),
+        "control_plane.heartbeat_interval_seconds", 5, 300,
+    )
+    agent_port = integer(control_plane.get("agent_port"), "control_plane.agent_port", 1024, 65535)
+    if control_enabled:
+        require(control_url.startswith(("http://", "https://")),
+                "control_plane.url 必须使用 http:// 或 https://")
+
+    remote_access = merged({
+        "enabled": False,
+        "provider": "frp",
+        "server_addr": "",
+        "server_port": 7000,
+        "auth_token": "",
+        "frp_version": "0.71.1",
+        "frpc_binary": "",
+        "download_url": "",
+        "sha256": "",
+        "service": {"enabled": True, "remote_port": 19100, "public_url": ""},
+        "ssh": {"enabled": False, "remote_port": 16022, "public_host": "", "username": "root"},
+    }, document.get("remote_access"), "remote_access")
+    remote_enabled = boolean(remote_access.get("enabled"), "remote_access.enabled")
+    provider = clean_text(remote_access.get("provider", "frp"), "remote_access.provider")
+    require(provider == "frp", "remote_access.provider 当前只支持 frp")
+    server_addr = clean_text(remote_access.get("server_addr", ""), "remote_access.server_addr", allow_empty=True)
+    server_port = integer(remote_access.get("server_port"), "remote_access.server_port", 1, 65535)
+    auth_token = clean_text(remote_access.get("auth_token", ""), "remote_access.auth_token", allow_empty=True)
+    frp_version = clean_text(remote_access.get("frp_version", "0.71.1"), "remote_access.frp_version")
+    frpc_binary = clean_text(remote_access.get("frpc_binary", ""), "remote_access.frpc_binary", allow_empty=True)
+    download_url = clean_text(remote_access.get("download_url", ""), "remote_access.download_url", allow_empty=True)
+    frp_sha256 = clean_text(remote_access.get("sha256", ""), "remote_access.sha256", allow_empty=True).lower()
+    if frp_sha256:
+        require(bool(re.fullmatch(r"[0-9a-f]{64}", frp_sha256)),
+                "remote_access.sha256 必须是 64 位十六进制")
+    service_tunnel = merged(
+        {"enabled": True, "remote_port": 19100, "public_url": ""},
+        remote_access.get("service"), "remote_access.service",
+    )
+    ssh_tunnel = merged(
+        {"enabled": False, "remote_port": 16022, "public_host": "", "username": "root"},
+        remote_access.get("ssh"), "remote_access.ssh",
+    )
+    service_enabled = boolean(service_tunnel.get("enabled"), "remote_access.service.enabled")
+    ssh_enabled = boolean(ssh_tunnel.get("enabled"), "remote_access.ssh.enabled")
+    service_remote_port = integer(
+        service_tunnel.get("remote_port"), "remote_access.service.remote_port", 1, 65535,
+    )
+    ssh_remote_port = integer(ssh_tunnel.get("remote_port"), "remote_access.ssh.remote_port", 1, 65535)
+    service_public_url = clean_text(
+        service_tunnel.get("public_url", ""), "remote_access.service.public_url", allow_empty=True,
+    )
+    ssh_public_host = clean_text(
+        ssh_tunnel.get("public_host", ""), "remote_access.ssh.public_host", allow_empty=True,
+    )
+    ssh_username = clean_text(ssh_tunnel.get("username", "root"), "remote_access.ssh.username")
+    if service_public_url:
+        require(service_public_url.startswith(("http://", "https://")),
+                "remote_access.service.public_url 必须使用 http:// 或 https://")
+    if ssh_public_host:
+        require(bool(re.fullmatch(r"[A-Za-z0-9.:[\]_-]+", ssh_public_host)),
+                "remote_access.ssh.public_host 不是有效的主机名或 IP")
+    require(bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]{0,31}", ssh_username)),
+            "remote_access.ssh.username 不是有效的 Linux 用户名")
+    if remote_enabled:
+        require(control_enabled, "启用 FRP 前必须先启用 control_plane，才能在平台呈现入口状态")
+        require(bool(server_addr), "remote_access.server_addr 不能为空")
+        require(bool(auth_token), "remote_access.auth_token 不能为空")
+        require(service_enabled or ssh_enabled, "FRP 至少启用 service 或 ssh 一条隧道")
+        require(not (service_enabled and ssh_enabled and service_remote_port == ssh_remote_port),
+                "service 与 ssh 的 FRP remote_port 不能相同")
+        if not frpc_binary and not download_url:
+            download_url = (
+                f"https://github.com/fatedier/frp/releases/download/v{frp_version}/"
+                f"frp_{frp_version}_linux_arm64.tar.gz"
+            )
+        if frp_version == "0.71.1" and not frp_sha256 and not frpc_binary:
+            frp_sha256 = "8edf590b0c396fa42f9c147121a76af83cfc2002b08f5aef0ea1008c43482019"
+
     raw_models = document.get("models")
     require(isinstance(raw_models, dict) and raw_models, "models 必须是非空对象")
     models: dict[str, dict[str, Any]] = {}
@@ -379,10 +470,84 @@ enable_alarm={'true' if alarm_enabled else 'false'}
 
     write_tsv(output_dir / "models.tsv", model_rows)
     write_tsv(output_dir / "tasks.tsv", task_rows)
+    service_public_url = service_public_url or (
+        f"http://{server_addr}:{service_remote_port}" if remote_enabled and service_enabled else ""
+    )
+    ssh_public_host = ssh_public_host or (server_addr if remote_enabled and ssh_enabled else "")
+    edge_agent_config = {
+        "spec_version": "easyaiot.edge.telemetry/v1",
+        "enabled": control_enabled,
+        "control_plane_url": control_url,
+        "join_token": join_token,
+        "node_name": node_name,
+        "heartbeat_interval_seconds": heartbeat_interval,
+        "agent_port": agent_port,
+        "remote_access": {
+            "enabled": remote_enabled,
+            "provider": provider,
+            "status": "configured" if remote_enabled else "disabled",
+            "serviceEnabled": service_enabled if remote_enabled else False,
+            "serviceAccessUrl": service_public_url,
+            "sshEnabled": ssh_enabled if remote_enabled else False,
+            "sshAccessHost": ssh_public_host,
+            "sshAccessPort": ssh_remote_port if remote_enabled and ssh_enabled else None,
+            "sshUsername": ssh_username if remote_enabled and ssh_enabled else None,
+        },
+    }
+    (output_dir / "edge-agent.json").write_text(
+        json.dumps(edge_agent_config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    if remote_enabled:
+        def toml_string(value: str) -> str:
+            return json.dumps(value, ensure_ascii=False)
+
+        frpc_lines = [
+            f"serverAddr = {toml_string(server_addr)}",
+            f"serverPort = {server_port}",
+            f"user = {toml_string('easyaiot-rk3588')}",
+            "auth.method = \"token\"",
+            f"auth.token = {toml_string(auth_token)}",
+            "loginFailExit = false",
+            "",
+        ]
+        if service_enabled:
+            frpc_lines.extend([
+                "[[proxies]]",
+                "name = \"easyaiot-edge-service\"",
+                "type = \"tcp\"",
+                "localIP = \"127.0.0.1\"",
+                f"localPort = {agent_port}",
+                f"remotePort = {service_remote_port}",
+                "",
+            ])
+        if ssh_enabled:
+            frpc_lines.extend([
+                "[[proxies]]",
+                "name = \"easyaiot-edge-ssh\"",
+                "type = \"tcp\"",
+                "localIP = \"127.0.0.1\"",
+                "localPort = 22",
+                f"remotePort = {ssh_remote_port}",
+                "",
+            ])
+        (output_dir / "frpc.toml").write_text("\n".join(frpc_lines), encoding="utf-8")
+        (output_dir / "frpc-source.tsv").write_text(
+            "\t".join((frpc_binary, download_url, frp_sha256, frp_version)) + "\n",
+            encoding="utf-8",
+        )
     normalized_document = {
         "version": 1,
         "runtime": runtime_defaults,
         "mqtt": mqtt_defaults,
+        "control_plane": {
+            "enabled": control_enabled,
+            "url": control_url,
+            "join_token": join_token,
+            "node_name": node_name,
+            "heartbeat_interval_seconds": heartbeat_interval,
+            "agent_port": agent_port,
+        },
+        "remote_access": remote_access,
         "models": normalized_models,
         "tasks": normalized_tasks,
     }
@@ -394,6 +559,8 @@ enable_alarm={'true' if alarm_enabled else 'false'}
         "models": len(model_rows),
         "bindings": sum(len(task["models"]) for task in normalized_tasks),
         "task_ids": [row[0] for row in task_rows],
+        "control_plane": control_enabled,
+        "remote_access": remote_enabled,
     }
 
 
