@@ -121,6 +121,7 @@ def _serialize_model_item(model: Model) -> dict:
         'torchscript_model_path': model.torchscript_model_path,
         'tensorrt_model_path': model.tensorrt_model_path,
         'openvino_model_path': model.openvino_model_path,
+        'rknn_model_path': model.rknn_model_path,
         **_serialize_model_class_fields(model),
         **_serialize_model_provenance(model),
     }
@@ -1177,6 +1178,7 @@ def get_model(model_id):
                 'torchscript_model_path': model.torchscript_model_path,
                 'tensorrt_model_path': model.tensorrt_model_path,
                 'openvino_model_path': model.openvino_model_path,
+                'rknn_model_path': model.rknn_model_path,
                 **_serialize_model_class_fields(model),
                 **_serialize_model_provenance(model),
             },
