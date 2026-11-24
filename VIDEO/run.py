@@ -1285,6 +1285,15 @@ def create_app(start_background_tasks=None):
         print(f'❌ Edge Compute Blueprint 注册失败: {str(e)}')
         import traceback
         traceback.print_exc()
+
+    try:
+        from app.blueprints import local_monitor
+        app.register_blueprint(local_monitor.local_monitor_bp, url_prefix='/video/local-monitor')
+        print('✅ Local Monitor Blueprint 注册成功')
+    except Exception as e:
+        print(f'❌ Local Monitor Blueprint 注册失败: {str(e)}')
+        import traceback
+        traceback.print_exc()
     
     try:
         app.register_blueprint(alert.alert_bp, url_prefix='/video/alert')
