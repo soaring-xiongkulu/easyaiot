@@ -176,13 +176,12 @@ The RK3588 module determines whether the appliance can infer locally in real tim
 **Standalone deployment on an RK3588 box, without the rest of the platform:**
 
 ```bash
-sudo env \
-  EASYAIOT_RK3588_RTSP_URL='rtsp://user:pass@camera/stream' \
-  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
-  bash .scripts/docker/install_linux.sh rk3588 install
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# Edit one file: add models once, then let each RTSP task select one or more model keys.
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
 
-Run the command from the repository root with an RTSP URL and an RKNN model path. The script performs the driver preflight, builds the native runtime, installs the model and class names, generates a standalone configuration, registers and starts a systemd service, and waits for `/health` to confirm MPP, RGA and RKNN. Without systemd it uses a managed background process with a PID and log file. It does not install Docker or start WEB, AI, VIDEO, MQTT or any other module. Alternatively, run `sudo bash .scripts/docker/install_linux.sh`, choose **5) RK3588 → 1) one-click install**, and enter the RTSP URL and model path.
+The manifest follows the same convention as `RUNTIME`: `models` is a reusable RKNN model registry, while every item in `tasks` is one RTSP stream and references a free combination such as `"models": ["person_vehicle", "helmet"]`. Add ten streams by adding ten task items—there is no single-stream or single-model limit. The installer validates every path, model reference and control port before changing the host, installs each model only once, generates one INI and one supervised process per stream, then verifies every `/health` endpoint. systemd template instances provide boot restart; hosts without systemd get a separate PID and log per task. It does not install Docker or start WEB, AI, VIDEO, MQTT or any other module. Use `rk3588 status [task-id]`, `logs [task-id]`, or `verify [task-id]` to operate all streams or one selected stream. The guided menu asks only for this manifest path.
 
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 

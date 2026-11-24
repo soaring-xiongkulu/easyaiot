@@ -176,13 +176,12 @@ Le module RK3588 détermine si l'appliance peut inférer localement en temps ré
 **Déploiement autonome sur un boîtier RK3588, sans les autres modules de la plateforme :**
 
 ```bash
-sudo env \
-  EASYAIOT_RK3588_RTSP_URL='rtsp://user:pass@camera/stream' \
-  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
-  bash .scripts/docker/install_linux.sh rk3588 install
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# Modifier ce seul fichier : déclarer les modèles une fois, puis les associer librement aux flux RTSP.
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
 
-La commande s'exécute depuis la racine du dépôt avec une URL RTSP et le chemin du modèle RKNN. Le script vérifie les pilotes, compile le runtime natif, installe le modèle et les classes, génère une configuration autonome, enregistre et démarre le service systemd, puis attend que `/health` confirme MPP, RGA et RKNN. Sans systemd, il utilise un processus d'arrière-plan avec PID et fichier journal. Il n'installe pas Docker et ne démarre ni WEB, ni AI, ni VIDEO, ni MQTT. On peut aussi lancer `sudo bash .scripts/docker/install_linux.sh`, choisir **5) RK3588 → 1) installation en un clic**, puis saisir l'URL RTSP et le chemin du modèle.
+Le manifeste reprend la convention de `RUNTIME` : `models` est un registre réutilisable de modèles RKNN et chaque entrée de `tasks` représente un flux RTSP pouvant sélectionner un ou plusieurs modèles, par exemple `"models": ["person_vehicle", "helmet"]`. Dix flux se décrivent avec dix tâches ; il n'existe aucune limite artificielle à un flux ou un modèle. Avant toute modification de l'hôte, l'installateur valide les chemins, les références et les ports, installe chaque modèle une seule fois, génère un INI et un processus supervisé par flux, puis vérifie chaque endpoint `/health`. Les instances modèles systemd assurent le redémarrage au boot ; sans systemd, chaque tâche possède son PID et son journal. Docker et les modules WEB, AI, VIDEO ou MQTT ne sont pas démarrés. `rk3588 status [id]`, `logs [id]` et `verify [id]` opèrent tous les flux ou une seule tâche. Le menu guidé ne demande que le chemin de ce manifeste.
 
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 

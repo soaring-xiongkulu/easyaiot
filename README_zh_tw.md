@@ -176,13 +176,12 @@ RK3588 模組決定設備能否在本地即時推理並長期穩定運行；緊�
 **在 RK3588 盒子上獨立部署，不依賴平台其他模組：**
 
 ```bash
-sudo env \
-  EASYAIOT_RK3588_RTSP_URL='rtsp://使用者:密碼@攝像頭/碼流' \
-  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
-  bash .scripts/docker/install_linux.sh rk3588 install
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# 只編輯這一個檔案：模型登記一次，每路 RTSP 自由選擇一個或多個模型鍵
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
 
-上述命令在倉庫根目錄執行，只需提供 RTSP 位址與 RKNN 模型路徑。腳本依次完成驅動預檢、本機編譯、模型與類別檔案安裝、獨立配置生成、systemd 服務註冊與啟動，並等待 `/health` 確認 MPP、RGA、RKNN 鏈路可用；系統沒有 systemd 時自動改用帶 PID 與日誌檔案的背景程式。它不會安裝 Docker，也不會啟動 WEB、AI、VIDEO、MQTT 等其他模組。也可執行 `sudo bash .scripts/docker/install_linux.sh`，在選單中選擇 **5）RK3588 → 1）一鍵安裝**，按提示輸入 RTSP 與模型路徑。
+任務清單沿用 `RUNTIME` 的約定：`models` 是可重用的 RKNN 模型庫，`tasks` 中每一項就是一路 RTSP，並用類似 `"models": ["person_vehicle", "helmet"]` 的方式自由綁定一個或多個模型；要接十路影片，只需增加十個任務，不存在「只能一路、只能一個模型」的限制。安裝器會先一次校驗全部路徑、模型引用和控制埠，再把模型各安裝一份、為每路影片生成一份 INI 和一個獨立受監管程序，最後逐路等待 `/health` 驗收 MPP、RGA、RKNN 硬體鏈路。systemd 以模板實例提供開機自啟與故障拉起；沒有 systemd 時，每路也有獨立 PID 與日誌。它不會安裝 Docker，也不會啟動 WEB、AI、VIDEO、MQTT 等其他模組。維運時執行 `rk3588 status [任務ID]`、`logs [任務ID]`、`verify [任務ID]`，既能看全部，也能只看一路；互動選單也只會請你選擇這份清單。
 
 ### 🎛️ PANEL：一體機到場當天可裝可驗，值守不必等開發遠程
 
