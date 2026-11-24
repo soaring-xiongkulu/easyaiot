@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "runtime": {
+    "npu_workers": 3,
+    "task_queue_depth": 2,
+    "frame_pool_size": 6,
+    "mpp_buffer_count": 8,
+    "frame_skip": 1,
+    "use_sram": true,
+    "enable_perf_query": false
+  },
+  "models": {
+    "person_vehicle": {
+      "path": "/home/rock/models/person-vehicle-int8.rknn",
+      "classes": "/home/rock/models/coco.names",
+      "business_model_id": 101
+    },
+    "helmet": {
+      "path": "/home/rock/models/helmet-int8.rknn",
+      "classes": "/home/rock/models/helmet.names",
+      "business_model_id": 102
+    }
+  },
+  "tasks": [
+    {
+      "id": "north-gate",
+      "device_id": "camera-north-gate",
+      "device_name": "园区北门",
+      "rtsp_url": "rtsp://user:password@192.168.1.101/stream1",
+      "models": ["person_vehicle", "helmet"],
+      "control_port": 8201
+    },
+    {
+      "id": "warehouse",
+      "device_id": "camera-warehouse",
+      "device_name": "一号仓库",
+      "rtsp_url": "rtsp://user:password@192.168.1.102/stream1",
+      "models": ["person_vehicle"],
+      "control_port": 8202
+    }
+  ]
+}
