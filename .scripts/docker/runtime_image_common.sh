@@ -113,7 +113,10 @@ runtime_is_single_arch_build() {
 }
 
 # build-runtime 可选单模块（IDEA/TERMINAL/PANEL 全形态；POST 仅 standard/full；APP/VISUALIZE/TWIN/TRANSFORM 仅 full）
-ALL_RUNTIME_BUILD_MODULES=(HARNESS IDEA TERMINAL DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
+DOCKER_RUNTIME_BUILD_MODULES=(HARNESS IDEA TERMINAL DEVICE AI RTC POST VIDEO WEB APP VISUALIZE TWIN TRANSFORM PANEL)
+# 原生运行时模块：不走 Docker 镜像构建/推送，仅显式指定时在本机编译
+NATIVE_RUNTIME_BUILD_MODULES=(RUNTIME-RK3588)
+ALL_RUNTIME_BUILD_MODULES=("${DOCKER_RUNTIME_BUILD_MODULES[@]}" "${NATIVE_RUNTIME_BUILD_MODULES[@]}")
 
 runtime_build_module_help() {
     local out="all" m
@@ -128,9 +131,15 @@ runtime_build_module_pipe_list() {
     echo "${ALL_RUNTIME_BUILD_MODULES[*]}"
 }
 
+runtime_docker_build_module_pipe_list() {
+    local IFS='|'
+    echo "${DOCKER_RUNTIME_BUILD_MODULES[*]}"
+}
+
+# 全量 Docker 镜像清单（不含 RUNTIME-RK3588 等原生模块；“all”只构建这些镜像）
 runtime_build_module_plus_list() {
     local out="" m
-    for m in "${ALL_RUNTIME_BUILD_MODULES[@]}"; do
+    for m in "${DOCKER_RUNTIME_BUILD_MODULES[@]}"; do
         if [ -z "$out" ]; then
             out="$m"
         else
@@ -138,6 +147,141 @@ runtime_build_module_plus_list() {
         fi
     done
     echo "$out"
+}
+
+# 是否为原生运行时模块（非 Docker 镜像）
+runtime_is_native_build_module() {
+    [ "${1:-}" = "RUNTIME-RK3588" ]
+}
+
+# 原生模块仓库目录（RUNTIME-RK3588 根目录）
+runtime_native_build_module_root() {
+    local root="${PROJECT_ROOT:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
+    echo "${root}/RUNTIME-RK3588"
+}
+
+# 原生模块构建产物目录（build-runtime 的直接产物）
+runtime_native_build_module_build_dir() {
+    local root build
+    root="$(runtime_native_build_module_root)"
+    build="${EASYAIOT_RK3588_BUILD_DIR:-}"
+    if [ -z "$build" ]; then
+        echo "${root}/build"
+    elif [[ "$build" = /* ]]; then
+        echo "$build"
+    else
+        echo "${root}/${build}"
+    fi
+}
+
+# 构建原生运行时模块：直接调用模块 install 脚本，不经过 Docker/镜像仓库
+runtime_build_native_module() {
+    local mod="$1" root script
+    case "$mod" in
+        RUNTIME-RK3588)
+            root="$(runtime_native_build_module_root)"
+            script="${root}/install_linux.sh"
+            runtime_img_msg info "RUNTIME-RK3588 为 Rockchip 原生运行时（MPP/RGA/RKNN），不构建 Docker 镜像、不推送镜像仓库"
+            runtime_img_msg info "编译产物: $(runtime_native_build_module_build_dir)"
+            if [ ! -f "$script" ]; then
+                runtime_img_msg error "未找到 RUNTIME-RK3588 安装脚本: ${script}"
+                return 1
+            fi
+            if [ "$(uname -m)" != "aarch64" ]; then
+                runtime_img_msg warn "当前架构 $(uname -m) 不是 aarch64；RK3588 原生运行时通常需在板端编译"
+            fi
+            ( cd "$root" && bash "$script" build )
+            ;;
+        *)
+            runtime_img_msg error "不支持的原生运行时模块: ${mod}"
+            return 1
+            ;;
+    esac
+}
+
+# 清理原生运行时模块构建产物
+# 参数: module [--yes] [--dry-run] [--all|--dist|--cache]
+runtime_clean_native_module() {
+    local mod="$1"
+    shift || true
+    local assume_yes=0 dry_run=0 do_dist=0 do_cache=0
+    local root build_dir dist_dir cache_dir
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -y|--yes) assume_yes=1 ;;
+            --dry-run|-n) dry_run=1 ;;
+            --all)
+                do_dist=1; do_cache=1 ;;
+            --dist) do_dist=1 ;;
+            --cache) do_cache=1 ;;
+            --images|--builder|--marker|--logs)
+                runtime_img_msg warn "RUNTIME-RK3588 为原生构建，忽略 Docker 清理选项: $1" ;;
+            *) runtime_img_msg warn "RUNTIME-RK3588 清理忽略未知选项: $1" ;;
+        esac
+        shift
+    done
+
+    case "$mod" in
+        RUNTIME-RK3588) ;;
+        *) runtime_img_msg error "不支持的原生运行时模块: ${mod}"; return 1 ;;
+    esac
+
+    root="$(runtime_native_build_module_root)"
+    build_dir="$(runtime_native_build_module_build_dir)"
+    dist_dir="${root}/dist"
+    cache_dir="${root}/.bundle-runtime"
+
+    runtime_img_msg info "RUNTIME-RK3588 为原生构建，无需清理 Docker 镜像/构建缓存/拉取标记"
+    echo "  待清理: ${build_dir}"
+    if [ "$do_dist" -eq 1 ]; then
+        echo "  待清理: ${dist_dir}"
+    fi
+    if [ "$do_cache" -eq 1 ]; then
+        echo "  待清理: ${cache_dir}"
+    fi
+
+    local -a targets=("$build_dir")
+    [ "$do_dist" -eq 1 ] && targets+=("$dist_dir")
+    [ "$do_cache" -eq 1 ] && targets+=("$cache_dir")
+
+    local any=0 path
+    for path in "${targets[@]}"; do
+        [ -e "$path" ] && any=1
+    done
+    if [ "$any" -eq 0 ]; then
+        runtime_img_msg info "没有需要清理的 RUNTIME-RK3588 构建产物"
+        return 0
+    fi
+
+    if [ "$assume_yes" -ne 1 ] && [ "$dry_run" -ne 1 ]; then
+        local resp=""
+        printf '%s' "确认删除以上构建产物？(y/N) "
+        read -r resp || resp=""
+        case "${resp:-N}" in
+            y|Y|yes|YES) ;;
+            *) runtime_img_msg info "已取消"; return 0 ;;
+        esac
+    fi
+
+    for path in "${targets[@]}"; do
+        case "$path" in
+            ""|"/"|".") runtime_img_msg error "拒绝清理不安全路径: ${path}"; return 1 ;;
+        esac
+        if [ ! -e "$path" ]; then
+            runtime_img_msg info "不存在，跳过: ${path}"
+            continue
+        fi
+        if [ "$dry_run" -eq 1 ]; then
+            runtime_img_msg info "[dry-run] rm -rf ${path}"
+        else
+            rm -rf -- "$path"
+            runtime_img_msg ok "已删除: ${path}"
+        fi
+    done
+    if [ "$dry_run" -ne 1 ]; then
+        runtime_img_msg info "保留安装目录、任务清单与现场数据；重新构建: install_linux.sh build-runtime RUNTIME-RK3588"
+    fi
+    return 0
 }
 
 # 规范化 build-runtime 目标模块（空/all=全部；无效返回 INVALID）
@@ -160,6 +304,7 @@ runtime_normalize_build_module() {
         twin|aiot-twin|easyaiot-twin|digital-twin) echo "TWIN" ;;
         transform|aiot-transform) echo "TRANSFORM" ;;
         panel|aiot-panel|easyaiot/panel) echo "PANEL" ;;
+        runtime-rk3588|runtime_rk3588|rk3588|rk3588-runtime|rockchip-rk3588) echo "RUNTIME-RK3588" ;;
         *) echo "INVALID" ;;
     esac
 }
@@ -600,6 +745,7 @@ runtime_build_module_desc() {
         TWIN) echo "数字孪生引擎（仅 full / 含可视化形态）" ;;
         TRANSFORM) echo "系统对接 Runtime（仅 full 形态）" ;;
         PANEL)     echo "独立运维控制台（全形态）" ;;
+        RUNTIME-RK3588) echo "Rockchip RK3588 原生运行时（MPP/RGA/RKNN，板端编译，非 Docker 镜像）" ;;
         *)         echo "" ;;
     esac
 }
@@ -636,6 +782,11 @@ runtime_interactive_pick_module() {
 # build-runtime 交互选择目标模块（默认全部）
 runtime_interactive_select_build_module() {
     local normalized choice idx mod
+    # 同一轮 build-runtime 可能先单独选模块（用于判断原生模块），避免重复询问
+    if [ "${RUNTIME_BUILD_MODULE_PROMPTED:-0}" = "1" ]; then
+        return 0
+    fi
+    RUNTIME_BUILD_MODULE_PROMPTED=1
     if [ -n "${EASYAIOT_RUNTIME_BUILD_MODULE:-}" ]; then
         normalized=$(runtime_normalize_build_module "$EASYAIOT_RUNTIME_BUILD_MODULE")
         if [ "$normalized" = "INVALID" ]; then
@@ -675,6 +826,7 @@ runtime_interactive_select_build_module() {
             TWIN) echo "  ${idx}) TWIN      — 数字孪生引擎（仅 full / 含可视化形态）" ;;
             TRANSFORM) echo "  ${idx}) TRANSFORM — 系统对接 Runtime（仅 full 形态）" ;;
             PANEL)  echo "  ${idx}) PANEL     — 独立运维控制台（全形态）" ;;
+            RUNTIME-RK3588) echo "  ${idx}) RUNTIME-RK3588 — Rockchip RK3588 原生运行时（板端编译，非 Docker 镜像）" ;;
         esac
         _MODULE_CHOICES[$idx]="$mod"
         idx=$((idx + 1))
@@ -783,13 +935,17 @@ runtime_images_prepare_pull_interactive() {
 
 # build-runtime 前交互配置
 runtime_images_prepare_build_interactive() {
+    runtime_interactive_select_build_module
+    # 原生模块不走镜像仓库、架构与推送流程，直接返回交由调用方本地编译
+    if runtime_is_native_build_module "${EASYAIOT_RUNTIME_BUILD_MODULE:-}"; then
+        return 0
+    fi
     runtime_log_registry_info
     runtime_load_registry
     export EASYAIOT_RUNTIME_REGISTRY="$RUNTIME_IMAGE_REGISTRY"
     export REGISTRY="$RUNTIME_IMAGE_REGISTRY"
     runtime_verify_registry_push_access "$RUNTIME_IMAGE_REGISTRY" || exit 1
     runtime_interactive_select_profile build
-    runtime_interactive_select_build_module
     runtime_validate_build_module_profile || exit 1
     runtime_interactive_select_build_arch
     runtime_interactive_select_tag
@@ -1782,7 +1938,7 @@ runtime_images_invoke() {
 # 显示运行时镜像管理用法摘要
 runtime_images_usage() {
     cat <<EOF
-运行时镜像管理（业务模块 $(runtime_build_module_pipe_list | tr '|' '/')，不含中间件；IDEA/HARNESS/TERMINAL/PANEL 全形态；POST 仅 standard/full 部署；APP/VISUALIZE/TRANSFORM 仅 full）
+运行时镜像管理（业务模块 $(runtime_docker_build_module_pipe_list | tr '|' '/')，不含中间件；IDEA/HARNESS/TERMINAL/PANEL 全形态；POST 仅 standard/full 部署；APP/VISUALIZE/TRANSFORM 仅 full）
 
 pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   mini     — 精简 DEVICE（4/13：gateway/system/infra/sink）
@@ -1790,6 +1946,7 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   full     — 拉全部 DEVICE（13/13，含 aiot-visualize）
   build-runtime 默认构建/推送全部模块；可指定单模块 $(runtime_build_module_pipe_list)
   全量 build-runtime 仍构建/推送全量 DEVICE，供各形态共用远程仓库
+  RUNTIME-RK3588 为 Rockchip 原生运行时：仅显式指定时板端编译，不参与 all，也不推送镜像
 
 本地安装（含本地构建）:
   bash .scripts/docker/install_linux.sh install       # 交互可选拉取或本地构建
@@ -1808,6 +1965,8 @@ pull 按部署形态过滤 DEVICE 镜像（与 compose 启停一致）：
   bash .scripts/docker/install_linux.sh build-runtime IDEA # 仅构建/推送 IDEA（portal+workspace）
   bash .scripts/docker/install_linux.sh build-runtime AI    # 仅构建/推送 AI 模块
   bash .scripts/docker/install_linux.sh build-runtime POST  # 仅构建/推送 POST 定制后处理
+  bash .scripts/docker/install_linux.sh build-runtime RUNTIME-RK3588  # RK3588 板端原生编译（非镜像）
+  bash .scripts/docker/install_linux.sh clean-build-runtime RUNTIME-RK3588  # 清理 RUNTIME-RK3588/build
   bash .scripts/docker/install_business_linux.sh pull
   bash .scripts/docker/install_business_linux.sh build-runtime
 
