@@ -41,6 +41,18 @@ EasyAIoT는 통합 데이터·이벤트 기반 위에서 현장 장치, 엣지 �
     <img src=".image/iframe5.png" width="100%" alt="EasyAIoT 클라우드-엣지-디바이스 통합 아키텍처">
 </div>
 
+## 🧠 RK3588 엣지 AI 어플라이언스
+
+**하드웨어는 AI를 실제 현장 역량으로 만드는 기반입니다.** 새로운 [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) 모듈은 EasyAIoT의 네이티브 비디오 런타임을 소형 RK3588 엣지 장비에 탑재하여 스트림 수신, 디코딩, AI 추론, 경보 및 박스 표시 영상을 카메라와 현장 장치 가까이에서 처리합니다. 금속 방열 핀 구조, Wi-Fi 및 4G/5G 확장, HDMI IN/OUT, USB와 Type-C, 듀얼 이더넷, SIM 연결을 통해 매장·캠퍼스·공장·건설 현장·원격 지역에 빠르게 배치할 수 있으며, 응답 지연과 업링크 대역폭을 줄이고 데이터를 현장에서 더 안전하게 관리할 수 있습니다.
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 전면 패널 및 무선 확장">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 금속 방열 핀 케이스">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 입출력 패널">
+</div>
+
+➡️ [RUNTIME-RK3588 모듈, 하드웨어 가치 및 배포 가이드 보기](RUNTIME-RK3588/README.md)
+
 ## 📖 프로젝트 소개
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

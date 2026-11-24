@@ -41,6 +41,18 @@ EasyAIoT 以統一數據與事件底座貫通現場設備、邊緣執行、平�
     <img src=".image/iframe5.png" width="100%" alt="EasyAIoT 雲邊端一體化架構圖">
 </div>
 
+## 🧠 RK3588 邊緣 AI 硬體
+
+**硬體是 AI 真正落地現場的基礎。** 新增的 [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) 模組面向 RK3588 邊緣 AI 一體機，讓視頻拉流、解碼、AI 推理、告警和帶框畫面在攝像頭與現場設備附近完成。大面積金屬鰭片機身、Wi-Fi 與 4G/5G 擴展、HDMI IN/OUT、USB、Type-C、雙網口和 SIM 等硬體能力，使它能快速進入門店、園區、工廠、工地與偏遠點位，帶來更低時延、更少上行頻寬、更可控的現場數據和更簡單的項目交付。
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板與無線擴展">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 金屬鰭片式機身">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 接口面板">
+</div>
+
+➡️ [查看 RUNTIME-RK3588 模組、硬體價值與部署說明](RUNTIME-RK3588/README.md)
+
 ## 📖 項目介紹
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

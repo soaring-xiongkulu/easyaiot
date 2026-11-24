@@ -41,6 +41,18 @@ EasyAIoT 以统一数据与事件底座贯通现场设备、边缘执行、平�
     <img src=".image/iframe5.png" width="100%" alt="EasyAIoT 云边端一体化架构图">
 </div>
 
+## 🧠 RK3588 边缘 AI 硬件
+
+**硬件是 AI 真正落地现场的基础。** 新增的 [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) 模块面向 RK3588 边缘 AI 一体机，让视频拉流、解码、AI 推理、告警和带框画面在摄像头与现场设备附近完成。大面积金属鳍片机身、Wi-Fi 与 4G/5G 扩展、HDMI IN/OUT、USB、Type-C、双网口和 SIM 等硬件能力，使它能快速进入门店、园区、工厂、工地与偏远点位，带来更低时延、更少上行带宽、更可控的现场数据和更简单的项目交付。
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板与无线扩展">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 金属鳍片式机身">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 接口面板">
+</div>
+
+➡️ [查看 RUNTIME-RK3588 模块、硬件价值与部署说明](RUNTIME-RK3588/README.md)
+
 ## 📖 项目介绍
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

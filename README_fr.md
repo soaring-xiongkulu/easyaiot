@@ -41,6 +41,18 @@ EasyAIoT relie les équipements de terrain, l'exécution en périphérie, l'inte
     <img src=".image/iframe5.png" width="100%" alt="Architecture intégrée cloud-bord-périphérique d'EasyAIoT">
 </div>
 
+## 🧠 Appliance IA edge RK3588
+
+**Le matériel est le socle qui transforme l'IA en capacité opérationnelle sur le terrain.** Le nouveau module [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) porte le runtime vidéo natif d'EasyAIoT sur une appliance edge RK3588 compacte : acquisition des flux, décodage, inférence IA, alertes et vidéo annotée s'exécutent au plus près des caméras et des équipements. Son boîtier métallique à ailettes, ses extensions Wi-Fi et 4G/5G, ses ports HDMI IN/OUT, USB et Type-C, son double Ethernet et sa connectivité SIM facilitent les déploiements en magasin, campus, usine, chantier ou site isolé, avec moins de latence, moins de bande passante montante et une meilleure maîtrise locale des données.
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="Face avant et extension sans fil RK3588">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="Boîtier métallique à ailettes RK3588">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="Connectique RK3588">
+</div>
+
+➡️ [Découvrir le module RUNTIME-RK3588, sa valeur matérielle et son guide de déploiement](RUNTIME-RK3588/README.md)
+
 ## 📖 Présentation du projet
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

@@ -41,6 +41,18 @@ EasyAIoT unifies field devices, edge execution, platform intelligence, and busin
     <img src=".image/iframe5.png" width="100%" alt="EasyAIoT cloud-edge-device integrated architecture">
 </div>
 
+## 🧠 RK3588 Edge AI Appliance
+
+**Hardware is the foundation that turns AI into an on-site capability.** The new [`RUNTIME-RK3588`](RUNTIME-RK3588/README.md) module brings EasyAIoT's native video runtime to a compact RK3588 edge appliance, allowing stream ingest, decoding, AI inference, alerts, and annotated video to run close to cameras and field devices. Its finned metal enclosure, Wi-Fi and 4G/5G expansion, HDMI IN/OUT, USB and Type-C ports, dual Ethernet, and SIM connectivity make it suitable for stores, campuses, factories, construction sites, and remote locations—delivering lower latency, reduced uplink bandwidth, stronger local data control, and faster deployment.
+
+<div align="center">
+  <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 front panel and wireless expansion">
+  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 finned metal enclosure">
+  <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 I/O panel">
+</div>
+
+➡️ [Explore the RUNTIME-RK3588 module, hardware value, and deployment guide](RUNTIME-RK3588/README.md)
+
 ## 📖 Project Overview
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
