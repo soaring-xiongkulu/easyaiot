@@ -1829,6 +1829,17 @@ run_site_module() {
 }
 
 # 主函数
+finish_script_log() {
+    if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+        echo "" >> "$LOG_FILE"
+        echo "=========================================" >> "$LOG_FILE"
+        echo "脚本结束时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+        echo "=========================================" >> "$LOG_FILE"
+        echo ""
+        print_info "日志文件已保存到: $LOG_FILE"
+    fi
+}
+
 main() {
     local cmd="${1:-}"
 
@@ -1915,17 +1926,11 @@ main() {
             exit 1
             ;;
     esac
+
+    # 长时间 build-runtime 执行前，main 函数体已经完整解析；不要在 main 返回后
+    # 再读取可能被 git pull 或编辑改变的脚本尾部。
+    finish_script_log
 }
 
 # 运行主函数
 main "$@"
-
-# 脚本结束时记录日志文件路径
-if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
-    echo "" >> "$LOG_FILE"
-    echo "=========================================" >> "$LOG_FILE"
-    echo "脚本结束时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
-    echo "=========================================" >> "$LOG_FILE"
-    echo ""
-    print_info "日志文件已保存到: $LOG_FILE"
-fi

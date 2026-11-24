@@ -354,6 +354,27 @@ ensure_native_build() {
         print_error "install_linux.sh 不存在: ${install_script}"
         return 1
     fi
+    # 构建全量模块可能持续数小时。过去直接执行仓库中的活动脚本，期间若发生
+    # git pull 或代码编辑，bash 在 main 返回后继续读取已变化的文件尾部，最终会
+    # 报“寻找匹配的引号时遇到 EOF”，即使所有模块镜像都已成功。这里先校验并
+    # 执行不可变快照；快照仍通过目录覆盖读取仓库内的模块与公共脚本。
+    local snapshot_dir snapshot_script
+    snapshot_dir="$(mktemp -d "${TMPDIR:-/tmp}/easyaiot-native-build.XXXXXX")" || {
+        print_error "无法创建本机编译脚本快照目录"
+        return 1
+    }
+    snapshot_script="${snapshot_dir}/install_linux.sh"
+    if ! cp -- "$install_script" "$snapshot_script"; then
+        rm -rf -- "$snapshot_dir"
+        print_error "无法创建本机编译脚本快照"
+        return 1
+    fi
+    if ! bash -n "$snapshot_script"; then
+        rm -rf -- "$snapshot_dir"
+        print_error "install_linux.sh 语法检查失败，尚未开始耗时构建"
+        return 1
+    fi
+    print_info "安装脚本语法检查通过，使用不可变快照执行本机编译"
     local rc=0
     (
         cd "$PROJECT_ROOT"
@@ -364,8 +385,10 @@ ensure_native_build() {
             export FORCE_REBUILD=0
         fi
         export EASYAIOT_RUNTIME_BUILD=1
-        bash "$install_script" build 2>&1 | tee "${LOG_DIR}/native_build_${CURRENT_ARCH}.log"
+        EASYAIOT_INSTALL_SCRIPT_DIR_OVERRIDE="$SCRIPT_DIR" \
+            bash "$snapshot_script" build 2>&1 | tee "${LOG_DIR}/native_build_${CURRENT_ARCH}.log"
     ) || rc=$?
+    rm -rf -- "$snapshot_dir"
     if [ $rc -ne 0 ]; then
         print_error "本机编译失败 (exit=${rc})，请检查日志"
         return 1
@@ -1852,26 +1875,29 @@ pull_all_images() {
 # ============================================================================
 # 主入口
 # ============================================================================
+finish_runtime_image_log() {
+    local rc="$1"
+    if [ -n "${LOG_FILE:-}" ] && [ -f "$LOG_FILE" ]; then
+        {
+            echo ""
+            echo "========================================="
+            echo "脚本结束时间: $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "退出码: $rc"
+            echo "========================================="
+        } >> "$LOG_FILE"
+        print_info "日志文件已保存到: $LOG_FILE"
+    fi
+}
+
 main() {
+    local rc=0
     case "$COMMAND" in
-        build) build_all_modules ;;
-        pull)  pull_all_images ;;
+        build) build_all_modules || rc=$? ;;
+        pull)  pull_all_images || rc=$? ;;
         *)     print_error "未知命令: $COMMAND"; exit 1 ;;
     esac
+    finish_runtime_image_log "$rc"
+    return "$rc"
 }
 
 main "$@"
-rc=$?
-
-if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
-    {
-        echo ""
-        echo "========================================="
-        echo "脚本结束时间: $(date '+%Y-%m-%d %H:%M:%S')"
-        echo "退出码: $rc"
-        echo "========================================="
-    } >> "$LOG_FILE"
-    print_info "日志文件已保存到: $LOG_FILE"
-fi
-
-exit $rc
