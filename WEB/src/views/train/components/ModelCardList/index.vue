@@ -223,9 +223,11 @@ function onImageError(e: Event) {
 }
 
 function getFormatText(item: any): string {
+  if (!item.model_path && !item.onnx_model_path && item.rknn_model_path) return 'RKNN';
   if (item.onnx_model_path) return 'ONNX';
   if (item.model_path) {
     const path = item.model_path.toLowerCase();
+    if (path.includes('.rknn')) return 'RKNN';
     if (path.endsWith('.onnx')) return 'ONNX';
     if (path.endsWith('.pt') || path.endsWith('.pth')) return 'PyTorch';
     if (path.includes('openvino')) return 'OpenVINO';

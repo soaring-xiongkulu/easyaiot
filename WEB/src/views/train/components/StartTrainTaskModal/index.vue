@@ -397,6 +397,9 @@ function isTrainablePtModel(model: Record<string, any>): boolean {
     return false;
   }
   const lower = path.toLowerCase();
+  if (lower.includes('.rknn')) {
+    return false;
+  }
   if (lower.endsWith('.onnx') || /\.onnx(\?|#|$)/i.test(path)) {
     return false;
   }

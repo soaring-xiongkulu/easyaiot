@@ -345,14 +345,21 @@ const defaultModels = [
 function modelFileSuffix(value: unknown): string {
   const raw = String(value || '').trim().toLowerCase();
   if (!raw) return '';
-  const clean = raw.split('?')[0].split('#')[0];
+  // MinIO 下载 URL 的文件名藏在 prefix 查询参数里，直接按 ? 截断会误判格式
+  let clean = raw.split('#')[0];
+  const queryIndex = clean.indexOf('?');
+  if (queryIndex >= 0) {
+    const params = new URLSearchParams(clean.slice(queryIndex + 1));
+    clean = params.get('prefix') || clean.slice(0, queryIndex);
+  }
   const name = clean.slice(clean.lastIndexOf('/') + 1);
   const dot = name.lastIndexOf('.');
   return dot >= 0 ? name.slice(dot) : '';
 }
 
 function modelHasRknnWeights(model: any): boolean {
-  return [model?.rknn_model_path, model?.model_path, model?.onnx_model_path]
+  if (model?.rknn_model_path) return true;
+  return [model?.model_path, model?.onnx_model_path]
     .some((path) => modelFileSuffix(path) === '.rknn');
 }
 

@@ -55,7 +55,7 @@
               :action="state.modelUploadUrl"
               :headers="headers"
               :show-upload-list="false"
-              accept=".pt,.pth,.h5,.onnx"
+              accept=".pt,.pth,.h5,.onnx,.rknn"
               :disabled="state.isView"
               @change="handleFileUpload"
             >
@@ -66,7 +66,7 @@
             <div v-if="modelRef.filePath" class="form-extra" :title="fileName">
               已上传：{{ fileName }}
             </div>
-            <div class="form-hint">支持 .pt / .onnx；继续训练需使用 .pt 权重</div>
+            <div class="form-hint">支持 .pt / .onnx / .rknn；继续训练需使用 .pt 权重，RK3588 硬件任务使用 .rknn</div>
           </FormItem>
 
           <FormItem label="检测类别">
@@ -77,9 +77,17 @@
               <div v-if="state.classNames.length > 0" class="form-hint">
                 共 {{ state.classNames.length }} 个检测类别
               </div>
-              <span v-else class="form-hint">
-                上传 .pt 权重后将自动识别检测类别
+              <span v-else-if="state.modelFormat !== 'rknn'" class="form-hint">
+                上传 .pt / .onnx 权重后将自动识别检测类别
               </span>
+              <Input.TextArea
+                v-if="state.modelFormat === 'rknn'"
+                v-model:value="state.rknnClassNamesText"
+                :rows="3"
+                :disabled="state.isView"
+                placeholder="RKNN 为编译后模型，无法自动读取类别；请每行填写一个类别，不填则使用运行时默认类别"
+                @blur="syncRknnClassNames"
+              />
             </div>
           </FormItem>
         </Form>
@@ -92,7 +100,7 @@
 import { computed, reactive, ref } from 'vue';
 import { BasicDrawer, useDrawerInner } from '@/components/Drawer';
 import { BasicForm, useForm } from '@/components/Form';
-import { Form, FormItem, Spin, Upload, Divider, Tag } from 'ant-design-vue';
+import { Form, FormItem, Input, Spin, Upload, Divider, Tag } from 'ant-design-vue';
 import { useMessage } from '@/hooks/web/useMessage';
 import { useUserStoreWithOut } from '@/store/modules/user';
 import { useGlobSetting } from '@/hooks/setting';
@@ -116,7 +124,9 @@ const state = reactive({
   isEdit: false,
   isView: false,
   editLoading: false,
+  modelFormat: '',
   classNames: [] as string[],
+  rknnClassNamesText: '',
 });
 
 const modelRef = reactive({
@@ -197,11 +207,35 @@ function resetFormState() {
   modelRef.id = null;
   modelRef.filePath = '';
   modelRef.imageUrl = '';
+  state.modelFormat = '';
   state.classNames = [];
+  state.rknnClassNamesText = '';
+}
+
+function parseClassNamesText(value: string): string[] {
+  return String(value || '')
+    .split(/[\n,，]+/)
+    .map((name) => name.trim())
+    .filter(Boolean);
 }
 
 function applyClassNames(classNames: string[]) {
   state.classNames = Array.isArray(classNames) ? [...classNames] : [];
+  state.rknnClassNamesText = state.classNames.join('\n');
+}
+
+function syncRknnClassNames() {
+  applyClassNames(parseClassNamesText(state.rknnClassNamesText));
+}
+
+function detectModelFormat(record: any): string {
+  const path = String(
+    record?.filePath ?? record?.model_path ?? record?.onnx_model_path ?? record?.rknn_model_path ?? '',
+  ).toLowerCase();
+  if (path.includes('.rknn')) return 'rknn';
+  if (path.includes('.onnx')) return 'onnx';
+  if (path) return 'pt';
+  return '';
 }
 
 async function loadClassNamesForRecord(record: any) {
@@ -210,7 +244,8 @@ async function loadClassNamesForRecord(record: any) {
     applyClassNames(fromRecord.classNames);
     return;
   }
-  if (!record?.id) return;
+  // RKNN 是编译产物，接口无法反解类别，避免无意义的后端 404 探测
+  if (state.modelFormat === 'rknn' || !record?.id) return;
   try {
     const resp = await getModelClasses(record.id);
     applyClassNames(parseModelClassPayload(resp).classNames);
@@ -223,8 +258,9 @@ async function modelEdit(record: any) {
   try {
     state.editLoading = true;
     modelRef.id = record.id ?? null;
-    modelRef.filePath = record.filePath ?? record.model_path ?? '';
+    modelRef.filePath = record.filePath ?? record.model_path ?? record.rknn_model_path ?? '';
     modelRef.imageUrl = record.imageUrl ?? record.image_url ?? '';
+    state.modelFormat = detectModelFormat(record);
     const s = record.status;
     await setFieldsValue({
       name: record.name ?? '',
@@ -251,6 +287,7 @@ function handleFileUpload(info: any) {
     const response = info.file.response;
     if (response && response.code === 0) {
       modelRef.filePath = response.data.url;
+      state.modelFormat = response.data.model_format || 'pt';
       applyClassNames(parseModelClassPayload(response.data).classNames);
       createMessage.success('模型文件上传成功');
     } else {
@@ -285,6 +322,9 @@ async function handleOk() {
     }
     state.editLoading = true;
     const api = modelRef.id ? updateModel : createModel;
+    const classNames = state.modelFormat === 'rknn'
+      ? parseClassNamesText(state.rknnClassNamesText)
+      : state.classNames;
     const payload = {
       id: modelRef.id,
       name: values.name,
@@ -293,8 +333,8 @@ async function handleOk() {
       status: values.status,
       filePath: modelRef.filePath,
       imageUrl: modelRef.imageUrl,
-      classNames: state.classNames,
-      selectedClassNames: state.classNames,
+      classNames,
+      selectedClassNames: classNames,
     };
 
     await api(payload);
