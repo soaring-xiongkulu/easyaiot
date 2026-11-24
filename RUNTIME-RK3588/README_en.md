@@ -32,15 +32,27 @@ FFmpeg demux -> MPP NV12 DMA-BUF -> RGA -> preallocated RKNN input FD -> NPU cor
 
 “Zero memory” means zero-copy-first, no unbounded growth, and no per-frame large allocations—not literally zero bytes of process memory. The implementation follows the official Rockchip MPP, RKNN Runtime 2, and RGA interface contracts and strictly validates hardware nodes, drivers, tensor layouts, and codec capabilities.
 
-## Build and install
+## Standalone one-command deployment
+
+Run one command from the repository root on the RK3588 box. The deployment does not require the EasyAIoT platform and does not start WEB, AI, VIDEO, MQTT, Docker, or any other module:
 
 ```bash
-./RUNTIME-RK3588/install_linux.sh preflight
-./RUNTIME-RK3588/install_linux.sh build
-sudo ./RUNTIME-RK3588/install_linux.sh install
+sudo env \
+  EASYAIOT_RK3588_RTSP_URL='rtsp://user:pass@camera/stream' \
+  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
+  bash .scripts/docker/install_linux.sh rk3588 install
 ```
 
-CMake only accepts an aarch64 target and requires `rknnrt`, `librga`, and Rockchip MPP. Set `ROCKCHIP_SDK_ROOT` for a non-standard SDK/sysroot.
+The script performs the hardware and driver preflight, native build, model installation, standalone configuration, boot-service registration, startup, and `/health` hardware-path acceptance. Without systemd it uses a managed background process with a PID and log file. For a guided flow, run `sudo bash .scripts/docker/install_linux.sh`, choose “RK3588”, then “one-click install”, and answer the RTSP/model prompts.
+
+```bash
+bash .scripts/docker/install_linux.sh rk3588 status
+bash .scripts/docker/install_linux.sh rk3588 logs
+bash .scripts/docker/install_linux.sh rk3588 verify
+bash .scripts/docker/install_linux.sh rk3588 restart
+```
+
+Updates preserve the existing standalone configuration. Uninstall removes the service and binaries but keeps the model, configuration, and logs. `EASYAIOT_RK3588_MODEL_URL` can download a model, with optional `EASYAIOT_RK3588_MODEL_SHA256` verification. CMake only accepts an aarch64 target and requires `rknnrt`, `librga`, and Rockchip MPP; use `ROCKCHIP_SDK_ROOT` for a non-standard SDK/sysroot.
 
 ## Models
 
@@ -57,7 +69,8 @@ The script downloads Rockchip's optimized nine-output ONNX, validates the graph 
 
 ```ini
 [ai]
-model_path=/opt/models/yolov8n-rk3588-int8.rknn
+model_path=/opt/easyaiot/RUNTIME-RK3588/models/yolov8n-rk3588-int8.rknn
+classes_path=/opt/easyaiot/RUNTIME-RK3588/models/coco.names
 frame_skip=1
 
 [rk3588]
@@ -72,7 +85,10 @@ enable_perf_query=false
 The build also produces `RUNTIME-RK3588-BENCH`. Run the same RGA/RKNN/ring pipeline on the target box:
 
 ```bash
-RUNTIME-RK3588-BENCH model.rknn test.jpg 30 150 coco.names
+/opt/easyaiot/RUNTIME-RK3588/bin/RUNTIME-RK3588-BENCH \
+  /opt/easyaiot/RUNTIME-RK3588/models/yolov8n-rk3588-int8.rknn \
+  test.jpg 30 150 \
+  /opt/easyaiot/RUNTIME-RK3588/models/coco.names
 ```
 
 `BENCH_PASS` with zero drops validates the 150 FPS aggregate three-core target. This is a hardware acceptance target, not a claim that a 25 FPS input stream becomes 150 FPS or a guarantee across arbitrary models, clocks, thermals, drivers, and system images. `/health` exposes `npu_throughput_fps`, completed tasks, sampled NPU time, and ring drops.

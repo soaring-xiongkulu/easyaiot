@@ -134,6 +134,17 @@ EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégra
 
 RK3588 garantit que l'appliance peut **calculer sur place, répondre en temps réel et rester stable** ; PANEL, juste après, garantit qu'elle peut **être installée, réceptionnée et exploitée par l'équipe terrain**. Ensemble, ils transforment l'IA edge d'un benchmark en capacité de livraison reproductible.
 
+**Posez-le sur le boîtier et lancez : une commande, aucune plateforme complète à assembler.**
+
+```bash
+sudo env \
+  EASYAIOT_RK3588_RTSP_URL='rtsp://user:pass@camera/stream' \
+  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
+  bash .scripts/docker/install_linux.sh rk3588 install
+```
+
+C'est tout. Le script vérifie les pilotes RK3588, compile le runtime natif, crée une configuration autonome, installe le service de démarrage, le lance puis attend que `/health` confirme MPP + RGA + RKNN. Il n'installe pas Docker et ne démarre ni WEB, ni AI, ni VIDEO, ni MQTT, ni aucun autre module EasyAIoT. Pour un menu encore plus tranquille, lancez `sudo bash .scripts/docker/install_linux.sh`, choisissez **5) RK3588**, puis **1) installation en un clic**, et répondez aux deux questions : le café sera encore chaud quand le boîtier commencera à travailler.
+
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

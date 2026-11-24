@@ -134,6 +134,17 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
 
 RK3588 answers whether the appliance can **compute locally, respond in real time and remain stable**; PANEL immediately below answers whether it can **be installed, accepted and operated by field staff**. Together they turn edge AI from a benchmark into a repeatable delivery capability.
 
+**Put it on the box and go—one command, no platform stack to assemble:**
+
+```bash
+sudo env \
+  EASYAIOT_RK3588_RTSP_URL='rtsp://user:pass@camera/stream' \
+  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
+  bash .scripts/docker/install_linux.sh rk3588 install
+```
+
+That is all. The script verifies the RK3588 drivers, builds the native runtime, creates a standalone configuration, installs a boot service, starts it, and waits until `/health` confirms MPP + RGA + RKNN. It does not install Docker or start WEB, AI, VIDEO, MQTT, or any other EasyAIoT module. Prefer a friendly menu? Run `sudo bash .scripts/docker/install_linux.sh`, choose **5) RK3588**, then **1) one-click install**, and answer the two prompts—the tea should still be warm when the box begins working.
+
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

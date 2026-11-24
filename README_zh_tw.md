@@ -134,6 +134,17 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 
 RK3588 解決的是一體機在現場能不能<strong>算得動、回應快、長期穩</strong>；緊接著的 PANEL 解決的是設備能不能<strong>裝得上、驗得過、值守人員接得住</strong>。兩者合在一起，才把邊緣 AI 從一次性能演示變成可複製、可驗收、可持續維運的交付能力。
 
+**上盒就跑，一條命令輕鬆收工：**
+
+```bash
+sudo env \
+  EASYAIOT_RK3588_RTSP_URL='rtsp://使用者:密碼@攝像頭/碼流' \
+  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
+  bash .scripts/docker/install_linux.sh rk3588 install
+```
+
+就這些。腳本會自行檢查 RK3588 驅動、編譯原生運行時、生成獨立配置、註冊開機服務、啟動程序，並一直等到 `/health` 確認 MPP + RGA + RKNN 全鏈路在線。它不安裝 Docker，也不會拉起 WEB、AI、VIDEO、MQTT 或任何其他 EasyAIoT 模組。喜歡選單操作也很簡單：執行 `sudo bash .scripts/docker/install_linux.sh`，選擇 **5）RK3588 → 1）一鍵安裝**，再回答 RTSP 和模型路徑兩個問題；茶還沒涼，盒子已經開始幹活。
+
 ### 🎛️ PANEL：一體機到場當天可裝可驗，值守不必等開發遠程
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">

@@ -134,6 +134,17 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 
 RK3588은 장비가 **현장에서 계산하고 실시간 대응하며 안정적으로 버티는가**를 해결하고, 바로 다음 PANEL은 **현장 인력이 설치·인수·운영할 수 있는가**를 해결합니다. 두 기능이 함께 엣지 AI를 성능 데모에서 반복 가능한 납품 역량으로 바꿉니다.
 
+**박스에 올리고 바로 시작하세요. 플랫폼 전체를 조립할 필요 없이 명령 한 번이면 됩니다.**
+
+```bash
+sudo env \
+  EASYAIOT_RK3588_RTSP_URL='rtsp://user:pass@camera/stream' \
+  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
+  bash .scripts/docker/install_linux.sh rk3588 install
+```
+
+이게 전부입니다. 스크립트가 RK3588 드라이버 확인, 네이티브 런타임 빌드, 독립 설정 생성, 부팅 서비스 등록과 시작을 마친 뒤 `/health`에서 MPP + RGA + RKNN이 확인될 때까지 자동으로 검증합니다. Docker를 설치하지 않고 WEB·AI·VIDEO·MQTT 등 다른 EasyAIoT 모듈도 시작하지 않습니다. 메뉴가 더 편하면 `sudo bash .scripts/docker/install_linux.sh`를 실행해 **5) RK3588 → 1) 원클릭 설치**를 고르고 두 질문에 답하세요. 차가 식기 전에 박스가 일을 시작합니다.
+
 ### 🎛️ PANEL: 일체기 도착 당일 설치·인수, 당직은 원격 개발자를 기다리지 않음
 
 <p style="font-size: 15px; line-height: 1.8; color: #333; margin: 15px 0;">
