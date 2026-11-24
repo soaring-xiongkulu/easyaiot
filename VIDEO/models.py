@@ -3012,6 +3012,149 @@ class AiModel(db.Model):
     origin_ref = db.Column(db.String(128), nullable=True)
 
 
+class EdgeComputeNode(db.Model):
+    """异构边缘 AI 盒子当前状态；遥测由 iot-sink 直接写入。"""
+    __tablename__ = 'edge_compute_node'
+
+    id = db.Column(db.BigInteger().with_variant(db.Integer, 'sqlite'), primary_key=True, autoincrement=True)
+    fingerprint = db.Column(db.String(128), unique=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    host = db.Column(db.String(255))
+    status = db.Column(db.String(16), nullable=False, default='offline')
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    node_kind = db.Column(db.String(32), nullable=False, default='edge_box')
+    hardware_provider = db.Column(db.String(64))
+    soc_model = db.Column(db.String(64))
+    accelerator_type = db.Column(db.String(32))
+    accelerator_count = db.Column(db.Integer, nullable=False, default=0)
+    runtime_target = db.Column(db.String(128))
+    runtime_version = db.Column(db.String(64))
+    agent_version = db.Column(db.String(64))
+    agent_port = db.Column(db.Integer, nullable=False, default=9100)
+    max_task_count = db.Column(db.Integer, nullable=False, default=0)
+    active_task_count = db.Column(db.Integer, nullable=False, default=0)
+    mqtt_username = db.Column(db.String(128), unique=True, nullable=False)
+    mqtt_client_id = db.Column(db.String(128), unique=True, nullable=False)
+    agent_token = db.Column(db.String(256), nullable=False)
+    cpu_percent = db.Column(db.Float)
+    mem_percent = db.Column(db.Float)
+    disk_percent = db.Column(db.Float)
+    temperature_c = db.Column(db.Float)
+    mem_used_bytes = db.Column(db.BigInteger)
+    mem_total_bytes = db.Column(db.BigInteger)
+    disk_used_bytes = db.Column(db.BigInteger)
+    disk_total_bytes = db.Column(db.BigInteger)
+    accelerator_info = db.Column(db.JSON, nullable=False, default=list)
+    pipelines = db.Column(db.JSON, nullable=False, default=list)
+    remote_access = db.Column(db.JSON, nullable=False, default=dict)
+    latest_payload = db.Column(db.JSON, nullable=False, default=dict)
+    last_message_id = db.Column(db.String(128))
+    last_heartbeat_at = db.Column(db.DateTime(timezone=True))
+    connected_at = db.Column(db.DateTime(timezone=True))
+    disconnected_at = db.Column(db.DateTime(timezone=True))
+    remark = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    def to_dict(self, include_secret=False):
+        remote = self.remote_access if isinstance(self.remote_access, dict) else {}
+        result = {
+            'id': self.id,
+            'fingerprint': self.fingerprint,
+            'name': self.name,
+            'host': self.host,
+            'status': self.status,
+            'enabled': self.enabled,
+            'nodeKind': self.node_kind,
+            'hardwareProvider': self.hardware_provider,
+            'socModel': self.soc_model,
+            'acceleratorType': self.accelerator_type,
+            'acceleratorCount': self.accelerator_count,
+            'runtimeTarget': self.runtime_target,
+            'runtimeVersion': self.runtime_version,
+            'agentVersion': self.agent_version,
+            'agentPort': self.agent_port,
+            'maxTaskCount': self.max_task_count,
+            'activeTaskCount': self.active_task_count,
+            'mqttUsername': self.mqtt_username,
+            'mqttClientId': self.mqtt_client_id,
+            'cpuPercent': self.cpu_percent,
+            'memPercent': self.mem_percent,
+            'diskPercent': self.disk_percent,
+            'temperatureC': self.temperature_c,
+            'memUsedBytes': self.mem_used_bytes,
+            'memTotalBytes': self.mem_total_bytes,
+            'diskUsedBytes': self.disk_used_bytes,
+            'diskTotalBytes': self.disk_total_bytes,
+            'acceleratorInfo': self.accelerator_info or [],
+            'pipelines': self.pipelines or [],
+            'remoteAccess': remote,
+            'lastHeartbeatAt': utc_isoformat_z(self.last_heartbeat_at),
+            'connectedAt': utc_isoformat_z(self.connected_at),
+            'disconnectedAt': utc_isoformat_z(self.disconnected_at),
+            'remark': self.remark,
+            'createdAt': utc_isoformat_z(self.created_at),
+            'updatedAt': utc_isoformat_z(self.updated_at),
+        }
+        if include_secret:
+            result['agentToken'] = self.agent_token
+        return result
+
+
+class EdgeComputeMetric(db.Model):
+    __tablename__ = 'edge_compute_metric'
+
+    id = db.Column(db.BigInteger().with_variant(db.Integer, 'sqlite'), primary_key=True, autoincrement=True)
+    node_id = db.Column(
+        db.BigInteger().with_variant(db.Integer, 'sqlite'),
+        db.ForeignKey('edge_compute_node.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    cpu_percent = db.Column(db.Float)
+    mem_percent = db.Column(db.Float)
+    disk_percent = db.Column(db.Float)
+    temperature_c = db.Column(db.Float)
+    active_tasks = db.Column(db.Integer)
+    payload = db.Column(db.JSON, nullable=False, default=dict)
+    collected_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nodeId': self.node_id,
+            'cpuPercent': self.cpu_percent,
+            'memPercent': self.mem_percent,
+            'diskPercent': self.disk_percent,
+            'temperatureC': self.temperature_c,
+            'activeTasks': self.active_tasks,
+            'collectedAt': utc_isoformat_z(self.collected_at),
+        }
+
+
+class EdgeComputeCommand(db.Model):
+    __tablename__ = 'edge_compute_command'
+
+    id = db.Column(db.BigInteger().with_variant(db.Integer, 'sqlite'), primary_key=True, autoincrement=True)
+    command_id = db.Column(db.String(64), unique=True, nullable=False)
+    node_id = db.Column(
+        db.BigInteger().with_variant(db.Integer, 'sqlite'),
+        db.ForeignKey('edge_compute_node.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    command = db.Column(db.String(64), nullable=False)
+    request_payload = db.Column(db.JSON, nullable=False, default=dict)
+    ack_payload = db.Column(db.JSON)
+    status = db.Column(db.String(16), nullable=False, default='sent')
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    ack_at = db.Column(db.DateTime(timezone=True))
+
+
 def ensure_algorithm_task_sam_columns(engine):
     """老库 algorithm_task 表补 SAM 补充识别列。"""
     import logging

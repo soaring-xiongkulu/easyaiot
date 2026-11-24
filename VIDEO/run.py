@@ -1276,6 +1276,15 @@ def create_app(start_background_tasks=None):
         print(f'❌ Media Asset Blueprint 注册失败: {str(e)}')
         import traceback
         traceback.print_exc()
+
+    try:
+        from app.blueprints import edge_compute
+        app.register_blueprint(edge_compute.edge_compute_bp, url_prefix='/video/edge')
+        print('✅ Edge Compute Blueprint 注册成功')
+    except Exception as e:
+        print(f'❌ Edge Compute Blueprint 注册失败: {str(e)}')
+        import traceback
+        traceback.print_exc()
     
     try:
         app.register_blueprint(alert.alert_bp, url_prefix='/video/alert')
