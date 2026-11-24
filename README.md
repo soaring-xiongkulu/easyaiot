@@ -117,24 +117,63 @@ All green? You’re done—easier than you feared. Go grab that coffee early.
 EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. Through core capabilities such as algorithm task management, real-time stream analysis, and model service cluster inference, the platform achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
 
-### 🧠 RK3588 Edge AI Hardware Module
+### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> RK3588 Edge AI Hardware Module
 
-**This is not a generic ARM port or a demo box that only runs one image.** `RUNTIME-RK3588` rebuilds the video execution path around the RK3588 silicon: FFmpeg only demuxes packets, MPP performs hardware decode into NV12 DMA-BUF, RGA resizes and converts directly into preallocated RKNN input memory, all three NPU cores run independent inference lanes, and MPP completes hardware H.264 encoding. Frames stay on the hardware path instead of repeatedly travelling through CPU memory.
+`RUNTIME-RK3588` is a standalone inference runtime for Rockchip RK3588, maintained separately from the generic `RUNTIME`. Video processing is bound to the SoC hardware units: FFmpeg only demuxes, MPP decodes, RGA resizes and converts color, all three NPU cores infer in parallel, and MPP encodes with `h264_rkmpp`. Frames move between hardware units as DMA-BUF; BGR images are created only where CPU access is required, such as overlay drawing, evidence capture and streaming.
 
-- **Three-core throughput by design:** NPU Core 0/1/2 each owns a task ring and completion ring, with shared model weights and a dedicated result collector. The included benchmark uses 150 aggregate FPS as a measurable acceptance target for the prescribed YOLOv8n INT8 model—not a vague peak-performance claim.
-- **Stable under sustained load:** frame, inference and result queues are all bounded; DMA buffers and tensor memory are preallocated and reused; overload drops stale work instead of accumulating latency or memory without limit. “Zero memory” means zero-copy-first, no unbounded growth, and no per-frame large allocations.
-- **Hardware-only, fail-fast contract:** missing RK3588, RKNPU, RGA, MPP, DRM or `h264_rkmpp` stops startup. There is no ONNX/CPU/software-codec fallback that appears compatible while silently consuming CPU and destroying latency.
-- **Value visible at the project level:** local inference returns alarms and evidence without uploading every original stream, reducing uplink cost and response latency while retaining data on site. Dual Ethernet plus Wi-Fi/4G/5G and SIM expansion cover isolated networks, mobile sites and backup links; the finned metal enclosure supports long-running edge workloads.
+- **Data path:** MPP writes NV12 DMA-BUF buffers from a count-limited group; RGA writes directly into preallocated RKNN input memory, with no per-frame copy or tensor rebuild.
+- **Three-core parallelism:** each NPU core is pinned to one worker with its own task ring and completion ring, and model weights are shared. The scheduler picks the shortest lane; a dedicated thread collects results. The bundled benchmark targets 150 aggregate FPS for the specified YOLOv8n INT8 model.
+- **Bounded resources:** the frame pool, per-core task and completion rings, and the result ring all have fixed capacity; buffers and tensors are allocated once at startup. Under overload the oldest frame is dropped and counted, so latency and memory do not grow with uptime.
+- **Fail fast:** startup validates RK3588, RKNPU, RGA, MPP, DRM and `h264_rkmpp`; any missing component stops the process. There is no ONNX, CPU inference, software decode or `libx264` fallback, avoiding deployments that appear to work but have unusable latency and CPU load.
+- **Deployment shape:** local inference returns only detections, alerts and evidence images, keeping original video on site and reducing uplink bandwidth and response latency. Dual Ethernet plus Wi-Fi, 4G/5G and SIM cover isolated networks, mobile sites and backup links.
+
+**System architecture: frames travel between hardware units as DMA-BUF, and every thread and queue has fixed capacity**
+
+```mermaid
+flowchart LR
+    IN["RTSP / video file"] --> PRE{"Hardware and driver preflight<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
+    PRE -->|missing| STOP["Refuse to start<br/>no CPU / ONNX / software codec fallback"]
+    PRE -->|pass| DEMUX["FFmpeg<br/>demux only"]
+
+    subgraph HW["RK3588 SoC hardware units"]
+        MPPD["MPP hardware decode<br/>bounded NV12 DMA-BUF group"]
+        NPU["3-core NPU<br/>Core 0 / 1 / 2 · lane pinned · shared weights"]
+        DRAW["RGA<br/>overlay then back to NV12"]
+        MPPE["MPP hardware encode<br/>h264_rkmpp"]
+    end
+
+    subgraph RT["Runtime: threads and bounded queues"]
+        FR["FrameRing<br/>drop oldest when full"]
+        TQ["Per-core TaskRing<br/>shortest lane first"]
+        CQ["Per-core CompletionRing<br/>dedicated collector"]
+        RR["ResultRing"]
+        EMIT["Emit thread<br/>alert decision / evidence"]
+    end
+
+    subgraph OUT["Outputs"]
+        MQ["Detections / alerts<br/>MQTT publish"]
+        SNAP["Alert evidence image"]
+        RTMP["RTMP push"]
+    end
+
+    DEMUX --> MPPD --> FR --> TQ
+    TQ -->|RGA resize → RKNN run| NPU
+    NPU -->|native INT8 postproc| CQ --> RR --> EMIT
+    EMIT --> MQ
+    EMIT --> SNAP
+    FR -.->|on-demand raw frame| EMIT
+    EMIT --> DRAW --> MPPE --> RTMP
+```
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 front panel and wireless expansion">
-  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 finned metal enclosure">
+  <img src=".images/rk3588/rk3588-box.jpg" width="32%" alt="RK3588 edge AI box">
   <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 I/O panel">
 </div>
 
-RK3588 answers whether the appliance can **compute locally, respond in real time and remain stable**; PANEL immediately below answers whether it can **be installed, accepted and operated by field staff**. Together they turn edge AI from a benchmark into a repeatable delivery capability.
+The RK3588 module determines whether the appliance can infer locally in real time and remain stable over long periods; PANEL, immediately below, determines whether it can be installed, accepted and operated in the field. Together they make edge AI a deliverable solution rather than a one-off benchmark.
 
-**Put it on the box and go—one command, no platform stack to assemble:**
+**Standalone deployment on an RK3588 box, without the rest of the platform:**
 
 ```bash
 sudo env \
@@ -143,7 +182,7 @@ sudo env \
   bash .scripts/docker/install_linux.sh rk3588 install
 ```
 
-That is all. The script verifies the RK3588 drivers, builds the native runtime, creates a standalone configuration, installs a boot service, starts it, and waits until `/health` confirms MPP + RGA + RKNN. It does not install Docker or start WEB, AI, VIDEO, MQTT, or any other EasyAIoT module. Prefer a friendly menu? Run `sudo bash .scripts/docker/install_linux.sh`, choose **5) RK3588**, then **1) one-click install**, and answer the two prompts—the tea should still be warm when the box begins working.
+Run the command from the repository root with an RTSP URL and an RKNN model path. The script performs the driver preflight, builds the native runtime, installs the model and class names, generates a standalone configuration, registers and starts a systemd service, and waits for `/health` to confirm MPP, RGA and RKNN. Without systemd it uses a managed background process with a PID and log file. It does not install Docker or start WEB, AI, VIDEO, MQTT or any other module. Alternatively, run `sudo bash .scripts/docker/install_linux.sh`, choose **5) RK3588 → 1) one-click install**, and enter the RTSP URL and model path.
 
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 

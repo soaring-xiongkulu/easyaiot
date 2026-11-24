@@ -6,7 +6,7 @@
 
 Wireless and cellular expansion supports remote and weak-network sites while local inference reduces uplink bandwidth and alert latency.
 
-![RK3588 edge box thermal enclosure](../.images/rk3588/rk3588-thermal-design.jpg)
+![RK3588 edge AI box](../.images/rk3588/rk3588-box.jpg)
 
 The finned metal enclosure is suited to sustained video and NPU workloads. Bounded frame pools and per-model queues prevent memory growth under overload.
 
@@ -15,6 +15,46 @@ The finned metal enclosure is suited to sustained video and NPU workloads. Bound
 Dual Ethernet, HDMI, USB, Type-C and SIM connectivity support separated camera/platform networks and integrated field deployments.
 
 ## Data path
+
+The architecture below shows the hardware units, runtime threads, and bounded queues:
+
+```mermaid
+flowchart LR
+    IN["RTSP / video file"] --> PRE{"Hardware and driver preflight<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
+    PRE -->|missing| STOP["Refuse to start<br/>no CPU / ONNX / software codec fallback"]
+    PRE -->|pass| DEMUX["FFmpeg<br/>demux only"]
+
+    subgraph HW["RK3588 SoC hardware units"]
+        MPPD["MPP hardware decode<br/>bounded NV12 DMA-BUF group"]
+        NPU["3-core NPU<br/>Core 0 / 1 / 2 · lane pinned · shared weights"]
+        DRAW["RGA<br/>overlay then back to NV12"]
+        MPPE["MPP hardware encode<br/>h264_rkmpp"]
+    end
+
+    subgraph RT["Runtime: threads and bounded queues"]
+        FR["FrameRing<br/>drop oldest when full"]
+        TQ["Per-core TaskRing<br/>shortest lane first"]
+        CQ["Per-core CompletionRing<br/>dedicated collector"]
+        RR["ResultRing"]
+        EMIT["Emit thread<br/>alert decision / evidence"]
+    end
+
+    subgraph OUT["Outputs"]
+        MQ["Detections / alerts<br/>MQTT publish"]
+        SNAP["Alert evidence image"]
+        RTMP["RTMP push"]
+    end
+
+    DEMUX --> MPPD --> FR --> TQ
+    TQ -->|RGA resize → RKNN run| NPU
+    NPU -->|native INT8 postproc| CQ --> RR --> EMIT
+    EMIT --> MQ
+    EMIT --> SNAP
+    FR -.->|on-demand raw frame| EMIT
+    EMIT --> DRAW --> MPPE --> RTMP
+```
+
+The packet-level path in detail:
 
 ```text
 FFmpeg demux -> MPP NV12 DMA-BUF -> RGA -> preallocated RKNN input FD -> NPU cores 0/1/2

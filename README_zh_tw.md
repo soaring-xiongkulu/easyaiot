@@ -117,24 +117,63 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT的深度融合。平臺通過算法任務管理、即時流分析、模型服務集羣推理等核心能力，實現從設備接入到數據採集、AI分析、智能決策的全鏈路閉環，真正實現萬物互聯、萬物智控。
 </p>
 
-### 🧠 RK3588 邊緣 AI 硬體模組
+### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> RK3588 邊緣 AI 硬體模組
 
-**這不是把通用程式搬到 ARM 上，也不是只跑一張圖片的演示盒。** `RUNTIME-RK3588` 圍繞 RK3588 晶片重寫整條視頻執行鏈：FFmpeg 只負責解複用，MPP 將碼流硬解為 NV12 DMA-BUF，RGA 直接縮放並寫入預分配的 RKNN 輸入記憶體，三顆 NPU 核獨立並行推理，最後由 MPP 完成 H.264 硬編碼。影格儘量留在硬體通路內流轉，不再反覆穿過 CPU 記憶體。
+`RUNTIME-RK3588` 是 EasyAIoT 面向 Rockchip RK3588 的獨立推理執行環境，與通用 `RUNTIME` 分開維護。視頻處理固定在晶片的硬體單元上：FFmpeg 只做解複用，MPP 解碼，RGA 完成縮放與色彩轉換，三核 NPU 並行推理，MPP 以 `h264_rkmpp` 編碼輸出。影格以 DMA-BUF 在硬體單元之間傳遞；只有畫框、取證和推流等需要 CPU 存取的情境才生成 BGR 影像。
 
-- **三核吞吐不是參數開關，而是架構能力**：NPU Core 0/1/2 各自擁有任務環與完成環，共享模型權重，由獨立匯聚執行緒收取結果；隨模組提供的基準程式把指定 YOLOv8n INT8 模型的三核聚合 150 FPS 作為可測、可復現的驗收目標，而不是一句脫離模型與散熱條件的峰值宣傳。
-- **長時間滿載也要穩得住**：影格、推理任務、完成結果全部使用固定容量環狀佇列，DMA 緩衝和張量記憶體啟動時預分配並持續複用；過載時淘汰已經失去即時價值的舊任務，不讓延遲和記憶體無限堆積。「零記憶體」指零拷貝優先、零無界增長、零逐幀大塊分配，不是模糊口號。
-- **只認硬體能力，不做虛假相容**：缺少 RK3588、RKNPU、RGA、MPP、DRM 或 `h264_rkmpp` 就拒絕啟動；沒有 ONNX、CPU 推理和軟體編解碼回退，避免現場看似運行、實際 CPU 滿載、延遲失控。
-- **價值最終落到項目帳上**：原始視頻不必全部上雲，盒子在現場直接產出告警、證據與結構化結果，降低上行頻寬、雲端算力和回應時間，同時把敏感數據留在本地；雙網口配合 Wi-Fi、4G/5G 與 SIM 可覆蓋隔離網、移動點位和斷網備鏈，金屬鰭片機身為持續推理與視頻處理提供散熱基礎。
+- **資料通路**：MPP 輸出 NV12 DMA-BUF 緩衝組，數量由 `mpp_buffer_count` 限制；RGA 直接寫入 RKNN 預分配的輸入記憶體，不逐幀拷貝或重建張量。
+- **三核並行**：三個 NPU 核各綁定一個 worker，分別持有獨立的任務環與完成環，模型權重共用；排程器優先投遞到最短 lane，結果由獨立執行緒彙聚。隨模組提供的基準以指定 YOLOv8n INT8 模型的三核聚合 150 FPS 作為驗收目標。
+- **有界資源**：影格池、每核任務環、完成環和結果環容量固定，緩衝區與張量在啟動時一次性分配；過載時丟棄最舊影格並計數，延遲和記憶體佔用不隨運行時長增長。
+- **失敗即停**：啟動時校驗 RK3588、RKNPU、RGA、MPP、DRM 與 `h264_rkmpp`，任一缺失即拒絕啟動；不提供 ONNX、CPU 推理、軟體解碼或 `libx264` 回退，避免出現「能運行但延遲與 CPU 佔用不可用」的部署。
+- **部署形態**：本地推理只回傳檢測結果、告警與取證圖，原始視頻留在現場，降低上行頻寬與回應時延；雙網口配合 Wi-Fi、4G/5G 與 SIM，可覆蓋隔離網路、移動點位和備份鏈路。
+
+**系統架構：碼流在硬體單元間以 DMA-BUF 傳遞，執行緒與佇列均為固定容量**
+
+```mermaid
+flowchart LR
+    IN["RTSP / 視頻檔案"] --> PRE{"硬體與驅動預檢<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
+    PRE -->|缺失| STOP["拒絕啟動<br/>無 CPU / ONNX / 軟體編解碼回退"]
+    PRE -->|通過| DEMUX["FFmpeg<br/>僅解複用"]
+
+    subgraph HW["RK3588 SoC 硬體單元"]
+        MPPD["MPP 硬體解碼<br/>NV12 DMA-BUF 固定緩衝池"]
+        NPU["三核 NPU<br/>Core 0 / 1 / 2 · lane 綁定 · 權重共用"]
+        DRAW["RGA<br/>畫框後轉回 NV12"]
+        MPPE["MPP 硬體編碼<br/>h264_rkmpp"]
+    end
+
+    subgraph RT["執行時：執行緒與有界佇列"]
+        FR["FrameRing<br/>滿載丟最舊影格"]
+        TQ["每核 TaskRing<br/>優先最短 lane"]
+        CQ["每核 CompletionRing<br/>獨立彙聚執行緒"]
+        RR["ResultRing"]
+        EMIT["Emit 執行緒<br/>告警判定 / 取證"]
+    end
+
+    subgraph OUT["輸出"]
+        MQ["檢測結果 / 告警<br/>MQTT 上報"]
+        SNAP["告警取證圖"]
+        RTMP["RTMP 推流"]
+    end
+
+    DEMUX --> MPPD --> FR --> TQ
+    TQ -->|RGA 縮放 → RKNN 推理| NPU
+    NPU -->|原生 INT8 後處理| CQ --> RR --> EMIT
+    EMIT --> MQ
+    EMIT --> SNAP
+    FR -.->|按需取原始影格| EMIT
+    EMIT --> DRAW --> MPPE --> RTMP
+```
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板與無線擴展">
-  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="RK3588 金屬鰭片式機身">
+  <img src=".images/rk3588/rk3588-box.jpg" width="32%" alt="RK3588 邊緣 AI 盒子">
   <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="RK3588 接口面板">
 </div>
 
-RK3588 解決的是一體機在現場能不能<strong>算得動、回應快、長期穩</strong>；緊接著的 PANEL 解決的是設備能不能<strong>裝得上、驗得過、值守人員接得住</strong>。兩者合在一起，才把邊緣 AI 從一次性能演示變成可複製、可驗收、可持續維運的交付能力。
+RK3588 模組決定設備能否在本地即時推理並長期穩定運行；緊隨其後的 PANEL 決定設備能否在現場完成安裝、驗收與維運。兩者共同構成邊緣 AI 的可交付方案。
 
-**上盒就跑，一條命令輕鬆收工：**
+**在 RK3588 盒子上獨立部署，不依賴平台其他模組：**
 
 ```bash
 sudo env \
@@ -143,7 +182,7 @@ sudo env \
   bash .scripts/docker/install_linux.sh rk3588 install
 ```
 
-就這些。腳本會自行檢查 RK3588 驅動、編譯原生運行時、生成獨立配置、註冊開機服務、啟動程序，並一直等到 `/health` 確認 MPP + RGA + RKNN 全鏈路在線。它不安裝 Docker，也不會拉起 WEB、AI、VIDEO、MQTT 或任何其他 EasyAIoT 模組。喜歡選單操作也很簡單：執行 `sudo bash .scripts/docker/install_linux.sh`，選擇 **5）RK3588 → 1）一鍵安裝**，再回答 RTSP 和模型路徑兩個問題；茶還沒涼，盒子已經開始幹活。
+上述命令在倉庫根目錄執行，只需提供 RTSP 位址與 RKNN 模型路徑。腳本依次完成驅動預檢、本機編譯、模型與類別檔案安裝、獨立配置生成、systemd 服務註冊與啟動，並等待 `/health` 確認 MPP、RGA、RKNN 鏈路可用；系統沒有 systemd 時自動改用帶 PID 與日誌檔案的背景程式。它不會安裝 Docker，也不會啟動 WEB、AI、VIDEO、MQTT 等其他模組。也可執行 `sudo bash .scripts/docker/install_linux.sh`，在選單中選擇 **5）RK3588 → 1）一鍵安裝**，按提示輸入 RTSP 與模型路徑。
 
 ### 🎛️ PANEL：一體機到場當天可裝可驗，值守不必等開發遠程
 

@@ -8,7 +8,7 @@
 
 前面板提供 Wi-Fi 与多路 4G/5G 天线位，适合弱网、移动点位和蜂窝备链场景。视频在盒子本地完成解码与推理，只回传检测结果、告警和按需画面，可降低上行带宽与告警时延。
 
-![RK3588 盒子金属散热机身](../.images/rk3588/rk3588-thermal-design.jpg)
+![RK3588 边缘 AI 盒子](../.images/rk3588/rk3588-box.jpg)
 
 大面积金属鳍片机身有利于持续视频解码和 NPU 推理时散热。运行时通过固定缓冲池、固定任务队列和三核分配控制峰值资源，避免长时间运行后队列与内存持续增长。
 
@@ -19,6 +19,46 @@
 RK3588 官方规格包括 4×Cortex-A76 + 4×Cortex-A55、Mali-G610、2D 图像加速器、最高 8K 编解码能力，以及支持 INT4/INT8/INT16/FP16/BF16/TF32 的 6 TOPS 三核 NPU。本模块围绕这些片上单元建立专用数据通路，不把 RK3588 当作普通 ARM CPU 使用。
 
 ## 硬件流水线
+
+下图给出模块的系统架构——硬件单元、运行时线程与有界队列的分层边界：
+
+```mermaid
+flowchart LR
+    IN["RTSP / 视频文件"] --> PRE{"硬件与驱动预检<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
+    PRE -->|缺失| STOP["拒绝启动<br/>无 CPU / ONNX / 软编解码回退"]
+    PRE -->|通过| DEMUX["FFmpeg<br/>仅解复用"]
+
+    subgraph HW["RK3588 SoC 硬件单元"]
+        MPPD["MPP 硬件解码<br/>NV12 DMA-BUF 固定缓冲池"]
+        NPU["三核 NPU<br/>Core 0 / 1 / 2 · lane 绑定 · 权重共享"]
+        DRAW["RGA<br/>画框后转回 NV12"]
+        MPPE["MPP 硬件编码<br/>h264_rkmpp"]
+    end
+
+    subgraph RT["运行时：线程与有界队列"]
+        FR["FrameRing<br/>满载丢最旧帧"]
+        TQ["每核 TaskRing<br/>优先最短 lane"]
+        CQ["每核 CompletionRing<br/>独立汇聚线程"]
+        RR["ResultRing"]
+        EMIT["Emit 线程<br/>告警判定 / 取证"]
+    end
+
+    subgraph OUT["输出"]
+        MQ["检测结果 / 告警<br/>MQTT 上报"]
+        SNAP["告警取证图"]
+        RTMP["RTMP 推流"]
+    end
+
+    DEMUX --> MPPD --> FR --> TQ
+    TQ -->|RGA 缩放 → RKNN 推理| NPU
+    NPU -->|原生 INT8 后处理| CQ --> RR --> EMIT
+    EMIT --> MQ
+    EMIT --> SNAP
+    FR -.->|按需取原始帧| EMIT
+    EMIT --> DRAW --> MPPE --> RTMP
+```
+
+压缩包从输入到输出的具体数据通路如下：
 
 ```text
 RTSP/文件

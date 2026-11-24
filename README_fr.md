@@ -117,24 +117,63 @@ Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendr
 EasyAIoT est une plateforme intelligente d'Internet des Objets (IoT) à intégration cloud-bord-périphérique, se concentrant sur l'intégration profonde de l'IA et de l'IoT. Grâce à des capacités fondamentales telles que la gestion des tâches algorithmiques, l'analyse de flux en temps réel et le raisonnement en cluster de services de modèles, la plateforme réalise une boucle fermée complète allant de la connexion des appareils à la collecte de données, l'analyse par IA et la prise de décision intelligente, atteignant véritablement l'interconnexion et le contrôle intelligent de toutes choses.
 </p>
 
-### 🧠 Module matériel IA edge RK3588
+### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> Module matériel IA edge RK3588
 
-**Ce n'est ni un portage ARM générique, ni une boîte de démonstration limitée à une image.** `RUNTIME-RK3588` reconstruit toute la chaîne vidéo autour du silicium RK3588 : FFmpeg ne fait que démultiplexer, MPP décode matériellement vers des DMA-BUF NV12, RGA redimensionne et convertit directement dans la mémoire d'entrée RKNN préallouée, les trois cœurs NPU exécutent des voies indépendantes, puis MPP assure l'encodage H.264 matériel. Les images restent sur le chemin matériel au lieu de repasser sans cesse par la mémoire CPU.
+`RUNTIME-RK3588` est un runtime d'inférence autonome d'EasyAIoT pour Rockchip RK3588, maintenu séparément du `RUNTIME` générique. Le traitement vidéo est fixé sur les unités matérielles du SoC : FFmpeg ne fait que démultiplexer, MPP décode, RGA redimensionne et convertit les couleurs, les trois cœurs NPU infèrent en parallèle et MPP encode via `h264_rkmpp`. Les images circulent entre les unités sous forme de DMA-BUF ; des images BGR ne sont créées que là où un accès CPU est nécessaire : incrustation, capture de preuve et diffusion.
 
-- **Débit réellement conçu pour trois cœurs :** les NPU Core 0/1/2 disposent chacun d'un anneau de tâches et d'un anneau de résultats, avec poids de modèle partagés et collecte dédiée. Le benchmark fourni fixe 150 FPS agrégés comme objectif de recette mesurable pour le modèle YOLOv8n INT8 prescrit, pas comme slogan de pic théorique.
-- **Stabilité en charge continue :** files d'images, d'inférence et de résultats bornées, buffers DMA et tenseurs préalloués et réutilisés ; en surcharge, les travaux périmés sont abandonnés au lieu d'accumuler latence et mémoire. « Zéro mémoire » signifie priorité au zéro-copie, aucune croissance non bornée et aucune grosse allocation par image.
-- **Contrat matériel strict :** l'absence de RK3588, RKNPU, RGA, MPP, DRM ou `h264_rkmpp` bloque le démarrage. Aucun repli ONNX/CPU/codec logiciel ne masque une installation incorrecte en sacrifiant CPU et latence.
-- **Valeur métier immédiate :** l'inférence locale remonte alertes et preuves sans envoyer tous les flux originaux, réduit le coût montant et le délai de réaction, et garde les données sur site. Double Ethernet, Wi-Fi/4G/5G, SIM et boîtier métallique à ailettes couvrent sites isolés, liaisons de secours et fonctionnement prolongé.
+- **Chemin de données :** MPP produit un groupe borné de buffers NV12 DMA-BUF ; RGA écrit directement dans la mémoire d'entrée RKNN préallouée, sans copie ni reconstruction de tenseur par image.
+- **Parallélisme trois cœurs :** chaque cœur NPU est associé à un worker dédié, avec son propre anneau de tâches et de résultats ; les poids du modèle sont partagés. L'ordonnanceur choisit la lane la plus courte et un thread dédié collecte les résultats. Le benchmark fourni vise 150 FPS agrégés pour le modèle YOLOv8n INT8 spécifié.
+- **Ressources bornées :** le pool d'images, les anneaux de tâches et de résultats par cœur et l'anneau de résultats ont une capacité fixe ; buffers et tenseurs sont alloués une seule fois au démarrage. En surcharge, l'image la plus ancienne est abandonnée et comptée, donc latence et mémoire ne croissent pas avec la durée de service.
+- **Arrêt en cas d'absence :** au démarrage, RK3588, RKNPU, RGA, MPP, DRM et `h264_rkmpp` sont vérifiés ; un élément manquant arrête le processus. Aucun repli ONNX, inférence CPU, décodage logiciel ou `libx264`, ce qui évite les déploiements qui « fonctionnent » avec une latence et une charge CPU inacceptables.
+- **Forme de déploiement :** l'inférence locale ne transmet que détections, alertes et images de preuve, laisse la vidéo d'origine sur site et réduit la bande passante montante et le délai de réaction. Double Ethernet, Wi-Fi, 4G/5G et SIM couvrent réseaux isolés, sites mobiles et liaisons de secours.
+
+**Architecture système : les images circulent entre les unités matérielles en DMA-BUF ; threads et files ont une capacité fixe**
+
+```mermaid
+flowchart LR
+    IN["RTSP / fichier vidéo"] --> PRE{"Précontrôle matériel et pilotes<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
+    PRE -->|absent| STOP["Refus de démarrer<br/>aucun repli CPU / ONNX / codec logiciel"]
+    PRE -->|validé| DEMUX["FFmpeg<br/>démultiplexage seul"]
+
+    subgraph HW["Unités matérielles RK3588 SoC"]
+        MPPD["Décodage matériel MPP<br/>groupe borné de NV12 DMA-BUF"]
+        NPU["NPU 3 cœurs<br/>Core 0 / 1 / 2 · lane dédiée · poids partagés"]
+        DRAW["RGA<br/>surimpression puis retour en NV12"]
+        MPPE["Encodage matériel MPP<br/>h264_rkmpp"]
+    end
+
+    subgraph RT["Runtime : threads et files bornées"]
+        FR["FrameRing<br/>remplace l'image la plus ancienne"]
+        TQ["TaskRing par cœur<br/>lane la plus courte d'abord"]
+        CQ["CompletionRing par cœur<br/>collecteur dédié"]
+        RR["ResultRing"]
+        EMIT["Thread Emit<br/>décision d'alerte / preuve"]
+    end
+
+    subgraph OUT["Sorties"]
+        MQ["Détections / alertes<br/>publication MQTT"]
+        SNAP["Image de preuve"]
+        RTMP["Flux RTMP"]
+    end
+
+    DEMUX --> MPPD --> FR --> TQ
+    TQ -->|redimensionnement RGA → inférence RKNN| NPU
+    NPU -->|post-traitement INT8 natif| CQ --> RR --> EMIT
+    EMIT --> MQ
+    EMIT --> SNAP
+    FR -.->|image brute à la demande| EMIT
+    EMIT --> DRAW --> MPPE --> RTMP
+```
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="Face avant et extension sans fil RK3588">
-  <img src=".images/rk3588/rk3588-thermal-design.jpg" width="32%" alt="Boîtier métallique à ailettes RK3588">
+  <img src=".images/rk3588/rk3588-box.jpg" width="32%" alt="Boîtier edge RK3588">
   <img src=".images/rk3588/rk3588-io-panel.jpg" width="32%" alt="Connectique RK3588">
 </div>
 
-RK3588 garantit que l'appliance peut **calculer sur place, répondre en temps réel et rester stable** ; PANEL, juste après, garantit qu'elle peut **être installée, réceptionnée et exploitée par l'équipe terrain**. Ensemble, ils transforment l'IA edge d'un benchmark en capacité de livraison reproductible.
+Le module RK3588 détermine si l'appliance peut inférer localement en temps réel et rester stable dans la durée ; PANEL, juste après, détermine si elle peut être installée, réceptionnée et exploitée sur le terrain. Ensemble, ils font de l'IA edge une solution livrable.
 
-**Posez-le sur le boîtier et lancez : une commande, aucune plateforme complète à assembler.**
+**Déploiement autonome sur un boîtier RK3588, sans les autres modules de la plateforme :**
 
 ```bash
 sudo env \
@@ -143,7 +182,7 @@ sudo env \
   bash .scripts/docker/install_linux.sh rk3588 install
 ```
 
-C'est tout. Le script vérifie les pilotes RK3588, compile le runtime natif, crée une configuration autonome, installe le service de démarrage, le lance puis attend que `/health` confirme MPP + RGA + RKNN. Il n'installe pas Docker et ne démarre ni WEB, ni AI, ni VIDEO, ni MQTT, ni aucun autre module EasyAIoT. Pour un menu encore plus tranquille, lancez `sudo bash .scripts/docker/install_linux.sh`, choisissez **5) RK3588**, puis **1) installation en un clic**, et répondez aux deux questions : le café sera encore chaud quand le boîtier commencera à travailler.
+La commande s'exécute depuis la racine du dépôt avec une URL RTSP et le chemin du modèle RKNN. Le script vérifie les pilotes, compile le runtime natif, installe le modèle et les classes, génère une configuration autonome, enregistre et démarre le service systemd, puis attend que `/health` confirme MPP, RGA et RKNN. Sans systemd, il utilise un processus d'arrière-plan avec PID et fichier journal. Il n'installe pas Docker et ne démarre ni WEB, ni AI, ni VIDEO, ni MQTT. On peut aussi lancer `sudo bash .scripts/docker/install_linux.sh`, choisir **5) RK3588 → 1) installation en un clic**, puis saisir l'URL RTSP et le chemin du modèle.
 
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 

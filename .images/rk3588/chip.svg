@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SoC chip">
+  <g fill="#7c8798">
+    <rect x="5" y="19" width="7" height="4" rx="1.5"/>
+    <rect x="5" y="30" width="7" height="4" rx="1.5"/>
+    <rect x="5" y="41" width="7" height="4" rx="1.5"/>
+    <rect x="52" y="19" width="7" height="4" rx="1.5"/>
+    <rect x="52" y="30" width="7" height="4" rx="1.5"/>
+    <rect x="52" y="41" width="7" height="4" rx="1.5"/>
+    <rect x="19" y="5" width="4" height="7" rx="1.5"/>
+    <rect x="30" y="5" width="4" height="7" rx="1.5"/>
+    <rect x="41" y="5" width="4" height="7" rx="1.5"/>
+    <rect x="19" y="52" width="4" height="7" rx="1.5"/>
+    <rect x="30" y="52" width="4" height="7" rx="1.5"/>
+    <rect x="41" y="52" width="4" height="7" rx="1.5"/>
+  </g>
+  <rect x="12" y="12" width="40" height="40" rx="6" fill="#374151"/>
+  <rect x="22" y="22" width="20" height="20" rx="3" fill="#60a5fa"/>
+  <path d="M28 28h8v8h-8z" fill="#1d4ed8" opacity="0.55"/>
+</svg>
