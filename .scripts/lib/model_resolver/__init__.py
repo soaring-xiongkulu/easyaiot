@@ -25,6 +25,7 @@ _WEIGHT_FIELDS: Tuple[Tuple[str, str], ...] = (
     ('torchscript_model_path', 'torchscript'),
     ('tensorrt_model_path', 'tensorrt'),
     ('openvino_model_path', 'openvino'),
+    ('rknn_model_path', 'rknn'),
 )
 
 
@@ -66,6 +67,7 @@ def model_record_from_orm(model: Any) -> Dict[str, Any]:
         'torchscript_model_path': getattr(model, 'torchscript_model_path', None),
         'tensorrt_model_path': getattr(model, 'tensorrt_model_path', None),
         'openvino_model_path': getattr(model, 'openvino_model_path', None),
+        'rknn_model_path': getattr(model, 'rknn_model_path', None),
         'class_names': class_names,
     }
 
@@ -100,6 +102,8 @@ def _canonical_filename(weights_ref: str, fmt: str) -> str:
     ref_lower = (weights_ref or '').lower()
     if fmt == 'onnx' or ref_lower.endswith('.onnx'):
         return 'model.onnx'
+    if fmt == 'rknn' or ref_lower.endswith('.rknn'):
+        return 'model.rknn'
     if ref_lower.endswith('.pt'):
         return 'model.pt'
     return f'model.{fmt}' if fmt else 'model.bin'
@@ -108,14 +112,14 @@ def _canonical_filename(weights_ref: str, fmt: str) -> str:
 def _find_weights_in_dir(model_dir: str) -> Optional[str]:
     if not os.path.isdir(model_dir):
         return None
-    for name in ('model.onnx', 'model.pt', 'weights.onnx', 'weights.pt'):
+    for name in ('model.onnx', 'model.pt', 'model.rknn', 'weights.onnx', 'weights.pt'):
         path = os.path.join(model_dir, name)
         if os.path.isfile(path) and os.path.getsize(path) > 0:
             return path
     for fn in sorted(os.listdir(model_dir)):
         if fn.startswith('.') or fn == METADATA_FILE:
             continue
-        if fn.endswith(('.onnx', '.pt', '.engine', '.xml')):
+        if fn.endswith(('.onnx', '.pt', '.rknn', '.engine', '.xml')):
             path = os.path.join(model_dir, fn)
             if os.path.isfile(path) and os.path.getsize(path) > 0:
                 return path
