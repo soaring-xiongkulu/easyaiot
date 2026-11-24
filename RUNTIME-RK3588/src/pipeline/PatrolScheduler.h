@@ -12,6 +12,7 @@
 
 #include "Config.h"
 #include "Datatype.h"
+#include "rk3588/frame_view.h"
 
 class YoloThreadPool;
 
@@ -40,8 +41,9 @@ public:
 
 private:
     void loop();
-    bool grabOneShot(const DeviceStreamConfig& device, cv::Mat& out);
-    void processDevice(const DeviceStreamConfig& device, const cv::Mat& frame);
+    bool grabOneShot(const DeviceStreamConfig& device, cv::Mat& out, rk3588::FrameView& source);
+    void processDevice(const DeviceStreamConfig& device, const cv::Mat& frame,
+                       const rk3588::FrameView& source);
 
     Config& config_;
     YoloThreadPool* pool_;

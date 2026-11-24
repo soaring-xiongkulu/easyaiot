@@ -15,7 +15,7 @@
 #include "Config.h"
 #include "RTMPEncoder.h"
 #include "Datatype.h"
-#include "ffmpeg_hw.h"
+#include "rk3588/hardware_state.h"
 #include "core/frame_pool.h"
 #include "pipeline/Pipeline.h"
 #include "pipeline/SnapScheduler.h"
@@ -25,7 +25,6 @@
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
-#include "libswscale/swscale.h"
 #include "libavutil/imgutils.h"
 }
 
@@ -101,9 +100,8 @@ class Detech {
         bool _isRun{false};
         httplib::Client* _httpClient{nullptr};
         AVFormatContext* _ffmpegFormatCtx{nullptr};
-        AVCodecContext* _ffmpegCodecCtx{nullptr};
         AVStream* _ffmpegStream{nullptr};
-        runtime::HwDecodeState _hwDecodeState{};
+        runtime::rk3588::MppDecodeState _mppDecodeState{};
         int _videoIndex = -1;
         int _videoFps = 0;
         int _videoWidth = 0;

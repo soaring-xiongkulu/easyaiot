@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <glog/logging.h>
+#include <map>
 #include <opencv2/opencv.hpp>
 
 #include "AlgoMqttBus.h"
@@ -11,71 +13,43 @@
 #include "YoloThreadPool.h"
 
 namespace runtime {
-
 namespace {
+
 int64_t nowNs() {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                std::chrono::steady_clock::now().time_since_epoch())
         .count();
 }
 
-void drawDetectionOverlay(cv::Mat& img, const DetectObject& det, bool /*inAlarmRegion*/) {
-    // Align with VIDEO draw_detections(); scale stroke/font for output resolution.
-    const int h = img.rows;
-    const int w = img.cols;
-    int x1 = static_cast<int>(det.x1);
-    int y1 = static_cast<int>(det.y1);
-    int x2 = static_cast<int>(det.x2);
-    int y2 = static_cast<int>(det.y2);
-    x1 = std::max(0, std::min(x1, w - 1));
-    y1 = std::max(0, std::min(y1, h - 1));
-    x2 = std::max(x1 + 1, std::min(x2, w));
-    y2 = std::max(y1 + 1, std::min(y2, h));
-
-    const double refH = 1080.0;
-    const double resScale = std::max(0.45, std::min(1.0, h / refH));
+void drawDetectionOverlay(cv::Mat& image, const DetectObject& detection) {
+    if (image.empty()) return;
+    const int x1 = std::clamp(detection.x1, 0, image.cols - 1);
+    const int y1 = std::clamp(detection.y1, 0, image.rows - 1);
+    const int x2 = std::clamp(detection.x2, x1 + 1, image.cols);
+    const int y2 = std::clamp(detection.y2, y1 + 1, image.rows);
+    const double scale = std::clamp(image.rows / 1080.0, 0.45, 1.0);
+    const int thickness = std::max(1, static_cast<int>(std::lround(2.0 * scale)));
     const cv::Scalar color(0, 255, 0);
-    const int thickness = std::max(1, static_cast<int>(std::lround(2.0 * resScale)));
-    cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness, cv::LINE_AA);
-
-    const std::string& label = det.class_name;
-    if (label.empty()) {
-        return;
+    cv::rectangle(image, {x1, y1}, {x2, y2}, color, thickness, cv::LINE_AA);
+    if (!detection.class_name.empty()) {
+        cv::putText(image, detection.class_name, {x1, std::max(20, y1 - 5)},
+                    cv::FONT_HERSHEY_SIMPLEX, 0.8 * scale, color, thickness, cv::LINE_AA);
     }
-
-    const double fontScale = 0.8 * resScale;
-    const int fontThickness = std::max(1, static_cast<int>(std::lround(2.0 * resScale)));
-    int baseLine = 0;
-    const cv::Size labelSize = cv::getTextSize(
-        label, cv::FONT_HERSHEY_SIMPLEX, fontScale, fontThickness, &baseLine);
-
-    int textX = std::max(0, std::min(x1, std::max(0, w - labelSize.width)));
-    int textY = std::max(labelSize.height + 5, y1 - 5);
-    textY = std::min(h - std::max(1, baseLine), textY);
-
-    cv::putText(img, label,
-                cv::Point(textX, textY),
-                cv::FONT_HERSHEY_SIMPLEX, fontScale,
-                color, fontThickness, cv::LINE_AA);
 }
 
-cv::Mat makeSnapshot(const cv::Mat& img) {
-    if (img.empty()) {
-        return {};
-    }
-    if (img.cols <= 640) {
-        return img.clone();
-    }
-    const double scale = 640.0 / static_cast<double>(img.cols);
-    cv::Mat resized;
-    cv::resize(img, resized, cv::Size(), scale, scale);
-    return resized;
+cv::Mat makeSnapshot(const cv::Mat& image) {
+    if (image.empty()) return {};
+    if (image.cols <= 640) return image.clone();
+    const double scale = 640.0 / image.cols;
+    cv::Mat output;
+    cv::resize(image, output, {}, scale, scale, cv::INTER_AREA);
+    return output;
 }
+
 }  // namespace
 
 Pipeline::Pipeline(Config& config,
                    AVFormatContext* formatCtx,
-                   AVCodecContext* codecCtx,
                    int videoIndex,
                    int videoWidth,
                    int videoHeight,
@@ -86,11 +60,10 @@ Pipeline::Pipeline(Config& config,
                    RegionFn regionFn,
                    StreamingEnabledFn streamingFn,
                    PipelineMetrics* metrics,
-                   HwDecodeState* sharedHwState)
+                   rk3588::MppDecodeState* sharedMppState)
     : config_(config),
       rtspUrl_(config.rtspUrl),
       formatCtx_(formatCtx),
-      codecCtx_(codecCtx),
       videoIndex_(videoIndex),
       videoWidth_(videoWidth),
       videoHeight_(videoHeight),
@@ -101,579 +74,372 @@ Pipeline::Pipeline(Config& config,
       regionFn_(std::move(regionFn)),
       streamingFn_(std::move(streamingFn)),
       metrics_(metrics),
-      sharedHwState_(sharedHwState),
-      frameRing_(8),
+      sharedMppState_(sharedMppState),
+      needsBgr_(config.enableRtmp || config.enableAlarm),
+      frameRing_(static_cast<size_t>(std::max(3, config.rkFramePoolSize))),
       resultRing_(64) {
-    framePool_.reset(8, videoWidth_, videoHeight_);
-    if (sharedHwState_) {
-        // Mirror Detech's initial decoder open (hw device stays owned by Detech until reopen)
-        hwState_.usingCuda = sharedHwState_->usingCuda;
-        hwState_.decodeEp = sharedHwState_->decodeEp.empty()
-            ? (sharedHwState_->usingCuda ? "cuda" : "cpu")
-            : sharedHwState_->decodeEp;
-        setDecodeEp(hwState_.decodeEp);
-    } else {
-        setDecodeEp("cpu");
-    }
-    forceSoftSession_ = config_.forceSoftAv || !config_.preferHwaccel;
+    framePool_.reset(static_cast<size_t>(std::max(3, config_.rkFramePoolSize)),
+                     videoWidth_, videoHeight_, needsBgr_);
+    setDecodeEp("mpp-rk3588");
 }
 
 Pipeline::~Pipeline() {
     stop();
     join();
-    releaseHwDecodeState(&hwState_);
+    releaseRgaImports();
+    decoder_.close();
+    if (formatCtx_) avformat_close_input(&formatCtx_);
 }
 
-void Pipeline::setDecodeEp(const std::string& ep) {
-    decodeEp_ = ep.empty() ? "cpu" : ep;
-    if (sharedHwState_) {
-        sharedHwState_->decodeEp = decodeEp_;
-        sharedHwState_->usingCuda = (decodeEp_ == "cuda");
+void Pipeline::setDecodeEp(const std::string& value) {
+    decodeEp_ = value.empty() ? "none" : value;
+    if (sharedMppState_) {
+        sharedMppState_->active = decodeEp_.find("mpp") != std::string::npos;
+        sharedMppState_->endpoint = decodeEp_;
     }
 }
 
 bool Pipeline::isFiniteMediaUrl(const std::string& url) {
-    if (url.empty()) {
-        return false;
-    }
-    // Bare filesystem path → finite VOD/file
+    if (url.empty()) return false;
     const auto schemeEnd = url.find("://");
-    if (schemeEnd == std::string::npos) {
-        return true;
-    }
+    if (schemeEnd == std::string::npos) return true;
     std::string scheme = url.substr(0, schemeEnd);
-    for (char& c : scheme) {
-        c = static_cast<char>(::tolower(static_cast<unsigned char>(c)));
-    }
-    // Explicit file URL; everything else treated as live (rtsp/rtmp/udp/http/...)
+    std::transform(scheme.begin(), scheme.end(), scheme.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
     return scheme == "file";
 }
 
 void Pipeline::start() {
-    if (running_.exchange(true)) {
+    if (running_.exchange(true)) return;
+    if (!formatCtx_ || videoIndex_ < 0 ||
+        !decoder_.open(formatCtx_->streams[videoIndex_]->codecpar, config_.rkMppBufferCount)) {
+        LOG(ERROR) << "[流水线] MPP 解码器初始化失败，拒绝启动";
+        running_.store(false);
         return;
     }
-    LOG(INFO) << "[流水线] 正在启动 拉流/解码 + 推理 + 推送 各阶段 解码后端=" << decodeEp_;
     pullThread_ = std::thread(&Pipeline::pullDecodeLoop, this);
     inferThread_ = std::thread(&Pipeline::inferLoop, this);
     emitThread_ = std::thread(&Pipeline::emitLoop, this);
+    LOG(INFO) << "[流水线] MPP DMA-BUF → RGA → RKNN 流水线已启动";
 }
 
-void Pipeline::stop() {
-    running_.store(false);
-}
+void Pipeline::stop() { running_.store(false); }
 
 void Pipeline::join() {
-    if (pullThread_.joinable()) {
-        pullThread_.join();
-    }
-    if (inferThread_.joinable()) {
-        inferThread_.join();
-    }
-    if (emitThread_.joinable()) {
-        emitThread_.join();
-    }
+    if (pullThread_.joinable()) pullThread_.join();
+    if (inferThread_.joinable()) inferThread_.join();
+    if (emitThread_.joinable()) emitThread_.join();
 }
 
-bool Pipeline::reopenStream(bool forceSoft) {
-    if (rtspUrl_.empty()) {
-        LOG(ERROR) << "[流水线] reopenStream: 视频地址为空";
+void Pipeline::releaseRgaImports() {
+    for (auto& item : decodedRgaHandles_) {
+        if (item.second) releasebuffer_handle(item.second);
+    }
+    decodedRgaHandles_.clear();
+}
+
+bool Pipeline::convertNv12ToBgr(const rk3588::FrameView& source, cv::Mat& destination) {
+    if (!source.valid() || !source.dmaBacked() || source.format != rk3588::FrameFormat::NV12 ||
+        destination.empty()) {
         return false;
     }
-
-    if (codecCtx_) {
-        avcodec_free_context(&codecCtx_);
-        codecCtx_ = nullptr;
-    }
-    if (formatCtx_) {
-        avformat_close_input(&formatCtx_);
-        formatCtx_ = nullptr;
-    }
-    releaseHwDecodeState(&hwState_);
-
-    formatCtx_ = avformat_alloc_context();
-    // RTSP-only options. For rtmp://, FFmpeg "timeout" implies listen mode.
-    AVDictionary* fmt_options = nullptr;
-    const bool isRtsp = rtspUrl_.rfind("rtsp://", 0) == 0 || rtspUrl_.rfind("rtsps://", 0) == 0;
-    const bool isRtmp = rtspUrl_.rfind("rtmp://", 0) == 0 || rtspUrl_.rfind("rtmps://", 0) == 0;
-    if (isRtsp) {
-        av_dict_set(&fmt_options, "rtsp_transport", "tcp", 0);
-        av_dict_set(&fmt_options, "stimeout", "3000000", 0);
-        av_dict_set(&fmt_options, "timeout", "5000000", 0);
-    } else if (isRtmp) {
-        av_dict_set(&fmt_options, "rtmp_live", "live", 0);
-    }
-
-    int ret = avformat_open_input(&formatCtx_, rtspUrl_.c_str(), nullptr, &fmt_options);
-    av_dict_free(&fmt_options);
-    if (ret != 0) {
-        char errbuf[128];
-        av_strerror(ret, errbuf, sizeof(errbuf));
-        LOG(ERROR) << "[流水线] avformat_open_input 打开输入流失败: " << errbuf;
-        if (formatCtx_) {
-            avformat_free_context(formatCtx_);
-            formatCtx_ = nullptr;
+    auto found = decodedRgaHandles_.find(source.dmaFd);
+    if (found == decodedRgaHandles_.end()) {
+        const int size = source.widthStride * source.heightStride * 3 / 2;
+        const rga_buffer_handle_t handle = importbuffer_fd(source.dmaFd, size);
+        if (!handle) {
+            LOG(ERROR) << "[RGA] 无法导入 MPP 帧 fd=" << source.dmaFd;
+            return false;
         }
+        found = decodedRgaHandles_.emplace(source.dmaFd, handle).first;
+    }
+    const rga_buffer_t src = wrapbuffer_handle_t(
+        found->second, source.width, source.height,
+        source.widthStride, source.heightStride, RK_FORMAT_YCbCr_420_SP);
+    const int dstStride = static_cast<int>(destination.step[0] / destination.elemSize());
+    const rga_buffer_t dst = wrapbuffer_virtualaddr_t(
+        destination.data, destination.cols, destination.rows,
+        dstStride, destination.rows, RK_FORMAT_BGR_888);
+    im_rect srcRect{0, 0, source.width, source.height};
+    im_rect dstRect{0, 0, destination.cols, destination.rows};
+    im_rect patRect{};
+    rga_buffer_t pat{};
+    im_opt_t options{};
+    const IM_STATUS status = improcess(src, dst, pat, srcRect, dstRect, patRect,
+                                       -1, nullptr, &options, IM_SYNC);
+    if (status != IM_STATUS_SUCCESS) {
+        LOG(ERROR) << "[RGA] NV12 DMA-BUF 转 BGR 失败: " << imStrError(status);
         return false;
     }
+    if (metrics_) metrics_->rgaOperations.fetch_add(1, std::memory_order_relaxed);
+    return true;
+}
 
-    if (avformat_find_stream_info(formatCtx_, nullptr) < 0) {
-        LOG(ERROR) << "[流水线] avformat_find_stream_info 获取流信息失败";
-        avformat_close_input(&formatCtx_);
-        return false;
+bool Pipeline::reopenStream() {
+    releaseRgaImports();
+    decoder_.close();
+    if (formatCtx_) avformat_close_input(&formatCtx_);
+    formatCtx_ = avformat_alloc_context();
+    AVDictionary* options = nullptr;
+    const bool rtsp = rtspUrl_.rfind("rtsp://", 0) == 0 || rtspUrl_.rfind("rtsps://", 0) == 0;
+    if (rtsp) {
+        av_dict_set(&options, "rtsp_transport", "tcp", 0);
+        av_dict_set(&options, "stimeout", "3000000", 0);
+        av_dict_set(&options, "timeout", "5000000", 0);
     }
-
+    const int ret = avformat_open_input(&formatCtx_, rtspUrl_.c_str(), nullptr, &options);
+    av_dict_free(&options);
+    if (ret < 0 || avformat_find_stream_info(formatCtx_, nullptr) < 0) return false;
     videoIndex_ = av_find_best_stream(formatCtx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
-    if (videoIndex_ < 0) {
-        LOG(ERROR) << "[流水线] 未找到视频流";
-        avformat_close_input(&formatCtx_);
-        return false;
-    }
-
-    AVCodecParameters* videoCodecPar = formatCtx_->streams[videoIndex_]->codecpar;
-    const bool soft = forceSoft || forceSoftSession_ || config_.forceSoftAv;
-    if (!openVideoDecoder(&codecCtx_, videoCodecPar,
-                          config_.preferHwaccel && !soft,
-                          soft,
-                          config_.hwaccelDeviceId,
-                          &hwState_)) {
-        LOG(ERROR) << "[流水线] openVideoDecoder 打开解码器失败";
-        avformat_close_input(&formatCtx_);
-        return false;
-    }
-    setDecodeEp(hwState_.decodeEp);
-
+    if (videoIndex_ < 0) return false;
     AVStream* stream = formatCtx_->streams[videoIndex_];
-    if (stream->avg_frame_rate.den == 0) {
-        videoFps_ = 25;
-    } else {
-        videoFps_ = stream->avg_frame_rate.num / stream->avg_frame_rate.den;
+    if (!decoder_.open(stream->codecpar, config_.rkMppBufferCount)) return false;
+    const int reopenedWidth = stream->codecpar->width;
+    const int reopenedHeight = stream->codecpar->height;
+    if (reopenedWidth > 0 && reopenedHeight > 0 && videoWidth_ > 0 && videoHeight_ > 0 &&
+        (reopenedWidth != videoWidth_ || reopenedHeight != videoHeight_)) {
+        LOG(ERROR) << "[MPP] 重连后分辨率变化，拒绝并发重建帧池 "
+                   << videoWidth_ << "x" << videoHeight_ << " -> "
+                   << reopenedWidth << "x" << reopenedHeight;
+        decoder_.close();
+        return false;
     }
-    videoWidth_ = codecCtx_->width;
-    videoHeight_ = codecCtx_->height;
-    LOG(INFO) << "[流水线] 已重开视频流 " << videoWidth_ << "x" << videoHeight_
-              << "@" << videoFps_ << "fps 解码后端=" << decodeEp_;
+    if (stream->avg_frame_rate.den) {
+        videoFps_ = std::max(1, stream->avg_frame_rate.num / stream->avg_frame_rate.den);
+    }
+    setDecodeEp("mpp-rk3588");
+    LOG(INFO) << "[MPP] 视频流重连成功 " << videoWidth_ << "x" << videoHeight_;
     return true;
 }
 
 void Pipeline::pullDecodeLoop() {
-    LOG(INFO) << "[拉流线程] 线程已启动 解码后端=" << decodeEp_;
-    if (!formatCtx_ || !codecCtx_) {
-        LOG(ERROR) << "[拉流线程] FFmpeg 尚未就绪";
-        running_.store(false);
-        return;
-    }
-
     AVPacket* packet = av_packet_alloc();
-    AVFrame* frame = av_frame_alloc();
-    AVFrame* swFrame = av_frame_alloc();
-    AVFrame* frameBGR = av_frame_alloc();
-    if (!packet || !frame || !swFrame || !frameBGR) {
-        LOG(ERROR) << "[拉流线程] 内存分配失败";
+    if (!packet) {
         running_.store(false);
         return;
     }
-
-    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_BGR24, videoWidth_, videoHeight_, 1);
-    uint8_t* buffer = static_cast<uint8_t*>(av_malloc(numBytes * sizeof(uint8_t)));
-    av_image_fill_arrays(frameBGR->data, frameBGR->linesize, buffer, AV_PIX_FMT_BGR24,
-                         videoWidth_, videoHeight_, 1);
-
-    AVPixelFormat swPixFmt = codecCtx_->pix_fmt;
-    const bool initialCuda = hwState_.usingCuda || decodeEp_ == "cuda" ||
-                             swPixFmt == AV_PIX_FMT_CUDA;
-    if (swPixFmt == AV_PIX_FMT_CUDA || swPixFmt == AV_PIX_FMT_NONE || initialCuda) {
-        // Will be set from first transferred frame; NV12 is common NVDEC download fmt
-        swPixFmt = AV_PIX_FMT_NV12;
-    }
-
-    SwsContext* swsCtx = sws_getContext(
-        videoWidth_, videoHeight_, swPixFmt,
-        videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
-        SWS_BILINEAR, nullptr, nullptr, nullptr);
-
-    // Soft path with known host pix_fmt from codec
-    if (!initialCuda && codecCtx_->pix_fmt != AV_PIX_FMT_NONE &&
-        codecCtx_->pix_fmt != AV_PIX_FMT_CUDA) {
-        if (swsCtx) {
-            sws_freeContext(swsCtx);
-        }
-        swPixFmt = codecCtx_->pix_fmt;
-        swsCtx = sws_getContext(
-            videoWidth_, videoHeight_, swPixFmt,
-            videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
-            SWS_BILINEAR, nullptr, nullptr, nullptr);
-    }
-
-    if (!swsCtx) {
-        LOG(ERROR) << "[拉流线程] sws_getContext 创建失败";
-        av_free(buffer);
-        av_frame_free(&frameBGR);
-        av_frame_free(&swFrame);
-        av_frame_free(&frame);
-        av_packet_free(&packet);
-        running_.store(false);
-        return;
-    }
-
-    int reconnectBackoffSec = 1;
-    const int kMaxBackoffSec = 30;
-    const int kSustainPacketsToResetBackoff = 50;  // live: only reset after sustained read
-    const int kShortSessionPackets = 25;           // below → treat as rapid EOF
-    int packetsThisSession = 0;
-    int rapidEofStreak = 0;
     const bool finiteSource = isFiniteMediaUrl(rtspUrl_);
-    if (finiteSource) {
-        LOG(INFO) << "[拉流线程] 检测到有限时长媒体源（文件/点播）；"
-                     "流结束将直接退出拉流循环，避免反复重连";
-    }
+    int reconnectBackoff = 1;
+    bool geometryInitialized = false;
 
-    auto rebuildConverters = [&](AVPixelFormat srcFmt) -> bool {
-        if (swsCtx) {
-            sws_freeContext(swsCtx);
-            swsCtx = nullptr;
-        }
-        if (buffer) {
-            av_free(buffer);
-            buffer = nullptr;
-        }
-        numBytes = av_image_get_buffer_size(AV_PIX_FMT_BGR24, videoWidth_, videoHeight_, 1);
-        buffer = static_cast<uint8_t*>(av_malloc(numBytes * sizeof(uint8_t)));
-        av_image_fill_arrays(frameBGR->data, frameBGR->linesize, buffer, AV_PIX_FMT_BGR24,
-                             videoWidth_, videoHeight_, 1);
-        swPixFmt = srcFmt;
-        swsCtx = sws_getContext(
-            videoWidth_, videoHeight_, swPixFmt,
-            videoWidth_, videoHeight_, AV_PIX_FMT_BGR24,
-            SWS_BILINEAR, nullptr, nullptr, nullptr);
-        if (!swsCtx) {
-            LOG(ERROR) << "[拉流线程] sws 转换器重建失败 src_fmt=" << srcFmt;
-            return false;
-        }
-        framePool_.reset(8, videoWidth_, videoHeight_);
-        return true;
-    };
-
-    while (running_.load()) {
-        int ret = av_read_frame(formatCtx_, packet);
-        if (ret < 0) {
-            char errbuf[128];
-            av_strerror(ret, errbuf, sizeof(errbuf));
-            const bool isEof = (ret == AVERROR_EOF);
-
-            // Finite file/VOD: stop cleanly — reopen would just EOF again and burn CPU
-            if (isEof && finiteSource) {
-                LOG(INFO) << "[拉流线程] 有限时长源已到结尾，结束拉流循环 "
-                             "（本会话包数=" << packetsThisSession << "）";
+    while (running_.load(std::memory_order_acquire)) {
+        const int readRet = av_read_frame(formatCtx_, packet);
+        if (readRet < 0) {
+            if (readRet == AVERROR_EOF && finiteSource) {
                 endedByEof_.store(true);
                 break;
             }
-
-            if (isEof) {
-                LOG(WARNING) << "[拉流线程] 流已结束，尝试重连"
-                             << " 会话包数=" << packetsThisSession
-                             << " 快速结束次数=" << rapidEofStreak;
-            } else {
-                LOG(WARNING) << "[拉流线程] 读取错误: " << errbuf
-                             << "，尝试重连";
-            }
-
-            // Live: short session ending in EOF → grow backoff (avoid 1s reopen storms)
-            if (isEof && packetsThisSession < kShortSessionPackets) {
-                ++rapidEofStreak;
-                reconnectBackoffSec = std::min(
-                    std::max(reconnectBackoffSec, 1) * 2, kMaxBackoffSec);
-                if (rapidEofStreak >= 3) {
-                    reconnectBackoffSec = std::max(reconnectBackoffSec, 5);
-                }
-                LOG(WARNING) << "[拉流线程] 短会话快速 EOF，退避="
-                             << reconnectBackoffSec << " 秒，连续次数=" << rapidEofStreak;
-            }
-
             bool reopened = false;
-            while (running_.load()) {
-                LOG(INFO) << "[拉流线程] 等待重连 " << reconnectBackoffSec << " 秒";
-                for (int s = 0; s < reconnectBackoffSec && running_.load(); ++s) {
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
+            while (running_.load() && !reopened) {
+                LOG(WARNING) << "[MPP] 拉流中断，" << reconnectBackoff << " 秒后重连";
+                for (int i = 0; i < reconnectBackoff * 10 && running_.load(); ++i) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
-                if (!running_.load()) {
-                    break;
-                }
-                if (reopenStream(forceSoftSession_) &&
-                    rebuildConverters(hwState_.usingCuda ? AV_PIX_FMT_NV12 : codecCtx_->pix_fmt)) {
-                    packetsThisSession = 0;
-                    hwTransferFailStreak_ = 0;
-                    // Do NOT reset backoff here — wait until sustained packets
-                    LOG(INFO) << "[拉流线程] 重连成功 解码后端=" << decodeEp_
-                              << "（退避保持 " << reconnectBackoffSec
-                              << " 秒，直至持续读取后重置）";
-                    reopened = true;
-                    break;
-                }
-                reconnectBackoffSec = std::min(reconnectBackoffSec * 2, kMaxBackoffSec);
-                LOG(WARNING) << "[拉流线程] 重开失败，下次退避="
-                             << reconnectBackoffSec << " 秒";
+                reopened = running_.load() && reopenStream();
+                reconnectBackoff = reopened ? 1 : std::min(30, reconnectBackoff * 2);
             }
-            if (!reopened) {
-                break;
-            }
+            if (!reopened) break;
             continue;
-        }
-
-        ++packetsThisSession;
-        if (packetsThisSession >= kSustainPacketsToResetBackoff) {
-            if (reconnectBackoffSec != 1 || rapidEofStreak != 0) {
-                LOG(INFO) << "[拉流线程] 已持续读取（" << packetsThisSession
-                          << " 个包），重置重连退避";
-            }
-            reconnectBackoffSec = 1;
-            rapidEofStreak = 0;
-        }
-
-        if (metrics_) {
-            metrics_->packetsIn.fetch_add(1, std::memory_order_relaxed);
         }
         if (packet->stream_index != videoIndex_) {
             av_packet_unref(packet);
             continue;
         }
-
-        ret = avcodec_send_packet(codecCtx_, packet);
+        if (metrics_) metrics_->packetsIn.fetch_add(1, std::memory_order_relaxed);
+        const bool accepted = decoder_.submit(packet);
         av_packet_unref(packet);
-        if (ret < 0) {
-            continue;
+        if (!accepted) {
+            LOG(ERROR) << "[MPP] 压缩包提交失败，硬件链路停止（无软件回退）";
+            running_.store(false);
+            break;
         }
 
-        while (ret >= 0 && running_.load()) {
-            ret = avcodec_receive_frame(codecCtx_, frame);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        rk3588::FrameView decoded;
+        while (decoder_.receive(decoded)) {
+            if (!geometryInitialized) {
+                videoWidth_ = decoded.width;
+                videoHeight_ = decoded.height;
+                framePool_.reset(static_cast<size_t>(std::max(3, config_.rkFramePoolSize)),
+                                 videoWidth_, videoHeight_, needsBgr_);
+                geometryInitialized = true;
+            } else if (decoded.width != videoWidth_ || decoded.height != videoHeight_) {
+                LOG(ERROR) << "[MPP] 运行中分辨率变化，拒绝无界重分配 "
+                           << videoWidth_ << "x" << videoHeight_ << " -> "
+                           << decoded.width << "x" << decoded.height;
+                running_.store(false);
                 break;
-            }
-            if (ret < 0) {
-                break;
-            }
-
-            AVFrame* srcForSws = ensureSoftwareFrame(frame, swFrame);
-            if (!srcForSws) {
-                ++hwTransferFailStreak_;
-                if (!forceSoftSession_ && hwTransferFailStreak_ >= kHwFailDowngradeThreshold) {
-                    LOG(WARNING) << "[拉流线程] NVDEC 传输失败 "
-                                 << hwTransferFailStreak_
-                                 << " 次，降级为软件解码";
-                    forceSoftSession_ = true;
-                    if (reopenStream(true) &&
-                        rebuildConverters(codecCtx_ ? codecCtx_->pix_fmt : AV_PIX_FMT_YUV420P)) {
-                        hwTransferFailStreak_ = 0;
-                    }
-                }
-                continue;
-            }
-            hwTransferFailStreak_ = 0;
-
-            if (srcForSws->format != swPixFmt ||
-                srcForSws->width != videoWidth_ ||
-                srcForSws->height != videoHeight_) {
-                videoWidth_ = srcForSws->width > 0 ? srcForSws->width : videoWidth_;
-                videoHeight_ = srcForSws->height > 0 ? srcForSws->height : videoHeight_;
-                if (!rebuildConverters(static_cast<AVPixelFormat>(srcForSws->format))) {
-                    continue;
-                }
             }
 
             FrameSlot* slot = framePool_.acquire();
             if (!slot) {
-                int dropIdx = -1;
-                if (frameRing_.pop(dropIdx)) {
-                    framePool_.release(dropIdx);
-                    if (metrics_) {
-                        metrics_->framesDropped.fetch_add(1, std::memory_order_relaxed);
-                    }
+                int old = -1;
+                if (frameRing_.pop(old)) {
+                    framePool_.release(old);
+                    if (metrics_) metrics_->framesDropped.fetch_add(1, std::memory_order_relaxed);
                     slot = framePool_.acquire();
                 }
-                if (!slot) {
-                    continue;
-                }
             }
-
-            sws_scale(swsCtx, srcForSws->data, srcForSws->linesize, 0, videoHeight_,
-                      frameBGR->data, frameBGR->linesize);
-            cv::Mat temp(videoHeight_, videoWidth_, CV_8UC3, frameBGR->data[0], frameBGR->linesize[0]);
-            temp.copyTo(slot->bgr);
-
+            if (!slot) continue;
+            if (needsBgr_ && !convertNv12ToBgr(decoded, slot->bgr)) {
+                framePool_.release(slot->poolIndex);
+                running_.store(false);
+                break;
+            }
+            slot->source = decoded;
             slot->seq = seqGen_.fetch_add(1, std::memory_order_relaxed) + 1;
-            slot->ptsNs = frame->pts;
+            slot->ptsNs = static_cast<int64_t>(decoded.sequence);
             slot->captureNs = nowNs();
-            slot->width = videoWidth_;
-            slot->height = videoHeight_;
-            slot->format = PixelFormat::BGR24;
-
-            int discardedIdx = -1;
+            slot->width = decoded.width;
+            slot->height = decoded.height;
+            slot->format = PixelFormat::NV12;
+            int discarded = -1;
             bool dropped = false;
-            frameRing_.pushDropOldest(slot->poolIndex, discardedIdx, &dropped);
-            if (dropped && discardedIdx >= 0) {
-                framePool_.release(discardedIdx);
-            }
+            frameRing_.pushDropOldest(slot->poolIndex, discarded, &dropped);
+            if (dropped && discarded >= 0) framePool_.release(discarded);
             if (metrics_) {
                 metrics_->framesDecoded.fetch_add(1, std::memory_order_relaxed);
-                if (dropped) {
-                    metrics_->framesDropped.fetch_add(1, std::memory_order_relaxed);
-                }
+                metrics_->mppFrames.fetch_add(1, std::memory_order_relaxed);
+                if (dropped) metrics_->framesDropped.fetch_add(1, std::memory_order_relaxed);
             }
         }
     }
-
-    if (swsCtx) {
-        sws_freeContext(swsCtx);
-    }
-    if (buffer) {
-        av_free(buffer);
-    }
-    av_frame_free(&frameBGR);
-    av_frame_free(&swFrame);
-    av_frame_free(&frame);
+    decoder_.flush();
     av_packet_free(&packet);
     running_.store(false);
-    LOG(INFO) << "[拉流线程] 线程已退出";
+    LOG(INFO) << "[MPP] 拉流解码线程退出";
 }
 
 void Pipeline::inferLoop() {
-    LOG(INFO) << "[推理线程] 线程已启动";
+    struct Pending {
+        std::vector<std::vector<DetectObject>> results;
+        std::vector<bool> ready;
+    };
+    std::map<int, Pending> pending;
     std::vector<DetectObject> lastDetections;
-    int lastSubmittedFrameId = -1;
-    int aiFrameInterval = 0;
     const int submitInterval = std::max(1, config_.frameSkip);
-    int localFrameId = 0;
+    int interval = 0;
+    int frameId = 0;
 
     while (running_.load() || frameRing_.sizeApprox() > 0) {
         int poolIndex = -1;
         if (!frameRing_.pop(poolIndex)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
-            if (!running_.load()) {
-                break;
-            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
-
         FrameSlot* slot = framePool_.at(poolIndex);
-        if (!slot) {
-            continue;
-        }
-
-        if (metrics_) {
-            metrics_->inferIn.fetch_add(1, std::memory_order_relaxed);
-        }
-
-        cv::Mat img = slot->bgr;
-        std::vector<DetectObject> detections;
-        int detectCount = 0;
+        if (!slot) continue;
+        if (metrics_) metrics_->inferIn.fetch_add(1, std::memory_order_relaxed);
+        cv::Mat image = slot->bgr;
 
         if (config_.enableAI && yoloPool_) {
-            const size_t modelCount = yoloPool_->modelCount();
-            if (aiFrameInterval % submitInterval == 0) {
-                for (size_t m = 0; m < modelCount; ++m) {
-                    yoloPool_->submitTask(img, static_cast<int>(m), 0, localFrameId);
-                }
-                lastSubmittedFrameId = localFrameId;
-            }
-            aiFrameInterval++;
-            localFrameId++;
-
-            // 多模型聚合：全部模型返回同一帧结果后才刷新，避免单模型结果覆盖整体
-            for (int checkFrame = lastSubmittedFrameId;
-                 checkFrame >= 0 && checkFrame >= lastSubmittedFrameId - 30;
-                 checkFrame--) {
-                std::vector<DetectObject> merged;
-                bool allReady = true;
-                for (size_t m = 0; m < modelCount; ++m) {
-                    std::vector<DetectObject> modelDets;
-                    if (yoloPool_->getTargetResultNonBlock(modelDets, static_cast<int>(m), 0, checkFrame) == 0) {
-                        merged.insert(merged.end(), modelDets.begin(), modelDets.end());
-                    } else {
-                        allReady = false;
-                        break;
+            const size_t count = yoloPool_->modelCount();
+            if (interval % submitInterval == 0) {
+                Pending work;
+                work.results.resize(count);
+                work.ready.assign(count, false);
+                for (size_t model = 0; model < count; ++model) {
+                    if (yoloPool_->submitTask(slot->source, static_cast<int>(model), 0, frameId) != 0) {
+                        work.ready[model] = true;
                     }
                 }
-                if (allReady) {
+                pending.emplace(frameId, std::move(work));
+            }
+            ++interval;
+            ++frameId;
+
+            for (auto it = pending.begin(); it != pending.end();) {
+                for (size_t model = 0; model < it->second.ready.size(); ++model) {
+                    if (!it->second.ready[model] &&
+                        yoloPool_->getTargetResultNonBlock(it->second.results[model],
+                                                          static_cast<int>(model), 0, it->first) == 0) {
+                        it->second.ready[model] = true;
+                    }
+                }
+                const bool complete = std::all_of(it->second.ready.begin(), it->second.ready.end(),
+                                                  [](bool value) { return value; });
+                if (complete) {
+                    std::vector<DetectObject> merged;
+                    for (auto& result : it->second.results) {
+                        merged.insert(merged.end(), result.begin(), result.end());
+                    }
                     lastDetections = std::move(merged);
-                    break;
+                    it = pending.erase(it);
+                } else {
+                    ++it;
                 }
             }
+            const size_t pendingLimit = static_cast<size_t>(config_.rkNpuWorkers) *
+                                        static_cast<size_t>(config_.rkTaskQueueDepth + 1);
+            while (pending.size() > pendingLimit) {
+                pending.erase(pending.begin());
+            }
+            if (metrics_) {
+                metrics_->npuQueueDrops.store(yoloPool_->droppedTasks(), std::memory_order_relaxed);
+                metrics_->npuDurationUs.store(
+                    static_cast<uint64_t>(std::max<int64_t>(0, yoloPool_->lastNpuDurationUs())),
+                    std::memory_order_relaxed);
+                metrics_->npuCompleted.store(
+                    yoloPool_->completedTasks(), std::memory_order_relaxed);
+                metrics_->npuThroughputMilliFps.store(
+                    static_cast<uint64_t>(std::max(0.0, yoloPool_->throughputFps()) * 1000.0),
+                    std::memory_order_relaxed);
+            }
 
-            if (!lastDetections.empty()) {
-                std::vector<DetectObject> alarmDetections;
-                const bool skipRegionGate = AlgoMqttBus::shouldPublishInferEvent();
-                for (const auto& det : lastDetections) {
-                    int x1 = static_cast<int>(det.x1);
-                    int y1 = static_cast<int>(det.y1);
-                    int x2 = static_cast<int>(det.x2);
-                    int y2 = static_cast<int>(det.y2);
-                    int centerX = (x1 + x2) / 2;
-                    int centerY = (y1 + y2) / 2;
-                    bool inAlarmRegion = skipRegionGate ? true
-                        : (regionFn_ ? regionFn_(centerX, centerY) : true);
-                    if (inAlarmRegion) {
-                        detectCount++;
-                        if (config_.enableAlarm && det.class_score >= config_.alarmConfidenceThreshold) {
-                            alarmDetections.push_back(det);
-                        }
-                    }
-                    if (config_.enableDrawRtmp &&
-                        det.class_score >= config_.alarmConfidenceThreshold) {
-                        drawDetectionOverlay(img, det, inAlarmRegion);
-                    }
+            std::vector<DetectObject> alarmDetections;
+            const bool skipRegionGate = AlgoMqttBus::shouldPublishInferEvent();
+            for (const auto& detection : lastDetections) {
+                const int centerX = (detection.x1 + detection.x2) / 2;
+                const int centerY = (detection.y1 + detection.y2) / 2;
+                const bool inRegion = skipRegionGate || !regionFn_ || regionFn_(centerX, centerY);
+                if (inRegion && config_.enableAlarm &&
+                    detection.class_score >= config_.alarmConfidenceThreshold) {
+                    alarmDetections.push_back(detection);
                 }
-
-                if (!alarmDetections.empty()) {
-                    InferResult result;
-                    result.seq = slot->seq;
-                    result.ptsNs = slot->ptsNs;
-                    result.inferNs = nowNs();
-                    result.detections = std::move(alarmDetections);
-                    result.regionName = config_.regions.empty() ? "全画面" : config_.regions.begin()->first;
-                    result.snapshot = makeSnapshot(img);
-                    if (metrics_) {
-                        metrics_->lastLatencyMs.store(
-                            static_cast<uint64_t>((result.inferNs - slot->captureNs) / 1000000),
-                            std::memory_order_relaxed);
-                    }
-                    resultRing_.pushDropOldest(result);
+                if (config_.enableDrawRtmp &&
+                    detection.class_score >= config_.alarmConfidenceThreshold) {
+                    drawDetectionOverlay(image, detection);
                 }
+            }
+            if (!alarmDetections.empty()) {
+                InferResult result;
+                result.seq = slot->seq;
+                result.ptsNs = slot->ptsNs;
+                result.inferNs = nowNs();
+                result.detections = std::move(alarmDetections);
+                result.regionName = config_.regions.empty() ? "全画面" : config_.regions.begin()->first;
+                result.snapshot = makeSnapshot(image);
+                if (metrics_) {
+                    metrics_->lastLatencyMs.store(
+                        static_cast<uint64_t>((result.inferNs - slot->captureNs) / 1000000),
+                        std::memory_order_relaxed);
+                }
+                resultRing_.pushDropOldest(result);
             }
         }
 
         if (streamingFn_ && streamingFn_() && rtmpEncoder_ && *rtmpEncoder_ &&
             (*rtmpEncoder_)->isInitialized()) {
-            (*rtmpEncoder_)->encodeAndPush(img);
+            (*rtmpEncoder_)->encodeAndPush(image);
         }
-
-        if (metrics_) {
-            metrics_->inferOut.fetch_add(1, std::memory_order_relaxed);
-        }
+        if (metrics_) metrics_->inferOut.fetch_add(1, std::memory_order_relaxed);
         framePool_.release(poolIndex);
     }
-
-    LOG(INFO) << "[推理线程] 线程已退出";
+    LOG(INFO) << "[RKNN] 推理线程退出";
 }
 
 void Pipeline::emitLoop() {
-    LOG(INFO) << "[推送线程] 线程已启动";
     while (running_.load() || resultRing_.sizeApprox() > 0) {
         InferResult result;
         if (!resultRing_.pop(result)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            if (!running_.load()) {
-                break;
-            }
             continue;
         }
         if (alarmFn_) {
             alarmFn_(result.detections, result.regionName, result.snapshot);
-            if (metrics_) {
-                metrics_->alarmsEmitted.fetch_add(1, std::memory_order_relaxed);
-            }
+            if (metrics_) metrics_->alarmsEmitted.fetch_add(1, std::memory_order_relaxed);
         }
     }
-    LOG(INFO) << "[推送线程] 线程已退出";
 }
 
 }  // namespace runtime

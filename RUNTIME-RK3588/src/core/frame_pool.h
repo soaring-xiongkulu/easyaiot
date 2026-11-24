@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Datatype.h"
+#include "rk3588/frame_view.h"
 
 namespace runtime {
 
@@ -27,6 +28,7 @@ struct FrameSlot {
     PixelFormat format{PixelFormat::BGR24};
     int poolIndex{-1};
     cv::Mat bgr;  // owned pixel buffer (pool slot)
+    rk3588::FrameView source;  // MPP NV12 DMA-BUF; owner pins the decoder buffer
 };
 
 struct InferResult {
@@ -45,7 +47,7 @@ class FramePool {
 public:
     FramePool() = default;
 
-    void reset(size_t count, int width, int height) {
+    void reset(size_t count, int width, int height, bool allocateBgr = true) {
         std::lock_guard<std::mutex> lock(mu_);
         width_ = width;
         height_ = height;
@@ -56,7 +58,11 @@ public:
             slots_[i].poolIndex = static_cast<int>(i);
             slots_[i].width = width;
             slots_[i].height = height;
-            slots_[i].bgr = cv::Mat(height, width, CV_8UC3);
+            if (allocateBgr) {
+                slots_[i].bgr = cv::Mat(height, width, CV_8UC3);
+            } else {
+                slots_[i].bgr.release();
+            }
             free_.push_back(static_cast<int>(i));
         }
     }
@@ -79,6 +85,7 @@ public:
         if (poolIndex >= static_cast<int>(slots_.size())) {
             return;
         }
+        slots_[static_cast<size_t>(poolIndex)].source = {};
         free_.push_back(poolIndex);
     }
 
@@ -110,6 +117,12 @@ struct PipelineMetrics {
     std::atomic<uint64_t> inferOut{0};
     std::atomic<uint64_t> alarmsEmitted{0};
     std::atomic<uint64_t> lastLatencyMs{0};
+    std::atomic<uint64_t> mppFrames{0};
+    std::atomic<uint64_t> rgaOperations{0};
+    std::atomic<uint64_t> npuQueueDrops{0};
+    std::atomic<uint64_t> npuDurationUs{0};
+    std::atomic<uint64_t> npuCompleted{0};
+    std::atomic<uint64_t> npuThroughputMilliFps{0};
 };
 
 }  // namespace runtime

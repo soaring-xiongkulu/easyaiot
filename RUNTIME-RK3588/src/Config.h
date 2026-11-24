@@ -66,7 +66,7 @@ typedef struct Config {
     bool plateMatchingEnabled{false};
     int heartbeatIntervalSec{10};
     bool headless{true};
-    int frameSkip{8};  // realtime: infer every N frames; snap fallback interval sec
+    int frameSkip{1};  // realtime: infer every frame; bounded rings handle overload
 
     // Algorithm event bus (MQTT → iot-sink); heartbeat stays HTTP → VIDEO
     std::string algoBusTransport;  // empty/mqtt default; http/off disables
@@ -88,16 +88,13 @@ typedef struct Config {
     // multi-device (snap/patrol; realtime may also list primary first)
     std::vector<DeviceStreamConfig> devices;
 
-    // AI execution backend: prefer CUDA EP, fallback CPU
-    bool preferGpu{true};
-    bool forceCpu{false};
-    int gpuDeviceId{0};
-
-    // FFmpeg NVDEC/NVENC (NVIDIA); soft fallback on failure
-    bool preferHwaccel{true};
-    bool forceSoftAv{false};
-    int hwaccelDeviceId{-1};  // <0 → use gpuDeviceId after parse
-    std::string nvencPreset{"p3"};
+    // RK3588-only execution policy. There is deliberately no CPU/software fallback.
+    int rkNpuWorkers{3};          // 1..3, split across the three NPU cores
+    int rkTaskQueueDepth{2};      // fixed ring depth per NPU lane, oldest task is dropped
+    int rkFramePoolSize{6};       // bounded MPP/DMA frame lifetime
+    int rkMppBufferCount{8};      // decoder buffer group limit
+    bool rkUseSram{true};         // ask RKNN to place eligible tensors in NPU SRAM
+    bool rkEnablePerfQuery{false}; // sampled RKNN perf query; off maximizes throughput
 } Config;
 
 #endif //CONFIG_H

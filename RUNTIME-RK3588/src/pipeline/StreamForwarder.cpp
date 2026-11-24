@@ -469,12 +469,8 @@ bool StreamForwarder::ffmpegRelaySession() {
             bitrate = std::getenv("VIEW_FFMPEG_VIDEO_BITRATE");
         }
         if (!bitrate || !*bitrate) {
-            // Align VIDEO default (was 2000k → soft on 1080p HEVC→H264 fallback)
+            // Align VIDEO default; 2000k is visibly undersized for 1080p HEVC -> H.264.
             bitrate = "3500k";
-        }
-        const char* preset = std::getenv("FFMPEG_PRESET");
-        if (!preset || !*preset) {
-            preset = "veryfast";
         }
         const char* gop = std::getenv("FFMPEG_GOP_SIZE");
         if (!gop || !*gop) {
@@ -503,16 +499,14 @@ bool StreamForwarder::ffmpegRelaySession() {
             }
         }
         args.insert(args.end(), {
-            "-c:v", "libx264",
+            "-c:v", "h264_rkmpp",
             "-b:v", bitrate,
             "-maxrate", bitrate,
             "-bufsize", bufsize,
-            "-preset", preset,
-            "-tune", "zerolatency",
             "-profile:v", "main",
             "-g", gop,
             "-bf", "0",
-            "-pix_fmt", "yuv420p",
+            "-pix_fmt", "nv12",
             "-r", fps,
         });
     } else {

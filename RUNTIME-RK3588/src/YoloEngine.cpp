@@ -1,523 +1,591 @@
 #include "YoloEngine.h"
 
 #include <algorithm>
-#include <array>
+#include <cmath>
 #include <cctype>
-#include <cstdio>
-#include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <glog/logging.h>
-#include <sstream>
+#include <limits>
+#include <numeric>
 
 namespace {
 
-std::vector<std::string> g_classes = {
-    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
-    "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
-    "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
-    "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
-    "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
-    "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
-    "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
-    "hair drier", "toothbrush"};
-
-std::string toLower(std::string s) {
-    for (char& c : s) {
-        c = static_cast<char>(::tolower(static_cast<unsigned char>(c)));
-    }
-    return s;
-}
-
-std::string replaceExt(const std::string& path, const std::string& newExt) {
-    const auto slash = path.find_last_of("/\\");
-    const auto dot = path.find_last_of('.');
-    if (dot == std::string::npos || (slash != std::string::npos && dot < slash)) {
-        return path + newExt;
-    }
-    return path.substr(0, dot) + newExt;
-}
-
 bool fileExists(const std::string& path) {
-    std::ifstream f(path);
-    return f.good();
+    std::ifstream input(path, std::ios::binary);
+    return input.good();
 }
 
-std::string findEnsureScript() {
-    if (const char* env = std::getenv("RUNTIME_ENSURE_ONNX_SCRIPT")) {
-        if (fileExists(env)) {
-            return env;
-        }
-    }
-    // Common layouts: next to binary via RUNTIME_ROOT / repo
-    const char* roots[] = {
-        std::getenv("EASYAIOT_RUNTIME_INSTALL_DIR"),
-        std::getenv("RUNTIME_ROOT"),
-        std::getenv("EASYAIOT_ROOT"),
-        nullptr,
-    };
-    for (int i = 0; roots[i]; ++i) {
-        std::string p = std::string(roots[i]) + "/scripts/ensure_onnx_model.py";
-        if (fileExists(p)) {
-            return p;
-        }
-        p = std::string(roots[i]) + "/RUNTIME-RK3588/scripts/ensure_onnx_model.py";
-        if (fileExists(p)) {
-            return p;
-        }
-    }
-    // Relative to cwd / source tree
-    const char* candidates[] = {
-        "RUNTIME-RK3588/scripts/ensure_onnx_model.py",
-        "scripts/ensure_onnx_model.py",
-        "/opt/easyaiot/RUNTIME/scripts/ensure_onnx_model.py",
-        nullptr,
-    };
-    for (int i = 0; candidates[i]; ++i) {
-        if (fileExists(candidates[i])) {
-            return candidates[i];
-        }
-    }
-    return "";
+float intersectionOverUnion(const cv::Rect2f& a, const cv::Rect2f& b) {
+    const float left = std::max(a.x, b.x);
+    const float top = std::max(a.y, b.y);
+    const float right = std::min(a.x + a.width, b.x + b.width);
+    const float bottom = std::min(a.y + a.height, b.y + b.height);
+    const float intersection =
+        std::max(0.0f, right - left) * std::max(0.0f, bottom - top);
+    const float total = a.area() + b.area() - intersection;
+    return total > 0.0f ? intersection / total : 0.0f;
 }
 
 }  // namespace
 
-YoloEngine::YoloEngine() = default;
+YoloEngine::~YoloEngine() { release(); }
 
-YoloEngine::~YoloEngine() {
-    onnxEnv.release();
-    onnxSessionOptions.release();
-    onnxSession.release();
+bool YoloEngine::hasRknnExtension(const std::string& path) {
+    if (path.size() < 5) return false;
+    std::string suffix = path.substr(path.size() - 5);
+    std::transform(suffix.begin(), suffix.end(), suffix.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    return suffix == ".rknn";
 }
 
-std::string YoloEngine::ensureOnnxPath(const std::string& model_path) {
-    const std::string lower = toLower(model_path);
-    if (lower.size() >= 5 && lower.substr(lower.size() - 5) == ".onnx") {
-        return model_path;
+void YoloEngine::release() {
+    ready_ = false;
+    paddingInitialized_ = false;
+    paddedWidth_ = 0;
+    paddedHeight_ = 0;
+    for (auto& item : importedSources_) {
+        if (item.second.handle) releasebuffer_handle(item.second.handle);
     }
-    if (!(lower.size() >= 3 && lower.substr(lower.size() - 3) == ".pt")) {
-        LOG(WARNING) << "[YOLO] 意外的模型后缀（应为 .onnx/.pt）: " << model_path;
-        // Still try sibling .onnx
+    importedSources_.clear();
+    if (inputRgaHandle_) {
+        releasebuffer_handle(inputRgaHandle_);
+        inputRgaHandle_ = 0;
     }
-
-    const std::string sibling = replaceExt(model_path, ".onnx");
-    if (fileExists(sibling)) {
-        LOG(INFO) << "[YOLO] 使用权重旁的已有 ONNX 文件: " << sibling;
-        return sibling;
-    }
-
-    const std::string script = findEnsureScript();
-    if (script.empty()) {
-        LOG(ERROR) << "[YOLO] 提供了 .pt 但无 ONNX 且找不到 ensure_onnx_model.py: " << model_path;
-        return "";
-    }
-
-    std::ostringstream cmd;
-    // Prefer RUNTIME_PYTHON (ultralytics-capable) over bare python3
-    const char* py = std::getenv("RUNTIME_PYTHON");
-    if (!py || !*py) {
-        py = std::getenv("EASYAIOT_PYTHON");
-    }
-    if (!py || !*py) {
-        py = "python3";
-    }
-    cmd << "\"" << py << "\" \"" << script << "\" --input \"" << model_path
-        << "\" --output \"" << sibling << "\" 2>&1";
-    LOG(INFO) << "[YOLO] 正在导出 .pt → ONNX: " << cmd.str();
-    FILE* pipe = popen(cmd.str().c_str(), "r");
-    if (!pipe) {
-        LOG(ERROR) << "[YOLO] 无法启动 ensure_onnx_model.py";
-        return "";
-    }
-    char buf[512];
-    while (fgets(buf, sizeof(buf), pipe)) {
-        // Trim trailing newline for glog
-        std::string line(buf);
-        while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) {
-            line.pop_back();
+    if (context_) {
+        for (rknn_tensor_mem* memory : outputMems_) {
+            if (memory) rknn_destroy_mem(context_, memory);
         }
-        if (!line.empty()) {
-            LOG(INFO) << "[YOLO-导出] " << line;
+        outputMems_.clear();
+        if (inputMem_) {
+            rknn_destroy_mem(context_, inputMem_);
+            inputMem_ = nullptr;
         }
+        rknn_destroy(context_);
+        context_ = 0;
     }
-    const int rc = pclose(pipe);
-    if (rc != 0 || !fileExists(sibling)) {
-        LOG(ERROR) << "[YOLO] .pt → ONNX 导出失败 rc=" << rc << " 输出=" << sibling;
-        return "";
-    }
-    LOG(INFO) << "[YOLO] 导出成功: " << sibling;
-    return sibling;
-}
-
-void YoloEngine::loadNamesFromOnnxMetadata() {
-    try {
-        Ort::AllocatorWithDefaultOptions allocator;
-        Ort::ModelMetadata meta = onnxSession.GetModelMetadata();
-        Ort::AllocatedStringPtr raw = meta.LookupCustomMetadataMapAllocated("names", allocator);
-        if (!raw) {
-            return;
-        }
-        std::string text = raw.get();
-        // Accept JSON {"0":"person",...} or Python dict / list-ish: strip braces
-        // Minimal parser: find quoted strings in order
-        std::vector<std::string> parsed;
-        std::string cur;
-        bool inQuote = false;
-        for (size_t i = 0; i < text.size(); ++i) {
-            char c = text[i];
-            if (c == '\'' || c == '"') {
-                if (inQuote) {
-                    parsed.push_back(cur);
-                    cur.clear();
-                    inQuote = false;
-                } else {
-                    inQuote = true;
-                }
-                continue;
-            }
-            if (inQuote) {
-                cur.push_back(c);
-            }
-        }
-        // Heuristic: metadata often mixes keys and values; keep odd/even by filtering numeric keys
-        std::vector<std::string> values;
-        for (const auto& s : parsed) {
-            bool allDigit = !s.empty();
-            for (char ch : s) {
-                if (!std::isdigit(static_cast<unsigned char>(ch))) {
-                    allDigit = false;
-                    break;
-                }
-            }
-            if (!allDigit) {
-                values.push_back(s);
-            }
-        }
-        if (values.size() >= 2) {
-            g_classes = values;
-            LOG(INFO) << "[YOLO] 已从 ONNX 元数据加载 " << g_classes.size() << " 个类别名";
-        }
-    } catch (const std::exception& e) {
-        LOG(WARNING) << "[YOLO] 跳过 ONNX names 元数据解析: " << e.what();
-    }
-}
-
-void YoloEngine::detectLayoutFromOutputShape(const std::vector<int64_t>& dims) {
-    // Expect [1, A, B] or [A, B]
-    if (dims.empty()) {
-        end2end_ = false;
-        modelLayout_ = "detect";
-        return;
-    }
-    const int64_t last = dims.back();
-    if (last == 6) {
-        end2end_ = true;
-        modelLayout_ = "end2end";
-        return;
-    }
-    end2end_ = false;
-    modelLayout_ = "detect";
-}
-
-int YoloEngine::createSession(const std::string& model_path, bool use_cuda, int gpu_device_id) {
-    onnxSessionOptions = Ort::SessionOptions();
-    onnxSessionOptions.SetGraphOptimizationLevel(ORT_ENABLE_EXTENDED);
-    onnxSessionOptions.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
-
-    if (use_cuda) {
-        OrtCUDAProviderOptions cuda_options{};
-        cuda_options.device_id = gpu_device_id;
-        cuda_options.arena_extend_strategy = 0;
-        cuda_options.gpu_mem_limit = SIZE_MAX;
-        cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
-        cuda_options.do_copy_in_default_stream = 1;
-        onnxSessionOptions.AppendExecutionProvider_CUDA(cuda_options);
-        LOG(INFO) << "[YOLO] 追加 CUDA 执行提供器 device_id=" << gpu_device_id;
-    } else {
-        LOG(INFO) << "[YOLO] 使用 CPU 执行";
-    }
-
-    onnxSession = Ort::Session(onnxEnv, model_path.c_str(), onnxSessionOptions);
-    inferEp_ = use_cuda ? "cuda" : "cpu";
-    return 0;
-}
-
-int YoloEngine::LoadModel(std::string model_path,
-                          std::vector<std::string> model_class,
-                          bool prefer_gpu,
-                          bool force_cpu,
-                          int gpu_device_id) {
-    try {
-        const std::string onnx_path = ensureOnnxPath(model_path);
-        if (onnx_path.empty() || !fileExists(onnx_path)) {
-            LOG(ERROR) << "[YOLO] 没有可加载的 ONNX: " << model_path;
-            inferEp_ = "none";
-            return -3;
-        }
-        loadedOnnxPath_ = onnx_path;
-
-        LOG(INFO) << "[YOLO] 正在创建 ONNX Runtime 环境... 路径=" << onnx_path;
-        onnxEnv = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "YOLO");
-
-        const bool try_cuda = prefer_gpu && !force_cpu;
-        bool loaded = false;
-
-        if (try_cuda) {
-            try {
-                createSession(onnx_path, true, gpu_device_id);
-                loaded = true;
-                LOG(INFO) << "[YOLO] 使用 CUDA 执行提供器";
-            } catch (const Ort::Exception& e) {
-                LOG(WARNING) << "[YOLO] CUDA 执行提供器失败，回退到 CPU: " << e.what();
-                onnxSession.release();
-                onnxSessionOptions.release();
-            } catch (const std::exception& e) {
-                LOG(WARNING) << "[YOLO] CUDA 执行提供器失败，回退到 CPU: " << e.what();
-                onnxSession.release();
-                onnxSessionOptions.release();
-            }
-        }
-
-        if (!loaded) {
-            createSession(onnx_path, false, gpu_device_id);
-            LOG(INFO) << "[YOLO] 使用 CPU 执行" << (try_cuda ? "（回退）" : "");
-        }
-
-        // Peek output shape for layout
-        {
-            Ort::TypeInfo output_type_info = onnxSession.GetOutputTypeInfo(0);
-            auto output_tensor_info = output_type_info.GetTensorTypeAndShapeInfo();
-            detectLayoutFromOutputShape(output_tensor_info.GetShape());
-        }
-
-        if (!model_class.empty()) {
-            g_classes = model_class;
-            LOG(INFO) << "[YOLO] 使用类别文件中的 " << model_class.size() << " 个类别";
-        } else {
-            loadNamesFromOnnxMetadata();
-            if (g_classes.empty()) {
-                LOG(WARNING) << "[YOLO] 没有类别名，检测结果将使用 class_N";
-            } else {
-                LOG(INFO) << "[YOLO] 使用 " << g_classes.size() << " 个类别名";
-            }
-        }
-
-        // YOLO26 end2end: keep slightly lower floor unless setScoreThreshold() raised it
-        if (end2end_ && scoreThreshold_ < 0.20f) {
-            scoreThreshold_ = 0.20f;
-        }
-
-        ready_ = true;
-        LOG(INFO) << "[YOLO] 模型加载完成 infer_ep=" << inferEp_
-                  << " layout=" << modelLayout_
-                  << " onnx=" << loadedOnnxPath_;
-        return 0;
-    } catch (const Ort::Exception& e) {
-        LOG(ERROR) << "[YOLO] ONNX Runtime 异常: " << e.what();
-        inferEp_ = "none";
-        return -1;
-    } catch (const std::exception& e) {
-        LOG(ERROR) << "[YOLO] 加载模型异常: " << e.what();
-        inferEp_ = "none";
-        return -2;
-    }
+    outputAttrs_.clear();
+    outputNativeAttrs_.clear();
 }
 
 void YoloEngine::setScoreThreshold(float threshold) {
-    if (threshold > 0.0f && threshold <= 1.0f) {
-        scoreThreshold_ = threshold;
-    }
+    if (threshold > 0.0f && threshold <= 1.0f) scoreThreshold_ = threshold;
 }
 
-int YoloEngine::Inference(const cv::Mat& image, std::vector<DetectObject>& detections) {
-    detections.clear();
-    const int image_w = image.cols;
-    const int image_h = image.rows;
-
-    std::vector<std::string> input_node_names;
-    std::vector<std::string> output_node_names;
-    const size_t numInputNodes = onnxSession.GetInputCount();
-    const size_t numOutputNodes = onnxSession.GetOutputCount();
-    Ort::AllocatorWithDefaultOptions allocator;
-    input_node_names.reserve(numInputNodes);
-
-    int input_w = 0;
-    int input_h = 0;
-    for (size_t i = 0; i < numInputNodes; i++) {
-        auto input_name = onnxSession.GetInputNameAllocated(i, allocator);
-        input_node_names.push_back(input_name.get());
-        Ort::TypeInfo input_type_info = onnxSession.GetInputTypeInfo(i);
-        auto input_dims = input_type_info.GetTensorTypeAndShapeInfo().GetShape();
-        // NCHW
-        if (input_dims.size() >= 4) {
-            input_h = static_cast<int>(input_dims[2]);
-            input_w = static_cast<int>(input_dims[3]);
-        }
-    }
-    if (input_w <= 0 || input_h <= 0) {
-        LOG(ERROR) << "[YOLO] 无效的输入形状";
+int YoloEngine::LoadModel(const std::string& modelPath,
+                          const std::vector<std::string>& modelClasses,
+                          int npuCoreIndex,
+                          bool useSram,
+                          bool enablePerfQuery) {
+    release();
+    if (!hasRknnExtension(modelPath) || !fileExists(modelPath)) {
+        LOG(ERROR) << "[RKNN] 仅接受存在的 RK3588 .rknn 模型: " << modelPath;
         return -1;
     }
 
-    for (size_t i = 0; i < numOutputNodes; i++) {
-        auto out_name = onnxSession.GetOutputNameAllocated(i, allocator);
-        output_node_names.push_back(out_name.get());
+    uint32_t flags = RKNN_FLAG_SHARE_WEIGHT_MEM;
+#ifdef RKNN_FLAG_DISABLE_FLUSH_INPUT_MEM_CACHE
+    flags |= RKNN_FLAG_DISABLE_FLUSH_INPUT_MEM_CACHE;
+#endif
+#ifdef RKNN_FLAG_DISABLE_INVALIDATE_OUTPUT_MEM_CACHE
+    flags |= RKNN_FLAG_DISABLE_INVALIDATE_OUTPUT_MEM_CACHE;
+#endif
+#ifdef RKNN_FLAG_ENABLE_SRAM
+    if (useSram) flags |= RKNN_FLAG_ENABLE_SRAM;
+#endif
+    int ret = rknn_init(&context_, const_cast<char*>(modelPath.c_str()), 0, flags, nullptr);
+    if (ret != RKNN_SUCC) {
+        LOG(ERROR) << "[RKNN] rknn_init 失败 ret=" << ret << " model=" << modelPath;
+        release();
+        return -2;
     }
 
-    // Letterbox-style square pad (keep existing RUNTIME behavior)
-    const int image_size_max = std::max(image_h, image_w);
-    cv::Mat mask = cv::Mat::zeros(cv::Size(image_size_max, image_size_max), CV_8UC3);
-    cv::Rect roi(0, 0, image_w, image_h);
-    image.copyTo(mask(roi));
-
-    const float x_factor = mask.cols / static_cast<float>(input_w);
-    const float y_factor = mask.rows / static_cast<float>(input_h);
-
-    cv::Mat blob = cv::dnn::blobFromImage(mask, 1 / 255.0, cv::Size(input_w, input_h),
-                                          cv::Scalar(0, 0, 0), true, false);
-    const size_t tpixels = static_cast<size_t>(input_h) * static_cast<size_t>(input_w) * 3;
-    std::array<int64_t, 4> input_shape_info{1, 3, input_h, input_w};
-
-    auto allocator_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-    Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-        allocator_info, blob.ptr<float>(), tpixels, input_shape_info.data(), input_shape_info.size());
-
-    std::vector<const char*> inputNames{input_node_names[0].c_str()};
-    std::vector<const char*> outNames{output_node_names[0].c_str()};
-
-    std::vector<Ort::Value> ort_outputs;
-    try {
-        ort_outputs = onnxSession.Run(Ort::RunOptions{nullptr}, inputNames.data(), &input_tensor, 1,
-                                      outNames.data(), outNames.size());
-    } catch (const std::exception& e) {
-        LOG(ERROR) << "[YOLO] 推理异常: " << e.what();
-        return -1;
+    const rknn_core_mask masks[3] = {
+        RKNN_NPU_CORE_0, RKNN_NPU_CORE_1, RKNN_NPU_CORE_2};
+    const int core = std::clamp(npuCoreIndex, 0, 2);
+    ret = rknn_set_core_mask(context_, masks[core]);
+    if (ret != RKNN_SUCC) {
+        LOG(ERROR) << "[RKNN] NPU 核绑定失败 core=" << core << " ret=" << ret;
+        release();
+        return -3;
     }
 
-    auto out_info = ort_outputs[0].GetTensorTypeAndShapeInfo();
-    auto out_dims = out_info.GetShape();
-    detectLayoutFromOutputShape(out_dims);
-    const float* pdata = ort_outputs[0].GetTensorData<float>();
+    rknn_sdk_version version{};
+    if (rknn_query(context_, RKNN_QUERY_SDK_VERSION, &version, sizeof(version)) != RKNN_SUCC) {
+        LOG(ERROR) << "[RKNN] 无法读取 SDK/驱动版本";
+        release();
+        return -4;
+    }
+    LOG(INFO) << "[RKNN] api=" << version.api_version << " driver=" << version.drv_version;
 
-    auto classNameOf = [](int idx) -> std::string {
-        if (idx >= 0 && idx < static_cast<int>(g_classes.size())) {
-            return g_classes[static_cast<size_t>(idx)];
-        }
-        return "class_" + std::to_string(idx);
-    };
+    rknn_input_output_num io{};
+    if (rknn_query(context_, RKNN_QUERY_IN_OUT_NUM, &io, sizeof(io)) != RKNN_SUCC ||
+        io.n_input != 1 || io.n_output != 9) {
+        LOG(ERROR) << "[RKNN] 仅支持 Rockchip 优化版 YOLOv8 1 输入/9 输出 INT8 模型，实际 input="
+                   << io.n_input << " output=" << io.n_output;
+        release();
+        return -5;
+    }
 
-    if (end2end_) {
-        // [1, N, 6] or [N, 6]
-        int64_t rows = 0;
-        if (out_dims.size() == 3) {
-            rows = out_dims[1];
-        } else if (out_dims.size() == 2) {
-            rows = out_dims[0];
-        } else {
-            LOG(ERROR) << "[YOLO] 意外的 end2end 输出维度 rank=" << out_dims.size();
-            return -1;
-        }
-        for (int64_t i = 0; i < rows; ++i) {
-            const float* row = pdata + i * 6;
-            const float score = row[4];
-            if (score < scoreThreshold_) {
-                continue;
-            }
-            const int cls = static_cast<int>(row[5]);
-            DetectObject det;
-            det.x1 = row[0] * x_factor;
-            det.y1 = row[1] * y_factor;
-            det.x2 = row[2] * x_factor;
-            det.y2 = row[3] * y_factor;
-            det.class_id = cls;
-            det.class_name = classNameOf(cls);
-            det.class_score = score;
-            detections.push_back(det);
-        }
+    std::memset(&inputAttr_, 0, sizeof(inputAttr_));
+    inputAttr_.index = 0;
+    std::memset(&inputNativeAttr_, 0, sizeof(inputNativeAttr_));
+    inputNativeAttr_.index = 0;
+    if (rknn_query(context_, RKNN_QUERY_INPUT_ATTR, &inputAttr_, sizeof(inputAttr_)) != RKNN_SUCC ||
+        rknn_query(context_, RKNN_QUERY_NATIVE_INPUT_ATTR,
+                   &inputNativeAttr_, sizeof(inputNativeAttr_)) != RKNN_SUCC) {
+        release();
+        return -6;
+    }
+    if (inputAttr_.n_dims != 4) {
+        LOG(ERROR) << "[RKNN] 输入必须为四维图像张量";
+        release();
+        return -7;
+    }
+    if (inputAttr_.fmt == RKNN_TENSOR_NHWC) {
+        inputHeight_ = static_cast<int>(inputAttr_.dims[1]);
+        inputWidth_ = static_cast<int>(inputAttr_.dims[2]);
+        inputChannels_ = static_cast<int>(inputAttr_.dims[3]);
+    } else if (inputAttr_.fmt == RKNN_TENSOR_NCHW) {
+        inputChannels_ = static_cast<int>(inputAttr_.dims[1]);
+        inputHeight_ = static_cast<int>(inputAttr_.dims[2]);
+        inputWidth_ = static_cast<int>(inputAttr_.dims[3]);
     } else {
-        // Ultralytics detect: usually [1, 4+C, N] → treat as (4+C) x N then transpose to N x (4+C)
-        // Also accept [1, N, 4+C]
-        int64_t d1 = 0;
-        int64_t d2 = 0;
-        if (out_dims.size() == 3) {
-            d1 = out_dims[1];
-            d2 = out_dims[2];
-        } else if (out_dims.size() == 2) {
-            d1 = out_dims[0];
-            d2 = out_dims[1];
-        } else {
-            LOG(ERROR) << "[YOLO] 意外的 detect 输出维度 rank=" << out_dims.size();
-            return -1;
-        }
+        LOG(ERROR) << "[RKNN] 不支持的输入布局 fmt=" << inputAttr_.fmt;
+        release();
+        return -8;
+    }
+    if (inputChannels_ != 3 || inputWidth_ <= 0 || inputHeight_ <= 0) {
+        LOG(ERROR) << "[RKNN] 仅支持三通道静态图像输入";
+        release();
+        return -9;
+    }
+    if (inputNativeAttr_.fmt != RKNN_TENSOR_NHWC) {
+        LOG(ERROR) << "[RKNN] RGA 直写要求原生输入布局为 NHWC，实际 fmt="
+                   << inputNativeAttr_.fmt;
+        release();
+        return -9;
+    }
 
-        cv::Mat det_output;
-        if (d1 < d2) {
-            // [4+C, N]
-            cv::Mat dout(static_cast<int>(d1), static_cast<int>(d2), CV_32F,
-                         const_cast<float*>(pdata));
-            det_output = dout.t();
-        } else {
-            // [N, 4+C]
-            det_output = cv::Mat(static_cast<int>(d1), static_cast<int>(d2), CV_32F,
-                                 const_cast<float*>(pdata));
+    outputAttrs_.resize(io.n_output);
+    outputNativeAttrs_.resize(io.n_output);
+    for (uint32_t index = 0; index < io.n_output; ++index) {
+        std::memset(&outputAttrs_[index], 0, sizeof(rknn_tensor_attr));
+        std::memset(&outputNativeAttrs_[index], 0, sizeof(rknn_tensor_attr));
+        outputAttrs_[index].index = index;
+        outputNativeAttrs_[index].index = index;
+        if (rknn_query(context_, RKNN_QUERY_OUTPUT_ATTR, &outputAttrs_[index],
+                       sizeof(rknn_tensor_attr)) != RKNN_SUCC ||
+            rknn_query(context_, RKNN_QUERY_NATIVE_OUTPUT_ATTR, &outputNativeAttrs_[index],
+                       sizeof(rknn_tensor_attr)) != RKNN_SUCC) {
+            release();
+            return -10;
         }
-
-        const int output_dim = det_output.cols;
-        std::vector<cv::Rect> boxes;
-        std::vector<int> classIds;
-        std::vector<float> confidences;
-        for (int i = 0; i < det_output.rows; i++) {
-            if (output_dim <= 4) {
-                break;
-            }
-            cv::Mat classes_scores = det_output.row(i).colRange(4, output_dim);
-            cv::Point classIdPoint;
-            double score = 0.0;
-            cv::minMaxLoc(classes_scores, nullptr, &score, nullptr, &classIdPoint);
-            if (score > scoreThreshold_) {
-                const float cx = det_output.at<float>(i, 0);
-                const float cy = det_output.at<float>(i, 1);
-                const float ow = det_output.at<float>(i, 2);
-                const float oh = det_output.at<float>(i, 3);
-                cv::Rect box;
-                box.x = static_cast<int>((cx - 0.5f * ow) * x_factor);
-                box.y = static_cast<int>((cy - 0.5f * oh) * y_factor);
-                box.width = static_cast<int>(ow * x_factor);
-                box.height = static_cast<int>(oh * y_factor);
-                boxes.push_back(box);
-                classIds.push_back(classIdPoint.x);
-                confidences.push_back(static_cast<float>(score));
-            }
+        const auto& logical = outputAttrs_[index];
+        const auto& native = outputNativeAttrs_[index];
+        if (logical.n_dims != 4 || logical.fmt != RKNN_TENSOR_NCHW ||
+            native.type != RKNN_TENSOR_INT8 ||
+            native.qnt_type != RKNN_TENSOR_QNT_AFFINE_ASYMMETRIC ||
+            native.scale <= 0.0f ||
+            (native.fmt != RKNN_TENSOR_NCHW && native.fmt != RKNN_TENSOR_NC1HWC2)) {
+            LOG(ERROR) << "[RKNN] 输出 " << index
+                       << " 不是 YOLOv8 RK3588 INT8 NCHW/NC1HWC2 张量";
+            release();
+            return -11;
         }
-        std::vector<int> indexes;
-        cv::dnn::NMSBoxes(boxes, confidences, scoreThreshold_, nmsThreshold_, indexes);
-        for (int index : indexes) {
-            DetectObject detection;
-            const int idx = classIds[static_cast<size_t>(index)];
-            const cv::Rect& box = boxes[static_cast<size_t>(index)];
-            detection.x1 = box.x;
-            detection.y1 = box.y;
-            detection.x2 = box.x + box.width;
-            detection.y2 = box.y + box.height;
-            detection.class_id = idx;
-            detection.class_name = classNameOf(idx);
-            detection.class_score = confidences[static_cast<size_t>(index)];
-            detections.push_back(detection);
+    }
+    const uint32_t expectedClassCount = outputAttrs_[1].dims[1];
+    for (int branch = 0; branch < 3; ++branch) {
+        const auto& boxes = outputAttrs_[static_cast<size_t>(branch * 3)];
+        const auto& scores = outputAttrs_[static_cast<size_t>(branch * 3 + 1)];
+        const auto& scoreSum = outputAttrs_[static_cast<size_t>(branch * 3 + 2)];
+        if (boxes.dims[1] == 0 || boxes.dims[1] % 4 != 0 ||
+            boxes.dims[2] != scores.dims[2] || boxes.dims[3] != scores.dims[3] ||
+            scores.dims[1] != expectedClassCount ||
+            scoreSum.dims[1] != 1 || scoreSum.dims[2] != boxes.dims[2] ||
+            scoreSum.dims[3] != boxes.dims[3]) {
+            LOG(ERROR) << "[RKNN] YOLOv8 第 " << branch << " 个检测分支形状不匹配";
+            release();
+            return -12;
         }
     }
 
-    static int debug_count = 0;
-    if (debug_count < 3) {
-        LOG(INFO) << "[YOLO] layout=" << modelLayout_ << " 检测数=" << detections.size();
-        debug_count++;
+    inputNativeAttr_.type = RKNN_TENSOR_UINT8;
+    inputNativeAttr_.pass_through = 0;
+    inputWidthStride_ = inputNativeAttr_.w_stride > 0
+        ? static_cast<int>(inputNativeAttr_.w_stride)
+        : inputWidth_;
+    const uint64_t memoryFlags = useSram ? RKNN_FLAG_MEMORY_TRY_ALLOC_SRAM
+                                         : RKNN_FLAG_MEMORY_FLAGS_DEFAULT;
+    const uint32_t inputBytes = inputNativeAttr_.size_with_stride > 0
+        ? inputNativeAttr_.size_with_stride
+        : static_cast<uint32_t>(inputWidthStride_ * inputHeight_ * inputChannels_);
+    inputMem_ = rknn_create_mem2(context_, inputBytes, memoryFlags);
+    if (!inputMem_) {
+        LOG(ERROR) << "[RKNN] 输入 DMA 张量分配失败 size=" << inputBytes;
+        release();
+        return -13;
+    }
+    if (rknn_set_io_mem(context_, inputMem_, &inputNativeAttr_) != RKNN_SUCC) {
+        LOG(ERROR) << "[RKNN] 输入 DMA 张量绑定失败";
+        release();
+        return -14;
+    }
+    inputRgaHandle_ = importbuffer_fd(inputMem_->fd, static_cast<int>(inputMem_->size));
+    if (!inputRgaHandle_) {
+        LOG(ERROR) << "[RGA] 无法导入 RKNN 输入 DMA-BUF fd=" << inputMem_->fd;
+        release();
+        return -15;
+    }
+
+    outputMems_.reserve(io.n_output);
+    for (uint32_t index = 0; index < io.n_output; ++index) {
+        const uint32_t bytes = outputNativeAttrs_[index].size_with_stride > 0
+            ? outputNativeAttrs_[index].size_with_stride
+            : outputNativeAttrs_[index].size;
+        rknn_tensor_mem* output = rknn_create_mem2(context_, bytes, memoryFlags);
+        if (!output) {
+            LOG(ERROR) << "[RKNN] 输出 DMA 张量分配失败 index=" << index
+                       << " size=" << bytes;
+            release();
+            return -16;
+        }
+        outputMems_.push_back(output);
+        if (rknn_set_io_mem(context_, output, &outputNativeAttrs_[index]) != RKNN_SUCC) {
+            LOG(ERROR) << "[RKNN] 输出 DMA 张量绑定失败 index=" << index;
+            release();
+            return -17;
+        }
+    }
+
+    size_t candidates = 0;
+    for (int branch = 0; branch < 3; ++branch) {
+        const auto& boxes = outputAttrs_[static_cast<size_t>(branch * 3)];
+        candidates += static_cast<size_t>(boxes.dims[2]) * boxes.dims[3];
+    }
+    scratchBoxes_.reserve(candidates);
+    scratchScores_.reserve(candidates);
+    scratchClassIds_.reserve(candidates);
+    scratchOrder_.reserve(candidates);
+    scratchKeep_.reserve(candidates);
+    scratchSuppressed_.reserve(candidates);
+
+    rknn_mem_size memory{};
+    if (rknn_query(context_, RKNN_QUERY_MEM_SIZE, &memory, sizeof(memory)) == RKNN_SUCC) {
+        LOG(INFO) << "[RKNN] memory weight=" << memory.total_weight_size
+                  << " internal=" << memory.total_internal_size
+                  << " dma=" << memory.total_dma_allocated_size
+                  << " sram=" << memory.total_sram_size
+                  << " free_sram=" << memory.free_sram_size;
+    }
+
+    classes_ = modelClasses;
+    const uint32_t classCount = expectedClassCount;
+    if (!classes_.empty() && classes_.size() != classCount) {
+        LOG(WARNING) << "[RKNN] 类别名数量 " << classes_.size()
+                     << " 与模型类别数 " << classCount << " 不一致";
+    }
+    loadedModelPath_ = modelPath;
+    inferEp_ = "rknn-core" + std::to_string(core);
+    modelLayout_ = "yolov8-dfl-int8-9out";
+    perfQueryEnabled_ = enablePerfQuery;
+    runCounter_ = 0;
+    ready_ = true;
+    LOG(INFO) << "[RKNN] YOLOv8n INT8 模型加载完成 model=" << modelPath
+              << " input=" << inputWidth_ << "x" << inputHeight_
+              << " candidates=" << candidates << " ep=" << inferEp_;
+    return 0;
+}
+
+int YoloEngine::rgaFormat(runtime::rk3588::FrameFormat format) {
+    using runtime::rk3588::FrameFormat;
+    switch (format) {
+        case FrameFormat::BGR888: return RK_FORMAT_BGR_888;
+        case FrameFormat::RGB888: return RK_FORMAT_RGB_888;
+        case FrameFormat::NV12: return RK_FORMAT_YCbCr_420_SP;
+    }
+    return RK_FORMAT_UNKNOWN;
+}
+
+int YoloEngine::prepareRgaInput(const runtime::rk3588::FrameView& frame) {
+    if (!frame.valid()) return -1;
+    const int sourceFormat = rgaFormat(frame.format);
+    if (sourceFormat == RK_FORMAT_UNKNOWN) return -2;
+    const int sourceWidthStride = frame.widthStride > 0 ? frame.widthStride : frame.width;
+    const int sourceHeightStride = frame.heightStride > 0 ? frame.heightStride : frame.height;
+
+    rga_buffer_t source{};
+    if (frame.dmaBacked()) {
+        const uint64_t key = (frame.bufferPoolId << 32) ^ static_cast<uint32_t>(frame.dmaFd);
+        auto found = importedSources_.find(key);
+        if (found == importedSources_.end()) {
+            if (importedSources_.size() >= 64) {
+                for (auto& item : importedSources_) {
+                    if (item.second.handle) releasebuffer_handle(item.second.handle);
+                }
+                importedSources_.clear();
+            }
+            const int bytes = frame.format == runtime::rk3588::FrameFormat::NV12
+                ? sourceWidthStride * sourceHeightStride * 3 / 2
+                : sourceWidthStride * sourceHeightStride * 3;
+            ImportedBuffer imported;
+            imported.handle = importbuffer_fd(frame.dmaFd, bytes);
+            imported.width = frame.width;
+            imported.height = frame.height;
+            imported.widthStride = sourceWidthStride;
+            imported.heightStride = sourceHeightStride;
+            imported.format = sourceFormat;
+            if (!imported.handle) {
+                LOG(ERROR) << "[RGA] 导入 MPP DMA-BUF 失败 fd=" << frame.dmaFd;
+                return -3;
+            }
+            found = importedSources_.emplace(key, imported).first;
+        }
+        source = wrapbuffer_handle_t(found->second.handle, frame.width, frame.height,
+                                     sourceWidthStride, sourceHeightStride, sourceFormat);
+    } else {
+        source = wrapbuffer_virtualaddr_t(frame.virtualAddress, frame.width, frame.height,
+                                          sourceWidthStride, sourceHeightStride, sourceFormat);
+    }
+    rga_buffer_t destination =
+        wrapbuffer_handle_t(inputRgaHandle_, inputWidth_, inputHeight_,
+                            inputWidthStride_, inputHeight_, RK_FORMAT_RGB_888);
+
+    const float scale = std::min(inputWidth_ / static_cast<float>(frame.width),
+                                 inputHeight_ / static_cast<float>(frame.height));
+    int resizedWidth = std::clamp(
+        static_cast<int>(std::round(frame.width * scale)), 2, inputWidth_);
+    int resizedHeight = std::clamp(
+        static_cast<int>(std::round(frame.height * scale)), 2, inputHeight_);
+    const int padX = (inputWidth_ - resizedWidth) / 2;
+    const int padY = (inputHeight_ - resizedHeight) / 2;
+
+    IM_STATUS status = IM_STATUS_SUCCESS;
+    if (!paddingInitialized_ || paddedWidth_ != resizedWidth || paddedHeight_ != resizedHeight) {
+        im_rect whole{0, 0, inputWidth_, inputHeight_};
+        status = imfill(destination, whole, 0x727272);
+        if (status != IM_STATUS_SUCCESS) {
+            LOG(ERROR) << "[RGA] letterbox 填充失败: " << imStrError(status);
+            return -4;
+        }
+        paddingInitialized_ = true;
+        paddedWidth_ = resizedWidth;
+        paddedHeight_ = resizedHeight;
+    }
+    im_rect sourceRect{0, 0, frame.width, frame.height};
+    im_rect destinationRect{padX, padY, resizedWidth, resizedHeight};
+    im_rect patternRect{};
+    rga_buffer_t pattern{};
+    im_opt_t options{};
+    status = improcess(source, destination, pattern, sourceRect, destinationRect,
+                       patternRect, -1, nullptr, &options, IM_SYNC);
+    if (status != IM_STATUS_SUCCESS) {
+        LOG(ERROR) << "[RGA] DMA 预处理失败: " << imStrError(status)
+                   << " src=" << frame.width << "x" << frame.height
+                   << " dst=" << resizedWidth << "x" << resizedHeight;
+        return -5;
+    }
+    lastScale_ = scale;
+    lastPadX_ = padX;
+    lastPadY_ = padY;
+    return rknn_mem_sync(context_, inputMem_, RKNN_MEMORY_SYNC_TO_DEVICE);
+}
+
+int8_t YoloEngine::outputValue(size_t outputIndex, int channel, int y, int x) const {
+    const auto& native = outputNativeAttrs_[outputIndex];
+    const int8_t* data = static_cast<const int8_t*>(outputMems_[outputIndex]->virt_addr);
+    if (native.fmt == RKNN_TENSOR_NC1HWC2 && native.n_dims == 5) {
+        const size_t c2 = native.dims[4];
+        const size_t height = native.dims[2];
+        const size_t width = native.dims[3];
+        const size_t index =
+            (((static_cast<size_t>(channel) / c2) * height + static_cast<size_t>(y)) *
+                 width +
+             static_cast<size_t>(x)) *
+                c2 +
+            static_cast<size_t>(channel) % c2;
+        return data[index];
+    }
+    const size_t height = native.dims[2];
+    const size_t width = native.dims[3];
+    const size_t index =
+        (static_cast<size_t>(channel) * height + static_cast<size_t>(y)) * width +
+        static_cast<size_t>(x);
+    return data[index];
+}
+
+float YoloEngine::dequantize(size_t outputIndex, int8_t value) const {
+    const auto& attr = outputNativeAttrs_[outputIndex];
+    return (static_cast<float>(value) - static_cast<float>(attr.zp)) * attr.scale;
+}
+
+int YoloEngine::parseYolov8Output(const runtime::rk3588::FrameView& frame,
+                                  float scale,
+                                  int padX,
+                                  int padY,
+                                  std::vector<DetectObject>& detections) {
+    detections.clear();
+    scratchBoxes_.clear();
+    scratchScores_.clear();
+    scratchClassIds_.clear();
+
+    for (int branch = 0; branch < 3; ++branch) {
+        const size_t boxIndex = static_cast<size_t>(branch * 3);
+        const size_t scoreIndex = boxIndex + 1;
+        const size_t sumIndex = boxIndex + 2;
+        const auto& boxAttr = outputAttrs_[boxIndex];
+        const auto& scoreAttr = outputAttrs_[scoreIndex];
+        const int height = static_cast<int>(boxAttr.dims[2]);
+        const int width = static_cast<int>(boxAttr.dims[3]);
+        const int stride = inputHeight_ / height;
+        const int dflLength = static_cast<int>(boxAttr.dims[1]) / 4;
+        const int classCount = static_cast<int>(scoreAttr.dims[1]);
+        const auto& scoreNative = outputNativeAttrs_[scoreIndex];
+        const auto& sumNative = outputNativeAttrs_[sumIndex];
+        const int scoreThreshold = std::clamp(
+            static_cast<int>(std::lround(scoreThreshold_ / scoreNative.scale)) +
+                scoreNative.zp,
+            -128, 127);
+        const int sumThreshold = std::clamp(
+            static_cast<int>(std::lround(scoreThreshold_ / sumNative.scale)) +
+                sumNative.zp,
+            -128, 127);
+
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                if (static_cast<int>(outputValue(sumIndex, 0, y, x)) < sumThreshold) continue;
+                int bestClass = -1;
+                int bestRawScore = -129;
+                for (int classId = 0; classId < classCount; ++classId) {
+                    const int raw = outputValue(scoreIndex, classId, y, x);
+                    if (raw > bestRawScore) {
+                        bestRawScore = raw;
+                        bestClass = classId;
+                    }
+                }
+                if (bestClass < 0 || bestRawScore < scoreThreshold) continue;
+
+                float distances[4]{};
+                for (int side = 0; side < 4; ++side) {
+                    float maximum = -std::numeric_limits<float>::infinity();
+                    for (int bin = 0; bin < dflLength; ++bin) {
+                        maximum = std::max(
+                            maximum,
+                            dequantize(boxIndex,
+                                       outputValue(boxIndex, side * dflLength + bin, y, x)));
+                    }
+                    float denominator = 0.0f;
+                    float numerator = 0.0f;
+                    for (int bin = 0; bin < dflLength; ++bin) {
+                        const float value =
+                            dequantize(boxIndex,
+                                       outputValue(boxIndex, side * dflLength + bin, y, x));
+                        const float weight = std::exp(value - maximum);
+                        denominator += weight;
+                        numerator += weight * static_cast<float>(bin);
+                    }
+                    distances[side] = denominator > 0.0f ? numerator / denominator : 0.0f;
+                }
+
+                const float centerX = (static_cast<float>(x) + 0.5f) * stride;
+                const float centerY = (static_cast<float>(y) + 0.5f) * stride;
+                const float x1 = centerX - distances[0] * stride;
+                const float y1 = centerY - distances[1] * stride;
+                const float x2 = centerX + distances[2] * stride;
+                const float y2 = centerY + distances[3] * stride;
+                scratchBoxes_.emplace_back(
+                    x1, y1, std::max(0.0f, x2 - x1), std::max(0.0f, y2 - y1));
+                scratchScores_.push_back(
+                    dequantize(scoreIndex, static_cast<int8_t>(bestRawScore)));
+                scratchClassIds_.push_back(bestClass);
+            }
+        }
+    }
+
+    scratchOrder_.resize(scratchBoxes_.size());
+    std::iota(scratchOrder_.begin(), scratchOrder_.end(), 0);
+    std::sort(scratchOrder_.begin(), scratchOrder_.end(), [&](size_t left, size_t right) {
+        return scratchScores_[left] > scratchScores_[right];
+    });
+    scratchSuppressed_.assign(scratchBoxes_.size(), 0);
+    scratchKeep_.clear();
+    for (size_t orderIndex = 0; orderIndex < scratchOrder_.size(); ++orderIndex) {
+        const size_t current = scratchOrder_[orderIndex];
+        if (scratchSuppressed_[current]) continue;
+        scratchKeep_.push_back(current);
+        for (size_t candidateIndex = orderIndex + 1;
+             candidateIndex < scratchOrder_.size(); ++candidateIndex) {
+            const size_t candidate = scratchOrder_[candidateIndex];
+            if (!scratchSuppressed_[candidate] &&
+                scratchClassIds_[current] == scratchClassIds_[candidate] &&
+                intersectionOverUnion(scratchBoxes_[current], scratchBoxes_[candidate]) >
+                    nmsThreshold_) {
+                scratchSuppressed_[candidate] = 1;
+            }
+        }
+    }
+
+    detections.reserve(std::max(detections.capacity(), scratchKeep_.size()));
+    auto className = [&](int index) {
+        return index >= 0 && index < static_cast<int>(classes_.size())
+            ? classes_[static_cast<size_t>(index)]
+            : "class_" + std::to_string(index);
+    };
+    auto restoreX = [&](float coordinate) {
+        return std::clamp((coordinate - padX) / scale, 0.0f,
+                          static_cast<float>(frame.width));
+    };
+    auto restoreY = [&](float coordinate) {
+        return std::clamp((coordinate - padY) / scale, 0.0f,
+                          static_cast<float>(frame.height));
+    };
+    for (size_t index : scratchKeep_) {
+        const cv::Rect2f& box = scratchBoxes_[index];
+        DetectObject detection{};
+        detection.x1 = static_cast<int>(restoreX(box.x));
+        detection.y1 = static_cast<int>(restoreY(box.y));
+        detection.x2 = static_cast<int>(restoreX(box.x + box.width));
+        detection.y2 = static_cast<int>(restoreY(box.y + box.height));
+        detection.class_score = scratchScores_[index];
+        detection.class_id = scratchClassIds_[index];
+        detection.class_name = className(detection.class_id);
+        detections.push_back(std::move(detection));
     }
     return 0;
 }
 
-int YoloEngine::Run(cv::Mat& image, std::vector<DetectObject>& detections) {
-    if (!ready_) {
-        return -1;
+int YoloEngine::Run(const runtime::rk3588::FrameView& frame,
+                    std::vector<DetectObject>& objects) {
+    if (!ready_) return -1;
+    int ret = prepareRgaInput(frame);
+    if (ret != RKNN_SUCC) return -2;
+    ret = rknn_run(context_, nullptr);
+    if (ret != RKNN_SUCC) {
+        LOG(ERROR) << "[RKNN] rknn_run 失败 ret=" << ret;
+        return -3;
     }
-    return Inference(image, detections);
+    for (rknn_tensor_mem* output : outputMems_) {
+        ret = rknn_mem_sync(context_, output, RKNN_MEMORY_SYNC_FROM_DEVICE);
+        if (ret != RKNN_SUCC) return -4;
+    }
+    ++runCounter_;
+    if (perfQueryEnabled_ && runCounter_ % 30 == 1) {
+        rknn_perf_run perf{};
+        if (rknn_query(context_, RKNN_QUERY_PERF_RUN, &perf, sizeof(perf)) == RKNN_SUCC) {
+            lastNpuDurationUs_ = perf.run_duration;
+        }
+    }
+    return parseYolov8Output(frame, lastScale_, lastPadX_, lastPadY_, objects);
+}
+
+int YoloEngine::Run(cv::Mat& image, std::vector<DetectObject>& objects) {
+    runtime::rk3588::FrameView view;
+    view.virtualAddress = image.data;
+    view.width = image.cols;
+    view.height = image.rows;
+    view.widthStride = static_cast<int>(image.step[0] / image.elemSize());
+    view.heightStride = image.rows;
+    view.format = runtime::rk3588::FrameFormat::BGR888;
+    return Run(view, objects);
 }

@@ -7,7 +7,7 @@
 #include "AlertClassFilter.h"
 #include "YoloThreadPool.h"
 #include "Datatype.h"
-#include "ffmpeg_hw.h"
+#include "rk3588/platform.h"
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -190,11 +190,15 @@ Detech::~Detech() {
         delete yolo_thread_pool;
         yolo_thread_pool = nullptr;
     }
-    runtime::releaseHwDecodeState(&_hwDecodeState);
+    runtime::rk3588::reset(_mppDecodeState);
     LOG(INFO) << "[清理] Detech 资源清理完成";
 }
 
 int Detech::start() {
+    if (!runtime::rk3588::requirePlatform()) {
+        LOG(ERROR) << "[初始化] RUNTIME-RK3588 只能在驱动完整的 RK3588 设备上启动";
+        return -100;
+    }
     _isRun = true;
     const std::string mode = _normalizedTaskType();
     const bool isForward = (mode == "forward");
@@ -287,10 +291,6 @@ int Detech::stop() {
 namespace {
 RtmpEncoderOptions makeRtmpOpts(const Config& cfg) {
     RtmpEncoderOptions opts;
-    opts.preferHw = cfg.preferHwaccel;
-    opts.forceSoft = cfg.forceSoftAv;
-    opts.gpuDeviceId = cfg.hwaccelDeviceId >= 0 ? cfg.hwaccelDeviceId : cfg.gpuDeviceId;
-    opts.nvencPreset = cfg.nvencPreset.empty() ? "p3" : cfg.nvencPreset;
     opts.bitRate = cfg.videoBitRate;
     opts.gopSize = cfg.videoGopSize;
     return opts;
@@ -309,7 +309,6 @@ void Detech::_run_pipeline_loop() {
     _pipeline = std::make_unique<runtime::Pipeline>(
         _config,
         _ffmpegFormatCtx,
-        _ffmpegCodecCtx,
         _videoIndex,
         _videoWidth,
         _videoHeight,
@@ -324,7 +323,7 @@ void Detech::_run_pipeline_loop() {
         [this](int cx, int cy) { return _isInAlarmRegion(cx, cy, _videoWidth, _videoHeight); },
         [this]() { return _streamingEnabled.load(); },
         &_metrics,
-        &_hwDecodeState
+        &_mppDecodeState
     );
     _pipeline->start();
     while (_isRun && _pipeline && _pipeline->isRunning()) {
@@ -523,7 +522,7 @@ void Detech::_controlServerThreadFunc() {
         _controlHttpServer = &svr;
         
         // 健康检查接口（含流水线指标）
-        svr.Get("/health", [this](const Request& req, Response& res) {
+        svr.Get("/health", [this](const Request&, Response& res) {
             Json::Value response;
             response["status"] = "ok";
             response["service"] = "RUNTIME Control Server";
@@ -538,6 +537,13 @@ void Detech::_controlServerThreadFunc() {
             metrics["infer_out"] = (Json::UInt64)this->_metrics.inferOut.load();
             metrics["alarms_emitted"] = (Json::UInt64)this->_metrics.alarmsEmitted.load();
             metrics["last_latency_ms"] = (Json::UInt64)this->_metrics.lastLatencyMs.load();
+            metrics["mpp_frames"] = (Json::UInt64)this->_metrics.mppFrames.load();
+            metrics["rga_operations"] = (Json::UInt64)this->_metrics.rgaOperations.load();
+            metrics["npu_queue_drops"] = (Json::UInt64)this->_metrics.npuQueueDrops.load();
+            metrics["npu_duration_us"] = (Json::UInt64)this->_metrics.npuDurationUs.load();
+            metrics["npu_completed"] = (Json::UInt64)this->_metrics.npuCompleted.load();
+            metrics["npu_throughput_fps"] =
+                this->_metrics.npuThroughputMilliFps.load() / 1000.0;
             if (this->_streamForwarder) {
                 metrics["packets_remuxed"] = (Json::UInt64)this->_streamForwarder->packetsRemuxed();
             }
@@ -546,6 +552,10 @@ void Detech::_controlServerThreadFunc() {
                 response["infer_ep"] = yolo_thread_pool->inferEp();
                 response["model_layout"] = yolo_thread_pool->modelLayout();
                 response["model_count"] = (Json::UInt64)yolo_thread_pool->modelCount();
+                response["npu_queue_drops"] = (Json::UInt64)yolo_thread_pool->droppedTasks();
+                response["npu_duration_us"] = (Json::Int64)yolo_thread_pool->lastNpuDurationUs();
+                response["npu_completed"] = (Json::UInt64)yolo_thread_pool->completedTasks();
+                response["npu_throughput_fps"] = yolo_thread_pool->throughputFps();
             } else {
                 response["infer_ep"] = "none";
                 response["model_layout"] = "none";
@@ -554,9 +564,9 @@ void Detech::_controlServerThreadFunc() {
             if (this->_pipeline) {
                 response["decode_ep"] = this->_pipeline->decodeEp();
             } else {
-                response["decode_ep"] = this->_hwDecodeState.decodeEp.empty()
+                response["decode_ep"] = this->_mppDecodeState.endpoint.empty()
                     ? "none"
-                    : this->_hwDecodeState.decodeEp;
+                    : this->_mppDecodeState.endpoint;
             }
             if (this->_rtmpEncoder && this->_rtmpEncoder->isInitialized()) {
                 response["encode_ep"] = this->_rtmpEncoder->encodeEp();
@@ -565,18 +575,17 @@ void Detech::_controlServerThreadFunc() {
             } else {
                 response["encode_ep"] = "none";
             }
-            response["prefer_gpu"] = this->_config.preferGpu;
-            response["force_cpu"] = this->_config.forceCpu;
-            response["gpu_device_id"] = this->_config.gpuDeviceId;
-            response["prefer_hwaccel"] = this->_config.preferHwaccel;
-            response["force_soft_av"] = this->_config.forceSoftAv;
+            response["platform"] = "rk3588";
+            response["zero_copy"] = true;
+            response["npu_workers"] = this->_config.rkNpuWorkers;
+            response["frame_pool_size"] = this->_config.rkFramePoolSize;
             
             Json::StreamWriterBuilder writer;
             res.set_content(Json::writeString(writer, response), "application/json");
         });
         
         // 启动推流接口
-        svr.Post("/control/streaming/start", [this](const Request& req, Response& res) {
+        svr.Post("/control/streaming/start", [this](const Request&, Response& res) {
             LOG(INFO) << "[控制线程] 收到启动推流请求";
             
             bool success = this->startStreaming();
@@ -592,7 +601,7 @@ void Detech::_controlServerThreadFunc() {
         });
         
         // 停止推流接口
-        svr.Post("/control/streaming/stop", [this](const Request& req, Response& res) {
+        svr.Post("/control/streaming/stop", [this](const Request&, Response& res) {
             LOG(INFO) << "[控制线程] 收到停止推流请求";
             
             bool success = this->stopStreaming();
@@ -608,7 +617,7 @@ void Detech::_controlServerThreadFunc() {
         });
         
         // 查询推流状态接口
-        svr.Get("/control/streaming/status", [this](const Request& req, Response& res) {
+        svr.Get("/control/streaming/status", [this](const Request&, Response& res) {
             Json::Value response;
             response["streaming"] = this->isStreaming();
             response["taskId"] = this->_config.taskId;
@@ -737,15 +746,11 @@ bool Detech::_init_yolo_detector() {
             return false;
         }
 
-        LOG(INFO) << "[初始化] 正在加载 " << modelSpecs.size() << " 个模型，每模型 "
-                  << _config.threadNums << " 线程"
-                  << " prefer_gpu=" << (_config.preferGpu ? "true" : "false")
-                  << " force_cpu=" << (_config.forceCpu ? "true" : "false")
-                  << " gpu_device_id=" << _config.gpuDeviceId;
+        LOG(INFO) << "[初始化] 正在加载 " << modelSpecs.size() << " 个 RKNN 模型，每模型 "
+                  << _config.rkNpuWorkers << " 个 NPU 核工作实例";
         int ret = yolo_thread_pool->setUp(
-            modelSpecs, _config.threadNums,
-            _config.preferGpu, _config.forceCpu, _config.gpuDeviceId,
-            _config.alarmConfidenceThreshold);
+            modelSpecs, _config.rkNpuWorkers, _config.rkTaskQueueDepth, _config.rkUseSram,
+            _config.rkEnablePerfQuery, _config.alarmConfidenceThreshold);
         if (ret) {
             LOG(ERROR) << "[错误] YOLO 线程池初始化失败，错误码: " << ret;
             return false;
@@ -758,10 +763,7 @@ bool Detech::_init_yolo_detector() {
 }
 
 bool Detech::_init_media_player() {
-    LOG(INFO) << "[初始化] 正在初始化媒体播放器"
-              << " prefer_hwaccel=" << (_config.preferHwaccel ? "true" : "false")
-              << " force_soft_av=" << (_config.forceSoftAv ? "true" : "false")
-              << " hwaccel_device_id=" << _config.hwaccelDeviceId;
+    LOG(INFO) << "[初始化] 正在初始化 MPP 专用媒体输入";
     if (!_ffmpegFormatCtx) {
         _ffmpegFormatCtx = avformat_alloc_context();
     }
@@ -793,14 +795,12 @@ bool Detech::_init_media_player() {
     _videoIndex = av_find_best_stream(_ffmpegFormatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (_videoIndex > -1) {
         AVCodecParameters* videoCodecPar = _ffmpegFormatCtx->streams[_videoIndex]->codecpar;
-        if (!runtime::openVideoDecoder(&_ffmpegCodecCtx, videoCodecPar,
-                                       _config.preferHwaccel,
-                                       _config.forceSoftAv,
-                                       _config.hwaccelDeviceId,
-                                       &_hwDecodeState)) {
-            LOG(ERROR) << "[错误] 视频解码器打开失败 (openVideoDecoder)";
+        if (!runtime::rk3588::MppDecoder::supports(videoCodecPar->codec_id)) {
+            LOG(ERROR) << "[MPP] 输入编码不受 RK3588 MPP 支持 codec_id=" << videoCodecPar->codec_id;
             return false;
         }
+        _mppDecodeState.active = true;
+        _mppDecodeState.endpoint = "mpp-rk3588";
         _ffmpegStream = _ffmpegFormatCtx->streams[_videoIndex];
         if (0 == _ffmpegStream->avg_frame_rate.den) {
             LOG(ERROR) << "[错误] 视频流帧率分母为 0 videoIndex=" << _videoIndex
@@ -810,11 +810,14 @@ bool Detech::_init_media_player() {
         else {
             _videoFps = _ffmpegStream->avg_frame_rate.num / _ffmpegStream->avg_frame_rate.den;
         }
-        _videoWidth = _ffmpegCodecCtx->width;
-        _videoHeight = _ffmpegCodecCtx->height;
+        _videoWidth = videoCodecPar->width;
+        _videoHeight = videoCodecPar->height;
         _videoChannel = 3;
         LOG(INFO) << "[成功] 媒体播放器就绪 " << _videoWidth << "x" << _videoHeight
-                  << "@" << _videoFps << "fps 解码后端=" << _hwDecodeState.decodeEp;
+                  << "@" << _videoFps << "fps 解码后端=mpp-rk3588";
+    } else {
+        LOG(ERROR) << "[错误] 未找到视频流";
+        return false;
     }
     return true;
 }
@@ -844,13 +847,11 @@ bool Detech::_init_media_pusher() {
     
     if (!_rtmpEncoder->init(_config.rtmpUrl, _videoWidth, _videoHeight, _videoFps,
                             makeRtmpOpts(_config))) {
-        LOG(WARNING) << "[初始化] ⚠️ RTMP 编码器初始化失败（ZLMediaKit 未运行？）";
-        LOG(WARNING) << "[初始化] ⚠️ 推流已禁用，但程序将继续运行";
-        LOG(WARNING) << "[初始化] ⚠️ ZLM 就绪后可通过 API 启动推流";
+        LOG(ERROR) << "[初始化] h264_rkmpp/RTMP 初始化失败，严格硬件模式拒绝启动";
         delete _rtmpEncoder;
         _rtmpEncoder = nullptr;
         _streamingEnabled.store(false);
-        return true;  // 不阻止程序启动
+        return false;
     }
     
     // 默认启用推流
@@ -1483,288 +1484,7 @@ void Detech::_sendAlarmCallback(const std::vector<DetectObject>& detections,
 }
 
 void Detech::_display_video_loop() {
-    if (!_ffmpegFormatCtx || !_ffmpegCodecCtx) {
-        LOG(ERROR) << "[视频] FFmpeg 未初始化！";
-        return;
-    }
-    
-    // Create OpenCV window
-    const char* windowName = "RTSP Live Stream - Press 'q' to exit";
-    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-    cv::resizeWindow(windowName, 1280, 720);
-    
-    // Allocate packet and frame
-    AVPacket* packet = av_packet_alloc();
-    AVFrame* frame = av_frame_alloc();
-    AVFrame* frameRGB = av_frame_alloc();
-    
-    if (!packet || !frame || !frameRGB) {
-        LOG(ERROR) << "[视频] AVPacket 或 AVFrame 分配失败";
-        return;
-    }
-    
-    // Allocate RGB buffer
-    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_BGR24, _videoWidth, _videoHeight, 1);
-    uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
-    av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, AV_PIX_FMT_BGR24, _videoWidth, _videoHeight, 1);
-    
-    // Create SwsContext for pixel format conversion
-    struct SwsContext* swsCtx = sws_getContext(
-        _videoWidth, _videoHeight, _ffmpegCodecCtx->pix_fmt,
-        _videoWidth, _videoHeight, AV_PIX_FMT_BGR24,
-        SWS_BILINEAR, NULL, NULL, NULL
-    );
-    
-    if (!swsCtx) {
-        LOG(ERROR) << "[视频] SwsContext 创建失败";
-        av_free(buffer);
-        av_frame_free(&frameRGB);
-        av_frame_free(&frame);
-        av_packet_free(&packet);
-        return;
-    }
-    
-    LOG(INFO) << "[视频] 显示循环已启动";
-    
-    // FPS calculation
-    int frameCount = 0;
-    auto startTime = std::chrono::steady_clock::now();
-    auto lastFrameTime = startTime;
-    double currentFPS = 0.0;
-    double currentLatency = 0.0;
-    
-    while (_isRun) {
-        // Read packet
-        int ret = av_read_frame(_ffmpegFormatCtx, packet);
-        if (ret < 0) {
-            if (ret == AVERROR_EOF) {
-                LOG(INFO) << "[视频] 视频流已结束";
-                break;
-            }
-            LOG(WARNING) << "[视频] 读取帧失败: " << ret;
-            continue;
-        }
-        
-        // Only process video packets
-        if (packet->stream_index != _videoIndex) {
-            av_packet_unref(packet);
-            continue;
-        }
-        
-        // Decode video packet
-        ret = avcodec_send_packet(_ffmpegCodecCtx, packet);
-        if (ret < 0) {
-            LOG(WARNING) << "[视频] 发送数据包到解码器失败";
-            av_packet_unref(packet);
-            continue;
-        }
-        
-        ret = avcodec_receive_frame(_ffmpegCodecCtx, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_packet_unref(packet);
-            continue;
-        } else if (ret < 0) {
-            LOG(WARNING) << "[视频] 解码帧失败";
-            av_packet_unref(packet);
-            continue;
-        }
-        
-        // Convert to BGR24 for OpenCV
-        sws_scale(swsCtx, frame->data, frame->linesize, 0, _videoHeight,
-                  frameRGB->data, frameRGB->linesize);
-        
-        // Create OpenCV Mat (deep copy for AI processing)
-        cv::Mat img(_videoHeight, _videoWidth, CV_8UC3);
-        cv::Mat tempImg(_videoHeight, _videoWidth, CV_8UC3, frameRGB->data[0], frameRGB->linesize[0]);
-        tempImg.copyTo(img);
-        
-        // AI Detection (if enabled) - ASYNCHRONOUS MODE
-        static std::vector<DetectObject> lastDetections;  // Cache last detection results
-        static int lastSubmittedFrameId = -1;
-        static int aiFrameInterval = 0;
-        const int SUBMIT_INTERVAL = 8;  // 每8帧检测一次
-        std::vector<DetectObject> detections;
-        int detectCount = 0;
-        
-        if (_config.enableAI && yolo_thread_pool) {
-            // Submit task every N frames to avoid queue buildup
-            if (aiFrameInterval % SUBMIT_INTERVAL == 0) {
-                yolo_thread_pool->submitTask(img, 0, 0, frameCount);
-                lastSubmittedFrameId = frameCount;
-            }
-            aiFrameInterval++;
-            
-            // Try to get any available result (non-blocking)
-            bool foundNewResult = false;
-            for (int checkFrame = lastSubmittedFrameId; checkFrame >= 0 && checkFrame >= lastSubmittedFrameId - 30; checkFrame--) {
-                int ret = yolo_thread_pool->getTargetResultNonBlock(detections, 0, 0, checkFrame);
-                if (ret == 0) {
-                    // Successfully got results, cache them
-                    lastDetections = detections;
-                    foundNewResult = true;
-                    break;
-                }
-            }
-            
-            // 🎯 绘制报警区域（ROI）- 已禁用，前端页面绘制
-            // _drawAlarmRegions(img);
-            
-            // 🎯 绘制检测框并应用区域过滤
-            if (_config.enableDrawRtmp && !lastDetections.empty()) {
-                int totalDetections = lastDetections.size();
-                int inRegionCount = 0;  // 在报警区域内的目标数量
-                std::vector<DetectObject> alarmDetections;  // 触发告警的目标列表
-                
-                for (const auto& det : lastDetections) {
-                    int x1 = (int)det.x1;
-                    int y1 = (int)det.y1;
-                    int x2 = (int)det.x2;
-                    int y2 = (int)det.y2;
-                    
-                    // 计算检测框中心点
-                    int centerX = (x1 + x2) / 2;
-                    int centerY = (y1 + y2) / 2;
-                    
-                    // InferEvent 真实交给 POST 时不重复做本地区域过滤；fail-open 旁路仍执行本地判断。
-                    bool inAlarmRegion = AlgoMqttBus::shouldPublishInferEvent()
-                        ? true
-                        : _isInAlarmRegion(centerX, centerY, img.cols, img.rows);
-                    if (inAlarmRegion) {
-                        inRegionCount++;
-                        
-                        // 检查置信度是否达到告警阈值
-                        if (det.class_score >= _config.alarmConfidenceThreshold) {
-                            alarmDetections.push_back(det);
-                        }
-                    }
-                    
-                    // 根据是否在报警区域内选择颜色
-                    cv::Scalar color;
-                    if (inAlarmRegion) {
-                        // 在报警区域内：使用红色（告警）
-                        color = cv::Scalar(0, 0, 255);  // 红色
-                    } else {
-                        // 不在报警区域内：使用蓝色（正常）
-                        color = cv::Scalar(255, 0, 0);  // 蓝色
-                    }
-                    
-                    // 绘制边界框（在报警区域内的框更粗）
-                    int thickness = inAlarmRegion ? 3 : 1;
-                    cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness);
-                    
-                    // 绘制中心点（用于调试）
-                    cv::circle(img, cv::Point(centerX, centerY), 5, color, -1);
-                    
-                    // 准备标签文本
-                    std::string label = det.class_name + " " + 
-                                       std::to_string((int)(det.class_score * 100)) + "%";
-                    if (inAlarmRegion) {
-                        label += " [ALARM]";  // 在报警区域内的目标添加标记
-                    }
-                    
-                    // 计算文本背景框大小
-                    int baseLine;
-                    cv::Size labelSize = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 
-                                                         0.6, 2, &baseLine);
-                    
-                    // 确保标签不会超出图像顶部
-                    int labelY = std::max(y1, labelSize.height + 5);
-                    
-                    // 绘制标签背景
-                    cv::rectangle(img,
-                                 cv::Point(x1, labelY - labelSize.height - 5),
-                                 cv::Point(x1 + labelSize.width + 5, labelY),
-                                 color, -1);
-                    
-                    // 绘制标签文本
-                    cv::putText(img, label,
-                               cv::Point(x1 + 3, labelY - 3),
-                               cv::FONT_HERSHEY_SIMPLEX, 0.6, 
-                               cv::Scalar(255, 255, 255), 2);
-                }
-                
-                // 更新检测计数（只计算在报警区域内的目标）
-                detectCount = inRegionCount;
-                
-                // 🚨 触发告警回调（如果有目标在区域内且满足条件）
-                if (!alarmDetections.empty() && _checkAlarmCooldown()) {
-                    std::string regionName = _config.regions.empty() ? "全画面" : "检测区域";
-                    if (!_config.regions.empty()) {
-                        regionName = _config.regions.begin()->first;  // 获取第一个区域名称
-                    }
-                    _sendAlarmCallback(alarmDetections, regionName, img);
-                }
-            }
-        }
-        
-        // Calculate FPS
-        frameCount++;
-        auto currentTime = std::chrono::steady_clock::now();
-        auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
-        
-        if (elapsedTime >= 1000) {
-            currentFPS = frameCount * 1000.0 / elapsedTime;
-            frameCount = 0;
-            startTime = currentTime;
-        }
-        
-        // Calculate latency (time between frames)
-        auto frameLatency = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFrameTime).count();
-        currentLatency = frameLatency;
-        lastFrameTime = currentTime;
-        
-        // Draw info overlay
-        std::string fpsText = "FPS: " + std::to_string((int)currentFPS);
-        std::string latencyText = "Frame: " + std::to_string((int)currentLatency) + " ms";
-        std::string resText = std::to_string(_videoWidth) + "x" + std::to_string(_videoHeight);
-        std::string aiText = _config.enableAI ? 
-            ("AI: ON | Objects: " + std::to_string(detectCount)) : "AI: OFF";
-        
-        cv::putText(img, fpsText, cv::Point(10, 30), 
-                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-        cv::putText(img, latencyText, cv::Point(10, 65), 
-                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-        cv::putText(img, resText, cv::Point(10, 100), 
-                    cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-        cv::putText(img, aiText, cv::Point(10, 135), 
-                    cv::FONT_HERSHEY_SIMPLEX, 0.8, 
-                    _config.enableAI ? cv::Scalar(0, 255, 255) : cv::Scalar(128, 128, 128), 2);
-        
-        // Display frame
-        cv::imshow(windowName, img);
-        
-        // RTMP推流（按需推流：只在_streamingEnabled=true时推流）
-        if (_streamingEnabled.load() && _rtmpEncoder && _rtmpEncoder->isInitialized()) {
-            // 推送带检测框的画面
-            if (!_rtmpEncoder->encodeAndPush(img)) {
-                // 推流失败只记录警告，不中断程序
-                static int pushErrorCount = 0;
-                pushErrorCount++;
-                if (pushErrorCount % 100 == 1) {  // 每100次失败输出一次日志
-                    LOG(WARNING) << "[推流] 帧推送失败（累计失败次数: " << pushErrorCount << "）";
-                }
-            }
-        }
-        
-        // Check for key press
-        int key = cv::waitKey(1);
-        if (key == 'q' || key == 'Q' || key == 27) { // 'q' or ESC
-            LOG(INFO) << "[视频] 用户请求退出";
-            _isRun = false;
-            break;
-        }
-        
-        av_packet_unref(packet);
-    }
-    
-    // Cleanup
-    LOG(INFO) << "[视频] 正在清理...";
-    cv::destroyAllWindows();
-    sws_freeContext(swsCtx);
-    av_free(buffer);
-    av_frame_free(&frameRGB);
-    av_frame_free(&frame);
-    av_packet_free(&packet);
-    
-    LOG(INFO) << "[视频] 显示循环已停止";
+    // The generic GUI/software decode loop was intentionally removed. The RK3588
+    // module always runs the headless MPP DMA-BUF pipeline.
+    LOG(ERROR) << "[视频] RUNTIME-RK3588 不提供软件解码显示模式";
 }

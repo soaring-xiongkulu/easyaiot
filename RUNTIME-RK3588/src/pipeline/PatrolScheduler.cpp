@@ -7,6 +7,7 @@
 
 #include "AlgoMqttBus.h"
 #include "YoloThreadPool.h"
+#include "rk3588/mpp_capture.h"
 
 namespace runtime {
 
@@ -95,32 +96,22 @@ void PatrolScheduler::join() {
     }
 }
 
-bool PatrolScheduler::grabOneShot(const DeviceStreamConfig& device, cv::Mat& out) {
-    cv::VideoCapture cap;
-    if (!cap.open(device.rtspUrl, cv::CAP_FFMPEG)) {
+bool PatrolScheduler::grabOneShot(const DeviceStreamConfig& device, cv::Mat& out,
+                                  rk3588::FrameView& source) {
+    rk3588::MppCapture capture;
+    if (!capture.open(device.rtspUrl, config_.rkMppBufferCount)) {
         LOG(WARNING) << "[巡检] 打开失败，设备=" << device.deviceId;
         return false;
     }
-    cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
-
-    cv::Mat frame;
-    // Warm up ~5 frames then take one good frame
+    // Warm up five hardware-decoded frames, retaining only the newest DMA owner.
     for (int i = 0; i < 5; ++i) {
-        if (!cap.read(frame)) {
-            cap.release();
-            return false;
-        }
+        if (!capture.read(out, source)) return false;
     }
-    if (!cap.read(frame) || frame.empty()) {
-        cap.release();
-        return false;
-    }
-    out = frame.clone();
-    cap.release();
-    return true;
+    return capture.read(out, source) && !out.empty();
 }
 
-void PatrolScheduler::processDevice(const DeviceStreamConfig& device, const cv::Mat& frame) {
+void PatrolScheduler::processDevice(const DeviceStreamConfig& device, const cv::Mat& frame,
+                                    const rk3588::FrameView& source) {
     totalPatrols.fetch_add(1, std::memory_order_relaxed);
     if (!pool_ || !config_.enableAI) {
         return;
@@ -138,7 +129,7 @@ void PatrolScheduler::processDevice(const DeviceStreamConfig& device, const cv::
 
     const size_t modelCount = pool_->modelCount();
     for (size_t m = 0; m < modelCount; ++m) {
-        pool_->submitTask(frame, static_cast<int>(m), inputId, fid);
+        pool_->submitTask(source, static_cast<int>(m), inputId, fid);
     }
     std::vector<DetectObject> detections;
     for (size_t m = 0; m < modelCount; ++m) {
@@ -195,8 +186,9 @@ void PatrolScheduler::loop() {
             const auto& device = config_.devices[idx];
             LOG(INFO) << "[巡检] 轮转巡检设备=" << device.deviceId;
             cv::Mat frame;
-            if (grabOneShot(device, frame)) {
-                processDevice(device, frame);
+            rk3588::FrameView source;
+            if (grabOneShot(device, frame, source)) {
+                processDevice(device, frame, source);
             }
             for (int slept = 0; slept < interval && running_.load(); ++slept) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -217,8 +209,9 @@ void PatrolScheduler::loop() {
                 const auto& device = config_.devices[idx];
                 LOG(INFO) << "[巡检] 并发池巡检设备=" << device.deviceId;
                 cv::Mat frame;
-                if (grabOneShot(device, frame)) {
-                    processDevice(device, frame);
+                rk3588::FrameView source;
+                if (grabOneShot(device, frame, source)) {
+                    processDevice(device, frame, source);
                 }
                 lastPatrolTime_[idx] = std::time(nullptr);
             }

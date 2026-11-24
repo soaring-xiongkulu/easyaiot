@@ -21,7 +21,7 @@ Server* g_server = nullptr;
 void printUsage(const char* program) {
     std::cout << "\n";
     std::cout << "============================================\n";
-    std::cout << "  RUNTIME - AI 实时推理工作进程\n";
+    std::cout << "  RUNTIME-RK3588 - 三核 NPU 实时推理工作进程\n";
     std::cout << "============================================\n";
     std::cout << "\n用法:\n";
     std::cout << "  " << program << " <config.ini>\n";
@@ -35,8 +35,8 @@ void printUsage(const char* program) {
 void printBanner() {
     std::cout << "\n";
     std::cout << "============================================\n";
-    std::cout << "  EasyAIoT RUNTIME\n";
-    std::cout << "  C++ 帧流水线（VIDEO executor=cpp）\n";
+    std::cout << "  EasyAIoT RUNTIME-RK3588\n";
+    std::cout << "  MPP + RGA + RKNN 多环流水线\n";
     std::cout << "  版本 " << RUNTIME_VERSION_STR << "\n";
     std::cout << "============================================\n";
     std::cout << "\n";
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     if (argc >= 2 && (std::strcmp(argv[1], "--version") == 0
                       || std::strcmp(argv[1], "-V") == 0
                       || std::strcmp(argv[1], "-v") == 0)) {
-        std::cout << "RUNTIME " << RUNTIME_VERSION_STR << std::endl;
+        std::cout << "RUNTIME-RK3588 " << RUNTIME_VERSION_STR << std::endl;
         return 0;
     }
 
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     FLAGS_minloglevel = 0;
 
     LOG(INFO) << "============================================================";
-    LOG(INFO) << "[启动] RUNTIME 模块初始化中...";
+    LOG(INFO) << "[启动] RUNTIME-RK3588 模块初始化中...";
     LOG(INFO) << "[版本] " << RUNTIME_VERSION_STR;
     LOG(INFO) << "[配置] 配置文件: " << config_file;
     LOG(INFO) << "============================================================";

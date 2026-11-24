@@ -4,6 +4,7 @@
 #include <atomic>
 #include <ctime>
 #include <functional>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -12,13 +13,14 @@
 
 #include "Config.h"
 #include "Datatype.h"
+#include "rk3588/mpp_capture.h"
 
 class YoloThreadPool;
 
 namespace runtime {
 
 /**
- * Snap mode: long-lived VideoCapture per device; fire on cron slot
+ * Snap mode: long-lived MPP decoder per device; fire on cron slot
  * (or every frameSkip seconds when cron is empty).
  */
 class SnapScheduler {
@@ -39,8 +41,8 @@ private:
     void loop();
     bool cronDue(std::time_t now, std::string& slotKey);
     bool ensureCapture(size_t idx);
-    bool grabFrame(size_t idx, cv::Mat& out);
-    void processDevice(size_t idx, const cv::Mat& frame);
+    bool grabFrame(size_t idx, cv::Mat& out, rk3588::FrameView& source);
+    void processDevice(size_t idx, const cv::Mat& frame, const rk3588::FrameView& source);
 
     Config& config_;
     YoloThreadPool* pool_;
@@ -49,7 +51,7 @@ private:
     std::thread thread_;
     std::string lastSlot_;
     std::time_t lastIntervalFire_{0};
-    std::vector<cv::VideoCapture> caps_;
+    std::vector<std::unique_ptr<rk3588::MppCapture>> caps_;
     std::atomic<int> frameId_{0};
 };
 

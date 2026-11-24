@@ -90,11 +90,7 @@ SnapScheduler::SnapScheduler(Config& config, YoloThreadPool* pool, AlarmFn alarm
 SnapScheduler::~SnapScheduler() {
     stop();
     join();
-    for (auto& cap : caps_) {
-        if (cap.isOpened()) {
-            cap.release();
-        }
-    }
+    caps_.clear();
 }
 
 void SnapScheduler::start() {
@@ -150,40 +146,40 @@ bool SnapScheduler::ensureCapture(size_t idx) {
         return false;
     }
     auto& cap = caps_[idx];
-    if (cap.isOpened()) {
+    if (cap && cap->isOpen()) {
         return true;
     }
     const auto& device = config_.devices[idx];
     LOG(INFO) << "[抓拍] 正在打开视频流，设备=" << device.deviceId << " 地址=" << device.rtspUrl;
-    if (!cap.open(device.rtspUrl, cv::CAP_FFMPEG)) {
+    cap = std::make_unique<rk3588::MppCapture>();
+    if (!cap->open(device.rtspUrl, config_.rkMppBufferCount)) {
         LOG(WARNING) << "[抓拍] 打开失败，设备=" << device.deviceId;
+        cap.reset();
         return false;
     }
-    cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
     return true;
 }
 
-bool SnapScheduler::grabFrame(size_t idx, cv::Mat& out) {
+bool SnapScheduler::grabFrame(size_t idx, cv::Mat& out, rk3588::FrameView& source) {
     if (!ensureCapture(idx)) {
         return false;
     }
     auto& cap = caps_[idx];
-    cv::Mat frame;
-    if (!cap.read(frame) || frame.empty()) {
+    if (!cap->read(out, source) || out.empty()) {
         LOG(WARNING) << "[抓拍] 读取失败，正在重开设备=" << config_.devices[idx].deviceId;
-        cap.release();
+        cap.reset();
         if (!ensureCapture(idx)) {
             return false;
         }
-        if (!caps_[idx].read(frame) || frame.empty()) {
+        if (!caps_[idx]->read(out, source) || out.empty()) {
             return false;
         }
     }
-    out = frame;
     return true;
 }
 
-void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame) {
+void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame,
+                                  const rk3588::FrameView& source) {
     if (!pool_ || !config_.enableAI) {
         return;
     }
@@ -194,7 +190,7 @@ void SnapScheduler::processDevice(size_t idx, const cv::Mat& frame) {
     // 多模型：每帧提交全部模型，合并各模型检测结果
     const size_t modelCount = pool_->modelCount();
     for (size_t m = 0; m < modelCount; ++m) {
-        pool_->submitTask(frame, static_cast<int>(m), inputId, fid);
+        pool_->submitTask(source, static_cast<int>(m), inputId, fid);
     }
     std::vector<DetectObject> detections;
     for (size_t m = 0; m < modelCount; ++m) {
@@ -254,10 +250,11 @@ void SnapScheduler::loop() {
         if (fire) {
             for (size_t i = 0; i < config_.devices.size() && running_.load(); ++i) {
                 cv::Mat frame;
-                if (!grabFrame(i, frame)) {
+                rk3588::FrameView source;
+                if (!grabFrame(i, frame, source)) {
                     continue;
                 }
-                processDevice(i, frame);
+                processDevice(i, frame, source);
             }
         }
 

@@ -1,94 +1,119 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
-PROJECT(RUNTIME)
+project(RUNTIME_RK3588 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+include(CheckCXXCompilerFlag)
+include(CheckIPOSupported)
+include(CTest)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
-set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
-set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+# This module is intentionally not portable. A successful configure means the
+# resulting binary can only target an RK3588-class aarch64 Linux device.
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" EASYAIOT_PROCESSOR)
+if(NOT EASYAIOT_PROCESSOR MATCHES "^(aarch64|arm64)$")
+    message(FATAL_ERROR
+        "RUNTIME-RK3588 only supports RK3588/aarch64. "
+        "Use an aarch64 RK3588 toolchain or configure directly on the box.")
+endif()
 
-# Optional: path to official ONNX Runtime C++ SDK (include/ + lib/)
-set(ONNXRUNTIME_ROOT "" CACHE PATH "ONNX Runtime C++ SDK root")
+set(ROCKCHIP_SDK_ROOT "" CACHE PATH "Rockchip RKNN/RGA/MPP SDK root")
+set(RUNTIME_VERSION_STR "unknown" CACHE STRING "Runtime version")
 
-find_package(OpenCV REQUIRED)
-message(STATUS "OpenCV: ${OpenCV_INCLUDE_DIRS}")
-message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs geometry highgui videoio)
 find_package(CURL REQUIRED)
-
-find_library(JSONCPP_LIBRARY NAMES jsoncpp REQUIRED)
-# glog >= 0.7 requires the CMake package target so GLOG_USE_GLOG_EXPORT /
-# GLOG_EXPORT are propagated; bare find_library() breaks the public headers.
 find_package(glog CONFIG QUIET)
 if(TARGET glog::glog)
     set(GLOG_LINK_LIBS glog::glog)
-    message(STATUS "glog: using CMake target glog::glog")
 else()
     find_library(GLOG_LIBRARY NAMES glog REQUIRED)
     set(GLOG_LINK_LIBS ${GLOG_LIBRARY})
-    message(STATUS "glog: ${GLOG_LIBRARY} (legacy find_library)")
 endif()
+
+find_library(JSONCPP_LIBRARY NAMES jsoncpp REQUIRED)
 find_library(AVCODEC_LIBRARY NAMES avcodec REQUIRED)
 find_library(AVFORMAT_LIBRARY NAMES avformat REQUIRED)
 find_library(AVUTIL_LIBRARY NAMES avutil REQUIRED)
-find_library(SWSCALE_LIBRARY NAMES swscale REQUIRED)
 find_library(INIH_LIBRARY NAMES inih)
 find_library(PUGIXML_LIBRARY NAMES pugixml)
-message(STATUS "jsoncpp: ${JSONCPP_LIBRARY}")
-message(STATUS "ffmpeg: ${AVFORMAT_LIBRARY} ${AVCODEC_LIBRARY}")
 
-include_directories(
-    ${OpenCV_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/src/
-    ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib/
+set(ROCKCHIP_HINTS
+    ${ROCKCHIP_SDK_ROOT}
+    ${ROCKCHIP_SDK_ROOT}/rknpu2/runtime/Linux/librknn_api
+    ${ROCKCHIP_SDK_ROOT}/rknpu2/runtime/Linux/librknn_api/aarch64
+    ${ROCKCHIP_SDK_ROOT}/librga
+    ${ROCKCHIP_SDK_ROOT}/mpp
+    /usr /usr/local /opt/rockchip /opt/rknn
 )
 
-if(ONNXRUNTIME_ROOT)
-    include_directories(
-        ${ONNXRUNTIME_ROOT}/include
-        ${ONNXRUNTIME_ROOT}/include/onnxruntime
-        ${ONNXRUNTIME_ROOT}/include/onnxruntime/core/session
-    )
-    link_directories(${ONNXRUNTIME_ROOT}/lib)
-    message(STATUS "ONNXRUNTIME_ROOT: ${ONNXRUNTIME_ROOT}")
+find_path(RKNN_INCLUDE_DIR rknn_api.h
+    HINTS ${ROCKCHIP_HINTS}
+    PATH_SUFFIXES include rknpu2/runtime/Linux/librknn_api/include)
+find_library(RKNN_LIBRARY NAMES rknnrt
+    HINTS ${ROCKCHIP_HINTS}
+    PATH_SUFFIXES lib lib64 aarch64)
+find_path(RGA_INCLUDE_DIR im2d.hpp
+    HINTS ${ROCKCHIP_HINTS}
+    PATH_SUFFIXES include include/rga)
+find_library(RGA_LIBRARY NAMES rga
+    HINTS ${ROCKCHIP_HINTS}
+    PATH_SUFFIXES lib lib64)
+find_path(MPP_INCLUDE_DIR rk_mpi.h
+    HINTS ${ROCKCHIP_HINTS}
+    PATH_SUFFIXES include include/rockchip mpp/inc)
+find_library(MPP_LIBRARY NAMES rockchip_mpp mpp
+    HINTS ${ROCKCHIP_HINTS}
+    PATH_SUFFIXES lib lib64)
+
+foreach(required_var RKNN_INCLUDE_DIR RKNN_LIBRARY RGA_INCLUDE_DIR RGA_LIBRARY MPP_INCLUDE_DIR MPP_LIBRARY)
+    if(NOT ${required_var})
+        message(FATAL_ERROR
+            "Missing required Rockchip dependency ${required_var}. "
+            "Install RKNN Runtime, librga and MPP, or set ROCKCHIP_SDK_ROOT.")
+    endif()
+endforeach()
+
+message(STATUS "RKNN: ${RKNN_INCLUDE_DIR} ${RKNN_LIBRARY}")
+message(STATUS "RGA:  ${RGA_INCLUDE_DIR} ${RGA_LIBRARY}")
+message(STATUS "MPP:  ${MPP_INCLUDE_DIR} ${MPP_LIBRARY}")
+
+set(RK3588_CPU_FLAGS)
+check_cxx_compiler_flag("-mcpu=cortex-a76.cortex-a55" RK3588_HAS_BIG_LITTLE_MCPU)
+if(RK3588_HAS_BIG_LITTLE_MCPU)
+    list(APPEND RK3588_CPU_FLAGS -mcpu=cortex-a76.cortex-a55)
 else()
-    include_directories(
-        /usr/include
-        /usr/local/include
-        /usr/local/include/onnxruntime
-    )
+    check_cxx_compiler_flag("-mcpu=cortex-a76" RK3588_HAS_A76_MCPU)
+    if(RK3588_HAS_A76_MCPU)
+        list(APPEND RK3588_CPU_FLAGS -mcpu=cortex-a76)
+    endif()
 endif()
 
-# OpenCV 5 conda layout: include/opencv5
-if(DEFINED ENV{CONDA_PREFIX})
-    include_directories($ENV{CONDA_PREFIX}/include/opencv5)
-    link_directories($ENV{CONDA_PREFIX}/lib)
-endif()
+check_ipo_supported(RESULT RK3588_IPO_SUPPORTED OUTPUT RK3588_IPO_ERROR)
 
-file(GLOB_RECURSE Src_SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
-list(FILTER Src_SOURCES EXCLUDE REGEX ".*YoloEngine_Fixed\\.cpp$")
-
-add_executable(${PROJECT_NAME} ${Src_SOURCES})
-
-# Link only modules used by RUNTIME
-set(OPENCV_LINK_LIBS
-    opencv_core
-    opencv_imgproc
-    opencv_imgcodecs
-    opencv_dnn
-    opencv_geometry
-    opencv_highgui
-    opencv_videoio
+file(GLOB_RECURSE RUNTIME_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
+add_executable(RUNTIME ${RUNTIME_SOURCES})
+target_include_directories(RUNTIME PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/3rdparty/cpp-httplib
 )
-message(STATUS "OpenCV link libs (minimal): ${OPENCV_LINK_LIBS}")
+target_include_directories(RUNTIME SYSTEM PRIVATE
+    ${OpenCV_INCLUDE_DIRS}
+    ${RKNN_INCLUDE_DIR}
+    ${RGA_INCLUDE_DIR}
+    ${MPP_INCLUDE_DIR}
+)
 
-set(OPTIONAL_LIBS "")
+if(DEFINED ENV{CONDA_PREFIX})
+    target_include_directories(RUNTIME PRIVATE $ENV{CONDA_PREFIX}/include/opencv5)
+endif()
+
+set(OPTIONAL_LIBS)
 if(INIH_LIBRARY)
     list(APPEND OPTIONAL_LIBS ${INIH_LIBRARY})
 endif()
@@ -96,27 +121,62 @@ if(PUGIXML_LIBRARY)
     list(APPEND OPTIONAL_LIBS ${PUGIXML_LIBRARY})
 endif()
 
-target_link_libraries(${PROJECT_NAME}
-    ${OPENCV_LINK_LIBS}
-    ${AVFORMAT_LIBRARY}
-    ${AVCODEC_LIBRARY}
-    ${AVUTIL_LIBRARY}
-    ${SWSCALE_LIBRARY}
-    CURL::libcurl
-    ${OPTIONAL_LIBS}
-    ${JSONCPP_LIBRARY}
-    ${GLOG_LINK_LIBS}
-    onnxruntime
-    pthread
-    dl
+target_compile_options(RUNTIME PRIVATE
+    $<$<CONFIG:Release>:-O3;-DNDEBUG;-ffast-math;-fno-math-errno>
+    $<$<CONFIG:Debug>:-O0;-g3>
+    ${RK3588_CPU_FLAGS}
+    -Wall -Wextra
+)
+target_compile_definitions(RUNTIME PRIVATE
+    GLOG_USE_GLOG_EXPORT
+    EASYAIOT_RK3588_STRICT=1
+    "RUNTIME_VERSION_STR=\"${RUNTIME_VERSION_STR}\""
+)
+target_link_libraries(RUNTIME PRIVATE
+    ${OpenCV_LIBS}
+    ${AVFORMAT_LIBRARY} ${AVCODEC_LIBRARY} ${AVUTIL_LIBRARY}
+    ${RKNN_LIBRARY} ${RGA_LIBRARY} ${MPP_LIBRARY}
+    CURL::libcurl ${OPTIONAL_LIBS} ${JSONCPP_LIBRARY} ${GLOG_LINK_LIBS}
+    pthread dl
 )
 
-# glog >= 0.7 needs GLOG_USE_GLOG_EXPORT so GLOG_EXPORT is defined; glog 0.6 ignores it.
-target_compile_definitions(${PROJECT_NAME} PRIVATE GLOG_USE_GLOG_EXPORT)
+add_executable(RUNTIME-RK3588-BENCH
+    ${CMAKE_SOURCE_DIR}/tools/rknn_benchmark.cpp
+    ${CMAKE_SOURCE_DIR}/src/YoloEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/YoloThreadPool.cpp
+    ${CMAKE_SOURCE_DIR}/src/rk3588/platform.cpp
+)
+target_include_directories(RUNTIME-RK3588-BENCH PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_include_directories(RUNTIME-RK3588-BENCH SYSTEM PRIVATE
+    ${OpenCV_INCLUDE_DIRS}
+    ${RKNN_INCLUDE_DIR}
+    ${RGA_INCLUDE_DIR}
+)
+target_compile_options(RUNTIME-RK3588-BENCH PRIVATE
+    $<$<CONFIG:Release>:-O3;-DNDEBUG;-ffast-math;-fno-math-errno>
+    ${RK3588_CPU_FLAGS}
+    -Wall -Wextra
+)
+target_compile_definitions(RUNTIME-RK3588-BENCH PRIVATE GLOG_USE_GLOG_EXPORT)
+target_link_libraries(RUNTIME-RK3588-BENCH PRIVATE
+    ${OpenCV_LIBS} ${RKNN_LIBRARY} ${RGA_LIBRARY} ${GLOG_LINK_LIBS} pthread dl
+)
 
-# Version string injected by install/build scripts (e.g. 0.1.0+gabcdef)
-if(NOT DEFINED RUNTIME_VERSION_STR OR RUNTIME_VERSION_STR STREQUAL "")
-    set(RUNTIME_VERSION_STR "unknown")
+if(RK3588_IPO_SUPPORTED)
+    set_property(TARGET RUNTIME RUNTIME-RK3588-BENCH
+                 PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+else()
+    message(STATUS "IPO/LTO disabled: ${RK3588_IPO_ERROR}")
 endif()
-target_compile_definitions(${PROJECT_NAME} PRIVATE "RUNTIME_VERSION_STR=\"${RUNTIME_VERSION_STR}\"")
-message(STATUS "RUNTIME_VERSION_STR: ${RUNTIME_VERSION_STR}")
+
+install(TARGETS RUNTIME RUNTIME-RK3588-BENCH DESTINATION bin)
+
+if(BUILD_TESTING)
+    add_executable(RUNTIME-RK3588-RING-TEST tests/lockfree_ring_test.cpp)
+    target_include_directories(RUNTIME-RK3588-RING-TEST PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_compile_options(RUNTIME-RK3588-RING-TEST PRIVATE ${RK3588_CPU_FLAGS} -O2 -Wall -Wextra)
+    target_link_libraries(RUNTIME-RK3588-RING-TEST PRIVATE pthread)
+    add_test(NAME runtime_rk3588_lockfree_ring COMMAND RUNTIME-RK3588-RING-TEST)
+endif()

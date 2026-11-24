@@ -228,25 +228,26 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             } else if (key == "threads") {
                 config.threadNums = parseInt(value);
                 if (config.threadNums <= 0) config.threadNums = 3;
+                config.rkNpuWorkers = std::max(1, std::min(3, config.threadNums));
             } else if (key == "frame_skip") {
                 config.frameSkip = parseInt(value);
                 if (config.frameSkip <= 0) config.frameSkip = 8;
-            } else if (key == "prefer_gpu") {
-                config.preferGpu = parseBool(value);
-            } else if (key == "force_cpu") {
-                config.forceCpu = parseBool(value);
-            } else if (key == "gpu_device_id") {
-                config.gpuDeviceId = parseInt(value);
-                if (config.gpuDeviceId < 0) config.gpuDeviceId = 0;
-            } else if (key == "prefer_hwaccel") {
-                config.preferHwaccel = parseBool(value);
-            } else if (key == "force_soft_av") {
-                config.forceSoftAv = parseBool(value);
-            } else if (key == "hwaccel_device_id") {
-                config.hwaccelDeviceId = parseInt(value);
-                if (config.hwaccelDeviceId < 0) config.hwaccelDeviceId = 0;
-            } else if (key == "nvenc_preset") {
-                if (!value.empty()) config.nvencPreset = value;
+            }
+        }
+        else if (currentSection == "rk3588") {
+            if (key == "npu_workers") {
+                config.rkNpuWorkers = std::max(1, std::min(3, parseInt(value)));
+                config.threadNums = config.rkNpuWorkers;
+            } else if (key == "task_queue_depth") {
+                config.rkTaskQueueDepth = std::max(1, std::min(16, parseInt(value)));
+            } else if (key == "frame_pool_size") {
+                config.rkFramePoolSize = std::max(3, std::min(32, parseInt(value)));
+            } else if (key == "mpp_buffer_count") {
+                config.rkMppBufferCount = std::max(4, std::min(32, parseInt(value)));
+            } else if (key == "use_sram") {
+                config.rkUseSram = parseBool(value);
+            } else if (key == "enable_perf_query") {
+                config.rkEnablePerfQuery = parseBool(value);
             }
         }
         else if (currentSection == "alarm") {
@@ -486,50 +487,20 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
             : config.logPath.substr(0, slash) + "/alerts";
     }
 
-    // Environment overrides (deploy / VIDEO daemon)
-    if (const char* v = std::getenv("RUNTIME_FORCE_CPU")) {
-        if (parseBool(v)) {
-            config.forceCpu = true;
-            config.preferGpu = false;
-        }
+    // RK3588 resource limits may be tuned per deployment, but hardware stages
+    // cannot be disabled and never fall back to CPU/software implementations.
+    if (const char* v = std::getenv("RUNTIME_RK_NPU_WORKERS")) {
+        config.rkNpuWorkers = std::max(1, std::min(3, parseInt(v)));
+        config.threadNums = config.rkNpuWorkers;
     }
-    if (const char* v = std::getenv("RUNTIME_PREFER_GPU")) {
-        config.preferGpu = parseBool(v);
+    if (const char* v = std::getenv("RUNTIME_RK_TASK_QUEUE_DEPTH")) {
+        config.rkTaskQueueDepth = std::max(1, std::min(16, parseInt(v)));
     }
-    if (const char* v = std::getenv("USE_GPU")) {
-        // Align with VIDEO python path: empty/true → prefer GPU; false → CPU
-        std::string s = trim(v);
-        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-        if (s == "false" || s == "0" || s == "no" || s == "off") {
-            config.preferGpu = false;
-        } else if (!s.empty()) {
-            config.preferGpu = true;
-        }
+    if (const char* v = std::getenv("RUNTIME_RK_FRAME_POOL_SIZE")) {
+        config.rkFramePoolSize = std::max(3, std::min(32, parseInt(v)));
     }
-    if (const char* v = std::getenv("RUNTIME_GPU_DEVICE_ID")) {
-        int id = parseInt(v);
-        if (id >= 0) config.gpuDeviceId = id;
-    }
-    if (config.forceCpu) {
-        config.preferGpu = false;
-    }
-
-    // hwaccel defaults to same GPU as ORT unless explicitly set in ini
-    if (config.hwaccelDeviceId < 0) {
-        config.hwaccelDeviceId = config.gpuDeviceId;
-    }
-    if (const char* v = std::getenv("RUNTIME_FORCE_SOFT_AV")) {
-        if (parseBool(v)) {
-            config.forceSoftAv = true;
-            config.preferHwaccel = false;
-        }
-    }
-    if (const char* v = std::getenv("RUNTIME_PREFER_HWACCEL")) {
-        config.preferHwaccel = parseBool(v);
-    }
-    if (const char* v = std::getenv("RUNTIME_NVENC_PRESET")) {
-        std::string s = trim(v);
-        if (!s.empty()) config.nvencPreset = s;
+    if (const char* v = std::getenv("RUNTIME_RK_MPP_BUFFER_COUNT")) {
+        config.rkMppBufferCount = std::max(4, std::min(32, parseInt(v)));
     }
     // Bitrate / GOP: RUNTIME_* first, then shared FFMPEG_* used by VIDEO
     if (const char* v = std::getenv("RUNTIME_VIDEO_BITRATE")) {
@@ -549,22 +520,11 @@ bool ConfigParser::parse(const std::string& filename, Config& config) {
         int g = parseInt(v);
         if (g > 0) config.videoGopSize = g;
     }
-    // No GPU for inference → also avoid NVDEC/NVENC contention on CPU-only tasks
-    if (config.forceCpu || !config.preferGpu) {
-        config.forceSoftAv = true;
-        config.preferHwaccel = false;
-    }
-    if (config.forceSoftAv) {
-        config.preferHwaccel = false;
-    }
-
-    LOG(INFO) << "[配置] AI 推理参数: prefer_gpu=" << (config.preferGpu ? "true" : "false")
-              << " force_cpu=" << (config.forceCpu ? "true" : "false")
-              << " gpu_device_id=" << config.gpuDeviceId
-              << " prefer_hwaccel=" << (config.preferHwaccel ? "true" : "false")
-              << " force_soft_av=" << (config.forceSoftAv ? "true" : "false")
-              << " hwaccel_device_id=" << config.hwaccelDeviceId
-              << " nvenc_preset=" << config.nvencPreset
+    LOG(INFO) << "[配置] RK3588 严格硬件模式: npu_workers=" << config.rkNpuWorkers
+              << " task_queue_depth=" << config.rkTaskQueueDepth
+              << " frame_pool_size=" << config.rkFramePoolSize
+              << " mpp_buffer_count=" << config.rkMppBufferCount
+              << " use_sram=" << (config.rkUseSram ? "true" : "false")
               << " video_bitrate=" << (config.videoBitRate > 0 ? config.videoBitRate / 1000 : 0) << "k"
               << " gop=" << config.videoGopSize;
 
