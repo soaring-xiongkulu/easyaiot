@@ -74,25 +74,33 @@ FFmpeg demux -> MPP NV12 DMA-BUF -> RGA -> preallocated RKNN input FD -> NPU cor
 
 ## Standalone one-command deployment
 
-Run one command from the repository root on the RK3588 box. The deployment does not require the EasyAIoT platform and does not start WEB, AI, VIDEO, MQTT, Docker, or any other module:
+The deployment does not require the EasyAIoT platform and does not start WEB, AI, VIDEO, MQTT, Docker, or any other module. Start from the task manifest and maintain this one file:
 
 ```bash
-sudo env \
-  EASYAIOT_RK3588_RTSP_URL='rtsp://user:pass@camera/stream' \
-  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
-  bash .scripts/docker/install_linux.sh rk3588 install
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# Edit models and tasks, validate without changing the host, then install.
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
 
-The script performs the hardware and driver preflight, native build, model installation, standalone configuration, boot-service registration, startup, and `/health` hardware-path acceptance. Without systemd it uses a managed background process with a PID and log file. For a guided flow, run `sudo bash .scripts/docker/install_linux.sh`, choose “RK3588”, then “one-click install”, and answer the RTSP/model prompts.
+The manifest deliberately matches the platform `RUNTIME` convention:
+
+- `models` registers RKNN files, class names and optional business model IDs once; every task can reuse them;
+- every `tasks` item is one RTSP stream, and its `models` array selects one or more models to run on that stream;
+- every realtime stream receives its own INI, control port and supervised process, so one failed stream does not take down the others;
+- all paths, references, task IDs and ports are validated before any installation starts.
+
+The installer then performs the hardware/driver preflight, native build, shared model installation, per-stream configuration, systemd template-instance registration and startup, and checks every `/health` endpoint for the MPP/RGA/RKNN path. Without systemd, every task gets its own PID and log. The guided menu asks only for the manifest path; it no longer forces one RTSP URL and one model through environment variables.
 
 ```bash
+bash .scripts/docker/install_linux.sh rk3588 list
 bash .scripts/docker/install_linux.sh rk3588 status
-bash .scripts/docker/install_linux.sh rk3588 logs
-bash .scripts/docker/install_linux.sh rk3588 verify
-bash .scripts/docker/install_linux.sh rk3588 restart
+bash .scripts/docker/install_linux.sh rk3588 logs north-gate
+bash .scripts/docker/install_linux.sh rk3588 verify north-gate
+bash .scripts/docker/install_linux.sh rk3588 restart north-gate
 ```
 
-Updates preserve the existing standalone configuration. Uninstall removes the service and binaries but keeps the model, configuration, and logs. `EASYAIOT_RK3588_MODEL_URL` can download a model, with optional `EASYAIOT_RK3588_MODEL_SHA256` verification. CMake only accepts an aarch64 target and requires `rknnrt`, `librga`, and Rockchip MPP; use `ROCKCHIP_SDK_ROOT` for a non-standard SDK/sysroot.
+Without a task ID, operations cover all streams; with one, only that stream is touched. Edit `/etc/easyaiot/runtime-rk3588/tasks.json` and run `rk3588 update` to re-orchestrate an installed box. Uninstall removes the service template and binaries but preserves the manifest, per-stream configuration, models and logs. Legacy single-stream environment variables are still converted into a one-task manifest for backward compatibility. CMake only accepts an aarch64 target and requires `rknnrt`, `librga`, and Rockchip MPP; use `ROCKCHIP_SDK_ROOT` for a non-standard SDK/sysroot.
 
 ## Models
 

@@ -97,25 +97,33 @@ MPP 硬解 ──► 固定数量 NV12 DMA-BUF ───────────
 
 ## 独立一键部署
 
-在 RK3588 盒子的仓库根目录执行一条命令即可，不需要先部署 EasyAIoT 平台，也不依赖 WEB、AI、VIDEO、MQTT 或 Docker：
+不需要先部署 EasyAIoT 平台，也不依赖 WEB、AI、VIDEO、MQTT 或 Docker。先从示例得到一份任务清单，只需维护这一个文件：
 
 ```bash
-sudo env \
-  EASYAIOT_RK3588_RTSP_URL='rtsp://用户名:密码@摄像头/码流' \
-  EASYAIOT_RK3588_MODEL_PATH='/home/rock/yolov8n-rk3588-int8.rknn' \
-  bash .scripts/docker/install_linux.sh rk3588 install
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# 编辑 models 与 tasks 后，可先做零改动校验，再一键安装
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 ```
 
-脚本会依次完成硬件与驱动预检、本机编译、模型和类别文件安装、独立配置生成、systemd 开机自启、服务启动，以及 `/health` 硬件链路验收。没有 systemd 时会自动改用带 PID 和日志文件的后台进程。也可直接执行 `sudo bash .scripts/docker/install_linux.sh`，在菜单中选择“RK3588 → 一键安装”，再按提示输入 RTSP 与模型路径。
+清单与平台 `RUNTIME` 的运行约定一致：
+
+- `models` 集中登记 RKNN 模型、类别文件与可选业务模型 ID；模型安装一次，可被任意任务复用；
+- `tasks` 每一项代表一路 RTSP，`models` 数组决定该路同时运行哪些模型；增加视频流只需增加任务；
+- 每路实时视频生成独立 INI、控制端口和受监管进程，某一路故障不会把其他路一起带走；
+- 全部路径、模型引用、任务 ID 和控制端口先校验后安装，避免部署到一半才发现配置错误。
+
+脚本随后完成硬件与驱动预检、本机编译、共享模型安装、逐路配置生成、systemd 模板实例注册与启动，并逐路等待 `/health` 验收 MPP、RGA、RKNN 硬件链路。没有 systemd 时，每路自动使用独立 PID 与日志。交互菜单只需选择任务清单，不会再要求把一条 RTSP 和一个模型塞进环境变量。
 
 ```bash
+bash .scripts/docker/install_linux.sh rk3588 list
 bash .scripts/docker/install_linux.sh rk3588 status
-bash .scripts/docker/install_linux.sh rk3588 logs
-bash .scripts/docker/install_linux.sh rk3588 verify
-bash .scripts/docker/install_linux.sh rk3588 restart
+bash .scripts/docker/install_linux.sh rk3588 logs north-gate
+bash .scripts/docker/install_linux.sh rk3588 verify north-gate
+bash .scripts/docker/install_linux.sh rk3588 restart north-gate
 ```
 
-更新会保留已有独立配置；卸载只移除服务与程序，默认保留模型、配置和日志，避免误删现场数据。也可以设置 `EASYAIOT_RK3588_MODEL_URL` 自动下载模型，并通过 `EASYAIOT_RK3588_MODEL_SHA256` 校验文件。
+不写任务 ID 时命令作用于全部视频流；写任务 ID 时只处理一路。修改已安装的 `/etc/easyaiot/runtime-rk3588/tasks.json` 后执行 `rk3588 update` 即可重编排。卸载只移除服务模板与程序，默认保留任务清单、逐路配置、模型和日志，避免误删现场数据。旧版单流环境变量仍会自动转换为一条任务，仅用于向后兼容。
 
 交叉编译时必须提供 aarch64 RK3588 工具链，并通过 `ROCKCHIP_SDK_ROOT` 指向包含 RKNN/RGA/MPP 头文件和库的 SDK sysroot。CMake 在非 aarch64 或依赖缺失时会直接报错。
 
