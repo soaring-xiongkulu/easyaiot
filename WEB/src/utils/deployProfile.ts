@@ -119,6 +119,10 @@ const STANDARD_HIDDEN_MENU_NAMES = new Set([
   ...TRANSFORM_HIDDEN_MENU_NAMES,
 ]);
 
+/** 平台形态负责统管盒子；edge 盒子只展示自身资源，不展示中心侧纳管菜单。 */
+const PLATFORM_ONLY_MENU_NAMES = new Set(['EdgeComputing', '边缘计算']);
+const EDGE_ONLY_MENU_NAMES = new Set(['EdgeSelfMonitor', '本机监测']);
+
 /** full 形态才启用可视化（iot-visualize / VISUALIZE） */
 export function isVisualizeEnabled(): boolean {
   return getDeployProfile() === 'full';
@@ -145,5 +149,10 @@ function getHiddenMenuNamesForDeployProfile(): Set<string> {
 export function isMenuHiddenByDeployProfile(menuName: string | undefined | null): boolean {
   const name = String(menuName ?? '').trim();
   if (!name) return false;
+  if (isEdgeStandaloneDeployProfile()) {
+    if (PLATFORM_ONLY_MENU_NAMES.has(name)) return true;
+  } else if (EDGE_ONLY_MENU_NAMES.has(name)) {
+    return true;
+  }
   return getHiddenMenuNamesForDeployProfile().has(name);
 }
