@@ -117,7 +117,7 @@ All green? You’re done—easier than you feared. Go grab that coffee early.
 EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses on the deep integration of AI and IoT. Through core capabilities such as algorithm task management, real-time stream analysis, and model service cluster inference, the platform achieves a complete closed-loop from device access to data collection, AI analysis, and intelligent decision-making, truly realizing interconnected everything and intelligent control of everything.
 </p>
 
-### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> RK3588 Edge AI Hardware Module
+### 🔧 RK3588 Edge AI Hardware Module
 
 `RUNTIME-RK3588` is a standalone inference runtime for Rockchip RK3588, maintained separately from the generic `RUNTIME`. Video processing is bound to the SoC hardware units: FFmpeg only demuxes, MPP decodes, RGA resizes and converts color, all three NPU cores infer in parallel, and MPP encodes with `h264_rkmpp`. Frames move between hardware units as DMA-BUF; BGR images are created only where CPU access is required, such as overlay drawing, evidence capture and streaming.
 
@@ -127,43 +127,9 @@ EasyAIoT is a cloud-edge-device integrated intelligent IoT platform that focuses
 - **Fail fast:** startup validates RK3588, RKNPU, RGA, MPP, DRM and `h264_rkmpp`; any missing component stops the process. There is no ONNX, CPU inference, software decode or `libx264` fallback, avoiding deployments that appear to work but have unusable latency and CPU load.
 - **Deployment shape:** local inference returns only detections, alerts and evidence images, keeping original video on site and reducing uplink bandwidth and response latency. Dual Ethernet plus Wi-Fi, 4G/5G and SIM cover isolated networks, mobile sites and backup links.
 
-**System architecture: frames travel between hardware units as DMA-BUF, and every thread and queue has fixed capacity**
+**RK3588 system architecture**
 
-```mermaid
-flowchart LR
-    IN["RTSP / video file"] --> PRE{"Hardware and driver preflight<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
-    PRE -->|missing| STOP["Refuse to start<br/>no CPU / ONNX / software codec fallback"]
-    PRE -->|pass| DEMUX["FFmpeg<br/>demux only"]
-
-    subgraph HW["RK3588 SoC hardware units"]
-        MPPD["MPP hardware decode<br/>bounded NV12 DMA-BUF group"]
-        NPU["3-core NPU<br/>Core 0 / 1 / 2 · lane pinned · shared weights"]
-        DRAW["RGA<br/>overlay then back to NV12"]
-        MPPE["MPP hardware encode<br/>h264_rkmpp"]
-    end
-
-    subgraph RT["Runtime: threads and bounded queues"]
-        FR["FrameRing<br/>drop oldest when full"]
-        TQ["Per-core TaskRing<br/>shortest lane first"]
-        CQ["Per-core CompletionRing<br/>dedicated collector"]
-        RR["ResultRing"]
-        EMIT["Emit thread<br/>alert decision / evidence"]
-    end
-
-    subgraph OUT["Outputs"]
-        MQ["Detections / alerts<br/>MQTT publish"]
-        SNAP["Alert evidence image"]
-        RTMP["RTMP push"]
-    end
-
-    DEMUX --> MPPD --> FR --> TQ
-    TQ -->|RGA resize → RKNN run| NPU
-    NPU -->|native INT8 postproc| CQ --> RR --> EMIT
-    EMIT --> MQ
-    EMIT --> SNAP
-    FR -.->|on-demand raw frame| EMIT
-    EMIT --> DRAW --> MPPE --> RTMP
-```
+![RK3588 system architecture diagram](.images/rk3588/rk3588-architecture.jpg)
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 front panel and wireless expansion">

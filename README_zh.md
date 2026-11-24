@@ -117,7 +117,7 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT的深度融合。平台通过算法任务管理、实时流分析、模型服务集群推理等核心能力，实现从设备接入到数据采集、AI分析、智能决策的全链路闭环，真正实现万物互联、万物智控。
 </p>
 
-### <img src=".images/rk3588/chip.svg" width="26" height="26" alt=""> RK3588 边缘 AI 硬件模块
+### 🔧 RK3588 边缘 AI 硬件模块
 
 `RUNTIME-RK3588` 是 EasyAIoT 面向 Rockchip RK3588 的独立推理运行时，与通用 `RUNTIME` 分开维护。视频处理固定在芯片的硬件单元上：FFmpeg 只做解复用，MPP 解码，RGA 完成缩放与色彩转换，三核 NPU 并行推理，MPP 以 `h264_rkmpp` 编码输出。帧以 DMA-BUF 在硬件单元之间传递；只有画框、取证和推流等需要 CPU 访问的场景才生成 BGR 图像。
 
@@ -127,43 +127,9 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 - **失败即停**：启动时校验 RK3588、RKNPU、RGA、MPP、DRM 与 `h264_rkmpp`，任一缺失即拒绝启动；不提供 ONNX、CPU 推理、软件解码或 `libx264` 回退，避免出现“能运行但延迟和 CPU 占用不可用”的部署。
 - **部署形态**：本地推理只回传检测结果、告警与取证图，原始视频留在现场，降低上行带宽与响应时延；双网口配合 Wi-Fi、4G/5G 与 SIM，可覆盖隔离网络、移动点位和备份链路。
 
-**系统架构：码流在硬件单元间以 DMA-BUF 传递，线程与队列均为固定容量**
+**RK3588 系统架构**
 
-```mermaid
-flowchart LR
-    IN["RTSP / 视频文件"] --> PRE{"硬件与驱动预检<br/>RKNPU · RGA · MPP · DRM · h264_rkmpp"}
-    PRE -->|缺失| STOP["拒绝启动<br/>无 CPU / ONNX / 软编解码回退"]
-    PRE -->|通过| DEMUX["FFmpeg<br/>仅解复用"]
-
-    subgraph HW["RK3588 SoC 硬件单元"]
-        MPPD["MPP 硬件解码<br/>NV12 DMA-BUF 固定缓冲池"]
-        NPU["三核 NPU<br/>Core 0 / 1 / 2 · lane 绑定 · 权重共享"]
-        DRAW["RGA<br/>画框后转回 NV12"]
-        MPPE["MPP 硬件编码<br/>h264_rkmpp"]
-    end
-
-    subgraph RT["运行时：线程与有界队列"]
-        FR["FrameRing<br/>满载丢最旧帧"]
-        TQ["每核 TaskRing<br/>优先最短 lane"]
-        CQ["每核 CompletionRing<br/>独立汇聚线程"]
-        RR["ResultRing"]
-        EMIT["Emit 线程<br/>告警判定 / 取证"]
-    end
-
-    subgraph OUT["输出"]
-        MQ["检测结果 / 告警<br/>MQTT 上报"]
-        SNAP["告警取证图"]
-        RTMP["RTMP 推流"]
-    end
-
-    DEMUX --> MPPD --> FR --> TQ
-    TQ -->|RGA 缩放 → RKNN 推理| NPU
-    NPU -->|原生 INT8 后处理| CQ --> RR --> EMIT
-    EMIT --> MQ
-    EMIT --> SNAP
-    FR -.->|按需取原始帧| EMIT
-    EMIT --> DRAW --> MPPE --> RTMP
-```
+![RK3588 系统架构图](.images/rk3588/rk3588-architecture.jpg)
 
 <div align="center">
   <img src=".images/rk3588/rk3588-front-wireless.jpg" width="32%" alt="RK3588 前面板与无线扩展">
