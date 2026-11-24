@@ -7,6 +7,7 @@ import com.basiclab.iot.common.utils.json.JsonUtils;
 import com.basiclab.iot.sink.domain.model.AlertNotificationMessage;
 import com.basiclab.iot.sink.domain.model.PostProcessRequestMessage;
 import com.basiclab.iot.sink.service.AlertService;
+import com.basiclab.iot.sink.service.edge.EdgeNodeTelemetryService;
 import com.basiclab.iot.sink.service.PostProcessService;
 import com.basiclab.iot.sink.util.AlertClassFilter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,9 +36,11 @@ public class IotAlgoBusMqttHandler {
     private final JdbcTemplate jdbcTemplate;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final String notificationSendTopic;
+    private final EdgeNodeTelemetryService edgeNodeTelemetryService;
 
     public IotAlgoBusMqttHandler() {
         this.alertService = SpringUtil.getBean(AlertService.class);
+        this.edgeNodeTelemetryService = SpringUtil.getBean(EdgeNodeTelemetryService.class);
         PostProcessService pps = null;
         try {
             pps = SpringUtil.getBean(PostProcessService.class);
@@ -97,7 +100,9 @@ public class IotAlgoBusMqttHandler {
         try {
             JsonNode root = objectMapper.readTree(json);
             JsonNode payload = root.has("payload") ? root.get("payload") : root;
-            if (topic.endsWith("iot-alert-notification") || topic.contains("iot-alert-notification")) {
+            if (topic.startsWith("mqtt/iot-edge-node/")) {
+                edgeNodeTelemetryService.ingest(topic, root);
+            } else if (topic.endsWith("iot-alert-notification") || topic.contains("iot-alert-notification")) {
                 handleAlert(payload, root, false);
             } else if (topic.contains("iot-snapshot-alert")) {
                 handleAlert(payload, root, true);

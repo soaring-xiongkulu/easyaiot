@@ -2,14 +2,20 @@ package com.basiclab.iot.sink.protocol.emqx.router;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
+import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
 import com.basiclab.iot.sink.auth.service.DeviceAuthService;
 import com.basiclab.iot.sink.biz.dto.IotDeviceAuthReqDTO;
 import com.basiclab.iot.sink.mq.message.IotDeviceMessage;
 import com.basiclab.iot.sink.util.IotDeviceAuthUtils;
 import com.basiclab.iot.sink.messagebus.publisher.message.IotDeviceMessageService;
+import com.basiclab.iot.sink.service.edge.EdgeNodeTelemetryService;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 /**
  * IotEmqxAuthEventHandler
@@ -52,10 +58,13 @@ public class IotEmqxAuthEventHandler {
 
     private final DeviceAuthService deviceAuthService;
 
+    private final EdgeNodeTelemetryService edgeNodeTelemetryService;
+
     public IotEmqxAuthEventHandler(String serverId) {
         this.serverId = serverId;
         this.deviceMessageService = SpringUtil.getBean(IotDeviceMessageService.class);
         this.deviceAuthService = SpringUtil.getBean(DeviceAuthService.class);
+        this.edgeNodeTelemetryService = SpringUtil.getBean(EdgeNodeTelemetryService.class);
     }
 
     /**
@@ -180,11 +189,49 @@ public class IotEmqxAuthEventHandler {
      */
     private boolean handleDeviceAuth(String clientId, String username, String password) {
         try {
+            if (username.startsWith("edge-node-")) {
+                return handleEdgeNodeAuth(clientId, username, password);
+            }
             return deviceAuthService.authDevice(new IotDeviceAuthReqDTO()
                     .setClientId(clientId).setUsername(username).setPassword(password).setProtocolType("MQTT"));
         } catch (Exception e) {
             log.error("[handleDeviceAuth][设备({}) 认证失败]", username, e);
             throw e;
+        }
+    }
+
+    /**
+     * 边缘盒子使用 VIDEO 纳管分配的 nodeId/agentToken 登录 EMQX。
+     * Broker 登录与消息 HMAC 是两层独立校验，最终遥测由 iot-sink 直接写入 VIDEO 库。
+     */
+    private boolean handleEdgeNodeAuth(String clientId, String username, String password) {
+        String rawId = username.substring("edge-node-".length());
+        if (!rawId.matches("[1-9][0-9]{0,18}")
+                || !clientId.equals("easyaiot-edge-" + rawId)) {
+            return false;
+        }
+        try {
+            JdbcTemplate jdbcTemplate = SpringUtil.getBean(JdbcTemplate.class);
+            DynamicDataSourceContextHolder.push("video");
+            String expected = jdbcTemplate.queryForObject(
+                    "SELECT agent_token FROM edge_compute_node "
+                            + "WHERE id=? AND mqtt_username=? AND mqtt_client_id=? AND enabled=TRUE LIMIT 1",
+                    String.class, Long.parseLong(rawId), username, clientId);
+            if (expected == null) {
+                return false;
+            }
+            return MessageDigest.isEqual(
+                    expected.getBytes(StandardCharsets.UTF_8),
+                    password.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception ex) {
+            log.warn("[handleEdgeNodeAuth] 边缘节点 MQTT 认证失败 nodeId={}: {}", rawId, ex.getMessage());
+            return false;
+        } finally {
+            try {
+                DynamicDataSourceContextHolder.poll();
+            } catch (Exception ignored) {
+                // ignore
+            }
         }
     }
 
@@ -195,6 +242,10 @@ public class IotEmqxAuthEventHandler {
      * @param online   是否在线 true 在线 false 离线
      */
     private void handleDeviceStateChange(String username, boolean online) {
+        if (username != null && username.startsWith("edge-node-")) {
+            edgeNodeTelemetryService.updateConnectionState(username, online);
+            return;
+        }
         // 1. 解析设备信息
         IotDeviceAuthUtils.DeviceInfo deviceInfo = IotDeviceAuthUtils.parseUsername(username);
         if (deviceInfo == null) {

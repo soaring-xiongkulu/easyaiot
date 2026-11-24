@@ -436,7 +436,7 @@ services:
       - SPRING_KAFKA_IOT_PRODUCER_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka生产者地址（使用Docker服务名，用于自定义iot配置）
       - SPRING_KAFKA_IOT_CONSUMER_BOOTSTRAP_SERVERS=Kafka:9092 # Kafka消费者地址（使用Docker服务名，用于自定义iot配置）
       - BASICLAB_IOT_SINK_PROTOCOL_EMQX_MQTT_HOST=${IOT_SINK_EMQX_MQTT_HOST:-emqx-server} # EMQX Broker 地址（默认使用Docker容器名，可按服务器覆盖）
-      - BASICLAB_IOT_SINK_PROTOCOL_EMQX_MQTT_TOPICS=/iot/#,/shadow/#,$$share/algo-sink/mqtt/iot-alert-notification,$$share/algo-sink/mqtt/iot-snapshot-alert,$$share/algo-sink/mqtt/iot-post-process-request # 算法总线仅使用共享订阅，避免重复消费
+      - BASICLAB_IOT_SINK_PROTOCOL_EMQX_MQTT_TOPICS=/iot/#,/shadow/#,$$share/algo-sink/mqtt/iot-alert-notification,$$share/algo-sink/mqtt/iot-snapshot-alert,$$share/algo-sink/mqtt/iot-post-process-request,$$share/edge-control/mqtt/iot-edge-node/+/heartbeat,$$share/edge-control/mqtt/iot-edge-node/+/status,$$share/edge-control/mqtt/iot-edge-node/+/command-ack # 算法与边缘控制总线使用共享订阅，避免重复消费
       - MINIO_URL=http://RustFS:9000 # Minio地址（使用Docker服务名）
       - MINIO_DOWNLOAD_URL= # 下载统一返回平台 /api/v1/buckets/... 代理路径
       - MINIO_ACCESS_KEY=minioadmin # Minio访问密钥

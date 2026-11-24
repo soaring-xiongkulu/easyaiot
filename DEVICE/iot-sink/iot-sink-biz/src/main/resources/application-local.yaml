@@ -243,6 +243,9 @@ basiclab:
             - "$share/algo-sink/mqtt/iot-alert-notification"
             - "$share/algo-sink/mqtt/iot-snapshot-alert"
             - "$share/algo-sink/mqtt/iot-post-process-request"
+            - "$share/edge-control/mqtt/iot-edge-node/+/heartbeat"
+            - "$share/edge-control/mqtt/iot-edge-node/+/status"
+            - "$share/edge-control/mqtt/iot-edge-node/+/command-ack"
           mqtt-qos: 1 # MQTT QoS 级别（0-最多一次，1-至少一次，2-刚好一次）
           connect-timeout-seconds: 10 # 连接超时时间（秒）
           reconnect-delay-ms: 5000 # 重连延迟时间（毫秒）
