@@ -18,6 +18,13 @@
             :message="runtimeVersionBanner"
           />
           <a-alert
+            v-if="showRk3588ProfileNotice"
+            class="runtime-version-banner mb-3"
+            type="warning"
+            show-icon
+            message="当前任务使用 RK3588 硬件运行时：固定本机执行，仅提供低时延模式与 RKNN 模型。"
+          />
+          <a-alert
             v-if="ingressScheduleNotice.message"
             class="ingress-schedule-banner mb-3"
             :type="ingressScheduleNotice.type"
@@ -147,6 +154,27 @@ const runtimeInfo = ref<{
   binPath?: string | null;
 } | null>(null);
 const runtimeInfoTaskMode = ref<string>('realtime_cpp');
+/**
+ * VIDEO 宿主机芯片运行时，只由不带 target 参数的 runtime/info 查询刷新。
+ * 编辑已有任务时查询的是任务自身 target，不能覆盖宿主机检测结果。
+ */
+const hostRuntimeTarget = ref<'rk3588' | 'generic' | ''>('');
+const isRk3588Host = computed(() => hostRuntimeTarget.value === 'rk3588');
+const isGenericHost = computed(() => hostRuntimeTarget.value === 'generic');
+const hostRuntimeProfileKnown = computed(() => !!hostRuntimeTarget.value);
+
+/** RK3588 硬件运行时任务只能本机部署；auto 按宿主机芯片解析，编辑历史通用任务时保留其原调度语义 */
+function shouldRestrictScheduleToLocal(): boolean {
+  const mode = String(runtimeInfoTaskMode.value || formValues.value?.task_mode || '');
+  if (!mode.endsWith('_cpp')) return false;
+  const target = String(formValues.value?.runtime_target || '');
+  const effective = !target || target === 'auto' ? hostRuntimeTarget.value : target;
+  return effective === 'rk3588';
+}
+const showRk3588ProfileNotice = computed(() => shouldRestrictScheduleToLocal());
+const schedulePolicyHelp = computed(() => (shouldRestrictScheduleToLocal()
+  ? 'RK3588 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。'
+  : '边缘接入设备固定部署到对应接入节点；主节点接入设备可选择本机、自动调度或指定节点'));
 
 const showRuntimeVersionBanner = computed(() => {
   const mode = String(runtimeInfoTaskMode.value || formValues.value?.task_mode || '');
@@ -205,21 +233,29 @@ async function refreshLlmRuleSummary() {
 }
 
 async function loadRuntimeInfo(runtimeTarget?: string) {
+  const queryTarget = String(runtimeTarget || '').trim();
   try {
-    const data = await getRuntimeInfo(runtimeTarget);
+    const data = await getRuntimeInfo(queryTarget || undefined);
     // defHttp 可能返回 data 本体，也可能保留 { code, data }
     const info = (data as any)?.data && typeof (data as any).data === 'object'
       ? (data as any).data
       : data;
     runtimeInfo.value = info || { ready: false };
+    if (!queryTarget) {
+      const target = String((info as any)?.target || '').toLowerCase();
+      hostRuntimeTarget.value = target === 'rk3588' || target === 'generic' ? target : '';
+    }
   } catch {
     runtimeInfo.value = { ready: false };
+    if (!queryTarget) {
+      hostRuntimeTarget.value = '';
+    }
   }
 }
 
-/** 读取后端识别到的芯片运行时；经函数调用避免被上面的 null 赋值窄化 */
+/** 宿主机芯片优先；查询单个任务的 target 不会篡改这个结果 */
 function detectedRuntimeTarget(): string {
-  return String(runtimeInfo.value?.target || 'auto');
+  return hostRuntimeTarget.value || String(runtimeInfo.value?.target || 'auto');
 }
 const isFullDayDefense = ref<boolean>(true);
 const alertNotificationEnabled = ref<boolean>(false); // 告警通知启用状态
@@ -266,6 +302,29 @@ const schedulePolicyOptions = [
   { label: '自动调度节点', value: 'auto' },
   { label: '指定节点', value: 'node' },
 ];
+const localSchedulePolicyOptions = [
+  { label: '本机部署（RK3588 固定）', value: 'local' },
+];
+const taskModeOptions = [
+  { label: '实时视频分析（低时延）', value: 'realtime_cpp' },
+  { label: '事件抓拍分析（低时延）', value: 'snap_cpp' },
+  { label: '周期巡检分析（低时延）', value: 'patrol_cpp' },
+  { label: '实时视频分析（全功能）', value: 'realtime' },
+  { label: '事件抓拍分析（全功能）', value: 'snap' },
+  { label: '周期巡检分析（全功能）', value: 'patrol' },
+];
+const rk3588TaskModeOptions = taskModeOptions.filter((option) => String(option.value).endsWith('_cpp'));
+const runtimeTargetOptions = [
+  { label: '自动识别本机芯片（推荐）', value: 'auto' },
+  { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
+  { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
+];
+const rk3588RuntimeTargetOptions = [
+  { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
+];
+const genericRuntimeTargetOptions = [
+  { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
+];
 const gbChannelOptionMap = ref<Map<string, { deviceId: string; channelId: string; name: string; label: string }>>(new Map());
 // 初始化时就包含默认模型，确保始终显示
 const defaultModels = [
@@ -282,8 +341,119 @@ const defaultModels = [
     value: -3, // 使用 -3 表示 yolo26n.pt
   },
 ];
+
+function modelFileSuffix(value: unknown): string {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  const clean = raw.split('?')[0].split('#')[0];
+  const name = clean.slice(clean.lastIndexOf('/') + 1);
+  const dot = name.lastIndexOf('.');
+  return dot >= 0 ? name.slice(dot) : '';
+}
+
+function modelHasRknnWeights(model: any): boolean {
+  return [model?.rknn_model_path, model?.model_path, model?.onnx_model_path]
+    .some((path) => modelFileSuffix(path) === '.rknn');
+}
+
+function modelHasGenericWeights(model: any): boolean {
+  const genericSuffixes = ['.onnx', '.pt', '.pth', '.torchscript', '.engine', '.plan', '.xml'];
+  return [
+    model?.model_path,
+    model?.onnx_model_path,
+    model?.torchscript_model_path,
+    model?.tensorrt_model_path,
+    model?.openvino_model_path,
+  ].some((path) => genericSuffixes.includes(modelFileSuffix(path)));
+}
+
+function isModelCompatibleWithProfile(model: any, profile: string): boolean {
+  if (!profile) return true;
+  const id = Number(model?.id);
+  if (Number.isFinite(id) && id < 0) {
+    return profile === 'rk3588' ? id === -2 : true;
+  }
+  const hasRknn = modelHasRknnWeights(model);
+  const hasGeneric = modelHasGenericWeights(model);
+  // 模型元数据缺失时不做猜测，交给后端契约校验
+  if (!hasRknn && !hasGeneric) return true;
+  if (profile === 'rk3588') return hasRknn;
+  return !hasRknn || hasGeneric;
+}
+
+function modelOptionLabel(model: any, profile: string): string {
+  const base = `${model?.name || model?.label || model?.id || '模型'}${model?.version ? ` (v${model.version})` : ''}`;
+  if (profile === 'rk3588' && Number(model?.id) === -2) {
+    return `${base}（RKNN 内置）`;
+  }
+  if (profile === 'rk3588' && modelHasRknnWeights(model)) {
+    return `${base}（RKNN）`;
+  }
+  if (profile && !isModelCompatibleWithProfile(model, profile)) {
+    const profileLabel = profile === 'rk3588' ? 'RK3588 本机' : '通用运行时';
+    return `${base}（不兼容${profileLabel}）`;
+  }
+  return base;
+}
+
 const modelOptions = ref<Array<{ label: string; value: number }>>([...defaultModels]);
+const availableDbModels = ref<any[]>([]); // 数据库返回的全部业务模型，按运行时动态过滤
 const modelMap = ref<Map<number, any>>(new Map()); // 存储完整的模型信息
+
+function modelHelpForProfile(profile: 'rk3588' | 'generic' | ''): string {
+  if (profile === 'rk3588') {
+    return 'RK3588 仅接受内置 yolov8n（-2）或已登记的 .rknn 业务模型；模型需满足 1 输入 / 9 输出 INT8 契约。';
+  }
+  return '选择要使用的模型列表，模型文件本地没有会自动下载';
+}
+
+/** 全功能任务走 Python/AI，不受本机 RK3588 硬件运行时模型契约限制 */
+function activeModelProfile(target?: string): 'rk3588' | 'generic' | '' {
+  const mode = String(runtimeInfoTaskMode.value || formValues.value?.task_mode || '');
+  if (mode && !mode.endsWith('_cpp')) return 'generic';
+  const requested = String(target ?? formValues.value?.runtime_target ?? '').trim();
+  const effective = !requested || requested === 'auto'
+    ? hostRuntimeTarget.value
+    : requested;
+  return effective === 'rk3588' || effective === 'generic' ? effective : '';
+}
+
+function refreshModelOptions(
+  profile: 'rk3588' | 'generic' | '' = activeModelProfile(),
+  selectedIds?: number[],
+) {
+  const builtinOptions = defaultModels
+    .filter((model) => isModelCompatibleWithProfile(model, profile))
+    .map((model) => ({ label: modelOptionLabel(model, profile), value: model.value }));
+
+  const dbModelOptions = availableDbModels.value
+    .filter((item) => isModelCompatibleWithProfile(item, profile))
+    .map((item) => ({ label: modelOptionLabel(item, profile), value: item.id }));
+
+  const options = [...builtinOptions, ...dbModelOptions];
+  const seen = new Set(options.map((option) => Number(option.value)));
+  const ids = selectedIds ?? (Array.isArray(formValues.value?.model_ids)
+    ? formValues.value.model_ids.map((id: any) => Number(id)).filter((id: number) => !Number.isNaN(id))
+    : []);
+  ids.forEach((id) => {
+    if (seen.has(id)) return;
+    const item = modelMap.value.get(id);
+    options.push({
+      label: item
+        ? modelOptionLabel(item, profile || hostRuntimeTarget.value)
+        : `模型 #${id}（当前不可用）`,
+      value: id,
+    });
+    seen.add(id);
+  });
+
+  modelOptions.value = options;
+  updateSchema({
+    field: 'model_ids',
+    componentProps: { options },
+    helpMessage: modelHelpForProfile(profile),
+  });
+}
 const alertClassOptions = ref<Array<{ label: string; value: string }>>([]);
 const faceLibraryOptions = ref<Array<{ label: string; value: number }>>([]);
 const plateLibraryOptions = ref<Array<{ label: string; value: number }>>([]);
@@ -748,33 +918,16 @@ const loadModels = async () => {
       allModels = response.data;
     }
 
-    // 构建选项列表和完整模型信息映射（不清空默认模型）
-    const dbModelOptions = allModels.map((item: any) => {
-      // 保存完整的模型信息
-      modelMap.value.set(item.id, item);
-
-      return {
-        label: `${item.name}${item.version ? ` (v${item.version})` : ''}`,
-        value: item.id, // 模型ID
-      };
-    });
-
-    // 将默认模型放在最前面，然后添加数据库中的模型
-    // 确保即使后端返回空列表，默认模型也会显示
-    modelOptions.value = [...defaultModels, ...dbModelOptions];
+    // 完整模型信息全部入映射，供编辑历史任务时补回选项
+    allModels.forEach((item: any) => modelMap.value.set(item.id, item));
+    availableDbModels.value = allModels;
   } catch (error) {
     console.error('加载模型列表失败', error);
-    // 即使加载失败，也确保默认模型显示
-    modelOptions.value = defaultModels;
+    availableDbModels.value = [];
   }
 
-  // BasicForm cloneDeep schema：必须把 options 写回 schema，否则下拉仍是初始默认项
-  updateSchema({
-    field: 'model_ids',
-    componentProps: {
-      options: modelOptions.value,
-    },
-  });
+  // 候选模型按任务的“有效运行时”过滤：低时延任务跟随 target/宿主机，全功能任务走 Python
+  refreshModelOptions(activeModelProfile());
 };
 
 /**
@@ -784,38 +937,23 @@ const loadModels = async () => {
 const hydrateStoredModelOptions = async (modelIds: number[]): Promise<void> => {
   const known = new Set(modelOptions.value.map((o) => o.value));
   const missing = modelIds.filter((id) => !known.has(id));
-  if (missing.length === 0) {
-    return;
-  }
-  try {
-    const results = await Promise.all(
-      missing.map((id) => getModelDetail(id).catch(() => null)),
-    );
-    let appended = false;
-    results.forEach((res: any) => {
-      const item = res?.data ?? res;
-      const id = Number(item?.id);
-      if (!id || Number.isNaN(id)) return;
-      if (modelOptions.value.some((o) => o.value === id)) return;
-      modelMap.value.set(id, item);
-      modelOptions.value = [
-        ...modelOptions.value,
-        {
-          label: `${item.name}${item.version ? ` (v${item.version})` : ''}`,
-          value: id,
-        },
-      ];
-      appended = true;
-    });
-    if (appended) {
-      updateSchema({
-        field: 'model_ids',
-        componentProps: { options: modelOptions.value },
+  if (missing.length > 0) {
+    try {
+      const results = await Promise.all(
+        missing.map((id) => getModelDetail(id).catch(() => null)),
+      );
+      results.forEach((res: any) => {
+        const item = res?.data ?? res;
+        const id = Number(item?.id);
+        if (!id || Number.isNaN(id)) return;
+        modelMap.value.set(id, item);
       });
+    } catch (error) {
+      console.error('加载任务引用模型详情失败', error);
     }
-  } catch (error) {
-    console.error('加载任务引用模型详情失败', error);
   }
+  // 即使没有缺项也重刷一次：全功能任务与低时延任务的有效模型契约不同
+  refreshModelOptions(activeModelProfile(), modelIds);
 };
 
 const refreshAlertClassOptions = async (modelIds: unknown, selectedNames?: string[]) => {
@@ -960,14 +1098,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       required: true,
       componentProps: {
         placeholder: '请选择任务类型',
-        options: [
-          { label: '实时视频分析（低时延）', value: 'realtime_cpp' },
-          { label: '事件抓拍分析（低时延）', value: 'snap_cpp' },
-          { label: '周期巡检分析（低时延）', value: 'patrol_cpp' },
-          { label: '实时视频分析（全功能）', value: 'realtime' },
-          { label: '事件抓拍分析（全功能）', value: 'snap' },
-          { label: '周期巡检分析（全功能）', value: 'patrol' },
-        ],
+        options: taskModeOptions,
       },
       helpMessage: '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、业务脚本等完整能力集',
       defaultValue: 'realtime_cpp',
@@ -978,11 +1109,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       component: 'Select',
       defaultValue: 'auto',
       componentProps: {
-        options: [
-          { label: '自动识别本机芯片（推荐）', value: 'auto' },
-          { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
-          { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
-        ],
+        options: runtimeTargetOptions,
       },
       helpMessage: 'VIDEO 统一编排任务，下层按芯片运行时执行。RK3588 只接受优化版 INT8 RKNN，不会回退 ONNX 或 CPU；后续芯片可按同一接口扩展。',
       ifShow: ({ values }) => String(values.task_mode || '').endsWith('_cpp'),
@@ -1793,6 +1920,159 @@ const modalTitle = computed(() => {
 
 const isViewMode = computed(() => modalData.value.type === 'view');
 
+const hostRuntimeHelp = computed(() => {
+  if (isRk3588Host.value) {
+    return '当前宿主机已识别为 RK3588：新建低时延任务固定使用 RUNTIME-RK3588，且只能本机执行；模型仅支持内置 yolov8n 或 .rknn。历史任务保留原运行时以便迁移。';
+  }
+  if (isGenericHost.value) {
+    return '当前宿主机使用通用 RUNTIME：支持 ONNX / PyTorch 模型、CUDA / CPU，以及本机、自动、指定节点调度。';
+  }
+  return 'VIDEO 统一编排任务，下层按芯片运行时执行。';
+});
+
+const hostTaskModeHelp = computed(() => {
+  if (isRk3588Host.value) {
+    return '当前宿主机为 RK3588：新建任务只提供低时延模式（RUNTIME-RK3588）；历史全功能任务仅保留用于迁移。';
+  }
+  return '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、业务脚本等完整能力集';
+});
+
+/**
+ * 按芯片运行时收敛调度选项：RK3588 只允许本机部署。
+ * target 为空或 auto 时按宿主机芯片解析，避免任务级 target 覆盖宿主机检测。
+ */
+async function applyRuntimeTargetDependentOptions(target?: string) {
+  const requested = String(target || '').trim();
+  const effectiveTarget = !requested || requested === 'auto'
+    ? (hostRuntimeTarget.value || 'auto')
+    : requested;
+  const restrictLocal = effectiveTarget === 'rk3588';
+
+  updateSchema([
+    {
+      field: 'schedule_policy',
+      componentProps: {
+        options: restrictLocal ? localSchedulePolicyOptions : schedulePolicyOptions,
+      },
+      helpMessage: restrictLocal
+        ? 'RK3588 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。'
+        : '边缘接入设备固定部署到对应接入节点；主节点接入设备可选择本机、自动调度或指定节点',
+    },
+  ]);
+  refreshModelOptions(activeModelProfile(effectiveTarget));
+
+  if (restrictLocal) {
+    await setFieldsValue({
+      schedule_policy: 'local',
+      target_node_id: undefined,
+      prefer_gpu: false,
+    });
+    formValues.value = {
+      ...(await getFieldsValue()),
+      schedule_policy: 'local',
+      target_node_id: undefined,
+    };
+  }
+}
+
+/**
+ * 真正分开 RK3588 / 通用运行时的表单能力。
+ * 新建任务按宿主机收敛；编辑历史任务保留原 target 与调度语义，只收敛仍然可用的选项。
+ */
+async function applyHostRuntimeProfile(preserveExisting = false) {
+  if (!hostRuntimeProfileKnown.value && !preserveExisting) {
+    updateSchema([
+      { field: 'task_mode', componentProps: { options: taskModeOptions }, helpMessage: hostTaskModeHelp.value },
+      { field: 'runtime_target', componentProps: { options: runtimeTargetOptions }, helpMessage: hostRuntimeHelp.value },
+      { field: 'schedule_policy', componentProps: { options: schedulePolicyOptions }, helpMessage: schedulePolicyHelp.value },
+    ]);
+    refreshModelOptions('');
+    return;
+  }
+
+  const host = hostRuntimeTarget.value;
+  const current = await getFieldsValue();
+  const currentMode = String(current.task_mode || '');
+  const currentTarget = String(current.runtime_target || '');
+  const isCppMode = currentMode.endsWith('_cpp');
+
+  let modes = host === 'rk3588' ? [...rk3588TaskModeOptions] : [...taskModeOptions];
+  if (preserveExisting && currentMode && !modes.some((option) => option.value === currentMode)) {
+    const legacyMode = taskModeOptions.find((option) => option.value === currentMode);
+    if (legacyMode) {
+      modes = [...modes, { ...legacyMode, label: `${legacyMode.label}（历史任务）` }];
+    }
+  }
+
+  let targets = host === 'rk3588'
+    ? [...rk3588RuntimeTargetOptions]
+    : host === 'generic'
+      ? [...genericRuntimeTargetOptions]
+      : [...runtimeTargetOptions];
+  if (preserveExisting && currentTarget && !targets.some((option) => option.value === currentTarget)) {
+    const legacyTarget = runtimeTargetOptions.find((option) => option.value === currentTarget);
+    if (legacyTarget) {
+      targets = [...targets, { ...legacyTarget, label: `${legacyTarget.label}（历史任务）` }];
+    }
+  }
+
+  updateSchema([
+    { field: 'task_mode', componentProps: { options: modes }, helpMessage: hostTaskModeHelp.value },
+    { field: 'runtime_target', componentProps: { options: targets }, helpMessage: hostRuntimeHelp.value },
+  ]);
+
+  if (preserveExisting) {
+    if (isCppMode) {
+      await applyRuntimeTargetDependentOptions(currentTarget || 'auto');
+    } else {
+      updateSchema({
+        field: 'schedule_policy',
+        componentProps: { options: schedulePolicyOptions },
+        helpMessage: schedulePolicyHelp.value,
+      });
+      refreshModelOptions('generic');
+    }
+    return;
+  }
+
+  if (host === 'rk3588') {
+    const nextMode = modes.some((option) => option.value === currentMode) ? currentMode : 'realtime_cpp';
+    updateSchema({
+      field: 'schedule_policy',
+      componentProps: { options: localSchedulePolicyOptions },
+      helpMessage: 'RK3588 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。',
+    });
+    await setFieldsValue({
+      task_mode: nextMode,
+      runtime_target: 'rk3588',
+      schedule_policy: 'local',
+      target_node_id: undefined,
+      prefer_gpu: false,
+    });
+    formValues.value = {
+      ...(await getFieldsValue()),
+      task_mode: nextMode,
+      runtime_target: 'rk3588',
+      schedule_policy: 'local',
+      target_node_id: undefined,
+    };
+    refreshModelOptions('rk3588');
+  } else if (host === 'generic') {
+    const nextTarget = currentTarget && currentTarget !== 'auto' && currentTarget !== 'rk3588'
+      ? currentTarget
+      : 'generic';
+    await setFieldsValue({ runtime_target: nextTarget });
+    await applyRuntimeTargetDependentOptions(nextTarget);
+    formValues.value = { ...(await getFieldsValue()), runtime_target: nextTarget };
+  } else {
+    updateSchema({
+      field: 'schedule_policy',
+      componentProps: { options: schedulePolicyOptions },
+    });
+    refreshModelOptions('');
+  }
+}
+
 const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) => {
   modalData.value = data || {};
   taskId.value = null;
@@ -1804,6 +2084,9 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
   ingressScheduleNotice.value = { type: 'info', message: '' };
   resetFields();
   runtimeInfo.value = null;
+  formValues.value = {};
+  runtimeInfoTaskMode.value = 'realtime_cpp';
+  hostRuntimeTarget.value = '';
   await loadRuntimeInfo();
 
   // 确保默认模型已初始化（在加载前）
@@ -1965,6 +2248,8 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     postPipeline.value = Array.isArray((record as any).post_pipeline)
       ? (record as any).post_pipeline
       : null;
+
+    await applyHostRuntimeProfile(true);
 
     if (String(record.executor || 'cpp').toLowerCase() !== 'python') {
       void loadRuntimeInfo(record.runtime_target || 'auto');
@@ -2138,6 +2423,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
       mode: 'full', // 默认全防模式
       schedule: Array(7).fill(null).map(() => Array(24).fill(1)), // 默认全部填充
     };
+    await applyHostRuntimeProfile(false);
     setDrawerProps({ showOkBtn: true });
   }
 
@@ -2235,16 +2521,19 @@ const handleFieldValueChange = async (key: string, value: any) => {
     formValues.value = { ...currentValues, device_ids: value || [] };
   } else if (key === 'task_mode') {
     runtimeInfoTaskMode.value = String(value || '');
-    if (String(value || '').endsWith('_cpp')) {
-      const currentValues = await getFieldsValue();
+    const currentValues = await getFieldsValue();
+    const isCppMode = String(value || '').endsWith('_cpp');
+    await applyRuntimeTargetDependentOptions(
+      isCppMode ? String(currentValues.runtime_target || 'auto') : 'generic',
+    );
+    if (isCppMode) {
       void loadRuntimeInfo(currentValues.runtime_target || detectedRuntimeTarget());
     }
   } else if (key === 'runtime_target') {
-    void loadRuntimeInfo(String(value || 'auto'));
-    if (value === 'rk3588') {
-      await setFieldsValue({ schedule_policy: 'local', target_node_id: undefined });
-      formValues.value = { ...(await getFieldsValue()), schedule_policy: 'local', target_node_id: undefined };
-    }
+    const nextTarget = String(value || 'auto');
+    await applyRuntimeTargetDependentOptions(nextTarget);
+    void loadRuntimeInfo(nextTarget);
+    formValues.value = { ...(await getFieldsValue()), runtime_target: nextTarget };
   } else if (key === 'is_full_day_defense') {
     isFullDayDefense.value = value !== undefined ? value : true;
     // 如果切换到非全天布防，默认设置为半防模式并清空表格，让用户自己选择
@@ -2370,6 +2659,18 @@ const handleSubmit = async () => {
       if (mapped.executor !== 'cpp') values.runtime_target = 'auto';
     }
 
+    // 新建任务按宿主机固化芯片契约；编辑历史任务保留原有 target，避免静默改写
+    if (values.executor === 'cpp' && !modalData.value.record) {
+      if (isRk3588Host.value) {
+        values.runtime_target = 'rk3588';
+        values.schedule_policy = 'local';
+        values.target_node_id = null;
+        values.prefer_gpu = false;
+      } else if (isGenericHost.value) {
+        values.runtime_target = 'generic';
+      }
+    }
+
     const requestedRuntimeTarget = String(values.runtime_target || 'auto');
     // auto 由后端按本机芯片解析；本机为 RK3588 时同样受硬件契约约束
     const effectiveRuntimeTarget = requestedRuntimeTarget === 'auto'
@@ -2391,6 +2692,19 @@ const handleSubmit = async () => {
       const incompatibleBuiltins = (values.model_ids || []).filter((id: any) => Number(id) < 0 && Number(id) !== -2);
       if (incompatibleBuiltins.length) {
         createMessage.error('RK3588 内置模型请选择 yolov8n；其他默认模型不是 RKNN 1 输入 / 9 输出契约');
+        confirmLoading.value = false;
+        setDrawerProps({ confirmLoading: false });
+        return;
+      }
+      const incompatibleModels = (values.model_ids || [])
+        .map((id: any) => modelMap.value.get(Number(id)))
+        .filter((model: any) => model && !isModelCompatibleWithProfile(model, 'rk3588'));
+      if (incompatibleModels.length) {
+        const names = incompatibleModels
+          .map((model: any) => model?.name || model?.label || model?.id)
+          .filter(Boolean)
+          .join('、');
+        createMessage.error(`RK3588 只接受 .rknn 模型，以下模型不兼容：${names}`);
         confirmLoading.value = false;
         setDrawerProps({ confirmLoading: false });
         return;
@@ -2716,6 +3030,8 @@ const handleReset = async () => {
       alarm_suppress_time: 300,
       is_full_day_defense: true, // 默认全天布防
     });
+    runtimeInfoTaskMode.value = 'realtime_cpp';
+    formValues.value = { ...formValues.value, ...await getFieldsValue() };
     postPipeline.value = null;
     alertNotificationConfig.value = { enabled: false, channels: [], suppress_time: 300 };
     // 重置布防时段为默认值（全天布防）
@@ -2723,6 +3039,7 @@ const handleReset = async () => {
       mode: 'full', // 默认全防模式
       schedule: Array(7).fill(null).map(() => Array(24).fill(1)), // 默认全部填充
     };
+    await applyHostRuntimeProfile(false);
   } else {
     // 如果是编辑模式，恢复到原始值
     const record = modalData.value.record;
@@ -2750,6 +3067,7 @@ const handleReset = async () => {
     await setFieldsValue({
       task_name: record.task_name,
       task_mode: viewTaskMode,
+      runtime_target: record.runtime_target || detectedRuntimeTarget(),
       schedule_policy: record.schedule_policy || 'local',
       prefer_gpu: record.prefer_gpu !== false,
       target_node_id: record.target_node_id ?? undefined,
@@ -2811,6 +3129,9 @@ const handleReset = async () => {
         schedule: Array(7).fill(null).map(() => Array(24).fill(0)),
       };
     }
+
+    formValues.value = { ...formValues.value, ...await getFieldsValue() };
+    await applyHostRuntimeProfile(true);
 
     // 把任务引用的历史版本补回模型下拉（家族归并后这些 id 不在默认候选里）
     await hydrateStoredModelOptions(modelIds);
