@@ -434,6 +434,9 @@ After=network-online.target
 
 [Service]
 Type=simple
+# RUNTIME 未设置 POST_ENABLED 时按 true 处理，而板端没有 Nacos/POST：探活失败会按 closed 策略抑制全部告警。
+# 确需接入中心 POST 的定制后处理时，用 drop-in 覆盖（systemctl edit）。
+Environment=POST_ENABLED=false
 WorkingDirectory=${PREFIX}
 ExecStart=${BIN} ${TASK_CONFIG_DIR}/%i.ini
 Restart=on-failure
@@ -577,7 +580,8 @@ service_start() {
         warn "任务 $task_id 已经运行"
         continue
       fi
-      as_root bash -c 'nohup "$1" "$2" >>"$3" 2>&1 & echo $! >"$4"' \
+      # 与 systemd 单元的 Environment=POST_ENABLED=false 保持一致（见 install_systemd_template）
+      as_root env POST_ENABLED="${POST_ENABLED:-false}" bash -c 'nohup "$1" "$2" >>"$3" 2>&1 & echo $! >"$4"' \
         _ "$BIN" "$file" "$log_file" "$(pid_file "$task_id")"
     fi
     ok "任务已启动: $task_id（RTSP 独立进程，控制端口 $control_port）"
