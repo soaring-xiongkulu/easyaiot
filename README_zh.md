@@ -235,7 +235,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 任务清单沿用 `RUNTIME` 的约定：`models` 是可复用的 RKNN 模型库，`tasks` 中每一项就是一路 RTSP，并用类似 `"models": ["person_vehicle", "helmet"]` 的方式自由绑定一个或多个模型；要接十路视频，只需增加十个任务，不存在“只能一路、只能一个模型”的限制。安装器会先一次性校验全部路径、模型引用和控制端口，再把模型各安装一份、为每路视频生成一份 INI 和一个独立受监管进程，最后逐路等待 `/health` 验收 MPP、RGA、RKNN 硬件链路。systemd 通过模板实例提供开机自启和故障拉起；没有 systemd 时，每路也有独立 PID 与日志。它不会安装 Docker，也不会启动 WEB、AI、VIDEO、MQTT 等其他模块。运维时执行 `rk3588 status [任务ID]`、`logs [任务ID]`、`verify [任务ID]`，既能看全部，也能只看一路；交互菜单也只会请你选择这份清单。
 
-**RK3588 集群模式（接入中心）：**在同一清单把 `control_plane.enabled` 设为 `true`，`url` 填 `http://<中心IP>:48080/admin-api/video/edge`，`join_token` 与中心 `EDGE_ENROLL_TOKEN` 保持一致（中心未设置则留空），再执行上面的 `rk3588 install`（已装过的盒子改完清单用 `rk3588 update`）。盒子就会自动出现在 WEB 独立一级菜单“边缘计算”中，芯片/NPU、推理管线、负载、温度以及可选的服务访问和 SSH 入口都集中呈现。遥测链路固定为 `RK3588 → EMQX → iot-sink（鉴权、HMAC 验签、协议归一化、直接落库）→ VIDEO / WEB`，不经过 Kafka，也不进入 NODE。`remote_access.enabled` 单独决定是否启用 FRP：关闭时不安装 frpc、不开放公网端口；开启时一键生成服务与 SSH 两条独立隧道，节点统管仍始终走 MQTT。
+**RK3588 集群模式（接入中心）**：在同一清单把 `control_plane.enabled` 设为 `true`，`url` 填 `http://<中心IP>:48080/admin-api/video/edge`，`join_token` 与中心 `EDGE_ENROLL_TOKEN` 保持一致（中心未设置则留空），再执行上面的 `rk3588 install`（已装过的盒子改完清单用 `rk3588 update`）。盒子就会自动出现在 WEB 独立一级菜单“边缘计算”中，芯片/NPU、推理管线、负载、温度以及可选的服务访问和 SSH 入口都集中呈现。遥测链路固定为 `RK3588 → EMQX → iot-sink（鉴权、HMAC 验签、协议归一化、直接落库）→ VIDEO / WEB`，不经过 Kafka，也不进入 NODE。`remote_access.enabled` 单独决定是否启用 FRP：关闭时不安装 frpc、不开放公网端口；开启时一键生成服务与 SSH 两条独立隧道，节点统管仍始终走 MQTT。
 
 ### 🎛️ PANEL：一体机到场当天可装可验，值守不必等开发远程
 
