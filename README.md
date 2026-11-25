@@ -120,6 +120,10 @@ Those three steps give you the lightest <strong>standalone mode</strong>. The ed
 | **Non-RK3588** (x86_64 / generic ARM) | WEB + VIDEO + generic `RUNTIME` on one machine, closing the loop locally | This machine only runs the generic `RUNTIME` compute node; it joins a central platform (standard / full) and its tasks come from the center |
 | **RK3588** | Only `RUNTIME-RK3588` is installed; tasks live in the box's local manifest, no center needed | Same runtime + MQTT Agent; the box shows up in the central WEB **Edge Computing** menu |
 
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
+<strong>Alerts, but no notifications:</strong> SMS, email, IM robots and Webhooks are sent by the platform's <code>iot-message</code> service, which the edge tier does not deploy. Standalone mode raises, persists and shows alerts in its own WEB only. Cluster-mode nodes hand alerts to the center, and the center notifies only when it runs <strong>standard / full</strong>—mini does not deploy <code>iot-message</code> either. Where notifications are unavailable (edge standalone and a mini center), the algorithm-task form hides the notification settings and shows a one-line note instead.
+</p>
+
 **① Non-RK3588 · standalone mode** (the three steps above)
 
 ```bash
@@ -167,7 +171,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 **④ RK3588 · cluster mode**
 
 ```bash
-# Central platform: pick mini / standard / full (the box reports through EMQX + iot-sink, which the edge tier does not include)
+# Central platform: pick mini / standard / full (the box reports through EMQX + iot-sink, which the edge tier does not include; alert notifications need standard / full)
 sudo EASYAIOT_DEPLOY_PROFILE=mini bash .scripts/docker/install_linux.sh install
 bash .scripts/docker/install_linux.sh start        # Start (already auto-started by install); stop | restart | status work the same
 
@@ -452,8 +456,8 @@ Many intelligent IoT projects stall at deployment: <strong>full features won't f
 
 | Tier | Typical hardware (examples) | Recommended RAM | What you can do | Verified |
 | :-- | :-- | :--: | :-- | :--: |
-| **edge** Edge Standalone | <strong>Light edge standalone</strong> (2 GB industrial PC, old laptop, smallest cloud VM, store trial box) | ≥ 2 GB | <strong>One machine closes the loop first</strong> (standalone mode): WEB + VIDEO + RUNTIME; camera access, real-time analysis, smart alerts; zero DEVICE, login led by VIDEO; cluster mode installs only the compute node and joins a center | ~**1.02 GB**, nearly 1 GB headroom |
-| **mini** Edge Lite | <strong>Edge box</strong> (8 GB industrial PC, store security all-in-one, site gateway) | ≥ 8 GB | <strong>Intelligence at one point</strong>: camera access, real-time analysis, smart alerts, model inference; event plane same as standard/full (Gateway + iot-sink + EMQX) | ~4–6 GB used, ample headroom |
+| **edge** Edge Standalone | <strong>Light edge standalone</strong> (2 GB industrial PC, old laptop, smallest cloud VM, store trial box) | ≥ 2 GB | <strong>One machine closes the loop first</strong> (standalone mode): WEB + VIDEO + RUNTIME; camera access, real-time analysis, smart alerts (shown in WEB, not pushed out); zero DEVICE, login led by VIDEO; cluster mode installs only the compute node and joins a center | ~**1.02 GB**, nearly 1 GB headroom |
+| **mini** Edge Lite | <strong>Edge box</strong> (8 GB industrial PC, store security all-in-one, site gateway) | ≥ 8 GB | <strong>Intelligence at one point</strong>: camera access, real-time analysis, smart alerts (shown in WEB, not pushed out), model inference; event plane same as standard/full (Gateway + iot-sink + EMQX) | ~4–6 GB used, ample headroom |
 | **standard** Standard | <strong>AI all-in-one camera</strong> (smart camera terminal, AI surveillance camera with compute, multi-sensor AI analyzer) | ≥ 16 GB | <strong>Each camera is a smart node</strong>: multiple cameras on the wall cover a floor/campus; devices, rules, and compute orchestrated together; <strong>POST custom judgment</strong> makes alerts match field standards | ~10 GB, stable with headroom |
 | **full** Full (default) | <strong>AIoT full-stack all-in-one</strong> (enterprise full-stack control all-in-one, industry IoT full-stack host, cloud-edge-device smart platform all-in-one) | ≥ 20 GB | <strong>IoT + video + AI in one box</strong>: device management, massive access, intelligent analysis, command and judgment unified—full capabilities long-term; includes <strong>POST custom judgment</strong> and outbound business flow | ~14 GB, full features with headroom |
 
