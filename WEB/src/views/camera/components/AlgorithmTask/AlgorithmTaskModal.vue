@@ -121,6 +121,32 @@ function alertNotificationRequested(values: Record<string, any>): boolean {
   const type = baseTaskType(values?.task_mode);
   return (type === 'realtime' || type === 'snap' || type === 'patrol') && !!values?.alert_event_enabled;
 }
+/** 提交的通知渠道；模板列表里查不到所选模板时（如未部署通知服务的形态）沿用任务上已保存的模板名 */
+function buildNotificationChannels(
+  selectedTemplates: Record<string, string | number>,
+  templatesByChannel: Record<string, any[]>,
+  savedChannels: any[],
+): Array<{ method: string; template_id: string | number; template_name: string }> {
+  return Object.keys(selectedTemplates)
+    .filter(
+      (method) =>
+        selectedTemplates[method] !== undefined && selectedTemplates[method] !== null,
+    )
+    .map((method) => {
+      const templateId = selectedTemplates[method];
+      const saved = (savedChannels || []).find(
+        (channel) => channel?.method === method && channel?.template_id === templateId,
+      );
+      return {
+        method,
+        template_id: templateId,
+        template_name:
+          templatesByChannel[method]?.find((t: any) => t.id === templateId)?.name ||
+          saved?.template_name ||
+          '',
+      };
+    });
+}
 function toTaskMode(taskType?: string, executor?: string): string {
   const base = baseTaskType(taskType);
   const ex = String(executor || 'python').toLowerCase();
@@ -1090,6 +1116,10 @@ const getChannelLabel = (channel: string) => {
 
 // 加载模板列表
 const loadTemplates = async (channel: string) => {
+  // 未部署通知服务的形态不查模板：字段已隐藏，但编辑带通知配置的旧任务时仍会走到这里
+  if (!isAlertNotificationEnabled()) {
+    return;
+  }
   if (templates.value[channel]?.length) {
     return; // 已加载
   }
@@ -2810,9 +2840,10 @@ const handleSubmit = async () => {
     delete values.is_full_day_defense;
 
     // 处理告警通知配置
-    // 获取所有已选择模板的渠道
-    const selectedChannels = Object.keys(channelTemplates.value).filter(
-      (method: string) => channelTemplates.value[method] !== undefined && channelTemplates.value[method] !== null
+    const notificationChannelList = buildNotificationChannels(
+      channelTemplates.value,
+      templates.value,
+      alertNotificationConfig.value?.channels || [],
     );
 
     if (values.alert_event_enabled) {
@@ -2831,20 +2862,14 @@ const handleSubmit = async () => {
       values.alert_class_names = [];
     }
 
-    if (values.alert_event_enabled && values.alert_notification_enabled && selectedChannels.length > 0) {
+    if (
+      values.alert_event_enabled &&
+      values.alert_notification_enabled &&
+      notificationChannelList.length > 0
+    ) {
       values.alert_notification_enabled = true;
-      // 构建通知渠道配置
-      const channels = selectedChannels.map((method: string) => {
-        const templateId = channelTemplates.value[method];
-        const template = templates.value[method]?.find((t: any) => t.id === templateId);
-        return {
-          method,
-          template_id: templateId,
-          template_name: template?.name || '',
-        };
-      });
       values.alert_notification_config = {
-        channels: channels,
+        channels: notificationChannelList,
       };
     } else {
       values.alert_notification_enabled = false;

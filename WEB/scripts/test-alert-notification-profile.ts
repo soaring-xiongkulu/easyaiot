@@ -81,13 +81,27 @@ function scriptFunction(name: string): string {
   return body;
 }
 
+// 顶层的 const 箭头函数：从声明起到列首的 “};” 止。
+function scriptArrowFunction(name: string): string {
+  const start = script.indexOf(`\nconst ${name} = async (`);
+  assert.notEqual(start, -1, `任务表单缺少函数 ${name}`);
+  const end = script.indexOf('\n};', start);
+  assert.notEqual(end, -1, `函数 ${name} 没有正常结束`);
+  return script.slice(start, end + '\n};'.length);
+}
+
 const taskForm: {
   alertNotificationRequested(values: Record<string, any>): boolean;
+  buildNotificationChannels(
+    selectedTemplates: Record<string, string | number>,
+    templatesByChannel: Record<string, any[]>,
+    savedChannels: any[],
+  ): Array<{ method: string; template_id: string | number; template_name: string }>;
 } = new Function(
   `${transpile(
-    `${scriptFunction('baseTaskType')}\n${scriptFunction('alertNotificationRequested')}`,
+    `${scriptFunction('baseTaskType')}\n${scriptFunction('alertNotificationRequested')}\n${scriptFunction('buildNotificationChannels')}`,
   )}
-return { baseTaskType, alertNotificationRequested };`,
+return { baseTaskType, alertNotificationRequested, buildNotificationChannels };`,
 )();
 
 const NOTIFICATION_FIELDS = [
@@ -116,6 +130,40 @@ function ifShowOf(
 
 const expectVisible = (fields: string[]) =>
   Object.fromEntries([...NOTIFICATION_FIELDS, NOTICE_FIELD].map((field) => [field, fields.includes(field)]));
+
+// 执行弹窗里真实的 loadTemplates，只把模板接口换成记录调用的替身。
+function loadTemplatesOf(isAlertNotificationEnabled: () => boolean) {
+  const requests: Array<{ msgType: number }> = [];
+  const templates = { value: {} as Record<string, any[]> };
+  const templateLoading = { value: {} as Record<string, boolean> };
+  const loadTemplates = new Function(
+    'templates',
+    'templateLoading',
+    'channelToMsgType',
+    'notifyTemplateQueryByType',
+    'getChannelLabel',
+    'isAlertNotificationEnabled',
+    `${transpile(scriptArrowFunction('loadTemplates'))}\nreturn loadTemplates;`,
+  )(
+    templates,
+    templateLoading,
+    { ding: 6 },
+    (params: { msgType: number }) => {
+      requests.push(params);
+      return Promise.resolve({ code: 0, data: [{ id: 'tpl-1', name: '钉钉模板' }] });
+    },
+    (channel: string) => channel,
+    isAlertNotificationEnabled,
+  );
+  return {
+    loadTemplates,
+    requests,
+    templates: templates.value,
+    templateLoading: templateLoading.value,
+  };
+}
+
+const templateLoadingChecks: Array<Promise<void>> = [];
 
 for (const [profile, edgeStandalone, notification] of profiles) {
   const { isAlertNotificationEnabled } = loadDeployProfile({
@@ -165,8 +213,61 @@ for (const [profile, edgeStandalone, notification] of profiles) {
     expectVisible([]),
     label,
   );
+
+  // 编辑一个已带通知配置的任务会逐个渠道加载模板：没有通知服务的形态不发请求，也不进入加载态。
+  templateLoadingChecks.push(
+    (async () => {
+      const { loadTemplates, requests, templates, templateLoading } = loadTemplatesOf(isAlertNotificationEnabled);
+      await loadTemplates('ding');
+      assert.deepEqual(requests, notification ? [{ msgType: 6 }] : [], label);
+      assert.equal(Boolean(templateLoading.ding), false, `${label} 加载结束后不应停留在加载态`);
+      assert.equal(templates.ding?.length, notification ? 1 : undefined, label);
+    })(),
+  );
 }
+
+// 提交时的通知渠道：模板列表没加载到时，任务上已保存的渠道配置原样写回。
+const savedChannels = [
+  { method: 'ding', template_id: 'tpl-1', template_name: '钉钉模板' },
+  { method: 'sms', template_id: 7, template_name: '短信模板' },
+];
+assert.deepEqual(taskForm.buildNotificationChannels({ ding: 'tpl-1', sms: 7 }, {}, savedChannels), savedChannels);
+// 选了另一个模板而列表里没有它：不把旧模板的名字带过去。
+assert.deepEqual(
+  taskForm.buildNotificationChannels(
+    { ding: 'tpl-2' },
+    { ding: [{ id: 'tpl-1', name: '旧模板' }] },
+    [{ method: 'ding', template_id: 'tpl-1', template_name: '旧模板' }],
+  ),
+  [{ method: 'ding', template_id: 'tpl-2', template_name: '' }],
+);
+// 列表里有所选模板时以列表为准。
+assert.deepEqual(
+  taskForm.buildNotificationChannels(
+    { ding: 'tpl-2' },
+    { ding: [{ id: 'tpl-1', name: '旧模板' }, { id: 'tpl-2', name: '新模板' }] },
+    [{ method: 'ding', template_id: 'tpl-1', template_name: '旧模板' }],
+  ),
+  [{ method: 'ding', template_id: 'tpl-2', template_name: '新模板' }],
+);
+// 没选模板的渠道不提交；表单清空后的运行时值是 undefined / null，渠道映射的类型上体现不出来。
+const withClearedChannel = { ding: undefined, sms: null, email: 'tpl-9' } as unknown as Record<
+  string,
+  string | number
+>;
+assert.deepEqual(taskForm.buildNotificationChannels(withClearedChannel, {}, savedChannels), [
+  { method: 'email', template_id: 'tpl-9', template_name: '' },
+]);
+// 提交逻辑必须走这个函数，而不是另写一份。
+assert.equal(script.split('buildNotificationChannels(').length - 1, 2);
 
 assert.match(schemaEntry(NOTICE_FIELD), /当前部署形态未部署通知服务/);
 
-console.log('alert notification profile contract: ok');
+// 本文件按 CommonJS 运行，不支持顶层 await。
+Promise.all(templateLoadingChecks).then(
+  () => console.log('alert notification profile contract: ok'),
+  (error) => {
+    console.error(error);
+    process.exitCode = 1;
+  },
+);
