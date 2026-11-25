@@ -12,9 +12,9 @@ VIDEO模块是一个基于Python的视频处理模块，负责视频流处理与
 - **回放功能**: 支持历史录像查询和回放，支持按时间范围检索录像文件
 - **算法任务**: 支持实时 / 抓拍 / 巡检算法任务，支持多算法模型并行处理，支持帧跳过配置
 - **执行后端**: 三种任务默认 `executor=cpp`（本机拉起仓库 `RUNTIME` 二进制）；可选 `executor=python`。Linux 安装入口（`install_linux.sh` / `install_linux_arm.sh` / `install_linux_kylin.sh` 的 install|update）经 `scripts/ensure_runtime_cpp.sh` 编译 RUNTIME 并挂载进 VIDEO 容器；**本地 IDEA / `run.py` 启动时若本机尚无 RUNTIME 二进制，默认自动执行 `RUNTIME/install_linux.sh install`**（`RUNTIME_AUTO_INSTALL=0` 或 `EASYAIOT_RUNTIME_SKIP=1` 可关闭；容器内不自动编译）。推理默认 prefer GPU（ORT CUDA EP，失败回退 CPU）。mac 安装会跳过 RUNTIME 并提示；Windows 本轮无自动化。远程集群经 iot-node 分发 RUNTIME 后支持 executor=cpp（模型走 Ceph）。**心跳回本模块（HTTP）**；**告警/后处理默认走 MQTT → iot-sink**（`ALGO_BUS_TRANSPORT=mqtt`）
-- **告警功能**: 算法事件经 MQTT 算法总线由 iot-sink 落库与通知；VIDEO **不再提供** `/video/alert/hook`
+- **告警功能**: 算法事件默认经 MQTT 算法总线由 iot-sink 落库、iot-message 下发通知（mini 不部署 iot-message，只落库不通知）；`ALGO_BUS_TRANSPORT=http/off`（edge 单体）时 RUNTIME 与 Python 算法进程改走本模块 `/video/alert/hook` 直接落库，人脸/车牌库匹配也在本进程完成，此形态下无通知下发
 - **可重复验收**:
-  - 控制面告警：`install_linux.sh verify-alert` 或 `python3 VIDEO/tools/verify_alert_ingest_e2e.py`
+  - 控制面告警：`install_linux.sh verify-alert` 或 `python3 VIDEO/tools/verify_alert_ingest_e2e.py`（edge 单体加 `--http`）
   - 节点 Ceph/共享媒体（列表·探针·告警图+录像目录）：`install_linux.sh ceph list|status|probe|verify`
 - **设备目录**: 支持摄像头设备目录树管理，便于设备分类和组织
 - **自动抽帧**: 支持从视频流中自动抽取关键帧，用于算法分析和存储
