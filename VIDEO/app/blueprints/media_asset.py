@@ -377,6 +377,32 @@ def _asset_or_error(asset_id):
     return asset, None
 
 
+def _own_node_id():
+    try:
+        return int(os.getenv('COMPUTE_NODE_ID') or os.getenv('NODE_ID') or 0) or None
+    except ValueError:
+        return None
+
+
+def _owns_edge_asset(asset):
+    """本机就是该边缘本地资产的存储节点。"""
+    own_node_id = _own_node_id()
+    return (
+        own_node_id is not None
+        and asset.storage_scope == 'edge'
+        and asset.storage_backend == 'local'
+        and asset.storage_node_id == own_node_id
+    )
+
+
+def _send_edge_asset(asset):
+    root = os.getenv('EDGE_RECORDING_ROOT', '/data/local-storage')
+    path = resolve_allowed_media_file(os.path.join(root, asset.object_key), extra_roots=[root])
+    if path is None:
+        raise FileNotFoundError(asset.object_key)
+    return send_file(path, conditional=True, mimetype=asset.content_type)
+
+
 @media_asset_bp.route('/media/assets/<asset_id>/content', methods=['GET', 'HEAD'])
 def asset_content(asset_id):
     asset, error = _asset_or_error(asset_id)
@@ -394,6 +420,13 @@ def asset_content(asset_id):
             return send_file(path, conditional=True, mimetype=asset.content_type)
         except (FileNotFoundError, ValueError, PermissionError):
             return jsonify({'code': 410, 'msg': '中心媒体文件不存在'}), 410
+    if _owns_edge_asset(asset):
+        # 本机就是存储节点：直接读盘，不向控制面查节点、也不经公网地址回跳自己，
+        # 控制面不可达（如 edge 单体）时节点自己的 WEB 仍能看到本地告警图与事件片段。
+        try:
+            return _send_edge_asset(asset)
+        except (FileNotFoundError, ValueError, PermissionError):
+            pass
     policy = get_or_default_policy(asset.device_id)
     if policy.playback_route_mode == 'direct':
         direct_url = _direct_edge_asset_url(asset)
@@ -470,11 +503,7 @@ def edge_asset_content(asset_id):
     if asset.storage_scope != 'edge' or asset.storage_backend != 'local':
         return jsonify({'code': 404, 'msg': '边缘本地资产不存在'}), 404
     try:
-        root = os.getenv('EDGE_RECORDING_ROOT', '/data/local-storage')
-        path = resolve_allowed_media_file(os.path.join(root, asset.object_key), extra_roots=[root])
-        if path is None:
-            raise FileNotFoundError(asset.object_key)
-        return send_file(path, conditional=True, mimetype=asset.content_type)
+        return _send_edge_asset(asset)
     except FileNotFoundError:
         return jsonify({'code': 410, 'msg': '边缘媒体文件已不存在'}), 410
     except (ValueError, PermissionError):

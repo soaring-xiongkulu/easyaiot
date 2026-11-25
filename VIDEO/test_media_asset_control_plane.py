@@ -178,6 +178,89 @@ class MediaAssetControlPlaneTest(unittest.TestCase):
             )
             self.assertEqual(403, tampered.status_code)
 
+    def test_edge_node_reads_own_asset_without_control_plane(self):
+        asset_id = '5b0d2f3e-8b1c-4d5e-9f70-2c3a4b5d6e7f'
+        object_key = 'events/camera-001/clip.mp4'
+        target = os.path.join(self.temp_dir.name, object_key)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, 'wb') as media_file:
+            media_file.write(b'0123456789')
+        with self.app.app_context():
+            upsert_media_asset({
+                'asset_id': asset_id,
+                'asset_type': 'event_clip',
+                'device_id': 'camera-001',
+                'source_node_id': 181,
+                'storage_node_id': 181,
+                'storage_scope': 'edge',
+                'storage_backend': 'local',
+                'object_key': object_key,
+                'status': 'ready',
+                'content_type': 'video/mp4',
+            }, authenticated_node_id=181)
+
+        url = f'/video/media/assets/{asset_id}/content'
+        # 本机就是存储节点：直接读盘并支持 Range，不向控制面查节点。
+        with patch.dict(os.environ, {
+            'COMPUTE_NODE_ID': '181',
+            'EDGE_RECORDING_ROOT': self.temp_dir.name,
+        }), patch(
+            'app.blueprints.media_asset.get_node',
+            side_effect=AssertionError('本机存储的资产不应查询控制面'),
+        ):
+            with self.client.get(url) as response:
+                self.assertEqual(200, response.status_code)
+                self.assertEqual(b'0123456789', response.data)
+                self.assertEqual('video/mp4', response.mimetype)
+            with self.client.get(url, headers={'Range': 'bytes=2-5'}) as ranged:
+                self.assertEqual(206, ranged.status_code)
+                self.assertEqual(b'2345', ranged.data)
+            with self.client.head(url) as head:
+                self.assertEqual(200, head.status_code)
+                self.assertEqual(b'', head.data)
+
+        # 资产属于别的节点：仍按原路径经控制面取。
+        with patch.dict(os.environ, {
+            'COMPUTE_NODE_ID': '182',
+            'EDGE_RECORDING_ROOT': self.temp_dir.name,
+        }), patch('app.blueprints.media_asset.get_node', return_value={'status': 'offline'}) as get_node:
+            response = self.client.get(url)
+            self.assertEqual(503, response.status_code)
+            get_node.assert_called_once_with(181)
+
+        # 本机文件已不在：同样退回原路径，由控制面一侧给出结果。
+        missing_root = os.path.join(self.temp_dir.name, 'empty')
+        os.makedirs(missing_root)
+        with patch.dict(os.environ, {
+            'COMPUTE_NODE_ID': '181',
+            'EDGE_RECORDING_ROOT': missing_root,
+        }), patch('app.blueprints.media_asset.get_node', return_value={'status': 'offline'}) as get_node:
+            response = self.client.get(url)
+            self.assertEqual(503, response.status_code)
+            get_node.assert_called_once_with(181)
+
+    def test_edge_asset_ownership_needs_node_identity_and_match(self):
+        from types import SimpleNamespace
+
+        from app.blueprints.media_asset import _owns_edge_asset
+
+        def asset(**overrides):
+            values = {'storage_scope': 'edge', 'storage_backend': 'local', 'storage_node_id': 181}
+            values.update(overrides)
+            return SimpleNamespace(**values)
+
+        with patch.dict(os.environ, {'COMPUTE_NODE_ID': '181'}):
+            self.assertTrue(_owns_edge_asset(asset()))
+            self.assertFalse(_owns_edge_asset(asset(storage_scope='central')))
+            self.assertFalse(_owns_edge_asset(asset(storage_backend='minio')))
+            self.assertFalse(_owns_edge_asset(asset(storage_node_id=182)))
+        # 没有节点身份的实例不认领边缘资产，存储节点为空的脏数据也不例外。
+        with patch.dict(os.environ, {'COMPUTE_NODE_ID': '', 'NODE_ID': ''}):
+            self.assertFalse(_owns_edge_asset(asset()))
+            self.assertFalse(_owns_edge_asset(asset(storage_node_id=None)))
+        with patch.dict(os.environ, {'COMPUTE_NODE_ID': '', 'NODE_ID': '181'}):
+            self.assertTrue(_owns_edge_asset(asset()))
+
     def test_event_upload_ticket_creates_central_pending_asset(self):
         minio = Mock()
         minio.bucket_exists.return_value = True
