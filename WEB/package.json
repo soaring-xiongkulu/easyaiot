@@ -37,6 +37,7 @@
     "test:region-editor": "esno ./scripts/test-region-editor-contract.ts",
     "test:region-hit-mode": "esno ./scripts/test-region-hit-mode-contract.ts",
     "test:algorithm-task-card-layout": "esno ./scripts/test-algorithm-task-card-layout.ts",
+    "test:alert-notification-profile": "esno ./scripts/test-alert-notification-profile.ts",
     "test:device-value-format": "esno ./scripts/test-device-value-format.ts",
     "preview": "pnpm build && vite preview",
     "preview:dist": "vite preview",

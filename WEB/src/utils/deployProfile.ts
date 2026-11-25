@@ -80,6 +80,11 @@ export function isFlowTicketEnabled(): boolean {
   return !isMiniDeployProfile() && !isEdgeStandaloneDeployProfile();
 }
 
+/** mini / edge 不部署 iot-message 通知服务，告警只在平台内展示，任务表单隐藏通知配置 */
+export function isAlertNotificationEnabled(): boolean {
+  return !isMiniDeployProfile() && !isEdgeStandaloneDeployProfile();
+}
+
 export function isScenarioPoseLibraryEnabled(): boolean {
   return !isMiniDeployProfile();
 }

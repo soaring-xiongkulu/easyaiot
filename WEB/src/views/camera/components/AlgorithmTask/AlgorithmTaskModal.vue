@@ -63,6 +63,7 @@ import {
   Alert as AAlert,
   Divider as ADivider,
   Empty as AEmpty,
+  Typography,
 } from 'ant-design-vue';
 import {
   createAlgorithmTask,
@@ -103,6 +104,7 @@ import {
   pruneAlertClassNames,
 } from '@/views/camera/utils/modelAlertClasses';
 import { formatApiErrorMessage } from '@/views/camera/utils/apiErrorMessage';
+import { isAlertNotificationEnabled } from '@/utils/deployProfile';
 
 
 defineOptions({ name: 'AlgorithmTaskModal' });
@@ -113,6 +115,11 @@ function baseTaskType(modeOrType?: string): 'realtime' | 'snap' | 'patrol' {
   const v = raw.endsWith('_cpp') ? raw.slice(0, -4) : raw;
   if (v === 'snap' || v === 'patrol') return v;
   return 'realtime';
+}
+/** 实时 / 抓拍 / 巡检任务开启告警事件后，才出现通知配置 */
+function alertNotificationRequested(values: Record<string, any>): boolean {
+  const type = baseTaskType(values?.task_mode);
+  return (type === 'realtime' || type === 'snap' || type === 'patrol') && !!values?.alert_event_enabled;
 }
 function toTaskMode(taskType?: string, executor?: string): string {
   const base = baseTaskType(taskType);
@@ -1826,7 +1833,20 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
       dynamicDisabled: ({ values }) => isViewMode.value || !values.alert_event_enabled,
       helpMessage: '是否启用告警通知，启用后会在告警事件发生时发送通知',
-      ifShow: ({ values }) => (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && values.alert_event_enabled,
+      ifShow: ({ values }) => alertNotificationRequested(values) && isAlertNotificationEnabled(),
+    },
+    // mini / edge 不部署通知服务：不给开关，只留一行说明；任务上已保存的通知设置原样保留
+    {
+      field: 'alert_notification_unavailable',
+      label: '启用告警通知',
+      component: 'Input',
+      render: () =>
+        h(
+          Typography.Text,
+          { type: 'secondary' },
+          { default: () => '当前部署形态未部署通知服务，告警仅在平台内展示，不向外部渠道下发' },
+        ),
+      ifShow: ({ values }) => alertNotificationRequested(values) && !isAlertNotificationEnabled(),
     },
     {
       field: 'alarm_suppress_time',
@@ -1843,9 +1863,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       helpMessage:
         '同一任务两次发送通知的最小间隔，默认 300 秒（5 分钟）。测试阶段可设为 0',
       ifShow: ({ values }) =>
-        (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') &&
-        !!values.alert_event_enabled &&
-        !!values.alert_notification_enabled,
+        alertNotificationRequested(values) && !!values.alert_notification_enabled && isAlertNotificationEnabled(),
     },
     {
       field: 'notification_channels',
@@ -1864,7 +1882,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       },
       helpMessage:
         '企业微信工作通知需先在通知中心配置消息配置、用户分组与消息模板；群机器人/Webhook 仅需模板填写 Webhook',
-      ifShow: ({ values }) => (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && values.alert_event_enabled && values.alert_notification_enabled,
+      ifShow: ({ values }) => alertNotificationRequested(values) && !!values.alert_notification_enabled && isAlertNotificationEnabled(),
     },
     {
       field: 'notification_templates',
@@ -1917,7 +1935,11 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
           }),
         ]);
       },
-      ifShow: ({ values }) => (baseTaskType(values.task_mode) === 'realtime' || baseTaskType(values.task_mode) === 'snap' || baseTaskType(values.task_mode) === 'patrol') && values.alert_event_enabled && values.alert_notification_enabled && values.notification_channels && values.notification_channels.length > 0,
+      ifShow: ({ values }) =>
+        alertNotificationRequested(values) &&
+        !!values.alert_notification_enabled &&
+        !!values.notification_channels?.length &&
+        isAlertNotificationEnabled(),
     },
     {
       field: 'is_full_day_defense',
