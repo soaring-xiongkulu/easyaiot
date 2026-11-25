@@ -2,14 +2,16 @@
 """可重复的告警入库验收（不依赖拉流 / YOLO / Ceph）。
 
 分层：
-  L0 契约   — hook 已下线、心跳仍在、MQTT 信封可规范化
+  L0 契约   — /video/alert/hook 在线、心跳可达、MQTT 信封可规范化
   L1 入库   — MQTT → iot-sink → iot-video20.alert（按 correlation_id 断言）
+              --http：VIDEO /video/alert/hook → iot-video20.alert（edge，无 MQTT/iot-sink）
   L2 图片   — 写入 ALERT_IMAGES_DIR 下真实 JPG，断言 image_url 非空（共享目录契约；
               Ceph 只是挂载实现之一，本脚本用本地同路径即可）
 
 用法（仓库根或任意目录）：
   python3 VIDEO/tools/verify_alert_ingest_e2e.py
   python3 VIDEO/tools/verify_alert_ingest_e2e.py --skip-media
+  python3 VIDEO/tools/verify_alert_ingest_e2e.py --http     # edge 单体：验证 HTTP hook 直连落库
   VIDEO_DB_URL=postgresql://postgres:iot45722414822@127.0.0.1:5432/iot-video20 \\
     MQTT_BROKER_URLS=127.0.0.1:1883 python3 VIDEO/tools/verify_alert_ingest_e2e.py
 
@@ -270,7 +272,7 @@ def wait_alert_row(
 def run_l0_contract(video_base: str) -> None:
     print('\n--- L0 契约 ---')
     alert_py = (VIDEO / 'app/blueprints/alert.py').read_text(encoding='utf-8')
-    check('源码无 /video/alert/hook', "@alert_bp.route('/hook'" not in alert_py)
+    check('源码注册 /video/alert/hook', "@alert_bp.route('/hook'" in alert_py)
 
     os.environ.setdefault('ALGO_BUS_TRANSPORT', 'mqtt')
     from app.utils.algo_mqtt_bus import bus_enabled, _normalize_alert_payload
@@ -289,8 +291,9 @@ def run_l0_contract(video_base: str) -> None:
 
     vu = urlparse(video_base)
     if tcp_open(vu.hostname or '127.0.0.1', vu.port or 80):
+        # 空请求体也返回 HTTP 200：hook 的业务码在响应体 code 里
         hook = http_status(f'{video_base}/video/alert/hook', method='POST', body=b'{}')
-        check('运行中 hook 404/405', hook in (404, 405), f'status={hook}')
+        check('运行中 hook 已注册 (200)', hook == 200, f'status={hook}')
         hb = http_status(
             f'{video_base}/video/algorithm/heartbeat/realtime',
             method='POST',
@@ -397,27 +400,102 @@ def run_l1_l2_ingest(*, skip_media: bool, timeout_sec: float) -> None:
         )
 
 
+def run_l1_http_ingest(*, skip_media: bool, timeout_sec: float, video_base: str) -> None:
+    """edge：无 MQTT/iot-sink，告警由 RUNTIME / Python 算法进程直接 POST 到 /video/alert/hook。"""
+    print('\n--- L1 HTTP→入库（edge）---')
+    device_id = (os.getenv('VERIFY_DEVICE_ID') or 'camera_atomic_001').strip()
+    task_id = int(os.getenv('VERIFY_TASK_ID') or '1')
+    corr = str(uuid.uuid4())
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    image_path = ''
+    if not skip_media:
+        img = Path(
+            (os.getenv('ALERT_IMAGES_DIR') or str(VIDEO / 'alert_images')).strip()
+        ).resolve() / 'e2e_verify' / f'http_{corr[:8]}.jpg'
+        write_tiny_jpeg(img)
+        image_path = str(img)
+        check('测试 JPG 已写入共享目录', img.is_file(), str(img))
+    else:
+        print('[SKIP] --skip-media：不写图片，只断言落库字段')
+
+    # 与 RUNTIME AlarmCallback / algo_mqtt_bus.publish_alert 回退时相同的扁平字段
+    body = json.dumps(
+        {
+            'object': 'person',
+            'event': 'detection',
+            'device_id': device_id,
+            'device_name': 'e2e-verify-cam',
+            'task_id': task_id,
+            'task_name': 'e2e-verify',
+            'task_type': 'realtime',
+            'correlation_id': corr,
+            'time': now,
+            'information': 'verify_alert_ingest_e2e',
+            'image_path': image_path,
+        },
+        ensure_ascii=False,
+    ).encode()
+    try:
+        req = urlrequest.Request(f'{video_base}/video/alert/hook', data=body, method='POST')
+        req.add_header('Content-Type', 'application/json')
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            detail = resp.read(300).decode('utf-8', 'ignore')
+            check('HTTP hook 接受告警', resp.status == 200, detail)
+    except urlerror.HTTPError as e:
+        check('HTTP hook 接受告警', False, f'status={e.code}')
+        return
+    except Exception as e:
+        check('HTTP hook 接受告警', False, str(e))
+        return
+
+    row = wait_alert_row(corr, timeout_sec, require_image_url=not skip_media)
+    if not row:
+        check(
+            'alert 表出现 correlation_id 行',
+            False,
+            '超时：确认 VIDEO 以 edge 形态运行且 ALERT_USE_DIRECT_PERSIST 未被关闭，'
+            'VERIFY_DEVICE_ID 已绑定 alert_event_enabled+is_enabled 的任务',
+        )
+        return
+
+    check('alert 入库成功', True, f"id={row['id']} object={row['object']}")
+    check('device_id 匹配', row['device_id'] == device_id, row['device_id'])
+    check('event=detection', row['event'] == 'detection', row['event'])
+
+    if not skip_media:
+        check(
+            'L2 image_url 指向本机告警图',
+            '/video/alert/image' in (row['image_url'] or ''),
+            row['image_url'][:80] if row['image_url'] else 'empty — 检查 ALERT_IMAGES_DIR 是否与 VIDEO 容器共享',
+        )
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description='MQTT 告警入库可重复验收')
-    parser.add_argument('--skip-media', action='store_true', help='跳过图片/MinIO 断言')
+    parser = argparse.ArgumentParser(description='告警入库可重复验收（MQTT 或 edge HTTP hook）')
+    parser.add_argument('--skip-media', action='store_true', help='跳过图片断言')
     parser.add_argument('--contract-only', action='store_true', help='只跑 L0')
+    parser.add_argument('--http', action='store_true', help='改走 /video/alert/hook 入库（edge，无 MQTT/iot-sink）')
     parser.add_argument('--timeout', type=float, default=float(os.getenv('E2E_TIMEOUT_SEC') or '20'))
     args = parser.parse_args()
 
     video_base = (os.getenv('VIDEO_BASE_URL') or 'http://127.0.0.1:6000').rstrip('/')
     print('=== EasyAIoT 告警入库 E2E ===')
-    print(f'VIDEO={video_base} MQTT={os.getenv("MQTT_BROKER_URLS") or "127.0.0.1:1883"}')
+    print(f"VIDEO={video_base} MQTT={os.getenv('MQTT_BROKER_URLS') or '127.0.0.1:1883'}")
 
     run_l0_contract(video_base)
     if not args.contract_only:
-        run_l1_l2_ingest(skip_media=args.skip_media, timeout_sec=args.timeout)
+        if args.http:
+            run_l1_http_ingest(skip_media=args.skip_media, timeout_sec=args.timeout, video_base=video_base)
+        else:
+            run_l1_l2_ingest(skip_media=args.skip_media, timeout_sec=args.timeout)
 
     print('---')
     print(f'结果: PASS={PASS} FAIL={FAIL}')
     if FAIL:
         print(
-            '提示: L1 失败时先确认 iot-sink 订阅 EMQX、'
-            'VERIFY_DEVICE_ID 已绑定 alert_event_enabled+is_enabled 的任务。'
+            '提示: L1 失败时先确认 VERIFY_DEVICE_ID 已绑定 alert_event_enabled+is_enabled 的任务；'
+            + ('MQTT 入库还需 iot-sink 订阅 EMQX。' if not args.http else 'HTTP 入库还需 VIDEO 以 edge 形态运行。')
         )
     return 0 if FAIL == 0 else 1
 
