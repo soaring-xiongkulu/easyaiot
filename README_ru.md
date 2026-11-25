@@ -88,8 +88,8 @@ EasyAIoT объединяет полевые устройства, перифе�
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# Вариант A (рекомендуется)
-EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+# Вариант A (рекомендуется; переменные окружения нужно писать после sudo, чтобы они дошли до скрипта)
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 
 # Вариант B
 # sudo bash .scripts/docker/install_linux.sh edge install
@@ -108,6 +108,87 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
 Всё зелёное? Готово — проще, чем казалось. Можно раньше взять кофе.
 </p>
+
+### 🧩 edge: автономный / кластерный × RK3588 / не RK3588
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+Эти три шага дают самый лёгкий <strong>автономный режим</strong>. Профиль edge сначала делится на два режима, <strong>автономный / кластерный</strong>, затем по чипу — на два класса железа, <strong>RK3588 / не RK3588</strong>: четыре комбинации, у каждой свои команды.
+</p>
+
+| | Автономный режим (пункт меню `standalone`, чистый edge) | Кластерный режим (пункт меню `integrated`, облако-край) |
+| :-- | :-- | :-- |
+| **Не RK3588** (x86_64 / универсальный ARM) | WEB + VIDEO + универсальный `RUNTIME` на одной машине, контур замкнут локально | На машине ставится только универсальный вычислительный узел `RUNTIME`; она подключается к центральной платформе (standard / full), задачи приходят из центра |
+| **RK3588** | Ставится только `RUNTIME-RK3588`; задачи описаны в локальном манифесте блока, центр не нужен | Тот же рантайм + MQTT Agent; блок появляется в меню **Edge Computing** центрального WEB |
+
+**① Не RK3588 · автономный режим** (это три шага выше)
+
+```bash
+# Развёртывание (после установки уже запущено)
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
+# Запуск / остановка / перезапуск / состояние
+bash .scripts/docker/install_linux.sh start
+bash .scripts/docker/install_linux.sh stop
+bash .scripts/docker/install_linux.sh restart
+bash .scripts/docker/install_linux.sh status
+```
+
+**② Не RK3588 · кластерный режим** (центр + вычислительные узлы)
+
+```bash
+# Центральная платформа: выберите standard / full (mini не разворачивает iot-node и не может передавать задачи вычислительным узлам)
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # Запуск (после install уже запущено); stop | restart | status работают так же
+
+# Каждый вычислительный узел: сначала клонируйте этот репозиторий, затем поставьте только универсальный RUNTIME и укажите на центральный VIDEO (порт по умолчанию 6000)
+sudo VIDEO_BASE_URL=http://<IP-центра>:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime
+bash RUNTIME/install_linux.sh status               # Приёмка: бинарник и конфигурация узла на месте
+
+# Добавьте узел: в центральном WEB откройте «Управление кластером → Узлы серверов», создайте узел и укажите SSH — платформа сама поставит Agent
+# Запуск задач: вычислительный узел — не резидентный сервис. Задачи создаются на центральном WEB, VIDEO + Agent передаёт и запускает их
+# Алгоритмические задачи → Создать → «Высокая производительность» → Политика планирования «Указанный узел» или «Автопланирование на узел» → Запустить
+```
+
+**Требования к вычислительному узлу**: ОС должна входить в матрицу поддержки RUNTIME (Ubuntu 24 / 26, семейство RHEL 7 / 8 / 9, openEuler 22 / 24; для Kylin arm64 сначала нужен специальный образ, см. [RUNTIME/README.md](RUNTIME/README.md)). Пока на узле нет офлайн-пакета, `runtime` компилирует RUNTIME на месте: нужны доступ в интернет, Docker (если его нет, скрипт попытается установить его сам) и Miniconda (надёжнее всего `/opt/miniconda3`: под `sudo` conda ищется по системным путям). Чтобы не компилировать на узле, сначала экспортируйте пакет на центре: `bash .scripts/docker/install_linux.sh export-runtime-cpp ubuntu24` (аргумент — os_family узла, например `ubuntu24`, `el9`). С этим пакетом можно либо скопировать его в `RUNTIME/.bundle-runtime/<os_family>/<arch>/` репозитория на узле и запустить `runtime`, либо — после добавления узла — установить удалённо из центрального WEB: «Управление кластером → Узлы серверов» → «Распространение сред выполнения» → «Распространить RUNTIME».
+
+**③ RK3588 · автономный режим**
+
+```bash
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# Правка манифеста: пути к моделям, RTSP-адреса и control_plane.enabled = false (в примере по умолчанию true)
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+# Запуск / остановка / перезапуск / состояние (после install уже работает; добавьте ID задачи, чтобы управлять одним потоком)
+bash .scripts/docker/install_linux.sh rk3588 start
+bash .scripts/docker/install_linux.sh rk3588 stop
+bash .scripts/docker/install_linux.sh rk3588 restart
+bash .scripts/docker/install_linux.sh rk3588 status
+```
+
+**④ RK3588 · кластерный режим**
+
+```bash
+# Центральная платформа: выберите mini / standard / full (блок отчитывается через EMQX + iot-sink, которых в профиле edge нет)
+sudo EASYAIOT_DEPLOY_PROFILE=mini bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # Запуск (после install уже запущено); stop | restart | status работают так же
+
+# Блок: направьте control_plane манифеста на центр и установите; на уже установленном блоке после правки манифеста используйте update
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 update ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 start      # Запуск; stop | restart | status работают так же (status также показывает, онлайн ли MQTT Agent)
+```
+
+Секция `control_plane` манифеста заполняется так (в примере `enabled` уже включён — поменяйте только адрес, токен и имя узла):
+
+```json
+"control_plane": {
+  "enabled": true,
+  "url": "http://<IP-центра>:48080/admin-api/video/edge",
+  "join_token": "<EDGE_ENROLL_TOKEN центра; оставьте пустым, если центр его не задал>",
+  "node_name": "Парк Северный-RK3588-01"
+}
+```
+
+Интерактивный эквивалент: `sudo bash .scripts/docker/install_linux.sh install` → выберите `0) edge` → затем `1) standalone` или `2) integrated`. Если при установке вычислительного узла запрашиваются Gateway URL или MQTT broker, нажмите Enter (MQTT broker можно оставить пустым: при передаче формальной задачи центр сам переписывает адрес шины тревог на доступный узлу). Для ① и ② на ARM-хосте замените скрипт на `install_linux_arm.sh`, на Kylin — на `install_linux_kylin.sh`; подкоманды те же. Массовое распространение и диагностика — в [RUNTIME/README.md](RUNTIME/README.md), детали манифеста блока — в [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md).
 
 ## 🌟 Размышления о проекте
 
@@ -141,11 +222,12 @@ EasyAIoT — это интеллектуальная платформа Инте
 
 Модуль RK3588 определяет, может ли устройство выполнять инференс локально в реальном времени и стабильно работать длительное время; PANEL ниже определяет, можно ли установить, принять и обслуживать устройство на месте. Вместе они превращают периферийный ИИ в поставляемое решение.
 
-**Автономное развёртывание на блоке RK3588, без остальных модулей платформы:**
+**Автономное развёртывание на блоке RK3588 (автономный режим), без остальных модулей платформы:**
 
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # Измените один файл: модели объявляются один раз, затем каждая RTSP-задача выбирает одну или несколько моделей.
+# В автономном режиме установите control_plane.enabled = false (в примере по умолчанию true)
 bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 bash .scripts/docker/install_linux.sh rk3588 status
@@ -153,7 +235,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 Манифест использует то же соглашение, что и `RUNTIME`: `models` — повторно используемый реестр моделей RKNN, а каждый элемент `tasks` — отдельный RTSP-поток, свободно выбирающий одну или несколько моделей, например `"models": ["person_vehicle", "helmet"]`. Для десяти потоков достаточно добавить десять задач; ограничения «один поток — одна модель» нет. До изменения системы установщик проверяет все пути, ссылки на модели и порты, устанавливает каждый файл модели один раз, создаёт отдельный INI и контролируемый процесс для каждого потока, затем проверяет каждый `/health`. Шаблонные экземпляры systemd обеспечивают автозапуск и восстановление; без systemd у каждой задачи есть отдельные PID и журнал. Docker и модули WEB, AI, VIDEO, MQTT не запускаются. Команды `rk3588 status [ID]`, `logs [ID]` и `verify [ID]` работают со всеми потоками или одной задачей. Интерактивное меню запрашивает только путь к манифесту.
 
-Для централизованного управления включите `control_plane.enabled=true` в том же манифесте. Блок автоматически появится в отдельном меню верхнего уровня **Edge Computing**, где видны чип/NPU, конвейеры, нагрузка, температура и опциональные входы сервиса/SSH. Телеметрия идёт напрямую: `RK3588 → EMQX → iot-sink (аутентификация, HMAC, нормализация, прямая запись) → VIDEO / WEB`, без Kafka и NODE. `remote_access.enabled` отдельно управляет FRP: при выключении frpc не устанавливается и публичные порты не открываются; при включении создаются раздельные туннели сервиса и SSH, а управление по-прежнему работает через MQTT.
+**Кластерный режим RK3588 (подключение к центру):** включите `control_plane.enabled` (`true`) в том же манифесте, укажите в `url` `http://<IP-центра>:48080/admin-api/video/edge` и задайте в `join_token` то же значение, что у `EDGE_ENROLL_TOKEN` центра (оставьте пустым, если центр его не задал), затем повторите `rk3588 install` выше (на уже установленном блоке после правки манифеста — `rk3588 update`). Блок автоматически появится в отдельном меню верхнего уровня **Edge Computing**, где видны чип/NPU, конвейеры, нагрузка, температура и опциональные входы сервиса/SSH. Телеметрия идёт напрямую: `RK3588 → EMQX → iot-sink (аутентификация, HMAC, нормализация, прямая запись) → VIDEO / WEB`, без Kafka и NODE. `remote_access.enabled` отдельно управляет FRP: при выключении frpc не устанавливается и публичные порты не открываются; при включении создаются раздельные туннели сервиса и SSH, а управление по-прежнему работает через MQTT.
 
 ### 🎛️ PANEL: установить и сдать в день прибытия — дежурство без ожидания удалённых разработчиков
 
@@ -355,13 +437,13 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 | Уровень | Типичное оборудование (примеры) | Реком. RAM | Что можно делать | Проверено |
 | :-- | :-- | :--: | :-- | :--: |
-| **edge** Edge Standalone | <strong>Лёгкий edge-standalone</strong> (промПК 2 ГБ, старый ноутбук, минимальная облачная ВМ, пробный бокс магазина) | ≥ 2 ГБ | <strong>Сначала замкнуть контур на одной машине</strong>: WEB + VIDEO + RUNTIME; доступ к камерам, анализ в реальном времени, оповещения; без DEVICE, логин ведёт VIDEO | ~**1,02 ГБ**, почти 1 ГБ запаса |
+| **edge** Edge Standalone | <strong>Лёгкий edge-standalone</strong> (промПК 2 ГБ, старый ноутбук, минимальная облачная ВМ, пробный бокс магазина) | ≥ 2 ГБ | <strong>Сначала замкнуть контур на одной машине</strong> (автономный режим): WEB + VIDEO + RUNTIME; доступ к камерам, анализ в реальном времени, оповещения; без DEVICE, логин ведёт VIDEO; в кластерном режиме ставится только вычислительный узел и выполняется подключение к центру | ~**1,02 ГБ**, почти 1 ГБ запаса |
 | **mini** Edge Lite | <strong>Edge-бокс</strong> (промышленный ПК 8 GB, «всё в одном» для магазина, шлюз на объекте) | ≥ 8 GB | <strong>Интеллект на одной точке</strong>: доступ к камерам, анализ в реальном времени, умные оповещения, инференс; событийный контур как у standard/full (Gateway + iot-sink + EMQX) | ~4–6 GB, достаточный запас |
 | **standard** Standard | <strong>AI-камера «всё в одном»</strong> (интеллектуальный камерный терминал, AI-камера с вычислениями, мультисенсорный AI-анализатор) | ≥ 16 GB | <strong>Каждая камера — умный узел</strong>: несколько камер на стене покрывают этаж/кампус; устройства, правила и вычисления оркестрированы вместе; <strong>кастомное суждение POST</strong> делает оповещения по полевым стандартам | ~10 GB, стабильно с запасом |
 | **full** Полный (по умолч.) | <strong>AIoT full-stack «всё в одном»</strong> (корпоративный full-stack, отраслевой IoT full-stack хост, облачно-периферийная платформа) | ≥ 20 GB | <strong>IoT + видео + AI в одной коробке</strong>: управление устройствами, массовый доступ, интеллектуальный анализ, единое командование — полные возможности долгосрочно; включает <strong>кастомное суждение POST</strong> и внешний бизнес-поток | ~14 GB, полный функционал с запасом |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>Установка edge:</strong> <code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code> (или <code>... install_linux.sh edge install</code>). При первой установке уровень можно выбрать интерактивно; подробности — в <a href="#-быстрый-старт">Быстром старте</a> выше.
+<strong>Установка edge:</strong> сначала разделите <strong>автономный / кластерный</strong>, затем <strong>RK3588 / не RK3588</strong>. Не RK3588, автономный: <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code> (или <code>sudo bash .scripts/docker/install_linux.sh edge install</code>); не RK3588, кластерный: на каждом вычислительном узле выполните <code>sudo VIDEO_BASE_URL=http://&lt;IP-центра&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>; оба режима RK3588 идут через <code>install_linux.sh rk3588</code> и различаются значением <code>control_plane.enabled</code> в манифесте. Команды развёртывания и запуска для всех четырёх комбинаций — в <a href="#-быстрый-старт">Быстром старте</a> выше.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

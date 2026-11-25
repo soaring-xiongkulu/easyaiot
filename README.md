@@ -88,8 +88,8 @@ Lightest tier, containers use about <strong>1 GB</strong> total. Cameras, real-t
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# Option A (recommended)
-EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+# Option A (recommended; put env vars after sudo so they reach the script)
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 
 # Option B
 # sudo bash .scripts/docker/install_linux.sh edge install
@@ -108,6 +108,87 @@ Then open <code>https://&lt;server-ip&gt;:8888</code> — default <code>admin</c
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
 All green? You’re done—easier than you feared. Go grab that coffee early.
 </p>
+
+### 🧩 edge: standalone / cluster × RK3588 / non-RK3588
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+Those three steps give you the lightest <strong>standalone mode</strong>. The edge tier splits first into <strong>standalone / cluster</strong> modes, then by chip into <strong>RK3588 / non-RK3588</strong> hardware—four combinations, each with its own commands:
+</p>
+
+| | Standalone mode (menu item `standalone`, pure edge) | Cluster mode (menu item `integrated`, cloud-edge) |
+| :-- | :-- | :-- |
+| **Non-RK3588** (x86_64 / generic ARM) | WEB + VIDEO + generic `RUNTIME` on one machine, closing the loop locally | This machine only runs the generic `RUNTIME` compute node; it joins a central platform (standard / full) and its tasks come from the center |
+| **RK3588** | Only `RUNTIME-RK3588` is installed; tasks live in the box's local manifest, no center needed | Same runtime + MQTT Agent; the box shows up in the central WEB **Edge Computing** menu |
+
+**① Non-RK3588 · standalone mode** (the three steps above)
+
+```bash
+# Deploy (already running when install finishes)
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
+# Start / stop / restart / status
+bash .scripts/docker/install_linux.sh start
+bash .scripts/docker/install_linux.sh stop
+bash .scripts/docker/install_linux.sh restart
+bash .scripts/docker/install_linux.sh status
+```
+
+**② Non-RK3588 · cluster mode** (one center + compute nodes)
+
+```bash
+# Central platform: pick standard / full (mini does not deploy iot-node, so it cannot dispatch tasks to compute nodes)
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # Start (already auto-started by install); stop | restart | status work the same
+
+# Each compute node: clone this repo first, then install only the generic RUNTIME, pointing at the central VIDEO (default port 6000)
+sudo VIDEO_BASE_URL=http://<center-ip>:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime
+bash RUNTIME/install_linux.sh status               # Acceptance: binary and node config are in place
+
+# Enroll the node: in the central WEB open "Cluster Management → Server Nodes", create it with its SSH details; the platform installs the Agent
+# Start tasks: a compute node is not a resident service. Tasks are created on the central WEB and dispatched by VIDEO + Agent
+# Algorithm tasks → New → "High-performance" → Schedule policy "Specific node" or "Auto-schedule node" → Start
+```
+
+**Compute node prerequisites**: the OS must be in the RUNTIME support matrix (Ubuntu 24 / 26, RHEL-family 7 / 8 / 9, openEuler 22 / 24; Kylin arm64 needs a dedicated image first, see [RUNTIME/README.md](RUNTIME/README.md)). While the node has no offline package, `runtime` compiles RUNTIME locally: that needs internet access, Docker (the script tries to auto-install it if missing) and Miniconda (`/opt/miniconda3` is the safest location: under `sudo`, conda is looked up by system path). To avoid compiling on the node, export the package on the center first: `bash .scripts/docker/install_linux.sh export-runtime-cpp ubuntu24` (pass the node's os_family, e.g. `ubuntu24`, `el9`). With that package you can either copy it into the node's `RUNTIME/.bundle-runtime/<os_family>/<arch>/` and run `runtime`, or—once the node is enrolled—install remotely from the central WEB via "Cluster Management → Server Nodes" → "Business Runtime Distribution" → "Distribute RUNTIME".
+
+**③ RK3588 · standalone mode**
+
+```bash
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# Edit the manifest: model paths, RTSP URLs, and set control_plane.enabled to false (the example defaults to true)
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+# Start / stop / restart / status (already running after install; append a task ID to operate one stream)
+bash .scripts/docker/install_linux.sh rk3588 start
+bash .scripts/docker/install_linux.sh rk3588 stop
+bash .scripts/docker/install_linux.sh rk3588 restart
+bash .scripts/docker/install_linux.sh rk3588 status
+```
+
+**④ RK3588 · cluster mode**
+
+```bash
+# Central platform: pick mini / standard / full (the box reports through EMQX + iot-sink, which the edge tier does not include)
+sudo EASYAIOT_DEPLOY_PROFILE=mini bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # Start (already auto-started by install); stop | restart | status work the same
+
+# Box: point the manifest's control_plane at the center, then install; on an already-installed box use update after editing the manifest
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 update ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 start      # Start; stop | restart | status work the same (status also shows whether the MQTT agent is online)
+```
+
+Fill in the `control_plane` section like this (the example already has `enabled` on—just change the address, token and node name):
+
+```json
+"control_plane": {
+  "enabled": true,
+  "url": "http://<center-ip>:48080/admin-api/video/edge",
+  "join_token": "<central EDGE_ENROLL_TOKEN; leave empty if the center sets none>",
+  "node_name": "Park North-RK3588-01"
+}
+```
+
+Interactive equivalent: `sudo bash .scripts/docker/install_linux.sh install` → pick `0) edge` → then `1) standalone` or `2) integrated`. If the compute-node install prompts for a Gateway URL or MQTT broker, press Enter (the MQTT broker may be left empty: when the center dispatches a formal task it rewrites the alarm-bus address to one the node can reach). For ① and ②, on ARM hosts swap the script for `install_linux_arm.sh`, on Kylin for `install_linux_kylin.sh`; subcommands are identical. Batch distribution and troubleshooting are in [RUNTIME/README.md](RUNTIME/README.md); manifest details are in [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md).
 
 ## 🌟 Some Thoughts on the Project
 
@@ -141,11 +222,12 @@ The hardware path above runs on the RK3588 box shown below: front panel with wir
 
 The RK3588 module determines whether the appliance can infer locally in real time and remain stable over long periods; PANEL, immediately below, determines whether it can be installed, accepted and operated in the field. Together they make edge AI a deliverable solution rather than a one-off benchmark.
 
-**Standalone deployment on an RK3588 box, without the rest of the platform:**
+**Standalone deployment on an RK3588 box (standalone mode), without the rest of the platform:**
 
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # Edit one file: add models once, then let each RTSP task select one or more model keys.
+# For standalone mode set control_plane.enabled to false (the example defaults to true)
 bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 bash .scripts/docker/install_linux.sh rk3588 status
@@ -153,7 +235,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 The manifest follows the same convention as `RUNTIME`: `models` is a reusable RKNN model registry, while every item in `tasks` is one RTSP stream and references a free combination such as `"models": ["person_vehicle", "helmet"]`. Add ten streams by adding ten task items—there is no single-stream or single-model limit. The installer validates every path, model reference and control port before changing the host, installs each model only once, generates one INI and one supervised process per stream, then verifies every `/health` endpoint. systemd template instances provide boot restart; hosts without systemd get a separate PID and log per task. It does not install Docker or start WEB, AI, VIDEO, MQTT or any other module. Use `rk3588 status [task-id]`, `logs [task-id]`, or `verify [task-id]` to operate all streams or one selected stream. The guided menu asks only for this manifest path.
 
-For central management, set `control_plane.enabled=true` in that manifest. The box then appears automatically under the independent **Edge Computing** menu, with chip/NPU identity, pipelines, load, temperature and optional service/SSH entrances. Telemetry follows one direct path: `RK3588 → EMQX → iot-sink (authentication, HMAC verification, normalization, direct persistence) → VIDEO / WEB`; it does not pass through Kafka or NODE. `remote_access.enabled` independently controls FRP—off means no frpc installation or public port; on means the installer creates separate service and SSH tunnels while MQTT remains the management channel.
+**RK3588 cluster mode (join a center):** set `control_plane.enabled` to `true` in the same manifest, point `url` at `http://<center-ip>:48080/admin-api/video/edge`, and make `join_token` match the center's `EDGE_ENROLL_TOKEN` (leave it empty if the center sets none), then run `rk3588 install` above (`rk3588 update` on an already-installed box). The box then appears automatically under the independent **Edge Computing** menu, with chip/NPU identity, pipelines, load, temperature and optional service/SSH entrances. Telemetry follows one direct path: `RK3588 → EMQX → iot-sink (authentication, HMAC verification, normalization, direct persistence) → VIDEO / WEB`; it does not pass through Kafka or NODE. `remote_access.enabled` independently controls FRP—off means no frpc installation or public port; on means the installer creates separate service and SSH tunnels while MQTT remains the management channel.
 
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 
@@ -370,13 +452,13 @@ Many intelligent IoT projects stall at deployment: <strong>full features won't f
 
 | Tier | Typical hardware (examples) | Recommended RAM | What you can do | Verified |
 | :-- | :-- | :--: | :-- | :--: |
-| **edge** Edge Standalone | <strong>Light edge standalone</strong> (2 GB industrial PC, old laptop, smallest cloud VM, store trial box) | ≥ 2 GB | <strong>One machine closes the loop first</strong>: WEB + VIDEO + RUNTIME; camera access, real-time analysis, smart alerts; zero DEVICE, login led by VIDEO | ~**1.02 GB**, nearly 1 GB headroom |
+| **edge** Edge Standalone | <strong>Light edge standalone</strong> (2 GB industrial PC, old laptop, smallest cloud VM, store trial box) | ≥ 2 GB | <strong>One machine closes the loop first</strong> (standalone mode): WEB + VIDEO + RUNTIME; camera access, real-time analysis, smart alerts; zero DEVICE, login led by VIDEO; cluster mode installs only the compute node and joins a center | ~**1.02 GB**, nearly 1 GB headroom |
 | **mini** Edge Lite | <strong>Edge box</strong> (8 GB industrial PC, store security all-in-one, site gateway) | ≥ 8 GB | <strong>Intelligence at one point</strong>: camera access, real-time analysis, smart alerts, model inference; event plane same as standard/full (Gateway + iot-sink + EMQX) | ~4–6 GB used, ample headroom |
 | **standard** Standard | <strong>AI all-in-one camera</strong> (smart camera terminal, AI surveillance camera with compute, multi-sensor AI analyzer) | ≥ 16 GB | <strong>Each camera is a smart node</strong>: multiple cameras on the wall cover a floor/campus; devices, rules, and compute orchestrated together; <strong>POST custom judgment</strong> makes alerts match field standards | ~10 GB, stable with headroom |
 | **full** Full (default) | <strong>AIoT full-stack all-in-one</strong> (enterprise full-stack control all-in-one, industry IoT full-stack host, cloud-edge-device smart platform all-in-one) | ≥ 20 GB | <strong>IoT + video + AI in one box</strong>: device management, massive access, intelligent analysis, command and judgment unified—full capabilities long-term; includes <strong>POST custom judgment</strong> and outbound business flow | ~14 GB, full features with headroom |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>Install edge:</strong> <code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code> (or <code>... install_linux.sh edge install</code>). First-time install can also pick the tier interactively; see <a href="#-quick-start">Quick Start</a> above.
+<strong>Install edge:</strong> split first into <strong>standalone / cluster</strong>, then by <strong>RK3588 / non-RK3588</strong>. Non-RK3588 standalone: <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code> (or <code>sudo bash .scripts/docker/install_linux.sh edge install</code>); non-RK3588 cluster: on each compute node run <code>sudo VIDEO_BASE_URL=http://&lt;center-ip&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>; both RK3588 modes go through <code>install_linux.sh rk3588</code>, told apart by <code>control_plane.enabled</code> in the manifest. Deploy and start commands for all four combinations are in <a href="#-quick-start">Quick Start</a> above.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

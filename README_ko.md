@@ -88,8 +88,8 @@ README를 열자마자 속으로: 「이거… 내 허접한 기계에서 돌아
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# 방식 A (권장)
-EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+# 방식 A (권장; 환경 변수는 sudo 뒤에 써야 스크립트에 전달됩니다)
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 
 # 방식 B
 # sudo bash .scripts/docker/install_linux.sh edge install
@@ -108,6 +108,87 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
 초록불이 떴다면 퇴근입니다 — 생각보다 쉽죠. 오늘 커피는 일찍 마셔도 됩니다.
 </p>
+
+### 🧩 edge: 단독 / 클러스터 × RK3588 / 비 RK3588
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+위 세 단계는 가장 가벼운 <strong>단독 모드</strong>입니다. edge 규격은 먼저 <strong>단독 / 클러스터</strong> 두 가지 모드로 나뉘고, 다시 칩에 따라 <strong>RK3588 / 비 RK3588</strong> 두 종류의 하드웨어로 나뉩니다 — 조합은 네 가지이고 명령은 각각 다릅니다:
+</p>
+
+| | 단독 모드 (메뉴 항목 `standalone`, 순수 엣지 형태) | 클러스터 모드 (메뉴 항목 `integrated`, 클라우드-엣지 일체형) |
+| :-- | :-- | :-- |
+| **비 RK3588** (x86_64 / 범용 ARM) | 한 대의 머신에 WEB + VIDEO + 범용 `RUNTIME`을 설치해 로컬에서 폐루프 | 이 머신에는 범용 `RUNTIME` 연산 노드만 설치하고 중앙 플랫폼(standard / full)에 연결하며, 작업은 중앙에서 내려옵니다 |
+| **RK3588** | `RUNTIME-RK3588`만 설치하고 작업은 박스 로컬 매니페스트에 기록, 중앙 불필요 | 동일한 런타임 + MQTT Agent, 박스가 중앙 WEB **Edge Computing** 메뉴에 표시됩니다 |
+
+**① 비 RK3588 · 단독 모드** (위 세 단계와 동일)
+
+```bash
+# 배포 (설치가 끝나면 이미 실행 중)
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
+# 시작 / 중지 / 재시작 / 상태
+bash .scripts/docker/install_linux.sh start
+bash .scripts/docker/install_linux.sh stop
+bash .scripts/docker/install_linux.sh restart
+bash .scripts/docker/install_linux.sh status
+```
+
+**② 비 RK3588 · 클러스터 모드** (중앙 1대 + 연산 노드)
+
+```bash
+# 중앙 플랫폼: standard / full 중 선택 (mini는 iot-node를 배포하지 않아 연산 노드에 작업을 내려보낼 수 없음)
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # 시작 (install 후 이미 자동 시작됨); stop | restart | status 동일
+
+# 각 연산 노드: 이 저장소를 먼저 clone한 뒤, 범용 RUNTIME만 설치하고 중앙 VIDEO(기본 포트 6000)를 가리킴
+sudo VIDEO_BASE_URL=http://<중앙IP>:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime
+bash RUNTIME/install_linux.sh status               # 검수: 바이너리와 노드 설정이 준비됨
+
+# 노드 등록: 중앙 WEB 「클러스터 관리 → 서버 노드」에서 SSH 정보를 넣어 노드를 생성하면 플랫폼이 Agent를 자동 설치
+# 작업 시작: 연산 노드는 상주 서비스가 아닙니다. 작업은 중앙 WEB에서 만들고 VIDEO + Agent이 내려보내 실행합니다
+# 알고리즘 작업 → 신규 → 「고성능」→ 스케줄 정책 「지정 노드」 또는 「자동 스케줄 노드」→ 시작
+```
+
+**연산 노드 사전 조건**: OS가 RUNTIME 지원 행렬(Ubuntu 24 / 26, RHEL 계열 7 / 8 / 9, openEuler 22 / 24; Kylin arm64는 전용 이미지를 먼저 설정해야 하며 [RUNTIME/README.md](RUNTIME/README.md) 참고)에 포함되어야 합니다. 노드에 오프라인 패키지가 없으면 `runtime`이 RUNTIME을 로컬에서 컴파일하며, 외부 네트워크, Docker(없으면 스크립트가 자동 설치를 시도)와 Miniconda(`/opt/miniconda3`에 설치하는 것이 가장 안전하며, `sudo`에서는 시스템 경로로 conda를 찾음)가 필요합니다. 노드에서 컴파일하지 않으려면 먼저 중앙에서 오프라인 패키지를 내보내세요: `bash .scripts/docker/install_linux.sh export-runtime-cpp ubuntu24`(인자는 노드의 os_family, 예: `ubuntu24`, `el9`). 이 패키지를 노드 저장소의 `RUNTIME/.bundle-runtime/<os_family>/<arch>/`에 복사한 뒤 `runtime`을 실행해도 되고, 노드 등록 후 중앙 WEB 「클러스터 관리 → 서버 노드」→「업무 런타임 배포」→「RUNTIME 배포」로 원격 설치해도 됩니다.
+
+**③ RK3588 · 단독 모드**
+
+```bash
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# 매니페스트 수정: 모델 경로, RTSP 주소, 그리고 control_plane.enabled를 false로 (예시 기본값은 true)
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+# 시작 / 중지 / 재시작 / 상태 (install 후 이미 실행 중; 작업 ID를 붙이면 한 스트림만 조작)
+bash .scripts/docker/install_linux.sh rk3588 start
+bash .scripts/docker/install_linux.sh rk3588 stop
+bash .scripts/docker/install_linux.sh rk3588 restart
+bash .scripts/docker/install_linux.sh rk3588 status
+```
+
+**④ RK3588 · 클러스터 모드**
+
+```bash
+# 중앙 플랫폼: mini / standard / full 중 선택 (박스는 EMQX + iot-sink로 보고하며, edge 규격에는 없음)
+sudo EASYAIOT_DEPLOY_PROFILE=mini bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # 시작 (install 후 이미 자동 시작됨); stop | restart | status 동일
+
+# 박스: 매니페스트의 control_plane이 중앙을 가리키도록 수정한 뒤 설치; 이미 설치된 박스는 매니페스트 수정 후 update 사용
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 update ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 start      # 시작; stop | restart | status 동일 (status에는 MQTT Agent 온라인 여부도 표시)
+```
+
+매니페스트의 `control_plane` 구간은 다음과 같이 작성합니다 (예시 파일에는 이미 `enabled`가 켜져 있으므로 주소, 토큰, 노드 이름만 바꾸면 됩니다):
+
+```json
+"control_plane": {
+  "enabled": true,
+  "url": "http://<중앙IP>:48080/admin-api/video/edge",
+  "join_token": "<중앙의 EDGE_ENROLL_TOKEN; 중앙에 설정되어 있지 않으면 비워 둠>",
+  "node_name": "파크 북구-RK3588-01"
+}
+```
+
+대화형으로 선택하는 방법: `sudo bash .scripts/docker/install_linux.sh install` → `0) edge` 선택 → `1) standalone` 또는 `2) integrated` 선택. 연산 노드 설치 중 Gateway URL이나 MQTT broker를 묻으면 Enter를 누르면 됩니다(MQTT broker는 비워 두어도 되며, 중앙이 정식 작업을 내려보낼 때 알람 버스 주소를 노드에서 접근 가능한 주소로 자동으로 바꿉니다). ①②의 명령은 ARM 호스트에서 스크립트를 `install_linux_arm.sh`로, Kylin에서는 `install_linux_kylin.sh`로 바꾸면 되며 하위 명령은 동일합니다. 다중 노드 일괄 배포와 문제 해결은 [RUNTIME/README.md](RUNTIME/README.md), 박스 매니페스트 세부 사항은 [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md)를 참고하세요.
 
 ## 🌟 프로젝트에 대한 몇 가지 생각
 
@@ -141,11 +222,12 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 
 RK3588 모듈은 장비가 로컬에서 실시간 추론을 수행하고 장기간 안정적으로 동작할 수 있는지를 결정합니다. 이어지는 PANEL은 장비를 현장에서 설치, 인수, 운영할 수 있는지를 결정합니다. 두 모듈이 함께 엣지 AI를 실제로 납품 가능한 솔루션으로 만듭니다.
 
-**플랫폼의 다른 모듈 없이 RK3588 박스에 독립 배포합니다:**
+**RK3588 박스 단독 배포(단독 모드), 플랫폼의 다른 모듈 없이:**
 
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # 이 파일 하나만 편집합니다. 모델은 한 번 등록하고 각 RTSP 작업에서 하나 이상 선택합니다.
+# 단독 모드에서는 control_plane.enabled를 false로 변경(예시 파일의 기본값은 true)
 bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 bash .scripts/docker/install_linux.sh rk3588 status
@@ -153,7 +235,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 매니페스트는 `RUNTIME`과 같은 규칙을 사용합니다. `models`는 재사용 가능한 RKNN 모델 저장소이고, `tasks`의 각 항목은 RTSP 한 스트림이며 `"models": ["person_vehicle", "helmet"]`처럼 하나 이상의 모델을 자유롭게 선택합니다. 10개 스트림이면 작업 10개를 추가하면 되며 단일 스트림·단일 모델 제한이 없습니다. 설치기는 호스트를 변경하기 전에 모든 경로, 모델 참조, 제어 포트를 검증하고, 모델은 각각 한 번만 설치한 뒤 스트림마다 INI 하나와 독립 감독 프로세스 하나를 생성하며 모든 `/health`를 확인합니다. systemd 템플릿 인스턴스가 부팅 및 장애 재시작을 맡고, systemd가 없어도 작업별 PID와 로그를 둡니다. Docker나 WEB, AI, VIDEO, MQTT는 시작하지 않습니다. `rk3588 status [작업ID]`, `logs [작업ID]`, `verify [작업ID]`로 전체 또는 한 스트림만 운영할 수 있으며 안내 메뉴도 이 매니페스트 경로만 묻습니다.
 
-중앙 통합 관리는 같은 매니페스트에서 `control_plane.enabled=true`만 설정하면 됩니다. 박스는 독립 최상위 **Edge Computing** 메뉴에 자동으로 나타나며 칩/NPU, 추론 파이프라인, 부하, 온도와 선택적 서비스/SSH 진입점을 한곳에서 보여 줍니다. 텔레메트리 경로는 `RK3588 → EMQX → iot-sink(인증, HMAC 검증, 정규화, 직접 저장) → VIDEO / WEB`으로 고정되며 Kafka와 NODE를 거치지 않습니다. `remote_access.enabled`는 FRP만 별도로 제어합니다. 끄면 frpc와 공개 포트를 만들지 않고, 켜면 서비스와 SSH 터널을 각각 생성하며 노드 관리는 계속 MQTT를 사용합니다.
+**RK3588 클러스터 모드(중앙 연결):** 같은 매니페스트에서 `control_plane.enabled`를 `true`로 설정하고, `url`에 `http://<중앙IP>:48080/admin-api/video/edge`를 넣고, `join_token`을 중앙의 `EDGE_ENROLL_TOKEN`과 맞춥니다(중앙에 설정되어 있지 않으면 비워 둠). 그런 다음 위의 `rk3588 install`을 다시 실행합니다(이미 설치된 박스는 매니페스트 수정 후 `rk3588 update`). 박스는 독립 최상위 **Edge Computing** 메뉴에 자동으로 나타나며 칩/NPU, 추론 파이프라인, 부하, 온도와 선택적 서비스/SSH 진입점을 한곳에서 보여 줍니다. 텔레메트리 경로는 `RK3588 → EMQX → iot-sink(인증, HMAC 검증, 정규화, 직접 저장) → VIDEO / WEB`으로 고정되며 Kafka와 NODE를 거치지 않습니다. `remote_access.enabled`는 FRP만 별도로 제어합니다. 끄면 frpc와 공개 포트를 만들지 않고, 켜면 서비스와 SSH 터널을 각각 생성하며 노드 관리는 계속 MQTT를 사용합니다.
 
 ### 🎛️ PANEL: 일체기 도착 당일 설치·인수, 당직은 원격 개발자를 기다리지 않음
 
@@ -355,13 +437,13 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 | 등급 | 대표 하드웨어 (예) | 권장 메모리 | 할 수 있는 것 | 실측 검증 |
 | :-- | :-- | :--: | :-- | :--: |
-| **edge** 엣지 단기기 | <strong>경량 엣지 단기기</strong> (2 GB 산업용 PC, 낡은 노트북, 클라우드 최소 사양, 매장 시범기) | ≥ 2 GB | <strong>한 대로 먼저 폐루프</strong>: WEB + VIDEO + RUNTIME; 카메라 접속·실시간 분석·스마트 경보; DEVICE 없음, 로그인은 VIDEO 주도 | 약 **1.02 GB**, 여유 거의 1 GB |
+| **edge** 엣지 단기기 | <strong>경량 엣지 단기기</strong> (2 GB 산업용 PC, 낡은 노트북, 클라우드 최소 사양, 매장 시범기) | ≥ 2 GB | <strong>한 대로 먼저 폐루프</strong> (단독 모드): WEB + VIDEO + RUNTIME; 카메라 접속·실시간 분석·스마트 경보; DEVICE 없음, 로그인은 VIDEO 주도; 클러스터 모드에서는 연산 노드만 설치해 중앙에 연결 | 약 **1.02 GB**, 여유 거의 1 GB |
 | **mini** 엣지 경량판 | <strong>엣지 박스</strong> (8 GB 산업용 PC, 매장 보안 일체기, 현장 게이트웨이) | ≥ 8 GB | <strong>한 지점에 지능 설치</strong>: 카메라 접속·실시간 분석·스마트 경보·모델 추론; 이벤트 평면은 standard/full과 동일(Gateway + iot-sink + EMQX) | 약 4–6 GB, 여유 충분 |
 | **standard** 표준판 | <strong>AI 일체형 카메라</strong> (스마트 카메라 단말, 연산 내장 AI 감시 카메라, 다목 AI 분석 일체기) | ≥ 16 GB | <strong>각 카메라가 스마트 노드</strong>: 다수 카메라 벽면 배치로 층/단지 커버, 장치·규칙·연산 통합 오케스트레이션; <strong>POST 맞춤 판정</strong>으로 경보를 현장 기준에 맞춤 | 약 10 GB, 안정적 여유 |
 | **full** 완전판 (기본) | <strong>AIoT 풀스택 일체기</strong> (엔터프라이즈 풀스택 지능관제 일체기, 산업 IoT 풀스택 호스트, 클라우드-엣지-디바이스 통합 플랫폼) | ≥ 20 GB | <strong>한 박스에 IoT + 영상 + AI</strong>: 장치 통합관리·대량 접속·지능 분석·지휘 판단 일체화, 전량 역량 장기 안정; <strong>POST 맞춤 판정</strong>과 대외 업무 흐름 포함 | 약 14 GB, 전 기능 여유 확보 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>edge 설치:</strong> <code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code> (또는 <code>... install_linux.sh edge install</code>). 최초 설치 대화형 메뉴에서도 선택 가능; 자세한 내용은 위 <a href="#-빠른-시작">빠른 시작</a> 참고.
+<strong>edge 설치:</strong> 먼저 <strong>단독 / 클러스터</strong>로, 다음으로 <strong>RK3588 / 비 RK3588</strong>로 구분합니다. 비 RK3588 단독: <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>(또는 <code>sudo bash .scripts/docker/install_linux.sh edge install</code>); 비 RK3588 클러스터: 각 연산 노드에서 <code>sudo VIDEO_BASE_URL=http://&lt;중앙IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code> 실행; RK3588의 두 모드는 모두 <code>install_linux.sh rk3588</code>를 사용하며 매니페스트의 <code>control_plane.enabled</code>로 구분합니다. 네 가지 조합의 배포·시작 명령은 위 <a href="#-빠른-시작">빠른 시작</a>을 참고하세요.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

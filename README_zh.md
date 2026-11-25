@@ -88,8 +88,8 @@ EasyAIoT 以统一数据与事件底座贯通现场设备、边缘执行、平�
 git clone https://gitee.com/volara/easyaiot.git
 cd easyaiot
 
-# 方式 A（推荐）
-EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
+# 方式 A（推荐；环境变量要写在 sudo 之后才会传给脚本）
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 
 # 方式 B
 # sudo bash .scripts/docker/install_linux.sh edge install
@@ -108,6 +108,87 @@ EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
 绿灯齐了就收工——比你想的轻松，今天可以提前喝杯咖啡了。
 </p>
+
+### 🧩 edge：单体 / 集群 × RK3588 / 非 RK3588
+
+<p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
+上面三步装的是最轻的<strong>单体模式</strong>。edge 规格先分<strong>单体 / 集群</strong>两种模式，再按芯片分 <strong>RK3588 / 非 RK3588</strong> 两类硬件——共四种组合，命令各不相同：
+</p>
+
+| | 单体模式（菜单项 `standalone`，纯边缘形态） | 集群模式（菜单项 `integrated`，云边一体形态） |
+| :-- | :-- | :-- |
+| **非 RK3588**（x86_64 / 通用 ARM） | WEB + VIDEO + 通用 `RUNTIME` 装在同一台机器，本地闭环 | 本机只装通用 `RUNTIME` 算力节点，接入中心平台（standard / full），任务由中心下发 |
+| **RK3588** | 只装 `RUNTIME-RK3588`，任务写在盒子本地清单，不依赖中心 | 同一运行时 + MQTT Agent，盒子出现在中心 WEB「边缘计算」菜单 |
+
+**① 非 RK3588 · 单体模式**（即上面三步）
+
+```bash
+# 部署（装完已自动启动）
+sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
+# 启动 / 停止 / 重启 / 状态
+bash .scripts/docker/install_linux.sh start
+bash .scripts/docker/install_linux.sh stop
+bash .scripts/docker/install_linux.sh restart
+bash .scripts/docker/install_linux.sh status
+```
+
+**② 非 RK3588 · 集群模式**（中心 + 若干算力节点）
+
+```bash
+# 中心平台：standard / full 任选一档（mini 不部署 iot-node，不能向算力节点下发任务）
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # 启动（install 后已自动启动）；stop | restart | status 同理
+
+# 每台算力节点：克隆本仓库后执行；只装通用 RUNTIME，指向中心 VIDEO（默认 6000 端口）
+sudo VIDEO_BASE_URL=http://<中心IP>:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime
+bash RUNTIME/install_linux.sh status               # 验收：二进制与节点配置已就位
+
+# 纳管节点：中心 WEB「集群管理 → 服务器节点」新建节点并填 SSH，平台自动装好 Agent
+# 启动任务：算力节点不是常驻服务，任务在中心 WEB 发起，由 VIDEO + Agent 下发拉起
+# 算法任务 → 新建「高性能」→ 调度策略选「指定节点」或「自动调度节点」→ 启动
+```
+
+**算力节点的前置条件**：操作系统须在 RUNTIME 支持矩阵内（Ubuntu 24 / 26、RHEL 系 7 / 8 / 9、openEuler 22 / 24；麒麟 arm64 需先配专用镜像，见 [RUNTIME/README.md](RUNTIME/README.md)）。节点上没有离线包时，`runtime` 会在本机编译 RUNTIME：需要外网、Docker（缺失时脚本会尝试自动安装）和 Miniconda（装在 `/opt/miniconda3` 最稳，`sudo` 下按系统路径查找 conda）。不想在节点上编译，就先在中心导出离线包：`bash .scripts/docker/install_linux.sh export-runtime-cpp ubuntu24`（参数换成节点的 os_family，如 `ubuntu24`、`el9`）。有了离线包，既可以拷到节点仓库的 `RUNTIME/.bundle-runtime/<os_family>/<arch>/` 再执行 `runtime`，也可以纳管后在中心 WEB「集群管理 → 服务器节点」→「业务运行时分发」→「分发 RUNTIME」一键远程安装。
+
+**③ RK3588 · 单体模式**
+
+```bash
+cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
+# 改清单：模型路径、RTSP 地址，并把 control_plane.enabled 设为 false（示例默认是 true）
+bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+# 启动 / 停止 / 重启 / 状态（install 后已自动启动；可跟任务 ID 只操作一路）
+bash .scripts/docker/install_linux.sh rk3588 start
+bash .scripts/docker/install_linux.sh rk3588 stop
+bash .scripts/docker/install_linux.sh rk3588 restart
+bash .scripts/docker/install_linux.sh rk3588 status
+```
+
+**④ RK3588 · 集群模式**
+
+```bash
+# 中心平台：mini / standard / full 任选一档（盒子经 EMQX + iot-sink 上报，edge 档不带）
+sudo EASYAIOT_DEPLOY_PROFILE=mini bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh start        # 启动（install 后已自动启动）；stop | restart | status 同理
+
+# 盒子：清单的 control_plane 指向中心后安装；已装过的盒子改完清单用 update
+sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
+sudo bash .scripts/docker/install_linux.sh rk3588 update ./rk3588.tasks.json
+bash .scripts/docker/install_linux.sh rk3588 start      # 启动；stop | restart | status 同理（status 会显示「MQTT 平台纳管」是否在线）
+```
+
+清单里的 `control_plane` 段这样填（示例文件已默认打开 `enabled`，改掉地址、口令和节点名即可）：
+
+```json
+"control_plane": {
+  "enabled": true,
+  "url": "http://<中心IP>:48080/admin-api/video/edge",
+  "join_token": "<中心 EDGE_ENROLL_TOKEN；中心未设置则留空>",
+  "node_name": "园区北区-RK3588-01"
+}
+```
+
+交互式等价写法：`sudo bash .scripts/docker/install_linux.sh install` → 选 `0) edge` → 再选 `1) standalone` 或 `2) integrated`。算力节点安装时若提示 Gateway URL 或 MQTT broker，直接回车即可（MQTT broker 可留空，正式任务的告警总线地址由中心下发时自动改写）。①② 的命令在 ARM 主机上把脚本换成 `install_linux_arm.sh`，麒麟换成 `install_linux_kylin.sh`，子命令一致。多节点批量分发与排障见 [RUNTIME/README.md](RUNTIME/README.md)，盒子清单细节见 [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md)。
 
 ## 🌟 关于项目的一些思考
 
@@ -141,11 +222,12 @@ EasyAIoT是一个云边端一体化的智能物联网平台，专注于AI与IoT�
 
 RK3588 模块决定设备能否在本地实时推理并长期稳定运行；紧随其后的 PANEL 决定设备能否在现场完成安装、验收与运维。两者共同构成边缘 AI 的可交付方案。
 
-**在 RK3588 盒子上独立部署，不依赖平台其他模块：**
+**RK3588 盒子独立部署（单体模式），不依赖平台其他模块：**
 
 ```bash
 cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 # 只编辑这一个文件：模型登记一次，每路 RTSP 自由选择一个或多个模型键
+# 单体模式把 control_plane.enabled 改成 false（示例文件默认是 true）
 bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
 sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
 bash .scripts/docker/install_linux.sh rk3588 status
@@ -153,7 +235,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 任务清单沿用 `RUNTIME` 的约定：`models` 是可复用的 RKNN 模型库，`tasks` 中每一项就是一路 RTSP，并用类似 `"models": ["person_vehicle", "helmet"]` 的方式自由绑定一个或多个模型；要接十路视频，只需增加十个任务，不存在“只能一路、只能一个模型”的限制。安装器会先一次性校验全部路径、模型引用和控制端口，再把模型各安装一份、为每路视频生成一份 INI 和一个独立受监管进程，最后逐路等待 `/health` 验收 MPP、RGA、RKNN 硬件链路。systemd 通过模板实例提供开机自启和故障拉起；没有 systemd 时，每路也有独立 PID 与日志。它不会安装 Docker，也不会启动 WEB、AI、VIDEO、MQTT 等其他模块。运维时执行 `rk3588 status [任务ID]`、`logs [任务ID]`、`verify [任务ID]`，既能看全部，也能只看一路；交互菜单也只会请你选择这份清单。
 
-需要中心统管时，只要在同一清单把 `control_plane.enabled` 设为 `true`，盒子就会自动出现在 WEB 独立一级菜单“边缘计算”中，芯片/NPU、推理管线、负载、温度以及可选的服务访问和 SSH 入口都集中呈现。遥测链路固定为 `RK3588 → EMQX → iot-sink（鉴权、HMAC 验签、协议归一化、直接落库）→ VIDEO / WEB`，不经过 Kafka，也不进入 NODE。`remote_access.enabled` 单独决定是否启用 FRP：关闭时不安装 frpc、不开放公网端口；开启时一键生成服务与 SSH 两条独立隧道，节点统管仍始终走 MQTT。
+**RK3588 集群模式（接入中心）：**在同一清单把 `control_plane.enabled` 设为 `true`，`url` 填 `http://<中心IP>:48080/admin-api/video/edge`，`join_token` 与中心 `EDGE_ENROLL_TOKEN` 保持一致（中心未设置则留空），再执行上面的 `rk3588 install`（已装过的盒子改完清单用 `rk3588 update`）。盒子就会自动出现在 WEB 独立一级菜单“边缘计算”中，芯片/NPU、推理管线、负载、温度以及可选的服务访问和 SSH 入口都集中呈现。遥测链路固定为 `RK3588 → EMQX → iot-sink（鉴权、HMAC 验签、协议归一化、直接落库）→ VIDEO / WEB`，不经过 Kafka，也不进入 NODE。`remote_access.enabled` 单独决定是否启用 FRP：关闭时不安装 frpc、不开放公网端口；开启时一键生成服务与 SSH 两条独立隧道，节点统管仍始终走 MQTT。
 
 ### 🎛️ PANEL：一体机到场当天可装可验，值守不必等开发远程
 
@@ -415,13 +497,13 @@ bash .scripts/docker/install_linux.sh rk3588 status
 
 | 选型 | 典型硬件（举例） | 推荐内存 | 你能做到什么 | 实测验证 |
 | :-- | :-- | :--: | :-- | :--: |
-| **edge** 边缘单机版 | <strong>轻量边缘单机</strong>（2 GB 工控机、旧笔记本、云上最小机型、门店试装机） | ≥ 2 GB | <strong>一台机器闭环先跑通</strong>：WEB + VIDEO + RUNTIME；摄像头接入、实时分析、智能告警；零 DEVICE，登录由 VIDEO 主导 | 约 **1.02 GB**，余量近 1 GB |
+| **edge** 边缘单机版 | <strong>轻量边缘单机</strong>（2 GB 工控机、旧笔记本、云上最小机型、门店试装机） | ≥ 2 GB | <strong>一台机器闭环先跑通</strong>（单体模式）：WEB + VIDEO + RUNTIME；摄像头接入、实时分析、智能告警；零 DEVICE，登录由 VIDEO 主导；选集群模式则只装算力、接入中心 | 约 **1.02 GB**，余量近 1 GB |
 | **mini** 边缘精简版 | <strong>边缘盒子</strong>（8 GB 工控机、门店安防一体机、工地现场网关） | ≥ 8 GB | <strong>一个点位装上就有智能</strong>：摄像头接入、实时分析、智能告警、模型推理；事件面与 standard/full 一致（Gateway + iot-sink + EMQX） | 约 4–6 GB，余量充足 |
 | **standard** 标准版 | <strong>AI 一体摄像头</strong>（智能摄像终端、带算力 AI 监控摄像头、多目 AI 分析一体机） | ≥ 16 GB | <strong>每路摄像头即智能节点</strong>：多路摄像头上墙即可楼面/园区级覆盖，设备、规则、算力统一编排，多场景并行运营；<strong>POST 定制研判</strong>让告警贴现场口径 | 约 10 GB，运行平稳有余量 |
 | **full** 完整版（默认） | <strong>AIoT 智能全栈一体机</strong>（企业级全栈智控一体机、行业物联网全栈主机、云边端一体智能平台一体机） | ≥ 20 GB | <strong>一箱配齐 IoT + 视频 + AI</strong>：设备纳管、海量接入、智能分析、指挥研判一体化，全量能力长期稳跑；含 <strong>POST 定制研判</strong>与对外业务流转 | 约 14 GB，全能力开启仍留足余量 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>edge 怎么装：</strong><code>EASYAIOT_DEPLOY_PROFILE=edge sudo bash .scripts/docker/install_linux.sh install</code>（或 <code>... install_linux.sh edge install</code>）。首次安装交互菜单亦可选档；详情见上方 <a href="#-快速开始">快速开始</a>。
+<strong>edge 怎么装：</strong>先分<strong>单体 / 集群</strong>，再分 <strong>RK3588 / 非 RK3588</strong>。非 RK3588 单体：<code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>（或 <code>sudo bash .scripts/docker/install_linux.sh edge install</code>）；非 RK3588 集群：算力节点执行 <code>sudo VIDEO_BASE_URL=http://&lt;中心IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>；RK3588 两种模式都走 <code>install_linux.sh rk3588</code>，由清单里的 <code>control_plane.enabled</code> 区分。四种组合的部署与启动命令见上方 <a href="#-快速开始">快速开始</a>。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
