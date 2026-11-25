@@ -61,13 +61,24 @@ class TestServiceUrls(unittest.TestCase):
             self.assertFalse(is_mini_deploy_profile())
             self.assertTrue(should_use_gateway_for_video_api())
 
-    def test_alert_hook_url_helper_still_resolvable_but_unused(self):
-        """resolve_alert_hook_url 保留给遗留脚本；正式事件面已无 /video/alert/hook。"""
+    def test_alert_hook_url_explicit_override(self):
+        """显式 ALERT_HOOK_URL 优先；算法总线关闭时 RUNTIME 与 Python 管线都回退到它。"""
         with patch.dict(os.environ, {
             'ALERT_HOOK_URL': 'http://custom:7000/hook',
             'GATEWAY_URL': 'http://localhost:48099',
         }, clear=True):
             self.assertEqual(resolve_alert_hook_url(), 'http://custom:7000/hook')
+
+    def test_edge_profile_alert_hook_defaults_to_local_video(self):
+        with patch.dict(os.environ, {'EASYAIOT_DEPLOY_PROFILE': 'edge'}, clear=True):
+            self.assertEqual(resolve_alert_hook_url(), 'http://127.0.0.1:6000/video/alert/hook')
+
+    def test_full_profile_alert_hook_goes_through_gateway(self):
+        with patch.dict(os.environ, {'GATEWAY_URL': 'http://gateway.example.com:48080'}, clear=True):
+            self.assertEqual(
+                resolve_alert_hook_url(),
+                'http://gateway.example.com:48080/admin-api/video/alert/hook',
+            )
 
     def test_mini_profile_enables_minio_when_unified(self):
         with patch.dict(os.environ, {

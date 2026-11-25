@@ -1,7 +1,9 @@
 """VIDEO / 算法进程：默认经 MQTT 将告警与后处理发到算法总线（iot-sink）。
 
 环境变量：
-- ALGO_BUS_TRANSPORT：默认空视为 mqtt；显式 http/off/0/false 时关闭总线
+- ALGO_BUS_TRANSPORT：默认空视为 mqtt；显式 http/off/0/false 时关闭总线，
+  告警改经 HTTP 投递到 VIDEO 告警 hook（edge 无 iot-sink，见 ALERT_HOOK_URL）
+- ALERT_HOOK_URL：总线关闭时的告警 hook 地址；未配置时按部署形态解析（edge → 本机 VIDEO）
 - POST_INGRESS_TRANSPORT：InferEvent 进入 POST 的通道，首期支持 mqtt/off
 - POST_FAIL_STRATEGY：POST 不可用时 closed（默认）或 open
 - MQTT_BROKER_URLS：broker 列表（host:port，逗号分隔）
@@ -21,6 +23,8 @@ from typing import Any, Dict, Optional, Tuple
 logger = logging.getLogger('algo_mqtt_bus')
 
 _DISABLE_VALUES = frozenset({'http', 'off', '0', 'false', 'no'})
+# 单次 POST 的超时秒数；不重试——巡检管线在检测循环内同步调用 publish_alert
+_ALERT_HOOK_TIMEOUT = 5
 
 
 def _brokers() -> list[Tuple[str, int]]:
@@ -173,10 +177,67 @@ def _publish(topic: str, msg_type: str, payload: Dict[str, Any]) -> bool:
     return False
 
 
-def publish_alert(alert_data: Dict[str, Any], *, snapshot: bool = False) -> bool:
-    """发布告警到 mqtt/iot-alert-notification 或 mqtt/iot-snapshot-alert。"""
-    if not bus_enabled():
+def alert_hook_url() -> str:
+    """总线关闭时的告警 hook 地址，解析规则与 RUNTIME 配置下发的 alert_hook_url 保持一致。"""
+    try:
+        from app.utils.service_urls import resolve_alert_hook_url
+    except ImportError:
+        from service_urls import resolve_alert_hook_url  # type: ignore
+    return (resolve_alert_hook_url() or '').strip()
+
+
+def _publish_alert_via_hook(alert_data: Dict[str, Any]) -> bool:
+    """把扁平告警字段 POST 到 VIDEO /video/alert/hook，与 C++ RUNTIME 的 HTTP 回退同一契约。"""
+    import urllib.error
+    import urllib.request
+
+    device_id = alert_data.get('device_id', alert_data.get('deviceId'))
+    url = alert_hook_url()
+    if not url:
+        logger.warning('算法总线已关闭且未配置告警 hook，告警丢弃 device=%s', device_id)
         return False
+
+    body = json.dumps(alert_data, ensure_ascii=False, default=str).encode('utf-8')
+    req = urllib.request.Request(url, data=body, method='POST', headers={'Content-Type': 'application/json'})
+    try:
+        with urllib.request.urlopen(req, timeout=_ALERT_HOOK_TIMEOUT) as resp:
+            status = resp.status
+            raw = resp.read(4096)
+    except urllib.error.HTTPError as exc:
+        logger.warning('HTTP 告警 hook 拒绝 status=%s device=%s', exc.code, device_id)
+        exc.close()
+        return False
+    except Exception as exc:
+        logger.warning('HTTP 告警 hook 不可达 url=%s device=%s: %s', url, device_id, exc)
+        return False
+
+    # hook 的业务失败（空数据等）同样返回 HTTP 200，需看响应体里的 code
+    result: Dict[str, Any] = {}
+    try:
+        parsed = json.loads(raw.decode('utf-8', errors='ignore') or '{}')
+        if isinstance(parsed, dict):
+            result = parsed
+    except ValueError:
+        pass
+    code = result.get('code')
+    if status != 200 or code not in (None, 0, 200):
+        logger.warning('HTTP 告警 hook 失败 status=%s code=%s msg=%s device=%s', status, code, result.get('msg'), device_id)
+        return False
+
+    data = result.get('data')
+    hook_status = data.get('status') if isinstance(data, dict) else None
+    logger.info('HTTP 告警 hook 已接收 status=%s device=%s', hook_status or 'ok', device_id)
+    return True
+
+
+def publish_alert(alert_data: Dict[str, Any], *, snapshot: bool = False) -> bool:
+    """发布告警：默认走 mqtt/iot-alert-notification 或 mqtt/iot-snapshot-alert；总线关闭时改走 HTTP hook。"""
+    if not bus_enabled():
+        data = dict(alert_data or {})
+        if data:
+            # 与 MQTT 信封的缺省一致：抓拍告警不带 task_type 时按 snap，hook 据此选择任务
+            data['task_type'] = data.get('task_type') or ('snap' if snapshot else 'realtime')
+        return _publish_alert_via_hook(data)
     payload = _normalize_alert_payload(alert_data, snapshot=snapshot)
     topic = 'mqtt/iot-snapshot-alert' if snapshot else 'mqtt/iot-alert-notification'
     msg_type = 'alert.snapshot' if snapshot else 'alert.notification'
