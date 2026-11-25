@@ -1,4 +1,5 @@
 """algo_mqtt_bus 单元测试：算法总线关闭时 publish_alert 回退 HTTP 告警 hook（edge 单体无 MQTT/iot-sink）。"""
+import ast
 import json
 import logging
 import os
@@ -6,12 +7,20 @@ import socket
 import sys
 import tempfile
 import threading
+import time
 import unittest
+import uuid
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Callable, Optional
 from unittest.mock import MagicMock, patch
 
 from app.utils import algo_mqtt_bus as bus
+from app.utils.service_urls import parse_alert_time_str
 
 
 def _closed_port() -> int:
@@ -54,6 +63,35 @@ def _quiet_logs(testcase, *names, level=logging.WARNING) -> None:
         logger = logging.getLogger(name)
         testcase.addCleanup(logger.setLevel, logger.level)
         logger.setLevel(level)
+
+
+def _load_pipeline_functions(relative_path: str, names: tuple, namespace: dict) -> dict:
+    """把 run_deploy.py 里的指定函数放进给定命名空间执行；整个模块不能 import（一 import 就会连库拉流）。"""
+    path = Path(__file__).resolve().parent / relative_path
+    tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    module = ast.Module(body=[functions[name] for name in names], type_ignores=[])
+    exec(compile(module, str(path), 'exec'), namespace)
+    return namespace
+
+
+class _PipelineConfig:
+    """告警构造函数会读到的任务 / 巡检配置：不按类别过滤、不做人脸车牌匹配、不做抑制。"""
+
+    def __init__(self, **fields):
+        self.task_id = None
+        self.session_id = 1
+        self.name = '入口巡检'
+        self.task_name = '入口抓拍'
+        self.alert_event_enabled = True
+        self.alert_event_suppress_time = 0
+        self.alert_class_names = None
+        self.face_detection_enabled = False
+        self.plate_detection_enabled = False
+        self.model_ids = None
+        self.algorithm_task_id = None
+        for key, value in fields.items():
+            setattr(self, key, value)
 
 
 class _StubHook:
@@ -337,6 +375,177 @@ class TestFallbackAgainstRealHookRoute(unittest.TestCase):
     def _hook_returning(self, result):
         return patch('app.services.alert_hook_service.process_alert_hook', return_value=result)
 
+    @contextmanager
+    def _hook_persisting(self, task):
+        """真实 process_alert_hook 直连落库，只替换查库与写库；产出 (落库行列表, 查任务桩)。"""
+        from app.services import alert_hook_service as hook_service
+
+        persisted = []
+        with patch.dict(os.environ, {'ALERT_USE_DIRECT_PERSIST': 'true'}), \
+                patch.object(hook_service, '_query_alert_event_task', return_value=task) as query_task, \
+                patch.object(hook_service, '_query_alert_notification_config', return_value=None), \
+                patch.object(hook_service, '_maybe_dispatch_face_matching_from_alert'), \
+                patch.object(hook_service, '_maybe_dispatch_plate_matching_from_alert'), \
+                patch('app.services.alert_service.create_alert',
+                      # 落库桩返回 id=0：真实 id 会触发告警图片地址回写，那一步需要数据库
+                      side_effect=lambda row: persisted.append(row) or {'id': 0}):
+            yield persisted, query_task
+
+    def _run_patrol_send_alert(self, *, task_id):
+        """执行巡检管线里真正的 _send_alert（HTTP 告警形态：POST 关闭）；task_id=None 即会话式巡检。"""
+        from app.utils.service_urls import now_shanghai_time_str
+
+        send_alert = _load_pipeline_functions(
+            'services/patrol_algorithm_service/run_deploy.py', ('_send_alert',),
+            {
+                'json': json, 'uuid': uuid, 'time': time,
+                'logger': logging.getLogger('app.services.patrol_algorithm_service.run_deploy'),
+                'np': MagicMock(),  # 只用于参数注解
+                'List': list, 'Dict': dict,
+                'now_shanghai_time_str': now_shanghai_time_str,
+                '_save_alert_image': lambda frame, device_id, detection: '/app/alert_images/patrol/cam-1/p.jpg',
+                'session_config': _PipelineConfig(task_id=task_id),
+                'alert_lock': threading.Lock(),
+                'last_alert_time': {},
+            },
+        )['_send_alert']
+        with patch.dict(os.environ, {'POST_ENABLED': 'false'}):
+            send_alert('cam-1', '入口', None, self._DETECTIONS)
+
+    @contextmanager
+    def _joined_worker_threads(self):
+        """把管线起的后台发送线程收拢起来，退出前等它们全部结束。"""
+        started = []
+
+        def start_thread(*args, **kwargs):
+            thread = threading.Thread(*args, **kwargs)
+            started.append(thread)
+            return thread
+
+        yield SimpleNamespace(Thread=start_thread)
+        for thread in started:
+            thread.join(10)
+            self.assertFalse(thread.is_alive(), '告警的后台发送线程没有结束')
+
+    def _run_snapshot_alert(self, *, task_id):
+        """执行抓拍管线里真正的告警构造与后台发送（HTTP 告警形态：POST 关闭）；task_id=0 即手工运行。"""
+        from app.utils.service_urls import epoch_to_shanghai_datetime
+
+        with self._joined_worker_threads() as threading_stub:
+            functions = _load_pipeline_functions(
+                'services/snapshot_algorithm_service/run_deploy.py',
+                ('_shanghai_time_str', 'try_send_snapshot_detection_alert', 'send_alert_event_async'),
+                {
+                    'json': json, 'time': time, 'uuid': uuid,
+                    'threading': threading_stub,
+                    'logger': logging.getLogger('app.services.snapshot_algorithm_service.run_deploy'),
+                    'np': MagicMock(),  # 只用于参数注解
+                    'Dict': dict,
+                    'epoch_to_shanghai_datetime': epoch_to_shanghai_datetime,
+                    'TASK_ID': task_id,
+                    'task_config': _PipelineConfig(),
+                    'alert_time_lock': threading.Lock(),
+                    'last_alert_time': {},
+                    '_alert_event_suppress_seconds': lambda: 0,
+                    'save_alert_image': lambda *args, **kwargs: '/app/snap/task_7/cam-1/s.jpg',
+                    'try_send_face_matching_for_frame': lambda **kwargs: None,
+                    'try_send_plate_matching_for_frame': lambda **kwargs: None,
+                },
+            )
+            with patch.dict(os.environ, {'POST_ENABLED': 'false'}):
+                functions['try_send_snapshot_detection_alert'](
+                    'cam-1', '入口', 42, self._DETECTIONS, None, time.time())
+
+    def _run_realtime_alert(self, *, task_id):
+        """执行实时管线里真正的告警构造与后台发送（HTTP 告警形态：POST 关闭）；task_id=0 即手工运行。"""
+        from app.utils.algorithm_task_identity import build_alert_event_groups
+
+        with self._joined_worker_threads() as threading_stub:
+            functions = _load_pipeline_functions(
+                'services/realtime_algorithm_service/run_deploy.py',
+                ('send_alert_event_async', '_release_alert_suppression_slot',
+                 '_alert_event_suppress_seconds', 'try_send_alert_for_detections'),
+                {
+                    'json': json, 'time': time, 'uuid': uuid, 'os': os,
+                    'datetime': datetime, 'BEIJING_TZ': timezone(timedelta(hours=8)),
+                    'threading': threading_stub,
+                    'logger': logging.getLogger('app.services.realtime_algorithm_service.run_deploy'),
+                    'np': MagicMock(),  # 只用于参数注解
+                    'Dict': dict, 'Optional': Optional, 'Callable': Callable,
+                    'build_alert_event_groups': build_alert_event_groups,
+                    'TASK_ID': task_id,
+                    'task_config': _PipelineConfig(task_name='入口监控'),
+                    'alert_time_lock': threading.Lock(),
+                    'last_alert_time': {},
+                    'save_alert_image': lambda *args, **kwargs: '/app/alert_images/task_7/cam-1/r.jpg',
+                    '_update_device_runtime': lambda *args, **kwargs: None,
+                    'try_send_face_matching_for_frame': lambda **kwargs: None,
+                    'try_send_plate_matching_for_frame': lambda **kwargs: None,
+                },
+            )
+            with patch.dict(os.environ, {'POST_ENABLED': 'false'}):
+                functions['try_send_alert_for_detections'](
+                    'cam-1', '入口', 42, self._DETECTIONS, None, time.time())
+
+    @staticmethod
+    def _wall_clock(row):
+        """落库行里的 time 按东八区墙钟解析成的时刻（UTC）。"""
+        parsed, error = parse_alert_time_str(row['time'])
+        assert error is None, error
+        return parsed
+
+    def _pipeline_alerts(self):
+        """三种 Python 管线经 publish_alert 发出的告警，字段取自各 run_deploy.py 的构造处（巡检取任务式配置）。"""
+        detections = self._DETECTIONS
+        common = {'object': 'person', 'device_id': 'cam-1', 'device_name': '入口'}
+        return [
+            dict(common, **{
+                'schema_version': 2,
+                'event_id': 'evt-1',
+                'event_identity': '3:person',
+                'event': '入口监控',
+                'task_id': 7,
+                'task_name': '入口监控',
+                'task_type': 'realtime',
+                'model_ids': [3],
+                'detections': detections,
+                'correlation_id': 'evt-1',
+                'face_detection_enabled': False,
+                'plate_detection_enabled': False,
+                'time': '2026-11-24 10:00:00',
+                'information': json.dumps({'schema_version': 2, 'model_ids': [3], 'detections': detections}),
+                'image_path': None,
+            }),
+            dict(common, **{
+                'event': 'detection',
+                'task_id': 7,
+                'task_type': 'snapshot',
+                'correlation_id': 'snap-1',
+                'face_detection_enabled': False,
+                'plate_detection_enabled': False,
+                'time': '2026-11-24 10:00:01',
+                'image_path': '/app/snap/task_7/cam-1/s.jpg',
+                'information': json.dumps({
+                    'task_type': 'snapshot', 'task_id': 7, 'correlation_id': 'snap-1',
+                    'cron_capture': False, 'detections': detections,
+                }),
+            }),
+            dict(common, **{
+                'event': '入口监控',
+                'task_id': 7,
+                'task_type': 'patrol',
+                'correlation_id': 'patrol-1',
+                'face_detection_enabled': False,
+                'plate_detection_enabled': False,
+                'time': '2026-11-24 10:00:02',
+                'image_path': '/app/alert_images/patrol/p.jpg',
+                'information': json.dumps({
+                    'task_type': 'patrol', 'correlation_id': 'patrol-1',
+                    'patrol_session_id': 1, 'patrol_task_id': 7,
+                }),
+            }),
+        ]
+
     def test_persisted_alert_is_success_and_payload_arrives_unchanged(self):
         with self._hook_returning({'status': 'success', 'alert_id': 8834}) as process_hook:
             self.assertTrue(bus.publish_alert(self.alert))
@@ -355,6 +564,119 @@ class TestFallbackAgainstRealHookRoute(unittest.TestCase):
         with self._hook_returning({'status': 'success'}) as process_hook:
             self.assertFalse(bus.publish_alert({}))
         process_hook.assert_not_called()
+
+    def test_pipeline_alerts_are_persisted_by_the_real_hook_service(self):
+        """真实路由 + 真实 process_alert_hook 直连落库，只替换查库与写库。"""
+        with self._hook_persisting(self._TASK) as (persisted, query_task):
+            for alert in self._pipeline_alerts():
+                with self.subTest(task_type=alert['task_type']):
+                    self.assertTrue(bus.publish_alert(alert, snapshot=alert['task_type'] == 'snapshot'))
+
+        self.assertEqual(len(persisted), 3)
+        # hook 按“规范化后的任务类型 + 顶层 task_id”精确选任务，三种管线都带 task_id
+        self.assertEqual(
+            [(call.args[1], call.args[2]) for call in query_task.call_args_list],
+            [('realtime', 7), ('snap', 7), ('patrol', 7)],
+        )
+        self.assertEqual(
+            [(row['task_type'], row['task_id'], row['task_name']) for row in persisted],
+            [('realtime', 7, '入口监控'), ('snapshot', 7, '入口监控'), ('patrol', 7, '入口监控')],
+        )
+        realtime, snapshot, patrol = persisted
+        self.assertEqual((realtime['detections'][0]['model_id'], realtime['time']), (3, '2026-11-24 10:00:00'))
+        self.assertEqual((snapshot['correlation_id'], snapshot['image_path']),
+                         ('snap-1', '/app/snap/task_7/cam-1/s.jpg'))
+        self.assertEqual((patrol['correlation_id'], patrol['time']), ('patrol-1', '2026-11-24 10:00:02'))
+
+    def test_session_patrol_alert_without_task_id_falls_back_to_unique_task_lookup(self):
+        """会话式巡检不带 task_id：hook 按“设备 + 任务类型”唯一匹配，匹配不上就跳过而不是报错。"""
+        session_alert = self._pipeline_alerts()[2]
+        del session_alert['task_id']
+        with self._hook_persisting(None) as (persisted, query_task):
+            self.assertTrue(bus.publish_alert(session_alert))  # 跳过也算投递成功
+
+        query_task.assert_called_once_with('cam-1', 'patrol', None)
+        self.assertEqual(persisted, [])
+
+    def test_real_patrol_pipeline_alert_is_persisted_for_its_task(self):
+        """巡检管线真正的 _send_alert → publish_alert → 真实路由 → 落库行。"""
+        with self._hook_persisting(dict(self._TASK, task_id=9, task_type='patrol')) as (persisted, query_task):
+            self._run_patrol_send_alert(task_id=9)
+
+        query_task.assert_called_once_with('cam-1', 'patrol', 9)
+        (row,) = persisted
+        self.assertEqual((row['task_type'], row['task_id']), ('patrol', 9))
+        self.assertEqual(json.loads(row['information'])['correlation_id'], row['correlation_id'])
+        # hook 把不带时区的 time 当作东八区墙钟：必须解析到“现在”，而不是差 8 小时
+        self.assertLess(abs(self._wall_clock(row) - datetime.now(timezone.utc)), timedelta(seconds=60))
+
+    def test_real_session_patrol_alert_leaves_the_task_to_the_hook(self):
+        with self._hook_persisting(dict(self._TASK, task_id=7, task_type='patrol')) as (persisted, query_task):
+            self._run_patrol_send_alert(task_id=None)
+
+        query_task.assert_called_once_with('cam-1', 'patrol', None)
+        self.assertEqual([(row['task_type'], row['task_id']) for row in persisted], [('patrol', 7)])
+
+    def test_real_snapshot_pipeline_alert_is_persisted_for_its_task(self):
+        with self._hook_persisting(dict(self._TASK, task_id=7, task_type='snap')) as (persisted, query_task):
+            self._run_snapshot_alert(task_id=7)
+
+        query_task.assert_called_once_with('cam-1', 'snap', 7)
+        (row,) = persisted
+        self.assertEqual(
+            (row['task_type'], row['task_id'], row['image_path']),
+            ('snapshot', 7, '/app/snap/task_7/cam-1/s.jpg'),
+        )
+        self.assertLess(abs(self._wall_clock(row) - datetime.now(timezone.utc)), timedelta(seconds=60))
+
+    def test_real_snapshot_alert_without_a_task_id_is_looked_up_not_hardcoded(self):
+        """手工运行抓拍管线时 TASK_ID 为 0：iot-sink 把 0 当成既有任务号而不回填，所以必须发 None。"""
+        from app.services import alert_hook_service as hook_service
+
+        with self._hook_persisting(self._TASK) as (persisted, query_task), \
+                patch.object(hook_service, 'process_alert_hook',
+                             wraps=hook_service.process_alert_hook) as process_hook:
+            self._run_snapshot_alert(task_id=0)
+
+        self.assertIsNone(process_hook.call_args.args[0]['task_id'])
+        query_task.assert_called_once_with('cam-1', 'snap', None)
+        self.assertEqual([(row['task_type'], row['task_id']) for row in persisted], [('snapshot', 7)])
+
+    def test_real_realtime_pipeline_alert_is_persisted_for_its_task(self):
+        with self._hook_persisting(self._TASK) as (persisted, query_task):
+            self._run_realtime_alert(task_id=7)
+
+        query_task.assert_called_once_with('cam-1', 'realtime', 7)
+        (row,) = persisted
+        self.assertEqual((row['task_type'], row['task_id'], row['task_name']), ('realtime', 7, '入口监控'))
+        self.assertEqual(row['detections'][0]['model_id'], 3)
+        self.assertEqual(json.loads(row['information'])['correlation_id'], row['correlation_id'])
+        self.assertLess(abs(self._wall_clock(row) - datetime.now(timezone.utc)), timedelta(seconds=60))
+
+    def test_real_realtime_alert_without_a_task_id_is_looked_up_not_hardcoded(self):
+        """手工运行实时管线时 TASK_ID 为 0：iot-sink 把 0 当成既有任务号而不回填，所以必须发 None。"""
+        from app.services import alert_hook_service as hook_service
+
+        with self._hook_persisting(self._TASK) as (persisted, query_task), \
+                patch.object(hook_service, 'process_alert_hook',
+                             wraps=hook_service.process_alert_hook) as process_hook:
+            self._run_realtime_alert(task_id=0)
+
+        self.assertIsNone(process_hook.call_args.args[0]['task_id'])
+        query_task.assert_called_once_with('cam-1', 'realtime', None)
+        self.assertEqual([(row['task_type'], row['task_id']) for row in persisted], [('realtime', 7)])
+
+    def test_foreign_model_alert_is_rejected_by_hook_but_counts_as_delivered(self):
+        from app.services import alert_hook_service as hook_service
+
+        foreign = dict(self._pipeline_alerts()[0], model_ids=[99])
+        with patch.dict(os.environ, {'ALERT_USE_DIRECT_PERSIST': 'true'}), \
+                patch.object(hook_service, '_query_alert_event_task', return_value=self._TASK), \
+                patch('app.services.alert_service.create_alert') as create_alert, \
+                self.assertLogs(hook_service.logger, level='WARNING') as logs:
+            self.assertTrue(bus.publish_alert(foreign))
+        create_alert.assert_not_called()
+        self.assertIn('foreign_model', '\n'.join(logs.output))
 
 
 if __name__ == '__main__':

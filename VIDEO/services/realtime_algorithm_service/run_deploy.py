@@ -2410,7 +2410,9 @@ def try_send_alert_for_detections(
                 'event_identity': event_identity,
                 'object': primary_object,
                 'event': algorithm_name,
-                'task_id': TASK_ID,
+                # hook / iot-sink 只认顶层 task_id；缺省时按“设备 + 任务类型”匹配。
+                # 手工运行时 TASK_ID 为 0，iot-sink 会把 0 当成既有任务号而不再回填，所以写成 None（等价于缺省）
+                'task_id': TASK_ID or None,
                 'task_name': algorithm_name,
                 'device_id': device_id,
                 'device_name': device_name,

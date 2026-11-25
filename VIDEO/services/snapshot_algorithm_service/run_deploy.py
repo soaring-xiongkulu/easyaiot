@@ -1490,6 +1490,9 @@ def try_send_snapshot_detection_alert(
     alert_data = {
         'object': primary,
         'event': algorithm_name,
+        # hook / iot-sink 只认顶层 task_id；缺省时按“设备 + 任务类型”匹配，同设备多个抓拍任务会被判为歧义。
+        # 手工运行时 TASK_ID 为 0，iot-sink 会把 0 当成既有任务号而不再回填，所以写成 None（等价于缺省）
+        'task_id': TASK_ID or None,
         'device_id': device_id,
         'device_name': device_name,
         'face_detection_enabled': bool(getattr(task_config, 'face_detection_enabled', False)),
@@ -1502,6 +1505,7 @@ def try_send_snapshot_detection_alert(
             'detections': all_info,
             'frame_number': frame_number,
             'correlation_id': correlation_id,
+            'task_id': TASK_ID,
             'task_type': 'snapshot',
             'cron_capture': False,
         }),

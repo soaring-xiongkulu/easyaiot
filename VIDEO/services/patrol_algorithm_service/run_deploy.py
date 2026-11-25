@@ -44,6 +44,7 @@ from app.utils.onnx_inference import ONNXInference
 from app.utils.algo_model_detect import run_model_detection
 from app.utils.alert_images_paths import resolve_alert_images_root
 from app.utils.patrol_snap_upload import upload_patrol_frame_to_snap_space
+from app.utils.service_urls import now_shanghai_time_str
 
 logging.basicConfig(
     level=logging.INFO,
@@ -532,6 +533,7 @@ def _send_alert(device_id: str, device_name: str, frame: np.ndarray, detections:
         logger.warning('POST 不可用且策略为 closed，抑制直发巡检告警 device=%s', device_id)
         return
 
+    correlation_id = str(uuid.uuid4())
     alert_data = {
         'object': primary,
         'event': session_config.name,
@@ -540,16 +542,22 @@ def _send_alert(device_id: str, device_name: str, frame: np.ndarray, detections:
         'task_type': 'patrol',
         'face_detection_enabled': bool(session_config.face_detection_enabled),
         'plate_detection_enabled': bool(session_config.plate_detection_enabled),
-        'time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+        # hook / iot-sink 把不带时区的 time 当作东八区墙钟，不能用 utcnow
+        'time': now_shanghai_time_str(),
+        'correlation_id': correlation_id,
         'information': json.dumps({
             'total_count': len(detections),
             'object_counts': counts,
             'task_type': 'patrol',
+            'correlation_id': correlation_id,
             'patrol_session_id': session_config.session_id,
             'patrol_task_id': session_config.task_id,
         }, ensure_ascii=False),
         'image_path': image_path,
     }
+    if session_config.task_id:
+        # 仅任务式巡检带顶层 task_id；会话式巡检的设备与告警开关独立于算法任务，留给 hook 按“设备 + 类型”匹配
+        alert_data['task_id'] = session_config.task_id
     if post_in_bypass():
         alert_data = inject_post_bypass_info(alert_data)
         logger.warning('POST bypass 直发 sink device=%s', device_id)
@@ -558,9 +566,9 @@ def _send_alert(device_id: str, device_name: str, frame: np.ndarray, detections:
             from app.utils.algo_mqtt_bus import publish_alert
         ok = publish_alert(alert_data, snapshot=False)
         if ok:
-            logger.info('设备 %s 巡检告警(MQTT): %s', device_id, counts)
+            logger.info('设备 %s 巡检告警已发布: %s', device_id, counts)
         else:
-            logger.warning('发送巡检告警到 MQTT 失败 device=%s', device_id)
+            logger.warning('发送巡检告警失败 device=%s', device_id)
     except Exception as exc:
         logger.warning('发送告警失败 device=%s: %s', device_id, exc)
 
