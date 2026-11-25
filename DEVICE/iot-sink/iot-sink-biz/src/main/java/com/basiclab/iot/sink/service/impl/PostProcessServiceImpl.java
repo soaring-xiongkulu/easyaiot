@@ -420,7 +420,7 @@ public class PostProcessServiceImpl implements PostProcessService {
     }
 
     private void postAlertHook(Map<String, Object> alertData) {
-        // VIDEO /video/alert/hook 已移除；后处理告警直接走本模块 AlertService
+        // 后处理告警由本模块 AlertService 落库，不经 VIDEO /video/alert/hook（该 hook 仅供 edge 无 iot-sink 时使用）
         if (alertService == null) {
             log.warn("AlertService 不可用，后处理告警无法落库 deviceId={}",
                     alertData != null ? alertData.get("device_id") : null);
