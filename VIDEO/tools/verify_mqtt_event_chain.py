@@ -77,8 +77,12 @@ def main() -> int:
         )
 
     # 3) MQTT bus 规范化
+    saved_brokers = os.environ.get('MQTT_BROKER_URLS')
     os.environ['ALGO_BUS_TRANSPORT'] = 'mqtt'
-    os.environ.pop('MQTT_BROKER_URLS', None)
+    # “无 broker”必须指向确定的空端口：开发机常驻 EMQX 时，默认的 127.0.0.1:1883 会把这条告警真实发出去
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        os.environ['MQTT_BROKER_URLS'] = f'127.0.0.1:{probe.getsockname()[1]}'
     from app.utils.algo_mqtt_bus import bus_enabled, _normalize_alert_payload, publish_alert
 
     check('bus_enabled 默认 True', bus_enabled() is True)
@@ -100,6 +104,10 @@ def main() -> int:
 
     # 无 broker 时 publish 应失败但不抛异常
     check('无 broker 时 publish_alert 返回 False', publish_alert(payload, snapshot=False) is False)
+    if saved_brokers is None:
+        os.environ.pop('MQTT_BROKER_URLS', None)
+    else:
+        os.environ['MQTT_BROKER_URLS'] = saved_brokers
 
     # 4) 可选：对真实 broker 发布
     broker = (os.getenv('MQTT_BROKER_URLS') or '').strip() or '127.0.0.1:1883'
