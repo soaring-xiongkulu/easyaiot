@@ -2,11 +2,13 @@
 import json
 import logging
 import os
+import threading
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 import cv2
 import numpy as np
+from flask import current_app
 
 from app.services.alert_consumer_service import upload_image_to_minio
 from app.services.alert_service import create_alert
@@ -268,6 +270,26 @@ def match_plate_across_libraries(
         if result.get('matched'):
             return True, result, library
     return False, None, None
+
+
+def run_matching_locally(handler: Callable[[Dict[str, Any]], Any], payload: Dict[str, Any]) -> None:
+    """算法总线关闭（edge 无 Kafka/iot-sink）时在本进程后台执行匹配，等价于 iot-sink 回调 /matching/process。
+
+    抓拍队列投递只等 5 秒，而匹配耗时随库规模变化，所以不能在 /matching/publish 请求内同步执行。
+    """
+    app = current_app._get_current_object()
+
+    def _run() -> None:
+        task_id = payload.get('taskId') or payload.get('task_id')
+        try:
+            with app.app_context():
+                handler(payload)
+        except ValueError as exc:
+            logger.warning('本进程库匹配跳过 task=%s: %s', task_id, exc)
+        except Exception:
+            logger.error('本进程库匹配失败 task=%s', task_id, exc_info=True)
+
+    threading.Thread(target=_run, daemon=True, name='library-matching-local').start()
 
 
 def process_face_matching_message(payload: Dict[str, Any]) -> FaceMatchRecord:

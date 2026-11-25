@@ -493,9 +493,10 @@ def match_face_in_library(library_id: int):
 
 @face_bp.route("/matching/publish", methods=["POST"])
 def publish_face_matching():
-    """算法任务进程调用：将人脸匹配请求投递到 Kafka"""
+    """算法任务进程调用：投递人脸匹配请求（Kafka；算法总线关闭时本进程直接匹配）"""
     try:
         from app.services.face_matching_kafka_service import build_face_matching_message, send_face_matching_to_kafka
+        from app.utils.algo_mqtt_bus import bus_enabled
 
         data = request.get_json(silent=True) or {}
         task_id = data.get('taskId') or data.get('task_id')
@@ -521,8 +522,11 @@ def publish_face_matching():
             bbox=data.get('bbox'),
             confidence=data.get('confidence'),
         )
-        ok = send_face_matching_to_kafka(message)
-        if not ok:
+        if not bus_enabled():
+            # edge 无 Kafka/iot-sink：本进程直接匹配，等价于 iot-sink 回调 /matching/process
+            from app.services.library_matching_service import run_matching_locally
+            run_matching_locally(face_library_service.process_face_matching_message, message)
+        elif not send_face_matching_to_kafka(message):
             return jsonify({"code": 500, "msg": "Kafka 投递失败"}), 500
         return jsonify({"code": 0, "msg": "投递成功", "data": message})
     except Exception as e:

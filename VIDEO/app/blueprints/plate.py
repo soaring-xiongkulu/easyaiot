@@ -358,8 +358,11 @@ def match_plate_in_library(library_id: int):
 
 @plate_bp.route('/matching/publish', methods=['POST'])
 def publish_plate_matching():
+    """算法任务进程调用：投递车牌匹配请求（Kafka；算法总线关闭时本进程直接匹配）"""
     try:
         from app.services.plate_matching_kafka_service import build_plate_matching_message, send_plate_matching_to_kafka
+        from app.utils.algo_mqtt_bus import bus_enabled
+
         data = request.get_json(silent=True) or {}
         task_id = data.get('taskId') or data.get('task_id')
         plate_no = data.get('plateNo') or data.get('plate_no')
@@ -385,6 +388,11 @@ def publish_plate_matching():
             rect=data.get('rect'),
             landmarks=data.get('landmarks'),
         )
+        if not bus_enabled():
+            # edge 无 Kafka/iot-sink：本进程直接匹配，等价于 iot-sink 回调 /matching/process
+            from app.services.library_matching_service import run_matching_locally
+            run_matching_locally(plate_library_service.process_plate_matching_message, message)
+            return jsonify({'code': 0, 'msg': 'success', 'data': {'sent': True}})
         ok = send_plate_matching_to_kafka(message)
         return jsonify({'code': 0, 'msg': 'success' if ok else 'Kafka不可用，消息未发送', 'data': {'sent': ok}})
     except Exception as e:
