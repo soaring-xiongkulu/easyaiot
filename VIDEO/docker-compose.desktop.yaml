@@ -16,8 +16,8 @@ services:
       - MINIO_ENDPOINT=host.docker.internal:9000
       - KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:9092
       - TDENGINE_HOST=host.docker.internal
-      # 实时算法告警只走 MQTT；Desktop bridge 内使用 EMQX 服务名。
-      - ALGO_BUS_TRANSPORT=mqtt
+      # 实时算法告警走 MQTT 时经 iot-sink 落库与通知；Desktop bridge 内使用 EMQX 服务名。
+      # ALGO_BUS_TRANSPORT 不在此钉死：edge 形态由 .env.docker 置为 http，改走本机 VIDEO hook。
       - MQTT_BROKER_URLS=emqx-server:1883
     networks:
       - easyaiot-network

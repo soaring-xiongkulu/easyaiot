@@ -1012,8 +1012,8 @@ apply_python_service_deploy_env() {
                 _set_env_docker_kv "$env_file" SRS_HOST "127.0.0.1"
                 _set_env_docker_kv "$env_file" MQTT_BROKER_URLS "127.0.0.1:1883"
             fi
-            # 从 edge 切回 mini/standard/full 时必须清掉 http 残留值；
-            # 实时算法告警只通过 MQTT 发布，没有 HTTP 回退。
+            # 从 edge 切回 mini/standard/full 时必须清掉 http 残留值：
+            # 这些形态的告警须经 iot-sink 落库与通知，残留 http 会让算法进程绕过它直投 VIDEO hook。
             _set_env_docker_kv "$env_file" ALGO_BUS_TRANSPORT mqtt
             # 模型信息/权重下载统一指向 AI 服务（edge 切回 full 后残留的
             # AI_SERVICE_URL=…/video 会回环 VIDEO 自身，模型记录 404）
