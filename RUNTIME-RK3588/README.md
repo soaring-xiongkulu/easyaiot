@@ -197,6 +197,29 @@ sudo bash RUNTIME-RK3588/install_linux.sh build
 
 启用平台纳管时才会安装轻量 MQTT Agent；启用 FRP 时才会下载、校验并注册 frpc。安装后的清单保存在 `/etc/easyaiot/runtime-rk3588/tasks.json`，也可以直接编辑它再执行 `update`。旧版单流环境变量仍会自动转换为一条任务，仅用于向后兼容。
 
+### 告警投递（可选）
+
+任务默认不产生告警：`alarm.enabled` 和 `mqtt.transport` 的缺省值分别是 `false` 和 `off`。需要告警时按形态二选一，改完清单执行 `update`：
+
+- **接入中心**：`mqtt.transport` 设为 `mqtt`，`mqtt.broker_urls` 指向中心 EMQX；告警发布到 `mqtt/iot-alert-notification`，由中心的 iot-sink 落库、iot-message 下发通知。mini 中心不部署 iot-message，告警只落库、在平台内展示，不下发通知；需要通知时中心用 standard 或 full。
+- **不接中心**：`mqtt.transport` 设为 `http`，并在任务的 `alarm.alert_hook_url` 填一个 VIDEO 的 `/video/alert/hook` 地址；告警由该 VIDEO 直接落库，没有通知下发。
+
+在上面最小清单的基础上加两处即可（`mqtt` 写在顶层供所有任务共用，也可以写进单个任务）：
+
+```json
+{
+  "mqtt": { "transport": "mqtt", "broker_urls": "中心IP:1883" },
+  "tasks": [
+    {
+      "id": "north-gate",
+      "alarm": { "enabled": true, "cooldown_time": 30 }
+    }
+  ]
+}
+```
+
+板端不部署 POST 定制后处理，安装器因此让运行进程默认带着 `POST_ENABLED=false` 启动：不关掉它，POST 探活失败会按 closed 策略把告警全部抑制。确需让盒子的事件进入中心 POST 时再覆盖它，并一并提供 `NACOS_SERVER`（或 `POST_BASE_URL`），否则告警同样会被抑制：systemd 下用 `systemctl edit easyaiot-runtime-rk3588@.service` 加 drop-in；没有 systemd 时执行 `sudo env POST_ENABLED=true bash RUNTIME-RK3588/install_linux.sh start`。
+
 交叉编译时必须提供 aarch64 RK3588 工具链，并通过 `ROCKCHIP_SDK_ROOT` 指向包含 RKNN/RGA/MPP 头文件和库的 SDK sysroot。CMake 在非 aarch64 或依赖缺失时会直接报错。
 
 ## RKNN 模型

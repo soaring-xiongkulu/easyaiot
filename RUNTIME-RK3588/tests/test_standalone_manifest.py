@@ -72,6 +72,43 @@ class StandaloneManifestTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("未定义模型", result.stderr)
 
+    def test_tasks_raise_no_alarm_by_default(self):
+        result, output = self.run_compile(self.document())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        gate = (output / "tasks" / "gate.ini").read_text(encoding="utf-8")
+        self.assertIn("[alarm]\nenable=false\n", gate)
+        self.assertIn("enable_alarm=false\n", gate)
+        self.assertIn("algo_bus_transport=off\n", gate)
+
+    def test_alarm_delivery_recipe_from_readme_is_rendered_into_the_task_ini(self):
+        """README「告警投递」的两条路径：接中心走 MQTT，不接中心走 VIDEO hook。"""
+        document = self.document()
+        document["mqtt"] = {"transport": "http"}
+        document["tasks"][0]["alarm"] = {
+            "enabled": True,
+            "cooldown_time": 30,
+            "alert_hook_url": "http://192.168.1.20:6000/video/alert/hook",
+        }
+        # 单个任务的 mqtt 可以覆盖顶层缺省
+        document["tasks"][1]["mqtt"] = {"transport": "mqtt", "broker_urls": "10.0.0.5:1883"}
+        document["tasks"][1]["alarm"] = {"enabled": True}
+
+        result, output = self.run_compile(document)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        gate = (output / "tasks" / "gate.ini").read_text(encoding="utf-8")
+        self.assertIn("[alarm]\nenable=true\nconfidence_threshold=0.5\ncooldown_time=30\n", gate)
+        self.assertIn("enable_alarm=true\n", gate)
+        self.assertIn("alert_hook_url=http://192.168.1.20:6000/video/alert/hook\n", gate)
+        self.assertIn("algo_bus_transport=http\n", gate)
+        self.assertIn("mqtt_broker_urls=\n", gate)
+
+        yard = (output / "tasks" / "yard.ini").read_text(encoding="utf-8")
+        self.assertIn("enable_alarm=true\n", yard)
+        self.assertIn("alert_hook_url=\n", yard)
+        self.assertIn("algo_bus_transport=mqtt\n", yard)
+        self.assertIn("mqtt_broker_urls=10.0.0.5:1883\n", yard)
+
     def test_compiles_control_plane_and_optional_frp(self):
         document = self.document()
         document["control_plane"] = {
