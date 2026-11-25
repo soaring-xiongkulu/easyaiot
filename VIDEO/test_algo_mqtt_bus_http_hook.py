@@ -4,6 +4,7 @@ import logging
 import os
 import socket
 import sys
+import tempfile
 import threading
 import unittest
 from decimal import Decimal
@@ -182,6 +183,107 @@ class TestPublishAlertHttpFallback(unittest.TestCase):
     def test_edge_profile_resolves_local_video_hook(self):
         with patch.dict(os.environ, {'EASYAIOT_DEPLOY_PROFILE': 'edge'}, clear=True):
             self.assertEqual(bus.alert_hook_url(), 'http://127.0.0.1:6000/video/alert/hook')
+
+    def test_bus_enabled_reads_process_env_by_default_and_a_mapping_on_request(self):
+        self.assertFalse(bus.bus_enabled())
+        self.assertFalse(bus.bus_enabled({'ALGO_BUS_TRANSPORT': ' HTTP '}))
+        self.assertTrue(bus.bus_enabled({'ALGO_BUS_TRANSPORT': 'mqtt'}))
+        self.assertTrue(bus.bus_enabled({}))
+
+
+class TestLaunchersDisablePostForHttpAlerts(unittest.TestCase):
+    """拉起算法子进程时的环境：HTTP 告警形态下必须关掉子进程的 POST，否则管线走不到 HTTP 回退。"""
+
+    def setUp(self):
+        # 防御性场景：父进程环境里 POST 仍是开启状态（旧版 compose 的 environment 兜底、手工导出），
+        # 拉起算法子进程时也必须把它关掉，否则管线走不到 HTTP 回退
+        env = patch.dict(os.environ, _edge_env(
+            POST_ENABLED='true',
+            POST_INGRESS_TRANSPORT='mqtt',
+            POST_FAIL_STRATEGY='closed',
+            POST_BASE_URL='',
+            NACOS_SERVER='',
+        ), clear=True)
+        env.start()
+        self.addCleanup(env.stop)
+        _quiet_logs(self, 'algo_mqtt_bus', 'app')
+        _quiet_logs(self, 'app.services.algorithm_task_daemon', level=logging.ERROR)  # 隔离环境没有 DATABASE_URL
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = tmp.name
+
+    def _daemon(self, **attrs):
+        from app.services.algorithm_task_daemon import AlgorithmTaskDaemon
+        # 不经 __init__：它会启动守护线程并拉起真实的算法进程
+        daemon = AlgorithmTaskDaemon.__new__(AlgorithmTaskDaemon)
+        daemon._task_id = 7
+        daemon._log_path = self.tmp
+        daemon._task_type = 'realtime'
+        daemon._executor = 'python'
+        daemon._extra_env = {}
+        for key, value in attrs.items():
+            setattr(daemon, key, value)
+        return daemon
+
+    def _python_pipeline_env(self, daemon):
+        with patch.object(type(daemon), '_get_conda_python', return_value=None):
+            _, _, env = daemon._get_deploy_args()
+        return env
+
+    def _cpp_runtime_env(self, daemon):
+        binary = os.path.join(self.tmp, 'RUNTIME')
+        with open(binary, 'w', encoding='utf-8') as handle:
+            handle.write('#!/bin/sh\n')
+        os.chmod(binary, 0o755)
+        ini = os.path.join(self.tmp, 'task.ini')
+        with open(ini, 'w', encoding='utf-8') as handle:
+            handle.write('[video_task]\n')
+        daemon._executor = 'cpp'
+        daemon._runtime_target = 'generic'
+        daemon._runtime_bin = binary
+        daemon._runtime_ini = ini
+        daemon._runtime_inis = [ini]
+        _, _, env = daemon._get_cpp_deploy_args_for_ini(ini)
+        return env
+
+    def test_python_pipeline_gets_post_disabled_in_http_alert_mode(self):
+        env = self._python_pipeline_env(self._daemon())
+        self.assertEqual((env['ALGO_BUS_TRANSPORT'], env['POST_ENABLED']), ('http', 'false'))
+
+    def test_cpp_runtime_gets_post_disabled_in_http_alert_mode(self):
+        self.assertEqual(self._cpp_runtime_env(self._daemon())['POST_ENABLED'], 'false')
+
+    def test_patrol_session_gets_post_disabled_in_http_alert_mode(self):
+        try:
+            from app.services import patrol_session_service
+        except ModuleNotFoundError as exc:
+            self.skipTest(f'当前环境缺少巡检会话服务的依赖：{exc}')
+        session = patrol_session_service.PatrolSessionDaemon.__new__(patrol_session_service.PatrolSessionDaemon)
+        session._session_id = 3
+        session._log_path = self.tmp
+        env = session._build_env()
+        self.assertEqual((env['ALGO_BUS_TRANSPORT'], env['POST_ENABLED']), ('http', 'false'))
+
+    def test_post_stays_enabled_when_alerts_go_over_mqtt(self):
+        with patch.dict(os.environ, {'ALGO_BUS_TRANSPORT': 'mqtt'}):
+            pipeline_env = self._python_pipeline_env(self._daemon())
+            runtime_env = self._cpp_runtime_env(self._daemon())
+        self.assertEqual((pipeline_env['POST_ENABLED'], runtime_env['POST_ENABLED']), ('true', 'true'))
+
+    def test_task_level_transport_override_is_honored(self):
+        with patch.dict(os.environ, {'ALGO_BUS_TRANSPORT': 'mqtt'}):
+            env = self._python_pipeline_env(self._daemon(_extra_env={'ALGO_BUS_TRANSPORT': 'http'}))
+        self.assertEqual(env['POST_ENABLED'], 'false')
+
+    def test_pipelines_reach_the_http_fallback_only_with_post_disabled(self):
+        with patch.object(bus, 'post_is_ready', return_value=False):  # edge 未部署 POST
+            # 修正前：POST 未就绪 + closed 策略，告警在到达 publish_alert 之前就被抑制
+            self.assertEqual(bus.post_delivery_mode(), 'drop')
+            self.assertTrue(bus.post_fail_closed())
+            env = self._python_pipeline_env(self._daemon())
+            with patch.dict(os.environ, env, clear=True):
+                self.assertEqual(bus.post_delivery_mode(), 'direct')
+                self.assertFalse(bus.post_fail_closed())
 
 
 class TestFallbackAgainstRealHookRoute(unittest.TestCase):

@@ -17,6 +17,7 @@ import signal
 from datetime import datetime
 
 import app.utils.nvidia_lib_path  # noqa: F401  子进程 run_deploy 继承 LD_LIBRARY_PATH
+from app.utils.algo_mqtt_bus import disable_post_for_http_alerts
 
 # 不再需要导入数据库模型，所有信息都通过参数传入
 
@@ -687,6 +688,7 @@ class AlgorithmTaskDaemon:
 
         if self._extra_env:
             env.update(self._extra_env)
+        disable_post_for_http_alerts(env)
 
         self._log(
             f'环境变量已设置: TASK_ID={env["TASK_ID"]}, VIDEO_SERVICE_PORT={env["VIDEO_SERVICE_PORT"]}, '
@@ -736,12 +738,6 @@ class AlgorithmTaskDaemon:
         env['LOG_PATH'] = self._log_path
         env['EASYAIOT_RUNTIME_TARGET'] = runtime_target
         env[env_key] = runtime_bin
-        # POST's InferEvent ingress is MQTT-only.  When this task is explicitly
-        # configured for the local HTTP alert hook, do not let the container-wide
-        # POST_ENABLED setting divert alarms into an unavailable MQTT publisher.
-        transport = (env.get('ALGO_BUS_TRANSPORT') or '').strip().lower()
-        if transport in {'http', 'off', '0', 'false', 'no'}:
-            env['POST_ENABLED'] = 'false'
         for key in (
             'ALERT_HOOK_URL', 'VIDEO_SERVICE_HOST', 'VIDEO_SERVICE_URL', 'VIDEO_SERVICE_PORT',
             'POD_IP', 'HOST_IP', 'RUNTIME_MODEL_PATH', 'RUNTIME_CLASSES_PATH',
@@ -755,6 +751,7 @@ class AlgorithmTaskDaemon:
                 env[key] = val
         if self._extra_env:
             env.update(self._extra_env)
+        disable_post_for_http_alerts(env)
         # Default prefer GPU unless explicitly disabled; RK3588 uses NPU/MPP only.
         if runtime_target == 'rk3588':
             env['USE_GPU'] = 'false'

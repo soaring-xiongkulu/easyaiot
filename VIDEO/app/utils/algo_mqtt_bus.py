@@ -2,7 +2,9 @@
 
 环境变量：
 - ALGO_BUS_TRANSPORT：默认空视为 mqtt；显式 http/off/0/false 时关闭总线，
-  告警改经 HTTP 投递到 VIDEO 告警 hook（edge 无 iot-sink，见 ALERT_HOOK_URL）
+  告警改经 HTTP 投递到 VIDEO 告警 hook（edge 无 iot-sink，见 ALERT_HOOK_URL）。
+  POST_INGRESS_TRANSPORT 仍独立取值：InferEvent 只能经 MQTT 进入 POST，
+  任务走 HTTP 告警时由拉起方调用 disable_post_for_http_alerts 置 POST_ENABLED=false
 - ALERT_HOOK_URL：总线关闭时的告警 hook 地址；未配置时按部署形态解析（edge → 本机 VIDEO）
 - POST_INGRESS_TRANSPORT：InferEvent 进入 POST 的通道，首期支持 mqtt/off
 - POST_FAIL_STRATEGY：POST 不可用时 closed（默认）或 open
@@ -18,7 +20,7 @@ import os
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Mapping, MutableMapping, Optional, Tuple
 
 logger = logging.getLogger('algo_mqtt_bus')
 
@@ -44,10 +46,21 @@ def _brokers() -> list[Tuple[str, int]]:
     return out
 
 
-def bus_enabled() -> bool:
-    """默认开启 MQTT；仅当显式设为 http/off/0/false 时关闭。"""
-    val = (os.getenv('ALGO_BUS_TRANSPORT') or '').strip().lower()
+def bus_enabled(environ: Optional[Mapping[str, str]] = None) -> bool:
+    """默认开启 MQTT；仅当显式设为 http/off/0/false 时关闭。environ 缺省取当前进程环境。"""
+    source = os.environ if environ is None else environ
+    val = (source.get('ALGO_BUS_TRANSPORT') or '').strip().lower()
     return val not in _DISABLE_VALUES
+
+
+def disable_post_for_http_alerts(env: MutableMapping[str, str]) -> None:
+    """算法子进程走 HTTP 告警 hook 时，在它的环境里关闭 POST（拉起子进程前调用）。
+
+    InferEvent 只能经 MQTT 进入 POST。容器级 POST_ENABLED=true 会让告警改投到不可用的
+    MQTT，或在 POST 未就绪时按 closed 策略直接抑制，两种情况都到不了 HTTP hook。
+    """
+    if not bus_enabled(env):
+        env['POST_ENABLED'] = 'false'
 
 
 def _node_id_from_env() -> Optional[int]:

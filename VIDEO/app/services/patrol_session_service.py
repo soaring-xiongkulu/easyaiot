@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 from models import db, PatrolSession, Device, DeviceDirectory, AlgorithmTask
 from app.services import camera_service
 from app.services.patrol_progress_hub import publish as publish_patrol_progress
+from app.utils.algo_mqtt_bus import disable_post_for_http_alerts
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +231,7 @@ class PatrolSessionDaemon:
             env['KAFKA_BOOTSTRAP_SERVERS'] = 'localhost:9092'
         else:
             env['KAFKA_BOOTSTRAP_SERVERS'] = kafka
+        disable_post_for_http_alerts(env)
         return env
 
     def _get_deploy_args(self) -> Tuple[Optional[list], Optional[str], Optional[dict]]:
