@@ -109,18 +109,19 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 绿灯齐了就收工——比你想的轻松，今天可以提前喝杯咖啡了。
 </p>
 
-### 🧩 edge：单体 / 集群 × RK3588 / 非 RK3588
+### 🧩 edge：单体 / 集群 × 通用主机 / RK3588 / BM1688
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-上面三步装的是最轻的<strong>单体模式</strong>。edge 规格先分<strong>单体 / 集群</strong>两种模式，再按芯片分 <strong>RK3588 / 非 RK3588</strong> 两类硬件——共四种组合，命令各不相同：
+上面三步装的是最轻的<strong>单体模式</strong>。edge 规格先分<strong>单体 / 集群</strong>，再选择通用主机、RK3588 或 BM1688 专用运行时；芯片模块不与通用 ONNX/CPU 混跑：
 </p>
 
 | | 单体模式（菜单项 `standalone`，纯边缘形态） | 集群模式（菜单项 `integrated`，云边一体形态） |
 | :-- | :-- | :-- |
-| **非 RK3588**（x86_64 / 通用 ARM） | WEB + VIDEO + 通用 `RUNTIME` 装在同一台机器，本地闭环 | 本机只装通用 `RUNTIME` 算力节点，接入中心平台（standard / full），任务由中心下发 |
+| **通用主机**（x86_64 / 通用 ARM，不含 RK3588/BM1688） | WEB + VIDEO + 通用 `RUNTIME` 装在同一台机器，本地闭环 | 本机只装通用 `RUNTIME` 算力节点，接入中心平台（standard / full），任务由中心下发 |
 | **RK3588** | 只装 `RUNTIME-RK3588`，任务写在盒子本地清单，不依赖中心 | 同一运行时 + MQTT Agent，盒子出现在中心 WEB「边缘计算」菜单 |
+| **BM1688 / CV186X** | 只装 `RUNTIME-BM1688`，或与本机 WEB + VIDEO 组成一体机；任务严格本机执行 | 当前不经远程 iot-node 分发；在 BM1688 盒子本机由 VIDEO 选择专用实时任务，避免误下发到不匹配芯片 |
 
-**① 非 RK3588 · 单体模式**（即上面三步）
+**① 通用主机 · 单体模式**（即上面三步）
 
 ```bash
 # 部署（装完已自动启动）
@@ -132,7 +133,7 @@ bash .scripts/docker/install_linux.sh restart
 bash .scripts/docker/install_linux.sh status
 ```
 
-**② 非 RK3588 · 集群模式**（中心 + 若干算力节点）
+**② 通用主机 · 集群模式**（中心 + 若干算力节点）
 
 ```bash
 # 中心平台：standard / full 任选一档（mini 不部署 iot-node，不能向算力节点下发任务）
@@ -236,6 +237,27 @@ bash .scripts/docker/install_linux.sh rk3588 status
 任务清单沿用 `RUNTIME` 的约定：`models` 是可复用的 RKNN 模型库，`tasks` 中每一项就是一路 RTSP，并用类似 `"models": ["person_vehicle", "helmet"]` 的方式自由绑定一个或多个模型；要接十路视频，只需增加十个任务，不存在“只能一路、只能一个模型”的限制。安装器会先一次性校验全部路径、模型引用和控制端口，再把模型各安装一份、为每路视频生成一份 INI 和一个独立受监管进程，最后逐路等待 `/health` 验收 MPP、RGA、RKNN 硬件链路。systemd 通过模板实例提供开机自启和故障拉起；没有 systemd 时，每路也有独立 PID 与日志。它不会安装 Docker，也不会启动 WEB、AI、VIDEO、MQTT 等其他模块。运维时执行 `rk3588 status [任务ID]`、`logs [任务ID]`、`verify [任务ID]`，既能看全部，也能只看一路；交互菜单也只会请你选择这份清单。
 
 **RK3588 集群模式（接入中心）**：在同一清单把 `control_plane.enabled` 设为 `true`，`url` 填 `http://<中心IP>:48080/admin-api/video/edge`，`join_token` 与中心 `EDGE_ENROLL_TOKEN` 保持一致（中心未设置则留空），再执行上面的 `rk3588 install`（已装过的盒子改完清单用 `rk3588 update`）。盒子就会自动出现在 WEB 独立一级菜单“边缘计算”中，芯片/NPU、推理管线、负载、温度以及可选的服务访问和 SSH 入口都集中呈现。遥测链路固定为 `RK3588 → EMQX → iot-sink（鉴权、HMAC 验签、协议归一化、直接落库）→ VIDEO / WEB`，不经过 Kafka，也不进入 NODE。`remote_access.enabled` 单独决定是否启用 FRP：关闭时不安装 frpc、不开放公网端口；开启时一键生成服务与 SSH 两条独立隧道，节点统管仍始终走 MQTT。
+
+### ⚡ BM1688 双核 TPU 边缘 AI 模块
+
+`RUNTIME-BM1688` 不是把通用程序重新编译成 ARM，而是把视频 AI 的热路径按算丰 BM1688 / CV186X 重新布置：Sophon VPU 在芯片内硬解 RTSP，扩展 YUV 帧由 `cv::bmcv::toBMI` 直接交给 BMCV/VPSS，缩放、填充、色彩与量化都留在设备侧，随后由 BMRuntime 把 BModel 明确投到 core 0 / core 1。CPU 不再承担视频软解和整帧搬运，可以把资源留给设备接入、规则与平台服务。
+
+- **双核持续吃满而不是互相等待**：解码、分发、每核推理、结果发布分别运行，两个 TPU 核各有独立通道；batch、模型和输出张量在启动时确定并预分配。
+- **“零内存”落实为可验证的边界**：设备帧优先零拷贝，解码、双核推理和结果阶段全部使用固定容量环形队列；拥塞时丢最旧帧保实时性，内存不会随断流或下游抖动无限增长。
+- **只跑真正的 BM1688 链路**：仅接受 `.bmodel`，启动时强校验 BMRuntime、BMCV、`h264_bm` / `hevc_bm` 与双核信息；任何一项缺失立即失败，不回退 ONNX、CPU 或软件编解码。
+- **接入平台但不绑死平台**：VIDEO 里选择“BM1688 · VPU + VPSS/BMCV + 双核 TPU”即可创建本机实时任务；告警仍按统一契约进入 MQTT → iot-sink 落库。独立交付时也可只装这个模块。
+- **性能有数可查**：每个任务暴露 `/health` 与 `/metrics`，真实显示推理帧数、推理耗时、错误和各环形队列丢帧；性能结论以盒子、BModel、batch、分辨率和 SDK 的现场实测为准。
+
+**在 BM1688 盒子里一键装好：**
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# 只需填入 RTSP、.bmodel 和告警出口
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+增加摄像头就是增加一个受 systemd 监管的任务，配置里写 `model_path_1`、`model_path_2` 即可让同一路视频经过多个 BModel：`sudo bash .scripts/docker/install_linux.sh bm1688 add gate-b ./bm1688-gate-b.ini`。安装器不会启动 Docker、WEB、VIDEO 或其他模块，盒子上有 SOPHONSDK 就能独立工作。
 
 ### 🎛️ PANEL：一体机到场当天可装可验，值守不必等开发远程
 
@@ -503,7 +525,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 | **full** 完整版（默认） | <strong>AIoT 智能全栈一体机</strong>（企业级全栈智控一体机、行业物联网全栈主机、云边端一体智能平台一体机） | ≥ 20 GB | <strong>一箱配齐 IoT + 视频 + AI</strong>：设备纳管、海量接入、智能分析、指挥研判一体化，全量能力长期稳跑；含 <strong>POST 定制研判</strong>与对外业务流转 | 约 14 GB，全能力开启仍留足余量 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>edge 怎么装：</strong>先分<strong>单体 / 集群</strong>，再分 <strong>RK3588 / 非 RK3588</strong>。非 RK3588 单体：<code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>（或 <code>sudo bash .scripts/docker/install_linux.sh edge install</code>）；非 RK3588 集群：算力节点执行 <code>sudo VIDEO_BASE_URL=http://&lt;中心IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>；RK3588 两种模式都走 <code>install_linux.sh rk3588</code>，由清单里的 <code>control_plane.enabled</code> 区分。四种组合的部署与启动命令见上方 <a href="#-快速开始">快速开始</a>。
+<strong>edge 怎么装：</strong>先分<strong>单体 / 集群</strong>，再选通用主机、RK3588 或 BM1688。通用单体执行 <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>；通用集群节点执行 <code>sudo VIDEO_BASE_URL=http://&lt;中心IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>；RK3588 走 <code>install_linux.sh rk3588</code>；BM1688 盒子走 <code>install_linux.sh bm1688 install &lt;配置.ini&gt; &lt;任务名&gt;</code>，或由盒子本机 VIDEO 创建专用实时任务。完整命令见上方<a href="#-快速开始">快速开始</a>与硬件模块章节。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

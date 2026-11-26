@@ -109,22 +109,23 @@ Then open <code>https://&lt;server-ip&gt;:8888</code> — default <code>admin</c
 All green? You’re done—easier than you feared. Go grab that coffee early.
 </p>
 
-### 🧩 edge: standalone / cluster × RK3588 / non-RK3588
+### 🧩 edge: standalone / cluster × generic / RK3588 / BM1688
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-Those three steps give you the lightest <strong>standalone mode</strong>. The edge tier splits first into <strong>standalone / cluster</strong> modes, then by chip into <strong>RK3588 / non-RK3588</strong> hardware—four combinations, each with its own commands:
+Those three steps give you the lightest <strong>standalone mode</strong>. Pick standalone or cluster first, then a generic host, RK3588, or the BM1688-specific runtime. Chip runtimes never mix with generic ONNX/CPU execution:
 </p>
 
 | | Standalone mode (menu item `standalone`, pure edge) | Cluster mode (menu item `integrated`, cloud-edge) |
 | :-- | :-- | :-- |
-| **Non-RK3588** (x86_64 / generic ARM) | WEB + VIDEO + generic `RUNTIME` on one machine, closing the loop locally | This machine only runs the generic `RUNTIME` compute node; it joins a central platform (standard / full) and its tasks come from the center |
+| **Generic host** (x86_64 / generic ARM, excluding RK3588/BM1688) | WEB + VIDEO + generic `RUNTIME` on one machine, closing the loop locally | This machine only runs the generic `RUNTIME` compute node; it joins a central platform (standard / full) and its tasks come from the center |
 | **RK3588** | Only `RUNTIME-RK3588` is installed; tasks live in the box's local manifest, no center needed | Same runtime + MQTT Agent; the box shows up in the central WEB **Edge Computing** menu |
+| **BM1688 / CV186X** | Install only `RUNTIME-BM1688`, or pair it with local WEB + VIDEO; tasks stay on this chip | Remote iot-node distribution is intentionally disabled for now; VIDEO selects the dedicated realtime target on the BM1688 box itself |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
 <strong>Alerts, but no notifications:</strong> SMS, email, IM robots and Webhooks are sent by the platform's <code>iot-message</code> service, which the edge tier does not deploy. Standalone mode raises, persists and shows alerts in its own WEB only. Cluster-mode nodes hand alerts to the center, and the center notifies only when it runs <strong>standard / full</strong>—mini does not deploy <code>iot-message</code> either. Where notifications are unavailable (edge standalone and a mini center), the algorithm-task form hides the notification settings and shows a one-line note instead.
 </p>
 
-**① Non-RK3588 · standalone mode** (the three steps above)
+**① Generic host · standalone mode** (the three steps above)
 
 ```bash
 # Deploy (already running when install finishes)
@@ -136,7 +137,7 @@ bash .scripts/docker/install_linux.sh restart
 bash .scripts/docker/install_linux.sh status
 ```
 
-**② Non-RK3588 · cluster mode** (one center + compute nodes)
+**② Generic host · cluster mode** (one center + compute nodes)
 
 ```bash
 # Central platform: pick standard / full (mini does not deploy iot-node, so it cannot dispatch tasks to compute nodes)
@@ -240,6 +241,25 @@ bash .scripts/docker/install_linux.sh rk3588 status
 The manifest follows the same convention as `RUNTIME`: `models` is a reusable RKNN model registry, while every item in `tasks` is one RTSP stream and references a free combination such as `"models": ["person_vehicle", "helmet"]`. Add ten streams by adding ten task items—there is no single-stream or single-model limit. The installer validates every path, model reference and control port before changing the host, installs each model only once, generates one INI and one supervised process per stream, then verifies every `/health` endpoint. systemd template instances provide boot restart; hosts without systemd get a separate PID and log per task. It does not install Docker or start WEB, AI, VIDEO, MQTT or any other module. Use `rk3588 status [task-id]`, `logs [task-id]`, or `verify [task-id]` to operate all streams or one selected stream. The guided menu asks only for this manifest path.
 
 **RK3588 cluster mode (join a center)**: set `control_plane.enabled` to `true` in the same manifest, point `url` at `http://<center-ip>:48080/admin-api/video/edge`, and make `join_token` match the center's `EDGE_ENROLL_TOKEN` (leave it empty if the center sets none), then run `rk3588 install` above (`rk3588 update` on an already-installed box). The box then appears automatically under the independent **Edge Computing** menu, with chip/NPU identity, pipelines, load, temperature and optional service/SSH entrances. Telemetry follows one direct path: `RK3588 → EMQX → iot-sink (authentication, HMAC verification, normalization, direct persistence) → VIDEO / WEB`; it does not pass through Kafka or NODE. `remote_access.enabled` independently controls FRP—off means no frpc installation or public port; on means the installer creates separate service and SSH tunnels while MQTT remains the management channel.
+
+### ⚡ BM1688 Dual-TPU Edge AI Module
+
+`RUNTIME-BM1688` is not a generic ARM rebuild. It reshapes the hot path around BM1688 / CV186X: Sophon VPU decodes RTSP in hardware, extended YUV frames are referenced by `cv::bmcv::toBMI`, BMCV/VPSS performs resize, padding, colour conversion and quantisation on-device, and BMRuntime dispatches BModels explicitly to core 0 and core 1. CPU capacity remains available for device access and platform services instead of software decode and full-frame copies.
+
+- Decode, dispatch, per-core inference and result delivery run as decoupled stages; image pools, tensors and neuron memory are preallocated.
+- Fixed-capacity rings bound memory under backpressure and drop the oldest frame to preserve realtime latency.
+- Only `.bmodel`, BMRuntime/BMCV and `h264_bm` / `hevc_bm` are accepted. Missing hardware fails startup—there is no ONNX, CPU or software-codec fallback.
+- VIDEO exposes BM1688 as an explicit local realtime target, while alerts retain the common MQTT → iot-sink persistence contract. The runtime can also be delivered alone.
+- `/health` and `/metrics` report measured frames, inference time, errors and ring drops; throughput claims are tied to the actual box, BModel, batch, resolution, firmware and SDK.
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# Fill in RTSP, .bmodel and the alert destination, then run:
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+Add one supervised task per camera, and use `model_path_1`, `model_path_2`, and so on to bind multiple BModels to one stream. The installer does not start Docker, WEB, VIDEO, or any unrelated module.
 
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 
@@ -462,7 +482,7 @@ Many intelligent IoT projects stall at deployment: <strong>full features won't f
 | **full** Full (default) | <strong>AIoT full-stack all-in-one</strong> (enterprise full-stack control all-in-one, industry IoT full-stack host, cloud-edge-device smart platform all-in-one) | ≥ 20 GB | <strong>IoT + video + AI in one box</strong>: device management, massive access, intelligent analysis, command and judgment unified—full capabilities long-term; includes <strong>POST custom judgment</strong> and outbound business flow | ~14 GB, full features with headroom |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>Install edge:</strong> split first into <strong>standalone / cluster</strong>, then by <strong>RK3588 / non-RK3588</strong>. Non-RK3588 standalone: <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code> (or <code>sudo bash .scripts/docker/install_linux.sh edge install</code>); non-RK3588 cluster: on each compute node run <code>sudo VIDEO_BASE_URL=http://&lt;center-ip&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>; both RK3588 modes go through <code>install_linux.sh rk3588</code>, told apart by <code>control_plane.enabled</code> in the manifest. Deploy and start commands for all four combinations are in <a href="#-quick-start">Quick Start</a> above.
+<strong>Install edge:</strong> choose standalone or cluster, then a generic host, RK3588, or BM1688. Generic standalone uses <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>; generic cluster nodes use <code>sudo VIDEO_BASE_URL=http://&lt;center-ip&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>; RK3588 uses <code>install_linux.sh rk3588</code>; a BM1688 box uses <code>install_linux.sh bm1688 install &lt;config.ini&gt; &lt;task-name&gt;</code>, or creates the dedicated realtime task through VIDEO on that box. See <a href="#-quick-start">Quick Start</a> and the hardware sections above.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

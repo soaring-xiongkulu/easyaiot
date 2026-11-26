@@ -109,18 +109,19 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 초록불이 떴다면 퇴근입니다 — 생각보다 쉽죠. 오늘 커피는 일찍 마셔도 됩니다.
 </p>
 
-### 🧩 edge: 단독 / 클러스터 × RK3588 / 비 RK3588
+### 🧩 edge: 단독 / 클러스터 × 범용 / RK3588 / BM1688
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-위 세 단계는 가장 가벼운 <strong>단독 모드</strong>입니다. edge 규격은 먼저 <strong>단독 / 클러스터</strong> 두 가지 모드로 나뉘고, 다시 칩에 따라 <strong>RK3588 / 비 RK3588</strong> 두 종류의 하드웨어로 나뉩니다 — 조합은 네 가지이고 명령은 각각 다릅니다:
+위 세 단계는 가장 가벼운 <strong>단독 모드</strong>입니다. 그다음 범용 호스트, RK3588, BM1688 전용 런타임 중 하나를 선택하며 칩 런타임은 범용 ONNX/CPU와 섞지 않습니다:
 </p>
 
 | | 단독 모드 (메뉴 항목 `standalone`, 순수 엣지 형태) | 클러스터 모드 (메뉴 항목 `integrated`, 클라우드-엣지 일체형) |
 | :-- | :-- | :-- |
-| **비 RK3588** (x86_64 / 범용 ARM) | 한 대의 머신에 WEB + VIDEO + 범용 `RUNTIME`을 설치해 로컬에서 폐루프 | 이 머신에는 범용 `RUNTIME` 연산 노드만 설치하고 중앙 플랫폼(standard / full)에 연결하며, 작업은 중앙에서 내려옵니다 |
+| **범용 호스트** (x86_64 / 범용 ARM, RK3588/BM1688 제외) | 한 대의 머신에 WEB + VIDEO + 범용 `RUNTIME`을 설치해 로컬에서 폐루프 | 이 머신에는 범용 `RUNTIME` 연산 노드만 설치하고 중앙 플랫폼(standard / full)에 연결하며, 작업은 중앙에서 내려옵니다 |
 | **RK3588** | `RUNTIME-RK3588`만 설치하고 작업은 박스 로컬 매니페스트에 기록, 중앙 불필요 | 동일한 런타임 + MQTT Agent, 박스가 중앙 WEB **Edge Computing** 메뉴에 표시됩니다 |
+| **BM1688 / CV186X** | `RUNTIME-BM1688`만 설치하거나 로컬 WEB + VIDEO와 결합; 작업은 칩 로컬 고정 | 원격 iot-node 배포는 비활성화되며 BM1688 박스의 VIDEO에서 전용 실시간 대상을 선택합니다 |
 
-**① 비 RK3588 · 단독 모드** (위 세 단계와 동일)
+**① 범용 호스트 · 단독 모드** (위 세 단계와 동일)
 
 ```bash
 # 배포 (설치가 끝나면 이미 실행 중)
@@ -132,7 +133,7 @@ bash .scripts/docker/install_linux.sh restart
 bash .scripts/docker/install_linux.sh status
 ```
 
-**② 비 RK3588 · 클러스터 모드** (중앙 1대 + 연산 노드)
+**② 범용 호스트 · 클러스터 모드** (중앙 1대 + 연산 노드)
 
 ```bash
 # 중앙 플랫폼: standard / full 중 선택 (mini는 iot-node를 배포하지 않아 연산 노드에 작업을 내려보낼 수 없음)
@@ -236,6 +237,25 @@ bash .scripts/docker/install_linux.sh rk3588 status
 매니페스트는 `RUNTIME`과 같은 규칙을 사용합니다. `models`는 재사용 가능한 RKNN 모델 저장소이고, `tasks`의 각 항목은 RTSP 한 스트림이며 `"models": ["person_vehicle", "helmet"]`처럼 하나 이상의 모델을 자유롭게 선택합니다. 10개 스트림이면 작업 10개를 추가하면 되며 단일 스트림·단일 모델 제한이 없습니다. 설치기는 호스트를 변경하기 전에 모든 경로, 모델 참조, 제어 포트를 검증하고, 모델은 각각 한 번만 설치한 뒤 스트림마다 INI 하나와 독립 감독 프로세스 하나를 생성하며 모든 `/health`를 확인합니다. systemd 템플릿 인스턴스가 부팅 및 장애 재시작을 맡고, systemd가 없어도 작업별 PID와 로그를 둡니다. Docker나 WEB, AI, VIDEO, MQTT는 시작하지 않습니다. `rk3588 status [작업ID]`, `logs [작업ID]`, `verify [작업ID]`로 전체 또는 한 스트림만 운영할 수 있으며 안내 메뉴도 이 매니페스트 경로만 묻습니다.
 
 **RK3588 클러스터 모드(중앙 연결)**: 같은 매니페스트에서 `control_plane.enabled`를 `true`로 설정하고, `url`에 `http://<중앙IP>:48080/admin-api/video/edge`를 넣고, `join_token`을 중앙의 `EDGE_ENROLL_TOKEN`과 맞춥니다(중앙에 설정되어 있지 않으면 비워 둠). 그런 다음 위의 `rk3588 install`을 다시 실행합니다(이미 설치된 박스는 매니페스트 수정 후 `rk3588 update`). 박스는 독립 최상위 **Edge Computing** 메뉴에 자동으로 나타나며 칩/NPU, 추론 파이프라인, 부하, 온도와 선택적 서비스/SSH 진입점을 한곳에서 보여 줍니다. 텔레메트리 경로는 `RK3588 → EMQX → iot-sink(인증, HMAC 검증, 정규화, 직접 저장) → VIDEO / WEB`으로 고정되며 Kafka와 NODE를 거치지 않습니다. `remote_access.enabled`는 FRP만 별도로 제어합니다. 끄면 frpc와 공개 포트를 만들지 않고, 켜면 서비스와 SSH 터널을 각각 생성하며 노드 관리는 계속 MQTT를 사용합니다.
+
+### ⚡ BM1688 듀얼 TPU 엣지 AI 모듈
+
+`RUNTIME-BM1688`은 범용 프로그램의 ARM 재빌드가 아닙니다. Sophon VPU가 RTSP를 하드웨어 디코딩하고, `cv::bmcv::toBMI`가 YUV 장치 프레임을 직접 참조하며, BMCV/VPSS가 장치에서 리사이즈·패딩·색상 변환·양자화를 수행한 뒤 BMRuntime이 BModel을 core 0과 core 1에 명시적으로 배치합니다.
+
+- 디코딩, 분배, 코어별 추론, 결과 발행을 분리하고 이미지 풀·텐서·신경망 메모리를 시작 시 미리 할당합니다.
+- 고정 용량 링 큐로 메모리 상한을 보장하고 혼잡 시 가장 오래된 프레임을 버려 실시간 지연을 지킵니다.
+- `.bmodel`, BMRuntime/BMCV, `h264_bm` / `hevc_bm`만 허용합니다. 하드웨어가 없으면 즉시 실패하며 ONNX, CPU, 소프트웨어 코덱으로 우회하지 않습니다.
+- VIDEO에서 BM1688 로컬 실시간 대상을 직접 선택하고, 알람은 MQTT → iot-sink 공통 계약으로 저장합니다. 런타임만 단독 납품할 수도 있습니다.
+- `/health`와 `/metrics`에서 실제 프레임, 추론 시간, 오류, 링 드롭을 확인합니다.
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# RTSP, .bmodel, 알람 목적지만 채운 뒤 실행
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+카메라마다 감독 작업 하나를 추가하고 `model_path_1`, `model_path_2`로 한 스트림에 여러 BModel을 연결할 수 있습니다. 설치기는 Docker, WEB, VIDEO 또는 무관한 모듈을 시작하지 않습니다.
 
 ### 🎛️ PANEL: 일체기 도착 당일 설치·인수, 당직은 원격 개발자를 기다리지 않음
 
@@ -443,7 +463,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 | **full** 완전판 (기본) | <strong>AIoT 풀스택 일체기</strong> (엔터프라이즈 풀스택 지능관제 일체기, 산업 IoT 풀스택 호스트, 클라우드-엣지-디바이스 통합 플랫폼) | ≥ 20 GB | <strong>한 박스에 IoT + 영상 + AI</strong>: 장치 통합관리·대량 접속·지능 분석·지휘 판단 일체화, 전량 역량 장기 안정; <strong>POST 맞춤 판정</strong>과 대외 업무 흐름 포함 | 약 14 GB, 전 기능 여유 확보 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>edge 설치:</strong> 먼저 <strong>단독 / 클러스터</strong>로, 다음으로 <strong>RK3588 / 비 RK3588</strong>로 구분합니다. 비 RK3588 단독: <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>(또는 <code>sudo bash .scripts/docker/install_linux.sh edge install</code>); 비 RK3588 클러스터: 각 연산 노드에서 <code>sudo VIDEO_BASE_URL=http://&lt;중앙IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code> 실행; RK3588의 두 모드는 모두 <code>install_linux.sh rk3588</code>를 사용하며 매니페스트의 <code>control_plane.enabled</code>로 구분합니다. 네 가지 조합의 배포·시작 명령은 위 <a href="#-빠른-시작">빠른 시작</a>을 참고하세요.
+<strong>edge 설치:</strong> 단독/클러스터를 고른 뒤 범용 호스트, RK3588, BM1688을 선택합니다. 범용 단독은 <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>, 범용 클러스터 노드는 <code>sudo VIDEO_BASE_URL=http://&lt;중앙IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>, RK3588은 <code>install_linux.sh rk3588</code>, BM1688은 <code>install_linux.sh bm1688 install &lt;config.ini&gt; &lt;작업명&gt;</code>을 사용하거나 박스의 VIDEO에서 전용 실시간 작업을 생성합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

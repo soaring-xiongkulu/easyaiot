@@ -109,18 +109,19 @@ Puis ouvrez <code>https://&lt;IP-serveur&gt;:8888</code> — compte par défaut 
 Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendre un café plus tôt.
 </p>
 
-### 🧩 edge : autonome / cluster × RK3588 / non-RK3588
+### 🧩 edge : autonome / cluster × générique / RK3588 / BM1688
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-Ces trois étapes installent le <strong>mode autonome</strong>, le plus léger. Le niveau edge se divise d'abord en deux modes, <strong>autonome / cluster</strong>, puis par puce en deux matériels, <strong>RK3588 / non-RK3588</strong> — quatre combinaisons, chacune avec ses propres commandes :
+Ces trois étapes installent le <strong>mode autonome</strong>, le plus léger. Choisissez ensuite un hôte générique, RK3588 ou le runtime dédié BM1688 ; les runtimes de puce ne se mélangent pas avec ONNX/CPU générique :
 </p>
 
 | | Mode autonome (entrée de menu `standalone`, edge pur) | Mode cluster (entrée de menu `integrated`, cloud-edge) |
 | :-- | :-- | :-- |
-| **Non-RK3588** (x86_64 / ARM générique) | WEB + VIDEO + `RUNTIME` générique sur une seule machine, boucle fermée en local | La machine n'héberge que le nœud de calcul `RUNTIME` générique ; elle rejoint une plateforme centrale (standard / full) et ses tâches viennent du centre |
+| **Hôte générique** (x86_64 / ARM générique, hors RK3588/BM1688) | WEB + VIDEO + `RUNTIME` générique sur une seule machine, boucle fermée en local | La machine n'héberge que le nœud de calcul `RUNTIME` générique ; elle rejoint une plateforme centrale (standard / full) et ses tâches viennent du centre |
 | **RK3588** | Seul `RUNTIME-RK3588` est installé ; les tâches vivent dans le manifeste local du boîtier, sans centre | Même runtime + Agent MQTT ; le boîtier apparaît dans le menu **Edge Computing** du WEB central |
+| **BM1688 / CV186X** | `RUNTIME-BM1688` seul ou associé à WEB + VIDEO local ; les tâches restent sur la puce | La distribution iot-node distante est désactivée ; VIDEO sélectionne la cible temps réel dédiée directement sur le boîtier |
 
-**① Non-RK3588 · mode autonome** (les trois étapes ci-dessus)
+**① Hôte générique · mode autonome** (les trois étapes ci-dessus)
 
 ```bash
 # Déploiement (déjà démarré à la fin de l'install)
@@ -132,7 +133,7 @@ bash .scripts/docker/install_linux.sh restart
 bash .scripts/docker/install_linux.sh status
 ```
 
-**② Non-RK3588 · mode cluster** (un centre + des nœuds de calcul)
+**② Hôte générique · mode cluster** (un centre + des nœuds de calcul)
 
 ```bash
 # Plateforme centrale : choisir standard / full (mini ne déploie pas iot-node et ne peut donc pas distribuer de tâches aux nœuds de calcul)
@@ -236,6 +237,25 @@ bash .scripts/docker/install_linux.sh rk3588 status
 Le manifeste reprend la convention de `RUNTIME` : `models` est un registre réutilisable de modèles RKNN et chaque entrée de `tasks` représente un flux RTSP pouvant sélectionner un ou plusieurs modèles, par exemple `"models": ["person_vehicle", "helmet"]`. Dix flux se décrivent avec dix tâches ; il n'existe aucune limite artificielle à un flux ou un modèle. Avant toute modification de l'hôte, l'installateur valide les chemins, les références et les ports, installe chaque modèle une seule fois, génère un INI et un processus supervisé par flux, puis vérifie chaque endpoint `/health`. Les instances modèles systemd assurent le redémarrage au boot ; sans systemd, chaque tâche possède son PID et son journal. Docker et les modules WEB, AI, VIDEO ou MQTT ne sont pas démarrés. `rk3588 status [id]`, `logs [id]` et `verify [id]` opèrent tous les flux ou une seule tâche. Le menu guidé ne demande que le chemin de ce manifeste.
 
 **Mode cluster RK3588 (rattachement à un centre)** : passez `control_plane.enabled` à `true` dans le même manifeste, pointez `url` vers `http://<ip-centre>:48080/admin-api/video/edge` et faites correspondre `join_token` au `EDGE_ENROLL_TOKEN` du centre (le laisser vide si le centre n'en définit pas), puis relancez `rk3588 install` ci-dessus (`rk3588 update` sur un boîtier déjà installé). Le boîtier apparaît automatiquement dans le menu principal indépendant **Edge Computing**, avec puce/NPU, pipelines, charge, température et accès service/SSH optionnels. La télémétrie suit un chemin direct : `RK3588 → EMQX → iot-sink (authentification, HMAC, normalisation, écriture directe) → VIDEO / WEB`, sans Kafka ni NODE. `remote_access.enabled` commande FRP séparément : désactivé, aucun frpc ni port public ; activé, l'installation crée des tunnels distincts pour le service et SSH, tandis que la gestion reste sur MQTT.
+
+### ⚡ Module Edge AI BM1688 à double cœur TPU
+
+`RUNTIME-BM1688` n'est pas une recompilation ARM générique. Le chemin chaud est conçu pour BM1688 / CV186X : le VPU Sophon décode RTSP, `cv::bmcv::toBMI` référence directement les images YUV, BMCV/VPSS effectue redimensionnement, padding, couleur et quantification sur le périphérique, puis BMRuntime distribue les BModels aux cœurs 0 et 1.
+
+- Décodage, distribution, inférence par cœur et publication sont découplés ; images, tenseurs et mémoire neuronale sont préalloués.
+- Des anneaux à capacité fixe bornent la mémoire et abandonnent l'image la plus ancienne en cas de congestion afin de préserver le temps réel.
+- Seuls `.bmodel`, BMRuntime/BMCV et `h264_bm` / `hevc_bm` sont acceptés. Aucun repli ONNX, CPU ou codec logiciel.
+- VIDEO expose une cible BM1688 temps réel locale, avec persistance commune MQTT → iot-sink ; le runtime peut aussi être livré seul.
+- `/health` et `/metrics` donnent les mesures réelles : images, latence d'inférence, erreurs et pertes des anneaux.
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# Renseigner RTSP, .bmodel et la destination des alertes, puis :
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+Ajoutez une tâche supervisée par caméra et utilisez `model_path_1`, `model_path_2`, etc. pour plusieurs BModels sur un flux. L'installateur ne démarre ni Docker, ni WEB, ni VIDEO, ni module sans rapport.
 
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 
@@ -443,7 +463,7 @@ Beaucoup de projets IoT intelligents butent au déploiement : <strong>les foncti
 | **full** Complet (défaut) | <strong>Tout-en-un full-stack AIoT</strong> (tout-en-un pilotage full-stack entreprise, hôte IoT full-stack sectoriel, plateforme intelligente cloud-bord-périphérique) | ≥ 20 GB | <strong>IoT + vidéo + IA en une boîte</strong> : gestion des appareils, accès massif, analyse intelligente, commandement unifié — capacités complètes à long terme ; inclut <strong>jugement personnalisé POST</strong> et flux métier externe | ~14 GB, pleine capacité avec marge |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>Installer edge :</strong> distinguer d'abord <strong>autonome / cluster</strong>, puis <strong>RK3588 / non-RK3588</strong>. Non-RK3588 autonome : <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code> (ou <code>sudo bash .scripts/docker/install_linux.sh edge install</code>) ; non-RK3588 cluster : sur chaque nœud de calcul, exécuter <code>sudo VIDEO_BASE_URL=http://&lt;ip-centre&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code> ; les deux modes RK3588 passent par <code>install_linux.sh rk3588</code>, distingués par <code>control_plane.enabled</code> dans le manifeste. Commandes de déploiement et de démarrage des quatre combinaisons dans <a href="#-démarrage-rapide">Démarrage rapide</a> ci-dessus.
+<strong>Installer edge :</strong> choisissez autonome ou cluster, puis un hôte générique, RK3588 ou BM1688. Le générique autonome utilise <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code> ; le nœud générique cluster utilise <code>sudo VIDEO_BASE_URL=http://&lt;ip-centre&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code> ; RK3588 utilise <code>install_linux.sh rk3588</code> ; BM1688 utilise <code>install_linux.sh bm1688 install &lt;config.ini&gt; &lt;nom-tâche&gt;</code>, ou une tâche temps réel dédiée créée par VIDEO sur le boîtier.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
