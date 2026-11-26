@@ -504,7 +504,7 @@ TensorRT engine은 대상 GPU와 TensorRT 버전에 맞춰 실제 박스에서 �
 | **full** 완전판 (기본) | <strong>AIoT 풀스택 일체기</strong> (엔터프라이즈 풀스택 지능관제 일체기, 산업 IoT 풀스택 호스트, 클라우드-엣지-디바이스 통합 플랫폼) | ≥ 20 GB | <strong>한 박스에 IoT + 영상 + AI</strong>: 장치 통합관리·대량 접속·지능 분석·지휘 판단 일체화, 전량 역량 장기 안정; <strong>POST 맞춤 판정</strong>과 대외 업무 흐름 포함 | 약 14 GB, 전 기능 여유 확보 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>edge 설치:</strong> 단독/클러스터를 고른 뒤 범용 호스트, RK3588, BM1688을 선택합니다. 범용 단독은 <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>, 범용 클러스터 노드는 <code>sudo VIDEO_BASE_URL=http://&lt;중앙IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>, RK3588은 <code>install_linux.sh rk3588</code>, BM1688은 <code>install_linux.sh bm1688 install &lt;config.ini&gt; &lt;작업명&gt;</code>을 사용하거나 박스의 VIDEO에서 전용 실시간 작업을 생성합니다.
+<strong>edge 배포 진입점:</strong> 범용 호스트, RK3588, BM1688, NVIDIA의 단독·클러스터 전체 명령은 위 「edge: 단독 / 클러스터」매트릭스에 모았습니다. 이 절은 네 가지 하드웨어 등급의 포지셔닝과 용량 경계만 설명합니다.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

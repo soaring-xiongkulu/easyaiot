@@ -504,7 +504,7 @@ Engine TensorRT необходимо собирать на целевом бло
 | **full** Полный (по умолч.) | <strong>AIoT full-stack «всё в одном»</strong> (корпоративный full-stack, отраслевой IoT full-stack хост, облачно-периферийная платформа) | ≥ 20 GB | <strong>IoT + видео + AI в одной коробке</strong>: управление устройствами, массовый доступ, интеллектуальный анализ, единое командование — полные возможности долгосрочно; включает <strong>кастомное суждение POST</strong> и внешний бизнес-поток | ~14 GB, полный функционал с запасом |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>Установка edge:</strong> выберите автономный/кластерный режим, затем обычный хост, RK3588 или BM1688. Обычный автономный режим использует <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>, обычный кластерный узел — <code>sudo VIDEO_BASE_URL=http://&lt;IP-центра&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>, RK3588 — <code>install_linux.sh rk3588</code>, BM1688 — <code>install_linux.sh bm1688 install &lt;config.ini&gt; &lt;имя-задачи&gt;</code> либо специальную realtime-задачу VIDEO на самом блоке.
+<strong>Точка входа edge:</strong> полные команды автономного и кластерного режимов для обычных хостов, RK3588, BM1688 и NVIDIA собраны в матрице «edge: автономный / кластерный» выше. Этот раздел описывает только позиционирование и границы ёмкости четырёх уровней оборудования.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

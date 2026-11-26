@@ -504,7 +504,7 @@ Beaucoup de projets IoT intelligents butent au déploiement : <strong>les foncti
 | **full** Complet (défaut) | <strong>Tout-en-un full-stack AIoT</strong> (tout-en-un pilotage full-stack entreprise, hôte IoT full-stack sectoriel, plateforme intelligente cloud-bord-périphérique) | ≥ 20 GB | <strong>IoT + vidéo + IA en une boîte</strong> : gestion des appareils, accès massif, analyse intelligente, commandement unifié — capacités complètes à long terme ; inclut <strong>jugement personnalisé POST</strong> et flux métier externe | ~14 GB, pleine capacité avec marge |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>Installer edge :</strong> choisissez autonome ou cluster, puis un hôte générique, RK3588 ou BM1688. Le générique autonome utilise <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code> ; le nœud générique cluster utilise <code>sudo VIDEO_BASE_URL=http://&lt;ip-centre&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code> ; RK3588 utilise <code>install_linux.sh rk3588</code> ; BM1688 utilise <code>install_linux.sh bm1688 install &lt;config.ini&gt; &lt;nom-tâche&gt;</code>, ou une tâche temps réel dédiée créée par VIDEO sur le boîtier.
+<strong>Entrée de déploiement edge :</strong> les commandes autonomes et cluster complètes pour hôtes génériques, RK3588, BM1688 et NVIDIA sont centralisées dans la matrice « edge : autonome / cluster » ci-dessus. Cette section décrit uniquement le positionnement et les limites de capacité des quatre profils.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

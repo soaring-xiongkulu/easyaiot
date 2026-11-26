@@ -524,7 +524,7 @@ Many intelligent IoT projects stall at deployment: <strong>full features won't f
 | **full** Full (default) | <strong>AIoT full-stack all-in-one</strong> (enterprise full-stack control all-in-one, industry IoT full-stack host, cloud-edge-device smart platform all-in-one) | ≥ 20 GB | <strong>IoT + video + AI in one box</strong>: device management, massive access, intelligent analysis, command and judgment unified—full capabilities long-term; includes <strong>POST custom judgment</strong> and outbound business flow | ~14 GB, full features with headroom |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>Install edge:</strong> choose standalone or cluster, then a generic host, RK3588, or BM1688. Generic standalone uses <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>; generic cluster nodes use <code>sudo VIDEO_BASE_URL=http://&lt;center-ip&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>; RK3588 uses <code>install_linux.sh rk3588</code>; a BM1688 box uses <code>install_linux.sh bm1688 install &lt;config.ini&gt; &lt;task-name&gt;</code>, or creates the dedicated realtime task through VIDEO on that box. See <a href="#-quick-start">Quick Start</a> and the hardware sections above.
+<strong>Edge deployment entry:</strong> the complete standalone and cluster commands for generic hosts, RK3588, BM1688 and NVIDIA are centralized in the **edge: standalone / cluster** matrix above. This section only explains hardware-tier positioning and capacity boundaries.
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">

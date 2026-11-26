@@ -565,7 +565,7 @@ TensorRT engine 必须在实际目标盒子上按 GPU 架构与 TensorRT 版本�
 | **full** 完整版（默认） | <strong>AIoT 智能全栈一体机</strong>（企业级全栈智控一体机、行业物联网全栈主机、云边端一体智能平台一体机） | ≥ 20 GB | <strong>一箱配齐 IoT + 视频 + AI</strong>：设备纳管、海量接入、智能分析、指挥研判一体化，全量能力长期稳跑；含 <strong>POST 定制研判</strong>与对外业务流转 | 约 14 GB，全能力开启仍留足余量 |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0 8px 0;">
-<strong>edge 怎么装：</strong>先分<strong>单体 / 集群</strong>，再选通用主机、RK3588 或 BM1688。通用单体执行 <code>sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install</code>；通用集群节点执行 <code>sudo VIDEO_BASE_URL=http://&lt;中心IP&gt;:6000 EASYAIOT_RUNTIME_BUILD_MODE=docker bash .scripts/docker/install_linux.sh runtime</code>；RK3588 走 <code>install_linux.sh rk3588</code>；BM1688 盒子走 <code>install_linux.sh bm1688 install &lt;配置.ini&gt; &lt;任务名&gt;</code>，或由盒子本机 VIDEO 创建专用实时任务。完整命令见上方<a href="#-快速开始">快速开始</a>与硬件模块章节。
+<strong>edge 部署入口：</strong>通用主机、RK3588、BM1688、NVIDIA 的单体与集群完整命令统一见上方“edge：单体 / 集群”部署矩阵；本节只说明四档硬件定位与容量边界。
 </p>
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
