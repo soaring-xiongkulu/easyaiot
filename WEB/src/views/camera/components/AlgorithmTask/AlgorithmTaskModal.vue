@@ -369,6 +369,7 @@ const taskModeOptions = [
   { label: '周期巡检分析（全功能）', value: 'patrol' },
 ];
 const rk3588TaskModeOptions = taskModeOptions.filter((option) => String(option.value).endsWith('_cpp'));
+const bm1688TaskModeOptions = taskModeOptions.filter((option) => option.value === 'realtime_cpp');
 const runtimeTargetOptions = [
   { label: '自动识别本机芯片（推荐）', value: 'auto' },
   { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
@@ -2080,13 +2081,13 @@ const hostTaskModeHelp = computed(() => {
     return '当前宿主机为 RK3588：新建任务只提供低时延模式（RUNTIME-RK3588）；历史全功能任务仅保留用于迁移。';
   }
   if (isBm1688Host.value) {
-    return '当前宿主机为 BM1688：新建任务只提供低时延模式（RUNTIME-BM1688）；历史全功能任务仅保留用于迁移。';
+    return '当前宿主机为 BM1688：新建任务只提供实时低时延模式（RUNTIME-BM1688）；抓拍/巡检不会伪装成实时循环。';
   }
   return '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、业务脚本等完整能力集';
 });
 
 /**
- * 按芯片运行时收敛调度选项：RK3588 只允许本机部署。
+ * 按芯片运行时收敛任务模式与调度选项：硬件运行时只允许本机部署。
  * target 为空或 auto 时按宿主机芯片解析，避免任务级 target 覆盖宿主机检测。
  */
 async function applyRuntimeTargetDependentOptions(target?: string) {
@@ -2095,8 +2096,20 @@ async function applyRuntimeTargetDependentOptions(target?: string) {
     ? (hostRuntimeTarget.value || 'auto')
     : requested;
   const restrictLocal = isHardwareRuntimeTarget(effectiveTarget);
+  const modeOptions = effectiveTarget === 'bm1688'
+    ? bm1688TaskModeOptions
+    : effectiveTarget === 'rk3588'
+      ? rk3588TaskModeOptions
+      : taskModeOptions;
 
   updateSchema([
+    {
+      field: 'task_mode',
+      componentProps: { options: modeOptions },
+      helpMessage: effectiveTarget === 'bm1688'
+        ? 'BM1688 当前开放实时 C++ 硬件流水线；抓拍/巡检将在完成专用调度语义后单独开放。'
+        : hostTaskModeHelp.value,
+    },
     {
       field: 'schedule_policy',
       componentProps: {
@@ -2110,7 +2123,12 @@ async function applyRuntimeTargetDependentOptions(target?: string) {
   refreshModelOptions(activeModelProfile(effectiveTarget));
 
   if (restrictLocal) {
+    const current = await getFieldsValue();
+    const taskMode = String(current.task_mode || '');
     await setFieldsValue({
+      task_mode: modeOptions.some((option) => option.value === taskMode)
+        ? taskMode
+        : 'realtime_cpp',
       schedule_policy: 'local',
       target_node_id: undefined,
       prefer_gpu: false,
@@ -2144,7 +2162,11 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
   const currentTarget = String(current.runtime_target || '');
   const isCppMode = currentMode.endsWith('_cpp');
 
-  let modes = isHardwareRuntimeTarget(host) ? [...rk3588TaskModeOptions] : [...taskModeOptions];
+  let modes = host === 'bm1688'
+    ? [...bm1688TaskModeOptions]
+    : host === 'rk3588'
+      ? [...rk3588TaskModeOptions]
+      : [...taskModeOptions];
   if (preserveExisting && currentMode && !modes.some((option) => option.value === currentMode)) {
     const legacyMode = taskModeOptions.find((option) => option.value === currentMode);
     if (legacyMode) {
@@ -2833,6 +2855,12 @@ const handleSubmit = async () => {
     if (values.executor === 'cpp' && isHardwareRuntimeTarget(effectiveRuntimeTarget)) {
       const hardwareLabel = hardwareRuntimeLabel(effectiveRuntimeTarget);
       const modelSuffix = effectiveRuntimeTarget === 'bm1688' ? '.bmodel' : '.rknn';
+      if (effectiveRuntimeTarget === 'bm1688' && values.task_type !== 'realtime') {
+        createMessage.error('BM1688 当前只开放实时视频分析；抓拍/巡检不会静默按实时任务运行');
+        confirmLoading.value = false;
+        setDrawerProps({ confirmLoading: false });
+        return;
+      }
       if ((values.schedule_policy || 'local') !== 'local') {
         createMessage.error(`${hardwareLabel} 硬件运行时只支持本机调度，请将调度策略改为本机部署`);
         confirmLoading.value = false;
