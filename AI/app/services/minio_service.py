@@ -111,54 +111,83 @@ class ModelService:
             return f"MinIO {operation}错误: {error_message} (错误代码: {error_code})"
 
     @staticmethod
+    def _copy_local_object(bucket_name, object_name, destination_path, *, reason=''):
+        """把 flat 本地存储（含 .scripts/minio 种子懒加载）中的对象复制到目标路径。
+
+        Returns:
+            tuple: (success: bool, error_message: str or None)
+            error_message 为 None 且 success 为 False 时表示本地也没有该对象。
+        """
+        from app.services.local_storage_service import ensure_local_object
+
+        try:
+            src = ensure_local_object(bucket_name, object_name)
+        except ValueError as exc:
+            return False, f'本地对象路径非法: {exc}'
+        if not src:
+            return False, None
+        try:
+            os.makedirs(os.path.dirname(destination_path) or '.', exist_ok=True)
+            if os.path.abspath(src) != os.path.abspath(destination_path):
+                shutil.copy2(src, destination_path)
+            current_app.logger.info(
+                '对象命中本地存储: %s/%s -> %s%s',
+                bucket_name, object_name, destination_path,
+                f'（{reason}）' if reason else '',
+            )
+            return True, None
+        except OSError as exc:
+            return False, f'本地对象复制失败: {exc}'
+
+    @staticmethod
     def download_from_minio(bucket_name, object_name, destination_path):
         """从 MinIO 下载文件；mini 形态从本地目录读取。
-        
+
+        对象存储未开启时直接读本地；开启但对象缺失（NoSuchKey/NoSuchBucket）时
+        回退本地存储——桌面端安装只建空桶不灌种子，模型种子仅在本地。
+
         Returns:
             tuple: (success: bool, error_message: str or None)
         """
         from app.utils.service_urls import minio_storage_enabled
-        from app.services.local_storage_service import ensure_local_object
 
         if not minio_storage_enabled():
-            from app.services.local_storage_service import ensure_local_object
-
-            src = ensure_local_object(bucket_name, object_name)
-            if not src:
-                error_msg = f'本地对象不存在: {bucket_name}/{object_name}'
-                current_app.logger.error(error_msg)
-                return False, error_msg
-            try:
-                os.makedirs(os.path.dirname(destination_path) or '.', exist_ok=True)
-                if os.path.abspath(src) != os.path.abspath(destination_path):
-                    shutil.copy2(src, destination_path)
-                current_app.logger.info(
-                    'mini 形态本地存储读取: %s/%s -> %s',
-                    bucket_name, object_name, destination_path,
-                )
+            success, error_msg = ModelService._copy_local_object(
+                bucket_name, object_name, destination_path,
+                reason='未启用对象存储，直接读本地',
+            )
+            if success:
                 return True, None
-            except OSError as exc:
-                error_msg = f'本地对象复制失败: {exc}'
-                current_app.logger.error(error_msg)
-                return False, error_msg
+            error_msg = error_msg or f'本地对象不存在: {bucket_name}/{object_name}'
+            current_app.logger.error(error_msg)
+            return False, error_msg
 
         try:
             minio_client = ModelService.get_minio_client()
 
             # 检查对象是否存在
+            missing_in_object_store = False
             try:
                 stat = minio_client.stat_object(bucket_name, object_name)
                 if not stat:
-                    error_msg = f"Minio对象不存在: {bucket_name}/{object_name}"
-                    current_app.logger.error(error_msg)
-                    return False, error_msg
+                    missing_in_object_store = True
             except S3Error as e:
-                if e.code == 'NoSuchKey':
-                    error_msg = f"Minio对象不存在: {bucket_name}/{object_name}"
-                    current_app.logger.error(error_msg)
-                    return False, error_msg
+                if e.code in ('NoSuchKey', 'NoSuchBucket'):
+                    missing_in_object_store = True
                 else:
                     raise
+
+            if missing_in_object_store:
+                # 对象只存在于 local-storage（或种子目录）时回退，而不是直接 404
+                success, local_error = ModelService._copy_local_object(
+                    bucket_name, object_name, destination_path,
+                    reason='对象存储缺失回退本地',
+                )
+                if success:
+                    return True, None
+                error_msg = local_error or f"Minio对象不存在: {bucket_name}/{object_name}"
+                current_app.logger.error(error_msg)
+                return False, error_msg
 
             # 下载文件
             minio_client.fget_object(bucket_name, object_name, destination_path)

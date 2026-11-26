@@ -86,6 +86,33 @@ def _iter_minio_response(data, length: int):
         data.release_conn()
 
 
+def _serve_local_object(bucket_name: str, object_key: str):
+    """从 flat 本地存储（含种子目录懒加载）返回对象；未命中返回 None。
+
+    对象存储未开启、存储桶不存在或对象缺失时兜底调用：
+    桌面端安装只建空桶不灌种子，模型等种子数据可能仅存在于本地。
+    """
+    from app.services.local_storage_service import ensure_local_object
+
+    try:
+        local_path = ensure_local_object(bucket_name, object_key)
+    except ValueError:
+        return Response('对象路径非法', status=400, mimetype='text/plain')
+    if not local_path:
+        return None
+    logger.info('对象命中本地存储: %s/%s -> %s（代理回退本地）', bucket_name, object_key, local_path)
+    filename = os.path.basename(object_key) or 'download'
+    response = send_file(
+        local_path,
+        conditional=True,
+        as_attachment=False,
+        download_name=filename,
+    )
+    response.headers['Content-Disposition'] = _build_content_disposition('inline', filename)
+    response.headers['Accept-Ranges'] = 'bytes'
+    return response
+
+
 @minio_proxy_bp.route('/api/v1/buckets/<bucket_name>/objects/download', methods=['GET', 'HEAD'])
 def download_object(bucket_name: str):
     """流式代理对象下载，支持视频播放所需的 HEAD/Range。"""
@@ -101,33 +128,32 @@ def download_object(bucket_name: str):
         object_key = object_key_from_url
 
     from app.utils.service_urls import minio_storage_enabled
-    from app.services.local_storage_service import ensure_local_object
 
     if not minio_storage_enabled():
-        try:
-            local_path = ensure_local_object(bucket_name, object_key)
-        except ValueError:
-            return Response('对象路径非法', status=400, mimetype='text/plain')
-        if not local_path:
-            logger.warning('本地对象不存在: %s/%s', bucket_name, object_key)
-            return Response('对象不存在', status=404, mimetype='text/plain')
-        filename = os.path.basename(object_key) or 'download'
-        response = send_file(
-            local_path,
-            conditional=True,
-            as_attachment=False,
-            download_name=filename,
-        )
-        response.headers['Content-Disposition'] = _build_content_disposition('inline', filename)
-        response.headers['Accept-Ranges'] = 'bytes'
-        return response
+        response = _serve_local_object(bucket_name, object_key)
+        if response is not None:
+            return response
+        logger.warning('本地对象不存在: %s/%s', bucket_name, object_key)
+        return Response('对象不存在', status=404, mimetype='text/plain')
 
     try:
         client = ModelService.get_minio_client()
         if not client.bucket_exists(bucket_name):
+            response = _serve_local_object(bucket_name, object_key)
+            if response is not None:
+                return response
             return Response(f'MinIO 存储桶不存在: {bucket_name}', status=404, mimetype='text/plain')
 
-        stat = client.stat_object(bucket_name, object_key)
+        try:
+            stat = client.stat_object(bucket_name, object_key)
+        except S3Error as e:
+            if getattr(e, 'code', '') not in ('NoSuchKey', 'NoSuchBucket'):
+                raise
+            response = _serve_local_object(bucket_name, object_key)
+            if response is not None:
+                return response
+            logger.warning('MinIO 对象不存在: %s/%s', bucket_name, object_key)
+            return Response(f'对象不存在: {bucket_name}/{object_key}', status=404, mimetype='text/plain')
         filename = os.path.basename(object_key) or 'download'
         content_type = stat.content_type
         if not content_type or content_type == 'application/octet-stream':

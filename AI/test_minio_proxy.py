@@ -7,10 +7,16 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import unquote
 
 from flask import Flask
+from minio.error import S3Error
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
 
 from app.blueprints.minio_proxy import minio_proxy_bp
+
+
+def _s3_error(code):
+    """S3Error 的签名为 (response, code, message, ...)，注意首个参数不是 code。"""
+    return S3Error(None, code, 'missing', 'resource', 'request-id', 'host-id')
 
 
 class TestMinioProxy(unittest.TestCase):
@@ -145,6 +151,106 @@ class TestMinioProxy(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers['Content-Length'], '100')
         minio_client.get_object.assert_not_called()
+
+    def _make_local_object(self, tmpdir, name, content):
+        local_path = Path(tmpdir) / name
+        local_path.write_bytes(content)
+        return str(local_path)
+
+    def test_bucket_missing_falls_back_to_local(self):
+        content = b'seed-model'
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_path = self._make_local_object(tmpdir, 'yolov11.pt', content)
+            minio_client = MagicMock()
+            minio_client.bucket_exists.return_value = False
+            with patch(
+                'app.utils.service_urls.minio_storage_enabled', return_value=True
+            ), patch(
+                'app.blueprints.minio_proxy.ModelService.get_minio_client',
+                return_value=minio_client,
+            ), patch(
+                'app.services.local_storage_service.ensure_local_object',
+                return_value=local_path,
+            ):
+                response = self.client.get(
+                    '/api/v1/buckets/models/objects/download',
+                    query_string={'prefix': 'yolo/yolov11/yolov11.pt'},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, content)
+        self.assertEqual(response.headers['Accept-Ranges'], 'bytes')
+        minio_client.get_object.assert_not_called()
+
+    def test_missing_object_falls_back_to_local(self):
+        content = b'seed-onnx'
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_path = self._make_local_object(tmpdir, 'yolov8.onnx', content)
+            minio_client = MagicMock()
+            minio_client.bucket_exists.return_value = True
+            minio_client.stat_object.side_effect = _s3_error('NoSuchKey')
+            with patch(
+                'app.utils.service_urls.minio_storage_enabled', return_value=True
+            ), patch(
+                'app.blueprints.minio_proxy.ModelService.get_minio_client',
+                return_value=minio_client,
+            ), patch(
+                'app.services.local_storage_service.ensure_local_object',
+                return_value=local_path,
+            ):
+                response = self.client.head(
+                    '/api/v1/buckets/models/objects/download',
+                    query_string={'prefix': 'yolo/yolov8/onnx/yolov8.onnx'},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['Accept-Ranges'], 'bytes')
+        minio_client.get_object.assert_not_called()
+
+    def test_missing_bucket_on_stat_falls_back_to_local(self):
+        content = b'seed-pt'
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_path = self._make_local_object(tmpdir, 'best.pt', content)
+            minio_client = MagicMock()
+            minio_client.bucket_exists.return_value = True
+            minio_client.stat_object.side_effect = _s3_error('NoSuchBucket')
+            with patch(
+                'app.utils.service_urls.minio_storage_enabled', return_value=True
+            ), patch(
+                'app.blueprints.minio_proxy.ModelService.get_minio_client',
+                return_value=minio_client,
+            ), patch(
+                'app.services.local_storage_service.ensure_local_object',
+                return_value=local_path,
+            ):
+                response = self.client.get(
+                    '/api/v1/buckets/models/objects/download',
+                    query_string={'prefix': 'yolo/best.pt'},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, content)
+
+    def test_missing_object_without_local_copy_returns_404(self):
+        minio_client = MagicMock()
+        minio_client.bucket_exists.return_value = True
+        minio_client.stat_object.side_effect = _s3_error('NoSuchKey')
+        with patch(
+            'app.utils.service_urls.minio_storage_enabled', return_value=True
+        ), patch(
+            'app.blueprints.minio_proxy.ModelService.get_minio_client',
+            return_value=minio_client,
+        ), patch(
+            'app.services.local_storage_service.ensure_local_object',
+            return_value=None,
+        ):
+            response = self.client.get(
+                '/api/v1/buckets/models/objects/download',
+                query_string={'prefix': 'yolo/gone.pt'},
+            )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('对象不存在', response.get_data(as_text=True))
 
 
 if __name__ == '__main__':
