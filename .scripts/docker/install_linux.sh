@@ -29,6 +29,7 @@
 #   site [子命令] - 官方网站 SITE 独立部署
 #   rk3588 [子命令] - RUNTIME-RK3588 盒子独立部署（不启动其他模块）
 #   bm1688 [子命令] - RUNTIME-BM1688 盒子独立部署（不启动其他模块）
+#   nvidia [子命令] - RUNTIME-NVIDIA 盒子独立部署（不启动其他模块）
 #   mobile [子命令] - 移动端 APP 三端打包（Android/iOS/HarmonyOS）：status|build|bump|artifacts|clean（委托 .scripts/docker/mobile.sh）
 #   runtime|runtime-integrated - 兼容别名：等价于 install 中选择「云边一体形态」
 #   build-runtime-cpp [target] - RUNTIME C++ 离线包矩阵构建（容器内按 OS 编译，与 COMPILE 对齐）
@@ -50,6 +51,9 @@
 # BM1688 盒子独立部署：
 #   cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
 #   ./install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+# NVIDIA 盒子独立部署：
+#   cp RUNTIME-NVIDIA/config/config.example.ini ./nvidia-gate-a.ini
+#   ./install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
 # ============================================
 
 set -e
@@ -2295,6 +2299,7 @@ show_help() {
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
     echo "  rk3588 [子命令] [任务清单或任务ID] - RK3588 盒子独立部署（不依赖其他模块）"
     echo "  bm1688 [子命令] [参数] - BM1688 盒子独立部署（不依赖其他模块）"
+    echo "  nvidia [子命令] [参数] - NVIDIA 盒子独立部署（不依赖其他模块）"
     echo "  mobile [子命令] - 移动端 APP 三端打包管理（委托 .scripts/docker/mobile.sh）"
     echo "  build-runtime-cpp [target|--all|--compile-target NAME] - RUNTIME C++ 离线包矩阵构建"
     echo "  preflight-runtime-cpp [--node N | os_family [arch]] - 分发前预检本地 tarball"
@@ -2322,6 +2327,12 @@ show_help() {
     echo "  start | stop | restart | status | remove（这些命令后跟任务名）| clean"
     echo "  每路 RTSP 一个受监管任务；每份配置可绑定一个或多个 BModel"
     echo "  只部署 RUNTIME-BM1688；不启动 WEB / AI / VIDEO / MQTT / Docker 等其他模块"
+    echo ""
+    echo "NVIDIA 子命令（./install_linux.sh nvidia <子命令>）:"
+    echo "  preflight | build | install <配置.ini> [任务名] | add <任务名> <配置.ini>"
+    echo "  start | stop | restart | status | remove（这些命令后跟任务名）| clean"
+    echo "  每路 RTSP 一个受监管任务；每份配置可绑定一个或多个 TensorRT engine"
+    echo "  只部署 RUNTIME-NVIDIA；缺少 NVDEC/CUDA/TensorRT 时直接失败，不回退 CPU"
     echo ""
     echo "移动端子命令（./install_linux.sh mobile <子命令>，详见 MOBILE.md）:"
     echo "  status | build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]"
@@ -2433,6 +2444,30 @@ run_bm1688_module() {
             ;;
         *)
             print_error "未知 BM1688 子命令: ${bm_cmd}"
+            echo "可用: preflight | build | install | add | remove | start | stop | restart | status | clean"
+            return 1
+            ;;
+    esac
+}
+
+# NVIDIA 盒子专用：委托 NVDEC/CUDA/TensorRT 运行时，不进入平台模块流程。
+run_nvidia_module() {
+    local nvidia_cmd="${1:-help}"
+    shift || true
+    local nvidia_dir="${PROJECT_ROOT}/RUNTIME-NVIDIA"
+    local nvidia_script="${nvidia_dir}/install_linux.sh"
+    if [ ! -f "$nvidia_script" ]; then
+        print_error "未找到 NVIDIA 独立部署脚本: ${nvidia_script}"
+        return 1
+    fi
+    case "$nvidia_cmd" in
+        install|add|remove|preflight|build|start|stop|restart|status|clean|help|-h|--help)
+            print_section "RUNTIME-NVIDIA 盒子独立部署（${nvidia_cmd}）"
+            print_info "仅处理 NVIDIA 硬件运行时，不启动其他模块，也不会回退 ONNX/CPU/软件解码"
+            (cd "$PROJECT_ROOT" && bash "$nvidia_script" "$nvidia_cmd" "$@")
+            ;;
+        *)
+            print_error "未知 NVIDIA 子命令: ${nvidia_cmd}"
             echo "可用: preflight | build | install | add | remove | start | stop | restart | status | clean"
             return 1
             ;;
@@ -2624,6 +2659,9 @@ main() {
             ;;
         bm1688|runtime-bm1688|bm1688-runtime|cv186x)
             run_bm1688_module "${@:2}"
+            ;;
+        nvidia|runtime-nvidia|nvidia-runtime|tensorrt)
+            run_nvidia_module "${@:2}"
             ;;
         mobile|移动端)
             run_mobile_module "${@:2}"
