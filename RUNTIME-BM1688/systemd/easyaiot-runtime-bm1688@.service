@@ -1,0 +1,20 @@
+[Unit]
+Description=EasyAIoT BM1688 hardware runtime (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=@PREFIX@/bin/RUNTIME --version
+ExecStart=@PREFIX@/bin/RUNTIME @CONFIG_DIR@/%i.ini
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+LimitNOFILE=1048576
+Environment=EASYAIOT_RUNTIME_TARGET=bm1688
+Environment=LD_LIBRARY_PATH=/opt/sophon/libsophon-current/lib:/opt/sophon/sophon-opencv-latest/lib:/usr/lib/aarch64-linux-gnu
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

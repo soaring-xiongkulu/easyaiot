@@ -1,0 +1,4 @@
+/build/
+/deploy.env
+/models/*.bmodel
+!/models/.gitkeep
