@@ -1,0 +1,5 @@
+/build/
+/deploy.env
+/models/*.engine
+/models/*.plan
+!/models/coco.names
