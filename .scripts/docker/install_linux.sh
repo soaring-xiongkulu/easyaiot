@@ -28,6 +28,7 @@
 #   profile    - 显示当前部署形态与服务范围
 #   site [子命令] - 官方网站 SITE 独立部署
 #   rk3588 [子命令] - RUNTIME-RK3588 盒子独立部署（不启动其他模块）
+#   bm1688 [子命令] - RUNTIME-BM1688 盒子独立部署（不启动其他模块）
 #   mobile [子命令] - 移动端 APP 三端打包（Android/iOS/HarmonyOS）：status|build|bump|artifacts|clean（委托 .scripts/docker/mobile.sh）
 #   runtime|runtime-integrated - 兼容别名：等价于 install 中选择「云边一体形态」
 #   build-runtime-cpp [target] - RUNTIME C++ 离线包矩阵构建（容器内按 OS 编译，与 COMPILE 对齐）
@@ -46,6 +47,9 @@
 # RK3588 盒子独立部署：
 #   cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
 #   ./install_linux.sh rk3588 install ./rk3588.tasks.json
+# BM1688 盒子独立部署：
+#   cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+#   ./install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
 # ============================================
 
 set -e
@@ -2265,6 +2269,7 @@ show_help() {
     echo "  3) 官网 — SITE 官方网站独立部署"
     echo "  4) 移动端 — APP 三端打包（Android/iOS/HarmonyOS）"
     echo "  5) RK3588 — 边缘 AI 盒子独立部署"
+    echo "  6) BM1688 — 算丰边缘 AI 盒子独立部署"
     echo ""
     echo "可用命令:"
     echo "  install         - 安装并启动所有服务（首次运行）"
@@ -2289,6 +2294,7 @@ show_help() {
     echo "  profile         - 显示当前部署形态与服务范围"
     echo "  site [子命令]   - 官方网站 SITE 独立部署（默认 install）"
     echo "  rk3588 [子命令] [任务清单或任务ID] - RK3588 盒子独立部署（不依赖其他模块）"
+    echo "  bm1688 [子命令] [参数] - BM1688 盒子独立部署（不依赖其他模块）"
     echo "  mobile [子命令] - 移动端 APP 三端打包管理（委托 .scripts/docker/mobile.sh）"
     echo "  build-runtime-cpp [target|--all|--compile-target NAME] - RUNTIME C++ 离线包矩阵构建"
     echo "  preflight-runtime-cpp [--node N | os_family [arch]] - 分发前预检本地 tarball"
@@ -2310,6 +2316,12 @@ show_help() {
     echo "  preflight | deps | build | uninstall"
     echo "  只部署 RUNTIME-RK3588；不启动 WEB / AI / VIDEO / MQTT / Docker 等其他模块"
     echo "  清单约定: 多路 RTSP + 模型库；每路任务可绑定一个或多个 RKNN 模型"
+    echo ""
+    echo "BM1688 子命令（./install_linux.sh bm1688 <子命令>）:"
+    echo "  preflight | build | install <配置.ini> [任务名] | add <任务名> <配置.ini>"
+    echo "  start | stop | restart | status | remove（这些命令后跟任务名）| clean"
+    echo "  每路 RTSP 一个受监管任务；每份配置可绑定一个或多个 BModel"
+    echo "  只部署 RUNTIME-BM1688；不启动 WEB / AI / VIDEO / MQTT / Docker 等其他模块"
     echo ""
     echo "移动端子命令（./install_linux.sh mobile <子命令>，详见 MOBILE.md）:"
     echo "  status | build <android|ios|harmonyos|all> [prod|test|dev] [--skip-native]"
@@ -2398,6 +2410,30 @@ run_rk3588_module() {
         *)
             print_error "未知 RK3588 子命令: ${rk_cmd}"
             echo "可用: install | update | config-check | list | preflight | build | start | stop | restart | status | logs | verify | uninstall"
+            return 1
+            ;;
+    esac
+}
+
+# BM1688 盒子专用：委托专用运行时，不进入 Docker/平台模块流程。
+run_bm1688_module() {
+    local bm_cmd="${1:-help}"
+    shift || true
+    local bm_dir="${PROJECT_ROOT}/RUNTIME-BM1688"
+    local bm_script="${bm_dir}/install_linux.sh"
+    if [ ! -f "$bm_script" ]; then
+        print_error "未找到 BM1688 独立部署脚本: ${bm_script}"
+        return 1
+    fi
+    case "$bm_cmd" in
+        install|add|remove|preflight|build|start|stop|restart|status|clean|help|-h|--help)
+            print_section "RUNTIME-BM1688 盒子独立部署（${bm_cmd}）"
+            print_info "仅处理 BM1688 硬件运行时，不启动其他 EasyAIoT 模块，也不会回退 ONNX/CPU"
+            (cd "$PROJECT_ROOT" && bash "$bm_script" "$bm_cmd" "$@")
+            ;;
+        *)
+            print_error "未知 BM1688 子命令: ${bm_cmd}"
+            echo "可用: preflight | build | install | add | remove | start | stop | restart | status | clean"
             return 1
             ;;
     esac
@@ -2585,6 +2621,9 @@ main() {
             ;;
         rk3588|runtime-rk3588|rk3588-runtime)
             run_rk3588_module "${@:2}"
+            ;;
+        bm1688|runtime-bm1688|bm1688-runtime|cv186x)
+            run_bm1688_module "${@:2}"
             ;;
         mobile|移动端)
             run_mobile_module "${@:2}"
