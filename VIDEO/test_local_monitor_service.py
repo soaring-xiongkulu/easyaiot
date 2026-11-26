@@ -12,7 +12,7 @@ class LocalMonitorServiceTest(unittest.TestCase):
         self.assertGreater(data['disk']['totalBytes'], 0)
         self.assertIn('rxBytesPerSec', data['network'])
         self.assertIn('runningTasks', data['runtime'])
-        self.assertIn(data['runtime']['target'], ('auto', 'generic', 'rk3588'))
+        self.assertIn(data['runtime']['target'], ('auto', 'generic', 'rk3588', 'bm1688'))
 
 
 if __name__ == '__main__':

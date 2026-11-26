@@ -52,7 +52,7 @@ class AlgorithmTaskDaemon:
             llm_enabled: 是否启用LLM
             extra_env: 启动时注入子进程的额外环境变量（如 SAM 配置，避免守护进程查库）
             executor: python | cpp
-            runtime_target: auto | rk3588 | generic（确定 RUNTIME 模块与库路径）
+            runtime_target: auto | rk3588 | bm1688 | generic（确定 RUNTIME 模块与库路径）
             runtime_bin: RUNTIME 二进制路径（executor=cpp）
             runtime_ini: RUNTIME 配置 ini 路径（executor=cpp，单路兼容）
             runtime_inis: RUNTIME 多路 ini 列表（cpp realtime 一路一进程）
@@ -752,8 +752,8 @@ class AlgorithmTaskDaemon:
         if self._extra_env:
             env.update(self._extra_env)
         disable_post_for_http_alerts(env)
-        # Default prefer GPU unless explicitly disabled; RK3588 uses NPU/MPP only.
-        if runtime_target == 'rk3588':
+        # 芯片专用运行时使用自身 NPU/TPU 与媒体单元，不加载 CUDA/ONNX。
+        if runtime_target in ('rk3588', 'bm1688'):
             env['USE_GPU'] = 'false'
             env['RUNTIME_PREFER_GPU'] = 'false'
         else:
@@ -765,8 +765,8 @@ class AlgorithmTaskDaemon:
         try:
             lib_path = runtime_library_path_env(runtime_target)
             if lib_path:
-                if runtime_target == 'rk3588':
-                    # 不继承进程级通用 ONNX/CUDA 路径，避免与 RKNN/MPP 系统库冲突
+                if runtime_target in ('rk3588', 'bm1688'):
+                    # 不继承进程级通用 ONNX/CUDA 路径，避免与厂商 SDK 系统库冲突
                     env['LD_LIBRARY_PATH'] = lib_path
                 else:
                     existing = (env.get('LD_LIBRARY_PATH') or '').strip()

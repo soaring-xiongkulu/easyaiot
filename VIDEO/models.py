@@ -1112,7 +1112,7 @@ class AlgorithmTask(db.Model):
     executor = db.Column(db.String(20), default='cpp', nullable=False,
                          comment='执行后端[python,cpp]，默认 cpp')
     runtime_target = db.Column(db.String(32), default='auto', nullable=False,
-                               comment='算法运行时目标[auto,generic,rk3588]')
+                               comment='算法运行时目标[auto,generic,rk3588,bm1688]')
     runtime_bin_path = db.Column(db.String(500), nullable=True,
                                  comment='RUNTIME 二进制路径（空则用 RUNTIME_BIN 或仓库默认）')
     runtime_control_port = db.Column(db.Integer, nullable=True,

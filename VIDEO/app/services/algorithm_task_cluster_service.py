@@ -529,7 +529,7 @@ def _build_shard_env(
         if not local:
             env['RUNTIME_BIN'] = remote_runtime_bin(target)
             env['LD_LIBRARY_PATH'] = remote_runtime_library_path(target)
-        if target == 'rk3588':
+        if target in ('rk3588', 'bm1688'):
             env['USE_GPU'] = 'false'
             env['RUNTIME_PREFER_GPU'] = 'false'
         else:
@@ -585,7 +585,7 @@ def _deploy_shard_locally(
     env['RUNTIME_BIN'] = runtime_bin
     lib_path = runtime_library_path_env(runtime_target)
     if lib_path:
-        if runtime_target == 'rk3588':
+        if runtime_target in ('rk3588', 'bm1688'):
             env['LD_LIBRARY_PATH'] = lib_path
         else:
             existing = (env.get('LD_LIBRARY_PATH') or '').strip()

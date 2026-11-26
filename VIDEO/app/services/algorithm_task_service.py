@@ -927,9 +927,10 @@ def create_algorithm_task(task_name: str,
                 raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
             effective_policy = schedule_policy or 'local'
             resolved_target = resolve_runtime_target(None, runtime_target)
-            if effective_policy != 'local' and resolved_target == 'rk3588':
+            if effective_policy != 'local' and resolved_target in ('rk3588', 'bm1688'):
+                module = 'RUNTIME-BM1688' if resolved_target == 'bm1688' else 'RUNTIME-RK3588'
                 raise ValueError(
-                    'RK3588 硬件运行时只支持本机调度（edge + RUNTIME-RK3588）。'
+                    f'{module} 硬件运行时只支持本机调度（edge + {module}）。'
                     '远程节点调度请显式选择通用 RUNTIME，或将调度策略改为本机'
                 )
             validate_runtime_model_contract(resolved_target, model_ids)
@@ -1255,6 +1256,7 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
 
         if (
                 'executor' in kwargs
+                or 'runtime_target' in kwargs
                 or 'task_type' in kwargs
                 or 'schedule_policy' in kwargs
                 or 'model_ids' in kwargs
@@ -1285,9 +1287,10 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                 if effective_type not in ('realtime', 'snap', 'patrol'):
                     raise ValueError(f'executor=cpp 不支持任务类型: {effective_type}')
                 resolved_target = resolve_runtime_target(None, effective_target_raw)
-                if (effective_policy or 'local') != 'local' and resolved_target == 'rk3588':
+                if (effective_policy or 'local') != 'local' and resolved_target in ('rk3588', 'bm1688'):
+                    module = 'RUNTIME-BM1688' if resolved_target == 'bm1688' else 'RUNTIME-RK3588'
                     raise ValueError(
-                        'RK3588 硬件运行时只支持本机调度（edge + RUNTIME-RK3588）。'
+                        f'{module} 硬件运行时只支持本机调度（edge + {module}）。'
                         '远程节点调度请显式选择通用 RUNTIME，或将调度策略改为本机'
                     )
                 effective_model_ids = _normalize_task_model_ids(

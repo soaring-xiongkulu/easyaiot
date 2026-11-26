@@ -1,4 +1,4 @@
-"""芯片算法运行时选择（generic / RK3588）回归测试。"""
+"""芯片算法运行时选择（generic / RK3588 / BM1688）回归测试。"""
 import os
 import tempfile
 import unittest
@@ -23,6 +23,8 @@ class RuntimeTargetParsingTest(unittest.TestCase):
         self.assertEqual(rcs.parse_runtime_target('rk3588'), 'rk3588')
         self.assertEqual(rcs.parse_runtime_target('RKnN-RK3588'), 'rk3588')
         self.assertEqual(rcs.parse_runtime_target('runtime-rk3588'), 'rk3588')
+        self.assertEqual(rcs.parse_runtime_target('bm1688'), 'bm1688')
+        self.assertEqual(rcs.parse_runtime_target('SOPHON-BM1688'), 'bm1688')
         self.assertEqual(rcs.parse_runtime_target('generic'), 'generic')
         self.assertEqual(rcs.parse_runtime_target('onnx'), 'generic')
 
@@ -36,8 +38,10 @@ class RuntimeTargetParsingTest(unittest.TestCase):
 
     def test_module_and_env_keys_are_target_specific(self):
         self.assertEqual(rcs.runtime_module_name('rk3588'), 'RUNTIME-RK3588')
+        self.assertEqual(rcs.runtime_module_name('bm1688'), 'RUNTIME-BM1688')
         self.assertEqual(rcs.runtime_module_name('generic'), 'RUNTIME')
         self.assertEqual(rcs.runtime_bin_env_key('rk3588'), 'RUNTIME_RK3588_BIN')
+        self.assertEqual(rcs.runtime_bin_env_key('bm1688'), 'RUNTIME_BM1688_BIN')
         self.assertEqual(rcs.runtime_bin_env_key('generic'), 'RUNTIME_BIN')
 
 
@@ -71,6 +75,19 @@ class RuntimeTargetResolutionTest(unittest.TestCase):
         finally:
             os.unlink(probe_path)
 
+    def test_auto_detects_bm1688_from_device_tree(self):
+        with tempfile.NamedTemporaryFile('w', delete=False) as fh:
+            fh.write('sophgo,bm1688\0sophon,cv186ah\0')
+            probe_path = fh.name
+        try:
+            with patch.dict(os.environ, {}, clear=True), patch.object(
+                rcs, '_HOST_CHIP_PROBE_PATHS', (probe_path,)
+            ):
+                self.assertTrue(rcs._host_is_bm1688())
+                self.assertEqual(rcs.resolve_runtime_target(None, 'auto'), 'bm1688')
+        finally:
+            os.unlink(probe_path)
+
     def test_remote_placement_rejects_rk3588(self):
         with self.assertRaises(ValueError):
             rcs.resolve_remote_runtime_target(SimpleNamespace(runtime_target='rk3588'))
@@ -82,6 +99,10 @@ class RuntimeTargetResolutionTest(unittest.TestCase):
             rcs.resolve_remote_runtime_target(SimpleNamespace(runtime_target='generic')),
             'generic',
         )
+
+    def test_remote_placement_rejects_bm1688(self):
+        with self.assertRaises(ValueError):
+            rcs.resolve_remote_runtime_target(SimpleNamespace(runtime_target='bm1688'))
 
 
 class RuntimeModelContractTest(unittest.TestCase):
@@ -103,6 +124,11 @@ class RuntimeModelContractTest(unittest.TestCase):
     def test_generic_does_not_apply_rknn_contract(self):
         self.assertEqual(rcs.validate_runtime_model_contract('generic', [-1]), 'generic')
         self.assertEqual(rcs.validate_runtime_model_contract('generic', []), 'generic')
+
+    def test_bm1688_uses_same_strict_builtin_contract(self):
+        self.assertEqual(rcs.validate_runtime_model_contract('bm1688', [-2]), 'bm1688')
+        with self.assertRaises(ValueError):
+            rcs.validate_runtime_model_contract('bm1688', [-1])
 
 
 class RuntimeTargetPathsTest(unittest.TestCase):
@@ -132,14 +158,19 @@ class RuntimeTargetPathsTest(unittest.TestCase):
                 )
 
     def test_config_dir_is_target_specific(self):
-        with tempfile.TemporaryDirectory() as generic_dir, tempfile.TemporaryDirectory() as rk_dir:
+        with tempfile.TemporaryDirectory() as generic_dir, tempfile.TemporaryDirectory() as rk_dir, tempfile.TemporaryDirectory() as bm_dir:
             with patch.dict(
                 os.environ,
-                {'RUNTIME_CONFIG_DIR': generic_dir, 'RUNTIME_RK3588_CONFIG_DIR': rk_dir},
+                {
+                    'RUNTIME_CONFIG_DIR': generic_dir,
+                    'RUNTIME_RK3588_CONFIG_DIR': rk_dir,
+                    'RUNTIME_BM1688_CONFIG_DIR': bm_dir,
+                },
                 clear=True,
             ):
                 self.assertEqual(rcs.runtime_config_dir('generic'), Path(generic_dir))
                 self.assertEqual(rcs.runtime_config_dir('rk3588'), Path(rk_dir))
+                self.assertEqual(rcs.runtime_config_dir('bm1688'), Path(bm_dir))
 
     def test_rk3588_library_path_excludes_generic_ort_cuda_paths(self):
         with patch.dict(
@@ -213,6 +244,37 @@ class RknnRuntimeIniTest(unittest.TestCase):
         self.assertIn('threads=3', content)
         self.assertIn('[rk3588]', content)
         self.assertIn('npu_workers=3', content)
+        self.assertNotIn('prefer_gpu=', content)
+
+
+class BModelRuntimeIniTest(unittest.TestCase):
+    def test_bm1688_ini_uses_bmodel_vpp_and_two_tpu_cores(self):
+        task = RknnRuntimeIniTest()._task()
+        task.runtime_target = 'bm1688'
+        task.model_names = 'bm'
+        task.devices[0].id = 'cam-bm'
+        with tempfile.TemporaryDirectory() as tmp:
+            model_path = Path(tmp) / 'models' / 'yolov8n-bm1688-int8-4b.bmodel'
+            model_path.parent.mkdir()
+            model_path.write_bytes(b'bmodel')
+            names_path = model_path.parent / 'coco.names'
+            names_path.write_text('person\n', encoding='utf-8')
+            with patch.dict(
+                os.environ, {'RUNTIME_BM1688_CONFIG_DIR': tmp}, clear=True
+            ), patch.object(
+                rcs,
+                '_resolve_bmodel_models_with_ids',
+                return_value=[(-2, str(model_path), str(names_path))],
+            ):
+                paths = rcs.generate_runtime_inis(
+                    task, log_path=os.path.join(tmp, 'log'), write_local=True
+                )
+                content = Path(paths[0]).read_text(encoding='utf-8')
+        self.assertIn('target=bm1688', content)
+        self.assertIn(f'model_path={model_path}', content)
+        self.assertIn('[bm1688]', content)
+        self.assertIn('core_ids=0,1', content)
+        self.assertIn('zero_copy=true', content)
         self.assertNotIn('prefer_gpu=', content)
 
 

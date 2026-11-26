@@ -666,12 +666,12 @@ def _build_stream_forward_deploy_env(
             env['EASYAIOT_RUNTIME_TARGET'] = runtime_target
             env['RUNTIME_BIN'] = resolve_runtime_bin(task)
             env['RUNTIME_CONFIG_DIR'] = str(runtime_config_dir(runtime_target))
-            if runtime_target == 'rk3588':
+            if runtime_target in ('rk3588', 'bm1688'):
                 env['USE_GPU'] = 'false'
                 env['RUNTIME_PREFER_GPU'] = 'false'
             lib_path = runtime_library_path_env(runtime_target)
             if lib_path:
-                if runtime_target == 'rk3588':
+                if runtime_target in ('rk3588', 'bm1688'):
                     env['LD_LIBRARY_PATH'] = lib_path
                 else:
                     existing = (env.get('LD_LIBRARY_PATH') or '').strip()

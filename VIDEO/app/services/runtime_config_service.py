@@ -37,6 +37,7 @@ _AUTO_BUILD_DONE = set()
 RUNTIME_TARGET_AUTO = 'auto'
 RUNTIME_TARGET_GENERIC = 'generic'
 RUNTIME_TARGET_RK3588 = 'rk3588'
+RUNTIME_TARGET_BM1688 = 'bm1688'
 
 # RK3588 的 /proc/device-tree 是 sysfs 的符号链接；容器里通常只能看到 sysfs，
 # 因此设备树探测必须同时覆盖两种布局。
@@ -52,6 +53,10 @@ _RUNTIME_TARGET_ALIASES = {
     'rknn-rk3588': RUNTIME_TARGET_RK3588,
     'runtime-rk3588': RUNTIME_TARGET_RK3588,
     'rockchip-rk3588': RUNTIME_TARGET_RK3588,
+    'bm1688': RUNTIME_TARGET_BM1688,
+    'sophon-bm1688': RUNTIME_TARGET_BM1688,
+    'runtime-bm1688': RUNTIME_TARGET_BM1688,
+    'sophgo-bm1688': RUNTIME_TARGET_BM1688,
     'generic': RUNTIME_TARGET_GENERIC,
     'runtime': RUNTIME_TARGET_GENERIC,
     'onnx': RUNTIME_TARGET_GENERIC,
@@ -84,6 +89,17 @@ def _host_is_rk3588() -> bool:
     return 'rk3588' in '\n'.join(probes).lower()
 
 
+def _host_is_bm1688() -> bool:
+    probes = []
+    for path in _HOST_CHIP_PROBE_PATHS:
+        try:
+            probes.append(Path(path).read_bytes().decode('utf-8', errors='ignore'))
+        except OSError:
+            continue
+    signature = '\n'.join(probes).lower()
+    return 'bm1688' in signature or ('sophon' in signature and '1688' in signature)
+
+
 def parse_runtime_target(value) -> str:
     """校验外部传入的运行时目标；未知芯片必须显式失败，不能静默改成 auto。"""
     raw = str(value or RUNTIME_TARGET_AUTO).strip().lower().replace('_', '-')
@@ -92,7 +108,7 @@ def parse_runtime_target(value) -> str:
     target = _RUNTIME_TARGET_ALIASES.get(raw)
     if target is None:
         raise ValueError(
-            f'不支持的芯片算法运行时: {value}。可选: auto / rk3588 / generic'
+            f'不支持的芯片算法运行时: {value}。可选: auto / rk3588 / bm1688 / generic'
         )
     return target
 
@@ -116,17 +132,23 @@ def resolve_runtime_target(task: Optional[AlgorithmTask] = None, requested: Opti
             os.getenv('EASYAIOT_RUNTIME_TARGET') or os.getenv('RUNTIME_TARGET')
         )
     if target == RUNTIME_TARGET_AUTO:
-        target = RUNTIME_TARGET_RK3588 if _host_is_rk3588() else RUNTIME_TARGET_GENERIC
+        if _host_is_rk3588():
+            target = RUNTIME_TARGET_RK3588
+        elif _host_is_bm1688():
+            target = RUNTIME_TARGET_BM1688
+        else:
+            target = RUNTIME_TARGET_GENERIC
     return target
 
 
 def resolve_remote_runtime_target(task: Optional[AlgorithmTask] = None) -> str:
     """远程 iot-node 目前只分发通用 RUNTIME；RK3588 必须显式拒绝而非静默降级。"""
     requested = normalize_runtime_target(getattr(task, 'runtime_target', None) if task is not None else None)
-    if requested == RUNTIME_TARGET_RK3588:
+    if requested in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688):
+        module = runtime_module_name(requested)
         raise ValueError(
-            'RK3588 硬件运行时只支持 edge 本机调度（RUNTIME-RK3588 + MPP/RGA/RKNN）。'
-            '远程 iot-node 尚未提供 RK3588 运行时分发，请将调度策略改为本机，'
+            f'{module} 硬件运行时当前只支持 edge 本机调度。'
+            f'远程 iot-node 尚未提供 {module} 分发，请将调度策略改为本机，'
             '或为该任务选择通用 RUNTIME'
         )
     # auto 在远程节点上没有芯片探测通道，按通用 RUNTIME 的下发契约处理。
@@ -136,7 +158,7 @@ def resolve_remote_runtime_target(task: Optional[AlgorithmTask] = None) -> str:
 def validate_runtime_model_contract(runtime_target, model_ids: Any) -> str:
     """创建/更新任务时尽早校验芯片与模型契约，避免启动时才失败。"""
     target = resolve_runtime_target(None, runtime_target)
-    if target != RUNTIME_TARGET_RK3588:
+    if target not in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688):
         return target
 
     if isinstance(model_ids, str):
@@ -154,29 +176,37 @@ def validate_runtime_model_contract(runtime_target, model_ids: Any) -> str:
             continue
     if not parsed:
         raise ValueError(
-            'RK3588 算法任务必须选择至少一个 .rknn 模型（内置 yolov8n 或业务 RKNN 模型）'
+            f'{runtime_module_name(target)} 算法任务必须选择至少一个芯片模型'
         )
     unsupported = sorted({model_id for model_id in parsed if model_id < 0 and model_id != -2})
     if unsupported:
         raise ValueError(
-            f'RK3588 不支持这些内置模型: {unsupported}。仅内置 yolov8n(-2) 提供 '
-            f'1 输入 / 9 输出 RKNN INT8 契约，其他模型请上传 .rknn 权重'
+            f'{runtime_module_name(target)} 不支持这些内置模型: {unsupported}。'
+            f'芯片专用内置模型仅提供 yolov8n(-2)，其他模型请上传对应硬件权重'
         )
     return target
 
 
 def runtime_module_name(target: Optional[str] = None) -> str:
     resolved = resolve_runtime_target(None, target)
-    return 'RUNTIME-RK3588' if resolved == RUNTIME_TARGET_RK3588 else 'RUNTIME'
+    if resolved == RUNTIME_TARGET_RK3588:
+        return 'RUNTIME-RK3588'
+    if resolved == RUNTIME_TARGET_BM1688:
+        return 'RUNTIME-BM1688'
+    return 'RUNTIME'
 
 
 def _runtime_module_name(target: str) -> str:
-    return 'RUNTIME-RK3588' if target == RUNTIME_TARGET_RK3588 else 'RUNTIME'
+    return runtime_module_name(target)
 
 
 def runtime_bin_env_key(target: Optional[str] = None) -> str:
     resolved = resolve_runtime_target(None, target)
-    return 'RUNTIME_RK3588_BIN' if resolved == RUNTIME_TARGET_RK3588 else 'RUNTIME_BIN'
+    if resolved == RUNTIME_TARGET_RK3588:
+        return 'RUNTIME_RK3588_BIN'
+    if resolved == RUNTIME_TARGET_BM1688:
+        return 'RUNTIME_BM1688_BIN'
+    return 'RUNTIME_BIN'
 
 
 def _remember_runtime_bin(target: str, bin_path: str) -> None:
@@ -189,6 +219,10 @@ def _remember_runtime_bin(target: str, bin_path: str) -> None:
         shared = (os.environ.get('RUNTIME_BIN') or '').strip()
         if shared and 'RUNTIME-RK3588' in shared:
             os.environ.setdefault('RUNTIME_RK3588_BIN', shared)
+    elif target == RUNTIME_TARGET_BM1688:
+        shared = (os.environ.get('RUNTIME_BIN') or '').strip()
+        if shared and 'RUNTIME-BM1688' in shared:
+            os.environ.setdefault('RUNTIME_BM1688_BIN', shared)
 
 
 def remote_runtime_bin(target: Optional[str] = None) -> str:
@@ -209,9 +243,9 @@ def remote_runtime_config_dir(target: Optional[str] = None) -> str:
 
 def remote_runtime_library_path(target: Optional[str] = None) -> str:
     resolved = resolve_runtime_target(None, target)
-    if resolved == RUNTIME_TARGET_RK3588:
-        # RK3588 运行时不加载 ORT/CUDA；系统库走 aarch64 目录。
-        return '/opt/easyaiot/RUNTIME-RK3588/lib:/usr/lib/aarch64-linux-gnu'
+    if resolved in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688):
+        # 芯片运行时不加载 ORT/CUDA；只使用自身 SDK 与系统 aarch64 库。
+        return f'/opt/easyaiot/{runtime_module_name(resolved)}/lib:/usr/lib/aarch64-linux-gnu'
     return REMOTE_RUNTIME_LD_LIBRARY_PATH
 
 
@@ -263,6 +297,10 @@ def resolve_runtime_bin(task: Optional[AlgorithmTask] = None, *, runtime_target:
     if not env_bin and target == RUNTIME_TARGET_RK3588:
         shared_bin = (os.getenv('RUNTIME_BIN') or '').strip()
         if 'RUNTIME-RK3588' in shared_bin:
+            env_bin = shared_bin
+    if not env_bin and target == RUNTIME_TARGET_BM1688:
+        shared_bin = (os.getenv('RUNTIME_BIN') or '').strip()
+        if 'RUNTIME-BM1688' in shared_bin:
             env_bin = shared_bin
     if env_bin and os.path.isfile(env_bin) and os.access(env_bin, os.X_OK):
         return env_bin
@@ -340,7 +378,7 @@ def try_auto_build_runtime(*, reason: str = '', runtime_target: Optional[str] = 
             return True
 
         why = f'（{reason}）' if reason else ''
-        action = 'build' if target == RUNTIME_TARGET_RK3588 else 'install'
+        action = 'build' if target in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688) else 'install'
         logger.info('未检测到 %s 二进制%s，自动执行: bash %s %s …', module, why, install_sh, action)
         print(
             f'[VIDEO] 未检测到 {module}，开始自动编译（可能需数分钟）…\n'
@@ -487,7 +525,7 @@ def read_runtime_version_info(
         'ready': bool(bin_path),
         'target': target,
         'module': module,
-        'hardwareOnly': target == RUNTIME_TARGET_RK3588,
+        'hardwareOnly': target in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688),
         'binPath': bin_path,
         'version': version,
         'git': parsed.get('git') or (os.getenv('RUNTIME_GIT') or '').strip() or None,
@@ -833,7 +871,7 @@ _KNOWN_MODEL_BUCKETS = frozenset({'models', _EXPORT_BUCKET, 'exports'})
 
 
 def _fetch_model_record(model_id: int) -> Optional[dict]:
-    """获取模型注册信息（model_path / onnx_model_path / rknn_model_path / class_names）。
+    """获取模型注册信息（含 ONNX / RKNN / BModel 权重与类别）。
 
     优先调用模型服务 HTTP API（标准/集群形态即 AI 模块；edge 形态回环本机
     VIDEO 自己的 /model/{id}），失败时回退 VIDEO 库本地 model 表（edge 种子）。
@@ -867,6 +905,7 @@ def _fetch_model_record(model_id: int) -> Optional[dict]:
                 'model_path': row.model_path,
                 'onnx_model_path': row.onnx_model_path,
                 'rknn_model_path': getattr(row, 'rknn_model_path', None),
+                'bmodel_path': getattr(row, 'bmodel_path', None),
                 'class_names': row.class_names,
                 'selected_class_names': row.selected_class_names,
             }
@@ -1272,6 +1311,148 @@ def _resolve_rknn_models_with_ids(
     raise ValueError('RK3588 算法任务必须选择至少一个可用的 .rknn 模型，不提供 ONNX/CPU 回退')
 
 
+def _bmodel_names_path(model_path: Path, default_names: Path) -> str:
+    for suffix in ('.names', '.txt'):
+        candidate = model_path.with_suffix(suffix)
+        if candidate.is_file():
+            return str(candidate)
+    sibling = model_path.parent / 'model.names'
+    return str(sibling if sibling.is_file() else default_names)
+
+
+def _download_bmodel(
+    model_id: int, model_dir: Path, default_names: Path
+) -> Optional[Tuple[str, str]]:
+    """从统一模型注册表物化 BM1688 BModel；不接受 ONNX/PT 现场转换。"""
+    record = _fetch_model_record(model_id)
+    if not record:
+        return None
+    model_dir.mkdir(parents=True, exist_ok=True)
+    written_names = _write_names_file(model_dir, record)
+    refs = [
+        record.get('bmodel_path'),
+        record.get('model_path'),
+        record.get('onnx_model_path'),
+    ]
+    destination = model_dir / 'model.bmodel'
+    try:
+        from app.services.minio_service import ModelService
+    except Exception as exc:
+        logger.warning('BModel 对象存储服务不可用: %s', exc)
+        return None
+
+    for raw_ref in refs:
+        ref = str(raw_ref or '').strip()
+        if not ref or not ref.lower().endswith('.bmodel'):
+            continue
+        if ref.startswith('/') and Path(ref).is_file():
+            source = Path(ref)
+            return str(source), str(written_names or _bmodel_names_path(source, default_names))
+        for bucket, key in _resolve_object_ref_candidates(ref):
+            try:
+                ok, error = ModelService.download_from_minio(bucket, key, str(destination))
+            except Exception as exc:
+                ok, error = False, str(exc)
+            if ok and destination.is_file() and destination.stat().st_size > 0:
+                return str(destination), str(
+                    written_names or _bmodel_names_path(destination, default_names)
+                )
+            logger.info('BModel 权重候选 %s/%s 拉取失败: %s', bucket, key, error)
+            try:
+                destination.unlink(missing_ok=True)
+            except OSError:
+                pass
+    return None
+
+
+def _resolve_bmodel_models_with_ids(
+    task: AlgorithmTask, prefer_cluster: bool = False
+) -> List[Tuple[Optional[int], str, str]]:
+    """解析 BM1688 专用 BModel；绝不接受 ONNX/PT/RKNN 或 CPU 回退。"""
+    root = _repo_root()
+    module_root = root / 'RUNTIME-BM1688'
+    default_names = module_root / 'models' / 'coco.names'
+    env_names = (
+        os.getenv('RUNTIME_BM1688_CLASSES_PATH')
+        or os.getenv('RUNTIME_CLASSES_PATH')
+        or ''
+    ).strip()
+    if env_names:
+        default_names = Path(env_names)
+
+    raw = getattr(task, 'model_ids', None)
+    try:
+        model_ids = json.loads(raw) if isinstance(raw, str) else list(raw or [])
+    except Exception:
+        model_ids = []
+
+    resolved: List[Tuple[Optional[int], str, str]] = []
+    unresolved: List[int] = []
+    for value in model_ids:
+        try:
+            model_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if model_id < 0:
+            if model_id != -2:
+                unresolved.append(model_id)
+                continue
+            env_model = (os.getenv('RUNTIME_BM1688_MODEL_PATH') or '').strip()
+            candidates = [
+                Path(env_model) if env_model and (prefer_cluster or Path(env_model).is_file()) else None,
+                Path('/opt/easyaiot/RUNTIME-BM1688/models/yolov8n-bm1688-int8-4b.bmodel'),
+                module_root / 'models' / 'yolov8n-bm1688-int8-4b.bmodel',
+            ]
+            model_path = next(
+                (path for path in candidates if path and (prefer_cluster or path.is_file())),
+                None,
+            )
+            if model_path is None:
+                unresolved.append(model_id)
+                continue
+            resolved.append((model_id, str(model_path), _bmodel_names_path(model_path, default_names)))
+            continue
+
+        if model_id <= 0:
+            unresolved.append(model_id)
+            continue
+        model_dir = _resolve_custom_model_dir(model_id, prefer_cluster=prefer_cluster)
+        if model_dir is None:
+            unresolved.append(model_id)
+            continue
+        if model_dir.is_dir():
+            matches = sorted(model_dir.glob('*.bmodel')) + sorted(model_dir.glob('*.BMODEL'))
+            preferred = [path for path in matches if path.name.lower() == 'model.bmodel']
+            model_path = preferred[0] if preferred else (matches[0] if matches else None)
+            if model_path is not None:
+                resolved.append((model_id, str(model_path), _bmodel_names_path(model_path, default_names)))
+                continue
+        if not prefer_cluster:
+            materialized = _download_bmodel(model_id, model_dir, default_names)
+            if materialized:
+                resolved.append((model_id, materialized[0], materialized[1]))
+                continue
+        if prefer_cluster:
+            resolved.append((model_id, str(model_dir / 'model.bmodel'), str(model_dir / 'model.names')))
+            continue
+        unresolved.append(model_id)
+
+    if unresolved:
+        raise ValueError(
+            f'BM1688 任务模型不可用: {unresolved}。只接受 BM1688/CV186X 优化的 INT8 .bmodel；'
+            '内置模型请选择 yolov8n，业务模型请上传 .bmodel 权重'
+        )
+    if resolved:
+        return resolved
+
+    env_model = (os.getenv('RUNTIME_BM1688_MODEL_PATH') or '').strip()
+    if env_model.lower().endswith('.bmodel'):
+        model_path = Path(env_model)
+        if prefer_cluster or model_path.is_file():
+            return [(None, str(model_path), _bmodel_names_path(model_path, default_names))]
+    raise ValueError('BM1688 算法任务必须选择至少一个可用的 .bmodel 模型，不提供 ONNX/CPU 回退')
+
+
 def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> List[Tuple[str, str]]:
     """兼容旧调用方，仅返回模型文件和类别文件；业务模型 ID 由生成器单独透传。"""
     return [
@@ -1304,6 +1485,12 @@ def runtime_config_dir(target: Optional[str] = None) -> Path:
         if not env_dir:
             shared = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
             if shared and 'RUNTIME-RK3588' in shared:
+                env_dir = shared
+    elif resolved == RUNTIME_TARGET_BM1688:
+        env_dir = (os.getenv('RUNTIME_BM1688_CONFIG_DIR') or '').strip()
+        if not env_dir:
+            shared = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
+            if shared and 'RUNTIME-BM1688' in shared:
                 env_dir = shared
     else:
         env_dir = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
@@ -1516,7 +1703,7 @@ def _build_runtime_ini_text(
         if business_model_id is not None:
             ai_model_lines.append(f'{id_prefix}={business_model_id}')
     ai_model_block = '\n'.join(ai_model_lines)
-    if runtime_target == 'rk3588':
+    if runtime_target == RUNTIME_TARGET_RK3588:
         ai_runtime_block = f"""threads=3
 frame_skip={frame_skip}"""
         hardware_block = """
@@ -1527,6 +1714,22 @@ frame_pool_size=6
 mpp_buffer_count=8
 use_sram=true
 enable_perf_query=false
+"""
+    elif runtime_target == RUNTIME_TARGET_BM1688:
+        ai_runtime_block = f"""threads=2
+frame_skip={frame_skip}"""
+        hardware_block = """
+[bm1688]
+device_id=0
+tpu_workers=2
+core_ids=0,1
+decode_queue_depth=8
+infer_queue_depth=4
+result_queue_depth=64
+preallocate=true
+zero_copy=true
+use_vpp=true
+decoder=h264_bm,hevc_bm
 """
     else:
         ai_runtime_block = f"""threads=2
@@ -1661,12 +1864,15 @@ def generate_runtime_inis(
         raise ValueError(f'任务 {task.id} 的设备均无可用 RTSP/source 地址')
 
     runtime_target = resolve_runtime_target(task, runtime_target)
-    models = (
-        _resolve_rknn_models_with_ids(task, prefer_cluster=prefer_cluster_model)
-        if runtime_target == RUNTIME_TARGET_RK3588
-        else _resolve_models_with_ids(task, prefer_cluster=prefer_cluster_model)
-    )
-    required_suffix = '.rknn' if runtime_target == RUNTIME_TARGET_RK3588 else '.onnx'
+    if runtime_target == RUNTIME_TARGET_RK3588:
+        models = _resolve_rknn_models_with_ids(task, prefer_cluster=prefer_cluster_model)
+        required_suffix = '.rknn'
+    elif runtime_target == RUNTIME_TARGET_BM1688:
+        models = _resolve_bmodel_models_with_ids(task, prefer_cluster=prefer_cluster_model)
+        required_suffix = '.bmodel'
+    else:
+        models = _resolve_models_with_ids(task, prefer_cluster=prefer_cluster_model)
+        required_suffix = '.onnx'
     for _business_model_id, model_path, _names_path in models:
         if write_local and not os.path.isfile(model_path):
             raise ValueError(f'{runtime_target} 模型文件不存在: {model_path}')
@@ -2189,16 +2395,17 @@ _GENERIC_LIBRARY_MARKERS = (
 def runtime_library_path_env(target: Optional[str] = None) -> str:
     """Build LD_LIBRARY_PATH for the resolved runtime target.
 
-    RK3588 不加载 ONNX Runtime/CUDA，避免通用库抢在 RKNN/MPP 的系统库之前。
+    芯片运行时不加载 ONNX Runtime/CUDA，避免通用库抢在厂商 SDK 系统库之前。
     """
     resolved = resolve_runtime_target(None, target)
     apply_runtime_deploy_env(resolved)
     parts: List[str] = []
-    if resolved == RUNTIME_TARGET_RK3588:
+    if resolved in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688):
         parts.extend(_deploy_env_library_paths(resolved))
+        module = _runtime_module_name(resolved)
         for lib_dir in (
-            '/opt/easyaiot/RUNTIME-RK3588/lib',
-            str(_repo_root() / 'RUNTIME-RK3588' / 'lib'),
+            f'/opt/easyaiot/{module}/lib',
+            str(_repo_root() / module / 'lib'),
         ):
             if os.path.isdir(lib_dir):
                 parts.append(lib_dir)
