@@ -55,7 +55,7 @@
               :action="state.modelUploadUrl"
               :headers="headers"
               :show-upload-list="false"
-              accept=".pt,.pth,.h5,.onnx,.rknn"
+              accept=".pt,.pth,.h5,.onnx,.rknn,.bmodel"
               :disabled="state.isView"
               @change="handleFileUpload"
             >
@@ -66,7 +66,7 @@
             <div v-if="modelRef.filePath" class="form-extra" :title="fileName">
               已上传：{{ fileName }}
             </div>
-            <div class="form-hint">支持 .pt / .onnx / .rknn；继续训练需使用 .pt 权重，RK3588 硬件任务使用 .rknn</div>
+            <div class="form-hint">支持 .pt / .onnx / .rknn / .bmodel；继续训练需使用 .pt，RK3588 使用 .rknn，BM1688 使用 .bmodel</div>
           </FormItem>
 
           <FormItem label="检测类别">
@@ -77,15 +77,15 @@
               <div v-if="state.classNames.length > 0" class="form-hint">
                 共 {{ state.classNames.length }} 个检测类别
               </div>
-              <span v-else-if="state.modelFormat !== 'rknn'" class="form-hint">
+              <span v-else-if="!isCompiledChipModel" class="form-hint">
                 上传 .pt / .onnx 权重后将自动识别检测类别
               </span>
               <Input.TextArea
-                v-if="state.modelFormat === 'rknn'"
+                v-if="isCompiledChipModel"
                 v-model:value="state.rknnClassNamesText"
                 :rows="3"
                 :disabled="state.isView"
-                placeholder="RKNN 为编译后模型，无法自动读取类别；请每行填写一个类别，不填则使用运行时默认类别"
+                :placeholder="`${state.modelFormat === 'bmodel' ? 'BModel' : 'RKNN'} 为编译后模型，控制面无法自动读取类别；请每行填写一个类别`"
                 @blur="syncRknnClassNames"
               />
             </div>
@@ -142,6 +142,7 @@ const fileName = computed(() => {
   if (!path) return '';
   return path.split('/').pop()?.split('?')[0] || path;
 });
+const isCompiledChipModel = computed(() => ['rknn', 'bmodel'].includes(state.modelFormat));
 
 const emits = defineEmits(['success', 'register']);
 
@@ -232,6 +233,7 @@ function detectModelFormat(record: any): string {
   const path = String(
     record?.filePath ?? record?.model_path ?? record?.onnx_model_path ?? record?.rknn_model_path ?? '',
   ).toLowerCase();
+  if (path.includes('.bmodel')) return 'bmodel';
   if (path.includes('.rknn')) return 'rknn';
   if (path.includes('.onnx')) return 'onnx';
   if (path) return 'pt';
@@ -244,8 +246,8 @@ async function loadClassNamesForRecord(record: any) {
     applyClassNames(fromRecord.classNames);
     return;
   }
-  // RKNN 是编译产物，接口无法反解类别，避免无意义的后端 404 探测
-  if (state.modelFormat === 'rknn' || !record?.id) return;
+  // 芯片编译产物无法由控制面反解类别，避免无意义的后端 404 探测
+  if (isCompiledChipModel.value || !record?.id) return;
   try {
     const resp = await getModelClasses(record.id);
     applyClassNames(parseModelClassPayload(resp).classNames);
@@ -322,7 +324,7 @@ async function handleOk() {
     }
     state.editLoading = true;
     const api = modelRef.id ? updateModel : createModel;
-    const classNames = state.modelFormat === 'rknn'
+    const classNames = isCompiledChipModel.value
       ? parseClassNamesText(state.rknnClassNamesText)
       : state.classNames;
     const payload = {

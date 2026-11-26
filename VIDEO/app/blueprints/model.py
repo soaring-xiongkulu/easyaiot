@@ -29,7 +29,7 @@ model_bp = Blueprint('model', __name__)
 logger = logging.getLogger(__name__)
 
 _DEFAULT_MODEL_VERSION = '1.0.0'
-_UPLOAD_MODEL_EXTENSIONS = ('.pt', '.onnx', '.rknn')
+_UPLOAD_MODEL_EXTENSIONS = ('.pt', '.onnx', '.rknn', '.bmodel')
 
 
 def _normalize_model_version(version) -> str:
@@ -64,7 +64,7 @@ def _normalize_model_storage_path(path) -> str:
     if '/buckets/' in text or '://' in text or text.startswith('/'):
         return text
     first, sep, rest = text.partition('/')
-    if first in ('yolo', 'rknn') and sep and rest:
+    if first in ('yolo', 'rknn', 'bmodel') and sep and rest:
         return f'models/{text}'
     return text
 
@@ -276,12 +276,12 @@ def upload_custom_model():
     上传用户自定义YOLO模型（支持 yolov8、yolov11 和 yolov26）
     
     请求参数:
-    - file: 模型文件（.pt或.onnx格式，multipart/form-data）
+    - file: 模型文件（.pt、.onnx、.rknn 或 .bmodel，multipart/form-data）
     - name: 模型名称（可选，如果提供则保存到数据库）
     - description: 模型描述（可选）
     - version: 模型版本（可选，默认1.0.0）
     - save_to_db: 是否保存到数据库（可选，默认false）
-    - classNames: RKNN 模型类别名称（可选，JSON 数组字符串）
+    - classNames: RKNN/BModel 类别名称（可选，JSON 数组字符串）
     """
     if 'file' not in request.files:
         return jsonify({'code': 400, 'msg': '未找到文件'}), 400
@@ -293,7 +293,7 @@ def upload_custom_model():
     # 检查文件扩展名
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in _UPLOAD_MODEL_EXTENSIONS:
-        return jsonify({'code': 400, 'msg': '只支持 .pt、.onnx 和 .rknn 格式的模型文件'}), 400
+        return jsonify({'code': 400, 'msg': '只支持 .pt、.onnx、.rknn 和 .bmodel 格式的模型文件'}), 400
 
     # 获取可选参数
     name = request.form.get('name', '').strip()
@@ -365,6 +365,14 @@ def upload_custom_model():
                     'code': 400,
                     'msg': f'RKNN模型验证失败: {error_msg}'
                 }), 400
+        elif ext == '.bmodel':
+            # 张量与芯片契约由板端 BMRuntime 校验；控制面拒绝空壳文件，
+            # 且绝不把 BModel 交给 PyTorch/ONNX 解析器。
+            size = os.path.getsize(temp_path)
+            if size < 64:
+                return jsonify({'code': 400, 'msg': 'BModel 文件过小或为空'}), 400
+            detection_method = 'bmrt_load_bmodel_on_bm1688'
+            logger.info('BModel 已接收，等待 BM1688 BMRuntime 加载校验: size=%s', size)
         else:
             # 验证YOLO模型版本（必须是 yolov8、yolov11 或 yolov26）
             try:
@@ -419,6 +427,8 @@ def upload_custom_model():
             object_key = f"yolo/{yolo_version}/onnx/{unique_filename}"
         elif ext == '.rknn':
             object_key = f"rknn/{unique_filename}"
+        elif ext == '.bmodel':
+            object_key = f"bmodel/{unique_filename}"
         else:
             object_key = f"yolo/{yolo_version}/{unique_filename}"
 
@@ -432,7 +442,7 @@ def upload_custom_model():
         minio_path = f"{bucket_name}/{object_key}"
 
         # 提取模型类别标签；RKNN 为编译后模型，无法从文件中反解类别，改由调用方传入
-        if ext == '.rknn':
+        if ext in ('.rknn', '.bmodel'):
             class_names = parse_class_names_json(
                 request.form.get('classNames') or request.form.get('class_names')
             )
@@ -480,7 +490,11 @@ def upload_custom_model():
 
             # 设置默认描述（如果未提供）
             if not description:
-                format_label = 'RKNN' if ext == '.rknn' else (yolo_version or 'YOLO').upper()
+                format_label = (
+                    'RKNN' if ext == '.rknn'
+                    else 'BMODEL' if ext == '.bmodel'
+                    else (yolo_version or 'YOLO').upper()
+                )
                 description = f"用户上传的{format_label}自定义模型"
                 logger.info(f"使用默认模型描述: {description}")
 
@@ -539,7 +553,7 @@ def upload_custom_model():
                 model = Model(
                     name=name,
                     description=description,
-                    model_path=download_url if ext == '.pt' else None,
+                    model_path=download_url if ext in ('.pt', '.bmodel') else None,
                     onnx_model_path=download_url if ext == '.onnx' else None,
                     rknn_model_path=download_url if ext == '.rknn' else None,
                     version=version,
