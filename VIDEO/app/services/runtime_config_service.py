@@ -1864,6 +1864,8 @@ def generate_runtime_inis(
         raise ValueError(f'任务 {task.id} 的设备均无可用 RTSP/source 地址')
 
     runtime_target = resolve_runtime_target(task, runtime_target)
+    if runtime_target == RUNTIME_TARGET_BM1688 and task_type != 'realtime':
+        raise ValueError('RUNTIME-BM1688 当前只开放 realtime 任务')
     if runtime_target == RUNTIME_TARGET_RK3588:
         models = _resolve_rknn_models_with_ids(task, prefer_cluster=prefer_cluster_model)
         required_suffix = '.rknn'

@@ -8,8 +8,8 @@
 #   bash VIDEO/scripts/ensure_runtime_cpp.sh skip-check
 #
 # 目标芯片:
-#   EASYAIOT_RUNTIME_TARGET=auto|generic|rk3588
-#   auto（默认）在 RK3588 设备树上选择 RUNTIME-RK3588，其余选择通用 RUNTIME
+#   EASYAIOT_RUNTIME_TARGET=auto|generic|rk3588|bm1688
+#   auto（默认）按设备树选择 RUNTIME-RK3588 / RUNTIME-BM1688，其余选择通用 RUNTIME
 #
 # 依赖环境变量（可由调用方设置）:
 #   EASYAIOT_ROOT          仓库根（默认由本脚本推断）
@@ -38,6 +38,7 @@ detect_runtime_target() {
   requested="$(printf '%s' "${EASYAIOT_RUNTIME_TARGET:-${RUNTIME_TARGET:-auto}}" | tr '[:upper:]' '[:lower:]')"
   case "$requested" in
     rk3588|rknn-rk3588|runtime-rk3588|rockchip-rk3588) echo "rk3588"; return 0 ;;
+    bm1688|cv186x|sophon-bm1688|runtime-bm1688) echo "bm1688"; return 0 ;;
     generic|runtime|onnx|cpu|cuda) echo "generic"; return 0 ;;
   esac
   local probe
@@ -51,7 +52,15 @@ detect_runtime_target() {
       echo "rk3588"
       return 0
     fi
+    if tr '\0' ' ' < "$probe" 2>/dev/null | grep -Eqi 'bm1688|cv186|sophon.*1688'; then
+      echo "bm1688"
+      return 0
+    fi
   done
+  if command -v bm-smi >/dev/null 2>&1 && bm-smi 2>/dev/null | grep -Eqi 'bm1688|cv186'; then
+    echo "bm1688"
+    return 0
+  fi
   echo "generic"
 }
 
@@ -70,6 +79,32 @@ stage_rk3588_libs() {
       fi
     done < <(ldconfig -p 2>/dev/null | awk -v n="lib${name}.so" '$1 == n || index($1, n ".") == 1 {print $NF}' | sort -u)
   done
+  if [[ "$found" == "1" ]]; then
+    printf '%s\n' "$dest"
+  else
+    rmdir "$dest" 2>/dev/null || true
+    return 0
+  fi
+}
+
+# 只收集 BM1688 二进制实际链接到的 /opt/sophon 厂商库；不挂载宿主机
+# glibc 目录，避免覆盖 VIDEO 容器运行时。
+stage_bm1688_libs() {
+  local runtime_bin="${EASYAIOT_ROOT}/RUNTIME-BM1688/build/RUNTIME"
+  local dest="${VIDEO_DIR}/.runtime-bm1688-libs"
+  local lib found=0
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  if [[ -x "$runtime_bin" ]] && command -v ldd >/dev/null 2>&1; then
+    while IFS= read -r lib; do
+      [[ -f "$lib" ]] || continue
+      case "$lib" in
+        /opt/sophon/*|*/libbm*.so*|*/libsophon*.so*|*/libopencv_*.so*|*/libavcodec.so*|*/libavformat.so*|*/libavutil.so*|*/libswscale.so*)
+          if cp -aL "$lib" "$dest/" 2>/dev/null; then found=1; fi
+          ;;
+      esac
+    done < <(ldd "$runtime_bin" 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i ~ /^\//) {print $i; break}}' | sort -u)
+  fi
   if [[ "$found" == "1" ]]; then
     printf '%s\n' "$dest"
   else
@@ -103,6 +138,8 @@ wire_runtime_override() {
   target="$(detect_runtime_target)"
   if [[ "$target" == "rk3588" ]]; then
     wire_rk3588_override
+  elif [[ "$target" == "bm1688" ]]; then
+    wire_bm1688_override
   else
     wire_generic_runtime_override
   fi
@@ -140,6 +177,8 @@ wire_rk3588_override() {
   _set_env_docker_kv_local "$env_file" EASYAIOT_RUNTIME_TARGET "rk3588"
   _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_BIN "$runtime_bin"
   _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_CONFIG_DIR "/opt/easyaiot/RUNTIME-RK3588/config"
+  _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_BIN ""
+  _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_CONFIG_DIR ""
   _set_env_docker_kv_local "$env_file" RUNTIME_BIN ""
   _set_env_docker_kv_local "$env_file" RUNTIME_CONFIG_DIR ""
   _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_CLASSES_PATH "$classes_path"
@@ -194,18 +233,98 @@ wire_rk3588_override() {
   print_success "已配置 RUNTIME-RK3588 容器挂载 ($override_file)"
 }
 
+wire_bm1688_override() {
+  local module_dir="${EASYAIOT_ROOT}/RUNTIME-BM1688"
+  local override_file="${VIDEO_DIR}/.docker-compose.runtime.override.yaml"
+  local env_file="${VIDEO_DIR}/.env.docker"
+  local runtime_bin="${module_dir}/build/RUNTIME"
+
+  if [[ ! -x "$runtime_bin" ]]; then
+    rm -f "$override_file"
+    print_warning "BM1688 运行时未编译: $runtime_bin（已清理旧挂载配置）"
+    return 0
+  fi
+  if [[ ! -f "$env_file" ]]; then
+    if [[ -f "${VIDEO_DIR}/env.example" ]]; then cp "${VIDEO_DIR}/env.example" "$env_file"; else touch "$env_file"; fi
+  fi
+  mkdir -p "${module_dir}/config"
+  local libs_dir
+  libs_dir="$(stage_bm1688_libs)"
+  if [[ -z "$libs_dir" ]]; then
+    print_warning "未收集到 BMRuntime/BMCV/Sophon OpenCV 动态库；请确认 SOPHONSDK 已安装"
+  fi
+
+  local model_path="/opt/easyaiot/RUNTIME-BM1688/models/yolov8n-bm1688-int8-4b.bmodel"
+  local classes_path="/opt/easyaiot/RUNTIME-BM1688/models/coco.names"
+  local ld_path="/opt/easyaiot/RUNTIME-BM1688/lib:/opt/sophon/libsophon-current/lib:/opt/sophon/sophon-opencv-latest/lib:/usr/lib/aarch64-linux-gnu"
+  _set_env_docker_kv_local "$env_file" EASYAIOT_RUNTIME_TARGET "bm1688"
+  _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_BIN "$runtime_bin"
+  _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_CONFIG_DIR "/opt/easyaiot/RUNTIME-BM1688/config"
+  _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_CLASSES_PATH "$classes_path"
+  _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_BIN ""
+  _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_CONFIG_DIR ""
+  _set_env_docker_kv_local "$env_file" RUNTIME_BIN ""
+  _set_env_docker_kv_local "$env_file" RUNTIME_CONFIG_DIR ""
+  if [[ -f "${module_dir}/models/yolov8n-bm1688-int8-4b.bmodel" ]]; then
+    _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_MODEL_PATH "$model_path"
+  else
+    _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_MODEL_PATH ""
+    print_warning "未找到默认 BModel；请上传 BM1688/CV186X .bmodel 后在 VIDEO 模型管理中选择"
+  fi
+  _set_env_docker_kv_local "$env_file" LD_LIBRARY_PATH "$ld_path"
+  _set_env_docker_kv_local "$env_file" USE_GPU "false"
+  _set_env_docker_kv_local "$env_file" RUNTIME_PREFER_GPU "false"
+
+  local devices_block="" dev
+  for dev in /dev/bmdev-ctl /dev/bm-sophon0 /dev/ion /dev/vpu /dev/dri; do
+    [[ -e "$dev" ]] || continue
+    devices_block+="      - ${dev}:${dev}"$'\n'
+  done
+  {
+    echo "# Auto-generated by VIDEO/scripts/ensure_runtime_cpp.sh — RUNTIME-BM1688 芯片运行时挂载"
+    echo "services:"
+    echo "  video-service:"
+    echo "    volumes:"
+    echo "      - ${module_dir}:/opt/easyaiot/RUNTIME-BM1688:ro"
+    echo "      - ${module_dir}/config:/opt/easyaiot/RUNTIME-BM1688/config:rw"
+    if [[ -n "$libs_dir" ]]; then echo "      - ${libs_dir}:/opt/easyaiot/RUNTIME-BM1688/lib:ro"; fi
+    if [[ -n "$devices_block" ]]; then
+      echo "    devices:"
+      printf '%s' "$devices_block"
+    else
+      print_warning "未检测到 BM1688 设备节点；容器内硬件任务将无法启动"
+    fi
+    echo "    environment:"
+    echo "      - EASYAIOT_RUNTIME_TARGET=bm1688"
+    echo "      - RUNTIME_BM1688_BIN=/opt/easyaiot/RUNTIME-BM1688/build/RUNTIME"
+    echo "      - RUNTIME_BM1688_CONFIG_DIR=/opt/easyaiot/RUNTIME-BM1688/config"
+    echo "      - RUNTIME_BM1688_CLASSES_PATH=${classes_path}"
+    if [[ -f "${module_dir}/models/yolov8n-bm1688-int8-4b.bmodel" ]]; then echo "      - RUNTIME_BM1688_MODEL_PATH=${model_path}"; fi
+    echo "      - RUNTIME_BIN="
+    echo "      - RUNTIME_CONFIG_DIR="
+    echo "      - LD_LIBRARY_PATH=${ld_path}"
+    echo "      - USE_GPU=false"
+    echo "      - RUNTIME_PREFER_GPU=false"
+  } > "$override_file"
+  print_success "已配置 RUNTIME-BM1688 容器挂载 ($override_file)"
+}
+
 wire_generic_runtime_override() {
   local deploy_env="${EASYAIOT_ROOT}/RUNTIME/deploy.env"
   local override_file="${VIDEO_DIR}/.docker-compose.runtime.override.yaml"
   local env_file="${VIDEO_DIR}/.env.docker"
 
-  # 从 RK3588 切回通用运行时时清掉遗留芯片配置，避免容器仍按 rk3588 解析。
+  # 从芯片运行时切回通用运行时时清掉遗留配置。
   if [[ -f "$env_file" ]]; then
     _set_env_docker_kv_local "$env_file" EASYAIOT_RUNTIME_TARGET "generic"
     _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_BIN ""
     _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_CONFIG_DIR ""
     _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_CLASSES_PATH ""
     _set_env_docker_kv_local "$env_file" RUNTIME_RK3588_MODEL_PATH ""
+    _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_BIN ""
+    _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_CONFIG_DIR ""
+    _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_CLASSES_PATH ""
+    _set_env_docker_kv_local "$env_file" RUNTIME_BM1688_MODEL_PATH ""
   fi
 
   if [[ ! -f "$deploy_env" ]]; then
@@ -334,6 +453,34 @@ ensure_rk3588_runtime() {
   wire_rk3588_override
 }
 
+ensure_bm1688_runtime() {
+  local runtime_install="${EASYAIOT_ROOT}/RUNTIME-BM1688/install_linux.sh"
+  local runtime_bin="${EASYAIOT_ROOT}/RUNTIME-BM1688/build/RUNTIME"
+  if [[ ! -f "$runtime_install" ]]; then
+    print_warning "未找到 $runtime_install，跳过 RUNTIME-BM1688 编译"
+    return 0
+  fi
+  if [[ "${EASYAIOT_RUNTIME_PREINSTALLED:-0}" == "1" ]] || [[ -x "$runtime_bin" ]]; then
+    print_info "检测到 RUNTIME-BM1688 已编译，仅配置 VIDEO 容器挂载..."
+    wire_bm1688_override
+    return 0
+  fi
+
+  print_info "编译 RUNTIME-BM1688（Sophon VPU + BMCV/VPSS + 双核 TPU）..."
+  local rt_log="${EASYAIOT_ROOT}/.scripts/docker/logs/runtime_bm1688_$(date +%Y%m%d_%H%M%S).log"
+  mkdir -p "$(dirname "$rt_log")" 2>/dev/null || true
+  print_info "RUNTIME-BM1688 编译日志: ${rt_log}"
+  if ! bash "$runtime_install" build 2>&1 | tee "$rt_log"; then
+    print_error "RUNTIME-BM1688 编译失败；不会回退到 ONNX/CPU"
+    print_error "完整日志: ${rt_log}"
+    tail -n 80 "$rt_log" 2>/dev/null | while IFS= read -r line; do print_error "  ${line}"; done || true
+    rm -f "${VIDEO_DIR}/.docker-compose.runtime.override.yaml"
+    if [[ "${EASYAIOT_RUNTIME_REQUIRED:-0}" == "1" ]]; then return 1; fi
+    return 0
+  fi
+  wire_bm1688_override
+}
+
 ensure_runtime_cpp() {
   if [[ "$(uname -s)" != "Linux" ]]; then
     print_warning "当前系统 $(uname -s) 非 Linux：跳过 RUNTIME（C++/CUDA）一键编译。mac/Windows 请使用普通算法任务，或自行交叉编译。"
@@ -344,10 +491,10 @@ ensure_runtime_cpp() {
     return 0
   fi
 
-  if [[ "$(detect_runtime_target)" == "rk3588" ]]; then
-    ensure_rk3588_runtime
-    return 0
-  fi
+  case "$(detect_runtime_target)" in
+    rk3588) ensure_rk3588_runtime; return 0 ;;
+    bm1688) ensure_bm1688_runtime; return 0 ;;
+  esac
 
   local runtime_install="${EASYAIOT_ROOT}/RUNTIME/install_linux.sh"
   if [[ ! -f "$runtime_install" ]]; then

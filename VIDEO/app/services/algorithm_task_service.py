@@ -927,6 +927,8 @@ def create_algorithm_task(task_name: str,
                 raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
             effective_policy = schedule_policy or 'local'
             resolved_target = resolve_runtime_target(None, runtime_target)
+            if resolved_target == 'bm1688' and task_type != 'realtime':
+                raise ValueError('RUNTIME-BM1688 当前只开放实时 C++ 任务，抓拍/巡检不会静默退化执行')
             if effective_policy != 'local' and resolved_target in ('rk3588', 'bm1688'):
                 module = 'RUNTIME-BM1688' if resolved_target == 'bm1688' else 'RUNTIME-RK3588'
                 raise ValueError(
@@ -1287,6 +1289,8 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                 if effective_type not in ('realtime', 'snap', 'patrol'):
                     raise ValueError(f'executor=cpp 不支持任务类型: {effective_type}')
                 resolved_target = resolve_runtime_target(None, effective_target_raw)
+                if resolved_target == 'bm1688' and effective_type != 'realtime':
+                    raise ValueError('RUNTIME-BM1688 当前只开放实时 C++ 任务，抓拍/巡检不会静默退化执行')
                 if (effective_policy or 'local') != 'local' and resolved_target in ('rk3588', 'bm1688'):
                     module = 'RUNTIME-BM1688' if resolved_target == 'bm1688' else 'RUNTIME-RK3588'
                     raise ValueError(

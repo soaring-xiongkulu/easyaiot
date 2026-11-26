@@ -251,6 +251,7 @@ class BModelRuntimeIniTest(unittest.TestCase):
     def test_bm1688_ini_uses_bmodel_vpp_and_two_tpu_cores(self):
         task = RknnRuntimeIniTest()._task()
         task.runtime_target = 'bm1688'
+        task.task_type = 'realtime'
         task.model_names = 'bm'
         task.devices[0].id = 'cam-bm'
         with tempfile.TemporaryDirectory() as tmp:
@@ -276,6 +277,12 @@ class BModelRuntimeIniTest(unittest.TestCase):
         self.assertIn('core_ids=0,1', content)
         self.assertIn('zero_copy=true', content)
         self.assertNotIn('prefer_gpu=', content)
+
+    def test_bm1688_rejects_snapshot_contract_instead_of_running_it_as_realtime(self):
+        task = RknnRuntimeIniTest()._task()
+        task.runtime_target = 'bm1688'
+        with self.assertRaisesRegex(ValueError, 'realtime'):
+            rcs.generate_runtime_inis(task, log_path='', write_local=False)
 
 
 if __name__ == '__main__':
