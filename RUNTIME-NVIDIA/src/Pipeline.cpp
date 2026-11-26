@@ -46,7 +46,7 @@ Pipeline::Pipeline(RuntimeConfig config)
     for (const auto& model : config_.models) {
         models_.push_back(std::make_unique<TensorRtModel>(
             config_.cudaDevice, model, config_.confidence, config_.nmsThreshold));
-        preallocatedBytes_ += models_.back()->engineBytes();
+        enginePlanBytes_ += models_.back()->engineBytes();
     }
     for (int index = 0; index < config_.inferStreams; ++index) {
         auto lane = std::make_unique<Lane>();
@@ -55,7 +55,7 @@ Pipeline::Pipeline(RuntimeConfig config)
             static_cast<std::size_t>(config_.inferQueueDepth));
         for (auto& model : models_) {
             lane->sessions.push_back(model->createSession(config_.cudaGraph));
-            preallocatedBytes_ += lane->sessions.back()->allocatedBytes();
+            preallocatedIoBytes_ += lane->sessions.back()->allocatedBytes();
         }
         lanes_.push_back(std::move(lane));
     }
@@ -271,7 +271,8 @@ std::string Pipeline::healthJson() const {
     root["infer_ep"] = "tensorrt-enqueue-v3";
     root["cuda_graph"] = config_.cudaGraph;
     root["infer_streams"] = config_.inferStreams;
-    root["preallocated_bytes"] = static_cast<Json::UInt64>(preallocatedBytes_);
+    root["engine_plan_bytes"] = static_cast<Json::UInt64>(enginePlanBytes_);
+    root["preallocated_io_bytes"] = static_cast<Json::UInt64>(preallocatedIoBytes_);
     root["uptime_sec"] = static_cast<Json::Int64>(std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::steady_clock::now() - startedAt_).count());
     root["decoded"] = static_cast<Json::UInt64>(metrics_.decoded.load());

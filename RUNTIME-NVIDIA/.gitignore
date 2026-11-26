@@ -1,5 +1,7 @@
 /build/
 /deploy.env
+/config/task_*.ini
 /models/*.engine
 /models/*.plan
+/models/*.timing.cache
 !/models/coco.names

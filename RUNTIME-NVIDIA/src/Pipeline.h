@@ -74,7 +74,8 @@ private:
     std::string gpuName_;
     int computeMajor_{0};
     int computeMinor_{0};
-    std::size_t preallocatedBytes_{0};
+    std::size_t enginePlanBytes_{0};
+    std::size_t preallocatedIoBytes_{0};
 
     std::vector<std::unique_ptr<TensorRtModel>> models_;
     BoundedRing<DeviceFrame> decodeRing_;

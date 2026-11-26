@@ -122,7 +122,8 @@ DeviceFrame NvDecoder::receive() {
     }
     auto* frames = reinterpret_cast<AVHWFramesContext*>(receiveFrame_->hw_frames_ctx->data);
     if (!frames || frames->sw_format != AV_PIX_FMT_NV12) {
-        const std::string format = frames ? av_get_pix_fmt_name(frames->sw_format) : "unknown";
+        const char* formatName = frames ? av_get_pix_fmt_name(frames->sw_format) : nullptr;
+        const std::string format = formatName ? formatName : "unknown";
         av_frame_unref(receiveFrame_);
         throw std::runtime_error("NVDEC output must be NV12, got " + format);
     }

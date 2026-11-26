@@ -157,9 +157,9 @@ RuntimeConfig ConfigParser::load(const std::string& path) {
         throw std::runtime_error(
             "strict mode requires zero_copy/preallocate/require_nvdec=true; fallback is forbidden");
     }
-    if (config.enableRtmp) {
+    if (config.enableRtmp || config.requireNvenc) {
         throw std::runtime_error(
-            "NVENC output is not enabled in this build; disable enable_rtmp instead of falling back to software encode");
+            "NVENC output is not enabled in this build; keep enable_rtmp/require_nvenc=false instead of falling back to software encode");
     }
     return config;
 }
