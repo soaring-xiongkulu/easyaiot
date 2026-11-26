@@ -186,9 +186,56 @@ Renseignez la section `control_plane` ainsi (l'exemple a déjà `enabled` activ�
   "enabled": true,
   "url": "http://<ip-centre>:48080/admin-api/video/edge",
   "join_token": "<EDGE_ENROLL_TOKEN du centre ; laisser vide si le centre n'en définit pas>",
-  "node_name": "Parc Nord-RK3588-01"
+"node_name": "Parc Nord-RK3588-01"
 }
 ```
+
+**⑤ BM1688 / CV186X · mode autonome (runtime dédié uniquement)**
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# Renseigner RTSP, .bmodel et la destination des alertes ; install démarre la tâche
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+**⑥ BM1688 / CV186X · mode cluster (plateforme centrale + orchestration VIDEO locale au boîtier)**
+
+```bash
+# Plateforme centrale : services métier partagés et agrégation des alertes
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# Boîtier BM1688 : plan de contrôle local léger et tâches épinglées à RUNTIME-BM1688
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=bm1688 bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+BM1688 refuse actuellement la distribution du runtime générique par iot-node. Créez les tâches dans le WEB local du boîtier ; son VIDEO choisit **BM1688 · VPU + VPSS/BMCV + double TPU**. Utilisez ⑤ pour un boîtier runtime sans interface locale.
+
+**⑦ NVIDIA · mode autonome (runtime dédié uniquement)**
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cd ..
+cp RUNTIME-NVIDIA/config/config.example.ini ./nvidia-gate-a.ini
+# Renseigner RTSP et le chemin du moteur statique, puis installer
+sudo bash .scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh nvidia status gate-a
+```
+
+**⑧ NVIDIA · mode cluster (plateforme centrale + orchestration VIDEO locale au boîtier)**
+
+```bash
+# Plateforme centrale : standard ou full
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# Boîtier NVIDIA : plan de contrôle local léger, fixé sur NVDEC + CUDA + TensorRT
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=nvidia bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+Les engines NVIDIA sont liés au GPU cible et à la version TensorRT ; iot-node ne les distribue donc pas aujourd'hui. Créez les tâches dans le WEB local du boîtier ; son VIDEO choisit **NVIDIA · NVDEC + CUDA Graph + TensorRT**. Utilisez ⑦ pour un boîtier runtime seul.
 
 Équivalent interactif : `sudo bash .scripts/docker/install_linux.sh install` → choisir `0) edge` → puis `1) standalone` ou `2) integrated`. Si l'installation d'un nœud de calcul demande un Gateway URL ou un MQTT broker, validez par Entrée (le MQTT broker peut rester vide : lorsqu'elle distribue une tâche formelle, la plateforme centrale réécrit elle-même l'adresse du bus d'alarmes vers une adresse joignable par le nœud). Pour ① et ②, sur hôte ARM remplacer le script par `install_linux_arm.sh`, sur Kylin par `install_linux_kylin.sh` ; les sous-commandes sont identiques. Distribution par lot et dépannage : [RUNTIME/README.md](RUNTIME/README.md) ; détails du manifeste : [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md).
 

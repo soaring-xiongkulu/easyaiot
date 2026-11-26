@@ -186,9 +186,56 @@ bash .scripts/docker/install_linux.sh rk3588 start      # 启动；stop | restar
   "enabled": true,
   "url": "http://<中心IP>:48080/admin-api/video/edge",
   "join_token": "<中心 EDGE_ENROLL_TOKEN；中心未设置则留空>",
-  "node_name": "园区北区-RK3588-01"
+"node_name": "园区北区-RK3588-01"
 }
 ```
+
+**⑤ BM1688 / CV186X · 单体模式（只装专用运行时）**
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# 填好 RTSP、.bmodel 和告警出口后安装；install 完成即自动启动
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+**⑥ BM1688 / CV186X · 集群模式（中心平台 + 盒子本机 VIDEO 编排）**
+
+```bash
+# 中心平台：负责统一业务与告警汇聚
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# BM1688 盒子：部署轻量本机管控面，并把算法任务固定到 RUNTIME-BM1688
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=bm1688 bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+BM1688 当前不接受中心 iot-node 把通用运行时远程下发到芯片盒子；算法任务在盒子本机 WEB 创建，由本机 VIDEO 选择 **BM1688 · VPU + VPSS/BMCV + 双核 TPU**。只需要无人值守的纯运行时盒子时使用⑤。
+
+**⑦ NVIDIA · 单体模式（只装专用运行时）**
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cd ..
+cp RUNTIME-NVIDIA/config/config.example.ini ./nvidia-gate-a.ini
+# 填好 RTSP 和静态 engine 路径后安装
+sudo bash .scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh nvidia status gate-a
+```
+
+**⑧ NVIDIA · 集群模式（中心平台 + 盒子本机 VIDEO 编排）**
+
+```bash
+# 中心平台：standard / full 均可
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# NVIDIA 盒子：部署轻量本机管控面，并固定使用 NVDEC + CUDA + TensorRT
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=nvidia bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+NVIDIA 专用 engine 与目标 GPU、TensorRT 版本绑定，因此当前也不经 iot-node 远程分发；算法任务在盒子本机 WEB 创建，由本机 VIDEO 明确选择 **NVIDIA · NVDEC + CUDA Graph + TensorRT**。只需要纯运行时服务时使用⑦。
 
 交互式等价写法：`sudo bash .scripts/docker/install_linux.sh install` → 选 `0) edge` → 再选 `1) standalone` 或 `2) integrated`。算力节点安装时若提示 Gateway URL 或 MQTT broker，直接回车即可（MQTT broker 可留空，正式任务的告警总线地址由中心下发时自动改写）。①② 的命令在 ARM 主机上把脚本换成 `install_linux_arm.sh`，麒麟换成 `install_linux_kylin.sh`，子命令一致。多节点批量分发与排障见 [RUNTIME/README.md](RUNTIME/README.md)，盒子清单细节见 [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md)。
 

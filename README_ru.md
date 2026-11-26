@@ -186,9 +186,56 @@ bash .scripts/docker/install_linux.sh rk3588 start      # Запуск; stop | r
   "enabled": true,
   "url": "http://<IP-центра>:48080/admin-api/video/edge",
   "join_token": "<EDGE_ENROLL_TOKEN центра; оставьте пустым, если центр его не задал>",
-  "node_name": "Парк Северный-RK3588-01"
+"node_name": "Парк Северный-RK3588-01"
 }
 ```
+
+**⑤ BM1688 / CV186X · автономный режим (только специализированный runtime)**
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# Укажите RTSP, .bmodel и адрес событий; install сразу запускает задачу
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+**⑥ BM1688 / CV186X · кластерный режим (центр + локальная оркестрация VIDEO на блоке)**
+
+```bash
+# Центральная платформа: общие бизнес-сервисы и агрегация событий
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# Блок BM1688: лёгкая локальная панель и привязка задач к RUNTIME-BM1688
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=bm1688 bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+BM1688 пока не принимает универсальный runtime через удалённую раздачу iot-node. Создавайте задачи в локальном WEB блока; локальный VIDEO выбирает **BM1688 · VPU + VPSS/BMCV + два TPU**. Для блока только с runtime используйте ⑤.
+
+**⑦ NVIDIA · автономный режим (только специализированный runtime)**
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cd ..
+cp RUNTIME-NVIDIA/config/config.example.ini ./nvidia-gate-a.ini
+# Укажите RTSP и путь к статическому engine, затем установите
+sudo bash .scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh nvidia status gate-a
+```
+
+**⑧ NVIDIA · кластерный режим (центр + локальная оркестрация VIDEO на блоке)**
+
+```bash
+# Центральная платформа: standard или full
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# Блок NVIDIA: лёгкая локальная панель, закреплённая за NVDEC + CUDA + TensorRT
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=nvidia bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+Engine NVIDIA привязан к целевому GPU и версии TensorRT, поэтому сейчас не распространяется универсальным iot-node. Создавайте задачи в локальном WEB блока; локальный VIDEO выбирает **NVIDIA · NVDEC + CUDA Graph + TensorRT**. Для блока только с runtime используйте ⑦.
 
 Интерактивный эквивалент: `sudo bash .scripts/docker/install_linux.sh install` → выберите `0) edge` → затем `1) standalone` или `2) integrated`. Если при установке вычислительного узла запрашиваются Gateway URL или MQTT broker, нажмите Enter (MQTT broker можно оставить пустым: при передаче формальной задачи центр сам переписывает адрес шины тревог на доступный узлу). Для ① и ② на ARM-хосте замените скрипт на `install_linux_arm.sh`, на Kylin — на `install_linux_kylin.sh`; подкоманды те же. Массовое распространение и диагностика — в [RUNTIME/README.md](RUNTIME/README.md), детали манифеста блока — в [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md).
 

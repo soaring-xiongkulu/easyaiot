@@ -186,9 +186,56 @@ bash .scripts/docker/install_linux.sh rk3588 start      # 시작; stop | restart
   "enabled": true,
   "url": "http://<중앙IP>:48080/admin-api/video/edge",
   "join_token": "<중앙의 EDGE_ENROLL_TOKEN; 중앙에 설정되어 있지 않으면 비워 둠>",
-  "node_name": "파크 북구-RK3588-01"
+"node_name": "파크 북구-RK3588-01"
 }
 ```
+
+**⑤ BM1688 / CV186X · 단독 모드 (전용 런타임만 설치)**
+
+```bash
+cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
+# RTSP, .bmodel, 알람 목적지를 채운 뒤 설치하면 작업이 자동 시작됩니다
+sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh bm1688 status gate-a
+```
+
+**⑥ BM1688 / CV186X · 클러스터 모드 (중앙 플랫폼 + 박스 로컬 VIDEO 오케스트레이션)**
+
+```bash
+# 중앙 플랫폼: 공통 업무 서비스와 알람 집계
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# BM1688 박스: 경량 로컬 제어면을 설치하고 작업을 RUNTIME-BM1688에 고정
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=bm1688 bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+현재 BM1688은 중앙 iot-node의 범용 런타임 원격 배포를 받지 않습니다. 박스 로컬 WEB에서 작업을 만들면 로컬 VIDEO가 **BM1688 · VPU + VPSS/BMCV + 듀얼 TPU**를 선택합니다. 무인 전용 런타임만 필요하면 ⑤를 사용하세요.
+
+**⑦ NVIDIA · 단독 모드 (전용 런타임만 설치)**
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cd ..
+cp RUNTIME-NVIDIA/config/config.example.ini ./nvidia-gate-a.ini
+# RTSP와 정적 engine 경로를 채운 뒤 설치
+sudo bash .scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+bash .scripts/docker/install_linux.sh nvidia status gate-a
+```
+
+**⑧ NVIDIA · 클러스터 모드 (중앙 플랫폼 + 박스 로컬 VIDEO 오케스트레이션)**
+
+```bash
+# 중앙 플랫폼: standard 또는 full
+sudo EASYAIOT_DEPLOY_PROFILE=standard bash .scripts/docker/install_linux.sh install
+
+# NVIDIA 박스: 경량 로컬 제어면을 설치하고 NVDEC + CUDA + TensorRT에 고정
+sudo EASYAIOT_DEPLOY_PROFILE=edge EASYAIOT_RUNTIME_TARGET=nvidia bash .scripts/docker/install_linux.sh install
+bash .scripts/docker/install_linux.sh status
+```
+
+NVIDIA engine은 대상 GPU와 TensorRT 버전에 묶이므로 현재 범용 iot-node로 배포하지 않습니다. 박스 로컬 WEB에서 작업을 만들면 로컬 VIDEO가 **NVIDIA · NVDEC + CUDA Graph + TensorRT**를 선택합니다. 런타임 전용 박스에는 ⑦을 사용하세요.
 
 대화형으로 선택하는 방법: `sudo bash .scripts/docker/install_linux.sh install` → `0) edge` 선택 → `1) standalone` 또는 `2) integrated` 선택. 연산 노드 설치 중 Gateway URL이나 MQTT broker를 묻으면 Enter를 누르면 됩니다(MQTT broker는 비워 두어도 되며, 중앙이 정식 작업을 내려보낼 때 알람 버스 주소를 노드에서 접근 가능한 주소로 자동으로 바꿉니다). ①②의 명령은 ARM 호스트에서 스크립트를 `install_linux_arm.sh`로, Kylin에서는 `install_linux_kylin.sh`로 바꾸면 되며 하위 명령은 동일합니다. 다중 노드 일괄 배포와 문제 해결은 [RUNTIME/README.md](RUNTIME/README.md), 박스 매니페스트 세부 사항은 [RUNTIME-RK3588/README.md](RUNTIME-RK3588/README.md)를 참고하세요.
 
