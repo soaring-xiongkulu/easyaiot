@@ -300,5 +300,53 @@ class BModelRuntimeIniTest(unittest.TestCase):
             rcs.generate_runtime_inis(task, log_path='', write_local=False)
 
 
+class NvidiaRuntimeIniTest(unittest.TestCase):
+    def test_nvidia_ini_uses_tensorrt_nvdec_and_bounded_gpu_profile(self):
+        task = RknnRuntimeIniTest()._task()
+        task.runtime_target = 'nvidia'
+        task.task_type = 'realtime'
+        task.model_names = 'nv'
+        task.devices[0].id = 'cam-nvidia'
+        with tempfile.TemporaryDirectory() as tmp:
+            model_path = Path(tmp) / 'models' / 'yolov8n-nvidia-fp16.engine'
+            model_path.parent.mkdir()
+            model_path.write_bytes(b'tensorrt-engine')
+            names_path = model_path.parent / 'coco.names'
+            names_path.write_text('person\n', encoding='utf-8')
+            with patch.dict(
+                os.environ,
+                {
+                    'RUNTIME_NVIDIA_CONFIG_DIR': tmp,
+                    'RUNTIME_NVIDIA_INFER_STREAMS': '3',
+                },
+                clear=True,
+            ), patch.object(
+                rcs,
+                '_resolve_tensorrt_models_with_ids',
+                return_value=[(-2, str(model_path), str(names_path))],
+            ):
+                paths = rcs.generate_runtime_inis(
+                    task, log_path=os.path.join(tmp, 'log'), write_local=True
+                )
+                content = Path(paths[0]).read_text(encoding='utf-8')
+        self.assertIn('target=nvidia', content)
+        self.assertIn(f'model_path={model_path}', content)
+        self.assertIn('[nvidia]', content)
+        self.assertIn('infer_streams=3', content)
+        self.assertIn('zero_copy=true', content)
+        self.assertIn('preallocate=true', content)
+        self.assertIn('cuda_graph=true', content)
+        self.assertIn('require_nvdec=true', content)
+        self.assertIn('require_nvenc=false', content)
+        self.assertIn('enable_rtmp=false', content)
+        self.assertNotIn('prefer_gpu=', content)
+
+    def test_nvidia_rejects_snapshot_contract_instead_of_falling_back(self):
+        task = RknnRuntimeIniTest()._task()
+        task.runtime_target = 'nvidia'
+        with self.assertRaisesRegex(ValueError, 'realtime'):
+            rcs.generate_runtime_inis(task, log_path='', write_local=False)
+
+
 if __name__ == '__main__':
     unittest.main()
