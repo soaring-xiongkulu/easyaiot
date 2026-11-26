@@ -53,6 +53,7 @@ add_task() {
   [[ -s "$source" ]] || fail "配置文件不存在或为空: $source"
   grep -Eqi '^model_path(_[0-9]+)?=.*\.bmodel[[:space:]]*$' "$source" \
     || fail "配置必须包含 .bmodel；不会回退 ONNX/CPU"
+  bash "$ROOT/scripts/bm1688_preflight.sh"
   install_files
   as_root install -m 0600 "$source" "$CONFIG_DIR/$name.ini"
   if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
