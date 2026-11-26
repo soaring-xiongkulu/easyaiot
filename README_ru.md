@@ -109,10 +109,10 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 Всё зелёное? Готово — проще, чем казалось. Можно раньше взять кофе.
 </p>
 
-### 🧩 edge: автономный / кластерный × обычный / RK3588 / BM1688
+### 🧩 edge: автономный / кластерный × обычный / RK3588 / BM1688 / NVIDIA
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-Эти три шага дают самый лёгкий <strong>автономный режим</strong>. Затем выберите обычный хост, RK3588 или специализированный runtime BM1688; чиповые runtime не смешиваются с обычным ONNX/CPU.
+Эти три шага дают самый лёгкий <strong>автономный режим</strong>. Затем выберите обычный хост либо специализированный runtime RK3588, BM1688 или NVIDIA; чиповые runtime не смешиваются с обычным ONNX/CPU.
 </p>
 
 | | Автономный режим (пункт меню `standalone`, чистый edge) | Кластерный режим (пункт меню `integrated`, облако-край) |
@@ -120,6 +120,7 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 | **Обычный хост** (x86_64 / универсальный ARM, кроме RK3588/BM1688) | WEB + VIDEO + универсальный `RUNTIME` на одной машине, контур замкнут локально | На машине ставится только универсальный вычислительный узел `RUNTIME`; она подключается к центральной платформе (standard / full), задачи приходят из центра |
 | **RK3588** | Ставится только `RUNTIME-RK3588`; задачи описаны в локальном манифесте блока, центр не нужен | Тот же рантайм + MQTT Agent; блок появляется в меню **Edge Computing** центрального WEB |
 | **BM1688 / CV186X** | Только `RUNTIME-BM1688` или вместе с локальными WEB + VIDEO; задачи выполняются на этой микросхеме | Удалённая доставка через iot-node отключена; VIDEO выбирает специальную realtime-цель непосредственно на блоке BM1688 |
+| **NVIDIA** | Только `RUNTIME-NVIDIA` или единый комплекс WEB + VIDEO + `RUNTIME-NVIDIA` | VIDEO выбирает локальную realtime-цель NVDEC + CUDA + TensorRT; статический engine привязан к GPU и версии TensorRT |
 
 **① Обычный хост · автономный режим** (это три шага выше)
 
@@ -256,6 +257,24 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 ```
 
 Добавляйте по одной контролируемой задаче на камеру; `model_path_1`, `model_path_2` позволяют привязать несколько BModel к одному потоку. Установщик не запускает Docker, WEB, VIDEO или посторонние модули.
+
+### 🚀 Периферийный AI-модуль NVIDIA GPU
+
+`RUNTIME-NVIDIA` оставляет горячий видеотракт на GPU: NVDEC выдаёт CUDA/NV12 surface, объединённое CUDA-ядро пишет цвет, letterbox и нормализацию прямо во вход TensorRT, а независимые non-default streams используют отдельные `IExecutionContext` поверх одного engine. Статическая модель может захватить `enqueueV3` в CUDA Graph.
+
+- Кадр не ходит через RAM хоста; surface NVDEC освобождается сразу после инференса.
+- I/O TensorRT выделяются заранее, кольца имеют фиксированную ёмкость. «Нулевая память» означает отсутствие host-копий кадров и безграничного роста, а не ноль RAM/VRAM.
+- Принимаются только статические `.engine` / `.plan`, собранные на целевом блоке. Нет отката на ONNX Runtime, CPU или программный декодер.
+- VIDEO явно предлагает локальную NVIDIA realtime-цель, а `/health` и `/metrics` показывают GPU, задержку, streams, выделенные байты и потери.
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cp config/config.example.ini ./nvidia-gate-a.ini
+sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+```
+
+Добавляйте по одной задаче на камеру; `model_path_1`, `model_path_2` подключают несколько engines к одному потоку.
 
 ### 🎛️ PANEL: установить и сдать в день прибытия — дежурство без ожидания удалённых разработчиков
 

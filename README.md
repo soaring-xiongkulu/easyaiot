@@ -109,17 +109,18 @@ Then open <code>https://&lt;server-ip&gt;:8888</code> — default <code>admin</c
 All green? You’re done—easier than you feared. Go grab that coffee early.
 </p>
 
-### 🧩 edge: standalone / cluster × generic / RK3588 / BM1688
+### 🧩 edge: standalone / cluster × generic / RK3588 / BM1688 / NVIDIA
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-Those three steps give you the lightest <strong>standalone mode</strong>. Pick standalone or cluster first, then a generic host, RK3588, or the BM1688-specific runtime. Chip runtimes never mix with generic ONNX/CPU execution:
+Those three steps give you the lightest <strong>standalone mode</strong>. Pick standalone or cluster first, then a generic host or an RK3588, BM1688, or NVIDIA-specific runtime. Chip runtimes never mix with generic ONNX/CPU execution:
 </p>
 
 | | Standalone mode (menu item `standalone`, pure edge) | Cluster mode (menu item `integrated`, cloud-edge) |
 | :-- | :-- | :-- |
-| **Generic host** (x86_64 / generic ARM, excluding RK3588/BM1688) | WEB + VIDEO + generic `RUNTIME` on one machine, closing the loop locally | This machine only runs the generic `RUNTIME` compute node; it joins a central platform (standard / full) and its tasks come from the center |
+| **Generic host** (x86_64 / generic ARM, excluding dedicated chip runtimes) | WEB + VIDEO + generic `RUNTIME` on one machine, closing the loop locally | This machine only runs the generic `RUNTIME` compute node; it joins a central platform (standard / full) and its tasks come from the center |
 | **RK3588** | Only `RUNTIME-RK3588` is installed; tasks live in the box's local manifest, no center needed | Same runtime + MQTT Agent; the box shows up in the central WEB **Edge Computing** menu |
 | **BM1688 / CV186X** | Install only `RUNTIME-BM1688`, or pair it with local WEB + VIDEO; tasks stay on this chip | Remote iot-node distribution is intentionally disabled for now; VIDEO selects the dedicated realtime target on the BM1688 box itself |
+| **NVIDIA** | Install only `RUNTIME-NVIDIA`, or use WEB + VIDEO + `RUNTIME-NVIDIA` as one appliance | VIDEO selects the local NVDEC + CUDA + TensorRT realtime target; static engines stay bound to the target GPU and TensorRT version |
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 12px 0;">
 <strong>Alerts, but no notifications:</strong> SMS, email, IM robots and Webhooks are sent by the platform's <code>iot-message</code> service, which the edge tier does not deploy. Standalone mode raises, persists and shows alerts in its own WEB only. Cluster-mode nodes hand alerts to the center, and the center notifies only when it runs <strong>standard / full</strong>—mini does not deploy <code>iot-message</code> either. Where notifications are unavailable (edge standalone and a mini center), the algorithm-task form hides the notification settings and shows a one-line note instead.
@@ -260,6 +261,29 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 ```
 
 Add one supervised task per camera, and use `model_path_1`, `model_path_2`, and so on to bind multiple BModels to one stream. The installer does not start Docker, WEB, VIDEO, or any unrelated module.
+
+### 🚀 NVIDIA GPU Edge AI Module
+
+`RUNTIME-NVIDIA` keeps the video-AI hot path on NVIDIA silicon: NVDEC emits CUDA/NV12 surfaces, one fused CUDA kernel performs colour conversion, letterbox and normalization directly into the TensorRT input, and independent non-default streams run separate `IExecutionContext` instances over one shared engine. Static shapes can capture `enqueueV3` as a CUDA Graph, cutting CPU launch overhead without duplicating model weights.
+
+- **No host-frame round trip:** decoded surfaces are referenced through bounded rings and released immediately after inference; result delivery never holds NVDEC surfaces while MQTT or HTTP is slow.
+- **“Zero memory” with a measurable definition:** TensorRT I/O and pinned outputs are allocated at startup, queues have fixed capacities, and the hot path performs no per-frame device allocation. It means zero host-frame copies and zero unbounded growth, not zero RAM/VRAM.
+- **Hard contract, not optimistic fallback:** only target-box-built static `.engine` / `.plan` files are accepted. Missing CUDA, TensorRT 10+, FFmpeg CUDA/NVDEC, a static shape, or CUDA Graph support fails explicitly; ONNX Runtime, CPU inference and software decode are absent from the execution path.
+- **One abstraction above several chips:** VIDEO presents NVIDIA beside RK3588 and BM1688 as an explicit local realtime target. Camera/task/alarm contracts remain common, while the lower runtime uses the correct silicon API.
+- **Performance must be proven on the box:** `/health` and `/metrics` expose the GPU and compute capability, active streams, inference latency, preallocated bytes and ring drops. No synthetic fixed FPS promise replaces deployment measurements.
+
+Build the engine on the target box, then installation is a short, repeatable path:
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cp config/config.example.ini ./nvidia-gate-a.ini
+# Fill in the RTSP URL and engine path, then:
+sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+sudo bash ../.scripts/docker/install_linux.sh nvidia status gate-a
+```
+
+Add cameras with `nvidia add`; add models to one stream with `model_path_1`, `model_path_2`, and so on. The standalone option does not start unrelated platform modules.
 
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 

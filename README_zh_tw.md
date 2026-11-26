@@ -109,10 +109,10 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 綠燈齊了就收工——比你想的輕鬆，今天可以提前喝杯咖啡了。
 </p>
 
-### 🧩 edge：單體 / 集群 × 通用主機 / RK3588 / BM1688
+### 🧩 edge：單體 / 集群 × 通用主機 / RK3588 / BM1688 / NVIDIA
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-上面三步裝的是最輕的<strong>單體模式</strong>。先選單體或集群，再選通用主機、RK3588 或 BM1688 專用執行環境；晶片模組不與通用 ONNX/CPU 混跑：
+上面三步裝的是最輕的<strong>單體模式</strong>。先選單體或集群，再選通用主機、RK3588、BM1688 或 NVIDIA 專用執行環境；晶片模組不與通用 ONNX/CPU 混跑：
 </p>
 
 | | 單體模式（選單項 `standalone`，純邊緣形態） | 集群模式（選單項 `integrated`，雲邊一體形態） |
@@ -120,6 +120,7 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 | **通用主機**（x86_64 / 通用 ARM，不含 RK3588/BM1688） | WEB + VIDEO + 通用 `RUNTIME` 裝在同一台機器，本地閉環 | 本機只裝通用 `RUNTIME` 算力節點，接入中心平台（standard / full），任務由中心下發 |
 | **RK3588** | 只裝 `RUNTIME-RK3588`，任務寫在盒子本地清單，不依賴中心 | 同一執行環境 + MQTT Agent，盒子出現在中心 WEB「邊緣計算」選單 |
 | **BM1688 / CV186X** | 只裝 `RUNTIME-BM1688`，或與本機 WEB + VIDEO 組成一體機；任務固定本機執行 | 目前不經遠端 iot-node 分發；在盒子本機由 VIDEO 選擇 BM1688 即時任務 |
+| **NVIDIA** | 只裝 `RUNTIME-NVIDIA`，或使用 WEB + VIDEO + `RUNTIME-NVIDIA` 組成一體機 | VIDEO 選擇本機 NVDEC + CUDA + TensorRT 即時目標；靜態 engine 與目標 GPU、TensorRT 版本綁定 |
 
 **① 通用主機 · 單體模式**（即上面三步）
 
@@ -256,6 +257,24 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 ```
 
 每增加一路攝影機就增加一個受 systemd 監管的任務；同一配置可用 `model_path_1`、`model_path_2` 綁定多個 BModel。安裝器不會啟動 Docker、WEB、VIDEO 或其他模組。
+
+### 🚀 NVIDIA GPU 邊緣 AI 模組
+
+`RUNTIME-NVIDIA` 讓影片 AI 熱路徑留在 GPU：NVDEC 產生 CUDA/NV12 surface，單一融合 CUDA kernel 將色彩轉換、letterbox 與正規化直接寫入 TensorRT 輸入；engine 只載入一次，每條非預設 CUDA stream 使用獨立 `IExecutionContext`，靜態模型還可把 `enqueueV3` 捕獲為 CUDA Graph。
+
+- 影格不往返主記憶體，推理完成即釋放 NVDEC surface。
+- TensorRT I/O 啟動時預先配置，環狀佇列容量固定；「零記憶體」是零主機影格複製與零無界增長，不是完全不佔 RAM/VRAM。
+- 只接受在目標盒子建立的靜態 `.engine` / `.plan`；不回退 ONNX Runtime、CPU 或軟體解碼。
+- VIDEO 明確提供 NVIDIA 本機即時目標，`/health` 與 `/metrics` 顯示 GPU、延遲、stream、預分配位元組與丟幀實測。
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cp config/config.example.ini ./nvidia-gate-a.ini
+sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+```
+
+每一路攝影機增加一個受監管任務；同一路可用 `model_path_1`、`model_path_2` 綁定多個 engine。
 
 ### 🎛️ PANEL：一體機到場當天可裝可驗，值守不必等開發遠程
 

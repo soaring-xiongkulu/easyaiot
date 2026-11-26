@@ -109,10 +109,10 @@ Puis ouvrez <code>https://&lt;IP-serveur&gt;:8888</code> — compte par défaut 
 Tout vert ? C’est plié — plus simple que vous ne le craigniez. Allez prendre un café plus tôt.
 </p>
 
-### 🧩 edge : autonome / cluster × générique / RK3588 / BM1688
+### 🧩 edge : autonome / cluster × générique / RK3588 / BM1688 / NVIDIA
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-Ces trois étapes installent le <strong>mode autonome</strong>, le plus léger. Choisissez ensuite un hôte générique, RK3588 ou le runtime dédié BM1688 ; les runtimes de puce ne se mélangent pas avec ONNX/CPU générique :
+Ces trois étapes installent le <strong>mode autonome</strong>, le plus léger. Choisissez ensuite un hôte générique ou le runtime dédié RK3588, BM1688 ou NVIDIA ; ces runtimes ne se mélangent pas avec ONNX/CPU générique :
 </p>
 
 | | Mode autonome (entrée de menu `standalone`, edge pur) | Mode cluster (entrée de menu `integrated`, cloud-edge) |
@@ -120,6 +120,7 @@ Ces trois étapes installent le <strong>mode autonome</strong>, le plus léger. 
 | **Hôte générique** (x86_64 / ARM générique, hors RK3588/BM1688) | WEB + VIDEO + `RUNTIME` générique sur une seule machine, boucle fermée en local | La machine n'héberge que le nœud de calcul `RUNTIME` générique ; elle rejoint une plateforme centrale (standard / full) et ses tâches viennent du centre |
 | **RK3588** | Seul `RUNTIME-RK3588` est installé ; les tâches vivent dans le manifeste local du boîtier, sans centre | Même runtime + Agent MQTT ; le boîtier apparaît dans le menu **Edge Computing** du WEB central |
 | **BM1688 / CV186X** | `RUNTIME-BM1688` seul ou associé à WEB + VIDEO local ; les tâches restent sur la puce | La distribution iot-node distante est désactivée ; VIDEO sélectionne la cible temps réel dédiée directement sur le boîtier |
+| **NVIDIA** | `RUNTIME-NVIDIA` seul, ou WEB + VIDEO + `RUNTIME-NVIDIA` sur la même appliance | VIDEO sélectionne la cible locale NVDEC + CUDA + TensorRT ; l'engine statique reste lié au GPU et à la version TensorRT |
 
 **① Hôte générique · mode autonome** (les trois étapes ci-dessus)
 
@@ -256,6 +257,24 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 ```
 
 Ajoutez une tâche supervisée par caméra et utilisez `model_path_1`, `model_path_2`, etc. pour plusieurs BModels sur un flux. L'installateur ne démarre ni Docker, ni WEB, ni VIDEO, ni module sans rapport.
+
+### 🚀 Module Edge AI NVIDIA GPU
+
+`RUNTIME-NVIDIA` garde le chemin vidéo sur le GPU : NVDEC produit des surfaces CUDA/NV12, un kernel CUDA fusionné réalise couleur, letterbox et normalisation directement dans l'entrée TensorRT, puis plusieurs streams non par défaut utilisent des `IExecutionContext` indépendants sur un engine partagé. Les formes statiques peuvent capturer `enqueueV3` en CUDA Graph.
+
+- Aucun aller-retour d'image par la RAM hôte ; la surface NVDEC est libérée dès la fin de l'inférence.
+- E/S TensorRT préallouées et anneaux bornés : « zéro mémoire » signifie zéro copie d'image hôte et aucune croissance sans limite, pas zéro RAM/VRAM.
+- Seuls `.engine` / `.plan` statiques construits sur le boîtier cible sont acceptés. Aucun repli ONNX Runtime, CPU ou décodage logiciel.
+- VIDEO expose NVIDIA comme cible temps réel locale explicite ; `/health` et `/metrics` donnent GPU, latence, streams, octets préalloués et pertes réelles.
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cp config/config.example.ini ./nvidia-gate-a.ini
+sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+```
+
+Une caméra = une tâche supervisée ; `model_path_1`, `model_path_2`, etc. ajoutent plusieurs engines au même flux sans démarrer les autres modules.
 
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 

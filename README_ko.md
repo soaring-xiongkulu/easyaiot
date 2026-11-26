@@ -109,10 +109,10 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 초록불이 떴다면 퇴근입니다 — 생각보다 쉽죠. 오늘 커피는 일찍 마셔도 됩니다.
 </p>
 
-### 🧩 edge: 단독 / 클러스터 × 범용 / RK3588 / BM1688
+### 🧩 edge: 단독 / 클러스터 × 범용 / RK3588 / BM1688 / NVIDIA
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-위 세 단계는 가장 가벼운 <strong>단독 모드</strong>입니다. 그다음 범용 호스트, RK3588, BM1688 전용 런타임 중 하나를 선택하며 칩 런타임은 범용 ONNX/CPU와 섞지 않습니다:
+위 세 단계는 가장 가벼운 <strong>단독 모드</strong>입니다. 그다음 범용 호스트 또는 RK3588, BM1688, NVIDIA 전용 런타임을 선택하며 칩 런타임은 범용 ONNX/CPU와 섞지 않습니다:
 </p>
 
 | | 단독 모드 (메뉴 항목 `standalone`, 순수 엣지 형태) | 클러스터 모드 (메뉴 항목 `integrated`, 클라우드-엣지 일체형) |
@@ -120,6 +120,7 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 | **범용 호스트** (x86_64 / 범용 ARM, RK3588/BM1688 제외) | 한 대의 머신에 WEB + VIDEO + 범용 `RUNTIME`을 설치해 로컬에서 폐루프 | 이 머신에는 범용 `RUNTIME` 연산 노드만 설치하고 중앙 플랫폼(standard / full)에 연결하며, 작업은 중앙에서 내려옵니다 |
 | **RK3588** | `RUNTIME-RK3588`만 설치하고 작업은 박스 로컬 매니페스트에 기록, 중앙 불필요 | 동일한 런타임 + MQTT Agent, 박스가 중앙 WEB **Edge Computing** 메뉴에 표시됩니다 |
 | **BM1688 / CV186X** | `RUNTIME-BM1688`만 설치하거나 로컬 WEB + VIDEO와 결합; 작업은 칩 로컬 고정 | 원격 iot-node 배포는 비활성화되며 BM1688 박스의 VIDEO에서 전용 실시간 대상을 선택합니다 |
+| **NVIDIA** | `RUNTIME-NVIDIA`만 설치하거나 WEB + VIDEO와 한 장비로 구성 | VIDEO에서 로컬 NVDEC + CUDA + TensorRT 실시간 대상을 선택하며 정적 engine은 대상 GPU와 TensorRT 버전에 고정됩니다 |
 
 **① 범용 호스트 · 단독 모드** (위 세 단계와 동일)
 
@@ -256,6 +257,24 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 ```
 
 카메라마다 감독 작업 하나를 추가하고 `model_path_1`, `model_path_2`로 한 스트림에 여러 BModel을 연결할 수 있습니다. 설치기는 Docker, WEB, VIDEO 또는 무관한 모듈을 시작하지 않습니다.
+
+### 🚀 NVIDIA GPU 엣지 AI 모듈
+
+`RUNTIME-NVIDIA`는 영상 AI의 뜨거운 경로를 GPU 안에 유지합니다. NVDEC이 CUDA/NV12 surface를 만들고, 하나의 융합 CUDA kernel이 색상 변환·letterbox·정규화를 TensorRT 입력에 직접 기록합니다. engine은 한 번만 로드하고 각 비기본 CUDA stream은 독립 `IExecutionContext`를 사용하며, 정적 모델은 `enqueueV3`를 CUDA Graph로 캡처할 수 있습니다.
+
+- 호스트 프레임 왕복 없이 추론 직후 NVDEC surface를 해제합니다.
+- TensorRT I/O 사전 할당과 고정 용량 링으로 메모리 상한을 보장합니다. “제로 메모리”는 호스트 프레임 복사와 무제한 증가가 없다는 뜻입니다.
+- 대상 박스에서 만든 정적 `.engine` / `.plan`만 허용하며 ONNX Runtime, CPU, 소프트웨어 디코딩으로 우회하지 않습니다.
+- VIDEO에서 NVIDIA 로컬 실시간 대상을 명확히 선택하고 `/health`, `/metrics`로 GPU·지연·stream·드롭을 실측합니다.
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cp config/config.example.ini ./nvidia-gate-a.ini
+sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+```
+
+카메라마다 감독 작업을 하나씩 추가하고 `model_path_1`, `model_path_2`로 한 스트림에 여러 engine을 연결할 수 있습니다.
 
 ### 🎛️ PANEL: 일체기 도착 당일 설치·인수, 당직은 원격 개발자를 기다리지 않음
 

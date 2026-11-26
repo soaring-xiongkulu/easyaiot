@@ -8,7 +8,7 @@ Only static TensorRT 10+ `.engine`/`.plan` files with `[1,3,H,W]` FP16/FP32 inpu
 
 ```bash
 cd RUNTIME-NVIDIA
-./scripts/build_engine.sh /path/to/yolo11n.onnx ./models/yolo11n-nvidia-fp16.engine fp16
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
 ./install_linux.sh preflight
 ./install_linux.sh build
 cp config/config.example.ini ./gate-a.ini

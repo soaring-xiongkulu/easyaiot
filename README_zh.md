@@ -109,17 +109,18 @@ sudo EASYAIOT_DEPLOY_PROFILE=edge bash .scripts/docker/install_linux.sh install
 绿灯齐了就收工——比你想的轻松，今天可以提前喝杯咖啡了。
 </p>
 
-### 🧩 edge：单体 / 集群 × 通用主机 / RK3588 / BM1688
+### 🧩 edge：单体 / 集群 × 通用主机 / RK3588 / BM1688 / NVIDIA
 
 <p style="font-size: 14px; line-height: 1.8; color: #444; margin: 16px 0 8px 0;">
-上面三步装的是最轻的<strong>单体模式</strong>。edge 规格先分<strong>单体 / 集群</strong>，再选择通用主机、RK3588 或 BM1688 专用运行时；芯片模块不与通用 ONNX/CPU 混跑：
+上面三步装的是最轻的<strong>单体模式</strong>。edge 规格先分<strong>单体 / 集群</strong>，再选择通用主机、RK3588、BM1688 或 NVIDIA 专用运行时；芯片模块不与通用 ONNX/CPU 混跑：
 </p>
 
 | | 单体模式（菜单项 `standalone`，纯边缘形态） | 集群模式（菜单项 `integrated`，云边一体形态） |
 | :-- | :-- | :-- |
-| **通用主机**（x86_64 / 通用 ARM，不含 RK3588/BM1688） | WEB + VIDEO + 通用 `RUNTIME` 装在同一台机器，本地闭环 | 本机只装通用 `RUNTIME` 算力节点，接入中心平台（standard / full），任务由中心下发 |
+| **通用主机**（x86_64 / 通用 ARM，不含专用芯片运行时） | WEB + VIDEO + 通用 `RUNTIME` 装在同一台机器，本地闭环 | 本机只装通用 `RUNTIME` 算力节点，接入中心平台（standard / full），任务由中心下发 |
 | **RK3588** | 只装 `RUNTIME-RK3588`，任务写在盒子本地清单，不依赖中心 | 同一运行时 + MQTT Agent，盒子出现在中心 WEB「边缘计算」菜单 |
 | **BM1688 / CV186X** | 只装 `RUNTIME-BM1688`，或与本机 WEB + VIDEO 组成一体机；任务严格本机执行 | 当前不经远程 iot-node 分发；在 BM1688 盒子本机由 VIDEO 选择专用实时任务，避免误下发到不匹配芯片 |
+| **NVIDIA** | 只装 `RUNTIME-NVIDIA`，或使用 WEB + VIDEO + `RUNTIME-NVIDIA` 组成一体机 | VIDEO 选择本机 NVDEC + CUDA + TensorRT 实时目标；静态 engine 与目标 GPU、TensorRT 版本严格绑定 |
 
 **① 通用主机 · 单体模式**（即上面三步）
 
@@ -258,6 +259,29 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 ```
 
 增加摄像头就是增加一个受 systemd 监管的任务，配置里写 `model_path_1`、`model_path_2` 即可让同一路视频经过多个 BModel：`sudo bash .scripts/docker/install_linux.sh bm1688 add gate-b ./bm1688-gate-b.ini`。安装器不会启动 Docker、WEB、VIDEO 或其他模块，盒子上有 SOPHONSDK 就能独立工作。
+
+### 🚀 NVIDIA GPU 边缘 AI 模块
+
+`RUNTIME-NVIDIA` 不是给通用 RUNTIME 打开 CUDA 开关，而是让视频 AI 热路径始终留在 NVIDIA GPU：NVDEC 直接产出 CUDA/NV12 surface，一个融合 CUDA kernel 完成色彩转换、等比例缩放、填充、归一化并写入 TensorRT 输入；同一份 engine 只反序列化一次，每条非默认 CUDA stream 拥有独立 `IExecutionContext`，静态模型还可把 `enqueueV3` 捕获成 CUDA Graph，减少小模型的 CPU 发射开销。
+
+- **帧不往返主存**：解码队列只传 NVDEC surface 引用，推理结束立即释放；MQTT 或 HTTP 变慢时，结果队列不会继续占住解码池。
+- **“零内存”是可验收的工程边界**：TensorRT 输入输出与页锁定结果区在启动期预分配，各阶段使用固定容量环形队列，热路径不逐帧申请设备内存；它表示零主机帧拷贝和零无界增长，不是“不占 RAM/显存”。
+- **缺硬件就失败，不制造假加速**：只接受在目标盒子构建的静态 `.engine` / `.plan`；CUDA、TensorRT 10+、FFmpeg CUDA/NVDEC、静态 shape 或 CUDA Graph 条件不满足都会明确报错，执行路径中没有 ONNX Runtime、CPU 推理和软件解码。
+- **上层统一、下层按芯片跑对**：VIDEO 把 NVIDIA 与 RK3588、BM1688 并列成明确的本机实时目标；摄像头、任务和告警接口保持统一，下层分别调用正确的芯片 API。
+- **性能靠现场数据而不是口号**：`/health` 与 `/metrics` 显示 GPU 型号、Compute Capability、推理流数、真实耗时、预分配字节和队列丢帧，不在脱离盒子、模型与功耗模式时承诺固定 FPS。
+
+在实际 NVIDIA 盒子上固化 engine，随后两步即可装好：
+
+```bash
+cd RUNTIME-NVIDIA
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
+cp config/config.example.ini ./nvidia-gate-a.ini
+# 填入 RTSP 和 engine 路径后执行
+sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
+sudo bash ../.scripts/docker/install_linux.sh nvidia status gate-a
+```
+
+增加摄像头使用 `nvidia add`，同一路多模型继续写 `model_path_1`、`model_path_2`。独立部署不会启动无关的平台模块。
 
 ### 🎛️ PANEL：一体机到场当天可装可验，值守不必等开发远程
 
