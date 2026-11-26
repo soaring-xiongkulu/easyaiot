@@ -7,7 +7,7 @@ enum Api {
   DeployService = '/model/deploy_service',
 }
 
-const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, headers = {}, isTransformResponse = true) => {
+const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, headers = {}, isTransformResponse = true, requestOptions = {}) => {
   // 设置认证头
   const authHeader = {'X-Authorization': 'Bearer ' + localStorage.getItem('jwt_token')};
 
@@ -22,6 +22,7 @@ const commonApi = (method: 'get' | 'post' | 'delete' | 'put', url, params = {}, 
     },
     {
       isTransformResponse: isTransformResponse,
+      ...requestOptions,
     },
   );
 };
@@ -59,7 +60,9 @@ export const activateModelFamilyVersion = (modelId: number) => {
 };
 
 export const getModelClasses = (modelId) => {
-  return commonApi('get', `${Api.Model}/${modelId}/classes`);
+  // 类别解析依赖模型文件：文件缺失时应静默降级（ModelModal 已有 catch 兜底），
+  // 避免 404 触发全局“网络请求错误,未找到该资源”提示，误导详情/编辑界面
+  return commonApi('get', `${Api.Model}/${modelId}/classes`, {}, {}, true, {errorMessageMode: 'none'});
 };
 
 /** 兼容 defHttp 解包前后多种响应结构 */

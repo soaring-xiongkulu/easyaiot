@@ -109,7 +109,9 @@ import { deleteModel, getModelPage } from "@/api/device/model";
 import ModelCardList from "../ModelCardList/index.vue";
 import { Button } from '@/components/Button'
 import { Tag } from 'ant-design-vue';
+import { useGlobSetting } from '@/hooks/setting';
 const { createMessage } = useMessage();
+const { apiUrl } = useGlobSetting();
 
 const [registerAddModel, { openDrawer: openAddModal }] = useDrawer();
 const [registerFamilyDrawer, { openDrawer: openFamilyDrawerModal }] = useDrawer();
@@ -246,8 +248,8 @@ const handleDownload = async (record) => {
         downloadUrl = modelPath;
       }
     } else {
-      // 如果没有 model_path，使用后端下载接口作为备选方案
-      downloadUrl = `/api/model/${record.id}/download`;
+      // 没有 model_path 时走后端下载接口（与其它 API 一致使用 /dev-api 前缀，直接写 /api 会 404）
+      downloadUrl = `${String(apiUrl || '/dev-api').replace(/\/$/, '')}/model/${record.id}/download`;
     }
 
     // 使用 fetch 下载文件（支持认证头）
@@ -259,14 +261,20 @@ const handleDownload = async (record) => {
     });
 
     if (!response.ok) {
-      // 如果是404，尝试解析错误消息
+      // 后端失败可能是 JSON（{code,msg}）也可能是纯文本（minio_proxy 的 对象不存在: ...），
+      // 先读文本再尝试解析，保证透出真实原因而不是泛化的“下载失败”
+      const errorText = await response.text().catch(() => '');
+      let errorMsg = '';
+      try {
+        errorMsg = JSON.parse(errorText)?.msg || '';
+      } catch {
+        errorMsg = errorText;
+      }
       if (response.status === 404) {
-        const errorData = await response.json().catch(() => ({}));
-        createMessage.warning(errorData.msg || '该模型没有可下载的文件');
+        createMessage.warning(errorMsg || '该模型没有可下载的文件');
         return;
       }
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.msg || '下载失败: ' + response.statusText);
+      throw new Error(errorMsg || '下载失败: ' + response.statusText);
     }
 
     // 获取文件 blob
