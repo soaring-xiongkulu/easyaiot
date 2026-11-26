@@ -271,20 +271,9 @@ EasyAIoT는 AI와 IoT의 심층적 융합에 초점을 맞춘 클라우드-엣�
 
 RK3588 모듈은 장비가 로컬에서 실시간 추론을 수행하고 장기간 안정적으로 동작할 수 있는지를 결정합니다. 이어지는 PANEL은 장비를 현장에서 설치, 인수, 운영할 수 있는지를 결정합니다. 두 모듈이 함께 엣지 AI를 실제로 납품 가능한 솔루션으로 만듭니다.
 
-**RK3588 박스 단독 배포(단독 모드), 플랫폼의 다른 모듈 없이:**
+매니페스트는 `RUNTIME`과 같은 규칙을 사용합니다. `models`는 재사용 가능한 RKNN 모델 저장소이고 `tasks`의 각 항목은 하나 이상의 모델을 선택하는 RTSP 한 스트림입니다. 10개 스트림이면 작업 10개이며 단일 스트림·단일 모델 제한이 없습니다. 설치기는 경로, 모델 참조, 포트를 검증하고 스트림별 감독 프로세스를 만든 뒤 `/health`로 MPP, RGA, RKNN 경로를 확인합니다. 단독·클러스터 명령은 위 배포 매트릭스에 모았습니다.
 
-```bash
-cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
-# 이 파일 하나만 편집합니다. 모델은 한 번 등록하고 각 RTSP 작업에서 하나 이상 선택합니다.
-# 단독 모드에서는 control_plane.enabled를 false로 변경(예시 파일의 기본값은 true)
-bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
-sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
-bash .scripts/docker/install_linux.sh rk3588 status
-```
-
-매니페스트는 `RUNTIME`과 같은 규칙을 사용합니다. `models`는 재사용 가능한 RKNN 모델 저장소이고, `tasks`의 각 항목은 RTSP 한 스트림이며 `"models": ["person_vehicle", "helmet"]`처럼 하나 이상의 모델을 자유롭게 선택합니다. 10개 스트림이면 작업 10개를 추가하면 되며 단일 스트림·단일 모델 제한이 없습니다. 설치기는 호스트를 변경하기 전에 모든 경로, 모델 참조, 제어 포트를 검증하고, 모델은 각각 한 번만 설치한 뒤 스트림마다 INI 하나와 독립 감독 프로세스 하나를 생성하며 모든 `/health`를 확인합니다. systemd 템플릿 인스턴스가 부팅 및 장애 재시작을 맡고, systemd가 없어도 작업별 PID와 로그를 둡니다. Docker나 WEB, AI, VIDEO, MQTT는 시작하지 않습니다. `rk3588 status [작업ID]`, `logs [작업ID]`, `verify [작업ID]`로 전체 또는 한 스트림만 운영할 수 있으며 안내 메뉴도 이 매니페스트 경로만 묻습니다.
-
-**RK3588 클러스터 모드(중앙 연결)**: 같은 매니페스트에서 `control_plane.enabled`를 `true`로 설정하고, `url`에 `http://<중앙IP>:48080/admin-api/video/edge`를 넣고, `join_token`을 중앙의 `EDGE_ENROLL_TOKEN`과 맞춥니다(중앙에 설정되어 있지 않으면 비워 둠). 그런 다음 위의 `rk3588 install`을 다시 실행합니다(이미 설치된 박스는 매니페스트 수정 후 `rk3588 update`). 박스는 독립 최상위 **Edge Computing** 메뉴에 자동으로 나타나며 칩/NPU, 추론 파이프라인, 부하, 온도와 선택적 서비스/SSH 진입점을 한곳에서 보여 줍니다. 텔레메트리 경로는 `RK3588 → EMQX → iot-sink(인증, HMAC 검증, 정규화, 직접 저장) → VIDEO / WEB`으로 고정되며 Kafka와 NODE를 거치지 않습니다. `remote_access.enabled`는 FRP만 별도로 제어합니다. 끄면 frpc와 공개 포트를 만들지 않고, 켜면 서비스와 SSH 터널을 각각 생성하며 노드 관리는 계속 MQTT를 사용합니다.
+중앙에 연결되면 박스는 독립 **Edge Computing** 메뉴에 나타나 칩/NPU, 파이프라인, 부하, 온도, 선택적 서비스/SSH 진입점을 보여 줍니다. 텔레메트리는 `RK3588 → EMQX → iot-sink → VIDEO / WEB`으로 흐르며 Kafka와 NODE를 거치지 않습니다. FRP는 선택적 사용자 접근 통로일 뿐입니다.
 
 ### ⚡ BM1688 듀얼 TPU 엣지 AI 모듈
 
@@ -296,14 +285,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 - VIDEO에서 BM1688 로컬 실시간 대상을 직접 선택하고, 알람은 MQTT → iot-sink 공통 계약으로 저장합니다. 런타임만 단독 납품할 수도 있습니다.
 - `/health`와 `/metrics`에서 실제 프레임, 추론 시간, 오류, 링 드롭을 확인합니다.
 
-```bash
-cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
-# RTSP, .bmodel, 알람 목적지만 채운 뒤 실행
-sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
-sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
-```
-
-카메라마다 감독 작업 하나를 추가하고 `model_path_1`, `model_path_2`로 한 스트림에 여러 BModel을 연결할 수 있습니다. 설치기는 Docker, WEB, VIDEO 또는 무관한 모듈을 시작하지 않습니다.
+카메라마다 감독 작업 하나를 두며 `model_path_1`, `model_path_2`로 한 스트림에 여러 BModel을 연결할 수 있습니다. BM1688 단독·클러스터 명령은 위 배포 매트릭스에 모았습니다.
 
 ### 🚀 NVIDIA GPU 엣지 AI 모듈
 
@@ -314,14 +296,7 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 - 대상 박스에서 만든 정적 `.engine` / `.plan`만 허용하며 ONNX Runtime, CPU, 소프트웨어 디코딩으로 우회하지 않습니다.
 - VIDEO에서 NVIDIA 로컬 실시간 대상을 명확히 선택하고 `/health`, `/metrics`로 GPU·지연·stream·드롭을 실측합니다.
 
-```bash
-cd RUNTIME-NVIDIA
-./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
-cp config/config.example.ini ./nvidia-gate-a.ini
-sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
-```
-
-카메라마다 감독 작업을 하나씩 추가하고 `model_path_1`, `model_path_2`로 한 스트림에 여러 engine을 연결할 수 있습니다.
+TensorRT engine은 대상 GPU와 TensorRT 버전에 맞춰 실제 박스에서 빌드해야 합니다. 카메라마다 감독 작업 하나를 두고 `model_path_1`, `model_path_2`로 한 스트림에 여러 engine을 연결할 수 있습니다. NVIDIA 단독·클러스터 명령은 위 배포 매트릭스에 모았습니다.
 
 ### 🎛️ PANEL: 일체기 도착 당일 설치·인수, 당직은 원격 개발자를 기다리지 않음
 

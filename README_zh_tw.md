@@ -271,20 +271,9 @@ EasyAIoT是一個雲邊端一體化的智能物聯網平臺，專注於AI與IoT�
 
 RK3588 模組決定設備能否在本地即時推理並長期穩定運行；緊隨其後的 PANEL 決定設備能否在現場完成安裝、驗收與維運。兩者共同構成邊緣 AI 的可交付方案。
 
-**RK3588 盒子獨立部署（單體模式），不依賴平台其他模組：**
+任務清單沿用 `RUNTIME` 的約定：`models` 是可重用的 RKNN 模型庫，`tasks` 中每一項就是一路 RTSP，並可自由綁定一個或多個模型；十路影片對應十個任務，不存在「只能一路、只能一個模型」的限制。安裝器會統一校驗路徑、模型引用與控制埠，為每路生成獨立配置與受監管程序，並透過 `/health` 驗收 MPP、RGA、RKNN 硬體鏈路。單體與集群命令已統一放在上方部署矩陣。
 
-```bash
-cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
-# 只編輯這一個檔案：模型登記一次，每路 RTSP 自由選擇一個或多個模型鍵
-# 單體模式把 control_plane.enabled 改成 false（示例檔案默認是 true）
-bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
-sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
-bash .scripts/docker/install_linux.sh rk3588 status
-```
-
-任務清單沿用 `RUNTIME` 的約定：`models` 是可重用的 RKNN 模型庫，`tasks` 中每一項就是一路 RTSP，並用類似 `"models": ["person_vehicle", "helmet"]` 的方式自由綁定一個或多個模型；要接十路影片，只需增加十個任務，不存在「只能一路、只能一個模型」的限制。安裝器會先一次校驗全部路徑、模型引用和控制埠，再把模型各安裝一份、為每路影片生成一份 INI 和一個獨立受監管程序，最後逐路等待 `/health` 驗收 MPP、RGA、RKNN 硬體鏈路。systemd 以模板實例提供開機自啟與故障拉起；沒有 systemd 時，每路也有獨立 PID 與日誌。它不會安裝 Docker，也不會啟動 WEB、AI、VIDEO、MQTT 等其他模組。維運時執行 `rk3588 status [任務ID]`、`logs [任務ID]`、`verify [任務ID]`，既能看全部，也能只看一路；互動選單也只會請你選擇這份清單。
-
-**RK3588 集群模式（接入中心）**：在同一清單將 `control_plane.enabled` 設為 `true`，`url` 填 `http://<中心IP>:48080/admin-api/video/edge`，`join_token` 與中心 `EDGE_ENROLL_TOKEN` 保持一致（中心未設置則留空），再執行上面的 `rk3588 install`（已裝過的盒子改完清單用 `rk3588 update`）。盒子就會自動出現在 WEB 獨立一級選單「邊緣計算」中，晶片/NPU、推理管線、負載、溫度及可選的服務存取與 SSH 入口都集中呈現。遙測鏈路固定為 `RK3588 → EMQX → iot-sink（鑑權、HMAC 驗簽、協議歸一化、直接落庫）→ VIDEO / WEB`，不經過 Kafka，也不進入 NODE。`remote_access.enabled` 獨立決定是否啟用 FRP：關閉時不安裝 frpc、不開放公網埠；開啟時一鍵生成服務與 SSH 兩條獨立隧道，節點統管仍始終走 MQTT。
+接入中心後，盒子會出現在 WEB 獨立一級選單「邊緣計算」中，晶片/NPU、推理管線、負載、溫度與可選服務/SSH 入口集中呈現。遙測固定走 `RK3588 → EMQX → iot-sink → VIDEO / WEB`，不經 Kafka 或 NODE；FRP 只是獨立可選的人工存取通道。
 
 ### ⚡ BM1688 雙核 TPU 邊緣 AI 模組
 
@@ -296,14 +285,7 @@ bash .scripts/docker/install_linux.sh rk3588 status
 - **統一且可獨立**：VIDEO 可直接選擇 BM1688 即時任務，告警按 MQTT → iot-sink 統一落庫；也能完全不啟動平台其他模組而獨立交付。
 - **效能可驗證**：`/health` 與 `/metrics` 顯示真實幀數、耗時、錯誤及佇列丟幀；吞吐以實際盒子、BModel、batch、解析度與 SDK 實測為準。
 
-```bash
-cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
-# 填入 RTSP、.bmodel 與告警出口後即可
-sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
-sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
-```
-
-每增加一路攝影機就增加一個受 systemd 監管的任務；同一配置可用 `model_path_1`、`model_path_2` 綁定多個 BModel。安裝器不會啟動 Docker、WEB、VIDEO 或其他模組。
+每一路攝影機對應一個受監管任務；同一配置可用 `model_path_1`、`model_path_2` 綁定多個 BModel。BM1688 的單體與集群命令已集中在上方部署矩陣。
 
 ### 🚀 NVIDIA GPU 邊緣 AI 模組
 
@@ -314,14 +296,7 @@ sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
 - 只接受在目標盒子建立的靜態 `.engine` / `.plan`；不回退 ONNX Runtime、CPU 或軟體解碼。
 - VIDEO 明確提供 NVIDIA 本機即時目標，`/health` 與 `/metrics` 顯示 GPU、延遲、stream、預分配位元組與丟幀實測。
 
-```bash
-cd RUNTIME-NVIDIA
-./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
-cp config/config.example.ini ./nvidia-gate-a.ini
-sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
-```
-
-每一路攝影機增加一個受監管任務；同一路可用 `model_path_1`、`model_path_2` 綁定多個 engine。
+TensorRT engine 必須依目標 GPU 架構與 TensorRT 版本在實際盒子上固化；每一路攝影機對應一個受監管任務，同一路可用 `model_path_1`、`model_path_2` 綁定多個 engine。NVIDIA 的單體與集群命令已集中在上方部署矩陣。
 
 ### 🎛️ PANEL：一體機到場當天可裝可驗，值守不必等開發遠程
 

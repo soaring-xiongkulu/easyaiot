@@ -271,20 +271,9 @@ Ce chemin matériel est implémenté par le boîtier RK3588 présenté ci-dessou
 
 Le module RK3588 détermine si l'appliance peut inférer localement en temps réel et rester stable dans la durée ; PANEL, juste après, détermine si elle peut être installée, réceptionnée et exploitée sur le terrain. Ensemble, ils font de l'IA edge une solution livrable.
 
-**Déploiement autonome sur un boîtier RK3588 (mode autonome), sans les autres modules de la plateforme :**
+Le manifeste suit la convention de `RUNTIME` : `models` est un registre RKNN réutilisable et chaque entrée de `tasks` représente un flux RTSP pouvant sélectionner un ou plusieurs modèles. Dix flux correspondent à dix tâches, sans limite artificielle à un flux ou un modèle. L'installateur valide chemins, références et ports, crée un processus supervisé par flux et vérifie le chemin MPP, RGA et RKNN via `/health`. Les commandes autonome et cluster sont centralisées dans la matrice de déploiement ci-dessus.
 
-```bash
-cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
-# Modifier ce seul fichier : déclarer les modèles une fois, puis les associer librement aux flux RTSP.
-# En mode autonome, passer control_plane.enabled à false (l'exemple le laisse à true par défaut)
-bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
-sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
-bash .scripts/docker/install_linux.sh rk3588 status
-```
-
-Le manifeste reprend la convention de `RUNTIME` : `models` est un registre réutilisable de modèles RKNN et chaque entrée de `tasks` représente un flux RTSP pouvant sélectionner un ou plusieurs modèles, par exemple `"models": ["person_vehicle", "helmet"]`. Dix flux se décrivent avec dix tâches ; il n'existe aucune limite artificielle à un flux ou un modèle. Avant toute modification de l'hôte, l'installateur valide les chemins, les références et les ports, installe chaque modèle une seule fois, génère un INI et un processus supervisé par flux, puis vérifie chaque endpoint `/health`. Les instances modèles systemd assurent le redémarrage au boot ; sans systemd, chaque tâche possède son PID et son journal. Docker et les modules WEB, AI, VIDEO ou MQTT ne sont pas démarrés. `rk3588 status [id]`, `logs [id]` et `verify [id]` opèrent tous les flux ou une seule tâche. Le menu guidé ne demande que le chemin de ce manifeste.
-
-**Mode cluster RK3588 (rattachement à un centre)** : passez `control_plane.enabled` à `true` dans le même manifeste, pointez `url` vers `http://<ip-centre>:48080/admin-api/video/edge` et faites correspondre `join_token` au `EDGE_ENROLL_TOKEN` du centre (le laisser vide si le centre n'en définit pas), puis relancez `rk3588 install` ci-dessus (`rk3588 update` sur un boîtier déjà installé). Le boîtier apparaît automatiquement dans le menu principal indépendant **Edge Computing**, avec puce/NPU, pipelines, charge, température et accès service/SSH optionnels. La télémétrie suit un chemin direct : `RK3588 → EMQX → iot-sink (authentification, HMAC, normalisation, écriture directe) → VIDEO / WEB`, sans Kafka ni NODE. `remote_access.enabled` commande FRP séparément : désactivé, aucun frpc ni port public ; activé, l'installation crée des tunnels distincts pour le service et SSH, tandis que la gestion reste sur MQTT.
+Rattaché au centre, le boîtier apparaît dans le menu indépendant **Edge Computing** avec puce/NPU, pipelines, charge, température et accès service/SSH optionnels. La télémétrie suit `RK3588 → EMQX → iot-sink → VIDEO / WEB`, sans Kafka ni NODE ; FRP reste un canal d'accès humain facultatif.
 
 ### ⚡ Module Edge AI BM1688 à double cœur TPU
 
@@ -296,14 +285,7 @@ Le manifeste reprend la convention de `RUNTIME` : `models` est un registre réut
 - VIDEO expose une cible BM1688 temps réel locale, avec persistance commune MQTT → iot-sink ; le runtime peut aussi être livré seul.
 - `/health` et `/metrics` donnent les mesures réelles : images, latence d'inférence, erreurs et pertes des anneaux.
 
-```bash
-cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
-# Renseigner RTSP, .bmodel et la destination des alertes, puis :
-sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
-sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
-```
-
-Ajoutez une tâche supervisée par caméra et utilisez `model_path_1`, `model_path_2`, etc. pour plusieurs BModels sur un flux. L'installateur ne démarre ni Docker, ni WEB, ni VIDEO, ni module sans rapport.
+Chaque caméra dispose d'une tâche supervisée ; `model_path_1`, `model_path_2`, etc. associent plusieurs BModels à un flux. Les commandes BM1688 autonome et cluster sont centralisées dans la matrice ci-dessus.
 
 ### 🚀 Module Edge AI NVIDIA GPU
 
@@ -314,14 +296,7 @@ Ajoutez une tâche supervisée par caméra et utilisez `model_path_1`, `model_pa
 - Seuls `.engine` / `.plan` statiques construits sur le boîtier cible sont acceptés. Aucun repli ONNX Runtime, CPU ou décodage logiciel.
 - VIDEO expose NVIDIA comme cible temps réel locale explicite ; `/health` et `/metrics` donnent GPU, latence, streams, octets préalloués et pertes réelles.
 
-```bash
-cd RUNTIME-NVIDIA
-./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
-cp config/config.example.ini ./nvidia-gate-a.ini
-sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
-```
-
-Une caméra = une tâche supervisée ; `model_path_1`, `model_path_2`, etc. ajoutent plusieurs engines au même flux sans démarrer les autres modules.
+Les engines TensorRT doivent être construits sur le boîtier cible pour son GPU et sa version TensorRT. Une caméra correspond à une tâche supervisée ; `model_path_1`, `model_path_2`, etc. ajoutent plusieurs engines au même flux. Les commandes NVIDIA autonome et cluster sont centralisées dans la matrice ci-dessus.
 
 ### 🎛️ PANEL : installer et réceptionner dès l'arrivée — permanence sans attendre le remote
 

@@ -275,20 +275,9 @@ The hardware path above runs on the RK3588 box shown below: front panel with wir
 
 The RK3588 module determines whether the appliance can infer locally in real time and remain stable over long periods; PANEL, immediately below, determines whether it can be installed, accepted and operated in the field. Together they make edge AI a deliverable solution rather than a one-off benchmark.
 
-**Standalone deployment on an RK3588 box (standalone mode), without the rest of the platform:**
+The manifest follows the same convention as `RUNTIME`: `models` is a reusable RKNN model registry and each item in `tasks` is one RTSP stream that may bind one or more models. Ten streams are ten task entries—there is no one-stream or one-model limit. The installer validates paths, model references and ports, creates one supervised process per stream and verifies the MPP, RGA and RKNN path through `/health`. All standalone and cluster commands now live in the **edge: standalone / cluster** deployment matrix above.
 
-```bash
-cp RUNTIME-RK3588/config/standalone.tasks.example.json ./rk3588.tasks.json
-# Edit one file: add models once, then let each RTSP task select one or more model keys.
-# For standalone mode set control_plane.enabled to false (the example defaults to true)
-bash .scripts/docker/install_linux.sh rk3588 config-check ./rk3588.tasks.json
-sudo bash .scripts/docker/install_linux.sh rk3588 install ./rk3588.tasks.json
-bash .scripts/docker/install_linux.sh rk3588 status
-```
-
-The manifest follows the same convention as `RUNTIME`: `models` is a reusable RKNN model registry, while every item in `tasks` is one RTSP stream and references a free combination such as `"models": ["person_vehicle", "helmet"]`. Add ten streams by adding ten task items—there is no single-stream or single-model limit. The installer validates every path, model reference and control port before changing the host, installs each model only once, generates one INI and one supervised process per stream, then verifies every `/health` endpoint. systemd template instances provide boot restart; hosts without systemd get a separate PID and log per task. It does not install Docker or start WEB, AI, VIDEO, MQTT or any other module. Use `rk3588 status [task-id]`, `logs [task-id]`, or `verify [task-id]` to operate all streams or one selected stream. The guided menu asks only for this manifest path.
-
-**RK3588 cluster mode (join a center)**: set `control_plane.enabled` to `true` in the same manifest, point `url` at `http://<center-ip>:48080/admin-api/video/edge`, and make `join_token` match the center's `EDGE_ENROLL_TOKEN` (leave it empty if the center sets none), then run `rk3588 install` above (`rk3588 update` on an already-installed box). The box then appears automatically under the independent **Edge Computing** menu, with chip/NPU identity, pipelines, load, temperature and optional service/SSH entrances. Telemetry follows one direct path: `RK3588 → EMQX → iot-sink (authentication, HMAC verification, normalization, direct persistence) → VIDEO / WEB`; it does not pass through Kafka or NODE. `remote_access.enabled` independently controls FRP—off means no frpc installation or public port; on means the installer creates separate service and SSH tunnels while MQTT remains the management channel.
+When attached to a center, the box appears under the independent **Edge Computing** menu with chip/NPU identity, pipelines, load, temperature and optional service/SSH entrances. Telemetry follows `RK3588 → EMQX → iot-sink (authentication, HMAC verification, normalization, direct persistence) → VIDEO / WEB`; it does not pass through Kafka or NODE. FRP is an optional access channel and does not carry MQTT management telemetry.
 
 ### ⚡ BM1688 Dual-TPU Edge AI Module
 
@@ -300,14 +289,7 @@ The manifest follows the same convention as `RUNTIME`: `models` is a reusable RK
 - VIDEO exposes BM1688 as an explicit local realtime target, while alerts retain the common MQTT → iot-sink persistence contract. The runtime can also be delivered alone.
 - `/health` and `/metrics` report measured frames, inference time, errors and ring drops; throughput claims are tied to the actual box, BModel, batch, resolution, firmware and SDK.
 
-```bash
-cp RUNTIME-BM1688/config/config.example.ini ./bm1688-gate-a.ini
-# Fill in RTSP, .bmodel and the alert destination, then run:
-sudo bash .scripts/docker/install_linux.sh bm1688 install ./bm1688-gate-a.ini gate-a
-sudo bash .scripts/docker/install_linux.sh bm1688 status gate-a
-```
-
-Add one supervised task per camera, and use `model_path_1`, `model_path_2`, and so on to bind multiple BModels to one stream. The installer does not start Docker, WEB, VIDEO, or any unrelated module.
+Each camera has one supervised task, while `model_path_1`, `model_path_2`, and so on bind multiple BModels to one stream. The dedicated runtime does not start unrelated modules; BM1688 standalone and cluster commands are centralized in the deployment matrix above.
 
 ### 🚀 NVIDIA GPU Edge AI Module
 
@@ -319,18 +301,7 @@ Add one supervised task per camera, and use `model_path_1`, `model_path_2`, and 
 - **One abstraction above several chips:** VIDEO presents NVIDIA beside RK3588 and BM1688 as an explicit local realtime target. Camera/task/alarm contracts remain common, while the lower runtime uses the correct silicon API.
 - **Performance must be proven on the box:** `/health` and `/metrics` expose the GPU and compute capability, active streams, inference latency, preallocated bytes and ring drops. No synthetic fixed FPS promise replaces deployment measurements.
 
-Build the engine on the target box, then installation is a short, repeatable path:
-
-```bash
-cd RUNTIME-NVIDIA
-./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-fp16.engine fp16
-cp config/config.example.ini ./nvidia-gate-a.ini
-# Fill in the RTSP URL and engine path, then:
-sudo bash ../.scripts/docker/install_linux.sh nvidia install ./nvidia-gate-a.ini gate-a
-sudo bash ../.scripts/docker/install_linux.sh nvidia status gate-a
-```
-
-Add cameras with `nvidia add`; add models to one stream with `model_path_1`, `model_path_2`, and so on. The standalone option does not start unrelated platform modules.
+TensorRT engines must be built on the target box for its GPU architecture and TensorRT version. Each camera uses a supervised task, while `model_path_1`, `model_path_2`, and so on attach multiple engines to one stream. NVIDIA standalone and cluster commands are centralized in the deployment matrix above.
 
 ### 🎛️ PANEL: Install & Accept on Arrival Day—Watch Duty Without Waiting for Remote Devs
 
