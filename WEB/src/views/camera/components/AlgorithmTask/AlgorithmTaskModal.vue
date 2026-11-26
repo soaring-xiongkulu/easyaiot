@@ -191,19 +191,22 @@ const runtimeInfoTaskMode = ref<string>('realtime_cpp');
  * VIDEO 宿主机芯片运行时，只由不带 target 参数的 runtime/info 查询刷新。
  * 编辑已有任务时查询的是任务自身 target，不能覆盖宿主机检测结果。
  */
-type RuntimeProfile = 'rk3588' | 'bm1688' | 'generic' | '';
+type RuntimeProfile = 'rk3588' | 'bm1688' | 'nvidia' | 'generic' | '';
 const hostRuntimeTarget = ref<RuntimeProfile>('');
 const isRk3588Host = computed(() => hostRuntimeTarget.value === 'rk3588');
 const isBm1688Host = computed(() => hostRuntimeTarget.value === 'bm1688');
+const isNvidiaHost = computed(() => hostRuntimeTarget.value === 'nvidia');
 const isGenericHost = computed(() => hostRuntimeTarget.value === 'generic');
 const hostRuntimeProfileKnown = computed(() => !!hostRuntimeTarget.value);
 
 function isHardwareRuntimeTarget(target: string): boolean {
-  return target === 'rk3588' || target === 'bm1688';
+  return target === 'rk3588' || target === 'bm1688' || target === 'nvidia';
 }
 
 function hardwareRuntimeLabel(target: string): string {
-  return target === 'bm1688' ? 'BM1688' : 'RK3588';
+  if (target === 'bm1688') return 'BM1688';
+  if (target === 'nvidia') return 'NVIDIA';
+  return 'RK3588';
 }
 
 /** RK3588 硬件运行时任务只能本机部署；auto 按宿主机芯片解析，编辑历史通用任务时保留其原调度语义 */
@@ -217,9 +220,13 @@ function shouldRestrictScheduleToLocal(): boolean {
 const showHardwareProfileNotice = computed(() => shouldRestrictScheduleToLocal());
 const hardwareProfileNotice = computed(() => {
   const target = String(formValues.value?.runtime_target || hostRuntimeTarget.value);
-  return target === 'bm1688'
-    ? '当前任务使用 BM1688 硬件运行时：固定本机执行，仅接受 BModel，VPU/VPSS/BMCV 与双核 TPU 全程硬件化。'
-    : '当前任务使用 RK3588 硬件运行时：固定本机执行，仅提供低时延模式与 RKNN 模型。';
+  if (target === 'bm1688') {
+    return '当前任务使用 BM1688 硬件运行时：固定本机执行，仅接受 BModel，VPU/VPSS/BMCV 与双核 TPU 全程硬件化。';
+  }
+  if (target === 'nvidia') {
+    return '当前任务使用 NVIDIA 硬件运行时：固定本机执行，仅接受静态 TensorRT engine，NVDEC、CUDA 融合预处理与 TensorRT 全程驻留 GPU。';
+  }
+  return '当前任务使用 RK3588 硬件运行时：固定本机执行，仅提供低时延模式与 RKNN 模型。';
 });
 const schedulePolicyHelp = computed(() => (shouldRestrictScheduleToLocal()
   ? '芯片硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。'
@@ -236,13 +243,15 @@ const runtimeVersionBanner = computed(() => {
   const moduleLabel = info?.module
     || (requested === 'rk3588' ? 'RUNTIME-RK3588'
       : requested === 'bm1688' ? 'RUNTIME-BM1688'
-        : requested === 'generic' ? 'RUNTIME' : '本机运行时');
+        : requested === 'nvidia' ? 'RUNTIME-NVIDIA'
+          : requested === 'generic' ? 'RUNTIME' : '本机运行时');
   if (!info) {
     return `${moduleLabel}：正在查询版本…`;
   }
   const chipLabel = info.target === 'rk3588'
     ? 'RK3588 NPU'
-    : info.target === 'bm1688' ? 'BM1688 双核 TPU' : '通用运行时';
+    : info.target === 'bm1688' ? 'BM1688 双核 TPU'
+      : info.target === 'nvidia' ? 'NVIDIA NVDEC + CUDA + TensorRT' : '通用运行时';
   if (info.ready && info.version) {
     return `${info.module || moduleLabel}（${chipLabel}）已就绪：${info.version}${info.binPath ? `（${info.binPath}）` : ''}`;
   }
@@ -296,7 +305,7 @@ async function loadRuntimeInfo(runtimeTarget?: string) {
     runtimeInfo.value = info || { ready: false };
     if (!queryTarget) {
       const target = String((info as any)?.target || '').toLowerCase();
-      hostRuntimeTarget.value = ['rk3588', 'bm1688', 'generic'].includes(target)
+      hostRuntimeTarget.value = ['rk3588', 'bm1688', 'nvidia', 'generic'].includes(target)
         ? target as RuntimeProfile
         : '';
     }
@@ -370,10 +379,12 @@ const taskModeOptions = [
 ];
 const rk3588TaskModeOptions = taskModeOptions.filter((option) => String(option.value).endsWith('_cpp'));
 const bm1688TaskModeOptions = taskModeOptions.filter((option) => option.value === 'realtime_cpp');
+const nvidiaTaskModeOptions = taskModeOptions.filter((option) => option.value === 'realtime_cpp');
 const runtimeTargetOptions = [
   { label: '自动识别本机芯片（推荐）', value: 'auto' },
   { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
   { label: 'BM1688 · VPU + VPSS/BMCV + 双核 TPU', value: 'bm1688' },
+  { label: 'NVIDIA · NVDEC + CUDA Graph + TensorRT', value: 'nvidia' },
   { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
 ];
 const rk3588RuntimeTargetOptions = [
@@ -381,6 +392,9 @@ const rk3588RuntimeTargetOptions = [
 ];
 const bm1688RuntimeTargetOptions = [
   { label: 'BM1688 · VPU + VPSS/BMCV + 双核 TPU', value: 'bm1688' },
+];
+const nvidiaRuntimeTargetOptions = [
+  { label: 'NVIDIA · NVDEC + CUDA Graph + TensorRT', value: 'nvidia' },
 ];
 const genericRuntimeTargetOptions = [
   { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
@@ -429,6 +443,12 @@ function modelHasBmodelWeights(model: any): boolean {
     .some((path) => modelFileSuffix(path) === '.bmodel');
 }
 
+function modelHasTensorRtWeights(model: any): boolean {
+  if (model?.tensorrt_model_path) return true;
+  return [model?.model_path, model?.onnx_model_path]
+    .some((path) => ['.engine', '.plan'].includes(modelFileSuffix(path)));
+}
+
 function modelHasGenericWeights(model: any): boolean {
   const genericSuffixes = ['.onnx', '.pt', '.pth', '.torchscript', '.engine', '.plan', '.xml'];
   return [
@@ -448,11 +468,13 @@ function isModelCompatibleWithProfile(model: any, profile: string): boolean {
   }
   const hasRknn = modelHasRknnWeights(model);
   const hasBmodel = modelHasBmodelWeights(model);
+  const hasTensorRt = modelHasTensorRtWeights(model);
   const hasGeneric = modelHasGenericWeights(model);
   // 模型元数据缺失时不做猜测，交给后端契约校验
-  if (!hasRknn && !hasBmodel && !hasGeneric) return true;
+  if (!hasRknn && !hasBmodel && !hasTensorRt && !hasGeneric) return true;
   if (profile === 'rk3588') return hasRknn;
   if (profile === 'bm1688') return hasBmodel;
+  if (profile === 'nvidia') return hasTensorRt;
   return (!hasRknn && !hasBmodel) || hasGeneric;
 }
 
@@ -470,10 +492,17 @@ function modelOptionLabel(model: any, profile: string): string {
   if (profile === 'bm1688' && modelHasBmodelWeights(model)) {
     return `${base}（BModel）`;
   }
+  if (profile === 'nvidia' && Number(model?.id) === -2) {
+    return `${base}（NVIDIA TensorRT 内置）`;
+  }
+  if (profile === 'nvidia' && modelHasTensorRtWeights(model)) {
+    return `${base}（TensorRT engine）`;
+  }
   if (profile && !isModelCompatibleWithProfile(model, profile)) {
     const profileLabel = profile === 'rk3588'
       ? 'RK3588 本机'
-      : profile === 'bm1688' ? 'BM1688 本机' : '通用运行时';
+      : profile === 'bm1688' ? 'BM1688 本机'
+        : profile === 'nvidia' ? 'NVIDIA 本机' : '通用运行时';
     return `${base}（不兼容${profileLabel}）`;
   }
   return base;
@@ -490,6 +519,9 @@ function modelHelpForProfile(profile: RuntimeProfile): string {
   if (profile === 'bm1688') {
     return 'BM1688 仅接受内置 yolov8n（-2）或已登记的 BM1688/CV186X .bmodel；不会回退 ONNX 或 CPU。';
   }
+  if (profile === 'nvidia') {
+    return 'NVIDIA 仅接受内置 yolov8n（-2）或已登记的静态 .engine/.plan；运行时不会现场转换 ONNX，也不会回退 CPU。';
+  }
   return '选择要使用的模型列表，模型文件本地没有会自动下载';
 }
 
@@ -501,7 +533,7 @@ function activeModelProfile(target?: string): RuntimeProfile {
   const effective = !requested || requested === 'auto'
     ? hostRuntimeTarget.value
     : requested;
-  return ['rk3588', 'bm1688', 'generic'].includes(effective)
+  return ['rk3588', 'bm1688', 'nvidia', 'generic'].includes(effective)
     ? effective as RuntimeProfile
     : '';
 }
@@ -1239,7 +1271,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       componentProps: {
         options: runtimeTargetOptions,
       },
-      helpMessage: 'VIDEO 统一编排任务，下层按芯片运行时执行。RK3588 只接受 RKNN，BM1688 只接受 BModel；芯片运行时都不会回退 ONNX 或 CPU。',
+      helpMessage: 'VIDEO 统一编排任务，下层按芯片运行时执行。RK3588 接受 RKNN，BM1688 接受 BModel，NVIDIA 接受静态 TensorRT engine；专用运行时都不会回退 ONNX 或 CPU。',
       ifShow: ({ values }) => String(values.task_mode || '').endsWith('_cpp'),
     },
     {
@@ -2070,6 +2102,9 @@ const hostRuntimeHelp = computed(() => {
   if (isBm1688Host.value) {
     return '当前宿主机已识别为 BM1688：新建低时延任务固定使用 RUNTIME-BM1688，且只能本机执行；模型仅支持内置 yolov8n 或 BM1688/CV186X .bmodel。';
   }
+  if (isNvidiaHost.value) {
+    return '当前宿主机已识别为 NVIDIA：新建低时延任务固定使用 RUNTIME-NVIDIA，且只能本机执行；模型仅支持目标盒子构建的静态 .engine/.plan。';
+  }
   if (isGenericHost.value) {
     return '当前宿主机使用通用 RUNTIME：支持 ONNX / PyTorch 模型、CUDA / CPU，以及本机、自动、指定节点调度。';
   }
@@ -2082,6 +2117,9 @@ const hostTaskModeHelp = computed(() => {
   }
   if (isBm1688Host.value) {
     return '当前宿主机为 BM1688：新建任务只提供实时低时延模式（RUNTIME-BM1688）；抓拍/巡检不会伪装成实时循环。';
+  }
+  if (isNvidiaHost.value) {
+    return '当前宿主机为 NVIDIA：新建任务只提供实时低时延模式（NVDEC + CUDA + TensorRT）；抓拍/巡检不会伪装成实时循环。';
   }
   return '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、业务脚本等完整能力集';
 });
@@ -2098,16 +2136,18 @@ async function applyRuntimeTargetDependentOptions(target?: string) {
   const restrictLocal = isHardwareRuntimeTarget(effectiveTarget);
   const modeOptions = effectiveTarget === 'bm1688'
     ? bm1688TaskModeOptions
-    : effectiveTarget === 'rk3588'
-      ? rk3588TaskModeOptions
-      : taskModeOptions;
+    : effectiveTarget === 'nvidia'
+      ? nvidiaTaskModeOptions
+      : effectiveTarget === 'rk3588'
+        ? rk3588TaskModeOptions
+        : taskModeOptions;
 
   updateSchema([
     {
       field: 'task_mode',
       componentProps: { options: modeOptions },
-      helpMessage: effectiveTarget === 'bm1688'
-        ? 'BM1688 当前开放实时 C++ 硬件流水线；抓拍/巡检将在完成专用调度语义后单独开放。'
+      helpMessage: effectiveTarget === 'bm1688' || effectiveTarget === 'nvidia'
+        ? `${hardwareRuntimeLabel(effectiveTarget)} 当前开放实时 C++ 硬件流水线；抓拍/巡检不会静默退化。`
         : hostTaskModeHelp.value,
     },
     {
@@ -2164,6 +2204,8 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
 
   let modes = host === 'bm1688'
     ? [...bm1688TaskModeOptions]
+    : host === 'nvidia'
+      ? [...nvidiaTaskModeOptions]
     : host === 'rk3588'
       ? [...rk3588TaskModeOptions]
       : [...taskModeOptions];
@@ -2178,6 +2220,8 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
     ? [...rk3588RuntimeTargetOptions]
     : host === 'bm1688'
       ? [...bm1688RuntimeTargetOptions]
+      : host === 'nvidia'
+        ? [...nvidiaRuntimeTargetOptions]
       : host === 'generic'
         ? [...genericRuntimeTargetOptions]
         : [...runtimeTargetOptions];
@@ -2208,7 +2252,7 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
   }
 
   if (isHardwareRuntimeTarget(host)) {
-    const moduleTarget = host as 'rk3588' | 'bm1688';
+    const moduleTarget = host as 'rk3588' | 'bm1688' | 'nvidia';
     const label = hardwareRuntimeLabel(moduleTarget);
     const nextMode = modes.some((option) => option.value === currentMode) ? currentMode : 'realtime_cpp';
     updateSchema({
@@ -2837,8 +2881,10 @@ const handleSubmit = async () => {
 
     // 新建任务按宿主机固化芯片契约；编辑历史任务保留原有 target，避免静默改写
     if (values.executor === 'cpp' && !modalData.value.record) {
-      if (isRk3588Host.value || isBm1688Host.value) {
-        values.runtime_target = isBm1688Host.value ? 'bm1688' : 'rk3588';
+      if (isRk3588Host.value || isBm1688Host.value || isNvidiaHost.value) {
+        values.runtime_target = isNvidiaHost.value
+          ? 'nvidia'
+          : isBm1688Host.value ? 'bm1688' : 'rk3588';
         values.schedule_policy = 'local';
         values.target_node_id = null;
         values.prefer_gpu = false;
@@ -2854,9 +2900,11 @@ const handleSubmit = async () => {
       : requestedRuntimeTarget;
     if (values.executor === 'cpp' && isHardwareRuntimeTarget(effectiveRuntimeTarget)) {
       const hardwareLabel = hardwareRuntimeLabel(effectiveRuntimeTarget);
-      const modelSuffix = effectiveRuntimeTarget === 'bm1688' ? '.bmodel' : '.rknn';
-      if (effectiveRuntimeTarget === 'bm1688' && values.task_type !== 'realtime') {
-        createMessage.error('BM1688 当前只开放实时视频分析；抓拍/巡检不会静默按实时任务运行');
+      const modelSuffix = effectiveRuntimeTarget === 'bm1688'
+        ? '.bmodel'
+        : effectiveRuntimeTarget === 'nvidia' ? '.engine/.plan' : '.rknn';
+      if (['bm1688', 'nvidia'].includes(effectiveRuntimeTarget) && values.task_type !== 'realtime') {
+        createMessage.error(`${hardwareLabel} 当前只开放实时视频分析；抓拍/巡检不会静默按实时任务运行`);
         confirmLoading.value = false;
         setDrawerProps({ confirmLoading: false });
         return;
