@@ -282,7 +282,7 @@ import SNAP_TASK_IMAGE from '@/assets/images/video/snap-task.png';
 import { Button } from '@/components/Button'
 import { useGo } from '@/hooks/web/usePage';
 import {
-  rewriteStreamHostToPageHost,
+  buildTaskStreamDialogRecord,
   setPreferredAiTaskForDevice,
 } from '@/views/camera/utils/devicePlay';
 const ListItem = List.Item;
@@ -917,85 +917,18 @@ const handlePlayStream = async (record: AlgorithmTask) => {
   }
 };
 
-// 将RTMP地址转换为HTTP FLV地址
-const convertRtmpToHttp = (rtmpUrl: string): string | null => {
-  if (!rtmpUrl || !rtmpUrl.startsWith('rtmp://')) {
-    return null;
-  }
-  
-  try {
-    // 解析RTMP地址：rtmp://server:port/path
-    const url = new URL(rtmpUrl);
-    const server = url.hostname;
-    const port = url.port || '1935';
-    let path = url.pathname.substring(1); // 去掉开头的 /
-    
-    // 如果路径为空，使用默认路径
-    if (!path) {
-      path = 'live';
-    }
-    
-    // 添加.flv后缀（如果还没有）
-    if (!path.endsWith('.flv')) {
-      path = `${path}.flv`;
-    }
-    
-    // 生成HTTP FLV地址（默认使用8080端口）
-    return `http://${server}:8080/${path}`;
-  } catch (error) {
-    console.error('RTMP地址转换失败:', error);
-    return null;
-  }
-};
-
 // 播放摄像头推流
 const playCameraStream = (stream: CameraStreamInfo) => {
   setPreferredAiTaskForDevice(stream.device_id, stream.task_id);
-  // 优先使用AI HTTP流地址
-  // 其次使用推送器的HTTP地址
-  // 再次使用推送器的RTMP地址，转换为HTTP地址
-  // 然后使用摄像头的HTTP地址
-  // 最后使用摄像头的RTMP地址，转换为HTTP地址
-  let httpStream: string | null = null;
-  
-  // 1. 优先使用AI HTTP流地址
-  if (stream.ai_http_stream) {
-    httpStream = stream.ai_http_stream;
-  }
-  
-  // 2. 如果没有，使用推送器的HTTP地址
-  if (!httpStream && stream.pusher_http_url) {
-    httpStream = stream.pusher_http_url;
-  }
-  
-  // 3. 如果还没有，使用推送器的RTMP地址，转换为HTTP地址
-  if (!httpStream && stream.pusher_rtmp_url) {
-    httpStream = convertRtmpToHttp(stream.pusher_rtmp_url);
-  }
-  
-  // 4. 如果还没有，使用摄像头的HTTP地址
-  if (!httpStream && stream.http_stream) {
-    httpStream = stream.http_stream;
-  }
-  
-  // 5. 最后使用摄像头的RTMP地址，转换为HTTP地址
-  if (!httpStream && stream.rtmp_stream) {
-    httpStream = convertRtmpToHttp(stream.rtmp_stream);
-  }
-  
-  if (!httpStream) {
+  // 原始流/任务级画框流分别写入 http_stream/ai_http_stream，供弹窗内切换“启用 AI”重新解析；
+  // 不得把 AI 地址塞进 http_stream，否则取消勾选后仍解析回 AI 流
+  const record = buildTaskStreamDialogRecord(stream);
+  if (!record) {
     createMessage.warning(`摄像头 ${stream.device_name} 暂无推流地址`);
     return;
   }
 
-  // 算法任务播放由当前 WEB nginx 代理 /ai、/live，禁止浏览器直连服务端返回的媒体节点地址
-  httpStream = rewriteStreamHostToPageHost(httpStream, { forcePageProxy: true });
-
-  // 打开播放器
-  openPlayerModal(true, {
-    id: stream.device_id,
-    http_stream: httpStream,
-  });
+  openPlayerModal(true, record);
 };
 
 // 暴露刷新方法给父组件

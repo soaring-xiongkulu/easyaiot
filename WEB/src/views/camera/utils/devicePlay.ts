@@ -862,16 +862,59 @@ export async function openDeviceInDialogPlayer(
   const { url, fallbackUrl, preferAi, pendingAiUrl } = await pickDirectPlayUrls(record, enableAi);
   if (!url) return false;
 
+  // 不覆盖 http_stream/ai_http_stream：弹窗内切换“启用 AI”须靠设备原始字段重新解析，
+  // 本次解析结果经 _resolvedUrl 传递，否则取消勾选后仍会解析回 AI 地址。
   openModal(true, {
     ...record,
     name,
-    http_stream: url,
+    _resolvedUrl: url,
     _fallbackUrl: fallbackUrl ?? null,
     _preferAi: preferAi ?? false,
     _pendingAiUrl: pendingAiUrl ?? null,
     _enableAi: enableAi,
   });
   return true;
+}
+
+/**
+ * 算法任务推流地址（task-streams 返回）转浏览器可播地址。
+ * 任务级 /ai、/live 由 WEB nginx 统一反代，强制改写为页面 host（forcePageProxy），
+ * 禁止浏览器直连服务端返回的媒体节点地址。
+ */
+export function toTaskStreamPlayUrl(stream?: string | null): string | null {
+  const trimmed = stream?.trim();
+  if (!trimmed) return null;
+  const httpUrl = trimmed.startsWith('rtmp://') ? convertRtmpToHttp(trimmed) : trimmed;
+  if (!httpUrl) return null;
+  return normalizeJessibucaPlayUrl(rewriteStreamHostToPageHost(httpUrl, { forcePageProxy: true }));
+}
+
+/**
+ * 构造算法任务推流的 DialogPlayer 入参（任务卡片与心跳信息抽屉共用）。
+ * 原始流写 http_stream、任务级画框流写 ai_http_stream，切换“启用 AI”时
+ * DialogPlayer 重新解析总能读到未污染的设备字段；本次实际播放地址走 _resolvedUrl。
+ */
+export function buildTaskStreamDialogRecord(
+  stream: CameraStreamInfo,
+  enableAi = true,
+): Record<string, any> | null {
+  const rawUrl =
+    toTaskStreamPlayUrl(stream.http_stream) ||
+    toTaskStreamPlayUrl(stream.rtmp_stream) ||
+    toTaskStreamPlayUrl(stream.pusher_http_url) ||
+    toTaskStreamPlayUrl(stream.pusher_rtmp_url);
+  const aiUrl = toTaskStreamPlayUrl(stream.ai_http_stream) || toTaskStreamPlayUrl(stream.ai_rtmp_stream);
+  if (!rawUrl && !aiUrl) return null;
+  return {
+    id: stream.device_id,
+    name: stream.device_name,
+    http_stream: rawUrl ?? '',
+    ai_http_stream: aiUrl ?? '',
+    _resolvedUrl: enableAi ? aiUrl || rawUrl : rawUrl || aiUrl,
+    _fallbackUrl: enableAi && aiUrl && rawUrl ? rawUrl : null,
+    _preferAi: !!(enableAi && aiUrl),
+    _enableAi: enableAi,
+  };
 }
 
 export async function resolveMonitorPlayUrl(

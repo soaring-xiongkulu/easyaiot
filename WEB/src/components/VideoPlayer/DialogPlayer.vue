@@ -466,7 +466,9 @@ async function loadStream(record: Record<string, any>) {
     return;
   }
 
-  const preResolvedUrl = String(record.http_stream ?? '').trim();
+  // 优先读调用方预解析的 _resolvedUrl；record.http_stream 保持设备原始流地址，
+  // 供弹窗内切换“启用 AI”时重新解析（旧调用方仍可直接传 http_stream）
+  const preResolvedUrl = String(record._resolvedUrl ?? record.http_stream ?? '').trim();
   const recordFallback = String(record._fallbackUrl ?? '').trim() || null;
   const recordPreferAi = !!record._preferAi;
   const recordPendingAiNonGb = String(record._pendingAiUrl ?? '').trim() || null;
@@ -489,7 +491,7 @@ async function loadStream(record: Record<string, any>) {
   }
 
   state.deviceId = String(record.id ?? '');
-  const streamUrl = String(record.http_stream ?? '').trim();
+  const streamUrl = String(record._resolvedUrl ?? record.http_stream ?? '').trim();
   if (!streamUrl && record._pendingRecord) {
     state.currentUrl = '';
     state.vodMode = false;
@@ -576,7 +578,9 @@ const [register, { closeModal, setModalProps }] = useModalInner((record) => {
 });
 
 async function handleModalOpen(record: Record<string, any>) {
-  const vod = record._forceVod === true || isVodPlaybackUrl(String(record.http_stream ?? ''));
+  const vod =
+    record._forceVod === true ||
+    isVodPlaybackUrl(String(record._resolvedUrl ?? record.http_stream ?? ''));
   skipEnableAiWatch = true;
   enableAi.value = record._enableAi !== false;
   state.record = record;

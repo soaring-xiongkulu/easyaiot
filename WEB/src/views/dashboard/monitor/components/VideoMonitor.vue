@@ -830,6 +830,9 @@ async function startPlayAtScreen(
     pendingAiUrl?: string | null
   },
 ) {
+  // 切换 AI 重解析地址时不传 device，须沿用槽位已有快照，
+  // 否则第二次切换起 slot.device 为空，会静默失败再也切不回 AI 流
+  const prevDevice = internalVideoList.value[targetIndex]?.device as MonitorTreeDeviceNode | undefined
   return enqueuePlayStart(async () => {
     clearAiFallbackTimer(targetIndex)
     liveRemountRetries.delete(targetIndex)
@@ -853,7 +856,7 @@ async function startPlayAtScreen(
       name: payload.name,
       deviceId: payload.deviceId,
       location: payload.location || '',
-      device: payload.device,
+      device: payload.device ?? prevDevice,
       fallbackUrl: hasFallback && allowAiUpgrade ? fallbackUrl : null,
     }
 
@@ -961,7 +964,10 @@ async function reloadVideoAtIndex(index: number) {
   const playId = slot.deviceId
   if (playId.startsWith('gb_ch_')) {
     const gb = parseGbChannelKey(playId)
-    if (!gb) return
+    if (!gb) {
+      createMessage.warning('通道信息无效，暂无法切换 AI 流，请重新拖入该通道')
+      return
+    }
     const deviceNode = (slot as any).device as MonitorTreeDeviceNode | undefined
     const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolveGbChannelPlayUrls(
       gb.sipDeviceId,
@@ -975,6 +981,7 @@ async function reloadVideoAtIndex(index: number) {
         url,
         deviceId: playId,
         location: slot.location,
+        device: deviceNode,
         fallbackUrl,
         preferAi,
         pendingAiUrl,
@@ -984,7 +991,10 @@ async function reloadVideoAtIndex(index: number) {
   }
 
   const dev = (slot as any).device as MonitorTreeDeviceNode | undefined
-  if (!dev) return
+  if (!dev) {
+    createMessage.warning('无法获取设备信息，暂无法切换 AI 流，请重新拖入该设备')
+    return
+  }
 
   const { url, fallbackUrl, preferAi, pendingAiUrl } = await resolvePlayUrlsForDevice(dev)
   if (!url) {
@@ -997,6 +1007,7 @@ async function reloadVideoAtIndex(index: number) {
     url,
     deviceId: playId,
     location: slot.location,
+    device: dev,
     fallbackUrl,
     preferAi,
     pendingAiUrl,
