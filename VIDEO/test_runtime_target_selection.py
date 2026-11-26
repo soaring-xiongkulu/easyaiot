@@ -1,4 +1,4 @@
-"""芯片算法运行时选择（generic / RK3588 / BM1688）回归测试。"""
+"""芯片算法运行时选择（generic / RK3588 / BM1688 / NVIDIA）回归测试。"""
 import os
 import tempfile
 import unittest
@@ -25,6 +25,8 @@ class RuntimeTargetParsingTest(unittest.TestCase):
         self.assertEqual(rcs.parse_runtime_target('runtime-rk3588'), 'rk3588')
         self.assertEqual(rcs.parse_runtime_target('bm1688'), 'bm1688')
         self.assertEqual(rcs.parse_runtime_target('SOPHON-BM1688'), 'bm1688')
+        self.assertEqual(rcs.parse_runtime_target('runtime-nvidia'), 'nvidia')
+        self.assertEqual(rcs.parse_runtime_target('TensorRT'), 'nvidia')
         self.assertEqual(rcs.parse_runtime_target('generic'), 'generic')
         self.assertEqual(rcs.parse_runtime_target('onnx'), 'generic')
 
@@ -39,9 +41,11 @@ class RuntimeTargetParsingTest(unittest.TestCase):
     def test_module_and_env_keys_are_target_specific(self):
         self.assertEqual(rcs.runtime_module_name('rk3588'), 'RUNTIME-RK3588')
         self.assertEqual(rcs.runtime_module_name('bm1688'), 'RUNTIME-BM1688')
+        self.assertEqual(rcs.runtime_module_name('nvidia'), 'RUNTIME-NVIDIA')
         self.assertEqual(rcs.runtime_module_name('generic'), 'RUNTIME')
         self.assertEqual(rcs.runtime_bin_env_key('rk3588'), 'RUNTIME_RK3588_BIN')
         self.assertEqual(rcs.runtime_bin_env_key('bm1688'), 'RUNTIME_BM1688_BIN')
+        self.assertEqual(rcs.runtime_bin_env_key('nvidia'), 'RUNTIME_NVIDIA_BIN')
         self.assertEqual(rcs.runtime_bin_env_key('generic'), 'RUNTIME_BIN')
 
 
@@ -104,6 +108,10 @@ class RuntimeTargetResolutionTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             rcs.resolve_remote_runtime_target(SimpleNamespace(runtime_target='bm1688'))
 
+    def test_remote_placement_rejects_nvidia(self):
+        with self.assertRaises(ValueError):
+            rcs.resolve_remote_runtime_target(SimpleNamespace(runtime_target='nvidia'))
+
 
 class RuntimeModelContractTest(unittest.TestCase):
     def test_rk3588_requires_models(self):
@@ -129,6 +137,11 @@ class RuntimeModelContractTest(unittest.TestCase):
         self.assertEqual(rcs.validate_runtime_model_contract('bm1688', [-2]), 'bm1688')
         with self.assertRaises(ValueError):
             rcs.validate_runtime_model_contract('bm1688', [-1])
+
+    def test_nvidia_uses_same_strict_builtin_contract(self):
+        self.assertEqual(rcs.validate_runtime_model_contract('nvidia', [-2]), 'nvidia')
+        with self.assertRaises(ValueError):
+            rcs.validate_runtime_model_contract('nvidia', [-1])
 
 
 class RuntimeTargetPathsTest(unittest.TestCase):
@@ -158,19 +171,21 @@ class RuntimeTargetPathsTest(unittest.TestCase):
                 )
 
     def test_config_dir_is_target_specific(self):
-        with tempfile.TemporaryDirectory() as generic_dir, tempfile.TemporaryDirectory() as rk_dir, tempfile.TemporaryDirectory() as bm_dir:
+        with tempfile.TemporaryDirectory() as generic_dir, tempfile.TemporaryDirectory() as rk_dir, tempfile.TemporaryDirectory() as bm_dir, tempfile.TemporaryDirectory() as nvidia_dir:
             with patch.dict(
                 os.environ,
                 {
                     'RUNTIME_CONFIG_DIR': generic_dir,
                     'RUNTIME_RK3588_CONFIG_DIR': rk_dir,
                     'RUNTIME_BM1688_CONFIG_DIR': bm_dir,
+                    'RUNTIME_NVIDIA_CONFIG_DIR': nvidia_dir,
                 },
                 clear=True,
             ):
                 self.assertEqual(rcs.runtime_config_dir('generic'), Path(generic_dir))
                 self.assertEqual(rcs.runtime_config_dir('rk3588'), Path(rk_dir))
                 self.assertEqual(rcs.runtime_config_dir('bm1688'), Path(bm_dir))
+                self.assertEqual(rcs.runtime_config_dir('nvidia'), Path(nvidia_dir))
 
     def test_rk3588_library_path_excludes_generic_ort_cuda_paths(self):
         with patch.dict(

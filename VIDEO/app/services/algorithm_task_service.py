@@ -927,10 +927,15 @@ def create_algorithm_task(task_name: str,
                 raise ValueError(f'executor=cpp 不支持任务类型: {task_type}')
             effective_policy = schedule_policy or 'local'
             resolved_target = resolve_runtime_target(None, runtime_target)
-            if resolved_target == 'bm1688' and task_type != 'realtime':
-                raise ValueError('RUNTIME-BM1688 当前只开放实时 C++ 任务，抓拍/巡检不会静默退化执行')
-            if effective_policy != 'local' and resolved_target in ('rk3588', 'bm1688'):
-                module = 'RUNTIME-BM1688' if resolved_target == 'bm1688' else 'RUNTIME-RK3588'
+            if resolved_target in ('bm1688', 'nvidia') and task_type != 'realtime':
+                module = 'RUNTIME-NVIDIA' if resolved_target == 'nvidia' else 'RUNTIME-BM1688'
+                raise ValueError(f'{module} 当前只开放实时 C++ 任务，抓拍/巡检不会静默退化执行')
+            if effective_policy != 'local' and resolved_target in ('rk3588', 'bm1688', 'nvidia'):
+                module = {
+                    'rk3588': 'RUNTIME-RK3588',
+                    'bm1688': 'RUNTIME-BM1688',
+                    'nvidia': 'RUNTIME-NVIDIA',
+                }[resolved_target]
                 raise ValueError(
                     f'{module} 硬件运行时只支持本机调度（edge + {module}）。'
                     '远程节点调度请显式选择通用 RUNTIME，或将调度策略改为本机'
@@ -1289,10 +1294,15 @@ def update_algorithm_task(task_id: int, **kwargs) -> AlgorithmTask:
                 if effective_type not in ('realtime', 'snap', 'patrol'):
                     raise ValueError(f'executor=cpp 不支持任务类型: {effective_type}')
                 resolved_target = resolve_runtime_target(None, effective_target_raw)
-                if resolved_target == 'bm1688' and effective_type != 'realtime':
-                    raise ValueError('RUNTIME-BM1688 当前只开放实时 C++ 任务，抓拍/巡检不会静默退化执行')
-                if (effective_policy or 'local') != 'local' and resolved_target in ('rk3588', 'bm1688'):
-                    module = 'RUNTIME-BM1688' if resolved_target == 'bm1688' else 'RUNTIME-RK3588'
+                if resolved_target in ('bm1688', 'nvidia') and effective_type != 'realtime':
+                    module = 'RUNTIME-NVIDIA' if resolved_target == 'nvidia' else 'RUNTIME-BM1688'
+                    raise ValueError(f'{module} 当前只开放实时 C++ 任务，抓拍/巡检不会静默退化执行')
+                if (effective_policy or 'local') != 'local' and resolved_target in ('rk3588', 'bm1688', 'nvidia'):
+                    module = {
+                        'rk3588': 'RUNTIME-RK3588',
+                        'bm1688': 'RUNTIME-BM1688',
+                        'nvidia': 'RUNTIME-NVIDIA',
+                    }[resolved_target]
                     raise ValueError(
                         f'{module} 硬件运行时只支持本机调度（edge + {module}）。'
                         '远程节点调度请显式选择通用 RUNTIME，或将调度策略改为本机'

@@ -38,6 +38,7 @@ RUNTIME_TARGET_AUTO = 'auto'
 RUNTIME_TARGET_GENERIC = 'generic'
 RUNTIME_TARGET_RK3588 = 'rk3588'
 RUNTIME_TARGET_BM1688 = 'bm1688'
+RUNTIME_TARGET_NVIDIA = 'nvidia'
 
 # RK3588 的 /proc/device-tree 是 sysfs 的符号链接；容器里通常只能看到 sysfs，
 # 因此设备树探测必须同时覆盖两种布局。
@@ -57,6 +58,10 @@ _RUNTIME_TARGET_ALIASES = {
     'sophon-bm1688': RUNTIME_TARGET_BM1688,
     'runtime-bm1688': RUNTIME_TARGET_BM1688,
     'sophgo-bm1688': RUNTIME_TARGET_BM1688,
+    'nvidia': RUNTIME_TARGET_NVIDIA,
+    'runtime-nvidia': RUNTIME_TARGET_NVIDIA,
+    'tensorrt': RUNTIME_TARGET_NVIDIA,
+    'nvdec': RUNTIME_TARGET_NVIDIA,
     'generic': RUNTIME_TARGET_GENERIC,
     'runtime': RUNTIME_TARGET_GENERIC,
     'onnx': RUNTIME_TARGET_GENERIC,
@@ -100,6 +105,22 @@ def _host_is_bm1688() -> bool:
     return 'bm1688' in signature or ('sophon' in signature and '1688' in signature)
 
 
+def _host_is_nvidia() -> bool:
+    """识别真正可见的 NVIDIA GPU/Jetson，不把仅装 CUDA 工具包的主机算作盒子。"""
+    if Path('/proc/driver/nvidia/gpus').is_dir() or Path('/dev/nvidiactl').exists():
+        return True
+    probes = []
+    for path in _HOST_CHIP_PROBE_PATHS:
+        try:
+            probes.append(Path(path).read_bytes().decode('utf-8', errors='ignore'))
+        except OSError:
+            continue
+    signature = '\n'.join(probes).lower()
+    return ('nvidia,tegra' in signature or 'jetson' in signature) and (
+        Path('/dev/nvhost-ctrl-gpu').exists() or Path('/dev/nvmap').exists()
+    )
+
+
 def parse_runtime_target(value) -> str:
     """校验外部传入的运行时目标；未知芯片必须显式失败，不能静默改成 auto。"""
     raw = str(value or RUNTIME_TARGET_AUTO).strip().lower().replace('_', '-')
@@ -108,7 +129,7 @@ def parse_runtime_target(value) -> str:
     target = _RUNTIME_TARGET_ALIASES.get(raw)
     if target is None:
         raise ValueError(
-            f'不支持的芯片算法运行时: {value}。可选: auto / rk3588 / bm1688 / generic'
+            f'不支持的芯片算法运行时: {value}。可选: auto / rk3588 / bm1688 / nvidia / generic'
         )
     return target
 
@@ -136,6 +157,8 @@ def resolve_runtime_target(task: Optional[AlgorithmTask] = None, requested: Opti
             target = RUNTIME_TARGET_RK3588
         elif _host_is_bm1688():
             target = RUNTIME_TARGET_BM1688
+        elif _host_is_nvidia():
+            target = RUNTIME_TARGET_NVIDIA
         else:
             target = RUNTIME_TARGET_GENERIC
     return target
@@ -144,7 +167,7 @@ def resolve_runtime_target(task: Optional[AlgorithmTask] = None, requested: Opti
 def resolve_remote_runtime_target(task: Optional[AlgorithmTask] = None) -> str:
     """远程 iot-node 目前只分发通用 RUNTIME；RK3588 必须显式拒绝而非静默降级。"""
     requested = normalize_runtime_target(getattr(task, 'runtime_target', None) if task is not None else None)
-    if requested in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688):
+    if requested in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688, RUNTIME_TARGET_NVIDIA):
         module = runtime_module_name(requested)
         raise ValueError(
             f'{module} 硬件运行时当前只支持 edge 本机调度。'
@@ -158,7 +181,7 @@ def resolve_remote_runtime_target(task: Optional[AlgorithmTask] = None) -> str:
 def validate_runtime_model_contract(runtime_target, model_ids: Any) -> str:
     """创建/更新任务时尽早校验芯片与模型契约，避免启动时才失败。"""
     target = resolve_runtime_target(None, runtime_target)
-    if target not in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688):
+    if target not in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688, RUNTIME_TARGET_NVIDIA):
         return target
 
     if isinstance(model_ids, str):
@@ -193,6 +216,8 @@ def runtime_module_name(target: Optional[str] = None) -> str:
         return 'RUNTIME-RK3588'
     if resolved == RUNTIME_TARGET_BM1688:
         return 'RUNTIME-BM1688'
+    if resolved == RUNTIME_TARGET_NVIDIA:
+        return 'RUNTIME-NVIDIA'
     return 'RUNTIME'
 
 
@@ -206,6 +231,8 @@ def runtime_bin_env_key(target: Optional[str] = None) -> str:
         return 'RUNTIME_RK3588_BIN'
     if resolved == RUNTIME_TARGET_BM1688:
         return 'RUNTIME_BM1688_BIN'
+    if resolved == RUNTIME_TARGET_NVIDIA:
+        return 'RUNTIME_NVIDIA_BIN'
     return 'RUNTIME_BIN'
 
 
@@ -223,6 +250,10 @@ def _remember_runtime_bin(target: str, bin_path: str) -> None:
         shared = (os.environ.get('RUNTIME_BIN') or '').strip()
         if shared and 'RUNTIME-BM1688' in shared:
             os.environ.setdefault('RUNTIME_BM1688_BIN', shared)
+    elif target == RUNTIME_TARGET_NVIDIA:
+        shared = (os.environ.get('RUNTIME_BIN') or '').strip()
+        if shared and 'RUNTIME-NVIDIA' in shared:
+            os.environ.setdefault('RUNTIME_NVIDIA_BIN', shared)
 
 
 def remote_runtime_bin(target: Optional[str] = None) -> str:
@@ -246,6 +277,8 @@ def remote_runtime_library_path(target: Optional[str] = None) -> str:
     if resolved in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688):
         # 芯片运行时不加载 ORT/CUDA；只使用自身 SDK 与系统 aarch64 库。
         return f'/opt/easyaiot/{runtime_module_name(resolved)}/lib:/usr/lib/aarch64-linux-gnu'
+    if resolved == RUNTIME_TARGET_NVIDIA:
+        return '/usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:/usr/lib/aarch64-linux-gnu'
     return REMOTE_RUNTIME_LD_LIBRARY_PATH
 
 
@@ -301,6 +334,10 @@ def resolve_runtime_bin(task: Optional[AlgorithmTask] = None, *, runtime_target:
     if not env_bin and target == RUNTIME_TARGET_BM1688:
         shared_bin = (os.getenv('RUNTIME_BIN') or '').strip()
         if 'RUNTIME-BM1688' in shared_bin:
+            env_bin = shared_bin
+    if not env_bin and target == RUNTIME_TARGET_NVIDIA:
+        shared_bin = (os.getenv('RUNTIME_BIN') or '').strip()
+        if 'RUNTIME-NVIDIA' in shared_bin:
             env_bin = shared_bin
     if env_bin and os.path.isfile(env_bin) and os.access(env_bin, os.X_OK):
         return env_bin
@@ -378,7 +415,9 @@ def try_auto_build_runtime(*, reason: str = '', runtime_target: Optional[str] = 
             return True
 
         why = f'（{reason}）' if reason else ''
-        action = 'build' if target in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688) else 'install'
+        action = 'build' if target in (
+            RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688, RUNTIME_TARGET_NVIDIA
+        ) else 'install'
         logger.info('未检测到 %s 二进制%s，自动执行: bash %s %s …', module, why, install_sh, action)
         print(
             f'[VIDEO] 未检测到 {module}，开始自动编译（可能需数分钟）…\n'
@@ -525,7 +564,9 @@ def read_runtime_version_info(
         'ready': bool(bin_path),
         'target': target,
         'module': module,
-        'hardwareOnly': target in (RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688),
+        'hardwareOnly': target in (
+            RUNTIME_TARGET_RK3588, RUNTIME_TARGET_BM1688, RUNTIME_TARGET_NVIDIA
+        ),
         'binPath': bin_path,
         'version': version,
         'git': parsed.get('git') or (os.getenv('RUNTIME_GIT') or '').strip() or None,
@@ -1453,6 +1494,142 @@ def _resolve_bmodel_models_with_ids(
     raise ValueError('BM1688 算法任务必须选择至少一个可用的 .bmodel 模型，不提供 ONNX/CPU 回退')
 
 
+def _tensorrt_names_path(model_path: Path, default_names: Path) -> str:
+    for suffix in ('.names', '.txt'):
+        candidate = model_path.with_suffix(suffix)
+        if candidate.is_file():
+            return str(candidate)
+    sibling = model_path.parent / 'model.names'
+    return str(sibling if sibling.is_file() else default_names)
+
+
+def _download_tensorrt_model(
+    model_id: int, model_dir: Path, default_names: Path
+) -> Optional[Tuple[str, str]]:
+    """只物化目标盒子已经构建好的 TensorRT engine，不在任务启动时转换 ONNX。"""
+    record = _fetch_model_record(model_id)
+    if not record:
+        return None
+    model_dir.mkdir(parents=True, exist_ok=True)
+    written_names = _write_names_file(model_dir, record)
+    refs = [record.get('tensorrt_model_path'), record.get('model_path')]
+    try:
+        from app.services.minio_service import ModelService
+    except Exception as exc:
+        logger.warning('TensorRT engine 对象存储服务不可用: %s', exc)
+        return None
+    for raw_ref in refs:
+        ref = str(raw_ref or '').strip()
+        extension = Path(ref).suffix.lower()
+        if not ref or extension not in ('.engine', '.plan'):
+            continue
+        destination = model_dir / f'model{extension}'
+        if ref.startswith('/') and Path(ref).is_file():
+            source = Path(ref)
+            return str(source), str(
+                written_names or _tensorrt_names_path(source, default_names)
+            )
+        for bucket, key in _resolve_object_ref_candidates(ref):
+            try:
+                ok, error = ModelService.download_from_minio(bucket, key, str(destination))
+            except Exception as exc:
+                ok, error = False, str(exc)
+            if ok and destination.is_file() and destination.stat().st_size > 0:
+                return str(destination), str(
+                    written_names or _tensorrt_names_path(destination, default_names)
+                )
+            logger.info('TensorRT engine 候选 %s/%s 拉取失败: %s', bucket, key, error)
+            try:
+                destination.unlink(missing_ok=True)
+            except OSError:
+                pass
+    return None
+
+
+def _resolve_tensorrt_models_with_ids(
+    task: AlgorithmTask, prefer_cluster: bool = False
+) -> List[Tuple[Optional[int], str, str]]:
+    """解析 NVIDIA 专用静态 engine；不接受 ONNX/PT，也不进行现场构建。"""
+    module_root = _repo_root() / 'RUNTIME-NVIDIA'
+    default_names = module_root / 'models' / 'coco.names'
+    env_names = (
+        os.getenv('RUNTIME_NVIDIA_CLASSES_PATH')
+        or os.getenv('RUNTIME_CLASSES_PATH')
+        or ''
+    ).strip()
+    if env_names:
+        default_names = Path(env_names)
+    raw = getattr(task, 'model_ids', None)
+    try:
+        model_ids = json.loads(raw) if isinstance(raw, str) else list(raw or [])
+    except Exception:
+        model_ids = []
+    resolved: List[Tuple[Optional[int], str, str]] = []
+    unresolved: List[int] = []
+    for value in model_ids:
+        try:
+            model_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if model_id < 0:
+            if model_id != -2:
+                unresolved.append(model_id)
+                continue
+            env_model = (os.getenv('RUNTIME_NVIDIA_MODEL_PATH') or '').strip()
+            candidates = [
+                Path(env_model) if env_model and (prefer_cluster or Path(env_model).is_file()) else None,
+                Path('/opt/easyaiot/RUNTIME-NVIDIA/models/yolov8n-nvidia-fp16.engine'),
+                module_root / 'models' / 'yolov8n-nvidia-fp16.engine',
+            ]
+            model_path = next(
+                (candidate for candidate in candidates
+                 if candidate and (prefer_cluster or candidate.is_file())),
+                None,
+            )
+            if model_path is None:
+                unresolved.append(model_id)
+                continue
+            resolved.append((model_id, str(model_path),
+                             _tensorrt_names_path(model_path, default_names)))
+            continue
+        if model_id <= 0:
+            unresolved.append(model_id)
+            continue
+        model_dir = _resolve_custom_model_dir(model_id, prefer_cluster=prefer_cluster)
+        if model_dir is None:
+            unresolved.append(model_id)
+            continue
+        if model_dir.is_dir():
+            matches = sorted(model_dir.glob('*.engine')) + sorted(model_dir.glob('*.plan'))
+            preferred = [path for path in matches if path.name.lower() in ('model.engine', 'model.plan')]
+            model_path = preferred[0] if preferred else (matches[0] if matches else None)
+            if model_path is not None:
+                resolved.append((model_id, str(model_path),
+                                 _tensorrt_names_path(model_path, default_names)))
+                continue
+        if not prefer_cluster:
+            materialized = _download_tensorrt_model(model_id, model_dir, default_names)
+            if materialized:
+                resolved.append((model_id, materialized[0], materialized[1]))
+                continue
+        unresolved.append(model_id)
+    if unresolved:
+        raise ValueError(
+            f'NVIDIA 任务模型不可用: {unresolved}。只接受在目标盒子构建的静态 '
+            '.engine/.plan；内置模型请选择 yolov8n，业务模型请登记 TensorRT engine'
+        )
+    if resolved:
+        return resolved
+    env_model = (os.getenv('RUNTIME_NVIDIA_MODEL_PATH') or '').strip()
+    if Path(env_model).suffix.lower() in ('.engine', '.plan'):
+        model_path = Path(env_model)
+        if prefer_cluster or model_path.is_file():
+            return [(None, str(model_path), _tensorrt_names_path(model_path, default_names))]
+    raise ValueError(
+        'NVIDIA 算法任务必须选择至少一个可用的 .engine/.plan，不提供 ONNX/CPU 回退'
+    )
+
+
 def _resolve_model_paths(task: AlgorithmTask, prefer_cluster: bool = False) -> List[Tuple[str, str]]:
     """兼容旧调用方，仅返回模型文件和类别文件；业务模型 ID 由生成器单独透传。"""
     return [
@@ -1491,6 +1668,12 @@ def runtime_config_dir(target: Optional[str] = None) -> Path:
         if not env_dir:
             shared = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
             if shared and 'RUNTIME-BM1688' in shared:
+                env_dir = shared
+    elif resolved == RUNTIME_TARGET_NVIDIA:
+        env_dir = (os.getenv('RUNTIME_NVIDIA_CONFIG_DIR') or '').strip()
+        if not env_dir:
+            shared = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
+            if shared and 'RUNTIME-NVIDIA' in shared:
                 env_dir = shared
     else:
         env_dir = (os.getenv('RUNTIME_CONFIG_DIR') or '').strip()
@@ -1703,6 +1886,12 @@ def _build_runtime_ini_text(
         if business_model_id is not None:
             ai_model_lines.append(f'{id_prefix}={business_model_id}')
     ai_model_block = '\n'.join(ai_model_lines)
+    try:
+        nvidia_infer_streams = max(
+            1, min(16, int((os.getenv('RUNTIME_NVIDIA_INFER_STREAMS') or '2').strip()))
+        )
+    except (TypeError, ValueError):
+        nvidia_infer_streams = 2
     if runtime_target == RUNTIME_TARGET_RK3588:
         ai_runtime_block = f"""threads=3
 frame_skip={frame_skip}"""
@@ -1730,6 +1919,24 @@ preallocate=true
 zero_copy=true
 use_vpp=true
 decoder=h264_bm,hevc_bm
+"""
+    elif runtime_target == RUNTIME_TARGET_NVIDIA:
+        ai_runtime_block = f"""threads={nvidia_infer_streams}
+frame_skip={frame_skip}"""
+        hardware_block = f"""
+[nvidia]
+cuda_device={gpu_device_id}
+infer_streams={nvidia_infer_streams}
+decoder_surfaces=16
+decode_queue_depth=8
+infer_queue_depth=4
+result_queue_depth=64
+zero_copy=true
+preallocate=true
+cuda_graph=true
+require_nvdec=true
+require_nvenc=false
+decoder=h264_cuvid,hevc_cuvid,av1_cuvid
 """
     else:
         ai_runtime_block = f"""threads=2
@@ -1804,7 +2011,7 @@ tenant={mqtt_tenant}
 transport={algo_bus_transport}
 
 [features]
-enable_rtmp={'true' if enable_rtmp else 'false'}
+enable_rtmp={'true' if (enable_rtmp and runtime_target != RUNTIME_TARGET_NVIDIA) else 'false'}
 enable_draw=true
 enable_alarm={'true' if task.alert_event_enabled else 'false'}
 
@@ -1864,23 +2071,26 @@ def generate_runtime_inis(
         raise ValueError(f'任务 {task.id} 的设备均无可用 RTSP/source 地址')
 
     runtime_target = resolve_runtime_target(task, runtime_target)
-    if runtime_target == RUNTIME_TARGET_BM1688 and task_type != 'realtime':
-        raise ValueError('RUNTIME-BM1688 当前只开放 realtime 任务')
+    if runtime_target in (RUNTIME_TARGET_BM1688, RUNTIME_TARGET_NVIDIA) and task_type != 'realtime':
+        raise ValueError(f'{runtime_module_name(runtime_target)} 当前只开放 realtime 任务')
     if runtime_target == RUNTIME_TARGET_RK3588:
         models = _resolve_rknn_models_with_ids(task, prefer_cluster=prefer_cluster_model)
-        required_suffix = '.rknn'
+        required_suffixes = ('.rknn',)
     elif runtime_target == RUNTIME_TARGET_BM1688:
         models = _resolve_bmodel_models_with_ids(task, prefer_cluster=prefer_cluster_model)
-        required_suffix = '.bmodel'
+        required_suffixes = ('.bmodel',)
+    elif runtime_target == RUNTIME_TARGET_NVIDIA:
+        models = _resolve_tensorrt_models_with_ids(task, prefer_cluster=prefer_cluster_model)
+        required_suffixes = ('.engine', '.plan')
     else:
         models = _resolve_models_with_ids(task, prefer_cluster=prefer_cluster_model)
-        required_suffix = '.onnx'
+        required_suffixes = ('.onnx',)
     for _business_model_id, model_path, _names_path in models:
         if write_local and not os.path.isfile(model_path):
             raise ValueError(f'{runtime_target} 模型文件不存在: {model_path}')
-        if not str(model_path).lower().endswith(required_suffix):
+        if not str(model_path).lower().endswith(required_suffixes):
             raise ValueError(
-                f'{runtime_target} 运行时只接受 {required_suffix} 模型，当前为: {model_path}'
+                f'{runtime_target} 运行时只接受 {"/".join(required_suffixes)} 模型，当前为: {model_path}'
             )
 
     conf = float(task.detect_conf if task.detect_conf is not None else 0.5)
@@ -2397,7 +2607,7 @@ _GENERIC_LIBRARY_MARKERS = (
 def runtime_library_path_env(target: Optional[str] = None) -> str:
     """Build LD_LIBRARY_PATH for the resolved runtime target.
 
-    芯片运行时不加载 ONNX Runtime/CUDA，避免通用库抢在厂商 SDK 系统库之前。
+    专用芯片运行时不加载 ONNX Runtime；NVIDIA 只加载 CUDA/TensorRT/NVCodec 系统库。
     """
     resolved = resolve_runtime_target(None, target)
     apply_runtime_deploy_env(resolved)
@@ -2420,6 +2630,22 @@ def runtime_library_path_env(target: Optional[str] = None) -> str:
         for sys_path in ('/usr/local/lib', '/usr/lib/aarch64-linux-gnu'):
             if os.path.isdir(sys_path):
                 parts.append(sys_path)
+    elif resolved == RUNTIME_TARGET_NVIDIA:
+        parts.extend(_deploy_env_library_paths(resolved))
+        for sys_path in (
+            '/usr/local/cuda/lib64',
+            '/usr/lib/x86_64-linux-gnu',
+            '/usr/lib/aarch64-linux-gnu',
+            '/usr/local/lib',
+        ):
+            if os.path.isdir(sys_path):
+                parts.append(sys_path)
+        existing = (os.getenv('LD_LIBRARY_PATH') or '').strip()
+        for segment in existing.split(':'):
+            segment = segment.strip()
+            if not segment or 'onnxruntime' in segment.lower() or '/ort-lib' in segment:
+                continue
+            parts.append(segment)
     else:
         # deploy.env 中的 OpenCV/ORT 路径优先（须在 nvidia pip 库之前）
         parts.extend(_deploy_env_library_paths(resolved))
