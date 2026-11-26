@@ -15,4 +15,13 @@ cp config/config.example.ini ./gate-a.ini
 ./install_linux.sh install ./gate-a.ini gate-a
 ```
 
+For INT8, provide an explicitly quantized Q/DQ ONNX model or an offline calibration cache:
+
+```bash
+./scripts/build_engine.sh /path/to/yolov8n-qdq.onnx ./models/yolov8n-int8.engine int8
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-int8.engine int8 /path/to/calibration.cache
+```
+
+Quantization remains a deployment-time operation. Online tasks only deserialize the static engine.
+
 Use one config/systemd instance per RTSP stream. A config may reference multiple engines with `model_path_1`, `model_path_2`, and so on. `/health` and `/metrics` expose the real GPU, compute capability, pipeline endpoints, inference latency, bounded-queue drops, and preallocated bytes; no fixed FPS is claimed without measurement on the deployed hardware.

@@ -52,6 +52,15 @@ cd RUNTIME-NVIDIA
 ./install_linux.sh build
 ```
 
+目标 GPU 对 INT8 友好时，可使用带显式 Q/DQ 节点的量化 ONNX，或额外传入离线生成的校准缓存：
+
+```bash
+./scripts/build_engine.sh /path/to/yolov8n-qdq.onnx ./models/yolov8n-nvidia-int8.engine int8
+./scripts/build_engine.sh /path/to/yolov8n.onnx ./models/yolov8n-nvidia-int8.engine int8 /path/to/calibration.cache
+```
+
+量化和校准仍在部署阶段完成；在线任务只反序列化静态 engine，不现场转换模型。
+
 复制配置，只需填写摄像头和 engine：
 
 ```bash
