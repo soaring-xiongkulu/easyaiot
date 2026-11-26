@@ -114,7 +114,9 @@ function progressColor(value: number) {
 
 const runtimeTarget = computed(() => metrics.value?.runtime.target === 'rk3588'
   ? 'RUNTIME-RK3588 · MPP + RGA + 三核 RKNN NPU'
-  : (metrics.value?.runtime.target || '自动识别'));
+  : metrics.value?.runtime.target === 'bm1688'
+    ? 'RUNTIME-BM1688 · VPU + VPSS/BMCV + 双核 TPU'
+    : (metrics.value?.runtime.target || '自动识别'));
 const runtimeStatus = computed(() => metrics.value?.runtime.ready ? `${runtimeTarget.value} 已就绪` : '算法运行时未就绪');
 const hostSummary = computed(() => metrics.value
   ? `${metrics.value.host.hostname} · ${metrics.value.host.architecture} · 已连续运行 ${Math.floor(metrics.value.host.uptimeSec / 3600)} 小时`

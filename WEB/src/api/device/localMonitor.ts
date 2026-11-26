@@ -48,7 +48,7 @@ export interface LocalMonitorMetrics {
     processCount: number;
   };
   runtime: {
-    target: 'auto' | 'generic' | 'rk3588' | string;
+    target: 'auto' | 'generic' | 'rk3588' | 'bm1688' | string;
     ready: boolean;
     version?: string | null;
     binPath?: string | null;

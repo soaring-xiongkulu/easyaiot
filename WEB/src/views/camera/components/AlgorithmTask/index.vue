@@ -349,6 +349,9 @@ function formatTaskTypeLabel(item: { task_type?: string; executor?: string; runt
     if (target === 'rk3588') {
       return `${base}（低时延 · RK3588）`;
     }
+    if (target === 'bm1688') {
+      return `${base}（低时延 · BM1688）`;
+    }
     return `${base}（低时延）`;
   }
   return `${base}（全功能）`;

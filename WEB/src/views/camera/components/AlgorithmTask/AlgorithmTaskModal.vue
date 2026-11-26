@@ -18,11 +18,11 @@
             :message="runtimeVersionBanner"
           />
           <a-alert
-            v-if="showRk3588ProfileNotice"
+            v-if="showHardwareProfileNotice"
             class="runtime-version-banner mb-3"
             type="warning"
             show-icon
-            message="当前任务使用 RK3588 硬件运行时：固定本机执行，仅提供低时延模式与 RKNN 模型。"
+            :message="hardwareProfileNotice"
           />
           <a-alert
             v-if="ingressScheduleNotice.message"
@@ -191,10 +191,20 @@ const runtimeInfoTaskMode = ref<string>('realtime_cpp');
  * VIDEO 宿主机芯片运行时，只由不带 target 参数的 runtime/info 查询刷新。
  * 编辑已有任务时查询的是任务自身 target，不能覆盖宿主机检测结果。
  */
-const hostRuntimeTarget = ref<'rk3588' | 'generic' | ''>('');
+type RuntimeProfile = 'rk3588' | 'bm1688' | 'generic' | '';
+const hostRuntimeTarget = ref<RuntimeProfile>('');
 const isRk3588Host = computed(() => hostRuntimeTarget.value === 'rk3588');
+const isBm1688Host = computed(() => hostRuntimeTarget.value === 'bm1688');
 const isGenericHost = computed(() => hostRuntimeTarget.value === 'generic');
 const hostRuntimeProfileKnown = computed(() => !!hostRuntimeTarget.value);
+
+function isHardwareRuntimeTarget(target: string): boolean {
+  return target === 'rk3588' || target === 'bm1688';
+}
+
+function hardwareRuntimeLabel(target: string): string {
+  return target === 'bm1688' ? 'BM1688' : 'RK3588';
+}
 
 /** RK3588 硬件运行时任务只能本机部署；auto 按宿主机芯片解析，编辑历史通用任务时保留其原调度语义 */
 function shouldRestrictScheduleToLocal(): boolean {
@@ -202,11 +212,17 @@ function shouldRestrictScheduleToLocal(): boolean {
   if (!mode.endsWith('_cpp')) return false;
   const target = String(formValues.value?.runtime_target || '');
   const effective = !target || target === 'auto' ? hostRuntimeTarget.value : target;
-  return effective === 'rk3588';
+  return isHardwareRuntimeTarget(effective);
 }
-const showRk3588ProfileNotice = computed(() => shouldRestrictScheduleToLocal());
+const showHardwareProfileNotice = computed(() => shouldRestrictScheduleToLocal());
+const hardwareProfileNotice = computed(() => {
+  const target = String(formValues.value?.runtime_target || hostRuntimeTarget.value);
+  return target === 'bm1688'
+    ? '当前任务使用 BM1688 硬件运行时：固定本机执行，仅接受 BModel，VPU/VPSS/BMCV 与双核 TPU 全程硬件化。'
+    : '当前任务使用 RK3588 硬件运行时：固定本机执行，仅提供低时延模式与 RKNN 模型。';
+});
 const schedulePolicyHelp = computed(() => (shouldRestrictScheduleToLocal()
-  ? 'RK3588 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。'
+  ? '芯片硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。'
   : '边缘接入设备固定部署到对应接入节点；主节点接入设备可选择本机、自动调度或指定节点'));
 
 const showRuntimeVersionBanner = computed(() => {
@@ -218,11 +234,15 @@ const runtimeVersionBanner = computed(() => {
   const info = runtimeInfo.value;
   const requested = String(formValues.value?.runtime_target || 'auto');
   const moduleLabel = info?.module
-    || (requested === 'rk3588' ? 'RUNTIME-RK3588' : requested === 'generic' ? 'RUNTIME' : '本机运行时');
+    || (requested === 'rk3588' ? 'RUNTIME-RK3588'
+      : requested === 'bm1688' ? 'RUNTIME-BM1688'
+        : requested === 'generic' ? 'RUNTIME' : '本机运行时');
   if (!info) {
     return `${moduleLabel}：正在查询版本…`;
   }
-  const chipLabel = info.target === 'rk3588' ? 'RK3588 NPU' : '通用运行时';
+  const chipLabel = info.target === 'rk3588'
+    ? 'RK3588 NPU'
+    : info.target === 'bm1688' ? 'BM1688 双核 TPU' : '通用运行时';
   if (info.ready && info.version) {
     return `${info.module || moduleLabel}（${chipLabel}）已就绪：${info.version}${info.binPath ? `（${info.binPath}）` : ''}`;
   }
@@ -276,7 +296,9 @@ async function loadRuntimeInfo(runtimeTarget?: string) {
     runtimeInfo.value = info || { ready: false };
     if (!queryTarget) {
       const target = String((info as any)?.target || '').toLowerCase();
-      hostRuntimeTarget.value = target === 'rk3588' || target === 'generic' ? target : '';
+      hostRuntimeTarget.value = ['rk3588', 'bm1688', 'generic'].includes(target)
+        ? target as RuntimeProfile
+        : '';
     }
   } catch {
     runtimeInfo.value = { ready: false };
@@ -336,7 +358,7 @@ const schedulePolicyOptions = [
   { label: '指定节点', value: 'node' },
 ];
 const localSchedulePolicyOptions = [
-  { label: '本机部署（RK3588 固定）', value: 'local' },
+  { label: '本机部署（芯片运行时固定）', value: 'local' },
 ];
 const taskModeOptions = [
   { label: '实时视频分析（低时延）', value: 'realtime_cpp' },
@@ -350,10 +372,14 @@ const rk3588TaskModeOptions = taskModeOptions.filter((option) => String(option.v
 const runtimeTargetOptions = [
   { label: '自动识别本机芯片（推荐）', value: 'auto' },
   { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
+  { label: 'BM1688 · VPU + VPSS/BMCV + 双核 TPU', value: 'bm1688' },
   { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
 ];
 const rk3588RuntimeTargetOptions = [
   { label: 'RK3588 · MPP + RGA + 三核 RKNN NPU', value: 'rk3588' },
+];
+const bm1688RuntimeTargetOptions = [
+  { label: 'BM1688 · VPU + VPSS/BMCV + 双核 TPU', value: 'bm1688' },
 ];
 const genericRuntimeTargetOptions = [
   { label: '通用 RUNTIME · ONNX / CUDA', value: 'generic' },
@@ -396,6 +422,12 @@ function modelHasRknnWeights(model: any): boolean {
     .some((path) => modelFileSuffix(path) === '.rknn');
 }
 
+function modelHasBmodelWeights(model: any): boolean {
+  if (model?.bmodel_path) return true;
+  return [model?.model_path, model?.onnx_model_path]
+    .some((path) => modelFileSuffix(path) === '.bmodel');
+}
+
 function modelHasGenericWeights(model: any): boolean {
   const genericSuffixes = ['.onnx', '.pt', '.pth', '.torchscript', '.engine', '.plan', '.xml'];
   return [
@@ -411,14 +443,16 @@ function isModelCompatibleWithProfile(model: any, profile: string): boolean {
   if (!profile) return true;
   const id = Number(model?.id);
   if (Number.isFinite(id) && id < 0) {
-    return profile === 'rk3588' ? id === -2 : true;
+    return isHardwareRuntimeTarget(profile) ? id === -2 : true;
   }
   const hasRknn = modelHasRknnWeights(model);
+  const hasBmodel = modelHasBmodelWeights(model);
   const hasGeneric = modelHasGenericWeights(model);
   // 模型元数据缺失时不做猜测，交给后端契约校验
-  if (!hasRknn && !hasGeneric) return true;
+  if (!hasRknn && !hasBmodel && !hasGeneric) return true;
   if (profile === 'rk3588') return hasRknn;
-  return !hasRknn || hasGeneric;
+  if (profile === 'bm1688') return hasBmodel;
+  return (!hasRknn && !hasBmodel) || hasGeneric;
 }
 
 function modelOptionLabel(model: any, profile: string): string {
@@ -429,8 +463,16 @@ function modelOptionLabel(model: any, profile: string): string {
   if (profile === 'rk3588' && modelHasRknnWeights(model)) {
     return `${base}（RKNN）`;
   }
+  if (profile === 'bm1688' && Number(model?.id) === -2) {
+    return `${base}（BM1688 BModel 内置）`;
+  }
+  if (profile === 'bm1688' && modelHasBmodelWeights(model)) {
+    return `${base}（BModel）`;
+  }
   if (profile && !isModelCompatibleWithProfile(model, profile)) {
-    const profileLabel = profile === 'rk3588' ? 'RK3588 本机' : '通用运行时';
+    const profileLabel = profile === 'rk3588'
+      ? 'RK3588 本机'
+      : profile === 'bm1688' ? 'BM1688 本机' : '通用运行时';
     return `${base}（不兼容${profileLabel}）`;
   }
   return base;
@@ -440,26 +482,31 @@ const modelOptions = ref<Array<{ label: string; value: number }>>([...defaultMod
 const availableDbModels = ref<any[]>([]); // 数据库返回的全部业务模型，按运行时动态过滤
 const modelMap = ref<Map<number, any>>(new Map()); // 存储完整的模型信息
 
-function modelHelpForProfile(profile: 'rk3588' | 'generic' | ''): string {
+function modelHelpForProfile(profile: RuntimeProfile): string {
   if (profile === 'rk3588') {
     return 'RK3588 仅接受内置 yolov8n（-2）或已登记的 .rknn 业务模型；模型需满足 1 输入 / 9 输出 INT8 契约。';
+  }
+  if (profile === 'bm1688') {
+    return 'BM1688 仅接受内置 yolov8n（-2）或已登记的 BM1688/CV186X .bmodel；不会回退 ONNX 或 CPU。';
   }
   return '选择要使用的模型列表，模型文件本地没有会自动下载';
 }
 
 /** 全功能任务走 Python/AI，不受本机 RK3588 硬件运行时模型契约限制 */
-function activeModelProfile(target?: string): 'rk3588' | 'generic' | '' {
+function activeModelProfile(target?: string): RuntimeProfile {
   const mode = String(runtimeInfoTaskMode.value || formValues.value?.task_mode || '');
   if (mode && !mode.endsWith('_cpp')) return 'generic';
   const requested = String(target ?? formValues.value?.runtime_target ?? '').trim();
   const effective = !requested || requested === 'auto'
     ? hostRuntimeTarget.value
     : requested;
-  return effective === 'rk3588' || effective === 'generic' ? effective : '';
+  return ['rk3588', 'bm1688', 'generic'].includes(effective)
+    ? effective as RuntimeProfile
+    : '';
 }
 
 function refreshModelOptions(
-  profile: 'rk3588' | 'generic' | '' = activeModelProfile(),
+  profile: RuntimeProfile = activeModelProfile(),
   selectedIds?: number[],
 ) {
   const builtinOptions = defaultModels
@@ -707,9 +754,10 @@ const refreshIngressScheduleOptions = (selectedValues: unknown) => {
         message: `${selectedOption.unavailableReason}，请先在节点管理中恢复节点并确认已部署视频分析运行时。`,
       };
     } else if (shouldRestrictScheduleToLocal()) {
+      const target = String(formValues.value?.runtime_target || hostRuntimeTarget.value);
       ingressScheduleNotice.value = {
         type: 'error',
-        message: `当前任务使用 RK3588 硬件运行时，无法调度到接入节点 ${selectedOption?.ingressNodeName || `#${selectedIngressNodeId}`}；请选择本机直连摄像头，或直接在边缘节点创建任务。`,
+        message: `当前任务使用 ${hardwareRuntimeLabel(target)} 硬件运行时，无法调度到接入节点 ${selectedOption?.ingressNodeName || `#${selectedIngressNodeId}`}；请选择本机直连摄像头，或直接在边缘节点创建任务。`,
       };
     } else {
       ingressScheduleNotice.value = {
@@ -816,8 +864,8 @@ const getIngressScheduleValidationError = (values: any): string | undefined => {
   const effectiveTarget = !requestedTarget || requestedTarget === 'auto'
     ? (hostRuntimeTarget.value || 'auto')
     : requestedTarget;
-  if (taskMode.endsWith('_cpp') && effectiveTarget === 'rk3588') {
-    return `RK3588 硬件运行时任务无法使用通过 ${option?.ingressNodeName || `边缘节点 #${ingressNodeId}`} 接入的摄像头，请选择本机直连摄像头；或直接在边缘节点创建任务`;
+  if (taskMode.endsWith('_cpp') && isHardwareRuntimeTarget(effectiveTarget)) {
+    return `${hardwareRuntimeLabel(effectiveTarget)} 硬件运行时任务无法使用通过 ${option?.ingressNodeName || `边缘节点 #${ingressNodeId}`} 接入的摄像头，请选择本机直连摄像头；或直接在边缘节点创建任务`;
   }
   if (values.schedule_policy !== 'node' || Number(values.target_node_id) !== ingressNodeId) {
     return `摄像头通过 ${option?.ingressNodeName || `边缘节点 #${ingressNodeId}`} 接入，算法任务必须指定到同一节点`;
@@ -1190,7 +1238,7 @@ const [registerForm, { setFieldsValue, validate, resetFields, updateSchema, getF
       componentProps: {
         options: runtimeTargetOptions,
       },
-      helpMessage: 'VIDEO 统一编排任务，下层按芯片运行时执行。RK3588 只接受优化版 INT8 RKNN，不会回退 ONNX 或 CPU；后续芯片可按同一接口扩展。',
+      helpMessage: 'VIDEO 统一编排任务，下层按芯片运行时执行。RK3588 只接受 RKNN，BM1688 只接受 BModel；芯片运行时都不会回退 ONNX 或 CPU。',
       ifShow: ({ values }) => String(values.task_mode || '').endsWith('_cpp'),
     },
     {
@@ -2018,6 +2066,9 @@ const hostRuntimeHelp = computed(() => {
   if (isRk3588Host.value) {
     return '当前宿主机已识别为 RK3588：新建低时延任务固定使用 RUNTIME-RK3588，且只能本机执行；模型仅支持内置 yolov8n 或 .rknn。历史任务保留原运行时以便迁移。';
   }
+  if (isBm1688Host.value) {
+    return '当前宿主机已识别为 BM1688：新建低时延任务固定使用 RUNTIME-BM1688，且只能本机执行；模型仅支持内置 yolov8n 或 BM1688/CV186X .bmodel。';
+  }
   if (isGenericHost.value) {
     return '当前宿主机使用通用 RUNTIME：支持 ONNX / PyTorch 模型、CUDA / CPU，以及本机、自动、指定节点调度。';
   }
@@ -2027,6 +2078,9 @@ const hostRuntimeHelp = computed(() => {
 const hostTaskModeHelp = computed(() => {
   if (isRk3588Host.value) {
     return '当前宿主机为 RK3588：新建任务只提供低时延模式（RUNTIME-RK3588）；历史全功能任务仅保留用于迁移。';
+  }
+  if (isBm1688Host.value) {
+    return '当前宿主机为 BM1688：新建任务只提供低时延模式（RUNTIME-BM1688）；历史全功能任务仅保留用于迁移。';
   }
   return '低时延：加速推理，适合大路数与低时延场景，可调度至已安装业务运行时的计算节点；全功能：含人脸/车牌匹配、业务脚本等完整能力集';
 });
@@ -2040,7 +2094,7 @@ async function applyRuntimeTargetDependentOptions(target?: string) {
   const effectiveTarget = !requested || requested === 'auto'
     ? (hostRuntimeTarget.value || 'auto')
     : requested;
-  const restrictLocal = effectiveTarget === 'rk3588';
+  const restrictLocal = isHardwareRuntimeTarget(effectiveTarget);
 
   updateSchema([
     {
@@ -2049,7 +2103,7 @@ async function applyRuntimeTargetDependentOptions(target?: string) {
         options: restrictLocal ? localSchedulePolicyOptions : schedulePolicyOptions,
       },
       helpMessage: restrictLocal
-        ? 'RK3588 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。'
+        ? `${hardwareRuntimeLabel(effectiveTarget)} 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。`
         : '边缘接入设备固定部署到对应接入节点；主节点接入设备可选择本机、自动调度或指定节点',
     },
   ]);
@@ -2090,7 +2144,7 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
   const currentTarget = String(current.runtime_target || '');
   const isCppMode = currentMode.endsWith('_cpp');
 
-  let modes = host === 'rk3588' ? [...rk3588TaskModeOptions] : [...taskModeOptions];
+  let modes = isHardwareRuntimeTarget(host) ? [...rk3588TaskModeOptions] : [...taskModeOptions];
   if (preserveExisting && currentMode && !modes.some((option) => option.value === currentMode)) {
     const legacyMode = taskModeOptions.find((option) => option.value === currentMode);
     if (legacyMode) {
@@ -2100,9 +2154,11 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
 
   let targets = host === 'rk3588'
     ? [...rk3588RuntimeTargetOptions]
-    : host === 'generic'
-      ? [...genericRuntimeTargetOptions]
-      : [...runtimeTargetOptions];
+    : host === 'bm1688'
+      ? [...bm1688RuntimeTargetOptions]
+      : host === 'generic'
+        ? [...genericRuntimeTargetOptions]
+        : [...runtimeTargetOptions];
   if (preserveExisting && currentTarget && !targets.some((option) => option.value === currentTarget)) {
     const legacyTarget = runtimeTargetOptions.find((option) => option.value === currentTarget);
     if (legacyTarget) {
@@ -2129,16 +2185,18 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
     return;
   }
 
-  if (host === 'rk3588') {
+  if (isHardwareRuntimeTarget(host)) {
+    const moduleTarget = host as 'rk3588' | 'bm1688';
+    const label = hardwareRuntimeLabel(moduleTarget);
     const nextMode = modes.some((option) => option.value === currentMode) ? currentMode : 'realtime_cpp';
     updateSchema({
       field: 'schedule_policy',
       componentProps: { options: localSchedulePolicyOptions },
-      helpMessage: 'RK3588 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。',
+      helpMessage: `${label} 硬件运行时只支持本机部署；通过边缘节点接入的摄像头请在该节点创建任务。`,
     });
     await setFieldsValue({
       task_mode: nextMode,
-      runtime_target: 'rk3588',
+      runtime_target: moduleTarget,
       schedule_policy: 'local',
       target_node_id: undefined,
       prefer_gpu: false,
@@ -2146,13 +2204,13 @@ async function applyHostRuntimeProfile(preserveExisting = false) {
     formValues.value = {
       ...(await getFieldsValue()),
       task_mode: nextMode,
-      runtime_target: 'rk3588',
+      runtime_target: moduleTarget,
       schedule_policy: 'local',
       target_node_id: undefined,
     };
-    refreshModelOptions('rk3588');
+    refreshModelOptions(moduleTarget);
   } else if (host === 'generic') {
-    const nextTarget = currentTarget && currentTarget !== 'auto' && currentTarget !== 'rk3588'
+    const nextTarget = currentTarget && currentTarget !== 'auto' && !isHardwareRuntimeTarget(currentTarget)
       ? currentTarget
       : 'generic';
     await setFieldsValue({ runtime_target: nextTarget });
@@ -2434,7 +2492,7 @@ const [register, { setDrawerProps, closeDrawer }] = useDrawerInner(async (data) 
     updateSchema([
       { field: 'task_name', componentProps: { disabled: false } },
       { field: 'task_mode', componentProps: { disabled: false } },
-        { field: 'runtime_target', componentProps: { disabled: false } },
+      { field: 'runtime_target', componentProps: { disabled: false } },
       { field: 'schedule_policy', componentProps: { disabled: false } },
       { field: 'target_node_id', componentProps: { disabled: false } },
       { field: 'device_ids', componentProps: { disabled: false } },
@@ -2757,8 +2815,8 @@ const handleSubmit = async () => {
 
     // 新建任务按宿主机固化芯片契约；编辑历史任务保留原有 target，避免静默改写
     if (values.executor === 'cpp' && !modalData.value.record) {
-      if (isRk3588Host.value) {
-        values.runtime_target = 'rk3588';
+      if (isRk3588Host.value || isBm1688Host.value) {
+        values.runtime_target = isBm1688Host.value ? 'bm1688' : 'rk3588';
         values.schedule_policy = 'local';
         values.target_node_id = null;
         values.prefer_gpu = false;
@@ -2768,39 +2826,41 @@ const handleSubmit = async () => {
     }
 
     const requestedRuntimeTarget = String(values.runtime_target || 'auto');
-    // auto 由后端按本机芯片解析；本机为 RK3588 时同样受硬件契约约束
+    // auto 由后端按本机芯片解析；硬件专用运行时统一受本机调度与专用模型契约约束
     const effectiveRuntimeTarget = requestedRuntimeTarget === 'auto'
       ? detectedRuntimeTarget()
       : requestedRuntimeTarget;
-    if (values.executor === 'cpp' && effectiveRuntimeTarget === 'rk3588') {
+    if (values.executor === 'cpp' && isHardwareRuntimeTarget(effectiveRuntimeTarget)) {
+      const hardwareLabel = hardwareRuntimeLabel(effectiveRuntimeTarget);
+      const modelSuffix = effectiveRuntimeTarget === 'bm1688' ? '.bmodel' : '.rknn';
       if ((values.schedule_policy || 'local') !== 'local') {
-        createMessage.error('RK3588 硬件运行时只支持本机调度，请将调度策略改为本机部署');
+        createMessage.error(`${hardwareLabel} 硬件运行时只支持本机调度，请将调度策略改为本机部署`);
         confirmLoading.value = false;
         setDrawerProps({ confirmLoading: false });
         return;
       }
       if (!Array.isArray(values.model_ids) || !values.model_ids.length) {
-        createMessage.error('RK3588 算法任务必须选择至少一个 .rknn 模型');
+        createMessage.error(`${hardwareLabel} 算法任务必须选择至少一个 ${modelSuffix} 模型`);
         confirmLoading.value = false;
         setDrawerProps({ confirmLoading: false });
         return;
       }
       const incompatibleBuiltins = (values.model_ids || []).filter((id: any) => Number(id) < 0 && Number(id) !== -2);
       if (incompatibleBuiltins.length) {
-        createMessage.error('RK3588 内置模型请选择 yolov8n；其他默认模型不是 RKNN 1 输入 / 9 输出契约');
+        createMessage.error(`${hardwareLabel} 内置模型请选择 yolov8n；其他默认模型不是该芯片运行时契约`);
         confirmLoading.value = false;
         setDrawerProps({ confirmLoading: false });
         return;
       }
       const incompatibleModels = (values.model_ids || [])
         .map((id: any) => modelMap.value.get(Number(id)))
-        .filter((model: any) => model && !isModelCompatibleWithProfile(model, 'rk3588'));
+        .filter((model: any) => model && !isModelCompatibleWithProfile(model, effectiveRuntimeTarget));
       if (incompatibleModels.length) {
         const names = incompatibleModels
           .map((model: any) => model?.name || model?.label || model?.id)
           .filter(Boolean)
           .join('、');
-        createMessage.error(`RK3588 只接受 .rknn 模型，以下模型不兼容：${names}`);
+        createMessage.error(`${hardwareLabel} 只接受 ${modelSuffix} 模型，以下模型不兼容：${names}`);
         confirmLoading.value = false;
         setDrawerProps({ confirmLoading: false });
         return;
