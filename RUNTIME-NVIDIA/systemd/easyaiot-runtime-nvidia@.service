@@ -1,0 +1,17 @@
+[Unit]
+Description=EasyAIoT RUNTIME-NVIDIA task %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=@PREFIX@/bin/RUNTIME @CONFIG_DIR@/%i.ini
+Restart=always
+RestartSec=2
+LimitNOFILE=1048576
+Environment=CUDA_DEVICE_ORDER=PCI_BUS_ID
+Environment=CUDA_MODULE_LOADING=LAZY
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
