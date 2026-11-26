@@ -51,7 +51,21 @@ prompt_deepseek_api_key() {
   echo ""
   echo "[harness] AI 助手需 DeepSeek API Key 才能对话；也可跳过，稍后在 Web UI 配置。"
   echo "[harness] 注册 / 充值：https://platform.deepseek.com/"
-  read -r -p "请输入 DeepSeek API Key [回车跳过]: " _ds_key || _ds_key=""
+  local _key_timeout="${EASYAIOT_HARNESS_KEY_TIMEOUT:-30}"
+  if ! [[ "${_key_timeout}" =~ ^[1-9][0-9]*$ ]]; then
+    _key_timeout=30
+  fi
+  local _read_rc=0
+  read -r -t "${_key_timeout}" \
+    -p "请输入 DeepSeek API Key [回车跳过，${_key_timeout} 秒后自动跳过]: " \
+    _ds_key || _read_rc=$?
+  if [[ "${_read_rc}" -gt 128 ]]; then
+    echo ""
+    echo "[harness] 输入超时（${_key_timeout} 秒），自动回车并跳过，DeepSeek Key 保持为空"
+  fi
+  if [[ "${_read_rc}" -ne 0 ]]; then
+    _ds_key=""
+  fi
   _ds_key="$(echo "${_ds_key}" | xargs)"
   if [[ -z "${_ds_key}" ]]; then
     echo "[harness] 已跳过 — 打开 :3080 → Settings → Models 填写 Key 即可"
