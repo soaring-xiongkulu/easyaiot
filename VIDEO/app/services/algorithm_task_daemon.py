@@ -752,7 +752,7 @@ class AlgorithmTaskDaemon:
         if self._extra_env:
             env.update(self._extra_env)
         disable_post_for_http_alerts(env)
-        # 芯片专用运行时使用自身 NPU/TPU 与媒体单元，不加载 CUDA/ONNX。
+        # RK/BM 使用自身 NPU/TPU；NVIDIA 显式走 CUDA，但三种专用运行时都不加载 ORT。
         if runtime_target in ('rk3588', 'bm1688'):
             env['USE_GPU'] = 'false'
             env['RUNTIME_PREFER_GPU'] = 'false'
@@ -765,8 +765,8 @@ class AlgorithmTaskDaemon:
         try:
             lib_path = runtime_library_path_env(runtime_target)
             if lib_path:
-                if runtime_target in ('rk3588', 'bm1688'):
-                    # 不继承进程级通用 ONNX/CUDA 路径，避免与厂商 SDK 系统库冲突
+                if runtime_target in ('rk3588', 'bm1688', 'nvidia'):
+                    # 不继承进程级通用 ONNX 路径；NVIDIA 的 CUDA/TensorRT 已由专用解析器给出
                     env['LD_LIBRARY_PATH'] = lib_path
                 else:
                     existing = (env.get('LD_LIBRARY_PATH') or '').strip()

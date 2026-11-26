@@ -671,7 +671,7 @@ def _build_stream_forward_deploy_env(
                 env['RUNTIME_PREFER_GPU'] = 'false'
             lib_path = runtime_library_path_env(runtime_target)
             if lib_path:
-                if runtime_target in ('rk3588', 'bm1688'):
+                if runtime_target in ('rk3588', 'bm1688', 'nvidia'):
                     env['LD_LIBRARY_PATH'] = lib_path
                 else:
                     existing = (env.get('LD_LIBRARY_PATH') or '').strip()

@@ -47,3 +47,4 @@ face_rec.onnx
 scrfd_10g.onnx
 .recording-storage.env
 .docker-compose.runc.override.yaml
+.runtime-nvidia-libs/
