@@ -36,6 +36,7 @@ from app.utils.algorithm_detection_draw import (
     yolo_results_to_detections,
 )
 from app.utils.rtsp_stream_pipeline import RtspStreamPipeline
+from app.utils.srs_host import resolve_srs_play_host, resolve_srs_publish_host
 from app.utils.stream_detect_utils import (
     build_stream_detect_config,
     warmup_stream_detection,
@@ -121,6 +122,7 @@ class InferenceService:
         self.onnx_cache = {}  # ONNX模型实例缓存
         self.media_server = self._get_media_server_url()
         self.specified_model_path = None  # 外部指定的模型文件路径
+        self._local_srs_host: Optional[str] = None
 
     def _get_media_server_url(self):
         """从环境变量获取推流服务器地址"""
@@ -134,9 +136,16 @@ class InferenceService:
         return parsed.hostname or '127.0.0.1'
 
     def _get_local_srs_host(self) -> str:
-        """本机 SRS 地址（拉流/推流优先走 localhost，与 VIDEO 转发一致）"""
-        host = (os.getenv('MODEL_AI_SRS_HOST') or '127.0.0.1').strip()
-        return host or '127.0.0.1'
+        """AI 服务实际用于推流的 SRS 地址，兼容 host 与 bridge 网络。"""
+        if not self._local_srs_host:
+            self._local_srs_host = resolve_srs_publish_host(
+                port=self._get_local_srs_rtmp_port(),
+            )
+        return self._local_srs_host
+
+    @staticmethod
+    def _get_srs_play_host() -> str:
+        return resolve_srs_play_host()
 
     def _get_stream_pull_hosts(self) -> list[str]:
         """SRS 拉流主机候选：loopback、MODEL_AI_PUSH_URL 主机、POD_IP。"""
@@ -212,7 +221,7 @@ class InferenceService:
         local_server = self._get_local_media_server()
         output_rtmp = f'{local_server}/{stream_path}'
         output_http = (
-            f'http://{self._get_local_srs_host()}:{self._get_srs_http_port()}/{stream_path}.flv'
+            f'http://{self._get_srs_play_host()}:{self._get_srs_http_port()}/{stream_path}.flv'
         )
         return output_rtmp, output_http
 
@@ -1499,8 +1508,7 @@ class InferenceService:
                         output_path  # 输出文件
                     ]
                 
-                logging.warning(f"执行FFmpeg命令: {' '.join(ffmpeg_cmd)}")
-                
+                logging.info(f"执行FFmpeg命令: {' '.join(ffmpeg_cmd)}")
                 try:
                     result = subprocess.run(
                         ffmpeg_cmd,
@@ -1508,29 +1516,20 @@ class InferenceService:
                         stderr=subprocess.PIPE,
                         timeout=300  # 5分钟超时
                     )
-                    if result.returncode != 0:
-                        error_msg = result.stderr.decode('utf-8', errors='ignore')
-                        logging.warning(f"FFmpeg转换失败，使用原始视频: {error_msg}")
-                        # 如果FFmpeg失败，使用原始视频（可能浏览器不支持，但至少不会报错）
-                        if os.path.exists(temp_output_path):
-                            shutil.copy2(temp_output_path, output_path)
-                    else:
-                        logging.info(f"FFmpeg转换成功: {output_path}")
-                        # 删除临时文件
-                        if os.path.exists(temp_output_path):
-                            os.unlink(temp_output_path)
-                except subprocess.TimeoutExpired:
-                    logging.error("FFmpeg转换超时，使用原始视频")
-                    if os.path.exists(temp_output_path):
-                        shutil.copy2(temp_output_path, output_path)
-                except FileNotFoundError:
-                    logging.warning("FFmpeg未找到，使用原始视频（可能浏览器不支持mp4v编码）")
-                    if os.path.exists(temp_output_path):
-                        shutil.copy2(temp_output_path, output_path)
-                except Exception as e:
-                    logging.error(f"FFmpeg转换出错: {str(e)}，使用原始视频")
-                    if os.path.exists(temp_output_path):
-                        shutil.copy2(temp_output_path, output_path)
+                except subprocess.TimeoutExpired as exc:
+                    raise RuntimeError('FFmpeg 转换 H.264 超时，未生成浏览器可播放结果') from exc
+                except FileNotFoundError as exc:
+                    raise RuntimeError('运行环境缺少 FFmpeg，无法生成浏览器可播放的 H.264 视频') from exc
+
+                if result.returncode != 0:
+                    error_msg = result.stderr.decode('utf-8', errors='ignore')[-2000:]
+                    raise RuntimeError(f'FFmpeg 转换 H.264 失败: {error_msg}')
+                if not os.path.isfile(output_path) or os.path.getsize(output_path) == 0:
+                    raise RuntimeError('FFmpeg 未生成有效的 H.264 输出文件')
+
+                logging.info(f"FFmpeg转换成功: {output_path}")
+                if os.path.exists(temp_output_path):
+                    os.unlink(temp_output_path)
 
                 # 上传结果到MinIO（使用推理结果专用bucket）
                 date_str = datetime.now().strftime('%Y%m%d')
@@ -1545,8 +1544,9 @@ class InferenceService:
                 if upload_success:
                     result_url = f"/api/v1/buckets/{self.inference_results_bucket}/objects/download?prefix={object_key}"
                 else:
-                    result_url = None
-                    logging.error(f"视频结果上传到MinIO失败: {object_key}")
+                    raise RuntimeError(
+                        f"视频结果上传到MinIO失败: {object_key}: {upload_error or '未知错误'}"
+                    )
 
                 # 更新数据库（在应用上下文中）
                 record = InferenceTask.query.get(record_id)
@@ -1624,7 +1624,7 @@ class InferenceService:
                 stream_name = f"stream_{self.model_id}_{int(time.time())}"
                 output_url = f"{local_server}/live/{stream_name}"
                 play_url = (
-                    f"http://{self._get_local_srs_host()}:{self._get_srs_http_port()}"
+                    f"http://{self._get_srs_play_host()}:{self._get_srs_http_port()}"
                     f"/live/{stream_name}.flv"
                 )
 

@@ -53,6 +53,8 @@ class RtspStreamPipeline:
 
         self._detect_queue: queue.Queue = queue.Queue(maxsize=1)
         self._push_stop = threading.Event()
+        self._push_failure = threading.Event()
+        self._push_error: Optional[str] = None
 
     def run(self) -> None:
         detect_thread = threading.Thread(
@@ -80,6 +82,15 @@ class RtspStreamPipeline:
             self._push_stop.set()
             detect_thread.join(timeout=3)
             push_thread.join(timeout=3)
+        if self._push_error:
+            raise RuntimeError(self._push_error)
+
+    def _fail_push(self, message: str) -> None:
+        if self.stop_event.is_set() or self._push_stop.is_set():
+            return
+        self._push_error = message
+        self._push_failure.set()
+        logging.error(message)
 
     def _enqueue_detection(self, frame: np.ndarray, frame_number: int) -> None:
         payload = {'frame': frame.copy(), 'frame_number': frame_number}
@@ -134,7 +145,11 @@ class RtspStreamPipeline:
 
     def _read_loop(self) -> None:
         frame_number = 0
-        while self.reader.alive and not self.stop_event.is_set():
+        while (
+            self.reader.alive
+            and not self.stop_event.is_set()
+            and not self._push_failure.is_set()
+        ):
             frame = self.reader.read()
             if frame is None:
                 time.sleep(0.02)
@@ -168,7 +183,15 @@ class RtspStreamPipeline:
             last_push_time = time.perf_counter()
 
             proc = self.ffmpeg_process
-            if proc is None or proc.poll() is not None:
+            if proc is None:
+                self._fail_push('RTSP 推流进程未启动')
+                break
+            return_code = proc.poll()
+            if return_code is not None:
+                self._fail_push(f'RTSP 推流进程已退出，exit={return_code}')
+                break
+            if proc.stdin is None:
+                self._fail_push('RTSP 推流进程缺少标准输入管道')
                 break
 
             with self._output_lock:
@@ -185,7 +208,8 @@ class RtspStreamPipeline:
                     proc.stdin.flush()
                 push_count += 1
             except BrokenPipeError:
+                self._fail_push('RTSP 推流管道已断开，请检查 SRS 发布地址与服务状态')
                 break
             except Exception as exc:
-                logging.error('RTSP 固定推帧失败: %s', exc)
+                self._fail_push(f'RTSP 固定推帧失败: {exc}')
                 break

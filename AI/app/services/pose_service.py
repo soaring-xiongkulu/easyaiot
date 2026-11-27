@@ -203,14 +203,14 @@ class PoseService:
                 stream_path = f'ai/pose_{device_id}_m{model_suffix}'
                 output_url = f'{local_server}/{stream_path}'
                 play_url = (
-                    f'http://{self._inference._get_local_srs_host()}:{self._inference._get_srs_http_port()}'
+                    f'http://{self._inference._get_srs_play_host()}:{self._inference._get_srs_http_port()}'
                     f'/{stream_path}.flv'
                 )
             else:
                 stream_name = f'pose_{self.model_id or 0}_{int(time.time())}'
                 output_url = f'{local_server}/live/{stream_name}'
                 play_url = (
-                    f'http://{self._inference._get_local_srs_host()}:{self._inference._get_srs_http_port()}'
+                    f'http://{self._inference._get_srs_play_host()}:{self._inference._get_srs_http_port()}'
                     f'/live/{stream_name}.flv'
                 )
 
