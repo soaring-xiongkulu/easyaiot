@@ -77,6 +77,8 @@ class TestDeployProfileMinioEnv(unittest.TestCase):
                 values["MINIO_ENDPOINT"],
                 "host.docker.internal:9000",
             )
+            self.assertEqual(values["MODEL_AI_SRS_HOST"], "srs-server")
+            self.assertEqual(values["MODEL_AI_SRS_PLAY_HOST"], "127.0.0.1")
 
     def test_mini_linux_ai_uses_host_network_minio(self) -> None:
         _apply_profile(self.root, profile="mini", desktop_os=None)
@@ -85,6 +87,7 @@ class TestDeployProfileMinioEnv(unittest.TestCase):
             values = _read_env(self.root / "AI" / name)
             self.assertEqual(values["MINIO_ENABLED"], "true")
             self.assertEqual(values["MINIO_ENDPOINT"], "localhost:9000")
+            self.assertEqual(values["MODEL_AI_SRS_HOST"], "127.0.0.1")
 
     def test_edge_does_not_enable_ai_minio(self) -> None:
         _apply_profile(self.root, profile="edge", desktop_os="mac")

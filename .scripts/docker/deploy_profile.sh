@@ -920,7 +920,7 @@ apply_python_service_deploy_env() {
     if [ -z "$root" ]; then
         root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
     fi
-    local module env_file stream_ticket_secret
+    local module env_file stream_ticket_secret ai_compose_env
     stream_ticket_secret="$(_resolve_stream_ticket_secret "$root")"
     for module in VIDEO AI; do
         env_file="${root}/${module}/.env.docker"
@@ -928,6 +928,19 @@ apply_python_service_deploy_env() {
         _set_env_docker_kv "$env_file" EASYAIOT_DEPLOY_PROFILE "${EASYAIOT_DEPLOY_PROFILE:-full}"
         if [ "$module" = "VIDEO" ] && [ -n "$stream_ticket_secret" ]; then
             _set_env_docker_kv "$env_file" STREAM_TICKET_SECRET "$stream_ticket_secret"
+        fi
+        if [ "$module" = "AI" ]; then
+            # AI 推理结果必须发布到真正的 SRS 容器；播放地址仍返回页面可改写的 loopback。
+            ai_compose_env="${root}/${module}/.env"
+            if _deploy_profile_is_desktop_host; then
+                _set_env_docker_kv "$env_file" MODEL_AI_SRS_HOST "srs-server"
+                [ ! -f "$ai_compose_env" ] || _set_env_docker_kv "$ai_compose_env" MODEL_AI_SRS_HOST "srs-server"
+            else
+                _set_env_docker_kv "$env_file" MODEL_AI_SRS_HOST "127.0.0.1"
+                [ ! -f "$ai_compose_env" ] || _set_env_docker_kv "$ai_compose_env" MODEL_AI_SRS_HOST "127.0.0.1"
+            fi
+            _set_env_docker_kv "$env_file" MODEL_AI_SRS_PLAY_HOST "127.0.0.1"
+            [ ! -f "$ai_compose_env" ] || _set_env_docker_kv "$ai_compose_env" MODEL_AI_SRS_PLAY_HOST "127.0.0.1"
         fi
 
         if is_edge_deploy_profile; then
@@ -1040,7 +1053,7 @@ apply_python_service_deploy_env() {
             # VIDEO 会把截图写入 RustFS/MinIO 并返回 /api/v1/buckets/...；AI
             # 的同源代理必须读取同一对象存储。mini 若未显式开启会按本地目录
             # 处理，导致已成功抓拍的图片在 WEB 质量校验时返回 404。
-            local ai_compose_env="${root}/${module}/.env"
+            ai_compose_env="${root}/${module}/.env"
             local ai_minio_endpoint="localhost:9000"
             if _deploy_profile_is_desktop_host; then
                 # Docker Desktop 使用 bridge，容器内 localhost 指向 AI 自身。

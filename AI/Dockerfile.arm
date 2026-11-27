@@ -98,6 +98,12 @@ RUN set -ex && \
         libxcb-devel \
         libXinerama \
         && \
+    # ARM 运行时必须具备 H.264 转码能力，不能把浏览器不兼容的 mp4v 结果当成功返回
+    yum install -y dnf-plugins-core epel-release && \
+    (yum config-manager --set-enabled powertools || yum config-manager --set-enabled PowerTools || true) && \
+    yum install -y https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm && \
+    yum install -y ffmpeg && \
+    ffmpeg -version && \
     # 清理缓存
     yum clean all && \
     rm -rf /var/cache/yum

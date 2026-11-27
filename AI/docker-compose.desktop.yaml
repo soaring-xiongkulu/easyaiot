@@ -17,6 +17,8 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:9092
       - TDENGINE_HOST=host.docker.internal
       - JAVA_BACKEND_URL=http://iot-system:48099
+      - MODEL_AI_SRS_HOST=srs-server
+      - MODEL_AI_SRS_PLAY_HOST=127.0.0.1
     networks:
       - easyaiot-network
 
