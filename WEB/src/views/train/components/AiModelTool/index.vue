@@ -636,6 +636,7 @@ interface AppState {
   cameraStreamActive: boolean;
   cameraInferenceRecordId: number | null;
   cameraInferenceDeviceId: string;
+  cameraStatusPollTimer: number | null;
   analysisType: 'detect' | 'pose';
   posePollTimer: number | null;
   poseJobId: string | null;
@@ -689,6 +690,7 @@ const state = reactive<AppState>({
   cameraStreamActive: false,
   cameraInferenceRecordId: null,
   cameraInferenceDeviceId: '',
+  cameraStatusPollTimer: null,
   analysisType: 'detect',
   posePollTimer: null,
   poseJobId: null,
@@ -1236,6 +1238,7 @@ const startPoseAnalysis = async () => {
       state.cameraStreamActive = true;
       state.detectionStatus = 'running';
       state.statusText = '实时姿态分析中';
+      startCameraStatusPolling(state.cameraInferenceRecordId);
       createMessage.success('实时姿态分析已启动');
       return;
     }
@@ -1604,6 +1607,7 @@ const startDetection = async () => {
           state.cameraStreamActive = true;
           state.detectionStatus = 'running';
           state.statusText = '实时推理中';
+          startCameraStatusPolling(state.cameraInferenceRecordId);
           createMessage.success('实时推理已启动');
           return;
         } else {
@@ -2061,10 +2065,57 @@ const handleCameraChange = async () => {
   await reloadSelectedCameraPreview();
 };
 
+const stopCameraStatusPolling = () => {
+  if (state.cameraStatusPollTimer !== null) {
+    window.clearInterval(state.cameraStatusPollTimer);
+    state.cameraStatusPollTimer = null;
+  }
+};
+
+const pollCameraInferenceStatus = async (recordId: number) => {
+  try {
+    const response: any = await getInferenceTaskDetail(recordId);
+    const taskData = response?.code === 0 ? response.data : (response?.data?.status ? response.data : response);
+    const status = String(taskData?.status || '').toUpperCase();
+    if (status === 'FAILED') {
+      stopCameraStatusPolling();
+      state.cameraStreamActive = false;
+      state.cameraResultUrl = null;
+      state.cameraInferenceRecordId = null;
+      state.cameraInferenceDeviceId = '';
+      state.inferenceLoading = false;
+      state.detectionStatus = 'failed';
+      state.statusText = '实时推理启动失败';
+      createMessage.error(taskData?.error_message || '实时推理流发布失败，请检查 SRS 服务');
+    } else if (status === 'STOPPED' || status === 'COMPLETED') {
+      stopCameraStatusPolling();
+      state.cameraStreamActive = false;
+      state.cameraResultUrl = null;
+      state.cameraInferenceRecordId = null;
+      state.cameraInferenceDeviceId = '';
+      state.inferenceLoading = false;
+      state.detectionStatus = 'idle';
+      state.statusText = status === 'STOPPED' ? '实时推理已停止' : '实时推理流已结束';
+    }
+  } catch (error) {
+    console.warn('查询实时推理状态失败，将继续重试:', error);
+  }
+};
+
+const startCameraStatusPolling = (recordId: number | null) => {
+  stopCameraStatusPolling();
+  if (!recordId) return;
+  void pollCameraInferenceStatus(recordId);
+  state.cameraStatusPollTimer = window.setInterval(() => {
+    void pollCameraInferenceStatus(recordId);
+  }, POLLING_INTERVAL);
+};
+
 const stopCameraInference = async (showMsg = true) => {
   if (!state.cameraStreamActive && !state.cameraInferenceRecordId) {
     return;
   }
+  stopCameraStatusPolling();
   try {
     if (isPoseMode.value) {
       await poseRtspStop({ stop_all: true });
@@ -2086,6 +2137,28 @@ const stopCameraInference = async (showMsg = true) => {
   if (showMsg && state.activeSource === 'camera') {
     createMessage.info('已停止实时推理');
   }
+};
+
+let pageIsHiding = false;
+
+const stopCameraInferenceKeepalive = () => {
+  if (!state.cameraStreamActive && !state.cameraInferenceRecordId) return;
+  pageIsHiding = true;
+  stopCameraStatusPolling();
+  const apiBase = String(import.meta.env.VITE_GLOB_API_URL || '/dev-api').replace(/\/$/, '');
+  const stopPath = isPoseMode.value
+    ? '/model/pose/rtsp/stop'
+    : '/model/inference_task/inference/rtsp/stop';
+  void fetch(`${apiBase}${stopPath}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`,
+    },
+    credentials: 'include',
+    keepalive: true,
+    body: JSON.stringify({ stop_all: true }),
+  }).catch((error) => console.warn('离开页面时停止实时推理失败:', error));
 };
 
 // 处理图片加载错误
@@ -2604,6 +2677,7 @@ const handleHistoryRecordChange = async () => {
 
 // 初始化
 onMounted(() => {
+  window.addEventListener('pagehide', stopCameraInferenceKeepalive);
   loadDetectionParams();
   loadModels();
   loadInferenceHistory();
@@ -2628,9 +2702,13 @@ onMounted(() => {
 
 // 组件卸载时清理
 onUnmounted(() => {
+  window.removeEventListener('pagehide', stopCameraInferenceKeepalive);
   stopPollingInferenceResult();
   stopPosePolling();
-  stopCameraInference(false);
+  stopCameraStatusPolling();
+  if (!pageIsHiding) {
+    void stopCameraInference(false);
+  }
   cleanupVideoUrl();
 });
 </script>
