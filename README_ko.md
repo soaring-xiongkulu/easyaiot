@@ -285,6 +285,10 @@ RK3588 모듈은 장비가 로컬에서 실시간 추론을 수행하고 장기�
 - VIDEO에서 BM1688 로컬 실시간 대상을 직접 선택하고, 알람은 MQTT → iot-sink 공통 계약으로 저장합니다. 런타임만 단독 납품할 수도 있습니다.
 - `/health`와 `/metrics`에서 실제 프레임, 추론 시간, 오류, 링 드롭을 확인합니다.
 
+**BM1688 시스템 아키텍처**
+
+![BM1688 듀얼 TPU 엣지 AI 모듈 아키텍처](.images/bm1688/bm1688-architecture.png)
+
 카메라마다 감독 작업 하나를 두며 `model_path_1`, `model_path_2`로 한 스트림에 여러 BModel을 연결할 수 있습니다. BM1688 단독·클러스터 명령은 위 배포 매트릭스에 모았습니다.
 
 ### 🚀 NVIDIA GPU 엣지 AI 모듈
@@ -295,6 +299,10 @@ RK3588 모듈은 장비가 로컬에서 실시간 추론을 수행하고 장기�
 - TensorRT I/O 사전 할당과 고정 용량 링으로 메모리 상한을 보장합니다. “제로 메모리”는 호스트 프레임 복사와 무제한 증가가 없다는 뜻입니다.
 - 대상 박스에서 만든 정적 `.engine` / `.plan`만 허용하며 ONNX Runtime, CPU, 소프트웨어 디코딩으로 우회하지 않습니다.
 - VIDEO에서 NVIDIA 로컬 실시간 대상을 명확히 선택하고 `/health`, `/metrics`로 GPU·지연·stream·드롭을 실측합니다.
+
+**NVIDIA GPU 시스템 아키텍처**
+
+![NVIDIA GPU 엣지 AI 모듈 아키텍처](.images/nvidia/nvidia-architecture.png)
 
 TensorRT engine은 대상 GPU와 TensorRT 버전에 맞춰 실제 박스에서 빌드해야 합니다. 카메라마다 감독 작업 하나를 두고 `model_path_1`, `model_path_2`로 한 스트림에 여러 engine을 연결할 수 있습니다. NVIDIA 단독·클러스터 명령은 위 배포 매트릭스에 모았습니다.
 

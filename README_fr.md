@@ -285,6 +285,10 @@ Rattaché au centre, le boîtier apparaît dans le menu indépendant **Edge Comp
 - VIDEO expose une cible BM1688 temps réel locale, avec persistance commune MQTT → iot-sink ; le runtime peut aussi être livré seul.
 - `/health` et `/metrics` donnent les mesures réelles : images, latence d'inférence, erreurs et pertes des anneaux.
 
+**Architecture système BM1688**
+
+![Architecture du module Edge AI BM1688 à double cœur TPU](.images/bm1688/bm1688-architecture.png)
+
 Chaque caméra dispose d'une tâche supervisée ; `model_path_1`, `model_path_2`, etc. associent plusieurs BModels à un flux. Les commandes BM1688 autonome et cluster sont centralisées dans la matrice ci-dessus.
 
 ### 🚀 Module Edge AI NVIDIA GPU
@@ -295,6 +299,10 @@ Chaque caméra dispose d'une tâche supervisée ; `model_path_1`, `model_path_2`
 - E/S TensorRT préallouées et anneaux bornés : « zéro mémoire » signifie zéro copie d'image hôte et aucune croissance sans limite, pas zéro RAM/VRAM.
 - Seuls `.engine` / `.plan` statiques construits sur le boîtier cible sont acceptés. Aucun repli ONNX Runtime, CPU ou décodage logiciel.
 - VIDEO expose NVIDIA comme cible temps réel locale explicite ; `/health` et `/metrics` donnent GPU, latence, streams, octets préalloués et pertes réelles.
+
+**Architecture système NVIDIA GPU**
+
+![Architecture du module Edge AI NVIDIA GPU](.images/nvidia/nvidia-architecture.png)
 
 Les engines TensorRT doivent être construits sur le boîtier cible pour son GPU et sa version TensorRT. Une caméra correspond à une tâche supervisée ; `model_path_1`, `model_path_2`, etc. ajoutent plusieurs engines au même flux. Les commandes NVIDIA autonome et cluster sont centralisées dans la matrice ci-dessus.
 

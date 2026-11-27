@@ -285,6 +285,10 @@ RK3588 模組決定設備能否在本地即時推理並長期穩定運行；緊�
 - **統一且可獨立**：VIDEO 可直接選擇 BM1688 即時任務，告警按 MQTT → iot-sink 統一落庫；也能完全不啟動平台其他模組而獨立交付。
 - **效能可驗證**：`/health` 與 `/metrics` 顯示真實幀數、耗時、錯誤及佇列丟幀；吞吐以實際盒子、BModel、batch、解析度與 SDK 實測為準。
 
+**BM1688 系統架構**
+
+![BM1688 雙核 TPU 邊緣 AI 模組架構圖](.images/bm1688/bm1688-architecture.png)
+
 每一路攝影機對應一個受監管任務；同一配置可用 `model_path_1`、`model_path_2` 綁定多個 BModel。BM1688 的單體與集群命令已集中在上方部署矩陣。
 
 ### 🚀 NVIDIA GPU 邊緣 AI 模組
@@ -295,6 +299,10 @@ RK3588 模組決定設備能否在本地即時推理並長期穩定運行；緊�
 - TensorRT I/O 啟動時預先配置，環狀佇列容量固定；「零記憶體」是零主機影格複製與零無界增長，不是完全不佔 RAM/VRAM。
 - 只接受在目標盒子建立的靜態 `.engine` / `.plan`；不回退 ONNX Runtime、CPU 或軟體解碼。
 - VIDEO 明確提供 NVIDIA 本機即時目標，`/health` 與 `/metrics` 顯示 GPU、延遲、stream、預分配位元組與丟幀實測。
+
+**NVIDIA GPU 系統架構**
+
+![NVIDIA GPU 邊緣 AI 模組架構圖](.images/nvidia/nvidia-architecture.png)
 
 TensorRT engine 必須依目標 GPU 架構與 TensorRT 版本在實際盒子上固化；每一路攝影機對應一個受監管任務，同一路可用 `model_path_1`、`model_path_2` 綁定多個 engine。NVIDIA 的單體與集群命令已集中在上方部署矩陣。
 

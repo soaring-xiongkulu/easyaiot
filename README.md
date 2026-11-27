@@ -289,6 +289,10 @@ When attached to a center, the box appears under the independent **Edge Computin
 - VIDEO exposes BM1688 as an explicit local realtime target, while alerts retain the common MQTT → iot-sink persistence contract. The runtime can also be delivered alone.
 - `/health` and `/metrics` report measured frames, inference time, errors and ring drops; throughput claims are tied to the actual box, BModel, batch, resolution, firmware and SDK.
 
+**BM1688 System Architecture**
+
+![BM1688 dual-TPU edge AI module architecture](.images/bm1688/bm1688-architecture.png)
+
 Each camera has one supervised task, while `model_path_1`, `model_path_2`, and so on bind multiple BModels to one stream. The dedicated runtime does not start unrelated modules; BM1688 standalone and cluster commands are centralized in the deployment matrix above.
 
 ### 🚀 NVIDIA GPU Edge AI Module
@@ -300,6 +304,10 @@ Each camera has one supervised task, while `model_path_1`, `model_path_2`, and s
 - **Hard contract, not optimistic fallback:** only target-box-built static `.engine` / `.plan` files are accepted. Missing CUDA, TensorRT 10+, FFmpeg CUDA/NVDEC, a static shape, or CUDA Graph support fails explicitly; ONNX Runtime, CPU inference and software decode are absent from the execution path.
 - **One abstraction above several chips:** VIDEO presents NVIDIA beside RK3588 and BM1688 as an explicit local realtime target. Camera/task/alarm contracts remain common, while the lower runtime uses the correct silicon API.
 - **Performance must be proven on the box:** `/health` and `/metrics` expose the GPU and compute capability, active streams, inference latency, preallocated bytes and ring drops. No synthetic fixed FPS promise replaces deployment measurements.
+
+**NVIDIA GPU System Architecture**
+
+![NVIDIA GPU edge AI module architecture](.images/nvidia/nvidia-architecture.png)
 
 TensorRT engines must be built on the target box for its GPU architecture and TensorRT version. Each camera uses a supervised task, while `model_path_1`, `model_path_2`, and so on attach multiple engines to one stream. NVIDIA standalone and cluster commands are centralized in the deployment matrix above.
 

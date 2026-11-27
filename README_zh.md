@@ -285,6 +285,10 @@ RK3588 模块决定设备能否在本地实时推理并长期稳定运行；紧�
 - **接入平台但不绑死平台**：VIDEO 里选择“BM1688 · VPU + VPSS/BMCV + 双核 TPU”即可创建本机实时任务；告警仍按统一契约进入 MQTT → iot-sink 落库。独立交付时也可只装这个模块。
 - **性能有数可查**：每个任务暴露 `/health` 与 `/metrics`，真实显示推理帧数、推理耗时、错误和各环形队列丢帧；性能结论以盒子、BModel、batch、分辨率和 SDK 的现场实测为准。
 
+**BM1688 系统架构**
+
+![BM1688 双核 TPU 边缘 AI 模块架构图](.images/bm1688/bm1688-architecture.png)
+
 每路摄像头对应一个受监管任务，配置中的 `model_path_1`、`model_path_2` 可让同一路视频经过多个 BModel。专用运行时不会启动无关模块；BM1688 的单体与集群命令已集中在上方部署矩阵。
 
 ### 🚀 NVIDIA GPU 边缘 AI 模块
@@ -296,6 +300,10 @@ RK3588 模块决定设备能否在本地实时推理并长期稳定运行；紧�
 - **缺硬件就失败，不制造假加速**：只接受在目标盒子构建的静态 `.engine` / `.plan`；CUDA、TensorRT 10+、FFmpeg CUDA/NVDEC、静态 shape 或 CUDA Graph 条件不满足都会明确报错，执行路径中没有 ONNX Runtime、CPU 推理和软件解码。
 - **上层统一、下层按芯片跑对**：VIDEO 把 NVIDIA 与 RK3588、BM1688 并列成明确的本机实时目标；摄像头、任务和告警接口保持统一，下层分别调用正确的芯片 API。
 - **性能靠现场数据而不是口号**：`/health` 与 `/metrics` 显示 GPU 型号、Compute Capability、推理流数、真实耗时、预分配字节和队列丢帧，不在脱离盒子、模型与功耗模式时承诺固定 FPS。
+
+**NVIDIA GPU 系统架构**
+
+![NVIDIA GPU 边缘 AI 模块架构图](.images/nvidia/nvidia-architecture.png)
 
 TensorRT engine 必须在实际目标盒子上按 GPU 架构与 TensorRT 版本固化；每路摄像头使用独立受监管任务，同一路多模型继续使用 `model_path_1`、`model_path_2`。NVIDIA 的单体与集群命令已集中在上方部署矩阵。
 
