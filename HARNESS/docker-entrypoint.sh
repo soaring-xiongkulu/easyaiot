@@ -14,6 +14,13 @@ ln -sfn /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/d
 ln -sfn /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis \
   /harness/plugins/node_modules/@deepseek-ai/cordis
 
+DSH_PATCH_SCRIPT="${HARNESS_DSH_PATCH_SCRIPT:-/harness/scripts/patch-dsh-patch-watch.sh}"
+if [[ ! -f "${DSH_PATCH_SCRIPT}" ]]; then
+  echo "[harness] ERROR: dsh 兼容脚本不存在: ${DSH_PATCH_SCRIPT}" >&2
+  exit 1
+fi
+bash "${DSH_PATCH_SCRIPT}"
+
 if [[ -x /harness/image/apply-branding.sh ]]; then
   /harness/image/apply-branding.sh
 fi
@@ -125,26 +132,124 @@ if [[ -d "${DSH_HOME:-/data/dsh-home}/sessions/--harness--" ]]; then
   echo "[harness] WARN: sessions/--harness-- still present after purge"
 fi
 
+CHILD_PIDS=()
+CHILD_NAMES=()
+
+cleanup() {
+  local exit_code=$?
+  local pid=""
+  trap - EXIT INT TERM
+  for pid in "${CHILD_PIDS[@]}"; do
+    kill "${pid}" >/dev/null 2>&1 || true
+  done
+  for pid in "${CHILD_PIDS[@]}"; do
+    wait "${pid}" >/dev/null 2>&1 || true
+  done
+  exit "${exit_code}"
+}
+
+trap cleanup EXIT
+trap 'exit 143' INT TERM
+
+wait_for_http() {
+  local label="$1"
+  local url="$2"
+  local attempts="$3"
+  local process_pid="$4"
+  local attempt=0
+
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if curl -fsS --connect-timeout 1 --max-time 3 "${url}" >/dev/null 2>&1; then
+      echo "[harness] ${label} ready: ${url}"
+      return 0
+    fi
+    if ! kill -0 "${process_pid}" 2>/dev/null; then
+      echo "[harness] ERROR: dsh exited before ${label} became ready" >&2
+      return 1
+    fi
+    sleep 1
+  done
+
+  echo "[harness] ERROR: timed out waiting for ${label}: ${url}" >&2
+  return 1
+}
+
+container_ipv4() {
+  local host_name="${HOSTNAME:-}"
+  local candidate=""
+
+  if [[ -z "${host_name}" ]]; then
+    host_name="$(hostname 2>/dev/null || true)"
+  fi
+  if [[ -n "${host_name}" && -r /etc/hosts ]]; then
+    candidate="$(awk -v host="${host_name}" '
+      $1 !~ /:/ && $1 !~ /^127\./ {
+        for (i = 2; i <= NF; i++) {
+          if ($i == host) { print $1; exit }
+        }
+      }
+    ' /etc/hosts)"
+  fi
+  if [[ -z "${candidate}" ]]; then
+    for candidate in $(hostname -i 2>/dev/null || true); do
+      if [[ "${candidate}" != *:* && "${candidate}" != 127.* ]]; then
+        printf '%s\n' "${candidate}"
+        return 0
+      fi
+    done
+    return 1
+  fi
+  printf '%s\n' "${candidate}"
+}
+
 dsh "${LAUNCHER[@]}" &
 DSH_PID=$!
+CHILD_PIDS+=("${DSH_PID}")
+CHILD_NAMES+=("dsh")
 
-for _ in $(seq 1 90); do
-  if curl -fsS "http://${HOST}:${DSH_PORT}/" >/dev/null 2>&1; then
-    break
-  fi
-  if ! kill -0 "${DSH_PID}" 2>/dev/null; then
-    wait "${DSH_PID}" || true
-    exit 1
-  fi
-  sleep 1
-done
+wait_for_http "Web UI" "http://${HOST}:${DSH_PORT}/" 90 "${DSH_PID}"
 
 echo "[harness] dsh ready, socat 0.0.0.0:${PUBLIC_PORT} -> ${HOST}:${DSH_PORT}"
 echo "[harness] note: standalone browser access is redirected by brand.js to IDEA portal"
 
 # LLM 统一网关（easyaiot-llm-gateway 插件监听 127.0.0.1:LLM_GATEWAY_PORT），对外暴露同号端口
 LLM_GATEWAY_PORT="${LLM_GATEWAY_PORT:-3082}"
-socat TCP-LISTEN:"${LLM_GATEWAY_PORT}",fork,reuseaddr,bind=0.0.0.0 TCP:"127.0.0.1:${LLM_GATEWAY_PORT}" &
-echo "[harness] llm-gateway socat 0.0.0.0:${LLM_GATEWAY_PORT} -> 127.0.0.1:${LLM_GATEWAY_PORT}"
+wait_for_http "LLM gateway" "http://127.0.0.1:${LLM_GATEWAY_PORT}/api/llm/health" 60 "${DSH_PID}"
 
-exec socat TCP-LISTEN:"${PUBLIC_PORT}",fork,reuseaddr,bind=0.0.0.0 TCP:"${HOST}:${DSH_PORT}"
+CONTAINER_IP="$(container_ipv4)" || {
+  echo "[harness] ERROR: 无法确定容器 IPv4，LLM gateway 不能安全对外转发" >&2
+  exit 1
+}
+
+socat TCP-LISTEN:"${PUBLIC_PORT}",fork,reuseaddr,bind=0.0.0.0 TCP:"${HOST}:${DSH_PORT}" &
+PUBLIC_PROXY_PID=$!
+CHILD_PIDS+=("${PUBLIC_PROXY_PID}")
+CHILD_NAMES+=("Web UI proxy")
+
+# 不能监听 0.0.0.0：插件已占用 127.0.0.1 同号端口。仅绑定容器网卡地址供 Docker 映射访问。
+socat TCP-LISTEN:"${LLM_GATEWAY_PORT}",fork,reuseaddr,bind="${CONTAINER_IP}" TCP:"127.0.0.1:${LLM_GATEWAY_PORT}" &
+LLM_PROXY_PID=$!
+CHILD_PIDS+=("${LLM_PROXY_PID}")
+CHILD_NAMES+=("LLM gateway proxy")
+echo "[harness] llm-gateway socat ${CONTAINER_IP}:${LLM_GATEWAY_PORT} -> 127.0.0.1:${LLM_GATEWAY_PORT}"
+
+sleep 1
+for index in "${!CHILD_PIDS[@]}"; do
+  if ! kill -0 "${CHILD_PIDS[$index]}" 2>/dev/null; then
+    echo "[harness] ERROR: ${CHILD_NAMES[$index]} failed during startup" >&2
+    exit 1
+  fi
+done
+
+echo "[harness] all services ready; supervising dsh and TCP proxies"
+while true; do
+  for index in "${!CHILD_PIDS[@]}"; do
+    if ! kill -0 "${CHILD_PIDS[$index]}" 2>/dev/null; then
+      status=0
+      wait "${CHILD_PIDS[$index]}" || status=$?
+      echo "[harness] ERROR: ${CHILD_NAMES[$index]} exited unexpectedly (status=${status})" >&2
+      exit 1
+    fi
+  done
+  sleep 1
+done
