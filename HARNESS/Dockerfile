@@ -27,6 +27,8 @@ RUN chmod +x /usr/local/bin/harness-entrypoint.sh \
     /harness/image/apply-branding.sh \
     /harness/scripts/ensure-ux-plugins.sh \
     /harness/scripts/purge-harness-workspace.sh \
+    /harness/scripts/patch-dsh-patch-watch.sh \
+  && /harness/scripts/patch-dsh-patch-watch.sh \
   && HARNESS_APP_NAME=EasyAIoT HARNESS_APP_SHORT=EasyAIoT /harness/image/apply-branding.sh
 
 # 构建期预装侧边栏到 seed，首启可离线复制到 DSH_HOME volume
@@ -50,7 +52,7 @@ ENV HARNESS_ENABLE_SIDEBAR=1
 ENV HARNESS_SIDEBAR_PACKAGE=${HARNESS_SIDEBAR_PACKAGE}
 ENV HARNESS_UX_SEED=/harness/dsh-seed
 
-EXPOSE 3080
+EXPOSE 3080 3082
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=5 --start-period=120s \
   CMD curl -fsS "http://127.0.0.1:${HARNESS_LISTEN_PORT}/" >/dev/null || exit 1
